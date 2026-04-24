@@ -699,11 +699,13 @@ function formatTelValue(value: unknown): string {
   if (value === undefined) return "—";
   const n = Number(value);
   if (!Number.isNaN(n) && typeof value !== "boolean") return n.toFixed(2);
-  // Strings + booleans stringify cleanly. Complex values (arrays/objects)
-  // would otherwise hit Object's default "[object Object]"; JSON is more
-  // informative in a diagnostic readout.
+  // Explicit type-switch so `String(value)` can never fall onto Object's
+  // default "[object Object]" (or throw on a Symbol). Anything we don't
+  // have a sensible readout for becomes "—".
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "string") return value;
   if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+  return "—";
 }
 
 function TelemetryRow({

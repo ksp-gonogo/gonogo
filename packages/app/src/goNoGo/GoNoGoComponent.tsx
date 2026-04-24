@@ -255,7 +255,9 @@ function MainView({
 }: Readonly<{ config: GoNoGoWidgetConfig | undefined }>) {
   const host = useGoNoGoHost();
   const snapshot = useGoNoGoSnapshot();
-  const [, setNow] = useState(Date.now());
+  // Bumped from the countdown ticker below — useReducer so Sonar's
+  // "unused tuple element" rule (S6754) doesn't flag this.
+  const [, setNow] = useReducer((n: number, _action: unknown) => n + 1, 0);
 
   // Push the widget's config into the host service. Main-level settings
   // masquerade as per-widget config for user discoverability; if two widgets

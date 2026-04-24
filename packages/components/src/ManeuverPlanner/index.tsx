@@ -147,6 +147,79 @@ function planMatchInclination(
   );
 }
 
+/**
+ * All orbital scalars must be finite before we can construct a
+ * CurrentOrbit — otherwise the propagator hits NaNs and downstream
+ * widgets render garbage. Split out so the component body doesn't pay
+ * the complexity cost of a six-term && chain.
+ */
+function buildCurrentOrbit(vals: {
+  sma: number | undefined;
+  ecc: number | undefined;
+  ApR: number | undefined;
+  PeR: number | undefined;
+  timeToAp: number | undefined;
+  timeToPe: number | undefined;
+}): CurrentOrbit | null {
+  const { sma, ecc, ApR, PeR, timeToAp, timeToPe } = vals;
+  if (
+    !isFiniteNumber(sma) ||
+    !isFiniteNumber(ecc) ||
+    !isFiniteNumber(ApR) ||
+    !isFiniteNumber(PeR) ||
+    !isFiniteNumber(timeToAp) ||
+    !isFiniteNumber(timeToPe)
+  ) {
+    return null;
+  }
+  return { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe };
+}
+
+/**
+ * μ from live telemetry only — never the body-registry value. vis-viva
+ * (v²·a·r/(2a−r)) is preferred; Kepler's 3rd (4π²a³/T²) is the fallback
+ * for the brief window at scene load when orbitalSpeed/radius haven't
+ * streamed yet. Returns 0 when neither formula has usable inputs.
+ */
+function computeMu(
+  orbitalSpeed: number | undefined,
+  radius: number | undefined,
+  sma: number | undefined,
+  period: number | undefined,
+): number {
+  if (
+    isFiniteNumber(orbitalSpeed) &&
+    isFiniteNumber(radius) &&
+    isFiniteNumber(sma) &&
+    orbitalSpeed > 0 &&
+    sma > 0
+  ) {
+    const viaVisViva = gravParameterFromState(orbitalSpeed, radius, sma);
+    if (viaVisViva > 0) return viaVisViva;
+  }
+  if (isFiniteNumber(period) && isFiniteNumber(sma) && period > 0) {
+    return (4 * Math.PI * Math.PI * sma ** 3) / (period * period);
+  }
+  return 0;
+}
+
+/** True anomaly at the burn for drag-handle placement. Null outside the
+ *  custom-* presets or when inputs aren't ready. */
+function computeBurnTrueAnomaly(i: PlanInputs): number | null {
+  if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
+  if (i.preset === "custom-apo") return 180;
+  if (i.preset === "custom-peri") return 0;
+  if (i.preset !== "custom-ut") return null;
+  if (i.trueAnomaly === undefined) return null;
+  const burnUT =
+    i.utMode === "absolute"
+      ? i.burnAtUT
+      : i.currentUT + Math.max(0, i.burnInSeconds);
+  if (burnUT <= i.currentUT) return null;
+  return stateAtUT(i.currentOrbit, i.trueAnomaly, i.mu, i.currentUT, burnUT)
+    .trueAnomalyDeg;
+}
+
 function planMatchTargetPlane(i: PlanInputs): ManeuverPlan | null {
   if (
     !i.currentOrbit ||
@@ -227,34 +300,19 @@ function ManeuverPlannerComponent({
   const principia = physicsMode === "n_body";
   const body = getBody(bodyName ?? refBody ?? "");
 
-  // μ from live telemetry. Primary: vis-viva (v²·a·r / (2a−r)). Fallback:
-  // Kepler's 3rd (4π²a³/T²), useful when orbital speed / radius are still
-  // ramping up at scene load. Both pure telemetry — no body-registry μ.
-  const mu = useMemo(() => {
-    const viaVisViva =
-      isFiniteNumber(orbitalSpeed) &&
-      isFiniteNumber(radius) &&
-      isFiniteNumber(sma) &&
-      orbitalSpeed > 0 &&
-      sma > 0
-        ? gravParameterFromState(orbitalSpeed, radius, sma)
-        : 0;
-    if (viaVisViva > 0) return viaVisViva;
-    if (isFiniteNumber(period) && isFiniteNumber(sma) && period > 0) {
-      return (4 * Math.PI * Math.PI * sma ** 3) / (period * period);
-    }
-    return 0;
-  }, [orbitalSpeed, radius, sma, period]);
+  const mu = useMemo(
+    () => computeMu(orbitalSpeed, radius, sma, period),
+    [orbitalSpeed, radius, sma, period],
+  );
 
-  const currentOrbit: CurrentOrbit | null =
-    isFiniteNumber(sma) &&
-    isFiniteNumber(ecc) &&
-    isFiniteNumber(ApR) &&
-    isFiniteNumber(PeR) &&
-    isFiniteNumber(timeToAp) &&
-    isFiniteNumber(timeToPe)
-      ? { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe }
-      : null;
+  const currentOrbit: CurrentOrbit | null = buildCurrentOrbit({
+    sma,
+    ecc,
+    ApR,
+    PeR,
+    timeToAp,
+    timeToPe,
+  });
 
   const plan: ManeuverPlan | null = useMemo(
     () =>
@@ -305,31 +363,47 @@ function ManeuverPlannerComponent({
 
   // True anomaly at the burn, for drag-handle placement on the preview.
   // Apsis presets are exact (0° / 180°); custom-ut re-uses our propagator.
-  const burnTrueAnomaly: number | null = useMemo(() => {
-    if (!currentOrbit || currentUT === undefined || mu <= 0) return null;
-    if (preset === "custom-apo") return 180;
-    if (preset === "custom-peri") return 0;
-    if (preset === "custom-ut") {
-      if (trueAnomaly === undefined) return null;
-      const burnUT =
-        utMode === "absolute"
-          ? burnAtUT
-          : currentUT + Math.max(0, burnInSeconds);
-      if (burnUT <= currentUT) return null;
-      return stateAtUT(currentOrbit, trueAnomaly, mu, currentUT, burnUT)
-        .trueAnomalyDeg;
-    }
-    return null;
-  }, [
-    preset,
-    currentOrbit,
-    currentUT,
-    mu,
-    trueAnomaly,
-    utMode,
-    burnAtUT,
-    burnInSeconds,
-  ]);
+  const burnTrueAnomaly: number | null = useMemo(
+    () =>
+      computeBurnTrueAnomaly({
+        preset,
+        currentOrbit,
+        currentUT,
+        mu,
+        prograde,
+        normal,
+        radial,
+        burnInSeconds,
+        utMode,
+        burnAtUT,
+        trueAnomaly,
+        argPe,
+        inclination,
+        targetInclination,
+        targetInclinationLive,
+        targetLanLive,
+        lan,
+      }),
+    [
+      preset,
+      currentOrbit,
+      currentUT,
+      mu,
+      trueAnomaly,
+      utMode,
+      burnAtUT,
+      burnInSeconds,
+      prograde,
+      normal,
+      radial,
+      argPe,
+      inclination,
+      targetInclination,
+      targetInclinationLive,
+      targetLanLive,
+      lan,
+    ],
+  );
 
   async function handleCommit() {
     if (!plan) return;
@@ -385,18 +459,11 @@ function ManeuverPlannerComponent({
   ];
   const waiting = telemetryStatus.some((s) => !s.ok);
 
-  return (
-    <Panel>
-      <PanelTitle>MANEUVER PLANNER</PanelTitle>
-      {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
-
-      {principia && (
-        <PrincipiaBanner>
-          N-body physics detected — impulsive maneuver nodes are unsupported
-          under Principia. Commit disabled.
-        </PrincipiaBanner>
-      )}
-
+  // Render split into nested helpers so the component's cognitive
+  // complexity stays below Sonar's S3776 threshold. Each helper is
+  // measured independently by the rule.
+  function renderNodesSection() {
+    return (
       <Section>
         <SectionTitle>Planned nodes</SectionTitle>
         {nodes.length === 0 ? (
@@ -422,7 +489,106 @@ function ManeuverPlannerComponent({
           </ClearAllRow>
         )}
       </Section>
+    );
+  }
 
+  function renderCustomInputs() {
+    if (!selectedPreset?.needsCustomInput) return null;
+    if (preset === "match-inclination") {
+      return (
+        <CustomInputs>
+          <LabeledInput
+            label="Target inc"
+            value={targetInclination}
+            onChange={setTargetInclination}
+            suffix="°"
+          />
+        </CustomInputs>
+      );
+    }
+    return (
+      <CustomInputs>
+        {preset === "custom-ut" && renderUtModeInputs()}
+        <LabeledInput
+          label="Prograde"
+          value={prograde}
+          onChange={setPrograde}
+        />
+        <LabeledInput label="Normal" value={normal} onChange={setNormal} />
+        <LabeledInput label="Radial" value={radial} onChange={setRadial} />
+      </CustomInputs>
+    );
+  }
+
+  function renderUtModeInputs() {
+    return (
+      <>
+        <UTModeRow>
+          <UTModeButton
+            $active={utMode === "relative"}
+            type="button"
+            onClick={() => setUtMode("relative")}
+          >
+            burn in
+          </UTModeButton>
+          <UTModeButton
+            $active={utMode === "absolute"}
+            type="button"
+            onClick={() => {
+              // Seed the absolute field with "now + 60s" the first time
+              // the user flips modes, so they don't see a 0.
+              if (burnAtUT === 0 && currentUT !== undefined) {
+                setBurnAtUT(currentUT + 60);
+              }
+              setUtMode("absolute");
+            }}
+          >
+            at UT
+          </UTModeButton>
+        </UTModeRow>
+        {utMode === "relative" ? (
+          <LabeledInput
+            label="Burn in"
+            value={burnInSeconds}
+            onChange={setBurnInSeconds}
+            suffix="s"
+          />
+        ) : (
+          <LabeledInput
+            label="At UT"
+            value={burnAtUT}
+            onChange={setBurnAtUT}
+            suffix=""
+          />
+        )}
+      </>
+    );
+  }
+
+  function renderTargetDescription() {
+    if (preset === "match-target-inclination") {
+      return (
+        <PresetDesc>
+          {targetName
+            ? `Target: ${targetName} (${(targetInclinationLive ?? 0).toFixed(1)}°)`
+            : "No target selected in-game."}
+        </PresetDesc>
+      );
+    }
+    if (preset === "match-target-plane") {
+      return (
+        <PresetDesc>
+          {targetName && targetLanLive !== undefined
+            ? `Target: ${targetName} — i=${(targetInclinationLive ?? 0).toFixed(1)}° Ω=${targetLanLive.toFixed(1)}°`
+            : "No target selected in-game (or target LAN unavailable)."}
+        </PresetDesc>
+      );
+    }
+    return null;
+  }
+
+  function renderNewManeuverSection() {
+    return (
       <Section>
         <SectionTitle>New maneuver</SectionTitle>
         <PresetPicker
@@ -439,235 +605,189 @@ function ManeuverPlannerComponent({
         {selectedPreset?.description && (
           <PresetDesc>{selectedPreset.description}</PresetDesc>
         )}
-        {selectedPreset?.needsCustomInput &&
-          (preset === "match-inclination" ? (
-            <CustomInputs>
-              <LabeledInput
-                label="Target inc"
-                value={targetInclination}
-                onChange={setTargetInclination}
-                suffix="°"
-              />
-            </CustomInputs>
-          ) : (
-            <CustomInputs>
-              {preset === "custom-ut" && (
-                <>
-                  <UTModeRow>
-                    <UTModeButton
-                      $active={utMode === "relative"}
-                      type="button"
-                      onClick={() => setUtMode("relative")}
-                    >
-                      burn in
-                    </UTModeButton>
-                    <UTModeButton
-                      $active={utMode === "absolute"}
-                      type="button"
-                      onClick={() => {
-                        // Seed the absolute field with "now + 60s" the first
-                        // time the user flips modes, so they don't see a 0.
-                        if (burnAtUT === 0 && currentUT !== undefined) {
-                          setBurnAtUT(currentUT + 60);
-                        }
-                        setUtMode("absolute");
-                      }}
-                    >
-                      at UT
-                    </UTModeButton>
-                  </UTModeRow>
-                  {utMode === "relative" ? (
-                    <LabeledInput
-                      label="Burn in"
-                      value={burnInSeconds}
-                      onChange={setBurnInSeconds}
-                      suffix="s"
-                    />
-                  ) : (
-                    <LabeledInput
-                      label="At UT"
-                      value={burnAtUT}
-                      onChange={setBurnAtUT}
-                      suffix=""
-                    />
-                  )}
-                </>
-              )}
-              <LabeledInput
-                label="Prograde"
-                value={prograde}
-                onChange={setPrograde}
-              />
-              <LabeledInput
-                label="Normal"
-                value={normal}
-                onChange={setNormal}
-              />
-              <LabeledInput
-                label="Radial"
-                value={radial}
-                onChange={setRadial}
-              />
-            </CustomInputs>
-          ))}
-        {preset === "match-target-inclination" && (
-          <PresetDesc>
-            {targetName
-              ? `Target: ${targetName} (${(targetInclinationLive ?? 0).toFixed(1)}°)`
-              : "No target selected in-game."}
-          </PresetDesc>
-        )}
-        {preset === "match-target-plane" && (
-          <PresetDesc>
-            {targetName && targetLanLive !== undefined
-              ? `Target: ${targetName} — i=${(targetInclinationLive ?? 0).toFixed(1)}° Ω=${targetLanLive.toFixed(1)}°`
-              : "No target selected in-game (or target LAN unavailable)."}
-          </PresetDesc>
-        )}
+        {renderCustomInputs()}
+        {renderTargetDescription()}
       </Section>
+    );
+  }
 
-      {waiting ? (
-        <WaitingPanel>
-          <SectionTitle>Waiting for telemetry</SectionTitle>
-          <StatusList>
-            {telemetryStatus.map((s) => (
-              <StatusRow key={s.label}>
-                <StatusDot $ok={s.ok}>{s.ok ? "✓" : "·"}</StatusDot>
-                <StatusLabel>{s.label}</StatusLabel>
-              </StatusRow>
-            ))}
-          </StatusList>
-        </WaitingPanel>
-      ) : (
-        plan && (
-          <PreviewSection>
-            <SectionTitle>Preview</SectionTitle>
-            <PreviewGrid>
-              <Label>ΔV</Label>
-              <Value>{plan.requiredDeltaV.toFixed(1)} m/s</Value>
+  function renderWaitingPanel() {
+    return (
+      <WaitingPanel>
+        <SectionTitle>Waiting for telemetry</SectionTitle>
+        <StatusList>
+          {telemetryStatus.map((s) => (
+            <StatusRow key={s.label}>
+              <StatusDot $ok={s.ok}>{s.ok ? "✓" : "·"}</StatusDot>
+              <StatusLabel>{s.label}</StatusLabel>
+            </StatusRow>
+          ))}
+        </StatusList>
+      </WaitingPanel>
+    );
+  }
 
-              <Label>Burn in</Label>
-              <Value>{formatDuration(plan.ut - (currentUT ?? 0))}</Value>
+  function renderPreviewGrid() {
+    if (!plan) return null;
+    return (
+      <PreviewGrid>
+        <Label>ΔV</Label>
+        <Value>{plan.requiredDeltaV.toFixed(1)} m/s</Value>
 
-              <Label>Available</Label>
-              <Value>
-                {vesselDeltaV.totalVac === 0
-                  ? "—"
-                  : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
-                {feasible !== null && (
-                  <FeasibilityChip $ok={feasible}>
-                    {feasible ? "OK" : "SHORT"}
-                  </FeasibilityChip>
-                )}
-              </Value>
+        <Label>Burn in</Label>
+        <Value>{formatDuration(plan.ut - (currentUT ?? 0))}</Value>
 
-              {plan.projected ? (
-                <>
-                  <Label>New Ap</Label>
-                  <Value $accent="ap">
-                    {formatDistance(plan.projected.ApR - (body?.radius ?? 0))}
-                  </Value>
+        <Label>Available</Label>
+        <Value>
+          {vesselDeltaV.totalVac === 0
+            ? "—"
+            : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+          {feasible !== null && (
+            <FeasibilityChip $ok={feasible}>
+              {feasible ? "OK" : "SHORT"}
+            </FeasibilityChip>
+          )}
+        </Value>
 
-                  <Label>New Pe</Label>
-                  <Value $accent="pe">
-                    {formatDistance(plan.projected.PeR - (body?.radius ?? 0))}
-                  </Value>
+        {renderProjectedRows()}
+      </PreviewGrid>
+    );
+  }
 
-                  <Label>New Ecc</Label>
-                  <Value>{plan.projected.eccentricity.toFixed(4)}</Value>
+  function renderProjectedRows() {
+    if (!plan?.projected) {
+      return (
+        <>
+          <Label>Projection</Label>
+          <Value>escape / invalid</Value>
+        </>
+      );
+    }
+    const p = plan.projected;
+    return (
+      <>
+        <Label>New Ap</Label>
+        <Value $accent="ap">
+          {formatDistance(p.ApR - (body?.radius ?? 0))}
+        </Value>
+        <Label>New Pe</Label>
+        <Value $accent="pe">
+          {formatDistance(p.PeR - (body?.radius ?? 0))}
+        </Value>
+        <Label>New Ecc</Label>
+        <Value>{p.eccentricity.toFixed(4)}</Value>
+        <Label>New T</Label>
+        <Value>{formatDuration(p.period)}</Value>
+        {p.inclination !== undefined && (
+          <>
+            <Label>New Inc</Label>
+            <Value>{p.inclination.toFixed(2)}°</Value>
+          </>
+        )}
+      </>
+    );
+  }
 
-                  <Label>New T</Label>
-                  <Value>{formatDuration(plan.projected.period)}</Value>
+  function renderDiagram() {
+    if (!plan || !currentOrbit || !ApR || !PeR) return null;
+    const customWithHandles =
+      preset === "custom-apo" ||
+      preset === "custom-peri" ||
+      preset === "custom-ut";
+    return (
+      <DiagramWrap>
+        <OrbitDiagram
+          variant="mini"
+          sma={sma ?? 0}
+          ecc={ecc ?? 0}
+          apoapsis={ApR}
+          periapsis={PeR}
+          trueAnomaly={trueAnomaly ?? 0}
+          argPe={argPe ?? 0}
+          bodyColor={body?.color}
+          bodyRadius={body?.radius}
+          projected={
+            plan.projected
+              ? {
+                  sma: plan.projected.sma,
+                  ecc: plan.projected.eccentricity,
+                  apoapsis: plan.projected.ApR,
+                  periapsis: plan.projected.PeR,
+                }
+              : null
+          }
+          maneuverHandles={
+            burnTrueAnomaly !== null && customWithHandles
+              ? {
+                  burnTrueAnomaly,
+                  prograde,
+                  radial,
+                  onPrograde: setPrograde,
+                  onRadial: setRadial,
+                }
+              : null
+          }
+        />
+      </DiagramWrap>
+    );
+  }
 
-                  {plan.projected.inclination !== undefined && (
-                    <>
-                      <Label>New Inc</Label>
-                      <Value>{plan.projected.inclination.toFixed(2)}°</Value>
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Label>Projection</Label>
-                  <Value>escape / invalid</Value>
-                </>
-              )}
-            </PreviewGrid>
+  function renderShortfallBanner() {
+    if (feasible !== false || !plan) return null;
+    return (
+      <FeasibilityBanner role="alert">
+        <FeasibilityBannerTitle>
+          ΔV shortfall — commit disabled
+        </FeasibilityBannerTitle>
+        <FeasibilityBannerBody>
+          Required {plan.requiredDeltaV.toFixed(0)} m/s · available{" "}
+          {vesselDeltaV.totalVac.toFixed(0)} m/s ·{" "}
+          {(plan.requiredDeltaV - vesselDeltaV.totalVac).toFixed(0)} m/s short.
+        </FeasibilityBannerBody>
+      </FeasibilityBanner>
+    );
+  }
 
-            {currentOrbit && ApR && PeR && (
-              <DiagramWrap>
-                <OrbitDiagram
-                  variant="mini"
-                  sma={sma ?? 0}
-                  ecc={ecc ?? 0}
-                  apoapsis={ApR}
-                  periapsis={PeR}
-                  trueAnomaly={trueAnomaly ?? 0}
-                  argPe={argPe ?? 0}
-                  bodyColor={body?.color}
-                  bodyRadius={body?.radius}
-                  projected={
-                    plan.projected
-                      ? {
-                          sma: plan.projected.sma,
-                          ecc: plan.projected.eccentricity,
-                          apoapsis: plan.projected.ApR,
-                          periapsis: plan.projected.PeR,
-                        }
-                      : null
-                  }
-                  maneuverHandles={
-                    burnTrueAnomaly !== null &&
-                    (preset === "custom-apo" ||
-                      preset === "custom-peri" ||
-                      preset === "custom-ut")
-                      ? {
-                          burnTrueAnomaly,
-                          prograde,
-                          radial,
-                          onPrograde: setPrograde,
-                          onRadial: setRadial,
-                        }
-                      : null
-                  }
-                />
-              </DiagramWrap>
-            )}
+  function renderPreview() {
+    if (!plan) return null;
+    return (
+      <PreviewSection>
+        <SectionTitle>Preview</SectionTitle>
+        {renderPreviewGrid()}
+        {renderDiagram()}
+        {normal !== 0 && (
+          <Note>
+            Normal component tilts the plane; projection shows in-plane shape
+            only.
+          </Note>
+        )}
+        {renderShortfallBanner()}
+        {error && <ErrorLine>{error}</ErrorLine>}
+        <CommitRow>
+          <Button
+            onClick={() => void handleCommit()}
+            disabled={committing || principia || feasible === false}
+          >
+            {committing ? "Adding…" : "Add node"}
+          </Button>
+        </CommitRow>
+      </PreviewSection>
+    );
+  }
 
-            {normal !== 0 && (
-              <Note>
-                Normal component tilts the plane; projection shows in-plane
-                shape only.
-              </Note>
-            )}
-
-            {feasible === false && plan && (
-              <FeasibilityBanner role="alert">
-                <FeasibilityBannerTitle>
-                  ΔV shortfall — commit disabled
-                </FeasibilityBannerTitle>
-                <FeasibilityBannerBody>
-                  Required {plan.requiredDeltaV.toFixed(0)} m/s · available{" "}
-                  {vesselDeltaV.totalVac.toFixed(0)} m/s ·{" "}
-                  {(plan.requiredDeltaV - vesselDeltaV.totalVac).toFixed(0)} m/s
-                  short.
-                </FeasibilityBannerBody>
-              </FeasibilityBanner>
-            )}
-
-            {error && <ErrorLine>{error}</ErrorLine>}
-
-            <CommitRow>
-              <Button
-                onClick={() => void handleCommit()}
-                disabled={committing || principia || feasible === false}
-              >
-                {committing ? "Adding…" : "Add node"}
-              </Button>
-            </CommitRow>
-          </PreviewSection>
-        )
+  return (
+    <Panel>
+      <PanelTitle>MANEUVER PLANNER</PanelTitle>
+      {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
+      {principia && (
+        <PrincipiaBanner>
+          N-body physics detected — impulsive maneuver nodes are unsupported
+          under Principia. Commit disabled.
+        </PrincipiaBanner>
       )}
+      {renderNodesSection()}
+      {renderNewManeuverSection()}
+      {waiting ? renderWaitingPanel() : renderPreview()}
     </Panel>
   );
 }
