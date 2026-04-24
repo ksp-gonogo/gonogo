@@ -58,8 +58,8 @@ const SwitchTrack = styled.div<{ $checked: boolean }>`
 
 const SwitchThumb = styled.div<{ $checked: boolean }>`
   position: absolute;
-  top: 2px;
-  left: ${({ $checked }) => ($checked ? "14px" : "2px")};
+  top: 3px;
+  left: ${({ $checked }) => ($checked ? "16px" : "3px")};
   width: 8px;
   height: 8px;
   border-radius: 50%;
