@@ -8,6 +8,7 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  Switch,
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -222,14 +223,11 @@ function ShipMapConfigComponent({
 
       <Field>
         <FieldLabel>Auto-refresh on staging</FieldLabel>
-        <label style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            checked={refreshOnStage}
-            onChange={(e) => setRefreshOnStage(e.target.checked)}
-          />
-          <span>Re-run when v.currentStage changes</span>
-        </label>
+        <Switch
+          checked={refreshOnStage}
+          onChange={setRefreshOnStage}
+          label="Re-run when v.currentStage changes"
+        />
       </Field>
 
       <Field>
