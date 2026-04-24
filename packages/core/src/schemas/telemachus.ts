@@ -196,10 +196,23 @@ export interface TelemaachusSchema {
   "o.timeToPe": number;
 
   // --- b.* — Celestial bodies ---
+  // `b.number` is the authoritative count — always 1 for stock Kerbol-only
+  // installs, but can grow with mods that add bodies. Widgets that render
+  // the whole system subscribe to b.number first, then to indexed keys
+  // for each integer in [0, b.number).
   "b.number": number;
   [key: IndexedKey<"b.name">]: string;
+  [key: IndexedKey<"b.referenceBody">]: string;
+  [key: IndexedKey<"b.radius">]: number;
+  [key: IndexedKey<"b.soi">]: number;
   [key: IndexedKey<"b.atmosphere">]: boolean;
   [key: IndexedKey<"b.maxAtmosphere">]: number;
+  [key: IndexedKey<"b.o.sma">]: number;
+  [key: IndexedKey<"b.o.eccentricity">]: number;
+  [key: IndexedKey<"b.o.inclination">]: number;
+  [key: IndexedKey<"b.o.period">]: number;
+  [key: IndexedKey<"b.o.lan">]: number;
+  [key: IndexedKey<"b.o.trueAnomaly">]: number;
 
   // Keplerian elements
   "o.sma": number;
