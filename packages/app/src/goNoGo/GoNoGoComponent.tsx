@@ -10,7 +10,7 @@ import {
   useScreen,
 } from "@gonogo/core";
 import { Field, FieldLabel, Input, PrimaryButton, Switch } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
@@ -70,8 +70,10 @@ function StationView() {
     stationName: string;
     at: number;
   } | null>(null);
-  // Tick at 10 Hz during countdown for a responsive T-minus display
-  const [, setNow] = useState(Date.now());
+  // Tick at 10 Hz during countdown for a responsive T-minus display.
+  // useReducer instead of useState so Sonar's "unused tuple element"
+  // rule (S6754) doesn't trip on a tick-counter that we never read.
+  const [, setNow] = useReducer((n: number, _action: unknown) => n + 1, 0);
   const tickingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Did the user on THIS station press the abort button? Used to re-notify
   // the host on reconnect (e.g. after a main-screen refresh mid-flight).
@@ -223,7 +225,9 @@ function StationView() {
  */
 const MILESTONES = new Set([10, 5, 3, 2, 1, 0]);
 
-export function CountdownAnnouncer({ secondsLeft }: { secondsLeft: number }) {
+export function CountdownAnnouncer({
+  secondsLeft,
+}: Readonly<{ secondsLeft: number }>) {
   const [message, setMessage] = useState("");
   const lastMilestoneRef = useRef<number | null>(null);
 
@@ -246,7 +250,9 @@ export function CountdownAnnouncer({ secondsLeft }: { secondsLeft: number }) {
 // Main view
 // ---------------------------------------------------------------------------
 
-function MainView({ config }: { config: GoNoGoWidgetConfig | undefined }) {
+function MainView({
+  config,
+}: Readonly<{ config: GoNoGoWidgetConfig | undefined }>) {
   const host = useGoNoGoHost();
   const snapshot = useGoNoGoSnapshot();
   const [, setNow] = useState(Date.now());
@@ -338,7 +344,7 @@ function deriveCellState(
   abort: { peerId: string; stationName: string; at: number } | null,
 ): CellState {
   if (launched) {
-    if (abort && abort.peerId === s.peerId) return "abort";
+    if (abort?.peerId === s.peerId) return "abort";
     return "neutral";
   }
   if (s.status === "go") return "go";
@@ -420,30 +426,34 @@ function GoNoGoConfigComponent({
 // Styles
 // ---------------------------------------------------------------------------
 
-const BigButton = styled.button<{ $variant: "go" | "nogo" | "abort" }>`
+type BigButtonVariant = "go" | "nogo" | "abort";
+
+// Flat look-up tables keep the styled-template readable and quiet
+// SonarQube's nested-ternary warning (S3358). One entry per variant.
+const BIG_BUTTON_BORDER: Record<BigButtonVariant, string> = {
+  go: "#2a8a3a",
+  abort: "#a02020",
+  nogo: "#7a2a2a",
+};
+const BIG_BUTTON_BG: Record<BigButtonVariant, string> = {
+  go: "radial-gradient(circle at 50% 35%, #2ab04f 0%, #0a3a18 90%)",
+  abort: "radial-gradient(circle at 50% 35%, #e02020 0%, #400808 90%)",
+  nogo: "radial-gradient(circle at 50% 35%, #702020 0%, #180404 90%)",
+};
+const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
+  go: "#d0ffd0",
+  abort: "#fff0f0",
+  nogo: "#ffd0d0",
+};
+
+const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   position: relative;
   width: 100%;
   height: 100%;
   border-radius: 6px;
-  border: 2px solid
-    ${({ $variant }) =>
-      $variant === "go"
-        ? "#2a8a3a"
-        : $variant === "abort"
-          ? "#a02020"
-          : "#7a2a2a"};
-  background: ${({ $variant }) =>
-    $variant === "go"
-      ? "radial-gradient(circle at 50% 35%, #2ab04f 0%, #0a3a18 90%)"
-      : $variant === "abort"
-        ? "radial-gradient(circle at 50% 35%, #e02020 0%, #400808 90%)"
-        : "radial-gradient(circle at 50% 35%, #702020 0%, #180404 90%)"};
-  color: ${({ $variant }) =>
-    $variant === "go"
-      ? "#d0ffd0"
-      : $variant === "abort"
-        ? "#fff0f0"
-        : "#ffd0d0"};
+  border: 2px solid ${({ $variant }) => BIG_BUTTON_BORDER[$variant]};
+  background: ${({ $variant }) => BIG_BUTTON_BG[$variant]};
+  color: ${({ $variant }) => BIG_BUTTON_COLOR[$variant]};
   cursor: pointer;
   font-family: monospace;
   font-weight: 700;

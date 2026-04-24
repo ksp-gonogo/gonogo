@@ -7,13 +7,14 @@ import {
   paintFogFromBody,
 } from "@gonogo/core";
 import {
-  type BodyMask,
   DEFAULT_MASK_HEIGHT,
   DEFAULT_MASK_WIDTH,
   useBodyFogMask,
   useFogMaskCache,
 } from "@gonogo/data";
 import { useEffect, useRef, useState } from "react";
+
+export type { BodyMask } from "@gonogo/data";
 
 const PAINT_INTERVAL_MS = 500; // 2 Hz
 
@@ -145,7 +146,7 @@ export function useFogDisplayCanvas(bodyId: string | undefined): {
     if (!mask) return;
     if (typeof document === "undefined") return;
     let c = canvas;
-    if (!c || c.width !== mask.width || c.height !== mask.height) {
+    if (c?.width !== mask.width || c?.height !== mask.height) {
       c = document.createElement("canvas");
       c.width = mask.width;
       c.height = mask.height;
@@ -155,7 +156,7 @@ export function useFogDisplayCanvas(bodyId: string | undefined): {
     const ctx = c.getContext("2d");
     if (!ctx) return;
     let img = imageDataRef.current;
-    if (!img || img.width !== mask.width || img.height !== mask.height) {
+    if (img?.width !== mask.width || img?.height !== mask.height) {
       img = ctx.createImageData(mask.width, mask.height);
       imageDataRef.current = img;
     }
@@ -180,5 +181,3 @@ export function useFogDisplayCanvas(bodyId: string | undefined): {
     height: mask?.height ?? DEFAULT_MASK_HEIGHT,
   };
 }
-
-export type { BodyMask };

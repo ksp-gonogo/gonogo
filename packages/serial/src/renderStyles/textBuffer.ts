@@ -13,7 +13,10 @@ function formatValue(value: unknown): string {
     if (Number.isInteger(value)) return String(value);
     return value.toFixed(2);
   }
-  return String(value);
+  if (typeof value === "string") return value;
+  // Objects / arrays: explicit JSON rather than Object's default
+  // "[object Object]" stringify (S6551).
+  return JSON.stringify(value);
 }
 
 function padLine(line: string, width: number): string {

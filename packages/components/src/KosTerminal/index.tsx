@@ -41,6 +41,76 @@ const SESSION_END_SENTINELS: readonly string[] = [
   "[connection closed]",
 ];
 
+// ── Message-handler helpers ──────────────────────────────────────────────────
+// Split out of the useEffect message handler so Sonar's cognitive-
+// complexity (S3776) and nested-function-depth (S2004) rules stay
+// satisfied. Each helper has a single, narrow responsibility.
+
+interface MenuState {
+  inMenuSelection: boolean;
+  menuBuffer: string;
+}
+
+type TerminalLike = { writeln(line: string): void };
+type WsLike = {
+  readyState: number;
+  send(data: string): void;
+  close(): void;
+};
+
+/** Latches closed on the first sentinel match; subsequent calls are no-ops. */
+function tryHandleSessionEnd(
+  text: string,
+  latch: { ended: boolean },
+  term: TerminalLike,
+  ws: WsLike,
+): void {
+  if (latch.ended) return;
+  if (!SESSION_END_SENTINELS.some((s) => text.includes(s))) return;
+  latch.ended = true;
+  term.writeln("\r\n\x1b[33m[session ended]\x1b[0m");
+  try {
+    ws.close();
+  } catch {
+    // transport may already be closing; close() triggers the close handler
+    // which shows [connection closed] as before.
+  }
+}
+
+/**
+ * Consumes the kOS CPU-selection menu and sends the numeric reply for the
+ * configured tagname as soon as the menu is complete. Mutates `state` in
+ * place so the useEffect's own closure can reset between frames.
+ */
+function tryAutoSelectCpu(
+  text: string,
+  cpuName: string,
+  state: MenuState,
+  ws: WsLike,
+): void {
+  // Garbled input: the proxy echoed our previous reply mid-redraw. Reset
+  // and wait for the next clean menu frame.
+  if (text.includes(GARBLED_INPUT)) {
+    state.inMenuSelection = true;
+    state.menuBuffer = "";
+  }
+
+  if (!state.inMenuSelection) return;
+  if (text.includes(LIST_CHANGED)) state.menuBuffer = "";
+  state.menuBuffer += text;
+  if (!state.menuBuffer.includes(MENU_HEADER)) return;
+
+  for (const line of state.menuBuffer.split("\n")) {
+    const m = CPU_ROW_RE.exec(line);
+    if (m?.[4] === cpuName) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(`${m[1]}\n`);
+      state.inMenuSelection = false;
+      state.menuBuffer = "";
+      return;
+    }
+  }
+}
+
 /**
  * Fixed PTY width. We never send a width change to the proxy — width
  * changes during the kOS CPU menu (the most fragile moment in the
@@ -130,8 +200,13 @@ function KosTerminalComponent({
       }
 
       // CPU auto-selection state — reset per effect instance
-      let menuBuffer = "";
-      let inMenuSelection = cpuName !== undefined;
+      const menuState: MenuState = {
+        inMenuSelection: cpuName !== undefined,
+        menuBuffer: "",
+      };
+      // Latch object so the helper can set `ended = true` through a
+      // reference; primitives would not propagate back into the closure.
+      const endLatch = { ended: false };
 
       const ws = createConnection({
         sessionId,
@@ -146,53 +221,14 @@ function KosTerminalComponent({
         term.writeln("\x1b[32mConnected to kOS proxy\x1b[0m");
       });
 
-      // Latch so we only surface a sentinel-driven close once per session —
-      // kOS keeps streaming bytes after printing the "Connection closed"
-      // line (boot banners, menu redraws) and we don't want to spam
-      // "[session ended]" for every follow-up chunk.
-      let sessionEnded = false;
-
       ws.addEventListener("message", ({ data }) => {
         const text = typeof data === "string" ? data : String(data);
         term.write(text);
-
-        if (
-          !sessionEnded &&
-          SESSION_END_SENTINELS.some((s) => text.includes(s))
-        ) {
-          sessionEnded = true;
-          term.writeln("\r\n\x1b[33m[session ended]\x1b[0m");
-          try {
-            ws.close();
-          } catch {
-            // transport may already be closing; close() triggers the close
-            // handler which shows [connection closed] as before.
-          }
-        }
-
+        // Close-sentinel check runs first — if we detect the session is
+        // gone, auto-select is moot.
+        tryHandleSessionEnd(text, endLatch, term, ws);
         if (cpuName !== undefined) {
-          // Garbled input: reset so we auto-select on the next menu appearance
-          if (text.includes(GARBLED_INPUT)) {
-            inMenuSelection = true;
-            menuBuffer = "";
-          }
-
-          if (inMenuSelection) {
-            if (text.includes(LIST_CHANGED)) menuBuffer = "";
-            menuBuffer += text;
-
-            if (menuBuffer.includes(MENU_HEADER)) {
-              for (const line of menuBuffer.split("\n")) {
-                const m = CPU_ROW_RE.exec(line);
-                if (m && m[4] === cpuName) {
-                  if (ws.readyState === WebSocket.OPEN) ws.send(`${m[1]}\n`);
-                  inMenuSelection = false;
-                  menuBuffer = "";
-                  break;
-                }
-              }
-            }
-          }
+          tryAutoSelectCpu(text, cpuName, menuState, ws);
         }
       });
 

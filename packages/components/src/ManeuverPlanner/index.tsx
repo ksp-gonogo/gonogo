@@ -1,5 +1,6 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
+  type ActionDefinition,
+  type ComponentProps,
   type CurrentOrbit,
   circularizeAtApo,
   circularizeAtPeri,
@@ -41,6 +42,136 @@ import {
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
+
+// ---------------------------------------------------------------------------
+// Plan dispatch — lives outside the component so each preset branch can be
+// read in isolation and so the component's cognitive complexity stays low
+// (Sonar S3776). Pure function: same inputs → same ManeuverPlan | null.
+// ---------------------------------------------------------------------------
+
+interface PlanInputs {
+  preset: PresetId;
+  currentOrbit: CurrentOrbit | null;
+  currentUT: number | undefined;
+  mu: number;
+  prograde: number;
+  normal: number;
+  radial: number;
+  burnInSeconds: number;
+  utMode: "relative" | "absolute";
+  burnAtUT: number;
+  trueAnomaly: number | undefined;
+  argPe: number | undefined;
+  inclination: number | undefined;
+  targetInclination: number;
+  targetInclinationLive: number | undefined;
+  targetLanLive: number | undefined;
+  lan: number | undefined;
+}
+
+function computePlan(i: PlanInputs): ManeuverPlan | null {
+  if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
+  switch (i.preset) {
+    case "circularize-apo":
+      return circularizeAtApo(i.currentOrbit, i.mu, i.currentUT);
+    case "circularize-peri":
+      return circularizeAtPeri(i.currentOrbit, i.mu, i.currentUT);
+    case "custom-apo":
+    case "custom-peri":
+      return customAtApsis(
+        i.currentOrbit,
+        i.mu,
+        i.currentUT,
+        i.preset === "custom-apo" ? "apo" : "peri",
+        i.prograde,
+        i.normal,
+        i.radial,
+      );
+    case "custom-ut":
+      return planCustomUT(i);
+    case "match-inclination":
+      return planMatchInclination(i, i.targetInclination);
+    case "match-target-inclination":
+      if (i.targetInclinationLive === undefined) return null;
+      return planMatchInclination(i, i.targetInclinationLive);
+    case "match-target-plane":
+      return planMatchTargetPlane(i);
+  }
+}
+
+function planCustomUT(i: PlanInputs): ManeuverPlan | null {
+  if (
+    i.trueAnomaly === undefined ||
+    !i.currentOrbit ||
+    i.currentUT === undefined
+  ) {
+    return null;
+  }
+  const burnUT =
+    i.utMode === "absolute"
+      ? i.burnAtUT
+      : i.currentUT + Math.max(0, i.burnInSeconds);
+  return customAtUT(
+    i.currentOrbit,
+    i.trueAnomaly,
+    i.mu,
+    i.currentUT,
+    burnUT,
+    i.prograde,
+    i.normal,
+    i.radial,
+  );
+}
+
+function planMatchInclination(
+  i: PlanInputs,
+  targetInc: number,
+): ManeuverPlan | null {
+  if (
+    !i.currentOrbit ||
+    i.currentUT === undefined ||
+    i.trueAnomaly === undefined ||
+    i.argPe === undefined ||
+    i.inclination === undefined
+  ) {
+    return null;
+  }
+  return matchInclination(
+    i.currentOrbit,
+    i.trueAnomaly,
+    i.argPe,
+    i.inclination,
+    i.mu,
+    i.currentUT,
+    targetInc,
+  );
+}
+
+function planMatchTargetPlane(i: PlanInputs): ManeuverPlan | null {
+  if (
+    !i.currentOrbit ||
+    i.currentUT === undefined ||
+    i.trueAnomaly === undefined ||
+    i.argPe === undefined ||
+    i.inclination === undefined ||
+    i.lan === undefined ||
+    i.targetInclinationLive === undefined ||
+    i.targetLanLive === undefined
+  ) {
+    return null;
+  }
+  return matchTargetPlane(
+    i.currentOrbit,
+    i.trueAnomaly,
+    i.argPe,
+    i.inclination,
+    i.lan,
+    i.targetInclinationLive,
+    i.targetLanLive,
+    i.mu,
+    i.currentUT,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -125,124 +256,47 @@ function ManeuverPlannerComponent({
       ? { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe }
       : null;
 
-  const plan: ManeuverPlan | null = useMemo(() => {
-    if (!currentOrbit || currentUT === undefined || mu <= 0) return null;
-    switch (preset) {
-      case "circularize-apo":
-        return circularizeAtApo(currentOrbit, mu, currentUT);
-      case "circularize-peri":
-        return circularizeAtPeri(currentOrbit, mu, currentUT);
-      case "custom-apo":
-        return customAtApsis(
-          currentOrbit,
-          mu,
-          currentUT,
-          "apo",
-          prograde,
-          normal,
-          radial,
-        );
-      case "custom-peri":
-        return customAtApsis(
-          currentOrbit,
-          mu,
-          currentUT,
-          "peri",
-          prograde,
-          normal,
-          radial,
-        );
-      case "custom-ut": {
-        if (trueAnomaly === undefined) return null;
-        const burnUT =
-          utMode === "absolute"
-            ? burnAtUT
-            : currentUT + Math.max(0, burnInSeconds);
-        return customAtUT(
-          currentOrbit,
-          trueAnomaly,
-          mu,
-          currentUT,
-          burnUT,
-          prograde,
-          normal,
-          radial,
-        );
-      }
-      case "match-inclination":
-        if (
-          trueAnomaly === undefined ||
-          argPe === undefined ||
-          inclination === undefined
-        )
-          return null;
-        return matchInclination(
-          currentOrbit,
-          trueAnomaly,
-          argPe,
-          inclination,
-          mu,
-          currentUT,
-          targetInclination,
-        );
-      case "match-target-inclination":
-        if (
-          trueAnomaly === undefined ||
-          argPe === undefined ||
-          inclination === undefined ||
-          targetInclinationLive === undefined
-        )
-          return null;
-        return matchInclination(
-          currentOrbit,
-          trueAnomaly,
-          argPe,
-          inclination,
-          mu,
-          currentUT,
-          targetInclinationLive,
-        );
-      case "match-target-plane":
-        if (
-          trueAnomaly === undefined ||
-          argPe === undefined ||
-          inclination === undefined ||
-          lan === undefined ||
-          targetInclinationLive === undefined ||
-          targetLanLive === undefined
-        )
-          return null;
-        return matchTargetPlane(
-          currentOrbit,
-          trueAnomaly,
-          argPe,
-          inclination,
-          lan,
-          targetInclinationLive,
-          targetLanLive,
-          mu,
-          currentUT,
-        );
-    }
-  }, [
-    currentOrbit,
-    mu,
-    currentUT,
-    preset,
-    prograde,
-    normal,
-    radial,
-    burnInSeconds,
-    utMode,
-    burnAtUT,
-    trueAnomaly,
-    argPe,
-    inclination,
-    targetInclination,
-    targetInclinationLive,
-    targetLanLive,
-    lan,
-  ]);
+  const plan: ManeuverPlan | null = useMemo(
+    () =>
+      computePlan({
+        preset,
+        currentOrbit,
+        currentUT,
+        mu,
+        prograde,
+        normal,
+        radial,
+        burnInSeconds,
+        utMode,
+        burnAtUT,
+        trueAnomaly,
+        argPe,
+        inclination,
+        targetInclination,
+        targetInclinationLive,
+        targetLanLive,
+        lan,
+      }),
+    [
+      currentOrbit,
+      mu,
+      currentUT,
+      preset,
+      prograde,
+      normal,
+      radial,
+      burnInSeconds,
+      utMode,
+      burnAtUT,
+      trueAnomaly,
+      argPe,
+      inclination,
+      targetInclination,
+      targetInclinationLive,
+      targetLanLive,
+      lan,
+    ],
+  );
 
   const feasible =
     plan === null || vesselDeltaV.totalVac === 0

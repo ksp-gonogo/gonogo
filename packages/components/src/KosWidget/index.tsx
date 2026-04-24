@@ -69,24 +69,32 @@ function KosWidgetComponent({
         </ErrorBanner>
       )}
       {errorOpen && error && <ErrorDetail>{error.message}</ErrorDetail>}
-      {notConfigured ? (
+      {renderBody()}
+    </Panel>
+  );
+
+  function renderBody() {
+    if (notConfigured) {
+      return (
         <Empty>
           Configure the CPU tagname and script name in the widget settings.
         </Empty>
-      ) : data ? (
-        <DataGrid>
-          {Object.entries(data).map(([k, v]) => (
-            <DataRow key={k}>
-              <Key>{k}</Key>
-              <Value>{formatValue(v)}</Value>
-            </DataRow>
-          ))}
-        </DataGrid>
-      ) : (
-        <Empty>{running ? "Running…" : "No data yet. Press Run."}</Empty>
-      )}
-    </Panel>
-  );
+      );
+    }
+    if (!data) {
+      return <Empty>{running ? "Running…" : "No data yet. Press Run."}</Empty>;
+    }
+    return (
+      <DataGrid>
+        {Object.entries(data).map(([k, v]) => (
+          <DataRow key={k}>
+            <Key>{k}</Key>
+            <Value>{formatValue(v)}</Value>
+          </DataRow>
+        ))}
+      </DataGrid>
+    );
+  }
 }
 
 registerComponent<KosWidgetConfig>({

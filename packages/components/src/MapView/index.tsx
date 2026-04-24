@@ -401,8 +401,7 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
       !orbitPatches ||
       orbitPatches.length === 0 ||
       !targetBodyId ||
-      !body ||
-      body.rotationPeriod === undefined ||
+      body?.rotationPeriod === undefined ||
       lat === undefined ||
       lon === undefined ||
       universalTime === undefined
@@ -448,8 +447,7 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
       !maneuverNodes ||
       maneuverNodes.length === 0 ||
       !targetBodyId ||
-      !body ||
-      body.rotationPeriod === undefined ||
+      body?.rotationPeriod === undefined ||
       lat === undefined ||
       lon === undefined ||
       universalTime === undefined
@@ -701,6 +699,10 @@ function formatTelValue(value: unknown): string {
   if (value === undefined) return "—";
   const n = Number(value);
   if (!Number.isNaN(n) && typeof value !== "boolean") return n.toFixed(2);
+  // Strings + booleans stringify cleanly. Complex values (arrays/objects)
+  // would otherwise hit Object's default "[object Object]"; JSON is more
+  // informative in a diagnostic readout.
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
@@ -715,7 +717,7 @@ function TelemetryRow({
 }>) {
   const value = useDataValue(
     "data",
-    dataKey as keyof DataSourceRegistry["data"] & string,
+    dataKey as keyof DataSourceRegistry["data"],
   );
   const colour = TELEMETRY_COLOURS[colorIndex % TELEMETRY_COLOURS.length];
   return (
