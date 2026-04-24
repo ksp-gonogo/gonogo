@@ -13,7 +13,7 @@ import {
   useSerialDeviceService,
 } from "@gonogo/serial";
 import { Tabs, useModal } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import styled from "styled-components";
@@ -55,14 +55,33 @@ export interface DashboardConfig {
 // Grid constants
 // ---------------------------------------------------------------------------
 
-const COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6, xxxs: 2 };
+// Each key in COLS must also appear in BREAKPOINTS (and vice versa), or
+// react-grid-layout emits "Each key in layouts must align with a key in
+// breakpoints". Keep these two objects sorted by descending pixel width
+// for readability.
+const COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 };
 const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const BREAKPOINT_KEYS = new Set(Object.keys(BREAKPOINTS));
 const ROW_HEIGHT = 25; // px per grid unit
 
 // Drag/resize is unreliable on touch and the 18px drag handle is too small
 // anyway. Lock the layout on phone breakpoints — per-breakpoint layouts
 // authored on desktop are authoritative at these widths.
 const TOUCH_LOCKED_BREAKPOINTS = new Set(["sm", "xs", "xxs"]);
+
+/**
+ * Drop any breakpoint keys RGL doesn't know about. A previous version
+ * of COLS included `xxxs` which is now gone; persisted layouts in
+ * localStorage still carry the stale entry and RGL warns on every
+ * render when it sees one. Cheap to filter — the list is O(5).
+ */
+function filterLayouts(layouts: Layouts): Layouts {
+  const next: Layouts = {};
+  for (const [bp, entries] of Object.entries(layouts)) {
+    if (BREAKPOINT_KEYS.has(bp)) next[bp] = entries;
+  }
+  return next;
+}
 
 // ---------------------------------------------------------------------------
 // Dashboard — fully controlled. State lives in `useDashboardState` (called
@@ -94,11 +113,18 @@ export function Dashboard({
   removeItem,
 }: Readonly<DashboardProps>) {
   const touchLocked = TOUCH_LOCKED_BREAKPOINTS.has(breakpoint);
+  // Defensive: persisted layouts may carry breakpoint keys that used to
+  // exist in COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
+  // before handing the map off so it doesn't warn on every render.
+  const filteredLayouts = useMemo<Layouts>(
+    () => filterLayouts(layouts),
+    [layouts],
+  );
 
   return (
     <ResponsiveGridLayout
       className="dashboard-grid"
-      layouts={layouts}
+      layouts={filteredLayouts}
       breakpoints={BREAKPOINTS}
       cols={COLS}
       rowHeight={ROW_HEIGHT}

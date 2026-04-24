@@ -270,75 +270,75 @@ export function StationScreen() {
     <ScreenProvider value="station">
       <SettingsProvider service={settingsService}>
         <MissionProfilesProvider service={missionProfiles}>
-        <StationWakeLockBridge />
-        <SaveProfileProvider service={saveProfileService}>
-          <ScopedStationIdentity>
-            <StationInfoBroadcaster client={client} />
-            <PeerClientProvider client={client}>
-              <PushClientProvider>
-                <ScopedFogMaskCache store={fogMaskStore}>
-                  <KosProxyContext.Provider value={kosProxy}>
-                    <SerialDeviceProvider service={serialService}>
-                      <OverlayProvider
-                        addItem={dashboard.addItem}
-                        updateItemConfig={dashboard.updateItemConfig}
-                      >
-                        <Layout as="main" aria-label="Station dashboard">
-                          <Dashboard
-                            items={dashboard.items}
-                            layouts={dashboard.layouts}
-                            currentLayouts={dashboard.currentLayouts}
-                            breakpoint={dashboard.breakpoint}
-                            onLayoutChange={dashboard.handleLayoutChange}
-                            onBreakpointChange={
-                              dashboard.handleBreakpointChange
-                            }
-                            updateItemConfig={dashboard.updateItemConfig}
-                            updateItemMappings={dashboard.updateItemMappings}
-                            removeItem={dashboard.removeItem}
-                          />
-                          <FabClusterProvider>
-                            <ComponentOverlay
+          <StationWakeLockBridge />
+          <SaveProfileProvider service={saveProfileService}>
+            <ScopedStationIdentity>
+              <StationInfoBroadcaster client={client} />
+              <PeerClientProvider client={client}>
+                <PushClientProvider>
+                  <ScopedFogMaskCache store={fogMaskStore}>
+                    <KosProxyContext.Provider value={kosProxy}>
+                      <SerialDeviceProvider service={serialService}>
+                        <OverlayProvider
+                          addItem={dashboard.addItem}
+                          updateItemConfig={dashboard.updateItemConfig}
+                        >
+                          <Layout as="main" aria-label="Station dashboard">
+                            <Dashboard
+                              items={dashboard.items}
+                              layouts={dashboard.layouts}
                               currentLayouts={dashboard.currentLayouts}
-                            />
-                            <FlightsFab />
-                            <SerialFab />
-                            <SaveProfilesFab bottom={204} />
-                            <LogsFab bottom={264} />
-                            <FullscreenFab bottom={324} />
-                            <SettingsFab bottom={384} />
-                            <MissionProfilesFab
-                              bottom={444}
-                              currentItems={dashboard.items}
-                              currentLayouts={dashboard.layouts}
-                              onLoad={(p) =>
-                                dashboard.replaceState(p.items, p.layouts)
+                              breakpoint={dashboard.breakpoint}
+                              onLayoutChange={dashboard.handleLayoutChange}
+                              onBreakpointChange={
+                                dashboard.handleBreakpointChange
                               }
+                              updateItemConfig={dashboard.updateItemConfig}
+                              updateItemMappings={dashboard.updateItemMappings}
+                              removeItem={dashboard.removeItem}
                             />
-                            <AlarmsFab
-                              bottom={504}
-                              snapshot={alarmSnapshot}
-                              onAdd={(input) => alarmClient.addAlarm(input)}
-                              onUpdate={(id, patch) =>
-                                alarmClient.updateAlarm(id, patch)
-                              }
-                              onDelete={(id) => alarmClient.deleteAlarm(id)}
-                              ModalComponent={AlarmsModal}
-                            />
-                          </FabClusterProvider>
-                          <StationNameChip>
-                            <StationNameEditor compact />
-                          </StationNameChip>
-                          <SignalLossIndicator />
-                        </Layout>
-                      </OverlayProvider>
-                    </SerialDeviceProvider>
-                  </KosProxyContext.Provider>
-                </ScopedFogMaskCache>
-              </PushClientProvider>
-            </PeerClientProvider>
-          </ScopedStationIdentity>
-        </SaveProfileProvider>
+                            <FabClusterProvider>
+                              <ComponentOverlay
+                                currentLayouts={dashboard.currentLayouts}
+                              />
+                              <FlightsFab />
+                              <SerialFab />
+                              <SaveProfilesFab bottom={204} />
+                              <LogsFab bottom={264} />
+                              <FullscreenFab bottom={324} />
+                              <SettingsFab bottom={384} />
+                              <MissionProfilesFab
+                                bottom={444}
+                                currentItems={dashboard.items}
+                                currentLayouts={dashboard.layouts}
+                                onLoad={(p) =>
+                                  dashboard.replaceState(p.items, p.layouts)
+                                }
+                              />
+                              <AlarmsFab
+                                bottom={504}
+                                snapshot={alarmSnapshot}
+                                onAdd={(input) => alarmClient.addAlarm(input)}
+                                onUpdate={(id, patch) =>
+                                  alarmClient.updateAlarm(id, patch)
+                                }
+                                onDelete={(id) => alarmClient.deleteAlarm(id)}
+                                ModalComponent={AlarmsModal}
+                              />
+                            </FabClusterProvider>
+                            <StationNameChip>
+                              <StationNameEditor compact />
+                            </StationNameChip>
+                            <SignalLossIndicator />
+                          </Layout>
+                        </OverlayProvider>
+                      </SerialDeviceProvider>
+                    </KosProxyContext.Provider>
+                  </ScopedFogMaskCache>
+                </PushClientProvider>
+              </PeerClientProvider>
+            </ScopedStationIdentity>
+          </SaveProfileProvider>
         </MissionProfilesProvider>
       </SettingsProvider>
     </ScreenProvider>

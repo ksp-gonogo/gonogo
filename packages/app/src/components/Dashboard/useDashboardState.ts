@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
 
-const COLS_KEYS = ["lg", "md", "sm", "xs", "xxs", "xxxs"] as const;
+// Keep in lockstep with `BREAKPOINTS` in Dashboard/index.tsx — RGL warns
+// at runtime if a key here isn't a valid breakpoint.
+const COLS_KEYS = ["lg", "md", "sm", "xs", "xxs"] as const;
 
 // Must match BREAKPOINTS in Dashboard/index.tsx. Duplicated here so the initial
 // render picks the correct breakpoint before ResponsiveGridLayout has a chance
