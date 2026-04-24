@@ -269,6 +269,7 @@ export function StationScreen() {
   return (
     <ScreenProvider value="station">
       <SettingsProvider service={settingsService}>
+        <MissionProfilesProvider service={missionProfiles}>
         <StationWakeLockBridge />
         <SaveProfileProvider service={saveProfileService}>
           <ScopedStationIdentity>
@@ -338,6 +339,7 @@ export function StationScreen() {
             </PeerClientProvider>
           </ScopedStationIdentity>
         </SaveProfileProvider>
+        </MissionProfilesProvider>
       </SettingsProvider>
     </ScreenProvider>
   );
