@@ -248,7 +248,20 @@ interface PendingCall {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-type SessionState = "menu" | "repl" | "closed";
+/**
+ * Session state machine.
+ *   - `menu`: kOS is showing the CPU selection menu. We wait for the
+ *     menu-ready sentinel, match our configured tagname, send the
+ *     numeric selection, and transition to `menu-selected`.
+ *   - `menu-selected`: selection sent; waiting for kOS to finish
+ *     booting the CPU's REPL before we dispatch anything else. kOS
+ *     treats input received during this transition as still-on-menu
+ *     input and flags it "Garbled selection", so we must not send
+ *     the RUNPATH command until the REPL welcome marker arrives.
+ *   - `repl`: ready to drain the queue.
+ *   - `closed`: terminal state after `close()`.
+ */
+type SessionState = "menu" | "menu-selected" | "repl" | "closed";
 
 export class KosComputeSession {
   status: DataSourceStatus = "disconnected";
@@ -319,24 +332,95 @@ export class KosComputeSession {
       this.handleMenuText(text);
       return;
     }
+    if (this.state === "menu-selected") {
+      this.handleMenuSelectedText(text);
+      return;
+    }
     if (this.state === "repl") {
       this.handleReplText(text);
     }
   }
 
+  /**
+   * kOS prints the menu footer (the "Choose a CPU to attach to…"
+   * instruction line) AFTER the last CPU row. Waiting for it is the
+   * only reliable way to know the menu is fully rendered — parsing
+   * `Vessel Name (CPU tagname)` plus one CPU row fires too early and
+   * kOS rejects the selection with "Garbled selection. Try again."
+   */
+  private static readonly MENU_READY_SENTINEL =
+    "Choose a CPU to attach to by typing a selection number";
+  /** kOS prints this banner once a CPU has finished booting and the REPL
+   *  is ready to accept commands. Without gating on it, the `RUNPATH`
+   *  line arrives at kOS while the menu→REPL transition is still in
+   *  flight and the command is swallowed as "Garbled selection". */
+  private static readonly REPL_READY_SENTINEL = "Proceed.";
+  /** Emitted by kOS when it didn't understand our selection input. */
+  private static readonly MENU_GARBLED = "Garbled selection. Try again.";
+
   private handleMenuText(text: string): void {
     if (parseListChanged(text)) this.menuBuffer = "";
     this.menuBuffer += text;
+    // Hold off until the whole menu has landed.
+    if (!this.menuBuffer.includes(KosComputeSession.MENU_READY_SENTINEL)) {
+      return;
+    }
     const menu = parseKosMenu(this.menuBuffer);
     if (menu === null) return;
     const cpu = menu.cpus.find((c) => c.tagname === this.init.cpu);
     if (!cpu) return;
-    this.ws?.send(`${cpu.number}\n`);
-    this.state = "repl";
+    // State transition BEFORE the send: some WS implementations (and
+    // our mock telnet fixture) dispatch message events synchronously
+    // from `.send()`, so kOS's reply lands while we're still inside
+    // this call. If state were still "menu", onMessage would route
+    // the attach output back to handleMenuText and send the selection
+    // a second time.
+    this.state = "menu-selected";
     this.menuBuffer = "";
     this.replBuffer = "";
-    this.setStatus("connected");
-    this.drain();
+    this.ws?.send(`${cpu.number}\n`);
+    // Don't drain() here — the transition to "repl" + drain happens
+    // when we see the REPL_READY_SENTINEL in handleMenuSelectedText.
+  }
+
+  /**
+   * Buffer output until kOS prints the REPL welcome. Detects:
+   *   - Proceed.  → transition to "repl" and drain the queue.
+   *   - Garbled selection. Try again.  → the selection raced; back to
+   *     the menu state and wait for the redraw.
+   *   - --(List of CPU's has Changed)-- → CPU list mutated mid-transition.
+   */
+  private handleMenuSelectedText(text: string): void {
+    if (parseListChanged(text)) {
+      logger
+        .tag("kos-compute")
+        .warn("CPU list changed during menu→REPL transition", {
+          cpu: this.init.cpu,
+        });
+      this.state = "menu";
+      this.menuBuffer = text;
+      return;
+    }
+    if (text.includes(KosComputeSession.MENU_GARBLED)) {
+      logger
+        .tag("kos-compute")
+        .warn("selection garbled, re-entering menu state", {
+          cpu: this.init.cpu,
+        });
+      this.state = "menu";
+      this.menuBuffer = "";
+      return;
+    }
+    // Accumulate in replBuffer so we can look for the REPL welcome
+    // across chunk boundaries.
+    this.replBuffer += text;
+    if (this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)) {
+      logger.tag("kos-compute").debug("REPL ready", { cpu: this.init.cpu });
+      this.state = "repl";
+      this.replBuffer = "";
+      this.setStatus("connected");
+      this.drain();
+    }
   }
 
   private handleReplText(text: string): void {

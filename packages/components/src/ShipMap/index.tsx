@@ -219,10 +219,9 @@ function ShipMapConfigComponent({
         />
         <FieldHint>
           Path to the saved script on your kOS volume. The widget runs{" "}
-          <code>RUNPATH("{scriptName}").</code> — the <code>.ks</code>{" "}
-          extension is optional, and subpaths like{" "}
-          <code>widget_scripts/shipmap</code> are fine. Defaults to{" "}
-          <code>shipmap</code>.
+          <code>RUNPATH("{scriptName}").</code> — the <code>.ks</code> extension
+          is optional, and subpaths like <code>widget_scripts/shipmap</code> are
+          fine. Defaults to <code>shipmap</code>.
         </FieldHint>
       </Field>
 
@@ -247,9 +246,8 @@ function ShipMapConfigComponent({
           <code>
             {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
           </code>{" "}
-          on your kOS Archive volume. Edit freely — the contract is one line
-          of the form{" "}
-          <code>[KOSDATA]parts=&lt;json-array&gt;[/KOSDATA]</code>.
+          on your kOS Archive volume. Edit freely — the contract is one line of
+          the form <code>[KOSDATA]parts=&lt;json-array&gt;[/KOSDATA]</code>.
         </FieldHint>
         <ScriptBox>
           <pre>{SHIP_MAP_SCRIPT}</pre>

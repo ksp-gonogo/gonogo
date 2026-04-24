@@ -190,7 +190,12 @@ export class MockKosTelnet {
     if (!cpu) return; // Invalid selection — real kOS would ignore it too.
     socket.attachedCpu = cpu;
     socket.mode = "repl";
-    socket.emitRaw(`\nAttached to CPU on [${cpu.tagname}].${REPL_PROMPT} `);
+    // Real kOS prints a multi-line banner ending in "Proceed." once the
+    // REPL is ready. The data source uses that as its REPL-ready
+    // sentinel, so emit it here to mirror production behaviour.
+    socket.emitRaw(
+      `\nAttached to CPU on [${cpu.tagname}].\nkOS Operating System\nKerboScript v1.5.1.0\n \nProceed.\n${REPL_PROMPT} `,
+    );
   }
 
   private renderMenu(): string {
