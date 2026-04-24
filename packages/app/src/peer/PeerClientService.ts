@@ -14,6 +14,23 @@ export type ConnStatus =
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * Longer retry gap when the broker reports our station peer id is still
+ * held. The broker's id TTL is on the order of 30–60 s, so a short
+ * 2 s loop just generates noise. 8 s keeps the log usable without
+ * missing the window when the broker finally releases the id.
+ */
+const UNAVAILABLE_ID_RETRY_MS = 8_000;
+
+/** PeerJS error shape — `.type` is the one load-bearing field we read. */
+interface PeerJsError extends Error {
+  type?: string;
+}
+
+function isPeerJsError(e: unknown): e is PeerJsError {
+  return e instanceof Error && typeof (e as PeerJsError).type === "string";
+}
+
 export interface PeerClientOptions {
   retryIntervalMs?: number;
   retryTimeoutMs?: number;
@@ -34,6 +51,13 @@ export class PeerClientService {
   private readonly retryIntervalMs: number;
   private readonly retryTimeoutMs: number;
   private readonly stationPeerId: string;
+  /** Last observed PeerJS error-type string — suppresses duplicate noisy
+   *  logs when the same condition (e.g. `unavailable-id`) persists across
+   *  retries. */
+  private lastErrorType: string | null = null;
+  /** ms override applied to the next retry. Set by error-type-specific
+   *  handling; cleared back to `retryIntervalMs` after one use. */
+  private nextRetryOverrideMs: number | null = null;
 
   private dataListeners = new Set<
     (sourceId: string, key: string, value: unknown, t: number) => void
@@ -112,6 +136,9 @@ export class PeerClientService {
     );
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
+      // Fresh peer opened cleanly — clear the "still stuck on this error"
+      // memo so future transitions log once again.
+      this.lastErrorType = null;
       this.conn = this.peer.connect(this.hostPeerId);
       this.conn.on("open", () => {
         logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
@@ -127,12 +154,53 @@ export class PeerClientService {
         logger.error("[PeerClient] connection error", err);
       });
     });
-    this.peer.on("error", (err) => {
-      logger.error("[PeerClient] peer error", err);
-      // PeerJS fires "error" for things like unavailable-peer-id when the host
-      // is between refreshes. Schedule a retry rather than giving up.
-      this.handleUnexpectedClose();
-    });
+    this.peer.on("error", (err) => this.handlePeerError(err));
+  }
+
+  /**
+   * Classify the PeerJS error, log meaningfully (deduplicated per
+   * error-type so sustained conditions like "unavailable-id" emit one
+   * line rather than flooding the console on every retry), and let
+   * `handleUnexpectedClose` schedule the next attempt.
+   */
+  private handlePeerError(err: unknown): void {
+    const type = isPeerJsError(err) ? (err.type ?? null) : null;
+    const repeat = type !== null && type === this.lastErrorType;
+
+    if (!repeat) {
+      if (type === "unavailable-id") {
+        // Broker still holds this station's id because our previous Peer
+        // hasn't been garbage-collected yet. Retry more slowly — the id
+        // will free itself within ~a minute.
+        logger.warn(
+          `[PeerClient] station peer id is still held by the broker — retrying slowly until it releases`,
+          { stationPeerId: this.stationPeerId },
+        );
+      } else if (type === "peer-unavailable") {
+        // Host isn't online (refreshing, shutdown). Normal retry cadence.
+        logger.info(
+          `[PeerClient] host ${this.hostPeerId} unavailable — will retry`,
+        );
+      } else {
+        logger.error(
+          "[PeerClient] peer error",
+          err instanceof Error ? err : new Error(String(err)),
+        );
+      }
+    } else {
+      // Same error as last time; keep it out of the visible log but still
+      // record at debug level for traceability.
+      debugPeer("PeerClient repeat error", {
+        type,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    if (type === "unavailable-id") {
+      this.nextRetryOverrideMs = UNAVAILABLE_ID_RETRY_MS;
+    }
+    this.lastErrorType = type;
+    this.handleUnexpectedClose();
   }
 
   private handleUnexpectedClose() {
@@ -146,15 +214,19 @@ export class PeerClientService {
     if (Date.now() - this.retryStart >= this.retryTimeoutMs) {
       logger.warn("[PeerClient] giving up on reconnect");
       this.retryStart = null;
+      this.lastErrorType = null;
+      this.nextRetryOverrideMs = null;
       this.emitConnStatus("disconnected");
       return;
     }
 
     this.emitConnStatus("reconnecting");
+    const delay = this.nextRetryOverrideMs ?? this.retryIntervalMs;
+    this.nextRetryOverrideMs = null;
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
       this.openPeer();
-    }, this.retryIntervalMs);
+    }, delay);
   }
 
   private tearDownPeer() {
