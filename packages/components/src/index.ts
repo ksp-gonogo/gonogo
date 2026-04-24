@@ -16,4 +16,5 @@ export * from "./LandingStatus";
 export * from "./ManeuverPlanner";
 export * from "./MapView";
 export * from "./OrbitView";
+export * from "./ShipMap";
 export * from "./ThermalStatus";
