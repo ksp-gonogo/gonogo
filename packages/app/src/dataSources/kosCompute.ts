@@ -390,10 +390,28 @@ export class KosComputeSession {
       JSON.stringify(next.script),
       ...next.args.map(formatArg),
     ].join(", ");
-    this.ws?.send(`RUNPATH(${argList}).\n`);
+    const cmd = `RUNPATH(${argList}).\n`;
+    logger.tag("kos-compute").debug("dispatching", {
+      cpu: this.init.cpu,
+      script: next.script,
+      args: next.args,
+      cmd: cmd.trim(),
+    });
+    this.ws?.send(cmd);
     next.timer = setTimeout(() => {
       if (this.inFlight !== next) return;
       this.inFlight = null;
+      // Dump what we did receive so the user can see why parseKosData
+      // missed the marker — usually means the script errored before
+      // emitting [KOSDATA], or the marker literal got mangled.
+      logger.warn(
+        `[kos-compute] script "${next.script}" timed out awaiting [KOSDATA]`,
+        {
+          cpu: this.init.cpu,
+          bufferLen: this.replBuffer.length,
+          bufferTail: this.replBuffer.slice(-1000),
+        },
+      );
       this.fail(
         next,
         new Error(`kOS script "${next.script}" timed out awaiting [KOSDATA]`),

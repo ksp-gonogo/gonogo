@@ -27,6 +27,11 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     label: "peer:stream",
     hint: "WebRTC media calls (cameras)",
   },
+  {
+    id: "kos-compute",
+    label: "kos-compute",
+    hint: "kOS script dispatch + raw WS buffer on timeout",
+  },
   { id: "camera", label: "camera", hint: "OCISLY stream source lifecycle" },
   { id: "serial", label: "serial", hint: "Serial device connect / parse" },
   {
