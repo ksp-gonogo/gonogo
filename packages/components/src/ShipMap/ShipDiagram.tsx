@@ -40,8 +40,8 @@ export function ShipDiagram({
   if (parts.length === 0) {
     return (
       <Empty>
-        No ship data yet. Save the script to <code>shipmap.ks</code> on
-        Archive and press Run.
+        No ship data yet. Save the script to <code>shipmap.ks</code> on Archive
+        and press Run.
       </Empty>
     );
   }
@@ -60,7 +60,10 @@ export function ShipDiagram({
 
   // Parent/child edges — let the user see the attachment tree.
   const uidIndex = new Map(projected.map((p) => [p.uid, p]));
-  const edges: Array<{ a: (typeof projected)[number]; b: (typeof projected)[number] }> = [];
+  const edges: Array<{
+    a: (typeof projected)[number];
+    b: (typeof projected)[number];
+  }> = [];
   for (const p of projected) {
     if (!p.parent) continue;
     const parent = uidIndex.get(p.parent);
@@ -128,7 +131,13 @@ function project(
   parts: readonly ShipMapPart[],
   highlight: string | null,
 ): {
-  projected: Array<{ uid: string; px: number; py: number; mass: number; parent: string }>;
+  projected: Array<{
+    uid: string;
+    px: number;
+    py: number;
+    mass: number;
+    parent: string;
+  }>;
   bounds: { x: number; y: number; w: number; h: number };
   highlightUid: string | null;
 } {

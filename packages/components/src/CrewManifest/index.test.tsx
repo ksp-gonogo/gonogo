@@ -78,13 +78,10 @@ describe("CrewManifestComponent", () => {
       prime();
       // Some mods return rich objects instead of plain strings — our guard
       // should fish out the name and ignore the rest.
-      source.emit(
-        "v.crew",
-        [
-          { name: "Jebediah Kerman", health: 1.0 } as unknown as string,
-          { name: "Bill Kerman", health: 0.8 } as unknown as string,
-        ] as string[],
-      );
+      source.emit("v.crew", [
+        { name: "Jebediah Kerman", health: 1.0 } as unknown as string,
+        { name: "Bill Kerman", health: 0.8 } as unknown as string,
+      ] as string[]);
       source.emit("v.crewCount", 2);
       source.emit("v.crewCapacity", 2);
     });

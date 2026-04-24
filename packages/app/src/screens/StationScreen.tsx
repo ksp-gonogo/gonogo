@@ -18,6 +18,12 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
+  AlarmClientService,
+  type AlarmSnapshot,
+  AlarmsFab,
+  AlarmsModal,
+} from "../alarms";
+import {
   ComponentOverlay,
   OverlayProvider,
 } from "../components/ComponentOverlay";
@@ -88,6 +94,11 @@ export function StationScreen() {
   const [missionProfiles] = useState(
     () => new MissionProfilesService("station"),
   );
+  const [alarmClient] = useState(() => new AlarmClientService(client));
+  const [alarmSnapshot, setAlarmSnapshot] = useState<AlarmSnapshot>(
+    alarmClient.snapshot(),
+  );
+  useEffect(() => alarmClient.subscribe(setAlarmSnapshot), [alarmClient]);
   const [fogMaskStore] = useState(() => new FogMaskStore());
   const unsubsRef = useRef<Array<() => void>>([]);
   const schemaHandledRef = useRef(false);
@@ -302,6 +313,16 @@ export function StationScreen() {
                               onLoad={(p) =>
                                 dashboard.replaceState(p.items, p.layouts)
                               }
+                            />
+                            <AlarmsFab
+                              bottom={504}
+                              snapshot={alarmSnapshot}
+                              onAdd={(input) => alarmClient.addAlarm(input)}
+                              onUpdate={(id, patch) =>
+                                alarmClient.updateAlarm(id, patch)
+                              }
+                              onDelete={(id) => alarmClient.deleteAlarm(id)}
+                              ModalComponent={AlarmsModal}
                             />
                           </FabClusterProvider>
                           <StationNameChip>

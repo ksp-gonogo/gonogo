@@ -40,6 +40,17 @@ type WidgetPushListener = (
   msg: Extract<PeerMessage, { type: "widget-push" }>,
 ) => void;
 type WidgetRecallListener = (peerId: string, widgetInstanceId: string) => void;
+type AlarmAddListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "alarm-add" }>,
+) => void;
+type AlarmUpdateListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "alarm-update" }>,
+) => void;
+type AlarmDeleteListener = (peerId: string, id: string) => void;
+type AlarmAckListener = (peerId: string) => void;
+type AlarmWarpIntentListener = (peerId: string, index: number) => void;
 
 export class PeerHostService {
   private peer: Peer | null = null;
@@ -54,6 +65,11 @@ export class PeerHostService {
   private peerDisconnectListeners = new Set<PeerLifecycleListener>();
   private widgetPushListeners = new Set<WidgetPushListener>();
   private widgetRecallListeners = new Set<WidgetRecallListener>();
+  private alarmAddListeners = new Set<AlarmAddListener>();
+  private alarmUpdateListeners = new Set<AlarmUpdateListener>();
+  private alarmDeleteListeners = new Set<AlarmDeleteListener>();
+  private alarmAckListeners = new Set<AlarmAckListener>();
+  private alarmWarpIntentListeners = new Set<AlarmWarpIntentListener>();
   peerId: string | null = null;
 
   start() {
@@ -258,6 +274,27 @@ export class PeerHostService {
         cb(conn.peer, msg.widgetInstanceId);
       return;
     }
+
+    if (msg.type === "alarm-add") {
+      for (const cb of this.alarmAddListeners) cb(conn.peer, msg);
+      return;
+    }
+    if (msg.type === "alarm-update") {
+      for (const cb of this.alarmUpdateListeners) cb(conn.peer, msg);
+      return;
+    }
+    if (msg.type === "alarm-delete") {
+      for (const cb of this.alarmDeleteListeners) cb(conn.peer, msg.id);
+      return;
+    }
+    if (msg.type === "alarm-ack-unscheduled-warp") {
+      for (const cb of this.alarmAckListeners) cb(conn.peer);
+      return;
+    }
+    if (msg.type === "alarm-warp-intent") {
+      for (const cb of this.alarmWarpIntentListeners) cb(conn.peer, msg.index);
+      return;
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -288,6 +325,31 @@ export class PeerHostService {
   onPeerDisconnect(cb: PeerLifecycleListener): () => void {
     this.peerDisconnectListeners.add(cb);
     return () => this.peerDisconnectListeners.delete(cb);
+  }
+
+  onAlarmAdd(cb: AlarmAddListener): () => void {
+    this.alarmAddListeners.add(cb);
+    return () => this.alarmAddListeners.delete(cb);
+  }
+
+  onAlarmUpdate(cb: AlarmUpdateListener): () => void {
+    this.alarmUpdateListeners.add(cb);
+    return () => this.alarmUpdateListeners.delete(cb);
+  }
+
+  onAlarmDelete(cb: AlarmDeleteListener): () => void {
+    this.alarmDeleteListeners.add(cb);
+    return () => this.alarmDeleteListeners.delete(cb);
+  }
+
+  onAlarmAckUnscheduledWarp(cb: AlarmAckListener): () => void {
+    this.alarmAckListeners.add(cb);
+    return () => this.alarmAckListeners.delete(cb);
+  }
+
+  onAlarmWarpIntent(cb: AlarmWarpIntentListener): () => void {
+    this.alarmWarpIntentListeners.add(cb);
+    return () => this.alarmWarpIntentListeners.delete(cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {

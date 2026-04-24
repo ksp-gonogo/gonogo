@@ -1,7 +1,6 @@
-import type { KosData } from "@gonogo/data";
-import { useKosWidget } from "@gonogo/data";
-import type { UseKosWidgetOptions } from "@gonogo/data";
 import { logger } from "@gonogo/core";
+import type { KosData, UseKosWidgetOptions } from "@gonogo/data";
+import { useKosWidget } from "@gonogo/data";
 import { useMemo } from "react";
 
 /**

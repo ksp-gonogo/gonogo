@@ -32,9 +32,7 @@ interface ShipMapConfig {
   refreshOnStage?: boolean;
 }
 
-function ShipMapComponent({
-  config,
-}: Readonly<ComponentProps<ShipMapConfig>>) {
+function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
   const cpu = config?.cpu ?? "";
   const scriptName = config?.scriptName ?? SHIP_MAP_SCRIPT_NAME;
   const refreshOnStage = config?.refreshOnStage !== false;
@@ -122,21 +120,22 @@ function ShipMapComponent({
     >
       {notConfigured ? (
         <Placeholder>
-          Configure the kOS CPU tagname and save <code>{SHIP_MAP_SCRIPT_NAME}.ks</code>
-          {" "}to the Archive volume. The script is in the widget's config.
+          Configure the kOS CPU tagname and save{" "}
+          <code>{SHIP_MAP_SCRIPT_NAME}.ks</code> to the Archive volume. The
+          script is in the widget's config.
         </Placeholder>
       ) : !payload ? (
         <Placeholder>
-          {running
-            ? "Running shipmap…"
-            : "No ship data yet. Press Run."}
+          {running ? "Running shipmap…" : "No ship data yet. Press Run."}
         </Placeholder>
       ) : (
         <>
           <Meta>
             {payload.length} part{payload.length === 1 ? "" : "s"}
             {lastGoodAt && (
-              <MetaTag>· updated {formatAge(Date.now() - lastGoodAt)} ago</MetaTag>
+              <MetaTag>
+                · updated {formatAge(Date.now() - lastGoodAt)} ago
+              </MetaTag>
             )}
             {hottestPartName !== undefined && (
               <MetaTag>· hot: {hottestPartName}</MetaTag>
@@ -192,8 +191,8 @@ function ShipMapConfigComponent({
           onChange={(e) => setCpu(e.target.value)}
         />
         <FieldHint>
-          The tagname of the kOS part on your vessel. Set via the kOS
-          part's right-click menu in KSP.
+          The tagname of the kOS part on your vessel. Set via the kOS part's
+          right-click menu in KSP.
         </FieldHint>
       </Field>
 
@@ -339,7 +338,11 @@ registerComponent<ShipMapConfig>({
   configComponent: ShipMapConfigComponent,
   openConfigOnAdd: true,
   dataRequirements: ["v.currentStage", "therm.hottestPartName"],
-  defaultConfig: { cpu: "", scriptName: SHIP_MAP_SCRIPT_NAME, refreshOnStage: true },
+  defaultConfig: {
+    cpu: "",
+    scriptName: SHIP_MAP_SCRIPT_NAME,
+    refreshOnStage: true,
+  },
   actions: [],
   pushable: true,
 });

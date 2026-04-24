@@ -1,7 +1,7 @@
-export { KosScriptFrame } from "./KosScriptFrame";
 export type { KosScriptFrameProps } from "./KosScriptFrame";
-export { useKosScriptPayload } from "./useKosScriptPayload";
+export { KosScriptFrame } from "./KosScriptFrame";
 export type {
   UseKosScriptPayloadOptions,
   UseKosScriptPayloadResult,
 } from "./useKosScriptPayload";
+export { useKosScriptPayload } from "./useKosScriptPayload";

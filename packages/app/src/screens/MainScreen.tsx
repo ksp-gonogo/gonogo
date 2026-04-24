@@ -1,4 +1,10 @@
-import { getDataSources, getStreamSources, ScreenProvider } from "@gonogo/core";
+import {
+  getDataSource,
+  getDataSources,
+  getStreamSources,
+  ScreenProvider,
+} from "@gonogo/core";
+import type { BufferedDataSource } from "@gonogo/data";
 import { FlightsFab, FogMaskCacheProvider, FogMaskStore } from "@gonogo/data";
 import {
   InputDispatcher,
@@ -10,6 +16,15 @@ import { FabClusterProvider } from "@gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import {
+  AlarmBanner,
+  AlarmHostProvider,
+  AlarmsFab,
+  AlarmsModal,
+  createAlarmHost,
+  useAlarmHost,
+  useAlarmSnapshot,
+} from "../alarms";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -61,6 +76,12 @@ export function MainScreen() {
   // (the useState initializer only runs once per mount cycle).
   const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
   const [pushHost] = useState(() => new PushHostService(peerHostService));
+  const [alarmHost] = useState(() =>
+    createAlarmHost(
+      peerHostService,
+      () => (getDataSource("data") as BufferedDataSource | undefined) ?? null,
+    ),
+  );
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({
@@ -100,60 +121,86 @@ export function MainScreen() {
   return (
     <ScreenProvider value="main">
       <SettingsProvider service={settingsService}>
-        <MissionProfilesProvider service={missionProfiles}>
-          <SaveProfileProvider service={saveProfileService}>
-            <GoNoGoHostProvider service={goNoGoHost}>
-              <PushHostProvider service={pushHost}>
-                <ScopedFogMaskCache store={fogMaskStore}>
-                  <SerialDeviceProvider service={serialService}>
-                    <OverlayProvider
-                      addItem={dashboard.addItem}
-                      updateItemConfig={dashboard.updateItemConfig}
-                    >
-                      <Layout as="main" aria-label="Mission control">
-                        <Dashboard
-                          items={dashboard.items}
-                          layouts={dashboard.layouts}
-                          currentLayouts={dashboard.currentLayouts}
-                          breakpoint={dashboard.breakpoint}
-                          onLayoutChange={dashboard.handleLayoutChange}
-                          onBreakpointChange={dashboard.handleBreakpointChange}
-                          updateItemConfig={dashboard.updateItemConfig}
-                          updateItemMappings={dashboard.updateItemMappings}
-                          removeItem={dashboard.removeItem}
-                        />
-                        <FabClusterProvider>
-                          <ComponentOverlay
+        <AlarmHostProvider service={alarmHost}>
+          <MissionProfilesProvider service={missionProfiles}>
+            <SaveProfileProvider service={saveProfileService}>
+              <GoNoGoHostProvider service={goNoGoHost}>
+                <PushHostProvider service={pushHost}>
+                  <ScopedFogMaskCache store={fogMaskStore}>
+                    <SerialDeviceProvider service={serialService}>
+                      <OverlayProvider
+                        addItem={dashboard.addItem}
+                        updateItemConfig={dashboard.updateItemConfig}
+                      >
+                        <Layout as="main" aria-label="Mission control">
+                          <Dashboard
+                            items={dashboard.items}
+                            layouts={dashboard.layouts}
                             currentLayouts={dashboard.currentLayouts}
-                          />
-                          <FlightsFab />
-                          <SerialFab />
-                          <StationLinkFab />
-                          <SaveProfilesFab />
-                          <LogsFab />
-                          <FullscreenFab />
-                          <SettingsFab bottom={444} />
-                          <MissionProfilesFab
-                            bottom={504}
-                            currentItems={dashboard.items}
-                            currentLayouts={dashboard.layouts}
-                            onLoad={(p) =>
-                              dashboard.replaceState(p.items, p.layouts)
+                            breakpoint={dashboard.breakpoint}
+                            onLayoutChange={dashboard.handleLayoutChange}
+                            onBreakpointChange={
+                              dashboard.handleBreakpointChange
                             }
+                            updateItemConfig={dashboard.updateItemConfig}
+                            updateItemMappings={dashboard.updateItemMappings}
+                            removeItem={dashboard.removeItem}
                           />
-                        </FabClusterProvider>
-                        <SignalLossIndicator />
-                        <PushedDashboardOverlay />
-                      </Layout>
-                    </OverlayProvider>
-                  </SerialDeviceProvider>
-                </ScopedFogMaskCache>
-              </PushHostProvider>
-            </GoNoGoHostProvider>
-          </SaveProfileProvider>
-        </MissionProfilesProvider>
+                          <FabClusterProvider>
+                            <ComponentOverlay
+                              currentLayouts={dashboard.currentLayouts}
+                            />
+                            <FlightsFab />
+                            <SerialFab />
+                            <StationLinkFab />
+                            <SaveProfilesFab />
+                            <LogsFab />
+                            <FullscreenFab />
+                            <SettingsFab bottom={444} />
+                            <MissionProfilesFab
+                              bottom={504}
+                              currentItems={dashboard.items}
+                              currentLayouts={dashboard.layouts}
+                              onLoad={(p) =>
+                                dashboard.replaceState(p.items, p.layouts)
+                              }
+                            />
+                            <MainAlarmsFab />
+                          </FabClusterProvider>
+                          <AlarmBanner />
+                          <SignalLossIndicator />
+                          <PushedDashboardOverlay />
+                        </Layout>
+                      </OverlayProvider>
+                    </SerialDeviceProvider>
+                  </ScopedFogMaskCache>
+                </PushHostProvider>
+              </GoNoGoHostProvider>
+            </SaveProfileProvider>
+          </MissionProfilesProvider>
+        </AlarmHostProvider>
       </SettingsProvider>
     </ScreenProvider>
+  );
+}
+
+/**
+ * Mounts the shared AlarmsFab backed by the main-screen AlarmHostService.
+ * Lives here rather than in @gonogo/app/alarms so the FAB stays agnostic
+ * between main (host) and station (peer client).
+ */
+function MainAlarmsFab() {
+  const host = useAlarmHost();
+  const snapshot = useAlarmSnapshot();
+  return (
+    <AlarmsFab
+      bottom={564}
+      snapshot={snapshot}
+      onAdd={(input) => host.addAlarm(input)}
+      onUpdate={(id, patch) => host.updateAlarm(id, patch)}
+      onDelete={(id) => host.deleteAlarm(id)}
+      ModalComponent={AlarmsModal}
+    />
   );
 }
 

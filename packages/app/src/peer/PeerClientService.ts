@@ -56,6 +56,12 @@ export class PeerClientService {
   private gonogoCountdownCancelListeners = new Set<
     (reason: string | undefined) => void
   >();
+  private alarmSnapshotListeners = new Set<
+    (snap: import("../alarms/types").AlarmSnapshot) => void
+  >();
+  private alarmFiredListeners = new Set<
+    (fire: { id: string; name: string; ut: number }) => void
+  >();
   private gonogoAbortNotifyListeners = new Set<
     (stationName: string, t: number) => void
   >();
@@ -242,6 +248,43 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
+  sendAlarmAdd(input: {
+    ut: number;
+    name: string;
+    notes?: string;
+    leadSeconds?: number;
+  }) {
+    this.conn?.send({ type: "alarm-add", ...input } satisfies PeerMessage);
+  }
+
+  sendAlarmUpdate(
+    id: string,
+    patch: { ut?: number; name?: string; notes?: string; leadSeconds?: number },
+  ) {
+    this.conn?.send({
+      type: "alarm-update",
+      id,
+      patch,
+    } satisfies PeerMessage);
+  }
+
+  sendAlarmDelete(id: string) {
+    this.conn?.send({ type: "alarm-delete", id } satisfies PeerMessage);
+  }
+
+  sendAlarmAckUnscheduledWarp() {
+    this.conn?.send({
+      type: "alarm-ack-unscheduled-warp",
+    } satisfies PeerMessage);
+  }
+
+  sendAlarmWarpIntent(index: number) {
+    this.conn?.send({
+      type: "alarm-warp-intent",
+      index,
+    } satisfies PeerMessage);
+  }
+
   /**
    * Query a range of historical samples from the host's buffered store.
    * Resolves with columnar `{ t, v }` arrays; rejects with a short error
@@ -378,6 +421,16 @@ export class PeerClientService {
     return () => this.gonogoAbortNotifyListeners.delete(cb);
   }
 
+  onAlarmSnapshot(cb: (snap: import("../alarms/types").AlarmSnapshot) => void) {
+    this.alarmSnapshotListeners.add(cb);
+    return () => this.alarmSnapshotListeners.delete(cb);
+  }
+
+  onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
+    this.alarmFiredListeners.add(cb);
+    return () => this.alarmFiredListeners.delete(cb);
+  }
+
   /** For tests + DEBUG_PEER diagnostics — exposes listener Set sizes. */
   _listenerCounts() {
     return {
@@ -457,6 +510,11 @@ export class PeerClientService {
     } else if (msg.type === "gonogo-abort-notify") {
       for (const cb of this.gonogoAbortNotifyListeners)
         cb(msg.stationName, msg.t);
+    } else if (msg.type === "alarm-snapshot") {
+      for (const cb of this.alarmSnapshotListeners) cb(msg.snapshot);
+    } else if (msg.type === "alarm-fired") {
+      for (const cb of this.alarmFiredListeners)
+        cb({ id: msg.id, name: msg.name, ut: msg.ut });
     }
   }
 

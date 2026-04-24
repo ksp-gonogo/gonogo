@@ -133,12 +133,7 @@ registerComponent<CrewManifestConfig>({
   tags: ["telemetry", "crew"],
   defaultSize: { w: 6, h: 8 },
   component: CrewManifestComponent,
-  dataRequirements: [
-    "v.crew",
-    "v.crewCount",
-    "v.crewCapacity",
-    "v.isEVA",
-  ],
+  dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
   defaultConfig: {},
   actions: [],
   pushable: true,

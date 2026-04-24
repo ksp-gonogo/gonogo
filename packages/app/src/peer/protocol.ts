@@ -1,5 +1,6 @@
 import type { DataSourceStatus } from "@gonogo/core";
 import type { DataKeyMeta, KosData, KosScriptArg } from "@gonogo/data";
+import type { AlarmSnapshot } from "../alarms/types";
 
 export type { DataSourceStatus };
 
@@ -112,4 +113,45 @@ export type PeerMessage =
       requestId: string;
       data?: KosData;
       error?: string;
-    };
+    }
+  // ──────────────────────────────────────────────────────────────────────
+  // Internal mission alarms. The main screen owns the canonical list and
+  // warp-step ladder; stations get a live snapshot and can add/update/
+  // delete entries.
+  // ──────────────────────────────────────────────────────────────────────
+  // Host → stations: full snapshot on every change (alarms list, observed
+  // warp state, unscheduled-warp flag). Not incremental — the list is
+  // small and the round-trips are rare.
+  | {
+      type: "alarm-snapshot";
+      snapshot: AlarmSnapshot;
+    }
+  // Host → stations: one-shot fire event at the alarm's UT. Lets clients
+  // flash a visible cue without waiting for the next snapshot.
+  | { type: "alarm-fired"; id: string; name: string; ut: number }
+  // Station → host: create a new alarm at the given UT (seconds, KSP
+  // Universal Time). Host returns a fresh id in the next snapshot.
+  | {
+      type: "alarm-add";
+      ut: number;
+      name: string;
+      notes?: string;
+      leadSeconds?: number;
+    }
+  | {
+      type: "alarm-update";
+      id: string;
+      patch: {
+        ut?: number;
+        name?: string;
+        notes?: string;
+        leadSeconds?: number;
+      };
+    }
+  | { type: "alarm-delete"; id: string }
+  // Station → host: user dismissed the "unscheduled warp" warning.
+  | { type: "alarm-ack-unscheduled-warp" }
+  // Station → host: user pressed a warp control on the station dashboard.
+  // The host records the requested index so the unscheduled-warp detector
+  // doesn't false-positive on a legitimate station-initiated change.
+  | { type: "alarm-warp-intent"; index: number };
