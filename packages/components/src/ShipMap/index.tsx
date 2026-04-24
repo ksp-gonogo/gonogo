@@ -25,8 +25,10 @@ interface ShipMapConfig {
   /** kOS CPU tagname. Required — widget stays in an empty state until set. */
   cpu?: string;
   /**
-   * Script name on the Archive volume (no extension). Defaults to
-   * `shipmap`. Widget runs `RUN <scriptName>.` internally.
+   * Path of the saved kerboscript on the kOS Archive volume. The `.ks`
+   * extension and subpaths (`widget_scripts/shipmap`) are both fine —
+   * the widget dispatches via kOS's RUNPATH under the hood. Defaults to
+   * `shipmap`.
    */
   scriptName?: string;
   /** If true, re-run the script automatically when v.currentStage changes. */
@@ -216,8 +218,11 @@ function ShipMapConfigComponent({
           onChange={(e) => setScriptName(e.target.value)}
         />
         <FieldHint>
-          No file extension. The widget runs <code>RUN {scriptName}.</code>
-          on the target CPU. Defaults to <code>shipmap</code>.
+          Path to the saved script on your kOS volume. The widget runs{" "}
+          <code>RUNPATH("{scriptName}").</code> — the <code>.ks</code>{" "}
+          extension is optional, and subpaths like{" "}
+          <code>widget_scripts/shipmap</code> are fine. Defaults to{" "}
+          <code>shipmap</code>.
         </FieldHint>
       </Field>
 
@@ -238,8 +243,12 @@ function ShipMapConfigComponent({
           </GhostButton>
         </ScriptHeader>
         <FieldHint>
-          Paste this into <code>{scriptName}.ks</code> on your kOS Archive
-          volume. Edit freely — the contract is one line of the form
+          Paste this into{" "}
+          <code>
+            {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
+          </code>{" "}
+          on your kOS Archive volume. Edit freely — the contract is one line
+          of the form{" "}
           <code>[KOSDATA]parts=&lt;json-array&gt;[/KOSDATA]</code>.
         </FieldHint>
         <ScriptBox>
