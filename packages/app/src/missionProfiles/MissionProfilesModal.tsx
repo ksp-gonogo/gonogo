@@ -78,6 +78,72 @@ export function MissionProfilesModal({
     setRenameDraft("");
   };
 
+  // Extracted to avoid a triple-nested ternary inside the JSX — each row is
+  // in exactly one of three states (confirming-load, confirming-delete, or
+  // default), and splitting it out keeps the render tree readable.
+  function renderRowActions(p: MissionProfile): React.ReactNode {
+    if (pendingLoad?.id === p.id) {
+      return (
+        <>
+          <GhostButton type="button" onClick={() => setPendingLoad(null)}>
+            Cancel
+          </GhostButton>
+          <PrimaryButton
+            type="button"
+            onClick={() => {
+              setPendingLoad(null);
+              handleLoad(p);
+            }}
+          >
+            Confirm load
+          </PrimaryButton>
+        </>
+      );
+    }
+    if (pendingDelete?.id === p.id) {
+      return (
+        <>
+          <GhostButton type="button" onClick={() => setPendingDelete(null)}>
+            Cancel
+          </GhostButton>
+          <DangerButton
+            type="button"
+            onClick={() => {
+              setPendingDelete(null);
+              handleDelete(p);
+            }}
+          >
+            Delete
+          </DangerButton>
+        </>
+      );
+    }
+    return (
+      <>
+        <Button
+          type="button"
+          onClick={() => setPendingLoad(p)}
+          title="Replace the current dashboard with this profile"
+        >
+          Load
+        </Button>
+        <GhostButton
+          type="button"
+          onClick={() => handleOverwrite(p)}
+          title="Overwrite this profile with the current dashboard"
+        >
+          Overwrite
+        </GhostButton>
+        <GhostButton type="button" onClick={() => handleRenameStart(p)}>
+          Rename
+        </GhostButton>
+        <GhostButton type="button" onClick={() => setPendingDelete(p)}>
+          Delete
+        </GhostButton>
+      </>
+    );
+  }
+
   return (
     <Wrap>
       <Section>
@@ -138,74 +204,7 @@ export function MissionProfilesModal({
                     {formatRelative(p.updatedAt)}
                   </ProfileMeta>
                 </ProfileHeader>
-                <ProfileActions>
-                  {pendingLoad?.id === p.id ? (
-                    <>
-                      <GhostButton
-                        type="button"
-                        onClick={() => setPendingLoad(null)}
-                      >
-                        Cancel
-                      </GhostButton>
-                      <PrimaryButton
-                        type="button"
-                        onClick={() => {
-                          setPendingLoad(null);
-                          handleLoad(p);
-                        }}
-                      >
-                        Confirm load
-                      </PrimaryButton>
-                    </>
-                  ) : pendingDelete?.id === p.id ? (
-                    <>
-                      <GhostButton
-                        type="button"
-                        onClick={() => setPendingDelete(null)}
-                      >
-                        Cancel
-                      </GhostButton>
-                      <DangerButton
-                        type="button"
-                        onClick={() => {
-                          setPendingDelete(null);
-                          handleDelete(p);
-                        }}
-                      >
-                        Delete
-                      </DangerButton>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        type="button"
-                        onClick={() => setPendingLoad(p)}
-                        title="Replace the current dashboard with this profile"
-                      >
-                        Load
-                      </Button>
-                      <GhostButton
-                        type="button"
-                        onClick={() => handleOverwrite(p)}
-                        title="Overwrite this profile with the current dashboard"
-                      >
-                        Overwrite
-                      </GhostButton>
-                      <GhostButton
-                        type="button"
-                        onClick={() => handleRenameStart(p)}
-                      >
-                        Rename
-                      </GhostButton>
-                      <GhostButton
-                        type="button"
-                        onClick={() => setPendingDelete(p)}
-                      >
-                        Delete
-                      </GhostButton>
-                    </>
-                  )}
-                </ProfileActions>
+                <ProfileActions>{renderRowActions(p)}</ProfileActions>
                 {pendingLoad?.id === p.id && (
                   <Warning role="alert">
                     Loading will replace the current dashboard with{" "}

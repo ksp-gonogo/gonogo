@@ -24,7 +24,7 @@ export function AlarmBanner() {
   }, []);
 
   const nextAlarm = pickNext(snap);
-  const tone = banner_tone(nextAlarm);
+  const tone = bannerTone(nextAlarm);
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
@@ -65,7 +65,7 @@ export function AlarmBanner() {
 
 type Tone = "idle" | "set" | "arm" | "fire";
 
-function banner_tone(alarm: Alarm | null): Tone {
+function bannerTone(alarm: Alarm | null): Tone {
   if (!alarm) return "idle";
   if (alarm.state === "firing") return "fire";
   if (alarm.state === "arming") return "arm";

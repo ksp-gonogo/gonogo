@@ -142,9 +142,9 @@ function SystemViewConfigComponent({
         </Select>
         <FieldHint>
           "Auto" walks up the reference-body chain from the vessel so a
-          Kerbin-orbit mission sees Kerbol, and a Mun mission also sees
-          Kerbol (not just Kerbin). "Current body" keeps the camera
-          locked to whatever the vessel is currently around.
+          Kerbin-orbit mission sees Kerbol, and a Mun mission also sees Kerbol
+          (not just Kerbin). "Current body" keeps the camera locked to whatever
+          the vessel is currently around.
         </FieldHint>
       </Field>
       <PrimaryButton onClick={() => onSave({ frame })}>Save</PrimaryButton>
@@ -187,6 +187,6 @@ registerComponent<SystemViewConfig>({
   pushable: true,
 });
 
-export { SystemViewComponent };
-export { useCelestialBodies } from "./useCelestialBodies";
 export type { CelestialBody } from "./useCelestialBodies";
+export { useCelestialBodies } from "./useCelestialBodies";
+export { SystemViewComponent };

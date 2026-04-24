@@ -98,13 +98,7 @@ export function SystemDiagram({
 
       {/* Parent body */}
       <circle cx={cx} cy={cy} r={6} fill="#ffcc80" stroke="#663300" />
-      <text
-        x={cx}
-        y={cy + 18}
-        fill="#ffcc80"
-        fontSize={10}
-        textAnchor="middle"
-      >
+      <text x={cx} y={cy + 18} fill="#ffcc80" fontSize={10} textAnchor="middle">
         {parent.name}
       </text>
 
@@ -119,7 +113,9 @@ export function SystemDiagram({
         // on the major axis by (r * cos(theta)). Good enough for a
         // schematic; use real orbital math later if we need accuracy.
         const localX = r * Math.cos(theta);
-        const localY = r * Math.sin(theta) *
+        const localY =
+          r *
+          Math.sin(theta) *
           Math.sqrt(1 - Math.min((c.eccentricity ?? 0) ** 2, 0.999));
         const x = cx + localX * Math.cos(lanRad) - localY * Math.sin(lanRad);
         const y = cy + localX * Math.sin(lanRad) + localY * Math.cos(lanRad);
@@ -138,12 +134,7 @@ export function SystemDiagram({
               stroke="#000"
               strokeWidth={1}
             />
-            <text
-              x={x + dotR + 3}
-              y={y + 3}
-              fill={fill}
-              fontSize={10}
-            >
+            <text x={x + dotR + 3} y={y + 3} fill={fill} fontSize={10}>
               {c.name ?? "—"}
             </text>
           </g>

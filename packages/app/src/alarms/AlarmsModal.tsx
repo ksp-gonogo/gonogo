@@ -43,6 +43,8 @@ export function AlarmsModal({
   const [offsetSeconds, setOffsetSeconds] = useState("60");
   const [leadSeconds, setLeadSeconds] = useState(String(DEFAULT_LEAD_SECONDS));
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   const addDisabled =
     name.trim() === "" ||
@@ -140,10 +142,35 @@ export function AlarmsModal({
             {sorted.map((a) => {
               const delta = snapshot.ut !== null ? a.ut - snapshot.ut : null;
               const pendingDelete = pendingDeleteId === a.id;
+              const renaming = renamingId === a.id;
+              const commitRename = () => {
+                const trimmed = renameDraft.trim();
+                if (trimmed && trimmed !== a.name)
+                  onUpdate(a.id, { name: trimmed });
+                setRenamingId(null);
+                setRenameDraft("");
+              };
               return (
                 <Row key={a.id} $state={a.state}>
                   <RowInfo>
-                    <RowName>{a.name}</RowName>
+                    {renaming ? (
+                      <Input
+                        type="text"
+                        value={renameDraft}
+                        autoFocus
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={commitRename}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitRename();
+                          if (e.key === "Escape") {
+                            setRenamingId(null);
+                            setRenameDraft("");
+                          }
+                        }}
+                      />
+                    ) : (
+                      <RowName>{a.name}</RowName>
+                    )}
                     <RowMeta>
                       {formatUt(a.ut)}
                       {delta !== null && (
@@ -182,9 +209,8 @@ export function AlarmsModal({
                         <GhostButton
                           type="button"
                           onClick={() => {
-                            const raw = prompt("New name", a.name);
-                            if (raw !== null && raw.trim() !== "")
-                              onUpdate(a.id, { name: raw.trim() });
+                            setRenamingId(a.id);
+                            setRenameDraft(a.name);
                           }}
                         >
                           Rename

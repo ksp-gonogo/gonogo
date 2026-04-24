@@ -118,43 +118,53 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
       onRun={dispatch}
       runDisabled={running || notConfigured}
     >
-      {notConfigured ? (
+      {renderBody()}
+    </KosScriptFrame>
+  );
+
+  function renderBody() {
+    if (notConfigured) {
+      return (
         <Placeholder>
           Configure the kOS CPU tagname and save{" "}
           <code>{SHIP_MAP_SCRIPT_NAME}.ks</code> to the Archive volume. The
           script is in the widget's config.
         </Placeholder>
-      ) : !payload ? (
+      );
+    }
+    if (!payload) {
+      return (
         <Placeholder>
           {running ? "Running shipmap…" : "No ship data yet. Press Run."}
         </Placeholder>
-      ) : (
-        <>
-          <Meta>
-            {payload.length} part{payload.length === 1 ? "" : "s"}
-            {lastGoodAt && (
-              <MetaTag>
-                · updated {formatAge(Date.now() - lastGoodAt)} ago
-              </MetaTag>
-            )}
-            {hottestPartName !== undefined && (
-              <MetaTag>· hot: {hottestPartName}</MetaTag>
-            )}
-          </Meta>
-          <DiagramWrap ref={wrapRef}>
-            <ShipDiagram
-              parts={payload}
-              highlight={
-                typeof hottestPartName === "string" ? hottestPartName : null
-              }
-              width={size.w}
-              height={size.h}
-            />
-          </DiagramWrap>
-        </>
-      )}
-    </KosScriptFrame>
-  );
+      );
+    }
+    return (
+      <>
+        <Meta>
+          {payload.length} part{payload.length === 1 ? "" : "s"}
+          {lastGoodAt && (
+            <MetaTag>
+              · updated {formatAge(Date.now() - lastGoodAt)} ago
+            </MetaTag>
+          )}
+          {hottestPartName !== undefined && (
+            <MetaTag>· hot: {hottestPartName}</MetaTag>
+          )}
+        </Meta>
+        <DiagramWrap ref={wrapRef}>
+          <ShipDiagram
+            parts={payload}
+            highlight={
+              typeof hottestPartName === "string" ? hottestPartName : null
+            }
+            width={size.w}
+            height={size.h}
+          />
+        </DiagramWrap>
+      </>
+    );
+  }
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
