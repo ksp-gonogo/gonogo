@@ -66,6 +66,10 @@ export interface DashboardState {
   handleBreakpointChange: (bp: string) => void;
   addItem: (item: DashboardItem, layout: Partial<Layout>) => void;
   removeItem: (id: string) => void;
+  /** Reorder: move the item with this id one slot earlier in `items`. No-op for the first item. */
+  moveItemUp: (id: string) => void;
+  /** Reorder: move the item with this id one slot later in `items`. No-op for the last item. */
+  moveItemDown: (id: string) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   /** Subscribe to item changes — fires after every add / update. */
@@ -163,6 +167,26 @@ export function useDashboardState(
     );
   }, []);
 
+  const moveItemUp = useCallback((id: string) => {
+    setItemsInner((prev) => {
+      const idx = prev.findIndex((it) => it.i === id);
+      if (idx <= 0) return prev;
+      const next = prev.slice();
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      return next;
+    });
+  }, []);
+
+  const moveItemDown = useCallback((id: string) => {
+    setItemsInner((prev) => {
+      const idx = prev.findIndex((it) => it.i === id);
+      if (idx === -1 || idx >= prev.length - 1) return prev;
+      const next = prev.slice();
+      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      return next;
+    });
+  }, []);
+
   const updateItemConfig = useCallback(
     (id: string, newConfig: Record<string, unknown>) => {
       setItemsInner((prev) =>
@@ -216,6 +240,8 @@ export function useDashboardState(
     handleBreakpointChange,
     addItem,
     removeItem,
+    moveItemUp,
+    moveItemDown,
     updateItemConfig,
     updateItemMappings,
     subscribeItems,

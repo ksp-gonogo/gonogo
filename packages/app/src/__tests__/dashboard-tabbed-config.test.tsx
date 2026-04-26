@@ -38,6 +38,8 @@ function DashboardHarness({
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       removeItem={s.removeItem}
+      moveItemUp={s.moveItemUp}
+      moveItemDown={s.moveItemDown}
     />
   );
 }

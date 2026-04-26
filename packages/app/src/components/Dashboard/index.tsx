@@ -5,6 +5,7 @@ import {
   ErrorBoundary,
   getComponent,
   handleError,
+  useTouchDevice,
 } from "@gonogo/core";
 import {
   type InputMappings,
@@ -64,11 +65,6 @@ const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
 const BREAKPOINT_KEYS = new Set(Object.keys(BREAKPOINTS));
 const ROW_HEIGHT = 25; // px per grid unit
 
-// Drag/resize is unreliable on touch and the 18px drag handle is too small
-// anyway. Lock the layout on phone breakpoints — per-breakpoint layouts
-// authored on desktop are authoritative at these widths.
-const TOUCH_LOCKED_BREAKPOINTS = new Set(["sm", "xs", "xxs"]);
-
 /**
  * Drop any breakpoint keys RGL doesn't know about. A previous version
  * of COLS included `xxxs` which is now gone; persisted layouts in
@@ -99,9 +95,20 @@ export interface DashboardProps {
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   removeItem: (id: string) => void;
+  moveItemUp: (id: string) => void;
+  moveItemDown: (id: string) => void;
 }
 
-export function Dashboard({
+export function Dashboard(props: Readonly<DashboardProps>) {
+  // Touch devices can't realistically use react-grid-layout's drag handle.
+  // Render a linear list with up/down reorder buttons instead — the desktop
+  // grid is unaffected, and a desktop user with a narrow window keeps drag.
+  const isTouch = useTouchDevice();
+  if (isTouch) return <MobileDashboard {...props} />;
+  return <GridDashboard {...props} />;
+}
+
+function GridDashboard({
   items,
   layouts,
   currentLayouts,
@@ -112,7 +119,6 @@ export function Dashboard({
   updateItemMappings,
   removeItem,
 }: Readonly<DashboardProps>) {
-  const touchLocked = TOUCH_LOCKED_BREAKPOINTS.has(breakpoint);
   // Defensive: persisted layouts may carry breakpoint keys that used to
   // exist in COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
   // before handing the map off so it doesn't warn on every render.
@@ -131,8 +137,6 @@ export function Dashboard({
       margin={[8, 8]}
       containerPadding={[0, 0]}
       draggableHandle=".drag-handle"
-      isDraggable={!touchLocked}
-      isResizable={!touchLocked}
       onLayoutChange={onLayoutChange}
       onBreakpointChange={onBreakpointChange}
     >
@@ -151,11 +155,7 @@ export function Dashboard({
 
         return (
           <GridCell key={item.i}>
-            <CellHeader
-              className="drag-handle"
-              title={touchLocked ? undefined : "Drag to reposition"}
-              $locked={touchLocked}
-            >
+            <CellHeader className="drag-handle" title="Drag to reposition">
               {(hasConfig || hasActions) && (
                 <GearWrapper>
                   <GearButton
@@ -203,6 +203,133 @@ export function Dashboard({
         );
       })}
     </ResponsiveGridLayout>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MobileDashboard — flex-wrap column with up/down reorder buttons.
+//   • mobileWidth='half' items take ~50% and pair on a row when consecutive;
+//     'full' (default) takes the whole row.
+//   • mobileHeight (px) defaults to defaultSize.h * ROW_HEIGHT.
+//   • Item order is driven by `items` (not the persisted grid `layouts`).
+// ---------------------------------------------------------------------------
+
+function MobileDashboard({
+  items,
+  updateItemConfig,
+  updateItemMappings,
+  removeItem,
+  moveItemUp,
+  moveItemDown,
+}: Readonly<DashboardProps>) {
+  return (
+    <MobileList>
+      {items.map((item, index) => {
+        const def = getComponent(item.componentId);
+        if (!def) return null;
+        const Comp = def.component;
+
+        const half = def.mobileWidth === "half";
+        const height =
+          def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+        const hasConfig = Boolean(def.configComponent);
+        const hasActions = Boolean(def.actions?.length);
+
+        const isFirst = index === 0;
+        const isLast = index === items.length - 1;
+
+        return (
+          <MobileCell
+            key={item.i}
+            $half={half}
+            $height={height}
+            data-i={item.i}
+            data-mobile-width={half ? "half" : "full"}
+            data-mobile-height={height}
+          >
+            <MobileCellHeader>
+              <MobileCellHeaderLeft>
+                <ReorderButton
+                  direction="up"
+                  disabled={isFirst}
+                  onClick={() => moveItemUp(item.i)}
+                />
+                <ReorderButton
+                  direction="down"
+                  disabled={isLast}
+                  onClick={() => moveItemDown(item.i)}
+                />
+                <MobileCellName title={def.name}>{def.name}</MobileCellName>
+              </MobileCellHeaderLeft>
+              <MobileCellHeaderRight>
+                {(hasConfig || hasActions) && (
+                  <GearButton
+                    item={item}
+                    def={def}
+                    onSaveConfig={(newConfig) =>
+                      updateItemConfig(item.i, newConfig)
+                    }
+                    onSaveMappings={(next) => updateItemMappings(item.i, next)}
+                  />
+                )}
+                <PushButton
+                  item={item}
+                  pushable={def.pushable === true}
+                  w={def.defaultSize?.w ?? 3}
+                  h={def.defaultSize?.h ?? 3}
+                />
+                <RemoveButton onRemove={() => removeItem(item.i)} />
+              </MobileCellHeaderRight>
+            </MobileCellHeader>
+            <ComponentWrapper>
+              <DashboardItemContext.Provider value={{ instanceId: item.i }}>
+                <ErrorBoundary
+                  fallback={(error, reset) => (
+                    <WidgetError
+                      componentName={def.name}
+                      error={error}
+                      onRetry={reset}
+                    />
+                  )}
+                >
+                  <Comp
+                    id={item.i}
+                    config={item.config}
+                    onConfigChange={(newConfig) =>
+                      updateItemConfig(item.i, newConfig)
+                    }
+                  />
+                </ErrorBoundary>
+              </DashboardItemContext.Provider>
+            </ComponentWrapper>
+          </MobileCell>
+        );
+      })}
+    </MobileList>
+  );
+}
+
+function ReorderButton({
+  direction,
+  disabled,
+  onClick,
+}: Readonly<{
+  direction: "up" | "down";
+  disabled: boolean;
+  onClick: () => void;
+}>) {
+  const label = direction === "up" ? "Move up" : "Move down";
+  const glyph = direction === "up" ? "▲" : "▼";
+  return (
+    <ReorderBtn
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
+      {glyph}
+    </ReorderBtn>
   );
 }
 
@@ -480,10 +607,10 @@ const GridCell = styled.div`
   overflow: hidden;
 `;
 
-const CellHeader = styled.div<{ $locked?: boolean }>`
+const CellHeader = styled.div`
   height: 18px;
   background: #111;
-  cursor: ${({ $locked }) => ($locked ? "default" : "grab")};
+  cursor: grab;
   flex-shrink: 0;
   border-radius: 2px 2px 0 0;
   display: flex;
@@ -498,7 +625,90 @@ const CellHeader = styled.div<{ $locked?: boolean }>`
   }
 
   &:active {
-    cursor: ${({ $locked }) => ($locked ? "default" : "grabbing")};
+    cursor: grabbing;
+  }
+`;
+
+// Mobile cell — no drag handle, taller header to fit a name + reorder + actions.
+const MobileList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  align-content: flex-start;
+`;
+
+const MobileCell = styled.div<{ $half: boolean; $height: number }>`
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  overflow: hidden;
+  flex: 0 0 ${({ $half }) => ($half ? "calc(50% - 4px)" : "100%")};
+  height: ${({ $height }) => $height}px;
+`;
+
+const MobileCellHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 32px;
+  flex-shrink: 0;
+  background: #111;
+  border-radius: 2px 2px 0 0;
+  padding: 0 4px;
+`;
+
+const MobileCellHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+`;
+
+const MobileCellHeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+`;
+
+const MobileCellName = styled.span`
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+`;
+
+const ReorderBtn = styled.button`
+  background: none;
+  border: 1px solid #333;
+  color: #888;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  width: 28px;
+  height: 24px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      color: #ccc;
+      border-color: #555;
+    }
   }
 `;
 

@@ -296,6 +296,8 @@ export function StationScreen() {
                               updateItemConfig={dashboard.updateItemConfig}
                               updateItemMappings={dashboard.updateItemMappings}
                               removeItem={dashboard.removeItem}
+                              moveItemUp={dashboard.moveItemUp}
+                              moveItemDown={dashboard.moveItemDown}
                             />
                             <FabClusterProvider>
                               <ComponentOverlay

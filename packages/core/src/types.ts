@@ -183,6 +183,20 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   openConfigOnAdd?: boolean;
   /** Default grid size when placed from the overlay. Falls back to { w: 3, h: 3 }. */
   defaultSize?: { w: number; h: number };
+  /**
+   * Width hint for the mobile / touch dashboard layout, which is a flex-wrap
+   * column rather than a grid. `'half'` items take ~50% of the row and pair
+   * up when consecutive; `'full'` (default) takes the full row. Use `'half'`
+   * for compact controls (e.g. ActionGroup) — most widgets should stay full.
+   */
+  mobileWidth?: "full" | "half";
+  /**
+   * Height in px for the mobile layout. Defaults to `defaultSize.h * ROW_HEIGHT`
+   * (the same vertical space the widget gets on desktop). Override only when
+   * the desktop default looks cramped at full mobile width — typically graphs
+   * and maps that benefit from extra vertical room in portrait.
+   */
+  mobileHeight?: number;
   dataRequirements?: string[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
