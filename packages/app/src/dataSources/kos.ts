@@ -626,6 +626,16 @@ export class KosComputeSession {
       return;
     }
     if (!this.inFlight) return;
+    // Debug: every byte we get in REPL state. Helps debug the case where
+    // a script appears to run but we never see [KOSDATA] — tells us
+    // whether RUNPATH reached the REPL (we'd see typed-line echo /
+    // PRINT output) or got swallowed somewhere upstream.
+    logger.tag("kos").debug("repl chunk", {
+      cpu: this.init.cpu,
+      script: this.inFlight.script,
+      len: text.length,
+      preview: text.slice(0, 200),
+    });
     this.replBuffer += text;
 
     // Explicit script-author failure marker: [KOSERROR] message [/KOSERROR].
