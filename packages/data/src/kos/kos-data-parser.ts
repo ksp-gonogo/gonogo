@@ -20,17 +20,38 @@ export type KosScriptArg = number | string | boolean;
 const BLOCK_RE = /\[KOSDATA\]([\s\S]*?)\[\/KOSDATA\]/g;
 
 /**
+ * Strip ANSI control sequences. kOS's GUI repaint emits screen contents
+ * with a cursor-position escape (`ESC [ row ; col H`) injected at every
+ * terminal line wrap, which can split our `[KOSDATA]` marker — observed
+ * in the wild as `[/KOSDA<ESC[22;1H>TA]`. Stripping these BEFORE the
+ * marker scan makes the parser robust to wrapping across PTY rows.
+ *
+ * Sequences covered:
+ *   - CSI: `ESC [ params final-byte`
+ *   - OSC: `ESC ] ... BEL` (title-set, etc.)
+ *   - Bare 2-byte escapes: `ESC <letter>` or `ESC ?` etc.
+ */
+const ANSI_RE =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI is the whole point
+  /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_?]/g;
+
+function stripAnsi(text: string): string {
+  return text.replace(ANSI_RE, "");
+}
+
+/**
  * Returns the parsed key/value object from the last `[KOSDATA]` block in
  * `text`, or null if no complete block is present.
  */
 export function parseKosData(text: string): KosData | null {
+  const clean = stripAnsi(text);
   let lastBody: string | null = null;
   // Reset lastIndex each call — BLOCK_RE is module-scoped.
   BLOCK_RE.lastIndex = 0;
-  let match = BLOCK_RE.exec(text);
+  let match = BLOCK_RE.exec(clean);
   while (match !== null) {
     lastBody = match[1];
-    match = BLOCK_RE.exec(text);
+    match = BLOCK_RE.exec(clean);
   }
   if (lastBody === null) return null;
   return parseBody(lastBody);

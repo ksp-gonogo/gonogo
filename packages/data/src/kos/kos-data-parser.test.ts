@@ -99,4 +99,27 @@ describe("parseKosData", () => {
   it("returns an empty object for an empty body", () => {
     expect(parseKosData("[KOSDATA]  [/KOSDATA]")).toEqual({});
   });
+
+  it("parses through ANSI cursor-position escapes that wrap kOS output", () => {
+    // Real-world capture: kOS's GUI repaint emits the screen contents
+    // with `ESC [ row ; col H` injected at every PTY-width line wrap.
+    // Long PRINT output gets split across rows, breaking literal marker
+    // matches like `[/KOSDA<ESC[22;1H>TA]`. The parser must ignore
+    // these escapes when locating the block AND when reading the body.
+    const wrapped =
+      "\x1b[1;1Hparts=[{\"uid\":\"123\",\"name\":\"Stratus[2;1H\"}][/KOSDA[22;1HTA][23;1HProgram ended.";
+    const chunk = `[KOSDATA]${wrapped}`;
+    expect(parseKosData(chunk)).toMatchObject({
+      // The inner ANSI between value chars survives as part of the string;
+      // that's fine for shipmap (it parses parts as JSON afterwards).
+      // What matters is that the marker pair was found at all.
+      parts: expect.stringContaining('{"uid":"123"'),
+    });
+  });
+
+  it("strips an OSC SET TITLE sequence so the marker scan still works", () => {
+    const chunk =
+      "\x1b]2;Hopper CPU\x07[KOSDATA] dv=1234 [/KOSDATA]\x1b]2;Hopper CPU\x07";
+    expect(parseKosData(chunk)).toEqual({ dv: 1234 });
+  });
 });
