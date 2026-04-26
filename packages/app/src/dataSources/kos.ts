@@ -412,10 +412,18 @@ export class KosComputeSession {
    */
   private static readonly MENU_READY_SENTINEL =
     "Choose a CPU to attach to by typing a selection number";
-  /** kOS prints this banner once a CPU has finished booting and the REPL
-   *  is ready to accept commands. Without gating on it, the `RUNPATH`
-   *  line arrives at kOS while the menu→REPL transition is still in
-   *  flight and the command is swallowed as "Garbled selection". */
+  /**
+   * Signals from kOS that we've attached to a CPU and the REPL is live:
+   *   - `\x1b]2;…\x07`  — OSC SET TITLE that ConnectToProcessor sends as
+   *     the first attach output (TelnetSingletonServer.SendTitleToTelnet).
+   *   - `Proceed.`      — kept for the MockKosTelnet test fixture, which
+   *     mirrors an older banner shape. Real kOS doesn't print this.
+   *
+   * Either one is a reliable "I'm attached" marker. The OSC sequence
+   * arrives before the screen repaint, but kOS's input pump is
+   * independent of output paint so RUNPATH lands cleanly either way.
+   */
+  private static readonly REPL_READY_OSC_TITLE_PREFIX = "\x1b]2;";
   private static readonly REPL_READY_SENTINEL = "Proceed.";
   /** Emitted by kOS when it didn't understand our selection input. */
   private static readonly MENU_GARBLED = "Garbled selection. Try again.";
@@ -551,10 +559,15 @@ export class KosComputeSession {
       this.menuBuffer = "";
       return;
     }
-    // Accumulate in replBuffer so we can look for the REPL welcome
+    // Accumulate in replBuffer so we can look for the attach signal
     // across chunk boundaries.
     this.replBuffer += text;
-    if (this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)) {
+    if (
+      this.replBuffer.includes(
+        KosComputeSession.REPL_READY_OSC_TITLE_PREFIX,
+      ) ||
+      this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)
+    ) {
       logger.tag("kos").debug("REPL ready", { cpu: this.init.cpu });
       this.clearAttachTimer();
       this.state = "repl";
