@@ -20,7 +20,12 @@ function makeSource(opts: { callTimeoutMs?: number } = {}) {
       kosHost: "localhost",
       kosPort: 5410,
     },
-    { callTimeoutMs: opts.callTimeoutMs ?? 2_000 },
+    {
+      callTimeoutMs: opts.callTimeoutMs ?? 2_000,
+      // MockKosTelnet doesn't simulate kOS's welcomeMenu detach race, so
+      // skip the post-attach settle delay — otherwise every test eats 300ms.
+      postAttachDrainDelayMs: 0,
+    },
   );
 }
 

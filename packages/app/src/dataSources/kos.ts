@@ -39,9 +39,17 @@ const LEGACY_KOS_COMPUTE_KEY = "gonogo.datasource.kos-compute";
 
 /** Milliseconds a single executeScript call will wait for its [KOSDATA] line. */
 const DEFAULT_CALL_TIMEOUT_MS = 10_000;
+/**
+ * Default delay between detecting attach and draining the queue. Lets
+ * kOS's Unity update loop detach the welcomeMenu so RUNPATH lands in the
+ * CPU REPL and not the still-attached welcome menu input pump. Tests
+ * override this to 0 since MockKosTelnet doesn't simulate the race.
+ */
+const DEFAULT_POST_ATTACH_DRAIN_DELAY_MS = 300;
 
 interface KosDataSourceOptions {
   callTimeoutMs?: number;
+  postAttachDrainDelayMs?: number;
 }
 
 /**
@@ -70,6 +78,7 @@ export class KosDataSource implements DataSource<KosConfig> {
   private readonly configListeners = new Set<() => void>();
   private cfg: KosConfig;
   private readonly callTimeoutMs: number;
+  private readonly postAttachDrainDelayMs: number;
 
   // Per-CPU executeScript sessions, keyed by tagname.
   private readonly sessions = new Map<string, KosComputeSession>();
@@ -77,6 +86,8 @@ export class KosDataSource implements DataSource<KosConfig> {
   constructor(config?: KosConfig, opts: KosDataSourceOptions = {}) {
     this.cfg = config ?? this.loadConfig();
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
+    this.postAttachDrainDelayMs =
+      opts.postAttachDrainDelayMs ?? DEFAULT_POST_ATTACH_DRAIN_DELAY_MS;
   }
 
   // --- Connection (no-op; sessions open lazily) ---
@@ -235,6 +246,7 @@ export class KosDataSource implements DataSource<KosConfig> {
       kosHost: this.cfg.kosHost,
       kosPort: this.cfg.kosPort,
       callTimeoutMs: this.callTimeoutMs,
+      postAttachDrainDelayMs: this.postAttachDrainDelayMs,
       onStatusChange: () => this.recomputeStatus(),
     });
     this.sessions.set(cpu, session);
@@ -289,6 +301,7 @@ interface SessionInit {
   kosHost: string;
   kosPort: number;
   callTimeoutMs: number;
+  postAttachDrainDelayMs: number;
   onStatusChange: () => void;
 }
 
@@ -419,9 +432,12 @@ export class KosComputeSession {
    *   - `Proceed.`      — kept for the MockKosTelnet test fixture, which
    *     mirrors an older banner shape. Real kOS doesn't print this.
    *
-   * Either one is a reliable "I'm attached" marker. The OSC sequence
-   * arrives before the screen repaint, but kOS's input pump is
-   * independent of output paint so RUNPATH lands cleanly either way.
+   * NB: the OSC title is sent INSIDE ConnectToProcessor, but kOS's
+   * welcomeMenu doesn't actually detach until a later Unity update tick
+   * (TelnetSingletonServer.cs:607-615). If we drain RUNPATH the moment
+   * we see the OSC title, the bytes still route through welcomeMenu and
+   * get swallowed. POST_ATTACH_DRAIN_DELAY_MS gives kOS at least one
+   * full Unity cycle to detach welcomeMenu before we send anything else.
    */
   private static readonly REPL_READY_OSC_TITLE_PREFIX = "\x1b]2;";
   private static readonly REPL_READY_SENTINEL = "Proceed.";
@@ -568,12 +584,27 @@ export class KosComputeSession {
       ) ||
       this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)
     ) {
-      logger.tag("kos").debug("REPL ready", { cpu: this.init.cpu });
+      logger.tag("kos").debug("REPL ready (waiting for welcomeMenu detach)", {
+        cpu: this.init.cpu,
+      });
       this.clearAttachTimer();
       this.state = "repl";
       this.replBuffer = "";
       this.setStatus("connected");
-      this.drain();
+      // Hold off the first drain so kOS's welcomeMenu has time to detach.
+      // See REPL_READY_OSC_TITLE_PREFIX comment above.
+      const drainAfter = () => {
+        if (this.state !== "repl") return;
+        // Drop any repaint bytes that landed during the settle window —
+        // they're not [KOSDATA] and would only confuse the parser.
+        this.replBuffer = "";
+        this.drain();
+      };
+      if (this.init.postAttachDrainDelayMs > 0) {
+        setTimeout(drainAfter, this.init.postAttachDrainDelayMs);
+      } else {
+        drainAfter();
+      }
     }
   }
 
