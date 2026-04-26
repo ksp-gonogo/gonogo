@@ -309,7 +309,12 @@ export class MockKosTelnetSocket {
 
   private handleLine(line: string): void {
     if (this.mode === "menu") {
-      this.server.handleSelection(this, line);
+      // Mirror kOS's welcome-menu input loop: 0x08 (Ctrl-H) deletes the
+      // previous char from the buffer (or no-ops if empty). The compute
+      // data source prefixes selection sends with a backspace run to
+      // clear stray contamination, and the mock has to honour that or
+      // those tests would all fail with NaN parses.
+      this.server.handleSelection(this, applyBackspaces(line));
       return;
     }
     if (this.mode === "repl") {
@@ -339,6 +344,20 @@ export class MockKosTelnetSocket {
 // ──────────────────────────────────────────────────────────────────────
 // Argument splitter
 // ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Apply ASCII backspaces (0x08) to a string, deleting the previous char
+ * for each one. Matches kOS's welcome-menu DELETELEFT handling: a
+ * backspace on an empty buffer is a no-op.
+ */
+function applyBackspaces(line: string): string {
+  const chars: string[] = [];
+  for (const ch of line) {
+    if (ch === "\b") chars.pop();
+    else chars.push(ch);
+  }
+  return chars.join("");
+}
 
 // Splits `a, "b, c", 3` into ["a", '"b, c"', "3"]. Good enough for tests —
 // the real data source builds these with its own escaping, so the mock just

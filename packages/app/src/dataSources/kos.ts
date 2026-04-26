@@ -444,7 +444,18 @@ export class KosComputeSession {
     });
     this.menuBuffer = "";
     this.replBuffer = "";
-    this.ws?.send(`${cpu.number}\n`);
+    // Prefix the selection with a backspace run to clear any stray bytes
+    // that landed in kOS's localMenuBuffer between the menu print and our
+    // send. We've observed kOS sending us 0x01/0x18 control bytes after
+    // attach (terminal-feature noise from the proxy's telnet client) that
+    // appear to also contaminate kOS's input buffer — int.TryParse on
+    // `<garbage>1` fails and we get "Garbled selection. Try again."
+    //
+    // 0x08 (Ctrl-H) maps to DELETELEFT in the welcome-menu input loop;
+    // it removes one char from localMenuBuffer or no-ops if empty, so
+    // sending more than needed is safe. 16 covers any realistic noise.
+    const clearPrefix = "\b".repeat(16);
+    this.ws?.send(`${clearPrefix}${cpu.number}\n`);
     // Don't drain() here — the transition to "repl" + drain happens
     // when we see the REPL_READY_SENTINEL in handleMenuSelectedText.
   }
