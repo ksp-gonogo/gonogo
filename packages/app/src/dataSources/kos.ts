@@ -325,6 +325,15 @@ export class KosComputeSession {
   private replBuffer = "";
   private readonly queue: PendingCall[] = [];
   private inFlight: PendingCall | null = null;
+  /**
+   * Fires if the menu→REPL transition stalls — kOS responded to our
+   * selection but neither the REPL_READY_SENTINEL nor MENU_GARBLED ever
+   * appeared. Without this, an in-flight call hangs forever (the
+   * per-call timeout in drain() doesn't start until we reach REPL).
+   */
+  private attachTimer: ReturnType<typeof setTimeout> | null = null;
+  /** How long we'll wait between sending the selection and seeing Proceed. */
+  private static readonly ATTACH_TIMEOUT_MS = 5_000;
 
   constructor(init: SessionInit) {
     this.init = init;
@@ -340,6 +349,7 @@ export class KosComputeSession {
   }
 
   close(): void {
+    this.clearAttachTimer();
     this.failAll(new Error("session closed"));
     try {
       this.ws?.close();
@@ -456,8 +466,55 @@ export class KosComputeSession {
     // sending more than needed is safe. 16 covers any realistic noise.
     const clearPrefix = "\b".repeat(16);
     this.ws?.send(`${clearPrefix}${cpu.number}\n`);
+    this.armAttachTimer();
     // Don't drain() here — the transition to "repl" + drain happens
     // when we see the REPL_READY_SENTINEL in handleMenuSelectedText.
+  }
+
+  private armAttachTimer(): void {
+    this.clearAttachTimer();
+    this.attachTimer = setTimeout(() => {
+      this.attachTimer = null;
+      // We selected a CPU but kOS never said "Proceed." or "Garbled".
+      // Dump everything we received so we can see what its actual
+      // response looks like — sentinel drift across kOS versions, a new
+      // attach banner, or silence on the wire are all possibilities.
+      logger.warn(`[kos] attach to CPU "${this.init.cpu}" timed out`, {
+        cpu: this.init.cpu,
+        state: this.state,
+        replBufferLen: this.replBuffer.length,
+        replBuffer: this.replBuffer.slice(-2000),
+      });
+      const call = this.inFlight;
+      if (call) {
+        this.inFlight = null;
+        if (call.timer) clearTimeout(call.timer);
+        this.fail(
+          call,
+          new Error(
+            `kOS attach to CPU "${this.init.cpu}" timed out — see logs`,
+          ),
+        );
+      }
+      // Drop the session so the next executeScript opens a fresh one.
+      // Whatever kOS-side state we're stuck in, a clean reconnect is
+      // the only reliable recovery.
+      try {
+        this.ws?.close();
+      } catch {
+        /* already closed */
+      }
+      this.ws = null;
+      this.state = "closed";
+      this.setStatus("disconnected");
+    }, KosComputeSession.ATTACH_TIMEOUT_MS);
+  }
+
+  private clearAttachTimer(): void {
+    if (this.attachTimer !== null) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = null;
+    }
   }
 
   /**
@@ -472,6 +529,7 @@ export class KosComputeSession {
       logger.tag("kos").warn("CPU list changed during menu→REPL transition", {
         cpu: this.init.cpu,
       });
+      this.clearAttachTimer();
       this.state = "menu";
       this.menuBuffer = text;
       return;
@@ -488,6 +546,7 @@ export class KosComputeSession {
         replBufferTail: this.replBuffer.slice(-1000),
         garbleChunk: text.slice(-500),
       });
+      this.clearAttachTimer();
       this.state = "menu";
       this.menuBuffer = "";
       return;
@@ -497,6 +556,7 @@ export class KosComputeSession {
     this.replBuffer += text;
     if (this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)) {
       logger.tag("kos").debug("REPL ready", { cpu: this.init.cpu });
+      this.clearAttachTimer();
       this.state = "repl";
       this.replBuffer = "";
       this.setStatus("connected");
@@ -571,6 +631,7 @@ export class KosComputeSession {
   }
 
   private onClose(): void {
+    this.clearAttachTimer();
     this.failAll(new Error("session disconnected"));
     this.ws = null;
     this.state = "closed";
