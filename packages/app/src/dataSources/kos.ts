@@ -376,7 +376,22 @@ export class KosComputeSession {
 
   private ensureOpen(): void {
     if (this.ws && this.ws.readyState !== WebSocket.CLOSED) return;
-    const url = `ws://${this.init.proxyHost}:${this.init.proxyPort}/kos?host=${encodeURIComponent(this.init.kosHost)}&port=${this.init.kosPort}`;
+    // rows is deliberately huge: this is a headless capture session, no
+    // human ever looks at it. kOS's GUI terminal scrolls when output
+    // overflows the visible row count, and the scrolling pushes the
+    // [KOSDATA] opening tag past the top of the screen for any script
+    // that prints more than ~24 lines (anything with a meaningful JSON
+    // payload). At 10_000 rows there's no scrolling and we see the full
+    // PRINT in the buffer regardless of payload size.
+    //
+    // cols stays at 80 — kOS only emits cursor-position escapes at row
+    // boundaries, not within a line, so width doesn't affect parseability
+    // and 80 keeps the wire bytes tiny.
+    const url =
+      `ws://${this.init.proxyHost}:${this.init.proxyPort}/kos` +
+      `?host=${encodeURIComponent(this.init.kosHost)}` +
+      `&port=${this.init.kosPort}` +
+      `&cols=80&rows=10000`;
     const ws = new WebSocket(url);
     this.ws = ws;
     this.state = "menu";
