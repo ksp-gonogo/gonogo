@@ -452,8 +452,16 @@ export class KosComputeSession {
       return;
     }
     if (text.includes(KosComputeSession.MENU_GARBLED)) {
+      // Dump the buffered menu text + the chunk that triggered the garble.
+      // Without this we have no signal on WHY kOS rejected the selection
+      // (e.g. menu sentinel substring drifted between kOS versions, or a
+      // CPU list change collided with our number send). Slice the tails
+      // to keep log output bounded.
       logger.tag("kos").warn("selection garbled, re-entering menu state", {
         cpu: this.init.cpu,
+        menuBufferTail: this.menuBuffer.slice(-1000),
+        replBufferTail: this.replBuffer.slice(-1000),
+        garbleChunk: text.slice(-500),
       });
       this.state = "menu";
       this.menuBuffer = "";
