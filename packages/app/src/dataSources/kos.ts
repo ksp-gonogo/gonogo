@@ -428,6 +428,20 @@ export class KosComputeSession {
     // the attach output back to handleMenuText and send the selection
     // a second time.
     this.state = "menu-selected";
+    // Snapshot what we acted on BEFORE clearing buffers — if kOS rejects
+    // the selection with "Garbled selection. Try again." the post-clear
+    // diagnostic in handleMenuSelectedText shows nothing useful, and we
+    // need to know what menu we parsed and which row we picked.
+    logger.tag("kos").debug("sending CPU selection", {
+      cpu: this.init.cpu,
+      selected: { number: cpu.number, tagname: cpu.tagname },
+      cpus: menu.cpus.map((c) => ({
+        number: c.number,
+        tagname: c.tagname,
+      })),
+      menuBufferLen: this.menuBuffer.length,
+      menuBufferTail: this.menuBuffer.slice(-500),
+    });
     this.menuBuffer = "";
     this.replBuffer = "";
     this.ws?.send(`${cpu.number}\n`);
