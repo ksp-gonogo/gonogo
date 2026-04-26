@@ -22,9 +22,14 @@
  * simple — this is lossy but non-breaking, and the `name` field
  * (`liquidEngine3` etc.) is unambiguous.
  */
-export const SHIP_MAP_SCRIPT = `// gonogo ship-map v1 — save as Archive/shipmap.ks then RUN shipmap.
-// The Ship Map widget runs this on demand and on staging.
-LOCAL q IS CHAR(34).
+export const SHIP_MAP_SCRIPT = `// gonogo ship-map — save to your kOS Archive volume (default
+// 0:/widget_scripts/shipmap.ks). The Ship Map widget runs this via
+// RUNPATH on demand and on staging.
+//
+// \`quoteChar\` rather than the obvious \`q\`: kOS already binds \`q\` as
+// the builtin quaternion-direction constructor (q(pitch, yaw, roll, angle)),
+// so trying to LOCAL q errors with "would clobber BUILTIN_FUNCTION q".
+LOCAL quoteChar IS CHAR(34).
 PRINT "shipmap: scanning " + SHIP:PARTS:LENGTH + " parts on " + SHIP:NAME.
 
 LOCAL json IS "[".
@@ -48,17 +53,17 @@ FOR p IN SHIP:PARTS {
 
   // Strip ASCII double quotes from the human title (stock titles include
   // them, e.g. LV-T30 'Reliant') so the JSON string stays well-formed.
-  LOCAL safeTitle IS p:TITLE:REPLACE(q, "'").
+  LOCAL safeTitle IS p:TITLE:REPLACE(quoteChar, "'").
 
   SET json TO json + "{"
-    + q + "uid" + q + ":" + q + p:UID + q + ","
-    + q + "name" + q + ":" + q + p:NAME + q + ","
-    + q + "title" + q + ":" + q + safeTitle + q + ","
-    + q + "mass" + q + ":" + ROUND(p:MASS, 4) + ","
-    + q + "x" + q + ":" + ROUND(sx, 3) + ","
-    + q + "y" + q + ":" + ROUND(sy, 3) + ","
-    + q + "z" + q + ":" + ROUND(sz, 3) + ","
-    + q + "parent" + q + ":" + q + parentUid + q
+    + quoteChar + "uid" + quoteChar + ":" + quoteChar + p:UID + quoteChar + ","
+    + quoteChar + "name" + quoteChar + ":" + quoteChar + p:NAME + quoteChar + ","
+    + quoteChar + "title" + quoteChar + ":" + quoteChar + safeTitle + quoteChar + ","
+    + quoteChar + "mass" + quoteChar + ":" + ROUND(p:MASS, 4) + ","
+    + quoteChar + "x" + quoteChar + ":" + ROUND(sx, 3) + ","
+    + quoteChar + "y" + quoteChar + ":" + ROUND(sy, 3) + ","
+    + quoteChar + "z" + quoteChar + ":" + ROUND(sz, 3) + ","
+    + quoteChar + "parent" + quoteChar + ":" + quoteChar + parentUid + quoteChar
     + "}".
 }
 SET json TO json + "]".
@@ -81,5 +86,5 @@ export interface ShipMapPart {
   parent: string;
 }
 
-/** Default script filename on the kOS Archive volume. */
-export const SHIP_MAP_SCRIPT_NAME = "shipmap";
+/** Default script path on the kOS Archive volume. */
+export const SHIP_MAP_SCRIPT_NAME = "0:/widget_scripts/shipmap.ks";

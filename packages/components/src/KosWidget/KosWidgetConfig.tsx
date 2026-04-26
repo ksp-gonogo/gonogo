@@ -80,15 +80,18 @@ export function KosWidgetConfigComponent({
       </Field>
 
       <Field>
-        <FieldLabel htmlFor="kw-script">Script name</FieldLabel>
+        <FieldLabel htmlFor="kw-script">Script path</FieldLabel>
         <Input
           id="kw-script"
           value={script}
-          placeholder="my_widget.ks"
+          placeholder="0:/widget_scripts/my_widget.ks"
           onChange={(e) => setScript(e.target.value)}
         />
         <FieldHint>
-          Must exist on the CPU&apos;s volume before the widget dispatches.
+          Path to the saved script kOS will run. Prefer the Archive (
+          <code>0:/…</code>) — the CPU&apos;s local volume gets wiped on reverts
+          and isn&apos;t always populated. Subdirectories are fine; the{" "}
+          <code>.ks</code> extension is optional.
         </FieldHint>
       </Field>
 

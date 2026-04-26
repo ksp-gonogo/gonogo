@@ -129,9 +129,8 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     if (notConfigured) {
       return (
         <Placeholder>
-          Configure the kOS CPU tagname and save{" "}
-          <code>{SHIP_MAP_SCRIPT_NAME}.ks</code> to the Archive volume. The
-          script is in the widget's config.
+          Configure the kOS CPU tagname and save the script (in the
+          widget&apos;s config) to <code>{SHIP_MAP_SCRIPT_NAME}</code>.
         </Placeholder>
       );
     }
@@ -219,9 +218,10 @@ function ShipMapConfigComponent({
         />
         <FieldHint>
           Path to the saved script on your kOS volume. The widget runs{" "}
-          <code>RUNPATH("{scriptName}").</code> — the <code>.ks</code> extension
-          is optional, and subpaths like <code>widget_scripts/shipmap</code> are
-          fine. Defaults to <code>shipmap</code>.
+          <code>RUNPATH("{scriptName}").</code> Prefer the Archive (
+          <code>0:/…</code>) — the CPU&apos;s local volume gets wiped on reverts
+          and isn&apos;t always populated. Subpaths and the <code>.ks</code>{" "}
+          extension are optional. Defaults to <code>shipmap</code>.
         </FieldHint>
       </Field>
 
