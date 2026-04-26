@@ -121,11 +121,11 @@ export class PeerClientDataSource implements DataSource {
 
   /**
    * Tunnel a kOS compute script execution up to the host. The host invokes
-   * its local KosComputeDataSource.executeScript and replies with the
-   * parsed [KOSDATA] object. Only meaningful on the station-side mirror of
-   * the "kos-compute" source — calling it on a different source id still
-   * sends a request, but the host will reply with an error (the protocol
-   * routes to "kos-compute" specifically by design).
+   * its local KosDataSource.executeScript and replies with the parsed
+   * [KOSDATA] object. Only meaningful on the station-side mirror of the
+   * "kos" source — calling it on a different source id still sends a
+   * request, but the host will reply with an error (the protocol routes
+   * to "kos" specifically by design).
    */
   async executeScript(
     cpu: string,

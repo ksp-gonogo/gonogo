@@ -9,11 +9,11 @@ import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { useKosWidget } from "@gonogo/data";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { KosComputeDataSource } from "../dataSources/kosCompute";
+import { KosDataSource } from "../dataSources/kos";
 import { MockKosTelnet } from "./fixtures/MockKosTelnet";
 
 function makeSource(opts: { callTimeoutMs?: number } = {}) {
-  return new KosComputeDataSource(
+  return new KosDataSource(
     {
       host: "localhost",
       port: 3001,
@@ -144,7 +144,7 @@ describe("kOS compute integration", () => {
     });
 
     // Register the data source under its real id so the hook can find it
-    // via getDataSource("kos-compute").
+    // via getDataSource("kos").
     const source = makeSource();
     registerDataSource(source);
 
@@ -291,6 +291,106 @@ describe("kOS compute integration", () => {
       expect(result.current.data).toEqual({ echoed: 2500 });
     });
     expect(mock.invocations()[1].args).toEqual(["2500"]);
+
+    source.disconnect();
+  });
+
+  it("scenario #7: rejects with the kOS error message when a runtime error fires (no Message: line)", async () => {
+    const mock = MockKosTelnet.install();
+    const DIVIDER = "_".repeat(42);
+    mock.registerScript("badsuffix", () =>
+      [
+        // Inline headline kOS prints at the top of an error block.
+        `GET Suffix 'VALUEX' not found on object VESSEL("Hopper")`,
+        DIVIDER,
+        "           VERBOSE DESCRIPTION",
+        // Runtime errors restate the headline on the first verbose line.
+        `GET Suffix 'VALUEX' not found on object VESSEL("Hopper")`,
+        "An attempt was made to get a suffix called:",
+        "    valuex",
+        "from an object of type:",
+        "    VesselTarget",
+        DIVIDER,
+        DIVIDER,
+        "At interpreter, line 13",
+        "print ship:valuex.",
+        "      ^",
+      ].join("\n"),
+    );
+
+    const source = makeSource();
+    await expect(
+      source.executeScript("datastream", "badsuffix", []),
+    ).rejects.toThrow(/kOS error: GET Suffix 'VALUEX' not found/);
+
+    source.disconnect();
+  });
+
+  it("scenario #8: prefers the explicit Message: line for TinyPG-style syntax errors", async () => {
+    const mock = MockKosTelnet.install();
+    const DIVIDER = "_".repeat(42);
+    mock.registerScript("badsyntax", () =>
+      [
+        // Inline echo + headline (real kOS prints both).
+        `print "hello!"`,
+        `Syntax: Unexpected token 'EOF' found. Expected EOI at line 1`,
+        `print "hello!"`,
+        `              ^`,
+        DIVIDER,
+        "           VERBOSE DESCRIPTION",
+        "The parser used by kOS is complaining about a",
+        "part of the script it can't understand.",
+        "Error   Line: 1",
+        "Error Column: 0",
+        // Test asserts on this exact text — the parser should pull it out
+        // in preference to the verbose prose above.
+        "Message: Unexpected token 'EOF' found. Expected EOI",
+        DIVIDER,
+        `print "hello!"`,
+        DIVIDER,
+        DIVIDER,
+        "At interpreter",
+        "<<--EOF",
+        "^",
+      ].join("\n"),
+    );
+
+    const source = makeSource();
+    await expect(
+      source.executeScript("datastream", "badsyntax", []),
+    ).rejects.toThrow(/kOS error: Unexpected token 'EOF' found\. Expected EOI/);
+
+    source.disconnect();
+  });
+
+  it("scenario #9: rejects with the [KOSERROR] message verbatim (no prefix — the script author owns the wording)", async () => {
+    const mock = MockKosTelnet.install();
+    mock.registerScript(
+      "abortburn",
+      () => "[KOSERROR] engine flameout, abort burn [/KOSERROR]",
+    );
+
+    const source = makeSource();
+    const promise = source.executeScript("datastream", "abortburn", []);
+    await expect(promise).rejects.toThrow("engine flameout, abort burn");
+    // No "kOS error:" prefix — explicit failures use the author's exact text.
+    await expect(promise).rejects.not.toThrow(/^kOS error:/);
+
+    source.disconnect();
+  });
+
+  it("scenario #10: [KOSERROR] wins over [KOSDATA] when both appear", async () => {
+    const mock = MockKosTelnet.install();
+    mock.registerScript(
+      "partial",
+      () =>
+        "[KOSDATA] altitude=12345 [/KOSDATA] [KOSERROR] aborted before full snapshot [/KOSERROR]",
+    );
+
+    const source = makeSource();
+    await expect(
+      source.executeScript("datastream", "partial", []),
+    ).rejects.toThrow("aborted before full snapshot");
 
     source.disconnect();
   });

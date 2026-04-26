@@ -4,4 +4,3 @@
 import "./telemachus";
 import "./kos";
 import "./buffered";
-import "./kosCompute";

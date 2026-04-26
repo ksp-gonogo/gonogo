@@ -2,15 +2,11 @@ import type { ComponentProps } from "@gonogo/core";
 import { getDataSource, registerComponent, useKosProxy } from "@gonogo/core";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useRef } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import styled from "styled-components";
 import "@xterm/xterm/css/xterm.css";
 
 interface KosTerminalConfig {
-  proxyHost?: string;
-  proxyPort?: number;
-  kosHost?: string;
-  kosPort?: number;
   /** When true, keystrokes are not forwarded to the PTY. */
   readOnly?: boolean;
   /**
@@ -124,7 +120,14 @@ function tryAutoSelectCpu(
 const PTY_COLS = 80;
 const MIN_REASONABLE_ROWS = 3;
 
-function getKosDefaults() {
+/**
+ * Read kOS endpoint live from the `kos` data source so every terminal widget
+ * picks up config changes without a per-instance host field. The widget used
+ * to bake `kosHost`/`kosPort` into its own config; that drifted whenever the
+ * data source moved (e.g. localhost → LAN IP) and the cached widget config
+ * pinned every fresh terminal at the stale value.
+ */
+function getKosEndpoint() {
   const kos = getDataSource("kos");
   if (!kos) return { kosHost: "localhost", kosPort: 5410 };
   const c = kos.getConfig();
@@ -138,23 +141,38 @@ function KosTerminalComponent({
   config,
 }: Readonly<ComponentProps<KosTerminalConfig>>) {
   const { createConnection, resize } = useKosProxy();
-  const defaults = getKosDefaults();
-  const kosHost = config?.kosHost ?? defaults.kosHost;
-  const kosPort = config?.kosPort ?? defaults.kosPort;
+  // Bump on every kos data source config change. The endpoint values below
+  // are read fresh on each render, so a forced re-render is enough to
+  // change the useEffect deps and tear down + reopen the ws.
+  const [configEpoch, bumpConfigEpoch] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const kos = getDataSource("kos") as
+      | { onConfigChange?: (cb: () => void) => () => void }
+      | undefined;
+    return kos?.onConfigChange?.(bumpConfigEpoch);
+  }, []);
+
+  const { kosHost, kosPort } = getKosEndpoint();
   const readOnly = config?.readOnly ?? false;
   const cpuName = config?.cpuName;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  // Session ID is stable for the lifetime of this effect instance
-  const sessionIdRef = useRef<string>(crypto.randomUUID());
 
+  // configEpoch sits in the deps below as a deliberate trigger: when the
+  // kos data source config changes, bumping it re-runs this effect, which
+  // tears down the current ws and reopens against the fresh kosHost/kosPort.
+  // The value isn't read in the body, which is why biome flags it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: configEpoch is the trigger, not consumed
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const sessionId = sessionIdRef.current;
+    // Fresh session id every time the effect runs — including reconnects
+    // triggered by a kos config change, so the proxy treats this as a
+    // brand-new pty rather than trying to resize a stale one.
+    const sessionId = crypto.randomUUID();
     let teardown: (() => void) | null = null;
     let cancelled = false;
     let sizeWaiter: ResizeObserver | null = null;
@@ -312,8 +330,16 @@ function KosTerminalComponent({
       if (fallbackTimer !== null) clearTimeout(fallbackTimer);
       teardown?.();
     };
-    // Config values are primitives — re-run the effect if any change
-  }, [createConnection, resize, kosHost, kosPort, readOnly, cpuName]);
+    // Config values are primitives — re-run the effect if any change.
+  }, [
+    createConnection,
+    resize,
+    kosHost,
+    kosPort,
+    readOnly,
+    cpuName,
+    configEpoch,
+  ]);
 
   return <Container ref={containerRef} $readOnly={readOnly} />;
 }
@@ -328,12 +354,7 @@ registerComponent<KosTerminalConfig>({
   openConfigOnAdd: true,
   component: KosTerminalComponent,
   dataRequirements: [],
-  defaultConfig: {
-    proxyHost: "localhost",
-    proxyPort: 3001,
-    kosHost: "localhost",
-    kosPort: 5410,
-  },
+  defaultConfig: {},
 });
 
 export { KosTerminalComponent };

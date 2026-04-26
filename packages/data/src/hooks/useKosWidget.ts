@@ -24,7 +24,7 @@ export interface UseKosWidgetOptions {
   mode: "command" | "interval";
   /** Required when mode === "interval". */
   intervalMs?: number;
-  /** Data source id. Defaults to "kos-compute". */
+  /** Data source id. Defaults to "kos". */
   sourceId?: string;
   /**
    * Id of the data source to resolve `{ type: "telemetry" }` args against.
@@ -96,7 +96,7 @@ function resolveArgs(
 }
 
 export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
-  const sourceId = opts.sourceId ?? "kos-compute";
+  const sourceId = opts.sourceId ?? "kos";
   const telemetrySourceId = opts.telemetrySourceId ?? "data";
   const [data, setData] = useState<KosData | null>(null);
   const [error, setError] = useState<Error | null>(null);

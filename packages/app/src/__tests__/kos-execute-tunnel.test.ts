@@ -1,6 +1,6 @@
 /**
  * End-to-end test: station-side useKosWidget dispatches → PeerJS data
- * channel → host's KosComputeDataSource → back. Before the tunnel landed,
+ * channel → host's KosDataSource → back. Before the tunnel landed,
  * stations couldn't run kOS scripts because the registered entry was a
  * PeerClientDataSource mirror with no executeScript method.
  */
@@ -126,7 +126,7 @@ import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 
-describe("kOS execute tunnel (station → host → kos-compute)", () => {
+describe("kOS execute tunnel (station → host → kos)", () => {
   afterEach(() => {
     FakeHub.reset();
     localStorageMock.clear();
@@ -135,15 +135,15 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
     vi.stubGlobal("localStorage", localStorageMock);
   });
 
-  it("routes station executeScript() through PeerJS to the host's kos-compute", async () => {
-    // Fake host-side kos-compute that captures calls + returns data.
+  it("routes station executeScript() through PeerJS to the host's kos", async () => {
+    // Fake host-side kos that captures calls + returns data.
     const executeScript = vi.fn(async (_cpu, _script, _args) => ({
       dv: 1234,
       ok: true,
     }));
     registerDataSource({
-      id: "kos-compute",
-      name: "kOS Compute",
+      id: "kos",
+      name: "kOS",
       status: "connected",
       affectedBySignalLoss: false,
       connect: async () => {},
@@ -167,11 +167,7 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
     // Flush microtasks so the station's conn + host's conn both fire "open".
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
-    const source = new PeerClientDataSource(
-      "kos-compute",
-      "kOS Compute",
-      client,
-    );
+    const source = new PeerClientDataSource("kos", "kOS", client);
 
     const result = await source.executeScript("datastream", "deltav", [2]);
     expect(result).toEqual({ dv: 1234, ok: true });
@@ -180,8 +176,8 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
 
   it("propagates host-side errors back to the station", async () => {
     registerDataSource({
-      id: "kos-compute",
-      name: "kOS Compute",
+      id: "kos",
+      name: "kOS",
       status: "connected",
       affectedBySignalLoss: false,
       connect: async () => {},
@@ -206,25 +202,21 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
-    const source = new PeerClientDataSource(
-      "kos-compute",
-      "kOS Compute",
-      client,
-    );
+    const source = new PeerClientDataSource("kos", "kOS", client);
     await expect(source.executeScript("datastream", "bad", [])).rejects.toThrow(
       /kOS boom: script not found/,
     );
   });
 
   it("routes through a PeerBroadcastingDataSource wrapper (prod path)", async () => {
-    // Regression: on the main screen every source — including kos-compute —
+    // Regression: on the main screen every source — including kos —
     // is replaced in the registry by a PeerBroadcastingDataSource wrapper.
     // The wrapper must forward executeScript or the host rejects every
     // station's kos-execute-request with "not registered on main screen".
     const executeScript = vi.fn(async (_cpu, _script, _args) => ({ dv: 42 }));
     const realSource = {
-      id: "kos-compute",
-      name: "kOS Compute",
+      id: "kos",
+      name: "kOS",
       status: "connected",
       affectedBySignalLoss: false,
       connect: async () => {},
@@ -250,18 +242,14 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
-    const source = new PeerClientDataSource(
-      "kos-compute",
-      "kOS Compute",
-      client,
-    );
+    const source = new PeerClientDataSource("kos", "kOS", client);
 
     const result = await source.executeScript("datastream", "deltav", [2]);
     expect(result).toEqual({ dv: 42 });
     expect(executeScript).toHaveBeenCalledWith("datastream", "deltav", [2]);
   });
 
-  it("errors if the host has no kos-compute registered", async () => {
+  it("errors if the host has no kos registered", async () => {
     // No registerDataSource call — host has nothing.
     const host = new PeerHostService();
     host.start();
@@ -271,11 +259,7 @@ describe("kOS execute tunnel (station → host → kos-compute)", () => {
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
-    const source = new PeerClientDataSource(
-      "kos-compute",
-      "kOS Compute",
-      client,
-    );
+    const source = new PeerClientDataSource("kos", "kOS", client);
     await expect(source.executeScript("c", "s", [])).rejects.toThrow(
       /not registered on main screen/,
     );

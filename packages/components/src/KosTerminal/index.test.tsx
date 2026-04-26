@@ -1,3 +1,8 @@
+import {
+  clearRegistry,
+  type DataSource,
+  registerDataSource,
+} from "@gonogo/core";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -81,19 +86,38 @@ const server = setupServer();
 beforeAll(() => server.listen());
 beforeEach(() => {
   vi.clearAllMocks();
+  // KosTerminal now reads kosHost/kosPort live from the registered `kos`
+  // data source (no per-instance config). Register a stub so the widget
+  // sees the same endpoint values the assertions expect.
+  registerDataSource({
+    id: "kos",
+    name: "kOS",
+    status: "connected",
+    affectedBySignalLoss: false,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    onStatusChange: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    configure: () => {},
+    getConfig: () => ({
+      host: "localhost",
+      port: 3001,
+      kosHost: "192.168.1.1",
+      kosPort: 5410,
+    }),
+  } as unknown as DataSource);
 });
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  clearRegistry();
 });
 afterAll(() => server.close());
 
-const DEFAULT_CONFIG = {
-  proxyHost: "localhost",
-  proxyPort: 3001,
-  kosHost: "192.168.1.1",
-  kosPort: 5410,
-};
+const DEFAULT_CONFIG = {};
 
 const MENU_WITH_CPUS = [
   "Terminal: type = XTERM-256COLOR, size = 123x18",

@@ -421,7 +421,7 @@ export class PeerHostService {
         args: Array<number | string | boolean>,
       ) => Promise<import("@gonogo/data").KosData>;
     };
-    const source = getDataSource("kos-compute") as
+    const source = getDataSource("kos") as
       | (ReturnType<typeof getDataSource> & KosExec)
       | undefined;
     const respond = (
@@ -436,10 +436,7 @@ export class PeerHostService {
       } satisfies PeerMessage);
     };
     if (!source || typeof source.executeScript !== "function") {
-      respond(
-        undefined,
-        "kos-compute data source not registered on main screen",
-      );
+      respond(undefined, "kos data source not registered on main screen");
       return;
     }
     try {

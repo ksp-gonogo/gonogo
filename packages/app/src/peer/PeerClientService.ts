@@ -408,7 +408,7 @@ export class PeerClientService {
 
   /**
    * Tunnel a kOS compute script execution through to the host. The host
-   * invokes its local KosComputeDataSource.executeScript and replies with
+   * invokes its local KosDataSource.executeScript and replies with
    * the parsed [KOSDATA] object (or an error). Timeout defaults to 15s —
    * a shade longer than the host's own per-call timeout so the station
    * surfaces the real error rather than a timeout racing it.

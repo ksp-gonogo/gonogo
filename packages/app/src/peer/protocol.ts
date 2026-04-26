@@ -98,7 +98,7 @@ export type PeerMessage =
   // kOS compute script execution tunnel. Stations can't talk to the
   // telnet proxy directly (only the main screen can), so station-side
   // useKosWidget dispatches turn into `kos-execute-request` messages
-  // routed to the host's KosComputeDataSource. The host replies with
+  // routed to the host's KosDataSource. The host replies with
   // `kos-execute-response` keyed by the same requestId.
   // ──────────────────────────────────────────────────────────────────────
   | {

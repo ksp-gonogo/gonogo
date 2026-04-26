@@ -28,8 +28,8 @@ function registerFakeComputeSource(
   executeScript: FakeSource["executeScript"],
 ): FakeSource {
   const src: FakeSource = {
-    id: "kos-compute",
-    name: "kOS Compute",
+    id: "kos",
+    name: "kOS",
     status: "connected",
     affectedBySignalLoss: false,
     connect: async () => {},
