@@ -28,11 +28,12 @@ interface FabClusterValue {
 const FabClusterContext = createContext<FabClusterValue | null>(null);
 
 /**
- * Delay before collapsing secondary FABs after the cursor leaves. Long
- * enough to tolerate the few pixels of gap between buttons, short enough
- * that users who moved on feel the cluster close promptly.
+ * Delay before collapsing secondary FABs after the cursor leaves. The
+ * tower can be ~480px tall with 20px gaps between buttons, so the delay
+ * has to tolerate a deliberate cursor traversal between non-adjacent
+ * FABs without snapping shut mid-move.
  */
-const LEAVE_DELAY_MS = 180;
+const LEAVE_DELAY_MS = 400;
 
 export function FabClusterProvider({
   children,
