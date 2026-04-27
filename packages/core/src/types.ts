@@ -2,6 +2,7 @@
 
 import type { ComponentType } from "react";
 import type { TelemaachusSchema } from "./schemas/telemachus";
+import type { GonogoTheme } from "./theme";
 
 export type DataSourceStatus =
   | "connected"
@@ -219,5 +220,5 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
 export interface ThemeDefinition {
   id: string;
   name: string;
-  theme: Record<string, unknown>;
+  theme: GonogoTheme;
 }

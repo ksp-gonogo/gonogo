@@ -36,7 +36,41 @@ const mockDataSource: DataSource = {
 const mockTheme: ThemeDefinition = {
   id: "test-theme",
   name: "Test Theme",
-  theme: { colors: { primary: "#fff" } },
+  theme: {
+    colors: {
+      text: {
+        primary: "#fff",
+        muted: "#fff",
+        dim: "#fff",
+        faint: "#fff",
+        inverse: "#000",
+      },
+      surface: {
+        app: "#000",
+        panel: "#000",
+        raised: "#000",
+        sunken: "#000",
+      },
+      border: { subtle: "#222", strong: "#444" },
+      accent: { fg: "#0f0", bg: "#0f0" },
+      status: {
+        go: { fg: "#0f0", bg: "#020" },
+        nogo: { fg: "#f00", bg: "#200" },
+        warning: { fg: "#fa0", bg: "#210" },
+        info: { fg: "#7cf", bg: "#012" },
+      },
+      focus: "#0f0",
+    },
+    typography: {
+      family: { mono: "monospace" },
+      size: { xs: "10px", sm: "12px", base: "14px", lg: "16px" },
+      weight: { regular: 400, bold: 700 },
+      letterSpacing: { label: "0.1em", body: "0" },
+    },
+    space: { xs: "2px", sm: "4px", md: "8px", lg: "12px", xl: "16px" },
+    radii: { sm: "2px", md: "4px" },
+    borders: { subtle: "1px solid #222", strong: "1px solid #444" },
+  },
 };
 
 beforeEach(() => {

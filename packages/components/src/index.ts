@@ -1,4 +1,5 @@
-// Components self-register on import.
+// Components self-register on import. Themes live in @gonogo/ui (design
+// system primitives) — see packages/ui/src/themes/.
 // Add new component imports here as they are built.
 
 export * from "./ActionGroup";
