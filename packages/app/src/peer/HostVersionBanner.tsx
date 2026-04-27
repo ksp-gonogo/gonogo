@@ -18,9 +18,7 @@ interface Props {
  * matching the doc's UX table (tooltip only, no visible chrome).
  */
 export function HostVersionBanner({ client }: Props) {
-  const [hostVersion, setHostVersion] = useState(() =>
-    client.getHostVersion(),
-  );
+  const [hostVersion, setHostVersion] = useState(() => client.getHostVersion());
 
   useEffect(() => {
     setHostVersion(client.getHostVersion());
@@ -30,7 +28,6 @@ export function HostVersionBanner({ client }: Props) {
   }, [client]);
 
   const kind = compareVersions(VERSION, hostVersion?.version);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: log once per mismatch transition
   useEffect(() => {
     if (kind === "same") return;
     if (kind === "patch") {

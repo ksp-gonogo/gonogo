@@ -7,7 +7,10 @@
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "coverage": "vitest run --coverage",
-    "lint": "biome check --write ."
+    "lint": "biome check --write .",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",

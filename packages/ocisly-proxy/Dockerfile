@@ -19,5 +19,12 @@ COPY package.json ./
 # Proto file is loaded at runtime via @grpc/proto-loader.
 COPY protos/ ./protos/
 
+# Set at image build time by the release workflow. version.ts reads these
+# as ENV first, with the runtime package.json as fallback.
+ARG GONOGO_VERSION
+ARG GONOGO_BUILD_TIME
+ENV GONOGO_VERSION=${GONOGO_VERSION}
+ENV GONOGO_BUILD_TIME=${GONOGO_BUILD_TIME}
+
 EXPOSE 3002
 CMD ["node", "dist/index.js"]
