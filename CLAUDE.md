@@ -195,6 +195,37 @@ Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; 
 
 ---
 
+## Performance Budgets
+
+`@gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and warns + fails CI when a soft cap is breached. The dashboard widget `Perf Budgets` shows every registered budget live; a global test-gate (`PerfBudget.installTestGate()` wired into each package's `setupFiles`) fails any test that pushes a budget over its threshold. See `local_docs/performance_review.md` for the design and the existing budgets.
+
+**Required: any new data source MUST register a sample-rate or dispatch-rate `PerfBudget`.** Data sources are the highest-frequency surface in the app — a misconfigured WebSocket, a runaway poll, or a duplicated subscription will silently degrade the whole dashboard. The budget catches all three.
+
+What "new data source" means here: any class that implements the `DataSource` interface (added to the registry via `registerDataSource(...)`), and any wrapper that fans samples out to subscribers (e.g. `BufferedDataSource`, `PeerBroadcastingDataSource`, future kOS variants).
+
+What to record:
+- For pull-style sources (HTTP polling): `executeScript` / `fetch` / dispatch rate.
+- For push-style sources (WebSocket, PeerJS): sample-emit rate (or wire-byte volume if message size varies).
+- Pick a threshold ~3–5× the realistic steady-state load. Tight enough to catch a regression, loose enough not to false-positive on a normal burst.
+
+The pattern (from `BufferedDataSource.ts`):
+
+```ts
+const MY_SOURCE_BUDGET = new PerfBudget({
+  name: "MySource samples in/sec",
+  threshold: 1500,
+  windowMs: 1000,
+  unit: "samples",
+});
+
+private handleSample(...) {
+  MY_SOURCE_BUDGET.record();
+  // ...
+}
+```
+
+Add the budget at module scope (it self-registers in the global registry on construction). The dashboard widget will pick it up automatically.
+
 ## Serial Input Platform
 
 `@gonogo/serial` is the per-screen serial input layer. It lets a user plug a physical (or virtual) device into a screen, declare its button/analog inputs, and map those inputs onto dashboard-component **actions**.
