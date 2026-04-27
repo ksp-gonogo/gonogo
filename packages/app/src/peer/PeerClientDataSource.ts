@@ -35,6 +35,18 @@ export class PeerClientDataSource implements DataSource {
     public name: string,
     private client: PeerClientService,
   ) {
+    // Re-send our current key subscriptions on each (re)connect — the
+    // host's per-peer subscription state is wiped on disconnect, so we
+    // need to restore it after a reconnect or the station goes silent.
+    // Optional chain because test fixtures sometimes pass a partial
+    // client mock that doesn't implement onConnectionStatus.
+    client.onConnectionStatus?.((status) => {
+      if (status !== "connected") return;
+      const keys = Array.from(this.keyRefs.keys());
+      if (keys.length > 0) {
+        this.client.sendDataSubscribe?.(this.id, keys);
+      }
+    });
     client.onData((sourceId, key, value, t) => {
       if (sourceId !== this.id) return;
       if (!this.seenKeys.has(key)) {
@@ -105,9 +117,27 @@ export class PeerClientDataSource implements DataSource {
   }
 
   subscribe(key: string, cb: (value: unknown) => void) {
+    const removeLocal = this.addLocalSubscriber(key, cb);
+    this.refKey(key);
+    return () => {
+      removeLocal();
+      this.unrefKey(key);
+    };
+  }
+
+  /**
+   * Internal — register a subscriber without touching the wire. Lets
+   * `subscribeCollection` reuse the per-key routing logic while still
+   * batching the network subscribe/unsubscribe into a single message.
+   */
+  private addLocalSubscriber(
+    key: string,
+    cb: (value: unknown) => void,
+  ): () => void {
     if (!this.subscribers.has(key)) this.subscribers.set(key, new Set());
-    this.subscribers.get(key)?.add(cb);
-    return () => this.subscribers.get(key)?.delete(cb);
+    const bucket = this.subscribers.get(key)!;
+    bucket.add(cb);
+    return () => bucket.delete(cb);
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void) {
@@ -146,12 +176,41 @@ export class PeerClientDataSource implements DataSource {
       this.sampleSubscribers.set(key, bucket);
     }
     bucket.add(cb);
+    this.refKey(key);
     return () => {
       const b = this.sampleSubscribers.get(key);
       if (!b) return;
       b.delete(cb);
       if (b.size === 0) this.sampleSubscribers.delete(key);
+      this.unrefKey(key);
     };
+  }
+
+  // ── Selective subscription bookkeeping ───────────────────────────────────
+  // Refcount per key across both subscribe() and subscribeSamples().
+  // Transitions:
+  //   0 → 1  : tell the host we want this key
+  //   1 → 0  : tell the host we're done
+  // The host ignores these messages while the peer is in broadcast-all
+  // mode, so it's safe to send even before peer-data-mode is delivered.
+  private keyRefs = new Map<string, number>();
+
+  private refKey(key: string): void {
+    const next = (this.keyRefs.get(key) ?? 0) + 1;
+    this.keyRefs.set(key, next);
+    if (next === 1) {
+      this.client.sendDataSubscribe?.(this.id, [key]);
+    }
+  }
+
+  private unrefKey(key: string): void {
+    const next = (this.keyRefs.get(key) ?? 0) - 1;
+    if (next <= 0) {
+      this.keyRefs.delete(key);
+      this.client.sendDataUnsubscribe?.(this.id, [key]);
+    } else {
+      this.keyRefs.set(key, next);
+    }
   }
 
   /**
@@ -180,19 +239,50 @@ export class PeerClientDataSource implements DataSource {
     cb: (values: unknown[]) => void,
   ): () => void {
     const snapshot: unknown[] = new Array<unknown>(keys.length).fill(undefined);
-    const unsubs: Array<() => void> = [];
-    keys.forEach((key, i) => {
-      unsubs.push(
-        this.subscribe(key, (value) => {
-          snapshot[i] = value;
-          cb(snapshot.slice());
-        }),
-      );
-    });
+    // Wire the per-key routing first WITHOUT calling refKey() per
+    // iteration — that would emit one peer-data-subscribe message per
+    // key. Instead, batch the keys into a single subscribe message via
+    // refKeysBulk after the locals are wired.
+    const removes = keys.map((key, i) =>
+      this.addLocalSubscriber(key, (value) => {
+        snapshot[i] = value;
+        cb(snapshot.slice());
+      }),
+    );
+    this.refKeysBulk(keys);
     return () => {
-      unsubs.forEach((u) => {
-        u();
-      });
+      for (const u of removes) u();
+      this.unrefKeysBulk(keys);
     };
+  }
+
+  /** Bulk-refcount + send a single batched peer-data-subscribe. */
+  private refKeysBulk(keys: readonly string[]): void {
+    const newlyAdded: string[] = [];
+    for (const key of keys) {
+      const next = (this.keyRefs.get(key) ?? 0) + 1;
+      this.keyRefs.set(key, next);
+      if (next === 1) newlyAdded.push(key);
+    }
+    if (newlyAdded.length > 0) {
+      this.client.sendDataSubscribe?.(this.id, newlyAdded);
+    }
+  }
+
+  private unrefKeysBulk(keys: readonly string[]): void {
+    const newlyRemoved: string[] = [];
+    for (const key of keys) {
+      const cur = this.keyRefs.get(key) ?? 0;
+      const next = cur - 1;
+      if (next <= 0) {
+        this.keyRefs.delete(key);
+        newlyRemoved.push(key);
+      } else {
+        this.keyRefs.set(key, next);
+      }
+    }
+    if (newlyRemoved.length > 0) {
+      this.client.sendDataUnsubscribe?.(this.id, newlyRemoved);
+    }
   }
 }

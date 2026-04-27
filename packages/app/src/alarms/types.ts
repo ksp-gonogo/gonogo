@@ -1,30 +1,62 @@
 export type AlarmState =
-  /** UT is well in the future, nothing to do. */
+  /** Trigger condition not yet met. */
   | "pending"
-  /** UT is within the lead window — host has stepped warp down. */
+  /** Time-based: UT is within the lead window — host has stepped warp down.
+   *  Threshold-based: never used (no lead phase). */
   | "arming"
-  /** UT has passed — banner shows "FIRED", fade-out in a few seconds. */
+  /** Trigger condition just met — banner shows "FIRED", fade-out in a few seconds. */
   | "firing"
   /** Already-fired, kept briefly for visibility then removed. */
   | "fired";
 
-export interface Alarm {
-  id: string;
-  /** KSP Universal Time, in seconds. */
+export type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
+
+export interface TimeTrigger {
+  kind: "time";
+  /** KSP Universal Time at which the alarm fires, seconds. */
   ut: number;
-  name: string;
-  notes?: string;
   /**
    * Seconds before UT to step warp down. Default 10. Longer values give
    * the operator more time to pre-align; shorter ones minimise real-time
    * waste when timing isn't critical.
    */
   leadSeconds: number;
+}
+
+export interface ThresholdTrigger {
+  kind: "threshold";
+  /** Telemachus key to read (e.g. `v.altitude`, `v.surfaceVelocity`). */
+  dataKey: string;
+  /** Comparison operator. */
+  op: ThresholdOp;
+  /** Threshold value (numeric only in v1). */
+  value: number;
+  /**
+   * Minimum seconds the condition must be sustained before firing. Lets
+   * users gate noisy signals (e.g. altitude bobbing across a threshold).
+   * 0 fires immediately on first match.
+   */
+  sustainSeconds: number;
+}
+
+export type AlarmTrigger = TimeTrigger | ThresholdTrigger;
+
+export interface Alarm {
+  id: string;
+  name: string;
+  notes?: string;
+  trigger: AlarmTrigger;
   state: AlarmState;
   /** Source of the alarm — "main" or a peer id. */
   createdBy: string;
   /** Wall-clock `Date.now()` when created. */
   createdAt: number;
+  /**
+   * Threshold alarms only — UT seconds when the condition first matched
+   * in the current run. Reset to null whenever the condition becomes
+   * false, so the sustain timer always measures contiguous match.
+   */
+  matchSinceUT?: number | null;
 }
 
 export interface AlarmWarpState {
@@ -55,3 +87,86 @@ export interface AlarmSnapshot {
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;
+export const DEFAULT_SUSTAIN_SECONDS = 0;
+
+/** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
+ *  v2 `trigger` shape. Idempotent — already-v2 records pass through. */
+export function migrateAlarm(raw: unknown): Alarm | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.name !== "string") return null;
+  const state = r.state as AlarmState | undefined;
+  const createdBy = typeof r.createdBy === "string" ? r.createdBy : "main";
+  const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
+  const notes = typeof r.notes === "string" ? r.notes : undefined;
+  const matchSinceUT =
+    typeof r.matchSinceUT === "number" ? r.matchSinceUT : null;
+
+  if (r.trigger && typeof r.trigger === "object") {
+    const t = r.trigger as Record<string, unknown>;
+    if (t.kind === "time" && typeof t.ut === "number") {
+      return {
+        id: r.id,
+        name: r.name,
+        notes,
+        trigger: {
+          kind: "time",
+          ut: t.ut,
+          leadSeconds:
+            typeof t.leadSeconds === "number"
+              ? t.leadSeconds
+              : DEFAULT_LEAD_SECONDS,
+        },
+        state: state ?? "pending",
+        createdBy,
+        createdAt,
+      };
+    }
+    if (
+      t.kind === "threshold" &&
+      typeof t.dataKey === "string" &&
+      typeof t.value === "number" &&
+      typeof t.op === "string"
+    ) {
+      return {
+        id: r.id,
+        name: r.name,
+        notes,
+        trigger: {
+          kind: "threshold",
+          dataKey: t.dataKey,
+          op: t.op as ThresholdOp,
+          value: t.value,
+          sustainSeconds:
+            typeof t.sustainSeconds === "number"
+              ? t.sustainSeconds
+              : DEFAULT_SUSTAIN_SECONDS,
+        },
+        state: state ?? "pending",
+        createdBy,
+        createdAt,
+        matchSinceUT,
+      };
+    }
+    return null;
+  }
+
+  // Pre-v2: top-level ut + leadSeconds
+  if (typeof r.ut !== "number") return null;
+  return {
+    id: r.id,
+    name: r.name,
+    notes,
+    trigger: {
+      kind: "time",
+      ut: r.ut,
+      leadSeconds:
+        typeof r.leadSeconds === "number"
+          ? r.leadSeconds
+          : DEFAULT_LEAD_SECONDS,
+    },
+    state: state ?? "pending",
+    createdBy,
+    createdAt,
+  };
+}

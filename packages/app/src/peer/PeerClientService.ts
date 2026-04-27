@@ -143,6 +143,11 @@ export class PeerClientService {
       this.conn.on("open", () => {
         logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
         this.retryStart = null;
+        // Opt into selective broadcast immediately. The host's default
+        // is broadcast-all so v1 stations still work; v2 stations switch
+        // here. Following peer-data-subscribe messages from
+        // PeerClientDataSource are then respected per peer.
+        this.sendDataMode("selective");
         this.emitConnStatus("connected");
       });
       this.conn.on("data", (raw) => this.handleMessage(raw as PeerMessage));
@@ -295,6 +300,36 @@ export class PeerClientService {
     this.conn?.send({ type: "station-info", name } satisfies PeerMessage);
   }
 
+  /**
+   * Switch the host's data-broadcast mode for this peer. v2 stations
+   * call this immediately after connect to opt into selective
+   * subscription; without it the host stays on broadcast-all (default).
+   */
+  sendDataMode(mode: "selective" | "broadcast-all") {
+    this.conn?.send({
+      type: "peer-data-mode",
+      mode,
+    } satisfies PeerMessage);
+  }
+
+  sendDataSubscribe(sourceId: string, keys: readonly string[]) {
+    if (keys.length === 0) return;
+    this.conn?.send({
+      type: "peer-data-subscribe",
+      sourceId,
+      keys: [...keys],
+    } satisfies PeerMessage);
+  }
+
+  sendDataUnsubscribe(sourceId: string, keys: readonly string[]) {
+    if (keys.length === 0) return;
+    this.conn?.send({
+      type: "peer-data-unsubscribe",
+      sourceId,
+      keys: [...keys],
+    } satisfies PeerMessage);
+  }
+
   sendGonogoVote(status: "go" | "no-go" | null) {
     this.conn?.send({ type: "gonogo-vote", status } satisfies PeerMessage);
   }
@@ -321,17 +356,20 @@ export class PeerClientService {
   }
 
   sendAlarmAdd(input: {
-    ut: number;
     name: string;
     notes?: string;
-    leadSeconds?: number;
+    trigger: import("../alarms/types").AlarmTrigger;
   }) {
     this.conn?.send({ type: "alarm-add", ...input } satisfies PeerMessage);
   }
 
   sendAlarmUpdate(
     id: string,
-    patch: { ut?: number; name?: string; notes?: string; leadSeconds?: number },
+    patch: {
+      name?: string;
+      notes?: string;
+      trigger?: import("../alarms/types").AlarmTrigger;
+    },
   ) {
     this.conn?.send({
       type: "alarm-update",

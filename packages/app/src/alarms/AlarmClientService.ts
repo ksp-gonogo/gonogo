@@ -1,5 +1,5 @@
 import type { PeerClientService } from "../peer/PeerClientService";
-import type { AlarmSnapshot } from "./types";
+import type { AlarmSnapshot, AlarmTrigger } from "./types";
 
 /**
  * Station-side mirror of AlarmHostService. Receives snapshots from the
@@ -49,17 +49,16 @@ export class AlarmClientService {
   }
 
   addAlarm(input: {
-    ut: number;
     name: string;
     notes?: string;
-    leadSeconds?: number;
+    trigger: AlarmTrigger;
   }): void {
     this.client.sendAlarmAdd(input);
   }
 
   updateAlarm(
     id: string,
-    patch: { ut?: number; name?: string; notes?: string; leadSeconds?: number },
+    patch: { name?: string; notes?: string; trigger?: AlarmTrigger },
   ): void {
     this.client.sendAlarmUpdate(id, patch);
   }

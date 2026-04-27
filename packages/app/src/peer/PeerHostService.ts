@@ -1,10 +1,43 @@
-import { debugPeer, logger } from "@gonogo/core";
+import { debugPeer, logger, PerfBudget } from "@gonogo/core";
 import type { DataKeyMeta } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { loadIceServers } from "./iceServers";
 import type { PeerMessage } from "./protocol";
 
 const PEER_ID_KEY = "gonogo-host-peer-id";
+
+/**
+ * Soft cap on the bandwidth a single host pours into the PeerJS data
+ * channel each second (summed across all connected peers). At ~150
+ * Telemachus keys × 4 Hz × 2 peers, the wire format averages ~50 bytes
+ * per sample, which is roughly 60 KB/s. We set the budget at 200 KB/s
+ * — well above steady state, low enough to catch a regression that
+ * adds an unexpected broadcast loop.
+ *
+ * See `local_docs/performance_review.md` finding #1: the long-term fix
+ * is selective subscription, but this budget gives us an early warning
+ * if anything else (a new feature, a subscription leak) starts firing
+ * extra messages.
+ */
+const PEER_BROADCAST_BYTES_BUDGET = new PerfBudget({
+  name: "PeerHostService.broadcast bytes/sec",
+  threshold: 200_000,
+  windowMs: 1000,
+  unit: "bytes",
+});
+
+/**
+ * Cap on the *count* of broadcast messages per second. With ~150 keys
+ * × 4 Hz × 1 peer, baseline is ~600/sec. Threshold at 1500 catches
+ * doubled-up sends or an extra peer (currently expected use is 1–3
+ * stations).
+ */
+const PEER_BROADCAST_COUNT_BUDGET = new PerfBudget({
+  name: "PeerHostService.broadcast count/sec",
+  threshold: 1500,
+  windowMs: 1000,
+  unit: "messages",
+});
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
 
@@ -70,6 +103,17 @@ export class PeerHostService {
   private alarmDeleteListeners = new Set<AlarmDeleteListener>();
   private alarmAckListeners = new Set<AlarmAckListener>();
   private alarmWarpIntentListeners = new Set<AlarmWarpIntentListener>();
+
+  // Selective subscription state. Maps each connected DataConnection to:
+  //   - mode: "broadcast-all" (default) or "selective"
+  //   - subs:  Map<sourceId, Set<key>> for selective mode
+  // A peer in broadcast-all mode receives every data message; a peer in
+  // selective mode receives only messages whose (sourceId, key) is in
+  // its subs. Cleared on disconnect so a reconnecting station gets a
+  // fresh broadcast-all baseline.
+  private peerMode = new WeakMap<DataConnection, "broadcast-all" | "selective">();
+  private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
+
   peerId: string | null = null;
 
   start() {
@@ -162,8 +206,61 @@ export class PeerHostService {
       key: "key" in msg ? msg.key : undefined,
       connections: this.connections.size,
     });
+
+    // Data messages run through `broadcastData` so they can be filtered
+    // per peer. Everything else (status, alarm, gonogo, etc.) goes to
+    // every connection unconditionally — the volume is low and stations
+    // need full visibility into operational events.
+    if (msg.type === "data") {
+      this.broadcastData(msg);
+      return;
+    }
+
+    if (this.connections.size > 0) {
+      let bytes = 0;
+      try {
+        bytes = JSON.stringify(msg).length;
+      } catch {
+        // Pathological non-serialisable payload — skip the budget hit.
+      }
+      PEER_BROADCAST_COUNT_BUDGET.record(this.connections.size);
+      PEER_BROADCAST_BYTES_BUDGET.record(bytes * this.connections.size);
+    }
     for (const conn of this.connections) {
       conn.send(msg);
+    }
+  }
+
+  /**
+   * Per-peer-filtered data broadcast. Internal helper; called by the
+   * generic `broadcast()` whenever the message type is "data". Splits
+   * the budget recording per peer so the count + bytes reflect actual
+   * wire traffic, not the broadcast-all upper bound.
+   */
+  private broadcastData(
+    msg: Extract<PeerMessage, { type: "data" }>,
+  ): void {
+    if (this.connections.size === 0) return;
+    let bytes = 0;
+    try {
+      bytes = JSON.stringify(msg).length;
+    } catch {
+      // skip budget record on non-serialisable payload
+    }
+    let recipients = 0;
+    for (const conn of this.connections) {
+      const mode = this.peerMode.get(conn) ?? "broadcast-all";
+      if (mode === "selective") {
+        const subs = this.peerSubs.get(conn);
+        const keysForSource = subs?.get(msg.sourceId);
+        if (!keysForSource || !keysForSource.has(msg.key)) continue;
+      }
+      conn.send(msg);
+      recipients++;
+    }
+    if (recipients > 0) {
+      PEER_BROADCAST_COUNT_BUDGET.record(recipients);
+      PEER_BROADCAST_BYTES_BUDGET.record(bytes * recipients);
     }
   }
 
@@ -293,6 +390,37 @@ export class PeerHostService {
     }
     if (msg.type === "alarm-warp-intent") {
       for (const cb of this.alarmWarpIntentListeners) cb(conn.peer, msg.index);
+      return;
+    }
+
+    if (msg.type === "peer-data-mode") {
+      this.peerMode.set(conn, msg.mode);
+      // When switching to selective with no subs yet, the peer will get
+      // nothing until it subscribes. That's intentional — the new mode
+      // is opt-in for v2 stations and they always send subscriptions
+      // immediately after the mode switch.
+      if (msg.mode === "selective" && !this.peerSubs.has(conn)) {
+        this.peerSubs.set(conn, new Map());
+      }
+      return;
+    }
+    if (msg.type === "peer-data-subscribe") {
+      const subs =
+        this.peerSubs.get(conn) ??
+        (this.peerSubs.set(conn, new Map()), this.peerSubs.get(conn)!);
+      let bucket = subs.get(msg.sourceId);
+      if (!bucket) {
+        bucket = new Set();
+        subs.set(msg.sourceId, bucket);
+      }
+      for (const k of msg.keys) bucket.add(k);
+      return;
+    }
+    if (msg.type === "peer-data-unsubscribe") {
+      const subs = this.peerSubs.get(conn);
+      const bucket = subs?.get(msg.sourceId);
+      if (!bucket) return;
+      for (const k of msg.keys) bucket.delete(k);
       return;
     }
   }

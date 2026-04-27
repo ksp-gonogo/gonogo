@@ -129,23 +129,21 @@ export type PeerMessage =
   // Host → stations: one-shot fire event at the alarm's UT. Lets clients
   // flash a visible cue without waiting for the next snapshot.
   | { type: "alarm-fired"; id: string; name: string; ut: number }
-  // Station → host: create a new alarm at the given UT (seconds, KSP
-  // Universal Time). Host returns a fresh id in the next snapshot.
+  // Station → host: create a new alarm. v2 carries a typed `trigger`
+  // (time or threshold). Host returns a fresh id in the next snapshot.
   | {
       type: "alarm-add";
-      ut: number;
       name: string;
       notes?: string;
-      leadSeconds?: number;
+      trigger: import("../alarms/types").AlarmTrigger;
     }
   | {
       type: "alarm-update";
       id: string;
       patch: {
-        ut?: number;
         name?: string;
         notes?: string;
-        leadSeconds?: number;
+        trigger?: import("../alarms/types").AlarmTrigger;
       };
     }
   | { type: "alarm-delete"; id: string }
@@ -154,4 +152,24 @@ export type PeerMessage =
   // Station → host: user pressed a warp control on the station dashboard.
   // The host records the requested index so the unscheduled-warp detector
   // doesn't false-positive on a legitimate station-initiated change.
-  | { type: "alarm-warp-intent"; index: number };
+  | { type: "alarm-warp-intent"; index: number }
+  // ──────────────────────────────────────────────────────────────────────
+  // Selective subscription — see local_docs/performance_review.md #1.
+  //
+  // Default mode is "broadcast-all" so a station on an old bundle still
+  // receives every key. A v2 station immediately sends `peer-data-mode`
+  // with `mode: "selective"` after handshake, and follows up with
+  // `peer-data-subscribe` for keys its widgets care about. The host
+  // gates per-peer sends on the union of that peer's subscribed keys.
+  // ──────────────────────────────────────────────────────────────────────
+  | { type: "peer-data-mode"; mode: "selective" | "broadcast-all" }
+  | {
+      type: "peer-data-subscribe";
+      sourceId: string;
+      keys: string[];
+    }
+  | {
+      type: "peer-data-unsubscribe";
+      sourceId: string;
+      keys: string[];
+    };

@@ -193,11 +193,10 @@ export function MainScreen() {
  */
 function MainAlarmsFab() {
   const host = useAlarmHost();
-  const snapshot = useAlarmSnapshot();
   return (
     <AlarmsFab
       bottom={564}
-      snapshot={snapshot}
+      useSnapshot={useAlarmSnapshot}
       onAdd={(input) => host.addAlarm(input)}
       onUpdate={(id, patch) => host.updateAlarm(id, patch)}
       onDelete={(id) => host.deleteAlarm(id)}

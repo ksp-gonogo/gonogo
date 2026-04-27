@@ -184,4 +184,86 @@ describe("PeerClientDataSource", () => {
     fake.emitData("other-source", "v.altitude", 999, 5000);
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
   });
+
+  it("subscribeCollection sends ONE batched peer-data-subscribe per call", () => {
+    const fake = makeFakeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: extend the fake on the fly
+    (fake.service as any).sendDataSubscribe = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: extend the fake on the fly
+    (fake.service as any).sendDataUnsubscribe = vi.fn();
+
+    const source = new PeerClientDataSource("data", "Data", fake.service);
+    const unsub = source.subscribeCollection(
+      ["v.altitude", "v.surfaceVelocity", "v.verticalSpeed"],
+      () => {},
+    );
+
+    // Three keys, one wire message — not three.
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataSubscribe).toHaveBeenCalledTimes(1);
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataSubscribe).toHaveBeenCalledWith(
+      "data",
+      ["v.altitude", "v.surfaceVelocity", "v.verticalSpeed"],
+    );
+
+    unsub();
+    // Tear-down also batches into one peer-data-unsubscribe.
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataUnsubscribe).toHaveBeenCalledTimes(1);
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataUnsubscribe).toHaveBeenCalledWith(
+      "data",
+      ["v.altitude", "v.surfaceVelocity", "v.verticalSpeed"],
+    );
+  });
+
+  it("subscribe + subscribeCollection share refcount — overlapping keys don't double-emit", () => {
+    const fake = makeFakeClient();
+    // biome-ignore lint/suspicious/noExplicitAny: extend the fake on the fly
+    (fake.service as any).sendDataSubscribe = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: extend the fake on the fly
+    (fake.service as any).sendDataUnsubscribe = vi.fn();
+
+    const source = new PeerClientDataSource("data", "Data", fake.service);
+    const unsubA = source.subscribe("v.altitude", () => {});
+    const unsubGroup = source.subscribeCollection(
+      ["v.altitude", "v.surfaceVelocity"],
+      () => {},
+    );
+
+    // First subscribe sends ["v.altitude"]; the collection picks up the
+    // already-subscribed altitude (no new wire message for it) and only
+    // sends ["v.surfaceVelocity"].
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataSubscribe).toHaveBeenCalledTimes(2);
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataSubscribe).toHaveBeenNthCalledWith(
+      1,
+      "data",
+      ["v.altitude"],
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataSubscribe).toHaveBeenNthCalledWith(
+      2,
+      "data",
+      ["v.surfaceVelocity"],
+    );
+
+    // Tear down the collection — only v.surfaceVelocity hits zero refs.
+    unsubGroup();
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataUnsubscribe).toHaveBeenCalledWith(
+      "data",
+      ["v.surfaceVelocity"],
+    );
+
+    // Tearing down the individual subscribe drops altitude.
+    unsubA();
+    // biome-ignore lint/suspicious/noExplicitAny: same as above
+    expect((fake.service as any).sendDataUnsubscribe).toHaveBeenLastCalledWith(
+      "data",
+      ["v.altitude"],
+    );
+  });
 });

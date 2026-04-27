@@ -67,7 +67,10 @@ describe("AlarmHostService", () => {
 
   it("adds an alarm and surfaces it in the snapshot", () => {
     const { svc } = makeService();
-    svc.addAlarm({ ut: 2000, name: "Circularize", leadSeconds: 10 });
+    svc.addAlarm({
+      name: "Circularize",
+      trigger: { kind: "time", ut: 2000, leadSeconds: 10 },
+    });
     const snap = svc.snapshot();
     expect(snap.alarms).toHaveLength(1);
     expect(snap.alarms[0].name).toBe("Circularize");
@@ -76,7 +79,10 @@ describe("AlarmHostService", () => {
 
   it("transitions pending → arming and commands warp to 0 within the lead window", () => {
     const { svc, telemetry } = makeService();
-    svc.addAlarm({ ut: 1005, name: "Burn", leadSeconds: 10 });
+    svc.addAlarm({
+      name: "Burn",
+      trigger: { kind: "time", ut: 1005, leadSeconds: 10 },
+    });
     // Simulate warp at 50× so the host has something to drop.
     telemetry.set("t.currentRateIndex", 4);
     telemetry.set("t.currentRate", 50);
@@ -111,8 +117,14 @@ describe("AlarmHostService", () => {
       nowMs: () => nowMs,
       storage,
     });
-    a.addAlarm({ ut: 2000, name: "A" });
-    a.addAlarm({ ut: 3000, name: "B" });
+    a.addAlarm({
+      name: "A",
+      trigger: { kind: "time", ut: 2000, leadSeconds: 10 },
+    });
+    a.addAlarm({
+      name: "B",
+      trigger: { kind: "time", ut: 3000, leadSeconds: 10 },
+    });
     a.dispose();
 
     const b = new AlarmHostService(null, telemetry, {
@@ -127,9 +139,121 @@ describe("AlarmHostService", () => {
     ).toEqual(["A", "B"]);
   });
 
+  describe("threshold triggers", () => {
+    it("fires when the telemetry value first crosses a >= threshold (no sustain)", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "70km",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      // Start below threshold — alarm stays pending.
+      telemetry.set("v.altitude", 50_000);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+      // Cross the threshold — should immediately fire.
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1100);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+    });
+
+    it("waits for sustain before firing", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Held over",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.surfaceVelocity",
+          op: ">",
+          value: 100,
+          sustainSeconds: 3,
+        },
+      });
+      // First tick — condition matches, but sustain not satisfied.
+      telemetry.set("v.surfaceVelocity", 200);
+      telemetry.set("t.universalTime", 1000);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
+
+      // Two seconds later — still under sustain.
+      telemetry.set("t.universalTime", 1002);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      // Sustain hit at +3s — alarm fires.
+      telemetry.set("t.universalTime", 1003);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+    });
+
+    it("resets sustain when the condition stops matching", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Bouncy",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 5,
+        },
+      });
+      // Match starts at UT=1000.
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1000);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
+
+      // Drop below threshold — match resets.
+      telemetry.set("v.altitude", 69_500);
+      telemetry.set("t.universalTime", 1003);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
+
+      // Cross again at 1010 — sustain timer starts fresh, not from 1000.
+      telemetry.set("v.altitude", 71_000);
+      telemetry.set("t.universalTime", 1010);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1010);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+    });
+  });
+
+  it("migrates v1 persisted alarms into the v2 trigger shape", () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      "gonogo.alarms.list",
+      JSON.stringify([
+        { id: "a", name: "Old", ut: 2500, leadSeconds: 10, state: "pending" },
+      ]),
+    );
+    const telemetry = fakeTelemetry();
+    const svc = new AlarmHostService(null, telemetry, {
+      nowMs: () => nowMs,
+      storage,
+    });
+    const a = svc.snapshot().alarms[0];
+    expect(a).toBeDefined();
+    expect(a.trigger).toEqual({
+      kind: "time",
+      ut: 2500,
+      leadSeconds: 10,
+    });
+  });
+
   it("updates and deletes alarms", () => {
     const { svc } = makeService();
-    const a = svc.addAlarm({ ut: 2000, name: "Original" });
+    const a = svc.addAlarm({
+      name: "Original",
+      trigger: { kind: "time", ut: 2000, leadSeconds: 10 },
+    });
     svc.updateAlarm(a.id, { name: "Renamed" });
     expect(svc.snapshot().alarms[0].name).toBe("Renamed");
     svc.deleteAlarm(a.id);

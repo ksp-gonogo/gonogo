@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -25,6 +25,12 @@ export function AlarmBanner() {
 
   const nextAlarm = pickNext(snap);
   const tone = bannerTone(nextAlarm);
+  const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
+
+  // Beep on every transition into firing/fired so a telemetry-triggered
+  // alarm never silently vanishes. Tracks ids so subsequent re-renders
+  // (from the 1Hz tick) don't replay the tone.
+  useFireBeep(snap.alarms);
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
@@ -35,16 +41,39 @@ export function AlarmBanner() {
           <Divider />
           {nextAlarm ? (
             <>
-              <Label>Next alarm</Label>
+              <Label>{nextAlarm.state === "fired" ? "Fired" : "Next alarm"}</Label>
               <AlarmName>{nextAlarm.name}</AlarmName>
-              <Countdown $tone={tone}>
-                {formatTMinus(nextAlarm.ut, snap.ut)}
-              </Countdown>
+              <Countdown $tone={tone}>{formatNext(nextAlarm, snap.ut)}</Countdown>
+              {nextAlarm.state === "fired" && (
+                <AckButton
+                  type="button"
+                  onClick={() => host.acknowledgeAlarm(nextAlarm.id)}
+                >
+                  Acknowledge
+                </AckButton>
+              )}
             </>
           ) : (
             <Quiet>No alarms set</Quiet>
           )}
         </Row>
+        {firedAlarms.length > 1 && (
+          <FiredList>
+            {firedAlarms
+              .filter((a) => a.id !== nextAlarm?.id)
+              .map((a) => (
+                <FiredRow key={a.id}>
+                  <FiredName>{a.name} fired</FiredName>
+                  <AckButton
+                    type="button"
+                    onClick={() => host.acknowledgeAlarm(a.id)}
+                  >
+                    Ack
+                  </AckButton>
+                </FiredRow>
+              ))}
+          </FiredList>
+        )}
         {snap.unscheduledWarp && (
           <WarnRow role="alert">
             <WarnLabel>
@@ -67,30 +96,115 @@ type Tone = "idle" | "set" | "arm" | "fire";
 
 function bannerTone(alarm: Alarm | null): Tone {
   if (!alarm) return "idle";
-  if (alarm.state === "firing") return "fire";
+  if (alarm.state === "firing" || alarm.state === "fired") return "fire";
   if (alarm.state === "arming") return "arm";
   return "set";
 }
 
 function pickNext(snap: AlarmSnapshot): Alarm | null {
-  // Prefer firing > arming > pending > fired (fired shown briefly then dropped).
+  // Prefer firing > fired > arming > pending. Fired alarms now stay in
+  // the list until the user acks, so they need to outrank pending — a
+  // pending time alarm in the future shouldn't hide a just-fired
+  // telemetry alarm waiting for acknowledgement.
   const priority: Record<Alarm["state"], number> = {
     firing: 0,
-    arming: 1,
-    pending: 2,
-    fired: 3,
+    fired: 1,
+    arming: 2,
+    pending: 3,
   };
+  const sortKey = (a: Alarm): number =>
+    a.trigger.kind === "time" ? a.trigger.ut : Number.POSITIVE_INFINITY;
   const sorted = [...snap.alarms].sort((a, b) => {
     const p = priority[a.state] - priority[b.state];
     if (p !== 0) return p;
-    return a.ut - b.ut;
+    // Time alarms sort by UT (earliest first); threshold alarms have no
+    // single firing UT, so they fall to the end of the same-priority
+    // group — surfaced only when there's nothing else competing.
+    return sortKey(a) - sortKey(b);
   });
   return sorted[0] ?? null;
 }
 
+/**
+ * Play a short tone whenever an alarm transitions into the firing or
+ * fired state. We track ids that have already chimed so the 1Hz banner
+ * tick doesn't repeat the tone for the same fire event.
+ */
+function useFireBeep(alarms: readonly Alarm[]): void {
+  const firedIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const justFired: string[] = [];
+    const stillRelevant = new Set<string>();
+    for (const a of alarms) {
+      if (a.state === "firing" || a.state === "fired") {
+        stillRelevant.add(a.id);
+        if (!firedIdsRef.current.has(a.id)) justFired.push(a.id);
+      }
+    }
+    // Drop ids of alarms that were ack'd / removed so the same id firing
+    // again later still chimes.
+    firedIdsRef.current = stillRelevant;
+    if (justFired.length > 0) playAlarmTone();
+  }, [alarms]);
+}
+
+let sharedAudioContext: AudioContext | null = null;
+function playAlarmTone(): void {
+  // Web Audio is the simplest path that doesn't ship an audio asset.
+  // Two short pulses at different pitches read as "alarm" without being
+  // mistaken for a notification ping.
+  if (typeof window === "undefined") return;
+  const Ctor =
+    window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return;
+  try {
+    if (!sharedAudioContext) sharedAudioContext = new Ctor();
+    const ctx = sharedAudioContext;
+    if (ctx.state === "suspended") void ctx.resume();
+    const now = ctx.currentTime;
+    pulse(ctx, 880, now, 0.18);
+    pulse(ctx, 660, now + 0.22, 0.22);
+  } catch {
+    // Audio might be blocked by autoplay policy on first load — silently
+    // skip; the visual banner still alerts the operator.
+  }
+}
+
+function pulse(
+  ctx: AudioContext,
+  freq: number,
+  start: number,
+  durationS: number,
+): void {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + durationS);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + durationS + 0.05);
+}
+
+function formatNext(alarm: Alarm, utNow: number | null): string {
+  if (alarm.trigger.kind === "time") {
+    return formatTMinus(alarm.trigger.ut, utNow);
+  }
+  // Threshold alarm — no single fire UT; show the condition compactly.
+  const t = alarm.trigger;
+  return `${t.dataKey} ${t.op} ${t.value}`;
+}
+
 function formatWarp(index: number, rate: number): string {
-  if (!Number.isFinite(rate)) return `${index}×`;
-  if (rate === 1 || index === 0) return "1×";
+  // `rate` is the source of truth — Telemachus delivers it on every WS
+  // frame. `index` may be unavailable in some KSP / Telemachus builds, so
+  // never gate on `index === 0` (that would silently mask manual warp).
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return Number.isFinite(index) ? `${index}×` : "—";
+  }
+  if (rate < 1.0001) return "1×";
   if (rate >= 1000) return `${(rate / 1000).toFixed(rate >= 10_000 ? 0 : 1)}k×`;
   if (Number.isInteger(rate)) return `${rate}×`;
   return `${rate.toFixed(2)}×`;
@@ -204,6 +318,27 @@ const Countdown = styled.span<{ $tone: Tone }>`
 const Quiet = styled.span`
   color: #666;
   font-style: italic;
+`;
+
+const FiredList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #ff4d4d;
+  margin-top: 2px;
+`;
+
+const FiredRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+`;
+
+const FiredName = styled.span`
+  color: #ffdede;
+  font-weight: 600;
 `;
 
 const WarnRow = styled.div`

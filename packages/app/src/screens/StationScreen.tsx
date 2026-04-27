@@ -99,6 +99,21 @@ export function StationScreen() {
     alarmClient.snapshot(),
   );
   useEffect(() => alarmClient.subscribe(setAlarmSnapshot), [alarmClient]);
+  // Stable hook the AlarmsFab/Modal can call from inside its own render
+  // tree to subscribe to live alarm snapshots. Capturing a snapshot at
+  // open() time made the second alarm in a session anchor to a stale UT.
+  const useStationAlarmSnapshot = useMemo(
+    () => () => {
+      // biome-ignore lint/correctness/useHookAtTopLevel: defining a hook
+      const [snap, setSnap] = useState<AlarmSnapshot>(() =>
+        alarmClient.snapshot(),
+      );
+      // biome-ignore lint/correctness/useHookAtTopLevel: defining a hook
+      useEffect(() => alarmClient.subscribe(setSnap), []);
+      return snap;
+    },
+    [alarmClient],
+  );
   const [fogMaskStore] = useState(() => new FogMaskStore());
   const unsubsRef = useRef<Array<() => void>>([]);
   const schemaHandledRef = useRef(false);
@@ -319,7 +334,7 @@ export function StationScreen() {
                               />
                               <AlarmsFab
                                 bottom={504}
-                                snapshot={alarmSnapshot}
+                                useSnapshot={useStationAlarmSnapshot}
                                 onAdd={(input) => alarmClient.addAlarm(input)}
                                 onUpdate={(id, patch) =>
                                   alarmClient.updateAlarm(id, patch)

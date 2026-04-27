@@ -4,8 +4,14 @@ import type { PeerHostService } from "../peer/PeerHostService";
 import {
   type Alarm,
   type AlarmSnapshot,
+  type AlarmTrigger,
   type AlarmWarpState,
   DEFAULT_LEAD_SECONDS,
+  DEFAULT_SUSTAIN_SECONDS,
+  migrateAlarm,
+  type ThresholdOp,
+  type ThresholdTrigger,
+  type TimeTrigger,
 } from "./types";
 
 /**
@@ -109,24 +115,23 @@ export class AlarmHostService {
   }
 
   addAlarm(input: {
-    ut: number;
     name: string;
     notes?: string;
-    leadSeconds?: number;
+    trigger: AlarmTrigger;
     createdBy?: string;
   }): Alarm {
     const alarm: Alarm = {
       id: generateId(),
-      ut: input.ut,
       name: input.name.trim() || "Alarm",
       notes: input.notes?.trim() || undefined,
-      leadSeconds: input.leadSeconds ?? DEFAULT_LEAD_SECONDS,
+      trigger: input.trigger,
       // Always start "pending" — the next tick() transitions to arming /
       // firing with the usual side effects (warp step-down etc.), so the
       // state machine stays driven from a single place.
       state: "pending",
       createdBy: input.createdBy ?? "main",
       createdAt: this.opts.nowMs(),
+      matchSinceUT: input.trigger.kind === "threshold" ? null : undefined,
     };
     this.alarms.push(alarm);
     this.persist();
@@ -139,25 +144,30 @@ export class AlarmHostService {
 
   updateAlarm(
     id: string,
-    patch: Partial<Pick<Alarm, "ut" | "name" | "notes" | "leadSeconds">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
   ): void {
     const idx = this.alarms.findIndex((a) => a.id === id);
     if (idx < 0) return;
     const prev = this.alarms[idx];
     const next: Alarm = {
       ...prev,
-      ...(patch.ut !== undefined ? { ut: patch.ut } : {}),
       ...(patch.name !== undefined
         ? { name: patch.name.trim() || prev.name }
         : {}),
       ...(patch.notes !== undefined
         ? { notes: patch.notes.trim() || undefined }
         : {}),
-      ...(patch.leadSeconds !== undefined
-        ? { leadSeconds: patch.leadSeconds }
-        : {}),
+      ...(patch.trigger !== undefined ? { trigger: patch.trigger } : {}),
     };
-    next.state = this.deriveState(next.ut, next.leadSeconds);
+    // If the trigger kind changed, reset the match-tracking state so the
+    // sustain timer doesn't carry stale data across the change.
+    if (patch.trigger && patch.trigger.kind !== prev.trigger.kind) {
+      next.matchSinceUT =
+        patch.trigger.kind === "threshold" ? null : undefined;
+      next.state = "pending";
+    } else {
+      next.state = this.deriveState(next);
+    }
     this.alarms[idx] = next;
     this.persist();
     this.emit();
@@ -175,6 +185,21 @@ export class AlarmHostService {
   acknowledgeUnscheduledWarp(): void {
     if (!this.unscheduledWarp) return;
     this.unscheduledWarp = null;
+    this.emit();
+  }
+
+  /**
+   * Dismiss a fired alarm. Threshold and time alarms both stay in the
+   * `fired` state until the user (or a peer) acks — the original "auto
+   * purge after 5s" behaviour silently swallowed alarms before the
+   * operator noticed them.
+   */
+  acknowledgeAlarm(id: string): void {
+    const idx = this.alarms.findIndex((a) => a.id === id);
+    if (idx < 0) return;
+    if (this.alarms[idx].state !== "fired") return;
+    this.alarms.splice(idx, 1);
+    this.persist();
     this.emit();
   }
 
@@ -208,7 +233,23 @@ export class AlarmHostService {
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
-        const nextState = this.deriveState(alarm.ut, alarm.leadSeconds, ut);
+        // Threshold alarms maintain `matchSinceUT` — track contiguous
+        // condition match so sustain seconds is measured from the
+        // current run, not an old one.
+        if (alarm.trigger.kind === "threshold") {
+          const matched = this.evalThreshold(alarm.trigger);
+          if (matched) {
+            if (alarm.matchSinceUT == null) {
+              alarm.matchSinceUT = ut;
+              changed = true;
+            }
+          } else if (alarm.matchSinceUT != null) {
+            alarm.matchSinceUT = null;
+            changed = true;
+          }
+        }
+
+        const nextState = this.deriveState(alarm, ut);
         if (nextState !== alarm.state) {
           if (alarm.state !== "arming" && nextState === "arming") {
             this.stepWarpDown();
@@ -216,19 +257,18 @@ export class AlarmHostService {
           if (alarm.state !== "firing" && nextState === "firing") {
             this.notifyFire(alarm);
             // Also force warp to 0 one more time — in case the warp
-            // recovered between `arming` and `firing`.
+            // recovered between `arming` and `firing`. Threshold alarms
+            // also benefit (a slow build-up to a max-Q-style threshold
+            // shouldn't stay in elevated warp once it fires).
             this.stepWarpDown();
           }
           alarm.state = nextState;
           changed = true;
         }
       }
-      // Drop fired alarms after a few seconds of visibility.
-      const beforeLen = this.alarms.length;
-      this.alarms = this.alarms.filter(
-        (a) => !(a.state === "fired" && ut - a.ut > 5),
-      );
-      if (this.alarms.length !== beforeLen) changed = true;
+      // Fired alarms now stick around until the operator acks them via
+      // the banner — auto-purging after 5s let telemetry-based alarms
+      // fire and vanish before anyone noticed.
 
       if (changed) this.persist();
     }
@@ -238,21 +278,45 @@ export class AlarmHostService {
   }
 
   private deriveState(
-    ut: number,
-    leadSeconds: number,
-    now: number = this.observedUT ?? ut,
+    alarm: Alarm,
+    now: number | null = this.observedUT,
   ): Alarm["state"] {
     if (now === null) return "pending";
-    if (now >= ut && now - ut < 2) return "firing";
-    if (now >= ut) return "fired";
-    if (ut - now <= leadSeconds) return "arming";
-    return "pending";
+    if (alarm.trigger.kind === "time") {
+      const { ut, leadSeconds } = alarm.trigger;
+      if (now >= ut && now - ut < 2) return "firing";
+      if (now >= ut) return "fired";
+      if (ut - now <= leadSeconds) return "arming";
+      return "pending";
+    }
+    // Threshold trigger
+    const t = alarm.trigger;
+    if (alarm.matchSinceUT == null) {
+      // Once an alarm has fired, a state of "fired" should not regress
+      // to "pending" just because the condition fell out of match. The
+      // tick() filter drops fired alarms after a few seconds.
+      return alarm.state === "fired" ? "fired" : "pending";
+    }
+    const heldFor = now - alarm.matchSinceUT;
+    if (heldFor < t.sustainSeconds) return "pending";
+    if (heldFor < t.sustainSeconds + 2) return "firing";
+    return "fired";
+  }
+
+  private evalThreshold(t: ThresholdTrigger): boolean {
+    const observed = this.readTelemetryNumber(t.dataKey);
+    if (observed === null) return false;
+    return compare(observed, t.op, t.value);
   }
 
   // ── Warp observation + detection ──────────────────────────────────────
 
   private observeWarp(): void {
-    const index = this.readTelemetryNumber("t.currentRateIndex");
+    // Telemachus Reborn publishes the warp index as `t.timeWarp`; older
+    // builds and tests sometimes use `t.currentRateIndex`. Try both.
+    const index =
+      this.readTelemetryNumber("t.timeWarp") ??
+      this.readTelemetryNumber("t.currentRateIndex");
     const rate = this.readTelemetryNumber("t.currentRate");
     const rawMode = this.telemetry?.getLatestValue("t.warpMode");
     const mode: AlarmWarpState["mode"] =
@@ -265,8 +329,11 @@ export class AlarmHostService {
   }
 
   private detectUnscheduledWarp(): void {
-    // Warp at rate 0 is normal — clear any previous flag.
-    if (this.observedWarp.index <= 0) {
+    // 1× warp is normal — clear any previous flag. Use the rate (always
+    // populated by Telemachus) and the index (often null) together so a
+    // missing index doesn't suppress detection.
+    const elevated = this.observedWarp.index > 0 || this.observedWarp.rate > 1;
+    if (!elevated) {
       this.unscheduledWarp = null;
       return;
     }
@@ -322,10 +389,9 @@ export class AlarmHostService {
     if (!this.host) return;
     this.host.onAlarmAdd((peerId, msg) => {
       this.addAlarm({
-        ut: msg.ut,
         name: msg.name,
         notes: msg.notes,
-        leadSeconds: msg.leadSeconds,
+        trigger: msg.trigger,
         createdBy: peerId,
       });
     });
@@ -345,11 +411,19 @@ export class AlarmHostService {
 
   private notifyFire(alarm: Alarm): void {
     for (const cb of this.fireListeners) cb(alarm);
+    // Peers broadcast keeps a top-level `ut` for backwards compatibility
+    // with stations on older bundles. Threshold alarms report the UT at
+    // which the condition fired (matchSinceUT + sustain).
+    const firedUt =
+      alarm.trigger.kind === "time"
+        ? alarm.trigger.ut
+        : (alarm.matchSinceUT ?? this.observedUT ?? 0) +
+          alarm.trigger.sustainSeconds;
     this.host?.broadcast({
       type: "alarm-fired",
       id: alarm.id,
       name: alarm.name,
-      ut: alarm.ut,
+      ut: firedUt,
     });
   }
 
@@ -365,14 +439,11 @@ export class AlarmHostService {
     const raw = this.storage.getItem(STORAGE_KEY);
     if (!raw) return;
     try {
-      const parsed = JSON.parse(raw) as Alarm[];
+      const parsed = JSON.parse(raw) as unknown[];
       if (Array.isArray(parsed)) {
-        this.alarms = parsed.filter(
-          (a): a is Alarm =>
-            typeof a?.id === "string" &&
-            typeof a?.name === "string" &&
-            typeof a?.ut === "number",
-        );
+        this.alarms = parsed
+          .map(migrateAlarm)
+          .filter((a): a is Alarm => a !== null);
       }
     } catch {
       // Corrupt — nuke and start fresh.
@@ -407,6 +478,23 @@ export function createAlarmHost(
     },
   };
   return new AlarmHostService(host, telemetry, opts);
+}
+
+function compare(observed: number, op: ThresholdOp, value: number): boolean {
+  switch (op) {
+    case ">":
+      return observed > value;
+    case ">=":
+      return observed >= value;
+    case "<":
+      return observed < value;
+    case "<=":
+      return observed <= value;
+    case "==":
+      return observed === value;
+    case "!=":
+      return observed !== value;
+  }
 }
 
 function generateId(): string {

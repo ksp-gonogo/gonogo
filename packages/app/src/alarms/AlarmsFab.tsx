@@ -1,24 +1,27 @@
 import { BellIcon, Fab, useModal } from "@gonogo/ui";
-import type { Alarm, AlarmSnapshot } from "./types";
+import type { Alarm, AlarmSnapshot, AlarmTrigger } from "./types";
 
 /**
- * Screen-agnostic alarms FAB. Consumers pass the current snapshot +
+ * Screen-agnostic alarms FAB. Consumers pass a `useSnapshot` hook +
  * callbacks so the same button works on main (backed by
  * AlarmHostService) and station (backed by AlarmClientService).
+ *
+ * `useSnapshot` is a hook function (not a snapshot object) so the modal
+ * can subscribe to live updates — capturing a snapshot at click time
+ * caused a bug where the second alarm in a session anchored to a stale UT.
  */
 
 export interface AlarmsFabProps {
   bottom: number;
-  snapshot: AlarmSnapshot;
+  useSnapshot: () => AlarmSnapshot;
   onAdd: (input: {
-    ut: number;
     name: string;
     notes?: string;
-    leadSeconds?: number;
+    trigger: AlarmTrigger;
   }) => void;
   onUpdate: (
     id: string,
-    patch: Partial<Pick<Alarm, "ut" | "name" | "notes" | "leadSeconds">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
   ) => void;
   onDelete: (id: string) => void;
   /**
@@ -26,7 +29,7 @@ export interface AlarmsFabProps {
    * Kept as a prop so the data/presentational split stays explicit.
    */
   ModalComponent: React.FC<{
-    snapshot: AlarmSnapshot;
+    useSnapshot: () => AlarmSnapshot;
     onAdd: AlarmsFabProps["onAdd"];
     onUpdate: AlarmsFabProps["onUpdate"];
     onDelete: AlarmsFabProps["onDelete"];
@@ -35,7 +38,7 @@ export interface AlarmsFabProps {
 
 export function AlarmsFab({
   bottom,
-  snapshot,
+  useSnapshot,
   onAdd,
   onUpdate,
   onDelete,
@@ -46,7 +49,7 @@ export function AlarmsFab({
   function handleClick() {
     open(
       <ModalComponent
-        snapshot={snapshot}
+        useSnapshot={useSnapshot}
         onAdd={onAdd}
         onUpdate={onUpdate}
         onDelete={onDelete}
