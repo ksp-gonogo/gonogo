@@ -779,15 +779,17 @@ function ManeuverPlannerComponent({
     <Panel>
       <PanelTitle>MANEUVER PLANNER</PanelTitle>
       {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
-      {principia && (
-        <PrincipiaBanner>
-          N-body physics detected — impulsive maneuver nodes are unsupported
-          under Principia. Commit disabled.
-        </PrincipiaBanner>
-      )}
-      {renderNodesSection()}
-      {renderNewManeuverSection()}
-      {waiting ? renderWaitingPanel() : renderPreview()}
+      <ScrollBody>
+        {principia && (
+          <PrincipiaBanner>
+            N-body physics detected — impulsive maneuver nodes are unsupported
+            under Principia. Commit disabled.
+          </PrincipiaBanner>
+        )}
+        {renderNodesSection()}
+        {renderNewManeuverSection()}
+        {waiting ? renderWaitingPanel() : renderPreview()}
+      </ScrollBody>
     </Panel>
   );
 }
@@ -867,6 +869,17 @@ const Empty = styled.div`
   color: #555;
   font-size: 11px;
   padding: 4px 0;
+`;
+
+const ScrollBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Reserve a sliver for the scrollbar so content isn't pushed under it. */
+  padding-right: 4px;
 `;
 
 const WaitingPanel = styled.div`
