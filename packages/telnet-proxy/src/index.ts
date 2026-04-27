@@ -20,6 +20,10 @@ fastify.get("/status", async () => {
   return { status: "ok" };
 });
 
+fastify.get("/version", async () => {
+  return { version: VERSION, buildTime: BUILD_TIME };
+});
+
 const port = Number(process.env.PORT ?? 3001);
 await fastify.listen({ port, host: "0.0.0.0" });
 

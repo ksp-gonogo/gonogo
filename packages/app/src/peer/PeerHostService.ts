@@ -1,6 +1,7 @@
 import { debugPeer, logger, PerfBudget } from "@gonogo/core";
 import type { DataKeyMeta } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
+import { BUILD_TIME, VERSION } from "../version";
 import { loadIceServers } from "./iceServers";
 import type { PeerMessage } from "./protocol";
 
@@ -140,6 +141,13 @@ export class PeerHostService {
         logger.info(
           `[PeerHost] connection open — peer=${conn.peer}, total=${this.connections.size}`,
         );
+        // Hello first — stations parse it before anything else so a major
+        // mismatch banner can appear without waiting for the schema round.
+        conn.send({
+          type: "hello",
+          version: VERSION,
+          buildTime: BUILD_TIME,
+        } satisfies PeerMessage);
         this.sendSchema(conn);
         // Station needs this to reach the OCISLY proxy directly — resend
         // whenever a new station connects so latecomers aren't stuck in

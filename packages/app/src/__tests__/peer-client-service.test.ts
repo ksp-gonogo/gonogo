@@ -153,6 +153,28 @@ describe("PeerClientService", () => {
     ]);
   });
 
+  it("captures hello and exposes it via getHostVersion + onHostHello", () => {
+    const svc = new PeerClientService();
+    const observed: Array<{ version: string; buildTime: string }> = [];
+    svc.onHostHello((info) => observed.push(info));
+
+    expect(svc.getHostVersion()).toBeNull();
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "hello",
+      version: "1.2.3",
+      buildTime: "2026-04-25T00:00:00.000Z",
+    });
+
+    expect(svc.getHostVersion()).toEqual({
+      version: "1.2.3",
+      buildTime: "2026-04-25T00:00:00.000Z",
+    });
+    expect(observed).toEqual([
+      { version: "1.2.3", buildTime: "2026-04-25T00:00:00.000Z" },
+    ]);
+  });
+
   it("_listenerCounts reports per-event-type sizes", () => {
     const svc = new PeerClientService();
     svc.onData(() => {});

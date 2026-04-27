@@ -64,6 +64,11 @@ fastify.get("/health", async () => ({
   peerId: proxyPeerId,
 }));
 
+fastify.get("/version", async () => ({
+  version: VERSION,
+  buildTime: BUILD_TIME,
+}));
+
 fastify.get("/peer-id", async () => ({ peerId: proxyPeerId }));
 
 fastify.get("/cameras", async (_req, reply) => {

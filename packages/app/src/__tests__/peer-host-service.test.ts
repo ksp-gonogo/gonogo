@@ -217,6 +217,47 @@ describe("PeerHostService — kOS session handling", () => {
   });
 });
 
+describe("PeerHostService — hello", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  it("sends hello as the first message on a new connection, before schema", async () => {
+    const { clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+
+    clearRegistry();
+
+    const service = new PeerHostService();
+    service.start();
+    await Promise.resolve();
+
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    // Flush the dynamic import inside sendSchema
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(conn.sent.length).toBeGreaterThan(0);
+    const first = conn.sent[0] as { type: string; version?: string };
+    expect(first.type).toBe("hello");
+    expect(typeof first.version).toBe("string");
+
+    const helloIdx = conn.sent.findIndex(
+      (m): m is { type: string } =>
+        typeof m === "object" && m !== null && (m as { type: string }).type === "hello",
+    );
+    const schemaIdx = conn.sent.findIndex(
+      (m): m is { type: string } =>
+        typeof m === "object" && m !== null && (m as { type: string }).type === "schema",
+    );
+    expect(helloIdx).toBeLessThan(schemaIdx);
+
+    clearRegistry();
+  });
+});
+
 describe("PeerHostService — schema broadcast", () => {
   beforeEach(() => {
     FakePeer.last = null;

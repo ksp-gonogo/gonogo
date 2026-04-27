@@ -9,7 +9,7 @@ export type PeerIn =
   | { type: "unsubscribe"; cameraId: string };
 
 export type PeerOut =
-  | { type: "hello"; proxyVersion: string }
+  | { type: "hello"; version: string; buildTime: string }
   | { type: "cameras"; cameras: string[] }
   | { type: "subscribed"; cameraId: string }
   | { type: "unsubscribed"; cameraId: string }

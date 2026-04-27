@@ -14,7 +14,7 @@ const streamLog = logger.tag("peer:stream");
 const CONNECT_TIMEOUT_MS = 15_000;
 
 type ProxyOut =
-  | { type: "hello"; proxyVersion: string }
+  | { type: "hello"; version: string; buildTime: string }
   | { type: "cameras"; cameras: string[] }
   | { type: "subscribed"; cameraId: string }
   | { type: "unsubscribed"; cameraId: string }
@@ -75,6 +75,10 @@ export class OcislyStreamSource implements StreamSource {
 
   private statusListeners = new Set<(s: DataSourceStatus) => void>();
   private streamsListeners = new Set<(s: StreamInfo[]) => void>();
+  private remoteVersion: { version: string; buildTime: string } | null = null;
+  private remoteVersionListeners = new Set<
+    (info: { version: string; buildTime: string } | null) => void
+  >();
 
   private readonly onIncomingCall = (call: MediaConnection) => {
     this.handleIncomingCall(call);
@@ -192,6 +196,10 @@ export class OcislyStreamSource implements StreamSource {
     }
     this.peer = null;
     this.opts.onProxyPeerIdResolved?.(null);
+    if (this.remoteVersion !== null) {
+      this.remoteVersion = null;
+      for (const cb of this.remoteVersionListeners) cb(null);
+    }
     this.setStatus("disconnected");
   }
 
@@ -244,9 +252,29 @@ export class OcislyStreamSource implements StreamSource {
     return () => this.streamsListeners.delete(cb);
   }
 
+  /** Latest proxy version captured from the peer-channel hello, or null. */
+  getRemoteVersion(): { version: string; buildTime: string } | null {
+    return this.remoteVersion;
+  }
+
+  onRemoteVersionChange(
+    cb: (info: { version: string; buildTime: string } | null) => void,
+  ): () => void {
+    this.remoteVersionListeners.add(cb);
+    return () => this.remoteVersionListeners.delete(cb);
+  }
+
   // ---------------------------------------------------------------------------
 
   private handleMessage(msg: ProxyOut): void {
+    if (msg.type === "hello") {
+      this.remoteVersion = { version: msg.version, buildTime: msg.buildTime };
+      cameraLog.info(
+        `proxy hello — v${msg.version} (build ${msg.buildTime})`,
+      );
+      for (const cb of this.remoteVersionListeners) cb(this.remoteVersion);
+      return;
+    }
     if (msg.type === "cameras") {
       const nextIds = new Set(msg.cameras);
       // Reuse existing StreamInfo objects when the id is still active so

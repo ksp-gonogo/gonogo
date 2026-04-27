@@ -76,6 +76,10 @@ export class PeerClientService {
     (peerId: string | null) => void
   >();
   private ocislyProxyPeerId: string | null = null;
+  private hostVersion: { version: string; buildTime: string } | null = null;
+  private hostHelloListeners = new Set<
+    (info: { version: string; buildTime: string }) => void
+  >();
   private gonogoCountdownStartListeners = new Set<(t0Ms: number) => void>();
   private gonogoCountdownCancelListeners = new Set<
     (reason: string | undefined) => void
@@ -247,6 +251,9 @@ export class PeerClientService {
     }
     this.peer = null;
     this.conn = null;
+    // Drop the cached hello so a reconnect to a freshly-deployed host on a
+    // different version doesn't briefly report the old version.
+    this.hostVersion = null;
   }
 
   private emitConnStatus(status: ConnStatus) {
@@ -555,6 +562,14 @@ export class PeerClientService {
   }
 
   private handleMessage(msg: PeerMessage) {
+    if (msg.type === "hello") {
+      this.hostVersion = { version: msg.version, buildTime: msg.buildTime };
+      logger.info(
+        `[PeerClient] host hello — v${msg.version} (build ${msg.buildTime})`,
+      );
+      for (const cb of this.hostHelloListeners) cb(this.hostVersion);
+      return;
+    }
     if (msg.type === "data") {
       debugPeer("client handleMessage data", {
         sourceId: msg.sourceId,
@@ -631,6 +646,24 @@ export class PeerClientService {
   /** Latest OCISLY proxy peer id the host has announced, or null if none. */
   getOcislyProxyPeerId(): string | null {
     return this.ocislyProxyPeerId;
+  }
+
+  /**
+   * Latest host version snapshot from the `hello` handshake. Null until the
+   * first hello arrives (or if the host is on a pre-versioned bundle).
+   */
+  getHostVersion(): { version: string; buildTime: string } | null {
+    return this.hostVersion;
+  }
+
+  /** Notified whenever a fresh `hello` arrives from the host. */
+  onHostHello(
+    cb: (info: { version: string; buildTime: string }) => void,
+  ): () => void {
+    this.hostHelloListeners.add(cb);
+    return () => {
+      this.hostHelloListeners.delete(cb);
+    };
   }
 
   /**

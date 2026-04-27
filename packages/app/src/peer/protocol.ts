@@ -11,6 +11,12 @@ export interface PeerSchemaSource {
 }
 
 export type PeerMessage =
+  // Sent by the host as the first message on every new connection so the
+  // station can compare versions and surface a banner on mismatch. Always
+  // emitted before `schema`; absence on the wire means the host is on a
+  // pre-versioned bundle and the station should treat the host version as
+  // unknown.
+  | { type: "hello"; version: string; buildTime: string }
   | {
       type: "schema";
       sources: PeerSchemaSource[];
