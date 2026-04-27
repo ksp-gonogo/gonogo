@@ -13,3 +13,4 @@ export * from "./SignalLossBanner";
 export * from "./Switch";
 export * from "./Tabs";
 export * from "./Tag";
+export * from "./VersionMismatchBanner";

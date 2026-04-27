@@ -92,6 +92,11 @@ export class KosDataSource implements DataSource<KosConfig> {
   private cfg: KosConfig;
   private readonly callTimeoutMs: number;
   private readonly postAttachDrainDelayMs: number;
+  private remoteVersion: { version: string; buildTime: string } | null = null;
+  private readonly remoteVersionListeners = new Set<
+    (info: { version: string; buildTime: string } | null) => void
+  >();
+  private remoteVersionFetchInFlight = false;
 
   // Per-CPU executeScript sessions, keyed by tagname.
   private readonly sessions = new Map<string, KosComputeSession>();
@@ -106,7 +111,57 @@ export class KosDataSource implements DataSource<KosConfig> {
   // --- Connection (no-op; sessions open lazily) ---
 
   connect(): Promise<void> {
+    void this.refreshRemoteVersion();
     return Promise.resolve();
+  }
+
+  /**
+   * One-shot HTTP probe of the proxy's `/version` endpoint. Stored on the
+   * source for the DataSourceStatus widget to surface a per-source pill.
+   * Errors are swallowed — an unreachable proxy already shows "disconnected"
+   * via the per-session status; the version probe shouldn't add noise.
+   */
+  private async refreshRemoteVersion(): Promise<void> {
+    if (this.remoteVersionFetchInFlight) return;
+    this.remoteVersionFetchInFlight = true;
+    try {
+      const res = await fetch(
+        `http://${this.cfg.host}:${this.cfg.port}/version`,
+        { method: "GET" },
+      );
+      if (!res.ok) return;
+      const body = (await res.json()) as {
+        version?: string;
+        buildTime?: string;
+      };
+      if (typeof body.version !== "string") return;
+      const next = {
+        version: body.version,
+        buildTime:
+          typeof body.buildTime === "string" ? body.buildTime : "",
+      };
+      const prev = this.remoteVersion;
+      if (prev?.version === next.version && prev.buildTime === next.buildTime) {
+        return;
+      }
+      this.remoteVersion = next;
+      for (const cb of this.remoteVersionListeners) cb(next);
+    } catch {
+      /* proxy unreachable — handled by per-session status */
+    } finally {
+      this.remoteVersionFetchInFlight = false;
+    }
+  }
+
+  getRemoteVersion(): { version: string; buildTime: string } | null {
+    return this.remoteVersion;
+  }
+
+  onRemoteVersionChange(
+    cb: (info: { version: string; buildTime: string } | null) => void,
+  ): () => void {
+    this.remoteVersionListeners.add(cb);
+    return () => this.remoteVersionListeners.delete(cb);
   }
 
   disconnect(): void {
@@ -228,6 +283,13 @@ export class KosDataSource implements DataSource<KosConfig> {
     // terminals reconnect too.
     for (const s of this.sessions.values()) s.close();
     this.sessions.clear();
+    // Drop the cached proxy version — next /version probe runs against the
+    // new endpoint.
+    if (this.remoteVersion !== null) {
+      this.remoteVersion = null;
+      for (const cb of this.remoteVersionListeners) cb(null);
+    }
+    void this.refreshRemoteVersion();
     this.recomputeStatus();
     this.configListeners.forEach((cb) => {
       cb();

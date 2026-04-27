@@ -24,3 +24,5 @@ export * from "./streamRegistry";
 export * from "./testing/installDomStubs";
 export * from "./testing/MockDataSource";
 export * from "./types";
+export * from "./version/compare";
+export * from "./version/runtime";

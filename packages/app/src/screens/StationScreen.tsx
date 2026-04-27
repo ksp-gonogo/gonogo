@@ -38,6 +38,7 @@ import {
   MissionProfilesProvider,
   MissionProfilesService,
 } from "../missionProfiles";
+import { HostVersionBanner } from "../peer/HostVersionBanner";
 import { KosPeerConnection } from "../peer/KosPeerConnection";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
@@ -62,6 +63,7 @@ import {
   useStationName,
 } from "../stationIdentity";
 import { OcislyStreamSource } from "../streamSources/ocisly";
+import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
 
@@ -347,6 +349,7 @@ export function StationScreen() {
                               <StationNameEditor compact />
                             </StationNameChip>
                             <SignalLossIndicator />
+                            <HostVersionBanner client={client} />
                           </Layout>
                         </OverlayProvider>
                       </SerialDeviceProvider>
@@ -491,7 +494,11 @@ const Layout = styled.div`
 function StationInfoBroadcaster({ client }: { client: PeerClientService }) {
   const name = useStationName();
   useEffect(() => {
-    const send = () => client.sendStationInfo(name);
+    const send = () =>
+      client.sendStationInfo(name, {
+        version: VERSION,
+        buildTime: BUILD_TIME,
+      });
     const unsub = client.onConnectionStatus((status) => {
       if (status === "connected") send();
     });

@@ -37,13 +37,13 @@ export class PushHostService {
 
   constructor(host: PeerHostService) {
     this.unsubs.push(
-      host.onStationInfo((peerId, name) => {
-        this.peerNames.set(peerId, name);
+      host.onStationInfo((peerId, info) => {
+        this.peerNames.set(peerId, info.name);
         // Patch any entries that landed before the station-info.
         let patched = false;
         for (const [k, entry] of this.entries) {
-          if (entry.peerId === peerId && entry.stationName !== name) {
-            this.entries.set(k, { ...entry, stationName: name });
+          if (entry.peerId === peerId && entry.stationName !== info.name) {
+            this.entries.set(k, { ...entry, stationName: info.name });
             patched = true;
           }
         }

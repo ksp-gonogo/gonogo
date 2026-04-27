@@ -20,7 +20,12 @@ function makeFakeHost(): FakeHost {
     (p: string, m: Extract<PeerMessage, { type: "widget-push" }>) => void
   >();
   const recallSubs = new Set<(p: string, id: string) => void>();
-  const stationSubs = new Set<(p: string, n: string) => void>();
+  const stationSubs = new Set<
+    (
+      p: string,
+      info: { name: string; version?: string; buildTime?: string },
+    ) => void
+  >();
   const disconnectSubs = new Set<(p: string) => void>();
 
   const fake = {
@@ -53,7 +58,7 @@ function makeFakeHost(): FakeHost {
       for (const cb of recallSubs) cb(p, id);
     },
     fireStationInfo: (p, n) => {
-      for (const cb of stationSubs) cb(p, n);
+      for (const cb of stationSubs) cb(p, { name: n });
     },
     firePeerDisconnect: (p) => {
       for (const cb of disconnectSubs) cb(p);

@@ -23,6 +23,9 @@ export interface StationSnapshot {
   peerId: string;
   name: string;
   status: Vote;
+  /** Station's reported gonogo version. Undefined for pre-versioned bundles. */
+  version?: string;
+  buildTime?: string;
 }
 
 export interface GoNoGoSnapshot {
@@ -48,6 +51,10 @@ type Listener = () => void;
 export class GoNoGoHostService {
   private peerIdToName = new Map<string, string>();
   private peerIdToVote = new Map<string, Vote>();
+  private peerIdToVersion = new Map<
+    string,
+    { version: string; buildTime: string }
+  >();
   private connectedPeers = new Set<string>();
   private countdown: {
     t0Ms: number;
@@ -82,14 +89,24 @@ export class GoNoGoHostService {
         this.connectedPeers.delete(peerId);
         this.peerIdToName.delete(peerId);
         this.peerIdToVote.delete(peerId);
+        this.peerIdToVersion.delete(peerId);
         this.cancelCountdownIfRunning("station disconnected");
         this.emit();
       }),
     );
 
     this.unsubs.push(
-      host.onStationInfo((peerId, name) => {
-        this.peerIdToName.set(peerId, name);
+      host.onStationInfo((peerId, info) => {
+        this.peerIdToName.set(peerId, info.name);
+        const prevVer = this.peerIdToVersion.get(peerId);
+        if (info.version) {
+          if (prevVer?.version !== info.version) {
+            this.peerIdToVersion.set(peerId, {
+              version: info.version,
+              buildTime: info.buildTime ?? "",
+            });
+          }
+        }
         this.emit();
       }),
     );
@@ -166,10 +183,13 @@ export class GoNoGoHostService {
   getSnapshot(): GoNoGoSnapshot {
     const stations: StationSnapshot[] = [];
     for (const peerId of this.connectedPeers) {
+      const ver = this.peerIdToVersion.get(peerId);
       stations.push({
         peerId,
         name: this.peerIdToName.get(peerId) ?? "Unknown",
         status: this.peerIdToVote.get(peerId) ?? null,
+        version: ver?.version,
+        buildTime: ver?.buildTime || undefined,
       });
     }
     return {

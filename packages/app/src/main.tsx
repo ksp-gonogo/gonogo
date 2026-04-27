@@ -1,4 +1,9 @@
-import { ErrorBoundary, logger, registerStockBodies } from "@gonogo/core";
+import {
+  ErrorBoundary,
+  logger,
+  registerStockBodies,
+  setAppVersion,
+} from "@gonogo/core";
 import { ModalProvider } from "@gonogo/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
@@ -10,6 +15,7 @@ import "./streamSources"; // triggers all stream source self-registration
 import App from "./App";
 import { BUILD_TIME, VERSION } from "./version";
 
+setAppVersion(VERSION, BUILD_TIME);
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 
 // Pass the Vite base URL so texture paths resolve correctly under sub-path

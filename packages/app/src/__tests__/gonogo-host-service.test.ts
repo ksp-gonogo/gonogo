@@ -13,7 +13,12 @@ class FakeHost {
   private listeners = {
     connect: new Set<(peerId: string) => void>(),
     disconnect: new Set<(peerId: string) => void>(),
-    stationInfo: new Set<(peerId: string, name: string) => void>(),
+    stationInfo: new Set<
+      (
+        peerId: string,
+        info: { name: string; version?: string; buildTime?: string },
+      ) => void
+    >(),
     vote: new Set<(peerId: string, status: "go" | "no-go" | null) => void>(),
     abort: new Set<(peerId: string) => void>(),
   };
@@ -30,7 +35,12 @@ class FakeHost {
     this.listeners.disconnect.add(cb);
     return () => this.listeners.disconnect.delete(cb);
   }
-  onStationInfo(cb: (peerId: string, name: string) => void) {
+  onStationInfo(
+    cb: (
+      peerId: string,
+      info: { name: string; version?: string; buildTime?: string },
+    ) => void,
+  ) {
     this.listeners.stationInfo.add(cb);
     return () => this.listeners.stationInfo.delete(cb);
   }
@@ -51,7 +61,7 @@ class FakeHost {
     for (const cb of this.listeners.disconnect) cb(peerId);
   }
   fireStationInfo(peerId: string, name: string) {
-    for (const cb of this.listeners.stationInfo) cb(peerId, name);
+    for (const cb of this.listeners.stationInfo) cb(peerId, { name });
   }
   fireVote(peerId: string, status: "go" | "no-go" | null) {
     for (const cb of this.listeners.vote) cb(peerId, status);

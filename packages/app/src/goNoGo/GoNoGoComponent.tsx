@@ -4,6 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@gonogo/core";
 import {
+  compareVersions,
   registerComponent,
   useActionInput,
   useDataValue,
@@ -13,6 +14,7 @@ import { Field, FieldLabel, Input, PrimaryButton, Switch } from "@gonogo/ui";
 import { useEffect, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
+import { VERSION } from "../version";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
 
@@ -320,6 +322,11 @@ function MainView({
         {stations.length === 0 && <Empty>No stations connected</Empty>}
         {stations.map((s) => {
           const cellState = deriveCellState(s, launched, abort);
+          const versionKind = compareVersions(VERSION, s.version);
+          const showVersionChip =
+            versionKind === "minor" ||
+            versionKind === "major" ||
+            versionKind === "unknown";
           return (
             <Cell
               key={s.peerId}
@@ -330,6 +337,18 @@ function MainView({
             >
               <CellName>{s.name}</CellName>
               <CellStatus>{cellLabel(cellState)}</CellStatus>
+              {showVersionChip && (
+                <VersionChip
+                  $kind={versionKind}
+                  title={
+                    versionKind === "unknown"
+                      ? "Station didn't report a version"
+                      : `Station v${s.version} ↔ this v${VERSION}`
+                  }
+                >
+                  v{s.version ?? "?"}
+                </VersionChip>
+              )}
             </Cell>
           );
         })}
@@ -630,6 +649,24 @@ const CellStatus = styled.span`
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.12em;
+`;
+
+const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
+  minor: "#ff9f0a",
+  major: "#ff3b30",
+  unknown: "#888",
+};
+
+const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
+  margin-top: 4px;
+  padding: 1px 6px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  font-family: monospace;
+  border-radius: 999px;
+  border: 1px solid ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
+  color: ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
+  background: rgba(0, 0, 0, 0.2);
 `;
 
 const Empty = styled.div`

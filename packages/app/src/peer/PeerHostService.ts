@@ -62,7 +62,10 @@ interface KosSession {
   conn: DataConnection;
 }
 
-type StationInfoListener = (peerId: string, name: string) => void;
+type StationInfoListener = (
+  peerId: string,
+  info: { name: string; version?: string; buildTime?: string },
+) => void;
 type GonogoVoteListener = (
   peerId: string,
   status: "go" | "no-go" | null,
@@ -355,7 +358,12 @@ export class PeerHostService {
     }
 
     if (msg.type === "station-info") {
-      for (const cb of this.stationInfoListeners) cb(conn.peer, msg.name);
+      const info = {
+        name: msg.name,
+        version: msg.version,
+        buildTime: msg.buildTime,
+      };
+      for (const cb of this.stationInfoListeners) cb(conn.peer, info);
       return;
     }
 

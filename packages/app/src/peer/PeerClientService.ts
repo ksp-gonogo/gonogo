@@ -303,8 +303,16 @@ export class PeerClientService {
     this.conn?.send({ type: "kos-close", sessionId } satisfies PeerMessage);
   }
 
-  sendStationInfo(name: string) {
-    this.conn?.send({ type: "station-info", name } satisfies PeerMessage);
+  sendStationInfo(
+    name: string,
+    info?: { version?: string; buildTime?: string },
+  ) {
+    this.conn?.send({
+      type: "station-info",
+      name,
+      ...(info?.version ? { version: info.version } : {}),
+      ...(info?.buildTime ? { buildTime: info.buildTime } : {}),
+    } satisfies PeerMessage);
   }
 
   /**

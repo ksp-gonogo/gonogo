@@ -1,7 +1,10 @@
 import type { ConfigField, DataSourceStatus } from "@gonogo/core";
 import {
+  compareVersions,
+  getAppVersion,
   getDataSource,
   getStreamSource,
+  type MismatchKind,
   registerComponent,
   useDataSources,
   useStreamSources,
@@ -18,8 +21,70 @@ import {
   Placeholder,
   PrimaryButton,
 } from "@gonogo/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
+
+interface RemoteVersionExposing {
+  getRemoteVersion?: () => { version: string; buildTime: string } | null;
+  onRemoteVersionChange?: (
+    cb: (info: { version: string; buildTime: string } | null) => void,
+  ) => () => void;
+}
+
+/**
+ * Subscribes to a source's remote version (if it exposes one) and
+ * compares against the locally-baked app version. Returns null when the
+ * source doesn't expose a version channel, or when local + remote match.
+ */
+function useRemoteVersionMismatch(sourceId: string): {
+  remote: { version: string; buildTime: string } | null;
+  kind: MismatchKind;
+} {
+  const [remote, setRemote] = useState<
+    { version: string; buildTime: string } | null
+  >(() => {
+    const src = getDataSource(sourceId) as RemoteVersionExposing | undefined;
+    return src?.getRemoteVersion?.() ?? null;
+  });
+
+  useEffect(() => {
+    const src = getDataSource(sourceId) as RemoteVersionExposing | undefined;
+    if (!src?.onRemoteVersionChange) return;
+    setRemote(src.getRemoteVersion?.() ?? null);
+    return src.onRemoteVersionChange(setRemote);
+  }, [sourceId]);
+
+  const local = getAppVersion()?.version;
+  const kind: MismatchKind = local
+    ? compareVersions(local, remote?.version)
+    : "unknown";
+  return { remote, kind };
+}
+
+function useRemoteStreamVersionMismatch(sourceId: string): {
+  remote: { version: string; buildTime: string } | null;
+  kind: MismatchKind;
+} {
+  const [remote, setRemote] = useState<
+    { version: string; buildTime: string } | null
+  >(() => {
+    const src = getStreamSource(sourceId) as RemoteVersionExposing | undefined;
+    return src?.getRemoteVersion?.() ?? null;
+  });
+
+  useEffect(() => {
+    const src = getStreamSource(sourceId) as RemoteVersionExposing | undefined;
+    if (!src?.onRemoteVersionChange) return;
+    setRemote(src.getRemoteVersion?.() ?? null);
+    return src.onRemoteVersionChange(setRemote);
+  }, [sourceId]);
+
+  const local = getAppVersion()?.version;
+  const kind: MismatchKind = local
+    ? compareVersions(local, remote?.version)
+    : "unknown";
+  return { remote, kind };
+}
 
 function DataSourceStatusComponent() {
   const sources = useDataSources();
@@ -68,6 +133,7 @@ function DataSourceStatusComponent() {
                 <Row>
                   <Indicator $status={source.status} />
                   <Name>{source.name}</Name>
+                  <RemoteVersionPill sourceId={source.id} />
                   <StatusLabel $status={source.status}>
                     {source.status}
                   </StatusLabel>
@@ -155,6 +221,7 @@ function DataSourceStatusComponent() {
                 <Row>
                   <Indicator $status={s.status} />
                   <Name>{s.name}</Name>
+                  <RemoteStreamVersionPill sourceId={s.id} />
                   <StreamCount>
                     {s.streamCount} stream{s.streamCount === 1 ? "" : "s"}
                   </StreamCount>
@@ -192,6 +259,52 @@ registerComponent({
 });
 
 export { DataSourceStatusComponent };
+
+function RemoteVersionPill({ sourceId }: { sourceId: string }) {
+  const { remote, kind } = useRemoteVersionMismatch(sourceId);
+  if (!remote) return null;
+  if (kind === "same" || kind === "patch") {
+    return (
+      <VersionTag
+        $kind="same"
+        title={`v${remote.version}${remote.buildTime ? ` (build ${remote.buildTime})` : ""}`}
+      >
+        v{remote.version}
+      </VersionTag>
+    );
+  }
+  return (
+    <VersionTag
+      $kind={kind}
+      title={`Local ↔ remote: ${kind} mismatch (remote v${remote.version})`}
+    >
+      v{remote.version}
+    </VersionTag>
+  );
+}
+
+function RemoteStreamVersionPill({ sourceId }: { sourceId: string }) {
+  const { remote, kind } = useRemoteStreamVersionMismatch(sourceId);
+  if (!remote) return null;
+  if (kind === "same" || kind === "patch") {
+    return (
+      <VersionTag
+        $kind="same"
+        title={`v${remote.version}${remote.buildTime ? ` (build ${remote.buildTime})` : ""}`}
+      >
+        v{remote.version}
+      </VersionTag>
+    );
+  }
+  return (
+    <VersionTag
+      $kind={kind}
+      title={`Local ↔ remote: ${kind} mismatch (remote v${remote.version})`}
+    >
+      v{remote.version}
+    </VersionTag>
+  );
+}
 
 // --- Styles ---
 
@@ -293,4 +406,23 @@ const RetryButton = styled(GhostButton)`
   letter-spacing: 0.05em;
   white-space: nowrap;
   padding: 2px 6px;
+`;
+
+const VERSION_TAG_COLOR: Record<"same" | "minor" | "major" | "unknown", string> = {
+  same: "#666",
+  minor: "#ff9f0a",
+  major: "#ff3b30",
+  unknown: "#888",
+};
+
+const VersionTag = styled.span<{ $kind: "same" | "minor" | "major" | "unknown" }>`
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  font-family: monospace;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
+  color: ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
+  background: rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 `;

@@ -65,7 +65,14 @@ export type PeerMessage =
   // ──────────────────────────────────────────────────────────────────────
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
-  | { type: "station-info"; name: string }
+  // `version` + `buildTime` are optional so a pre-versioned station still
+  // wire-compatible — the host treats absence as "unknown".
+  | {
+      type: "station-info";
+      name: string;
+      version?: string;
+      buildTime?: string;
+    }
   // Station → host whenever the local GO/NO-GO vote changes. `null` means
   // "no widget mounted" so the station-info is still registered but the
   // station doesn't contribute a vote.
