@@ -267,4 +267,23 @@ export class PeerBroadcastingDataSource implements DataSource {
       });
     };
   }
+
+  /*
+   * Flight-aware methods aren't part of the `DataSource` interface, but
+   * the buffered source they wrap defines them. Forward them through so
+   * widgets like FlightsManager keep working when this wrapper is the
+   * registered source for `data` (i.e. on the main screen with peer
+   * hosting active).
+   */
+  getCurrentFlight(): unknown {
+    const real = this.real as { getCurrentFlight?: () => unknown };
+    return real.getCurrentFlight?.() ?? null;
+  }
+
+  onFlightChange(cb: () => void): () => void {
+    const real = this.real as {
+      onFlightChange?: (cb: () => void) => () => void;
+    };
+    return real.onFlightChange?.(cb) ?? (() => {});
+  }
 }
