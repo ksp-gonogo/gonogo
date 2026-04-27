@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Sets every workspace package.json under packages/* to a single version.
 // Usage: node scripts/set-version.mjs <version>
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
