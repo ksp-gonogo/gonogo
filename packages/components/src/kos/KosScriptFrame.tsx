@@ -98,6 +98,10 @@ const Panel = styled.div`
   flex-direction: column;
   width: 100%;
   height: 100%;
+  /* Without border-box, the 1px border overflows the parent and gets
+     clipped by its overflow:hidden — leaving the left/right edges of
+     the panel borderless. */
+  box-sizing: border-box;
   background: #0d0d0d;
   border: 1px solid #2a2a2a;
   border-radius: 4px;

@@ -4,9 +4,9 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { logger, registerDataSource } from "@gonogo/core";
+import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
 import type { KosData, KosScriptArg } from "@gonogo/data";
-import { parseKosData } from "@gonogo/data";
+import { parseKosData, stripAnsi } from "@gonogo/data";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 
 export type { KosScriptArg };
@@ -39,6 +39,19 @@ const LEGACY_KOS_COMPUTE_KEY = "gonogo.datasource.kos-compute";
 
 /** Milliseconds a single executeScript call will wait for its [KOSDATA] line. */
 const DEFAULT_CALL_TIMEOUT_MS = 10_000;
+
+/**
+ * Soft cap on kOS executeScript dispatch rate. Each script run holds a
+ * CPU's REPL for ~hundreds of ms (RUNPATH + queue drain), so a sustained
+ * dispatch rate above ~5/sec means widgets are stomping each other. At
+ * 10/sec we want to know about it.
+ */
+const KOS_DISPATCH_BUDGET = new PerfBudget({
+  name: "KosDataSource.executeScript dispatches/sec",
+  threshold: 10,
+  windowMs: 1000,
+  unit: "dispatches",
+});
 /**
  * Default delay between detecting attach and draining the queue. Lets
  * kOS's Unity update loop detach the welcomeMenu so RUNPATH lands in the
@@ -154,6 +167,7 @@ export class KosDataSource implements DataSource<KosConfig> {
     script: string,
     args: KosScriptArg[],
   ): Promise<KosData> {
+    KOS_DISPATCH_BUDGET.record();
     const session = this.getOrCreateSession(cpu);
     return session.enqueue(script, args);
   }
@@ -815,18 +829,56 @@ function parseKosExplicitError(buffer: string): string | null {
  * DESCRIPTION (kOS-runtime errors, which restate the headline there).
  */
 function parseKosError(buffer: string): string | null {
-  if (!buffer.includes("At interpreter")) return null;
+  // kOS draws the error block via cursor-position escapes rather than
+  // newlines. Strip the ANSI noise and synthesise line breaks from the
+  // CSI cursor moves so the line-by-line scan below works on real
+  // terminal output (not just on the synthetic test fixtures that use
+  // \n separators).
+  const normalised = normaliseKosOutput(buffer);
+  if (!normalised.includes("At interpreter")) return null;
 
-  const messageMatch = /\bMessage:\s*(.+)$/m.exec(buffer);
+  // Common kOS parse-time error: "<path> line:N col:M Not allowed to
+  // SET … BUILTIN_FUNCTION called 'foo'". The VERBOSE-DESCRIPTION
+  // section is empty for these, so match the headline directly.
+  const clobberMatch =
+    /Not allowed to SET[^\n]*?BUILTIN_FUNCTION called '([^']+)'/.exec(
+      normalised,
+    );
+  if (clobberMatch?.[1]) {
+    const lineCol = /line:(\d+)\s*col:(\d+)/.exec(normalised);
+    const where = lineCol ? ` (line ${lineCol[1]}:${lineCol[2]})` : "";
+    return `Cannot SET '${clobberMatch[1]}' — clobbers a kOS builtin${where}`;
+  }
+
+  // "Volume not found" / "File not found" / similar one-line errors that
+  // appear in the buffer without a Message: line.
+  const volumeMatch = /\b(Volume not found|File not found|Path not found)\b/.exec(
+    normalised,
+  );
+  if (volumeMatch?.[1]) return volumeMatch[1];
+
+  const messageMatch = /\bMessage:\s*(.+)$/m.exec(normalised);
   if (messageMatch?.[1]) return messageMatch[1].trim();
 
-  const lines = buffer.split("\n").map((l) => l.trim());
+  const lines = normalised.split("\n").map((l) => l.trim());
   const vdIdx = lines.findIndex((l) => l === "VERBOSE DESCRIPTION");
   if (vdIdx >= 0 && vdIdx + 1 < lines.length) {
     const candidate = lines[vdIdx + 1];
     if (candidate && !/^_{10,}$/.test(candidate)) return candidate;
   }
   return null;
+}
+
+/**
+ * kOS terminal output uses CSI cursor-position escapes (`ESC[N;1H`) in
+ * place of newlines for each rendered row. Convert those to `\n` so the
+ * downstream regex / line-split logic finds boundaries, then strip any
+ * remaining ANSI sequences.
+ */
+function normaliseKosOutput(buffer: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: parsing terminal output
+  const withNewlines = buffer.replace(/\x1b\[\d+;\d+H/g, "\n");
+  return stripAnsi(withNewlines);
 }
 
 registerDataSource(new KosDataSource());
