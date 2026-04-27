@@ -14,7 +14,7 @@ import {
 } from "@gonogo/serial";
 import { FabClusterProvider } from "@gonogo/ui";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   AlarmBanner,
@@ -23,8 +23,8 @@ import {
   AlarmsModal,
   createAlarmHost,
   useAlarmHost,
-  useAlarmSnapshot,
 } from "../alarms";
+import type { AlarmSnapshot } from "../alarms/types";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -193,10 +193,25 @@ export function MainScreen() {
  */
 function MainAlarmsFab() {
   const host = useAlarmHost();
+  // Closure-based snapshot hook so the modal works without needing
+  // AlarmHostContext in its ancestor tree — ModalProvider mounts portaled
+  // modals above this point in the tree, so the context-reading variant
+  // (useAlarmSnapshot) throws when called from inside the modal. Mirrors
+  // the station-side pattern in StationScreen.
+  const useSnapshot = useMemo(
+    () => () => {
+      // biome-ignore lint/correctness/useHookAtTopLevel: defining a hook
+      const [snap, setSnap] = useState<AlarmSnapshot>(() => host.snapshot());
+      // biome-ignore lint/correctness/useHookAtTopLevel: defining a hook
+      useEffect(() => host.subscribe(setSnap), []);
+      return snap;
+    },
+    [host],
+  );
   return (
     <AlarmsFab
       bottom={564}
-      useSnapshot={useAlarmSnapshot}
+      useSnapshot={useSnapshot}
       onAdd={(input) => host.addAlarm(input)}
       onUpdate={(id, patch) => host.updateAlarm(id, patch)}
       onDelete={(id) => host.deleteAlarm(id)}
@@ -229,6 +244,6 @@ const Layout = styled.div`
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   padding-left: calc(24px + env(safe-area-inset-left, 0px));
   padding-right: calc(24px + env(safe-area-inset-right, 0px));
-  background: #050505;
+  background: var(--color-surface-app);
   min-height: 100vh;
 `;
