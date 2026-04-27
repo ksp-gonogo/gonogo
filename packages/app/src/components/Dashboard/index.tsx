@@ -14,7 +14,14 @@ import {
   useSerialDeviceService,
 } from "@gonogo/serial";
 import { Tabs, useModal } from "@gonogo/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import styled from "styled-components";
@@ -140,71 +147,133 @@ function GridDashboard({
       onLayoutChange={onLayoutChange}
       onBreakpointChange={onBreakpointChange}
     >
-      {items.map((item) => {
-        const def = getComponent(item.componentId);
-        if (!def) return null;
-        const Comp = def.component;
-
-        const bpLayouts = currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
-        const entry = bpLayouts.find((l) => l.i === item.i);
-        const w = entry?.w;
-        const h = entry?.h;
-
-        const hasConfig = Boolean(def.configComponent);
-        const hasActions = Boolean(def.actions?.length);
-
-        return (
-          <GridCell key={item.i}>
-            <CellHeader className="drag-handle" title="Drag to reposition">
-              {(hasConfig || hasActions) && (
-                <GearWrapper>
-                  <GearButton
-                    item={item}
-                    def={def}
-                    onSaveConfig={(newConfig) =>
-                      updateItemConfig(item.i, newConfig)
-                    }
-                    onSaveMappings={(next) => updateItemMappings(item.i, next)}
-                  />
-                </GearWrapper>
-              )}
-              <PushButton
+      {(() => {
+        // Build a single index of layout-by-id once, rather than O(items)
+        // .find() per item — pays off as the dashboard fills up.
+        const bpLayouts =
+          currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
+        const sizeById = new Map<string, Layout>();
+        for (const l of bpLayouts) sizeById.set(l.i, l);
+        return items.map((item) => {
+          const entry = sizeById.get(item.i);
+          return (
+            <GridCell key={item.i}>
+              <GridItemContent
                 item={item}
-                pushable={def.pushable === true}
-                w={w ?? 3}
-                h={h ?? 3}
+                w={entry?.w}
+                h={entry?.h}
+                updateItemConfig={updateItemConfig}
+                updateItemMappings={updateItemMappings}
+                removeItem={removeItem}
               />
-              <RemoveButton onRemove={() => removeItem(item.i)} />
-            </CellHeader>
-            <ComponentWrapper>
-              <DashboardItemContext.Provider value={{ instanceId: item.i }}>
-                <ErrorBoundary
-                  fallback={(error, reset) => (
-                    <WidgetError
-                      componentName={def.name}
-                      error={error}
-                      onRetry={reset}
-                    />
-                  )}
-                >
-                  <Comp
-                    id={item.i}
-                    config={item.config}
-                    w={w}
-                    h={h}
-                    onConfigChange={(newConfig) =>
-                      updateItemConfig(item.i, newConfig)
-                    }
-                  />
-                </ErrorBoundary>
-              </DashboardItemContext.Provider>
-            </ComponentWrapper>
-          </GridCell>
-        );
-      })}
+            </GridCell>
+          );
+        });
+      })()}
     </ResponsiveGridLayout>
   );
 }
+
+// ---------------------------------------------------------------------------
+// GridItemContent — memoised per-item subtree so a sibling re-render
+// (e.g. one widget's useDataValue firing on a Telemachus tick) doesn't
+// reconcile every other item in the grid. The parent passes stable
+// callbacks (already wrapped in useCallback by useDashboardState); we
+// bind them to `item.i` here so each item gets its own stable handlers.
+// ---------------------------------------------------------------------------
+
+interface GridItemContentProps {
+  item: DashboardItem;
+  w: number | undefined;
+  h: number | undefined;
+  updateItemConfig: (id: string, config: Record<string, unknown>) => void;
+  updateItemMappings: (id: string, mappings: InputMappings) => void;
+  removeItem: (id: string) => void;
+}
+
+const GridItemContent = memo(function GridItemContent({
+  item,
+  w,
+  h,
+  updateItemConfig,
+  updateItemMappings,
+  removeItem,
+}: GridItemContentProps) {
+  const def = getComponent(item.componentId);
+
+  const onSaveConfig = useCallback(
+    (next: Record<string, unknown>) => updateItemConfig(item.i, next),
+    [item.i, updateItemConfig],
+  );
+  const onSaveMappings = useCallback(
+    (next: InputMappings) => updateItemMappings(item.i, next),
+    [item.i, updateItemMappings],
+  );
+  const onRemove = useCallback(
+    () => removeItem(item.i),
+    [item.i, removeItem],
+  );
+
+  // Render the error fallback as a stable function so the ErrorBoundary
+  // doesn't re-mount its children every render.
+  const renderErrorFallback = useCallback(
+    (error: Error, reset: () => void) => (
+      <WidgetError
+        componentName={def?.name ?? item.componentId}
+        error={error}
+        onRetry={reset}
+      />
+    ),
+    [def?.name, item.componentId],
+  );
+
+  const itemContext = useMemo(
+    () => ({ instanceId: item.i }),
+    [item.i],
+  );
+
+  if (!def) return null;
+  const Comp = def.component;
+  const hasConfig = Boolean(def.configComponent);
+  const hasActions = Boolean(def.actions?.length);
+
+  return (
+    <>
+      <CellHeader className="drag-handle" title="Drag to reposition">
+        {(hasConfig || hasActions) && (
+          <GearWrapper>
+            <GearButton
+              item={item}
+              def={def}
+              onSaveConfig={onSaveConfig}
+              onSaveMappings={onSaveMappings}
+            />
+          </GearWrapper>
+        )}
+        <PushButton
+          item={item}
+          pushable={def.pushable === true}
+          w={w ?? 3}
+          h={h ?? 3}
+        />
+        <RemoveButton onRemove={onRemove} />
+      </CellHeader>
+      <ComponentWrapper>
+        <DashboardItemContext.Provider value={itemContext}>
+          <ErrorBoundary fallback={renderErrorFallback}>
+            <Comp
+              id={item.i}
+              config={item.config}
+              w={w}
+              h={h}
+              onConfigChange={onSaveConfig}
+            />
+          </ErrorBoundary>
+        </DashboardItemContext.Provider>
+      </ComponentWrapper>
+    </>
+  );
+});
 
 // ---------------------------------------------------------------------------
 // MobileDashboard — flex-wrap column with up/down reorder buttons.
@@ -224,90 +293,143 @@ function MobileDashboard({
 }: Readonly<DashboardProps>) {
   return (
     <MobileList>
-      {items.map((item, index) => {
-        const def = getComponent(item.componentId);
-        if (!def) return null;
-        const Comp = def.component;
-
-        const half = def.mobileWidth === "half";
-        const height =
-          def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
-        const hasConfig = Boolean(def.configComponent);
-        const hasActions = Boolean(def.actions?.length);
-
-        const isFirst = index === 0;
-        const isLast = index === items.length - 1;
-
-        return (
-          <MobileCell
-            key={item.i}
-            $half={half}
-            $height={height}
-            data-i={item.i}
-            data-mobile-width={half ? "half" : "full"}
-            data-mobile-height={height}
-          >
-            <MobileCellHeader>
-              <MobileCellHeaderLeft>
-                <ReorderButton
-                  direction="up"
-                  disabled={isFirst}
-                  onClick={() => moveItemUp(item.i)}
-                />
-                <ReorderButton
-                  direction="down"
-                  disabled={isLast}
-                  onClick={() => moveItemDown(item.i)}
-                />
-                <MobileCellName title={def.name}>{def.name}</MobileCellName>
-              </MobileCellHeaderLeft>
-              <MobileCellHeaderRight>
-                {(hasConfig || hasActions) && (
-                  <GearButton
-                    item={item}
-                    def={def}
-                    onSaveConfig={(newConfig) =>
-                      updateItemConfig(item.i, newConfig)
-                    }
-                    onSaveMappings={(next) => updateItemMappings(item.i, next)}
-                  />
-                )}
-                <PushButton
-                  item={item}
-                  pushable={def.pushable === true}
-                  w={def.defaultSize?.w ?? 3}
-                  h={def.defaultSize?.h ?? 3}
-                />
-                <RemoveButton onRemove={() => removeItem(item.i)} />
-              </MobileCellHeaderRight>
-            </MobileCellHeader>
-            <ComponentWrapper>
-              <DashboardItemContext.Provider value={{ instanceId: item.i }}>
-                <ErrorBoundary
-                  fallback={(error, reset) => (
-                    <WidgetError
-                      componentName={def.name}
-                      error={error}
-                      onRetry={reset}
-                    />
-                  )}
-                >
-                  <Comp
-                    id={item.i}
-                    config={item.config}
-                    onConfigChange={(newConfig) =>
-                      updateItemConfig(item.i, newConfig)
-                    }
-                  />
-                </ErrorBoundary>
-              </DashboardItemContext.Provider>
-            </ComponentWrapper>
-          </MobileCell>
-        );
-      })}
+      {items.map((item, index) => (
+        <MobileItemContent
+          key={item.i}
+          item={item}
+          isFirst={index === 0}
+          isLast={index === items.length - 1}
+          updateItemConfig={updateItemConfig}
+          updateItemMappings={updateItemMappings}
+          removeItem={removeItem}
+          moveItemUp={moveItemUp}
+          moveItemDown={moveItemDown}
+        />
+      ))}
     </MobileList>
   );
 }
+
+interface MobileItemContentProps {
+  item: DashboardItem;
+  isFirst: boolean;
+  isLast: boolean;
+  updateItemConfig: (id: string, config: Record<string, unknown>) => void;
+  updateItemMappings: (id: string, mappings: InputMappings) => void;
+  removeItem: (id: string) => void;
+  moveItemUp: (id: string) => void;
+  moveItemDown: (id: string) => void;
+}
+
+const MobileItemContent = memo(function MobileItemContent({
+  item,
+  isFirst,
+  isLast,
+  updateItemConfig,
+  updateItemMappings,
+  removeItem,
+  moveItemUp,
+  moveItemDown,
+}: MobileItemContentProps) {
+  const def = getComponent(item.componentId);
+
+  const onSaveConfig = useCallback(
+    (next: Record<string, unknown>) => updateItemConfig(item.i, next),
+    [item.i, updateItemConfig],
+  );
+  const onSaveMappings = useCallback(
+    (next: InputMappings) => updateItemMappings(item.i, next),
+    [item.i, updateItemMappings],
+  );
+  const onRemove = useCallback(
+    () => removeItem(item.i),
+    [item.i, removeItem],
+  );
+  const onMoveUp = useCallback(
+    () => moveItemUp(item.i),
+    [item.i, moveItemUp],
+  );
+  const onMoveDown = useCallback(
+    () => moveItemDown(item.i),
+    [item.i, moveItemDown],
+  );
+  const renderErrorFallback = useCallback(
+    (error: Error, reset: () => void) => (
+      <WidgetError
+        componentName={def?.name ?? item.componentId}
+        error={error}
+        onRetry={reset}
+      />
+    ),
+    [def?.name, item.componentId],
+  );
+  const itemContext = useMemo(
+    () => ({ instanceId: item.i }),
+    [item.i],
+  );
+
+  if (!def) return null;
+  const Comp = def.component;
+  const half = def.mobileWidth === "half";
+  const height =
+    def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+  const hasConfig = Boolean(def.configComponent);
+  const hasActions = Boolean(def.actions?.length);
+
+  return (
+    <MobileCell
+      $half={half}
+      $height={height}
+      data-i={item.i}
+      data-mobile-width={half ? "half" : "full"}
+      data-mobile-height={height}
+    >
+      <MobileCellHeader>
+        <MobileCellHeaderLeft>
+          <ReorderButton
+            direction="up"
+            disabled={isFirst}
+            onClick={onMoveUp}
+          />
+          <ReorderButton
+            direction="down"
+            disabled={isLast}
+            onClick={onMoveDown}
+          />
+          <MobileCellName title={def.name}>{def.name}</MobileCellName>
+        </MobileCellHeaderLeft>
+        <MobileCellHeaderRight>
+          {(hasConfig || hasActions) && (
+            <GearButton
+              item={item}
+              def={def}
+              onSaveConfig={onSaveConfig}
+              onSaveMappings={onSaveMappings}
+            />
+          )}
+          <PushButton
+            item={item}
+            pushable={def.pushable === true}
+            w={def.defaultSize?.w ?? 3}
+            h={def.defaultSize?.h ?? 3}
+          />
+          <RemoveButton onRemove={onRemove} />
+        </MobileCellHeaderRight>
+      </MobileCellHeader>
+      <ComponentWrapper>
+        <DashboardItemContext.Provider value={itemContext}>
+          <ErrorBoundary fallback={renderErrorFallback}>
+            <Comp
+              id={item.i}
+              config={item.config}
+              onConfigChange={onSaveConfig}
+            />
+          </ErrorBoundary>
+        </DashboardItemContext.Provider>
+      </ComponentWrapper>
+    </MobileCell>
+  );
+});
 
 function ReorderButton({
   direction,

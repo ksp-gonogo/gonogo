@@ -59,7 +59,7 @@ function Harness({
 }
 
 function renderWithProviders(tree: React.ReactNode) {
-  const service = new SerialDeviceService("test-screen");
+  const service = new SerialDeviceService({ screenKey: "test-screen" });
   return render(
     <ModalProvider>
       <SerialDeviceProvider service={service}>{tree}</SerialDeviceProvider>
