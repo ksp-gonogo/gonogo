@@ -11,6 +11,22 @@
  * so if we see more than one the later one is always newer.
  */
 
+import { PerfBudget } from "@gonogo/core";
+
+/**
+ * Soft cap on parser invocations. The proxy emits one PTY chunk per
+ * line of kOS output; with multiple kOS widgets polling every few
+ * seconds, expect ~10–30/sec under normal load. Threshold at 200/sec
+ * catches infinite-loop scripts or runaway kOS PRINTs that would flood
+ * the parse pipeline.
+ */
+const KOS_PARSE_BUDGET = new PerfBudget({
+  name: "kos-data-parser.parseKosData calls/sec",
+  threshold: 200,
+  windowMs: 1000,
+  unit: "calls",
+});
+
 export type KosDataValue = number | boolean | string;
 export type KosData = Record<string, KosDataValue>;
 
@@ -35,7 +51,12 @@ const ANSI_RE =
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI is the whole point
   /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_?]/g;
 
-function stripAnsi(text: string): string {
+export function stripAnsi(text: string): string {
+  // Most plain-PRINT chunks have no escape character; the indexOf check
+  // is roughly an order of magnitude cheaper than running the regex
+  // `replace` blindly. Worth doing because parseKosData is called per
+  // PTY chunk during active kOS widget polling.
+  if (text.indexOf("\x1b") === -1) return text;
   return text.replace(ANSI_RE, "");
 }
 
@@ -44,6 +65,7 @@ function stripAnsi(text: string): string {
  * `text`, or null if no complete block is present.
  */
 export function parseKosData(text: string): KosData | null {
+  KOS_PARSE_BUDGET.record();
   const clean = stripAnsi(text);
   let lastBody: string | null = null;
   // Reset lastIndex each call — BLOCK_RE is module-scoped.

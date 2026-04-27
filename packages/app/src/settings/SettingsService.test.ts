@@ -1,3 +1,4 @@
+import { PerfBudget } from "@gonogo/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsService } from "./SettingsService";
 
@@ -33,6 +34,9 @@ describe("SettingsService", () => {
   it("persists across instances through the provided storage", () => {
     const a = new SettingsService(storage);
     a.set("flag", false);
+    // Writes are debounced — flush before constructing the second
+    // instance so it sees the persisted value.
+    a.flush();
     const b = new SettingsService(storage);
     expect(b.get("flag", true)).toBe(false);
   });
@@ -64,5 +68,37 @@ describe("SettingsService", () => {
     // Writing something proves the service is usable.
     svc.set("flag", false);
     expect(svc.get("flag", true)).toBe(false);
+  });
+
+  it("coalesces a burst of writes into a single localStorage call", () => {
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(storage, "setItem");
+    const svc = new SettingsService(storage);
+    setItem.mockClear();
+    svc.set("a", 1);
+    svc.set("b", 2);
+    svc.set("c", 3);
+    expect(setItem).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(150);
+    expect(setItem).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("records every save to the SettingsService perf budget", () => {
+    // Find the module-registered budget by name. It's created when the
+    // SettingsService module is imported, so it always exists by this
+    // point.
+    const budget = PerfBudget.getAll().find((b) =>
+      b.name.startsWith("SettingsService.save"),
+    );
+    expect(budget).toBeDefined();
+    if (!budget) return;
+    const before = budget.rate();
+    const svc = new SettingsService(storage);
+    svc.set("flag", true);
+    svc.flush();
+    svc.set("flag", false);
+    svc.flush();
+    expect(budget.rate()).toBe(before + 2);
   });
 });

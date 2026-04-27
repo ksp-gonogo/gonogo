@@ -15,7 +15,7 @@ import {
   PrimaryButton,
   Select,
 } from "@gonogo/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { alignXY } from "./align";
 import { GraphSeries } from "./GraphSeries";
@@ -73,13 +73,23 @@ function resolveAxes(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
-  const series = (config?.series ?? []).map(withDefaults);
+  const series = useMemo(
+    () => (config?.series ?? []).map(withDefaults),
+    [config?.series],
+  );
   const windowSec = config?.windowSec ?? 300;
   const xKey = config?.xKey ?? TIME_AXIS;
   const xIsTime = xKey === TIME_AXIS;
 
   const schema = useDataSchema("data");
-  const metaMap = new Map(schema.map((k) => [k.key, k]));
+  // Schema is ~150 entries today; rebuilding the lookup map every render
+  // (Graph re-renders on each child's onData callback ≈ 4 Hz) was
+  // ~600 hash inserts/sec for no reason. Memo against the schema array
+  // identity (stable thanks to useDataSchema's own memo).
+  const metaMap = useMemo(
+    () => new Map(schema.map((k) => [k.key, k])),
+    [schema],
+  );
   const xMeta = xIsTime ? null : (metaMap.get(xKey) ?? null);
 
   const containerRef = useRef<HTMLDivElement>(null);

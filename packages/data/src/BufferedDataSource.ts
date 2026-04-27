@@ -1,10 +1,26 @@
 import type { ConfigField, DataSource, DataSourceStatus } from "@gonogo/core";
+import { PerfBudget } from "@gonogo/core";
 import { getDerivedKeys } from "./derive";
 import { FlightDetector } from "./flightDetector";
 import { debugFlight } from "./logger";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
 import type { DataKeyMeta, FlightRecord, Sample, SeriesRange } from "./types";
+
+/**
+ * Soft cap on samples flowing into the buffered layer. Telemachus runs
+ * at 4 Hz across ~170 keys (worst-case 680/sec when every key changes
+ * each tick), plus a handful of derived keys and a brief replay burst
+ * on subscribe. Mid-flight refreshes routinely flirted with the old
+ * 1500 limit; 3000 still catches a true regression (e.g. duplicated
+ * samples or a runaway WS rate) without false-alarming on normal load.
+ */
+const BUFFERED_SAMPLE_BUDGET = new PerfBudget({
+  name: "BufferedDataSource samples in/sec",
+  threshold: 3000,
+  windowMs: 1000,
+  unit: "samples",
+});
 
 type Clock = () => number;
 
@@ -350,6 +366,7 @@ export class BufferedDataSource implements DataSource {
   // --- Internal ----------------------------------------------------------
 
   private handleSample(key: string, value: unknown): void {
+    BUFFERED_SAMPLE_BUDGET.record();
     // Signal-state tracker: `comm.connected` updates our gate regardless of
     // the gate's current state (this is the one key that must always flow
     // through, otherwise we'd never see the restore event). We require a

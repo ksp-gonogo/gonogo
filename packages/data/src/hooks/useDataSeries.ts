@@ -75,13 +75,10 @@ export function useDataSeries(
           buf.t.splice(0, i);
           buf.v.splice(0, i);
         }
+        // Single fresh wrapper — useSyncExternalStore's identity check
+        // sees the new object reference and triggers a render. The old
+        // code rebuilt the wrapper twice (extra allocation per sample).
         snapshotRef.current = { t: buf.t, v: buf.v };
-        // New wrapper identity on every sample so getSnapshot's identity
-        // check triggers a render.
-        snapshotRef.current = {
-          t: snapshotRef.current.t,
-          v: snapshotRef.current.v,
-        };
         onStoreChange();
       });
 
