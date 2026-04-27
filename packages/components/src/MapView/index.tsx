@@ -45,6 +45,7 @@ import {
   TelValue,
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
+import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { useFogDisplayCanvas, useFogPainter } from "./useFogMask";
@@ -394,7 +395,13 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
 
   // ── Prediction: forward-propagated ground track from o.orbitPatches ───────
   // Kept as a memoised pure computation so the render effect only fires when
-  // the sampled path actually changes.
+  // the sampled path actually changes. We *throttle* via `quantiseUt` so the
+  // memo only invalidates once a second, not once per Telemachus tick (~4 Hz).
+  // The orbit shape doesn't change between adjacent ticks; the body-rotation
+  // calibration drifts by ~0.1° of longitude over a second, well below
+  // perceptible at typical zoom levels.
+  const utBucket = quantiseUt(universalTime, 1);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket — see comment above
   const predictionSegments = useMemo<TrackSample[][]>(() => {
     if (!predictionEnabled) return [];
     if (
@@ -426,20 +433,14 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
       10,
     );
     return splitOnLongitudeWrap(samples);
-  }, [
-    predictionEnabled,
-    orbitPatches,
-    targetBodyId,
-    body,
-    lat,
-    lon,
-    universalTime,
-  ]);
+  }, [predictionEnabled, orbitPatches, targetBodyId, body, utBucket]);
 
   // Planned maneuvers: each node's `orbitPatches` is the post-burn trajectory.
   // We calibrate from the current orbit patches (they contain ref.ut) and
   // sample from the node's patches. Horizon uses the node's first-patch
   // period so near-maneuver orbits render without extending indefinitely.
+  // Same `utBucket` throttle as the main prediction.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket
   const maneuverSegments = useMemo<TrackSample[][][]>(() => {
     if (!predictionEnabled) return [];
     if (
@@ -488,9 +489,7 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
     maneuverNodes,
     targetBodyId,
     body,
-    lat,
-    lon,
-    universalTime,
+    utBucket,
   ]);
 
   useEffect(() => {

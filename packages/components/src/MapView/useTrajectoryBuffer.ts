@@ -45,10 +45,13 @@ export function useTrajectoryBuffer({
       vSpeed: vSpeed ?? 0,
     };
 
-    trajectoryRef.current = [
-      ...trajectoryRef.current.slice(-(trajectoryLength - 1)),
-      point,
-    ];
+    // Mutate the existing array instead of slicing + spreading. Spread
+    // copied the entire backing array on every sample (~2 KB × 2 = 4 KB
+    // per Telemachus tick at default trajectoryLength=2000); push + shift
+    // does one append + one head-shift, ~half the moves and zero allocations.
+    const buf = trajectoryRef.current;
+    buf.push(point);
+    while (buf.length > trajectoryLength) buf.shift();
     incrementTrajectoryCount();
   }, [
     lat,
