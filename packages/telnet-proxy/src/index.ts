@@ -2,8 +2,11 @@ import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import Fastify from "fastify";
 import { registerKosBridge } from "./bridge.js";
+import { BUILD_TIME, VERSION } from "./version.js";
 
 const fastify = Fastify({ logger: true });
+
+console.log(`gonogo telnet-proxy v${VERSION} (build ${BUILD_TIME})`);
 
 await fastify.register(cors, { origin: true });
 await fastify.register(websocket);

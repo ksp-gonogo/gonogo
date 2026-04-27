@@ -9,6 +9,9 @@ import { loadConfig } from "./config.js";
 import { CameraPoller } from "./grpc/cameraPoller.js";
 import { OcislyClient } from "./grpc/OcislyClient.js";
 import { PeerHost } from "./peer/PeerHost.js";
+import { BUILD_TIME, VERSION } from "./version.js";
+
+console.log(`gonogo ocisly-proxy v${VERSION} (build ${BUILD_TIME})`);
 
 const config = loadConfig();
 const fastify = Fastify({ logger: true });

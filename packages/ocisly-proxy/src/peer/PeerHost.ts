@@ -18,9 +18,8 @@ const WrtcMediaStream = wrtc.MediaStream;
 
 import type { CameraMetadata, CameraPoller } from "../grpc/cameraPoller.js";
 import type { OcislyClient } from "../grpc/OcislyClient.js";
+import { VERSION } from "../version.js";
 import type { PeerIn, PeerOut } from "./controlProtocol.js";
-
-const PROXY_VERSION = "0.0.1";
 
 export interface PeerHostOptions {
   peerId: string;
@@ -138,7 +137,7 @@ export class PeerHost {
       this.sessions.set(conn.peer, session);
       this.send(conn, {
         type: "hello",
-        proxyVersion: PROXY_VERSION,
+        proxyVersion: VERSION,
       });
     });
 
