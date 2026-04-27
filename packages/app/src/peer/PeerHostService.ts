@@ -422,9 +422,11 @@ export class PeerHostService {
       return;
     }
     if (msg.type === "peer-data-subscribe") {
-      const subs =
-        this.peerSubs.get(conn) ??
-        (this.peerSubs.set(conn, new Map()), this.peerSubs.get(conn)!);
+      let subs = this.peerSubs.get(conn);
+      if (!subs) {
+        subs = new Map();
+        this.peerSubs.set(conn, subs);
+      }
       let bucket = subs.get(msg.sourceId);
       if (!bucket) {
         bucket = new Set();

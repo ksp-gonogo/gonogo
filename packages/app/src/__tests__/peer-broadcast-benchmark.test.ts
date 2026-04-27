@@ -25,7 +25,9 @@ class FakePeer {
     this.listeners.set(event, bucket);
   }
   emit(event: string, ...args: unknown[]) {
-    this.listeners.get(event)?.forEach((cb) => cb(...args));
+    this.listeners.get(event)?.forEach((cb) => {
+      cb(...args);
+    });
   }
   destroy() {}
 }
@@ -43,7 +45,9 @@ class FakeDataConnection {
     this.listeners.set(event, bucket);
   }
   emit(event: string, ...args: unknown[]) {
-    this.listeners.get(event)?.forEach((cb) => cb(...args));
+    this.listeners.get(event)?.forEach((cb) => {
+      cb(...args);
+    });
   }
   send(msg: unknown) {
     this.sent.push(msg);
@@ -113,8 +117,12 @@ function makeSyntheticSource(keyCount: number): DataSource & {
       // 4 Hz worth of samples — fan out to every subscribed key.
       for (const key of keys) {
         const sample = { t: now, v: counter };
-        sampleSubs.get(key.key)?.forEach((cb) => cb(sample));
-        valueSubs.get(key.key)?.forEach((cb) => cb(counter));
+        sampleSubs.get(key.key)?.forEach((cb) => {
+          cb(sample);
+        });
+        valueSubs.get(key.key)?.forEach((cb) => {
+          cb(counter);
+        });
       }
     },
   };

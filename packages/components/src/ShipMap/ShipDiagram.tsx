@@ -264,7 +264,8 @@ export function ShipDiagram({
             const b = toBase(bounds.cx + bounds.w, axial);
             return (
               <line
-                key={`stage-${i}`}
+                // biome-ignore lint/suspicious/noArrayIndexKey: stages is a flat number[] from a stable derivation; index is the natural id
+                key={`stage-${i}-${axial}`}
                 x1={a.x}
                 y1={a.y}
                 x2={b.x}
@@ -277,12 +278,12 @@ export function ShipDiagram({
             );
           })}
 
-          {edges.map((e, i) => {
+          {edges.map((e) => {
             const a = toBase(e.a.lat, e.a.axial);
             const b = toBase(e.b.lat, e.b.axial);
             return (
               <line
-                key={`edge-${i}`}
+                key={`edge-${e.a.uid}-${e.b.uid}`}
                 data-edge="parent-child"
                 x1={a.x}
                 y1={a.y}
@@ -913,7 +914,8 @@ function withBody(
   childrenOf: Map<string, BasePart[]>,
   intrinsics: Map<string, Intrinsic>,
 ): ProjectedPart {
-  const intr = intrinsics.get(p.uid)!;
+  const intr = intrinsics.get(p.uid);
+  if (!intr) throw new Error(`ShipDiagram: missing intrinsic for ${p.uid}`);
   const parent = p.parent ? (byUid.get(p.parent) ?? null) : null;
   const children = childrenOf.get(p.uid) ?? [];
 
@@ -947,16 +949,20 @@ function withBody(
         ? stackParent
         : stackChildBelow;
     if (upper) {
-      const ui = intrinsics.get(upper.uid)!;
-      axialMax = ui.stretchy
-        ? (p.axial + upper.axial) / 2
-        : upper.axial - ui.halfH;
+      const ui = intrinsics.get(upper.uid);
+      if (ui) {
+        axialMax = ui.stretchy
+          ? (p.axial + upper.axial) / 2
+          : upper.axial - ui.halfH;
+      }
     }
     if (lower) {
-      const li = intrinsics.get(lower.uid)!;
-      axialMin = li.stretchy
-        ? (p.axial + lower.axial) / 2
-        : lower.axial + li.halfH;
+      const li = intrinsics.get(lower.uid);
+      if (li) {
+        axialMin = li.stretchy
+          ? (p.axial + lower.axial) / 2
+          : lower.axial + li.halfH;
+      }
     }
   }
 
@@ -968,7 +974,8 @@ function withBody(
   let latMax = p.lat + intr.halfW;
   for (const c of children) {
     if (isStackAxial(c)) continue;
-    const ci = intrinsics.get(c.uid)!;
+    const ci = intrinsics.get(c.uid);
+    if (!ci) continue;
     if (c.type !== "fin" && c.type !== "solar") {
       if (c.axial + ci.halfH > axialMax) axialMax = c.axial + ci.halfH;
       if (c.axial - ci.halfH < axialMin) axialMin = c.axial - ci.halfH;

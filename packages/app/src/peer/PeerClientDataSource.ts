@@ -134,8 +134,11 @@ export class PeerClientDataSource implements DataSource {
     key: string,
     cb: (value: unknown) => void,
   ): () => void {
-    if (!this.subscribers.has(key)) this.subscribers.set(key, new Set());
-    const bucket = this.subscribers.get(key)!;
+    let bucket = this.subscribers.get(key);
+    if (!bucket) {
+      bucket = new Set();
+      this.subscribers.set(key, bucket);
+    }
     bucket.add(cb);
     return () => bucket.delete(cb);
   }
