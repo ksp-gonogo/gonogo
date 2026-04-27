@@ -97,7 +97,7 @@ export function StationScreen() {
     () => new MissionProfilesService("station"),
   );
   const [alarmClient] = useState(() => new AlarmClientService(client));
-  const [alarmSnapshot, setAlarmSnapshot] = useState<AlarmSnapshot>(
+  const [_alarmSnapshot, setAlarmSnapshot] = useState<AlarmSnapshot>(
     alarmClient.snapshot(),
   );
   useEffect(() => alarmClient.subscribe(setAlarmSnapshot), [alarmClient]);

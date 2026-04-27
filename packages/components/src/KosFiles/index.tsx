@@ -72,10 +72,10 @@ function KosFilesComponent({
 
   // Re-dispatch whenever the view (and therefore args) changes — useKosWidget
   // doesn't auto-trigger on arg change, so we kick it ourselves.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `view` is the trigger; dispatch() reads it via the source's snapshot
   useEffect(() => {
     if (!cpu) return;
     dispatch();
-    // dispatch is stable per source; view changes drive the actual reload.
   }, [view, cpu, dispatch]);
 
   useEffect(() => {

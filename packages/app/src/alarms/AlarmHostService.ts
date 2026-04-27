@@ -6,12 +6,9 @@ import {
   type AlarmSnapshot,
   type AlarmTrigger,
   type AlarmWarpState,
-  DEFAULT_LEAD_SECONDS,
-  DEFAULT_SUSTAIN_SECONDS,
   migrateAlarm,
   type ThresholdOp,
   type ThresholdTrigger,
-  type TimeTrigger,
 } from "./types";
 
 /**

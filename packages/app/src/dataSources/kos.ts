@@ -919,7 +919,7 @@ function parseKosError(buffer: string): string | null {
   if (messageMatch?.[1]) return messageMatch[1].trim();
 
   const lines = normalised.split("\n").map((l) => l.trim());
-  const vdIdx = lines.findIndex((l) => l === "VERBOSE DESCRIPTION");
+  const vdIdx = lines.indexOf("VERBOSE DESCRIPTION");
   if (vdIdx >= 0 && vdIdx + 1 < lines.length) {
     const candidate = lines[vdIdx + 1];
     if (candidate && !/^_{10,}$/.test(candidate)) return candidate;

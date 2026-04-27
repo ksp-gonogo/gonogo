@@ -427,18 +427,16 @@ export function ShipDiagram({
               <span>{hovered.stage}</span>
             </div>
           ) : null}
-          {hovered.resources && hovered.resources.length > 0 ? (
-            <>
-              {hovered.resources.map((r) => (
+          {hovered.resources && hovered.resources.length > 0
+            ? hovered.resources.map((r) => (
                 <div className="row" key={r.n}>
                   <span>{r.n}</span>
                   <span>
                     {r.a.toFixed(0)} / {r.c.toFixed(0)}
                   </span>
                 </div>
-              ))}
-            </>
-          ) : null}
+              ))
+            : null}
         </Tooltip>
       )}
     </Wrapper>

@@ -1,5 +1,5 @@
 import { PerfBudget } from "@gonogo/core";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { quantiseUt } from "./predictionThrottle";
 

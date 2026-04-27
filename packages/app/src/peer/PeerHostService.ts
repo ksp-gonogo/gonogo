@@ -265,7 +265,7 @@ export class PeerHostService {
       if (mode === "selective") {
         const subs = this.peerSubs.get(conn);
         const keysForSource = subs?.get(msg.sourceId);
-        if (!keysForSource || !keysForSource.has(msg.key)) continue;
+        if (!keysForSource?.has(msg.key)) continue;
       }
       conn.send(msg);
       recipients++;
