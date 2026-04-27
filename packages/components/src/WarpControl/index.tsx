@@ -164,7 +164,7 @@ registerComponent<WarpControlConfig>({
   name: "Warp Control",
   description:
     "Set KSP time warp from the dashboard. Shows current warp rate and mode; button row maps to t.timeWarp[0..7].",
-  tags: ["controls", "time"],
+  tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
   component: WarpControlComponent,
   dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode"],
