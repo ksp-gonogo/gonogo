@@ -119,6 +119,12 @@ const TELEMACHUS_KEYS: DataKey[] = [
   // Time
   { key: "t.universalTime" },
   { key: "t.currentRate" },
+  // Warp index ("0..7" for HIGH, similar for LOW). Telemachus Reborn
+  // publishes this as `t.timeWarp`; the alarm host uses it to decide
+  // whether warp is elevated. Without it, only `t.currentRate` updates,
+  // and the banner can't tell index=0 from "no telemetry".
+  { key: "t.timeWarp" },
+  { key: "t.warpMode" },
   { key: "t.isPaused" },
   // Resources (vessel-wide + current-stage, for the fuel widget)
   { key: "r.resource[LiquidFuel]" },

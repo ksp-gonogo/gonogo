@@ -412,6 +412,8 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
   // --- Time ---
   "t.universalTime": { label: "Universal time", unit: "s", group: "Time" },
   "t.currentRate": { label: "Time warp rate", unit: "raw", group: "Time" },
+  "t.timeWarp": { label: "Time warp index", unit: "raw", group: "Time" },
+  "t.warpMode": { label: "Time warp mode", unit: "enum", group: "Time" },
   "t.isPaused": { label: "Is paused", unit: "bool", group: "Time" },
 
   // --- Target ---
