@@ -18,12 +18,13 @@ import { useCelestialBodies } from "./useCelestialBodies";
 
 interface SystemViewConfig {
   /**
-   * Body to render the diagram around. "auto" picks the topmost parent
-   * of the vessel's current body (e.g. Kerbol when the vessel is on/
-   * around Kerbin); "current" follows `v.body`. Empty / unknown string
-   * falls back to "auto".
+   * Body to render the diagram around. "auto" follows the vessel's
+   * current body (`v.body`) so a Kerbin-launch shows Mun/Minmus and a
+   * Mun-orbit shows Mun's neighbourhood. "root" walks up to the topmost
+   * parent (Kerbol from anywhere in the Kerbin system). An explicit body
+   * name pins the frame regardless of vessel state.
    */
-  frame?: "auto" | "current" | string;
+  frame?: "auto" | "root" | string;
 }
 
 function SystemViewComponent({
@@ -86,15 +87,18 @@ function resolveFrame(
   setting: string,
   vesselBody: string | null,
 ): string | null {
-  if (setting === "current") return vesselBody;
   if (setting === "auto") {
-    // Walk up from the vessel's body to the root (a body with no
-    // referenceBody, i.e. the star). If the vessel is on Kerbin, the
-    // default frame is Kerbol; if around Mun, it's also Kerbol — because
-    // seeing the whole system is usually more useful than a two-body
-    // snapshot.
+    // Follow the vessel's current body. On the launchpad / in Kerbin
+    // orbit this is Kerbin (so the diagram shows Mun/Minmus); from Mun
+    // orbit it's Mun. If we don't have v.body yet, fall back to the
+    // root so something useful renders.
+    if (vesselBody) return vesselBody;
+    const root = bodies.find((b) => !b.referenceBody);
+    return root?.name ?? null;
+  }
+  if (setting === "root") {
+    // Walk up to the topmost parent (Kerbol from anywhere in the system).
     if (!vesselBody) {
-      // No vessel body yet — fall back to the first body with no parent.
       const root = bodies.find((b) => !b.referenceBody);
       return root?.name ?? null;
     }
@@ -109,6 +113,8 @@ function resolveFrame(
     }
     return cursor;
   }
+  // Back-compat: previous default was "current"; treat as "auto".
+  if (setting === "current") return vesselBody;
   return setting; // explicit body name
 }
 
@@ -130,8 +136,8 @@ function SystemViewConfigComponent({
           value={frame}
           onChange={(e) => setFrame(e.target.value)}
         >
-          <option value="auto">Auto (root parent of current body)</option>
-          <option value="current">Current body (v.body)</option>
+          <option value="auto">Auto (current body)</option>
+          <option value="root">Root parent (whole system)</option>
           {bodies
             .filter((b) => b.name !== null)
             .map((b) => (
@@ -141,10 +147,10 @@ function SystemViewConfigComponent({
             ))}
         </Select>
         <FieldHint>
-          "Auto" walks up the reference-body chain from the vessel so a
-          Kerbin-orbit mission sees Kerbol, and a Mun mission also sees Kerbol
-          (not just Kerbin). "Current body" keeps the camera locked to whatever
-          the vessel is currently around.
+          "Auto" follows the vessel's current body — Kerbin-orbit shows
+          Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the
+          star so you see the whole system. Pick a specific body to pin
+          the frame.
         </FieldHint>
       </Field>
       <PrimaryButton onClick={() => onSave({ frame })}>Save</PrimaryButton>
