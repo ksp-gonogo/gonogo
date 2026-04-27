@@ -9,7 +9,8 @@
 import { clearRegistry, registerComponent } from "@gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
 import { ModalProvider } from "@gonogo/ui";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
@@ -126,7 +127,8 @@ describe("Dashboard — mobile / touch path", () => {
     expect(document.querySelector(".react-grid-layout")).toBeNull();
   });
 
-  it("Move down on the first item swaps it with the second", () => {
+  it("Move down on the first item swaps it with the second", async () => {
+    const user = userEvent.setup();
     registerStubWidget("alpha", "Alpha");
     registerStubWidget("beta", "Beta");
 
@@ -144,7 +146,7 @@ describe("Dashboard — mobile / touch path", () => {
     );
 
     const downButtons = screen.getAllByRole("button", { name: "Move down" });
-    fireEvent.click(downButtons[0]);
+    await user.click(downButtons[0]);
 
     // Assert on the rendered cell's `data-i` rather than just DOM order:
     // if React reused positions and only swapped content, the body order
@@ -155,7 +157,8 @@ describe("Dashboard — mobile / touch path", () => {
     expect(cells.map((c) => c.dataset.i)).toEqual(["b", "a"]);
   });
 
-  it("persists the new item order to localStorage", () => {
+  it("persists the new item order to localStorage", async () => {
+    const user = userEvent.setup();
     registerStubWidget("alpha", "Alpha");
     registerStubWidget("beta", "Beta");
     const KEY = "test-mobile-persist";
@@ -173,7 +176,9 @@ describe("Dashboard — mobile / touch path", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Move down" })[0]);
+    await user.click(
+      screen.getAllByRole("button", { name: "Move down" })[0],
+    );
 
     const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
       items: Array<{ i: string }>;

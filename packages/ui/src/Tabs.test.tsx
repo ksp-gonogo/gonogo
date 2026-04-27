@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -20,20 +20,22 @@ describe("Tabs", () => {
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
   });
 
-  it("calls onChange when a different tab is clicked", () => {
+  it("calls onChange when a different tab is clicked", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Tabs tabs={TABS} activeId="one" onChange={onChange} />);
-    fireEvent.click(screen.getByRole("tab", { name: "Two" }));
+    await user.click(screen.getByRole("tab", { name: "Two" }));
     expect(onChange).toHaveBeenCalledWith("two");
   });
 
-  it("switches the visible panel when activeId changes", () => {
+  it("switches the visible panel when activeId changes", async () => {
+    const user = userEvent.setup();
     function Harness() {
       const [active, setActive] = useState("one");
       return <Tabs tabs={TABS} activeId={active} onChange={setActive} />;
     }
     render(<Harness />);
-    fireEvent.click(screen.getByRole("tab", { name: "Two" }));
+    await user.click(screen.getByRole("tab", { name: "Two" }));
     expect(screen.getByText("panel-two")).toBeInTheDocument();
     expect(screen.queryByText("panel-one")).not.toBeInTheDocument();
   });

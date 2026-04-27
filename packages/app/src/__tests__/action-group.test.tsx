@@ -5,14 +5,8 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
@@ -156,6 +150,7 @@ describe("ActionGroup component", () => {
   });
 
   it("sends a toggle request and reflects the updated state", async () => {
+    const user = userEvent.setup();
     setupTelemachus({ "v.ag1Value": false });
     await telemachusSource.connect();
     render(
@@ -167,7 +162,7 @@ describe("ActionGroup component", () => {
 
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: /toggle ag1/i }));
+    await user.click(screen.getByRole("button", { name: /toggle ag1/i }));
 
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
   });
@@ -224,6 +219,7 @@ describe("ActionGroup component", () => {
   });
 
   it("toggles SAS independently from AG1", async () => {
+    const user = userEvent.setup();
     setupTelemachus({ "v.sasValue": false });
     await telemachusSource.connect();
     render(
@@ -235,7 +231,7 @@ describe("ActionGroup component", () => {
 
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: /toggle sas/i }));
+    await user.click(screen.getByRole("button", { name: /toggle sas/i }));
 
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
   });
