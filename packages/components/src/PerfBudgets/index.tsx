@@ -40,8 +40,8 @@ function PerfBudgetsComponent(_: Readonly<ComponentProps<PerfBudgetsConfig>>) {
       <PanelTitle>PERF BUDGETS</PanelTitle>
       {snapshots.length === 0 ? (
         <Empty>
-          No budgets registered yet. Budgets self-register at module load
-          — make sure the relevant services are imported.
+          No budgets registered yet. Budgets self-register at module load — make
+          sure the relevant services are imported.
         </Empty>
       ) : (
         <List>
@@ -54,8 +54,8 @@ function PerfBudgetsComponent(_: Readonly<ComponentProps<PerfBudgetsConfig>>) {
                 <RowHeader>
                   <Name>{s.name}</Name>
                   <Rate $tone={tone}>
-                    {formatRate(s.rate)} / {formatRate(s.threshold)}{" "}
-                    {s.unit}/{(s.windowMs / 1000).toFixed(0)}s
+                    {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
+                    {(s.windowMs / 1000).toFixed(0)}s
                   </Rate>
                 </RowHeader>
                 <Bar>

@@ -32,8 +32,6 @@ describe("VersionMismatchBanner", () => {
       />,
     );
     expect(getByText("VERSION UNKNOWN")).not.toBeNull();
-    expect(
-      getByText(/Mission Control didn't report a version/),
-    ).not.toBeNull();
+    expect(getByText(/Mission Control didn't report a version/)).not.toBeNull();
   });
 });

@@ -27,7 +27,11 @@ describe("PerfBudget", () => {
   });
 
   it("warns once per window when sustained over threshold", () => {
-    const b = new PerfBudget({ name: "broadcast", threshold: 5, windowMs: 1000 });
+    const b = new PerfBudget({
+      name: "broadcast",
+      threshold: 5,
+      windowMs: 1000,
+    });
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
     // Burst — 6 events at the same instant. First exceedance fires once.
     for (let i = 0; i < 6; i++) b.record(1, 1000);
@@ -76,7 +80,11 @@ describe("PerfBudget", () => {
   });
 
   it("compacts the internal array under sustained load", () => {
-    const b = new PerfBudget({ name: "compact", threshold: 100_000, windowMs: 100 });
+    const b = new PerfBudget({
+      name: "compact",
+      threshold: 100_000,
+      windowMs: 100,
+    });
     // Push 10k events, walking time forward so they age out.
     for (let i = 0; i < 10_000; i++) {
       b.record(1, i * 1);

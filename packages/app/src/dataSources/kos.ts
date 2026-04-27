@@ -137,8 +137,7 @@ export class KosDataSource implements DataSource<KosConfig> {
       if (typeof body.version !== "string") return;
       const next = {
         version: body.version,
-        buildTime:
-          typeof body.buildTime === "string" ? body.buildTime : "",
+        buildTime: typeof body.buildTime === "string" ? body.buildTime : "",
       };
       const prev = this.remoteVersion;
       if (prev?.version === next.version && prev.buildTime === next.buildTime) {
@@ -670,9 +669,7 @@ export class KosComputeSession {
     // across chunk boundaries.
     this.replBuffer += text;
     if (
-      this.replBuffer.includes(
-        KosComputeSession.REPL_READY_OSC_TITLE_PREFIX,
-      ) ||
+      this.replBuffer.includes(KosComputeSession.REPL_READY_OSC_TITLE_PREFIX) ||
       this.replBuffer.includes(KosComputeSession.REPL_READY_SENTINEL)
     ) {
       logger.tag("kos").debug("REPL ready (waiting for welcomeMenu detach)", {
@@ -914,9 +911,8 @@ function parseKosError(buffer: string): string | null {
 
   // "Volume not found" / "File not found" / similar one-line errors that
   // appear in the buffer without a Message: line.
-  const volumeMatch = /\b(Volume not found|File not found|Path not found)\b/.exec(
-    normalised,
-  );
+  const volumeMatch =
+    /\b(Volume not found|File not found|Path not found)\b/.exec(normalised);
   if (volumeMatch?.[1]) return volumeMatch[1];
 
   const messageMatch = /\bMessage:\s*(.+)$/m.exec(normalised);

@@ -90,9 +90,8 @@ function KosProcessorsComponent({
     if (notConfigured) {
       return (
         <Placeholder>
-          Configure a kOS CPU tagname and save the script (in the
-          widget&apos;s config) to{" "}
-          <code>{KOS_PROCESSORS_SCRIPT_NAME}</code>.
+          Configure a kOS CPU tagname and save the script (in the widget&apos;s
+          config) to <code>{KOS_PROCESSORS_SCRIPT_NAME}</code>.
         </Placeholder>
       );
     }
@@ -147,9 +146,7 @@ function KosProcessorsConfigComponent({
   const [scriptName, setScriptName] = useState(
     config?.scriptName ?? KOS_PROCESSORS_SCRIPT_NAME,
   );
-  const [autoRefresh, setAutoRefresh] = useState(
-    config?.autoRefresh !== false,
-  );
+  const [autoRefresh, setAutoRefresh] = useState(config?.autoRefresh !== false);
   const [intervalText, setIntervalText] = useState(
     String(config?.intervalMs ?? DEFAULT_INTERVAL_MS),
   );
@@ -175,8 +172,8 @@ function KosProcessorsConfigComponent({
         />
         <FieldHint>
           Any kOS CPU on the vessel works — the script just calls{" "}
-          <code>LIST PROCESSORS</code>, which sees every CPU regardless of
-          which one runs it.
+          <code>LIST PROCESSORS</code>, which sees every CPU regardless of which
+          one runs it.
         </FieldHint>
       </Field>
 
@@ -209,9 +206,7 @@ function KosProcessorsConfigComponent({
 
       {autoRefresh && (
         <Field>
-          <FieldLabel htmlFor="kos-procs-interval">
-            Interval (ms)
-          </FieldLabel>
+          <FieldLabel htmlFor="kos-procs-interval">Interval (ms)</FieldLabel>
           <Input
             id="kos-procs-interval"
             type="number"
@@ -222,8 +217,7 @@ function KosProcessorsConfigComponent({
           />
           <FieldHint>
             Default {DEFAULT_INTERVAL_MS} ms. Below {MIN_INTERVAL_MS} ms is
-            clamped — running every tick starves other scripts on the same
-            CPU.
+            clamped — running every tick starves other scripts on the same CPU.
           </FieldHint>
         </Field>
       )}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { ShipMapPart } from "./shipMapScript";
 
@@ -152,21 +152,18 @@ export function ShipDiagram({
     return () => el.removeEventListener("wheel", onWheel);
   }, [zoomAbout]);
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      panMoved.current = false;
-      if (activePointers.current.size === 2) {
-        lastPanPos.current = null;
-        const [a, b] = [...activePointers.current.values()];
-        lastPinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
-      } else if (activePointers.current.size === 1) {
-        lastPanPos.current = { x: e.clientX, y: e.clientY };
-        lastPinchDist.current = null;
-      }
-    },
-    [],
-  );
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    panMoved.current = false;
+    if (activePointers.current.size === 2) {
+      lastPanPos.current = null;
+      const [a, b] = [...activePointers.current.values()];
+      lastPinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
+    } else if (activePointers.current.size === 1) {
+      lastPanPos.current = { x: e.clientX, y: e.clientY };
+      lastPinchDist.current = null;
+    }
+  }, []);
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -199,7 +196,11 @@ export function ShipDiagram({
       if (!panMoved.current && Math.hypot(dx, dy) < PAN_THRESHOLD) return;
       panMoved.current = true;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
-      setCam((prev) => ({ ...prev, panX: prev.panX + dx, panY: prev.panY + dy }));
+      setCam((prev) => ({
+        ...prev,
+        panX: prev.panX + dx,
+        panY: prev.panY + dy,
+      }));
     },
     [zoomAbout],
   );
@@ -332,9 +333,7 @@ export function ShipDiagram({
                   });
                   setHovered(p);
                 }}
-                onBlur={() =>
-                  setHovered((h) => (h?.uid === p.uid ? null : h))
-                }
+                onBlur={() => setHovered((h) => (h?.uid === p.uid ? null : h))}
                 style={{ cursor: "pointer" }}
               >
                 {renderPartShape(
@@ -398,9 +397,7 @@ export function ShipDiagram({
             top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
           }}
         >
-          {hovered.tag ? (
-            <div className="tag">★ {hovered.tag}</div>
-          ) : null}
+          {hovered.tag ? <div className="tag">★ {hovered.tag}</div> : null}
           <div className="title">{hovered.title || hovered.name}</div>
           <div className="row">
             <span>type</span>
@@ -892,7 +889,6 @@ function project(parts: readonly ShipMapPart[]) {
     if (parent) edges.push({ a: p, b: parent });
   }
 
-
   let minL = Infinity;
   let maxL = -Infinity;
   let minA = Infinity;
@@ -932,16 +928,10 @@ function withBody(
   const stackParent = parent && isStackAxial(parent) ? parent : null;
   const stackChildAbove = children
     .filter((c) => isStackAxial(c) && c.axial > p.axial)
-    .reduce<BasePart | null>(
-      (m, c) => (!m || c.axial > m.axial ? c : m),
-      null,
-    );
+    .reduce<BasePart | null>((m, c) => (!m || c.axial > m.axial ? c : m), null);
   const stackChildBelow = children
     .filter((c) => isStackAxial(c) && c.axial < p.axial)
-    .reduce<BasePart | null>(
-      (m, c) => (!m || c.axial < m.axial ? c : m),
-      null,
-    );
+    .reduce<BasePart | null>((m, c) => (!m || c.axial < m.axial ? c : m), null);
 
   let axialMax = p.axial + intr.halfH;
   let axialMin = p.axial - intr.halfH;
@@ -950,12 +940,14 @@ function withBody(
     // Tank/booster fills its slab. Meets stretchy neighbours at the
     // midpoint; meets non-stretchy neighbours (engine, decoupler) at
     // the neighbour's intrinsic boundary so we don't overlap them.
-    const upper = stackParent && stackParent.axial > p.axial
-      ? stackParent
-      : stackChildAbove;
-    const lower = stackParent && stackParent.axial < p.axial
-      ? stackParent
-      : stackChildBelow;
+    const upper =
+      stackParent && stackParent.axial > p.axial
+        ? stackParent
+        : stackChildAbove;
+    const lower =
+      stackParent && stackParent.axial < p.axial
+        ? stackParent
+        : stackChildBelow;
     if (upper) {
       const ui = intrinsics.get(upper.uid)!;
       axialMax = ui.stretchy
@@ -983,7 +975,11 @@ function withBody(
       if (c.axial + ci.halfH > axialMax) axialMax = c.axial + ci.halfH;
       if (c.axial - ci.halfH < axialMin) axialMin = c.axial - ci.halfH;
     }
-    if (Math.abs(c.lat - p.lat) > 0.05 && c.type !== "fin" && c.type !== "solar") {
+    if (
+      Math.abs(c.lat - p.lat) > 0.05 &&
+      c.type !== "fin" &&
+      c.type !== "solar"
+    ) {
       const sign = Math.sign(c.lat - p.lat);
       const innerEdge = c.lat - sign * ci.halfW;
       if (sign > 0 && innerEdge > latMax) latMax = innerEdge;

@@ -246,11 +246,15 @@ describe("PeerHostService — hello", () => {
 
     const helloIdx = conn.sent.findIndex(
       (m): m is { type: string } =>
-        typeof m === "object" && m !== null && (m as { type: string }).type === "hello",
+        typeof m === "object" &&
+        m !== null &&
+        (m as { type: string }).type === "hello",
     );
     const schemaIdx = conn.sent.findIndex(
       (m): m is { type: string } =>
-        typeof m === "object" && m !== null && (m as { type: string }).type === "schema",
+        typeof m === "object" &&
+        m !== null &&
+        (m as { type: string }).type === "schema",
     );
     expect(helloIdx).toBeLessThan(schemaIdx);
 

@@ -180,8 +180,7 @@ export class PerfBudget {
    */
   static installTestGate(): void {
     type Hook = (cb: () => void | Promise<void>) => void;
-    const before = (globalThis as unknown as { beforeEach?: Hook })
-      .beforeEach;
+    const before = (globalThis as unknown as { beforeEach?: Hook }).beforeEach;
     const after = (globalThis as unknown as { afterEach?: Hook }).afterEach;
     if (typeof before !== "function" || typeof after !== "function") return;
 

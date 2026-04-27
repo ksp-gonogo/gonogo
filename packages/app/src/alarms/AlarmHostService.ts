@@ -162,8 +162,7 @@ export class AlarmHostService {
     // If the trigger kind changed, reset the match-tracking state so the
     // sustain timer doesn't carry stale data across the change.
     if (patch.trigger && patch.trigger.kind !== prev.trigger.kind) {
-      next.matchSinceUT =
-        patch.trigger.kind === "threshold" ? null : undefined;
+      next.matchSinceUT = patch.trigger.kind === "threshold" ? null : undefined;
       next.state = "pending";
     } else {
       next.state = this.deriveState(next);

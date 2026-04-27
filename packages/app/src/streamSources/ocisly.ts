@@ -269,9 +269,7 @@ export class OcislyStreamSource implements StreamSource {
   private handleMessage(msg: ProxyOut): void {
     if (msg.type === "hello") {
       this.remoteVersion = { version: msg.version, buildTime: msg.buildTime };
-      cameraLog.info(
-        `proxy hello — v${msg.version} (build ${msg.buildTime})`,
-      );
+      cameraLog.info(`proxy hello — v${msg.version} (build ${msg.buildTime})`);
       for (const cb of this.remoteVersionListeners) cb(this.remoteVersion);
       return;
     }

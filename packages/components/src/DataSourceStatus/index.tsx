@@ -40,9 +40,10 @@ function useRemoteVersionMismatch(sourceId: string): {
   remote: { version: string; buildTime: string } | null;
   kind: MismatchKind;
 } {
-  const [remote, setRemote] = useState<
-    { version: string; buildTime: string } | null
-  >(() => {
+  const [remote, setRemote] = useState<{
+    version: string;
+    buildTime: string;
+  } | null>(() => {
     const src = getDataSource(sourceId) as RemoteVersionExposing | undefined;
     return src?.getRemoteVersion?.() ?? null;
   });
@@ -65,9 +66,10 @@ function useRemoteStreamVersionMismatch(sourceId: string): {
   remote: { version: string; buildTime: string } | null;
   kind: MismatchKind;
 } {
-  const [remote, setRemote] = useState<
-    { version: string; buildTime: string } | null
-  >(() => {
+  const [remote, setRemote] = useState<{
+    version: string;
+    buildTime: string;
+  } | null>(() => {
     const src = getStreamSource(sourceId) as RemoteVersionExposing | undefined;
     return src?.getRemoteVersion?.() ?? null;
   });
@@ -408,14 +410,19 @@ const RetryButton = styled(GhostButton)`
   padding: 2px 6px;
 `;
 
-const VERSION_TAG_COLOR: Record<"same" | "minor" | "major" | "unknown", string> = {
+const VERSION_TAG_COLOR: Record<
+  "same" | "minor" | "major" | "unknown",
+  string
+> = {
   same: "#666",
   minor: "#ff9f0a",
   major: "#ff3b30",
   unknown: "#888",
 };
 
-const VersionTag = styled.span<{ $kind: "same" | "minor" | "major" | "unknown" }>`
+const VersionTag = styled.span<{
+  $kind: "same" | "minor" | "major" | "unknown";
+}>`
   font-size: 10px;
   letter-spacing: 0.05em;
   font-family: monospace;

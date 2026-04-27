@@ -14,14 +14,7 @@ import {
   useSerialDeviceService,
 } from "@gonogo/serial";
 import { Tabs, useModal } from "@gonogo/ui";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import styled from "styled-components";
@@ -150,8 +143,7 @@ function GridDashboard({
       {(() => {
         // Build a single index of layout-by-id once, rather than O(items)
         // .find() per item — pays off as the dashboard fills up.
-        const bpLayouts =
-          currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
+        const bpLayouts = currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
         const sizeById = new Map<string, Layout>();
         for (const l of bpLayouts) sizeById.set(l.i, l);
         return items.map((item) => {
@@ -209,10 +201,7 @@ const GridItemContent = memo(function GridItemContent({
     (next: InputMappings) => updateItemMappings(item.i, next),
     [item.i, updateItemMappings],
   );
-  const onRemove = useCallback(
-    () => removeItem(item.i),
-    [item.i, removeItem],
-  );
+  const onRemove = useCallback(() => removeItem(item.i), [item.i, removeItem]);
 
   // Render the error fallback as a stable function so the ErrorBoundary
   // doesn't re-mount its children every render.
@@ -227,10 +216,7 @@ const GridItemContent = memo(function GridItemContent({
     [def?.name, item.componentId],
   );
 
-  const itemContext = useMemo(
-    () => ({ instanceId: item.i }),
-    [item.i],
-  );
+  const itemContext = useMemo(() => ({ instanceId: item.i }), [item.i]);
 
   if (!def) return null;
   const Comp = def.component;
@@ -341,14 +327,8 @@ const MobileItemContent = memo(function MobileItemContent({
     (next: InputMappings) => updateItemMappings(item.i, next),
     [item.i, updateItemMappings],
   );
-  const onRemove = useCallback(
-    () => removeItem(item.i),
-    [item.i, removeItem],
-  );
-  const onMoveUp = useCallback(
-    () => moveItemUp(item.i),
-    [item.i, moveItemUp],
-  );
+  const onRemove = useCallback(() => removeItem(item.i), [item.i, removeItem]);
+  const onMoveUp = useCallback(() => moveItemUp(item.i), [item.i, moveItemUp]);
   const onMoveDown = useCallback(
     () => moveItemDown(item.i),
     [item.i, moveItemDown],
@@ -363,16 +343,12 @@ const MobileItemContent = memo(function MobileItemContent({
     ),
     [def?.name, item.componentId],
   );
-  const itemContext = useMemo(
-    () => ({ instanceId: item.i }),
-    [item.i],
-  );
+  const itemContext = useMemo(() => ({ instanceId: item.i }), [item.i]);
 
   if (!def) return null;
   const Comp = def.component;
   const half = def.mobileWidth === "half";
-  const height =
-    def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+  const height = def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
 
@@ -386,11 +362,7 @@ const MobileItemContent = memo(function MobileItemContent({
     >
       <MobileCellHeader>
         <MobileCellHeaderLeft>
-          <ReorderButton
-            direction="up"
-            disabled={isFirst}
-            onClick={onMoveUp}
-          />
+          <ReorderButton direction="up" disabled={isFirst} onClick={onMoveUp} />
           <ReorderButton
             direction="down"
             disabled={isLast}

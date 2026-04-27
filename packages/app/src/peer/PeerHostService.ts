@@ -115,7 +115,10 @@ export class PeerHostService {
   // selective mode receives only messages whose (sourceId, key) is in
   // its subs. Cleared on disconnect so a reconnecting station gets a
   // fresh broadcast-all baseline.
-  private peerMode = new WeakMap<DataConnection, "broadcast-all" | "selective">();
+  private peerMode = new WeakMap<
+    DataConnection,
+    "broadcast-all" | "selective"
+  >();
   private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
 
   peerId: string | null = null;
@@ -248,9 +251,7 @@ export class PeerHostService {
    * the budget recording per peer so the count + bytes reflect actual
    * wire traffic, not the broadcast-all upper bound.
    */
-  private broadcastData(
-    msg: Extract<PeerMessage, { type: "data" }>,
-  ): void {
+  private broadcastData(msg: Extract<PeerMessage, { type: "data" }>): void {
     if (this.connections.size === 0) return;
     let bytes = 0;
     try {

@@ -41,9 +41,13 @@ export function AlarmBanner() {
           <Divider />
           {nextAlarm ? (
             <>
-              <Label>{nextAlarm.state === "fired" ? "Fired" : "Next alarm"}</Label>
+              <Label>
+                {nextAlarm.state === "fired" ? "Fired" : "Next alarm"}
+              </Label>
               <AlarmName>{nextAlarm.name}</AlarmName>
-              <Countdown $tone={tone}>{formatNext(nextAlarm, snap.ut)}</Countdown>
+              <Countdown $tone={tone}>
+                {formatNext(nextAlarm, snap.ut)}
+              </Countdown>
               {nextAlarm.state === "fired" && (
                 <AckButton
                   type="button"
@@ -155,7 +159,9 @@ function playAlarmTone(): void {
   // mistaken for a notification ping.
   if (typeof window === "undefined") return;
   const Ctor =
-    window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
   if (!Ctor) return;
   try {
     if (!sharedAudioContext) sharedAudioContext = new Ctor();

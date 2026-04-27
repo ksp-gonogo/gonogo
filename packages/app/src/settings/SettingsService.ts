@@ -98,10 +98,7 @@ export class SettingsService {
    *  instances. */
   dispose(): void {
     this.flush();
-    if (
-      this.beforeUnloadHandler &&
-      typeof window !== "undefined"
-    ) {
+    if (this.beforeUnloadHandler && typeof window !== "undefined") {
       window.removeEventListener("beforeunload", this.beforeUnloadHandler);
       this.beforeUnloadHandler = null;
     }

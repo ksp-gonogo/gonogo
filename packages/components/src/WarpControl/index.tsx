@@ -78,10 +78,7 @@ function WarpControlComponent(_: Readonly<ComponentProps<WarpControlConfig>>) {
   useActionInput<WarpControlActions>({
     stepUp: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      const next = Math.min(
-        HIGH_LEVELS.length - 1,
-        (currentIndex ?? 0) + 1,
-      );
+      const next = Math.min(HIGH_LEVELS.length - 1, (currentIndex ?? 0) + 1);
       setWarp(next);
       return { Warp: HIGH_LEVELS[next]?.label ?? `${next}` };
     },

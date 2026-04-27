@@ -7,8 +7,14 @@ describe("MapView prediction throttle", () => {
   it("quantiseUt buckets the time so 4 Hz ticks collapse to 1 Hz invalidations", () => {
     // Arbitrary float UT values 250 ms apart — Telemachus rate.
     const ticks = [
-      1000.123, 1000.373, 1000.623, 1000.873, // four ticks within one second
-      1001.123, 1001.373, 1001.623, 1001.873, // next second
+      1000.123,
+      1000.373,
+      1000.623,
+      1000.873, // four ticks within one second
+      1001.123,
+      1001.373,
+      1001.623,
+      1001.873, // next second
     ];
     const buckets = ticks.map((t) => quantiseUt(t, 1));
     // Eight ticks → just two distinct bucket values.

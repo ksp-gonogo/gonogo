@@ -63,7 +63,9 @@ describe("ShipDiagram", () => {
       />,
     );
     // Highlight draws an outer ring around the matched part's body box.
-    const rings = container.querySelectorAll('rect[data-role="highlight-ring"]');
+    const rings = container.querySelectorAll(
+      'rect[data-role="highlight-ring"]',
+    );
     expect(rings).toHaveLength(1);
   });
 

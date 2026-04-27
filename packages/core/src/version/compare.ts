@@ -1,9 +1,4 @@
-export type MismatchKind =
-  | "same"
-  | "patch"
-  | "minor"
-  | "major"
-  | "unknown";
+export type MismatchKind = "same" | "patch" | "minor" | "major" | "unknown";
 
 export interface ParsedSemver {
   major: number;
@@ -13,7 +8,9 @@ export interface ParsedSemver {
 
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-[\w.]+)?$/;
 
-export function parseSemver(value: string | undefined | null): ParsedSemver | null {
+export function parseSemver(
+  value: string | undefined | null,
+): ParsedSemver | null {
   if (!value) return null;
   const match = SEMVER_RE.exec(value.trim());
   if (!match) return null;

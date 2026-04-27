@@ -67,7 +67,10 @@ function makeSyntheticSource(keyCount: number): DataSource & {
   const keys: DataKey[] = Array.from({ length: keyCount }, (_, i) => ({
     key: `synth.${i}`,
   }));
-  const sampleSubs = new Map<string, Set<(s: { t: number; v: unknown }) => void>>();
+  const sampleSubs = new Map<
+    string,
+    Set<(s: { t: number; v: unknown }) => void>
+  >();
   const valueSubs = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(status: DataSourceStatus) => void>();
   let counter = 0;

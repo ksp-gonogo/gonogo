@@ -148,9 +148,8 @@ function SystemViewConfigComponent({
         </Select>
         <FieldHint>
           "Auto" follows the vessel's current body — Kerbin-orbit shows
-          Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the
-          star so you see the whole system. Pick a specific body to pin
-          the frame.
+          Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the star so
+          you see the whole system. Pick a specific body to pin the frame.
         </FieldHint>
       </Field>
       <PrimaryButton onClick={() => onSave({ frame })}>Save</PrimaryButton>

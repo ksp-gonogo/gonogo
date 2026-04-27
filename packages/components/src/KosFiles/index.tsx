@@ -14,9 +14,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
 import {
-  type KosFileEntry,
   KOS_FILES_SCRIPT,
   KOS_FILES_SCRIPT_NAME,
+  type KosFileEntry,
   MAX_VIEW_CHARS,
 } from "./filesScript";
 
@@ -31,9 +31,7 @@ interface KosFilesConfig {
 
 const DEFAULT_VOLUME = "0:";
 
-type ViewMode =
-  | { kind: "list"; path: string }
-  | { kind: "view"; path: string };
+type ViewMode = { kind: "list"; path: string } | { kind: "view"; path: string };
 
 function KosFilesComponent({
   config,
@@ -97,7 +95,10 @@ function KosFilesComponent({
 
   const handleOpenEntry = useCallback(
     (entry: KosFileEntry) => {
-      const child = joinPath(view.kind === "list" ? view.path : volume, entry.name);
+      const child = joinPath(
+        view.kind === "list" ? view.path : volume,
+        entry.name,
+      );
       if (entry.isDir) {
         setView({ kind: "list", path: child });
       } else {
@@ -135,9 +136,8 @@ function KosFilesComponent({
     if (notConfigured) {
       return (
         <Placeholder>
-          Configure a kOS CPU tagname and save the script (in the
-          widget&apos;s config) to{" "}
-          <code>{KOS_FILES_SCRIPT_NAME}</code>.
+          Configure a kOS CPU tagname and save the script (in the widget&apos;s
+          config) to <code>{KOS_FILES_SCRIPT_NAME}</code>.
         </Placeholder>
       );
     }
@@ -235,9 +235,7 @@ interface ParsedPayload {
   parseError: Error | null;
 }
 
-function parsePayload(
-  data: Record<string, unknown> | null,
-): ParsedPayload {
+function parsePayload(data: Record<string, unknown> | null): ParsedPayload {
   if (!data) {
     return {
       listing: null,
@@ -393,10 +391,10 @@ function KosFilesConfigComponent({
           onChange={(e) => setVolume(e.target.value)}
         />
         <FieldHint>
-          The starting directory the browser opens at. Use{" "}
-          <code>0:</code> for the local processor volume, <code>Archive</code>{" "}
-          (or <code>1:</code>) for the cross-vessel archive. You can drill
-          into subdirectories from the widget.
+          The starting directory the browser opens at. Use <code>0:</code> for
+          the local processor volume, <code>Archive</code> (or <code>1:</code>)
+          for the cross-vessel archive. You can drill into subdirectories from
+          the widget.
         </FieldHint>
       </Field>
 

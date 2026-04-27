@@ -11,10 +11,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import type { Alarm, AlarmSnapshot, AlarmTrigger, ThresholdOp } from "./types";
-import {
-  DEFAULT_LEAD_SECONDS,
-  DEFAULT_SUSTAIN_SECONDS,
-} from "./types";
+import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "./types";
 
 /**
  * CRUD UI for the alarm list. Intentionally screen-agnostic — accepts a
@@ -103,8 +100,7 @@ export function AlarmsModal({
     trimmedName === "" ||
     (kind === "time" &&
       (!Number.isFinite(offsetN) || offsetN <= 0 || snapshot.ut === null)) ||
-    (kind === "threshold" &&
-      (trimmedKey === "" || !Number.isFinite(valueN)));
+    (kind === "threshold" && (trimmedKey === "" || !Number.isFinite(valueN)));
 
   const handleAdd = () => {
     if (addDisabled) return;
@@ -175,9 +171,7 @@ export function AlarmsModal({
             id="alarm-name"
             type="text"
             placeholder={
-              kind === "time"
-                ? "e.g. Circularise burn"
-                : "e.g. Crossed 70 km"
+              kind === "time" ? "e.g. Circularise burn" : "e.g. Crossed 70 km"
             }
             value={name}
             onChange={(e) => setName(e.target.value)}

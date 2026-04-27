@@ -107,7 +107,7 @@ describe("parseKosData", () => {
     // matches like `[/KOSDA<ESC[22;1H>TA]`. The parser must ignore
     // these escapes when locating the block AND when reading the body.
     const wrapped =
-      "\x1b[1;1Hparts=[{\"uid\":\"123\",\"name\":\"Stratus[2;1H\"}][/KOSDA[22;1HTA][23;1HProgram ended.";
+      '\x1b[1;1Hparts=[{"uid":"123","name":"Stratus[2;1H"}][/KOSDA[22;1HTA][23;1HProgram ended.';
     const chunk = `[KOSDATA]${wrapped}`;
     expect(parseKosData(chunk)).toMatchObject({
       // The inner ANSI between value chars survives as part of the string;
