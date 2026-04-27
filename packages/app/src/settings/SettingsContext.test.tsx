@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsProvider, useSetting } from "./SettingsContext";
 import { SettingsService } from "./SettingsService";
@@ -61,15 +62,14 @@ describe("useSetting", () => {
     expect(screen.getByTestId("value").textContent).toBe("false");
   });
 
-  it("persists writes from the setter back through the service", () => {
+  it("persists writes from the setter back through the service", async () => {
+    const user = userEvent.setup();
     render(
       <SettingsProvider service={service}>
         <FlagReadout keyName="flag" />
       </SettingsProvider>,
     );
-    act(() => {
-      screen.getByText("toggle").click();
-    });
+    await user.click(screen.getByRole("button", { name: "toggle" }));
     expect(service.get("flag", true)).toBe(false);
     expect(screen.getByTestId("value").textContent).toBe("false");
   });

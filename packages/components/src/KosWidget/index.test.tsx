@@ -1,5 +1,6 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { KosWidgetComponent } from "./index";
 
@@ -61,6 +62,7 @@ describe("KosWidget", () => {
   });
 
   it("dispatches on Run click and renders parsed key/value pairs", async () => {
+    const user = userEvent.setup();
     registerFakeComputeSource(async (_cpu, _script, _args) => ({
       dv: 1234.5,
       stage: 2,
@@ -78,9 +80,7 @@ describe("KosWidget", () => {
       />,
     );
 
-    await act(async () => {
-      screen.getByRole("button", { name: "Run" }).click();
-    });
+    await user.click(screen.getByRole("button", { name: "Run" }));
     await waitFor(() => {
       expect(screen.getByText("dv")).toBeInTheDocument();
     });
@@ -92,6 +92,7 @@ describe("KosWidget", () => {
   });
 
   it("surfaces a clickable error banner when the dispatch rejects", async () => {
+    const user = userEvent.setup();
     registerFakeComputeSource(() =>
       Promise.reject(new Error("boom: script exploded")),
     );
@@ -107,22 +108,19 @@ describe("KosWidget", () => {
       />,
     );
 
-    await act(async () => {
-      screen.getByRole("button", { name: "Run" }).click();
-    });
+    await user.click(screen.getByRole("button", { name: "Run" }));
     await waitFor(() => {
       expect(screen.getByText(/Last call failed/)).toBeInTheDocument();
     });
     expect(screen.queryByText(/boom: script exploded/)).not.toBeInTheDocument();
 
     // Clicking the banner toggles the detail panel.
-    await act(async () => {
-      screen.getByRole("button", { name: "Show last error" }).click();
-    });
+    await user.click(screen.getByRole("button", { name: "Show last error" }));
     expect(screen.getByText(/boom: script exploded/)).toBeInTheDocument();
   });
 
   it("keeps last good data visible on the next failure", async () => {
+    const user = userEvent.setup();
     let calls = 0;
     registerFakeComputeSource(async () => {
       calls += 1;
@@ -136,16 +134,12 @@ describe("KosWidget", () => {
       />,
     );
 
-    await act(async () => {
-      screen.getByRole("button", { name: "Run" }).click();
-    });
+    await user.click(screen.getByRole("button", { name: "Run" }));
     await waitFor(() => {
       expect(screen.getByText("42")).toBeInTheDocument();
     });
 
-    await act(async () => {
-      screen.getByRole("button", { name: "Run" }).click();
-    });
+    await user.click(screen.getByRole("button", { name: "Run" }));
     await waitFor(() => {
       expect(screen.getByText(/Last call failed/)).toBeInTheDocument();
     });

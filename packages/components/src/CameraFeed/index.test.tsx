@@ -8,8 +8,7 @@ import {
   type StreamInfo,
   type StreamSource,
 } from "@gonogo/core";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { act } from "react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CameraFeedComponent } from "./index";
 
@@ -135,7 +134,7 @@ describe("CameraFeedComponent", () => {
     expect(container.querySelector("video")).not.toBeNull();
   });
 
-  it("switches to the newly-announced camera when cycle mode rotates", () => {
+  it("switches to the newly-announced camera when cycle mode rotates", async () => {
     vi.useFakeTimers();
     try {
       const source = makeSource("ocisly", [
@@ -149,14 +148,19 @@ describe("CameraFeedComponent", () => {
         cycleIntervalMs: 1000,
       });
 
-      // First pass shows cam-1 ("Hawk").
+      // useStream's subscribe Promise resolves on a microtask after the
+      // synchronous render. `advanceTimersByTimeAsync` flushes pending
+      // promises between ticks; wrapping in act keeps the resulting
+      // setStream batched into the same React commit as the timer-driven
+      // setCycleIndex.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
       expect(container.textContent).toContain("CYCLE 2×");
 
-      act(() => {
-        vi.advanceTimersByTime(1000);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
       });
-      // After one cycle tick we should be on cam-2 ("Falcon"). Overlay updates
-      // are synchronous with the setState inside the interval callback.
       expect(container.textContent).toContain("Falcon");
     } finally {
       vi.useRealTimers();

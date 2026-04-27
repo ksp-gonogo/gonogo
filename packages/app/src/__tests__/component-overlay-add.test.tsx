@@ -12,7 +12,8 @@ import {
 } from "@gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
 import { ModalProvider } from "@gonogo/ui";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ComponentOverlay,
@@ -83,6 +84,7 @@ describe("ComponentOverlay — add → configure → persist", () => {
     // registerComponent before render — ComponentOverlay reads the registry
     // on every render via getComponents().
     registerTrivial();
+    const user = userEvent.setup();
     const addItem = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
@@ -102,15 +104,10 @@ describe("ComponentOverlay — add → configure → persist", () => {
 
     // Open the component-add panel, pick Trivial. The list items are
     // <ListItem> buttons whose accessible name combines name + description.
-    await act(async () => {
-      screen.getByRole("button", { name: "Add component" }).click();
-    });
-    const trivialButton = await screen.findByRole("button", {
-      name: /Trivial/,
-    });
-    await act(async () => {
-      trivialButton.click();
-    });
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(
+      await screen.findByRole("button", { name: /Trivial/ }),
+    );
 
     // addItem fired with a fresh DashboardItem. Capture its id so we can
     // assert the updateItemConfig call routes to the same instance.
@@ -118,13 +115,11 @@ describe("ComponentOverlay — add → configure → persist", () => {
     const newItem = addItem.mock.calls[0][0] as { i: string };
 
     // The config modal should have opened (openConfigOnAdd). Edit + save.
-    const input = (await waitFor(() =>
-      screen.getByLabelText("label"),
-    )) as HTMLInputElement;
-    input.value = "custom-name";
-    await act(async () => {
-      screen.getByRole("button", { name: "Save" }).click();
-    });
+    // The input has defaultValue="default", so clear before typing.
+    const input = await screen.findByLabelText("label");
+    await user.clear(input);
+    await user.type(input, "custom-name");
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     // This is the regression — without the fix, no call at all was made.
     expect(updateItemConfig).toHaveBeenCalledWith(newItem.i, {

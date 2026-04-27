@@ -1,5 +1,6 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { KosProcessorsComponent } from "./index";
 
@@ -63,6 +64,7 @@ describe("KosProcessorsComponent", () => {
   });
 
   it("renders a row per processor and surfaces tag/mode/volume/boot", async () => {
+    const user = userEvent.setup();
     registerFakeKos(async () => ({
       processors: JSON.stringify([
         {
@@ -87,9 +89,7 @@ describe("KosProcessorsComponent", () => {
     render(<KosProcessorsComponent config={{ cpu: "MainCPU" }} />);
 
     // Trigger the Run button so the script "executes".
-    await act(async () => {
-      screen.getByRole("button", { name: /Run/i }).click();
-    });
+    await user.click(screen.getByRole("button", { name: /Run/i }));
 
     // Tagged processor — tag and metadata visible.
     expect(await screen.findByText("MainCPU")).toBeInTheDocument();

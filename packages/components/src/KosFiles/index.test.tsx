@@ -1,5 +1,6 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { KosFilesComponent } from "./index";
 
@@ -63,6 +64,7 @@ describe("KosFilesComponent", () => {
   });
 
   it("renders the volume listing on dispatch and lets the user open a file", async () => {
+    const user = userEvent.setup();
     let callCount = 0;
     registerFakeKos(async (_cpu, _script, args) => {
       callCount += 1;
@@ -96,21 +98,18 @@ describe("KosFilesComponent", () => {
     expect(callCount).toBeGreaterThanOrEqual(1);
 
     // Click a file → switches to viewer mode and re-dispatches with op=read.
-    await act(async () => {
-      screen.getByText("shipmap.ks").click();
-    });
+    await user.click(screen.getByText("shipmap.ks"));
 
     expect(await screen.findByText(/print "hello"\./)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Back/i })).toBeInTheDocument();
 
     // Back returns to listing without losing the previous payload entirely.
-    await act(async () => {
-      screen.getByRole("button", { name: /Back/i }).click();
-    });
+    await user.click(screen.getByRole("button", { name: /Back/i }));
     expect(await screen.findByText("shipmap.ks")).toBeInTheDocument();
   });
 
   it("surfaces a payload-side error when the script reports not-found", async () => {
+    const user = userEvent.setup();
     registerFakeKos(async (_cpu, _script, args) => {
       const op = args[0];
       if (op === "list") {
@@ -126,9 +125,7 @@ describe("KosFilesComponent", () => {
     render(<KosFilesComponent config={{ cpu: "MainCPU", volume: "0:" }} />);
 
     expect(await screen.findByText("ghost.ks")).toBeInTheDocument();
-    await act(async () => {
-      screen.getByText("ghost.ks").click();
-    });
+    await user.click(screen.getByText("ghost.ks"));
 
     // Error path renders the KosScriptFrame's error banner. The exact
     // affordance is "Show error detail" via aria-label.

@@ -6,6 +6,7 @@ import {
   useDashboardItemId,
 } from "@gonogo/core";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
@@ -130,7 +131,10 @@ describe("PushedDashboardOverlay", () => {
         <PushedDashboardOverlay />
       </PushHostProvider>,
     );
-    screen.getByRole("button", { name: "Dismiss pushed widget" }).click();
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Dismiss pushed widget" }),
+    );
     await waitFor(() => {
       expect(
         screen.queryByText("mini widget: no-label"),
