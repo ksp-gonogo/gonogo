@@ -16,6 +16,7 @@ export * from "./hooks/useTouchDevice";
 export * from "./kos/KosProxyContext";
 export * from "./logger";
 export * from "./orbital";
+export * from "./perf/PerfBudget";
 export * from "./registry";
 export * from "./schemas/telemachus";
 export * from "./stock-bodies";
