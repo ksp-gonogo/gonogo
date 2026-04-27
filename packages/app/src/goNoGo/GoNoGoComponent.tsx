@@ -551,9 +551,9 @@ const WarnChip = styled.span`
   font-size: var(--font-size-xs);
   letter-spacing: 0.15em;
   padding: 2px 6px;
-  border: 1px solid var(--color-status-warning-bg);
+  border: 1px solid var(--color-status-warning-border-muted);
   background: rgba(120, 100, 40, 0.25);
-  color: var(--color-status-warning-fg);
+  color: var(--color-status-warning-fg-muted);
   border-radius: 2px;
   text-transform: uppercase;
 `;
