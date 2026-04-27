@@ -176,9 +176,7 @@ describe("Dashboard — mobile / touch path", () => {
       />,
     );
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Move down" })[0],
-    );
+    await user.click(screen.getAllByRole("button", { name: "Move down" })[0]);
 
     const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
       items: Array<{ i: string }>;

@@ -8,7 +8,7 @@ export const Header = styled.div`
 
 export const BodyLabel = styled.span`
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
 
@@ -62,8 +62,8 @@ export const NoSignal = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  color: #444;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
@@ -75,30 +75,28 @@ export const PredictionChip = styled.div`
   right: 8px;
   padding: 3px 8px;
   background: rgba(80, 40, 120, 0.8);
-  color: #e0c8ff;
-  border: 1px solid #6a3a9a;
-  font-size: 9px;
+  color: var(--color-tag-purple-fg);
+  border: 1px solid var(--color-tag-purple-border);
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-family: monospace;
   pointer-events: none;
   border-radius: 2px;
 `;
 
 export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
   padding: 2px 6px;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-family: monospace;
   border-radius: 2px;
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"
-        ? "#2a6a3a"
+        ? "var(--color-status-go-bg)"
         : $variant === "warn"
-          ? "#6a5a2a"
-          : "#3a3a3a"};
+          ? "var(--color-tag-yellow-border)"
+          : "var(--color-border-subtle)"};
   background: ${({ $variant }) =>
     $variant === "on"
       ? "rgba(40, 120, 60, 0.3)"
@@ -106,7 +104,11 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
         ? "rgba(120, 100, 40, 0.3)"
         : "rgba(40, 40, 40, 0.3)"};
   color: ${({ $variant }) =>
-    $variant === "on" ? "#9ee4a9" : $variant === "warn" ? "#e4d99e" : "#888"};
+    $variant === "on"
+      ? "var(--color-status-go-fg)"
+      : $variant === "warn"
+        ? "var(--color-tag-yellow-fg)"
+        : "var(--color-text-muted)"};
 `;
 
 export const TelemetryPanel = styled.div`
@@ -114,7 +116,7 @@ export const TelemetryPanel = styled.div`
   flex-wrap: wrap;
   gap: 4px 16px;
   padding-top: 4px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
@@ -125,7 +127,7 @@ export const TelRow = styled.div`
 `;
 
 export const TelKey = styled.span<{ $colour: string }>`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   color: ${({ $colour }) => $colour};
   opacity: 0.6;
   letter-spacing: 0.06em;

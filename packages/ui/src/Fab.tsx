@@ -42,9 +42,9 @@ const StyledFab = styled.button<{ $visible: boolean; $bottom: number }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  color: #7cf;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-status-info-fg);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -62,8 +62,8 @@ const StyledFab = styled.button<{ $visible: boolean; $bottom: number }>`
 
   @media (hover: hover) {
     &:hover {
-      background: #222;
-      border-color: #7cf;
+      background: var(--color-border-subtle);
+      border-color: var(--color-status-info-fg);
       transform: scale(1.05);
     }
   }

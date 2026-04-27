@@ -189,10 +189,10 @@ function KosTerminalComponent({
 
       const term = new Terminal({
         theme: {
-          background: "#0d0d0d",
-          foreground: "#cccccc",
-          cursor: "#00ff88",
-          selectionBackground: "#2a4a2a",
+          background: "var(--color-surface-panel)",
+          foreground: "var(--color-text-primary)",
+          cursor: "var(--color-accent-fg)",
+          selectionBackground: "var(--color-status-go-bg)",
         },
         fontFamily: "monospace",
         fontSize: 13,
@@ -362,8 +362,8 @@ export { KosTerminalComponent };
 const Container = styled.div<{ $readOnly?: boolean }>`
   width: 100%;
   height: 100%;
-  background: #0d0d0d;
-  border: 1px solid ${({ $readOnly }) => ($readOnly ? "#1a1a2e" : "#2a2a2a")};
+  background: var(--color-surface-panel);
+  border: 1px solid ${({ $readOnly }) => ($readOnly ? "var(--color-status-info-bg)" : "var(--color-border-subtle)")};
   border-radius: 4px;
   overflow: hidden;
   box-sizing: border-box;

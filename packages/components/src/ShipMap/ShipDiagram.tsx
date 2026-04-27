@@ -76,7 +76,7 @@ const STACK_LAT_TOL = 0.3;
 export function ShipDiagram({
   parts,
   highlight,
-  highlightColor = "#ffeb3b",
+  highlightColor = "var(--color-tag-yellow-fg)",
   width,
   height,
 }: Props) {
@@ -254,7 +254,7 @@ export function ShipDiagram({
             y1={toBase(0, bounds.cy + bounds.h / 2 + 0.5).y}
             x2={toBase(0, bounds.cy - bounds.h / 2 - 0.5).x}
             y2={toBase(0, bounds.cy - bounds.h / 2 - 0.5).y}
-            stroke="#666"
+            stroke="var(--color-text-dim)"
             strokeWidth={stroke(1)}
             opacity={0.25}
           />
@@ -270,7 +270,7 @@ export function ShipDiagram({
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke="#fff"
+                stroke="var(--color-text-primary)"
                 strokeDasharray={`${stroke(4)} ${stroke(4)}`}
                 strokeWidth={stroke(1)}
                 opacity={0.18}
@@ -289,7 +289,7 @@ export function ShipDiagram({
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke="#333"
+                stroke="var(--color-border-strong)"
                 strokeWidth={stroke(0.5)}
                 opacity={0.5}
               />
@@ -353,8 +353,8 @@ export function ShipDiagram({
                     cx={box.x + box.w}
                     cy={box.y}
                     r={3 / cam.zoom + 1}
-                    fill="#26c6da"
-                    stroke="#0a0a0a"
+                    fill="var(--color-tag-cyan-fg)"
+                    stroke="var(--color-surface-sunken)"
                     strokeWidth={0.6 / cam.zoom}
                     pointerEvents="none"
                   />
@@ -380,7 +380,7 @@ export function ShipDiagram({
                   width={box.w + 6}
                   height={box.h + 6}
                   fill="none"
-                  stroke="#00ff88"
+                  stroke="var(--color-accent-fg)"
                   strokeWidth={stroke(2)}
                   rx={3}
                   pointerEvents="none"
@@ -460,7 +460,9 @@ function renderPartShape(
   zoom: number,
   outerSign: number,
 ) {
-  const stroke = isHot ? "#ffeb3b" : "#000";
+  const stroke = isHot
+    ? "var(--color-tag-yellow-fg)"
+    : "var(--color-text-inverse)";
   const strokeWidth = (isHot ? 1.5 : 0.5) / zoom;
   const opacity = 0.95;
   const { x, y, w, h } = box;
@@ -647,42 +649,42 @@ const DRAINABLE = new Set([
 function resourceColor(name: string): string {
   switch (name) {
     case "LiquidFuel":
-      return "#66bb6a";
+      return "var(--color-accent-fg)";
     case "Oxidizer":
-      return "#42a5f5";
+      return "var(--color-status-info-fg)";
     case "SolidFuel":
-      return "#ff7043";
+      return "var(--color-status-warning-bg)";
     case "MonoPropellant":
-      return "#fdd835";
+      return "var(--color-status-warning-bg)";
     case "XenonGas":
-      return "#26c6da";
+      return "var(--color-tag-cyan-fg)";
     default:
-      return "#9e9e9e";
+      return "var(--color-text-muted)";
   }
 }
 
 function colorFor(type: PartType): string {
   switch (type) {
     case "engine":
-      return "#ff7043";
+      return "var(--color-status-warning-bg)";
     case "booster":
-      return "#ff8a50";
+      return "var(--color-status-warning-bg)";
     case "tank":
-      return "#9e9e9e";
+      return "var(--color-text-muted)";
     case "decoupler":
-      return "#ffb300";
+      return "var(--color-status-warning-bg)";
     case "fin":
-      return "#90caf9";
+      return "var(--color-status-info-fg)";
     case "rcs":
-      return "#cfd8dc";
+      return "var(--color-text-primary)";
     case "capsule":
-      return "#cfd8dc";
+      return "var(--color-text-primary)";
     case "solar":
-      return "#1e88e5";
+      return "var(--color-status-info-fg)";
     case "parachute":
-      return "#ef5350";
+      return "var(--color-status-nogo-bg)";
     default:
-      return "#7e8a99";
+      return "var(--color-text-muted)";
   }
 }
 
@@ -733,7 +735,7 @@ function renderResourceFill(
               y={box.y + padY}
               width={barW}
               height={innerH}
-              fill="#1a1a1a"
+              fill="var(--color-surface-raised)"
               opacity={0.35}
             />
             <rect
@@ -774,8 +776,13 @@ function heatTint(base: string, temp?: number, maxTemp?: number): string {
   if (!temp || !maxTemp || maxTemp <= 0) return base;
   const t = Math.max(0, Math.min(1, temp / maxTemp));
   if (t < 0.5) return base;
-  if (t < 0.75) return blendHex(base, "#ffb300", (t - 0.5) / 0.25);
-  return blendHex("#ffb300", "#ff3030", (t - 0.75) / 0.25);
+  if (t < 0.75)
+    return blendHex(base, "var(--color-status-warning-bg)", (t - 0.5) / 0.25);
+  return blendHex(
+    "var(--color-status-warning-bg)",
+    "var(--color-status-nogo-bg)",
+    (t - 0.75) / 0.25,
+  );
 }
 
 function blendHex(a: string, b: string, ratio: number): string {
@@ -1085,42 +1092,42 @@ const ResetButton = styled.button`
   top: 6px;
   left: 6px;
   z-index: 10;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   padding: 2px 8px;
-  background: #1a1a1a;
-  color: #cfe;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  color: var(--color-status-go-fg);
+  border: 1px solid var(--color-border-strong);
   border-radius: 2px;
   cursor: pointer;
   &:hover {
-    background: #222;
+    background: var(--color-border-subtle);
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
 
 const Tooltip = styled.div`
   position: absolute;
-  background: #0a0a0a;
-  color: #eee;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-primary);
   font-size: 11px;
   padding: 6px 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--color-border-strong);
   border-radius: 2px;
   pointer-events: none;
   min-width: 140px;
   z-index: 20;
   .tag {
-    color: #26c6da;
+    color: var(--color-tag-cyan-fg);
     font-weight: 600;
     margin-bottom: 2px;
     word-break: break-word;
   }
   .title {
     font-weight: 600;
-    color: #cfe;
+    color: var(--color-status-go-fg);
     margin-bottom: 4px;
     word-break: break-word;
   }
@@ -1128,9 +1135,9 @@ const Tooltip = styled.div`
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    color: #888;
+    color: var(--color-text-muted);
     span:last-child {
-      color: #ddd;
+      color: var(--color-text-primary);
     }
   }
 `;
@@ -1140,17 +1147,17 @@ const Empty = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   padding: 12px;
   text-align: center;
   width: 100%;
   height: 100%;
   code {
-    background: #1a1a1a;
+    background: var(--color-surface-raised);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
     margin: 0 2px;
   }
 `;

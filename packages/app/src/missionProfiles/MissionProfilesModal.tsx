@@ -250,14 +250,13 @@ const Section = styled.section`
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-muted);
   padding-bottom: 4px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const SaveRow = styled.div`
@@ -268,15 +267,13 @@ const SaveRow = styled.div`
 
 const Hint = styled.p`
   margin: 0;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #666;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dim);
 `;
 
 const Empty = styled.div`
-  color: #555;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
   padding: 8px 0;
 `;
 
@@ -287,8 +284,8 @@ const List = styled.div`
 `;
 
 const ProfileRow = styled.div`
-  background: #161616;
-  border: 1px solid #222;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 10px 12px;
   display: flex;
@@ -304,16 +301,14 @@ const ProfileHeader = styled.div`
 `;
 
 const ProfileName = styled.span`
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
-  color: #ccc;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const ProfileMeta = styled.span`
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #555;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
 `;
 
 const ProfileActions = styled.div`
@@ -323,17 +318,16 @@ const ProfileActions = styled.div`
 `;
 
 const DangerButton = styled(Button)`
-  background: #3a0a0a;
-  border-color: #ff4d4d;
-  color: #ffdede;
+  background: var(--color-status-alert-muted);
+  border-color: var(--color-status-nogo-bg);
+  color: var(--color-status-nogo-fg);
 `;
 
 const Warning = styled.div`
-  background: #2a1414;
-  border: 1px solid #5a2a2a;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-status-alert-muted);
   border-radius: 2px;
   padding: 6px 10px;
-  color: #ffb8b8;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-status-nogo-fg);
+  font-size: var(--font-size-sm);
 `;

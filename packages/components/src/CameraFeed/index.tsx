@@ -365,7 +365,7 @@ const Feed = styled.div`
   position: relative;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--color-text-inverse);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -406,27 +406,24 @@ const BottomRow = styled.div`
 `;
 
 const CameraLabel = styled.span`
-  font-family: monospace;
   font-size: 11px;
-  color: #ccc;
+  color: var(--color-text-primary);
   background: rgba(0, 0, 0, 0.6);
   padding: 2px 6px;
   letter-spacing: 0.05em;
 `;
 
 const ModeBadge = styled.span`
-  font-family: monospace;
-  font-size: 10px;
-  color: #7cf;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-info-fg);
   background: rgba(0, 0, 0, 0.6);
   padding: 2px 6px;
   letter-spacing: 0.1em;
 `;
 
 const MetaChip = styled.span`
-  font-family: monospace;
-  font-size: 10px;
-  color: #bbb;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
   background: rgba(0, 0, 0, 0.65);
   padding: 2px 6px;
   letter-spacing: 0.05em;
@@ -438,12 +435,12 @@ const StatusDot = styled.span<{ $status: DataSourceStatus }>`
   border-radius: 50%;
   background: ${({ $status }) =>
     $status === "connected"
-      ? "#00ff88"
+      ? "var(--color-accent-fg)"
       : $status === "reconnecting"
-        ? "#ffaa00"
+        ? "var(--color-status-warning-bg)"
         : $status === "error"
-          ? "#ff4444"
-          : "#555"};
+          ? "var(--color-status-nogo-bg)"
+          : "var(--color-text-faint)"};
 `;
 
 const Centered = styled.div`

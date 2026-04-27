@@ -89,7 +89,7 @@ export function SystemDiagram({
             rx={r}
             ry={ry}
             fill="none"
-            stroke="#1f3a4a"
+            stroke="var(--color-status-info-bg)"
             strokeWidth={1}
             transform={`rotate(${rot} ${cx} ${cy})`}
           />
@@ -97,8 +97,20 @@ export function SystemDiagram({
       })}
 
       {/* Parent body */}
-      <circle cx={cx} cy={cy} r={6} fill="#ffcc80" stroke="#663300" />
-      <text x={cx} y={cy + 18} fill="#ffcc80" fontSize={10} textAnchor="middle">
+      <circle
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill="var(--color-status-nogo-fg)"
+        stroke="var(--color-status-warning-bg-muted)"
+      />
+      <text
+        x={cx}
+        y={cy + 18}
+        fill="var(--color-status-nogo-fg)"
+        fontSize={10}
+        textAnchor="middle"
+      >
         {parent.name}
       </text>
 
@@ -123,7 +135,11 @@ export function SystemDiagram({
         const isHighlighted =
           !isTarget && c.name !== null && highlightSet.has(c.name);
         const dotR = isTarget ? 6 : isHighlighted ? 5 : 3;
-        const fill = isTarget ? "#ff4d4d" : isHighlighted ? "#00ff88" : "#7cf";
+        const fill = isTarget
+          ? "var(--color-status-nogo-bg)"
+          : isHighlighted
+            ? "var(--color-accent-fg)"
+            : "var(--color-status-info-fg)";
         return (
           <g key={`body-${c.index}`}>
             <circle
@@ -131,7 +147,7 @@ export function SystemDiagram({
               cy={y}
               r={dotR}
               fill={fill}
-              stroke="#000"
+              stroke="var(--color-text-inverse)"
               strokeWidth={1}
             />
             <text x={x + dotR + 3} y={y + 3} fill={fill} fontSize={10}>
@@ -168,7 +184,7 @@ const Empty = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   padding: 20px;
   text-align: center;

@@ -390,7 +390,7 @@ const Header = styled.div`
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const ChartArea = styled.div`
@@ -405,16 +405,15 @@ const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: #555;
-  font-family: monospace;
+  color: var(--color-text-faint);
 `;
 
 const AxisWarning = styled.div`
   position: absolute;
   bottom: 4px;
   right: 8px;
-  font-size: 10px;
-  color: #ff8c00;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-warning-bg);
   background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 2px;
@@ -435,27 +434,26 @@ const DomainRow = styled.div`
 
 const AddButton = styled.button`
   background: none;
-  border: 1px dashed #444;
-  color: #888;
+  border: 1px dashed var(--color-text-faint);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 12px;
-  font-family: monospace;
   padding: 4px 8px;
   width: 100%;
   margin-top: 4px;
-  &:hover { color: #ccc; border-color: #666; }
+  &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
 
 const RemoveButton = styled.button`
   background: none;
   border: none;
-  color: #666;
+  color: var(--color-text-dim);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
   padding: 0 4px;
   flex-shrink: 0;
-  &:hover { color: #ccc; }
+  &:hover { color: var(--color-text-primary); }
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

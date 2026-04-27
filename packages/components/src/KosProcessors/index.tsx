@@ -268,15 +268,15 @@ const Placeholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   padding: 12px;
   text-align: center;
   code {
-    background: #1a1a1a;
+    background: var(--color-surface-raised);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
 `;
 
@@ -296,8 +296,8 @@ const Row = styled.li`
   display: flex;
   gap: 10px;
   padding: 8px 10px;
-  background: #111;
-  border: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-raised);
   border-radius: 3px;
 `;
 
@@ -323,14 +323,13 @@ const RowTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: monospace;
   font-size: 12px;
-  color: #cfe;
+  color: var(--color-status-go-fg);
   font-weight: 600;
 `;
 
 const RowMode = styled.span<{ $mode: string }>`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: ${(p) => modeColor(p.$mode)};
@@ -338,7 +337,7 @@ const RowMode = styled.span<{ $mode: string }>`
 
 const RowSub = styled.div`
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const RowMeta = styled.div`
@@ -349,17 +348,16 @@ const RowMeta = styled.div`
 `;
 
 const Pill = styled.span`
-  font-family: monospace;
-  font-size: 10px;
-  color: #888;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   padding: 1px 5px;
   border-radius: 999px;
 `;
 
 const Untagged = styled.span`
-  color: #666;
+  color: var(--color-text-dim);
   font-style: italic;
   font-weight: 400;
 `;
@@ -374,13 +372,12 @@ const ScriptHeader = styled.div`
 const ScriptBox = styled.div`
   max-height: 260px;
   overflow: auto;
-  background: #0a0a0a;
-  border: 1px solid #222;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 6px 8px;
-  font-family: monospace;
   font-size: 11px;
-  color: #cfe;
+  color: var(--color-status-go-fg);
   pre {
     margin: 0;
     white-space: pre;
@@ -390,13 +387,13 @@ const ScriptBox = styled.div`
 function modeColor(mode: string): string {
   switch (mode) {
     case "READY":
-      return "#4caf50";
+      return "var(--color-accent-fg)";
     case "STARVED":
-      return "#ff9800";
+      return "var(--color-status-warning-bg)";
     case "OFF":
-      return "#666";
+      return "var(--color-text-dim)";
     default:
-      return "#888";
+      return "var(--color-text-muted)";
   }
 }
 

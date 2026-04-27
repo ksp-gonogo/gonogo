@@ -112,6 +112,6 @@ export { OrbitViewComponent };
 
 const NoData = styled.div`
   font-size: 11px;
-  color: #444;
+  color: var(--color-text-faint);
   padding: 8px 0;
 `;

@@ -353,14 +353,14 @@ export { DistanceToTargetComponent };
 
 const TargetName = styled.div`
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.05em;
 `;
 
 const Distance = styled.div`
   font-size: 22px;
   font-weight: 600;
-  color: #00ff88;
+  color: var(--color-accent-fg);
   letter-spacing: 0.02em;
   line-height: 1.1;
 `;
@@ -368,19 +368,18 @@ const Distance = styled.div`
 const Dash = styled.div`
   font-size: 22px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-border-strong);
 `;
 
 const NoTarget = styled.div`
   font-size: 11px;
-  color: #444;
+  color: var(--color-text-faint);
 `;
 
 const SubReadout = styled.div`
   margin-top: 4px;
-  font-family: monospace;
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
 
@@ -392,7 +391,7 @@ const HudPanel = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #050505;
+  background: var(--color-surface-app);
   border-radius: 2px;
   overflow: hidden;
 `;
@@ -449,7 +448,7 @@ const Reticle = styled.div<{ $aligned: boolean }>`
   width: 22px;
   height: 22px;
   border: 2px solid
-    ${({ $aligned }) => ($aligned ? "#00ff88" : "#ff9800")};
+    ${({ $aligned }) => ($aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)")};
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: left 80ms linear, top 80ms linear, border-color 150ms linear;
@@ -495,9 +494,8 @@ const HudHeader = styled.div`
 `;
 
 const HudName = styled.span`
-  font-family: monospace;
   font-size: 12px;
-  color: #9cf5c0;
+  color: var(--color-status-go-fg);
   letter-spacing: 0.04em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -505,10 +503,9 @@ const HudName = styled.span`
 `;
 
 const HudRange = styled.span`
-  font-family: monospace;
   font-size: 16px;
   font-weight: 700;
-  color: #00ff88;
+  color: var(--color-accent-fg);
 `;
 
 const HudGrid = styled.div`
@@ -519,15 +516,18 @@ const HudGrid = styled.div`
 `;
 
 const HudLabel = styled.span`
-  font-size: 9px;
-  color: #6fa688;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-go-fg);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 `;
 
 const HudValue = styled.span<{ $tone?: "ok" | "warn" }>`
-  font-family: monospace;
   font-size: 11px;
   color: ${({ $tone }) =>
-    $tone === "warn" ? "#ffb347" : $tone === "ok" ? "#00ff88" : "#cfe"};
+    $tone === "warn"
+      ? "var(--color-status-warning-bg)"
+      : $tone === "ok"
+        ? "var(--color-accent-fg)"
+        : "var(--color-status-go-fg)"};
 `;

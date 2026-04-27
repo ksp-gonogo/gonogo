@@ -174,8 +174,8 @@ const Backdrop = styled.div`
 `;
 
 const Dialog = styled.div`
-  background: #111;
-  border: 1px solid #333;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   min-width: min(320px, 100vw - 16px);
   max-width: 560px;
@@ -191,24 +191,23 @@ const DialogHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 `;
 
 const DialogTitle = styled.h2`
   margin: 0;
-  font-family: monospace;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #999;
+  color: var(--color-text-muted);
 `;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-faint);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
@@ -216,7 +215,7 @@ const CloseButton = styled.button`
 
   @media (hover: hover) {
     &:hover {
-      color: #aaa;
+      color: var(--color-text-primary);
     }
   }
   @media (pointer: coarse) {

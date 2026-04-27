@@ -49,8 +49,8 @@ const SwitchTrack = styled.div<{ $checked: boolean }>`
   width: 28px;
   height: 14px;
   border-radius: 7px;
-  background: ${({ $checked }) => ($checked ? "#1a3a1a" : "#1a1a1a")};
-  border: 1px solid ${({ $checked }) => ($checked ? "#2a5a2a" : "#333")};
+  background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
   transition: background 0.15s, border-color 0.15s;
@@ -63,14 +63,13 @@ const SwitchThumb = styled.div<{ $checked: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${({ $checked }) => ($checked ? "#00cc66" : "#555")};
+  background: ${({ $checked }) => ($checked ? "var(--color-accent-fg)" : "var(--color-text-faint)")};
   transition: left 0.15s, background 0.15s;
 `;
 
 const SwitchText = styled.span`
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #888;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;

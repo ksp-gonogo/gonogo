@@ -165,7 +165,7 @@ function LandingStatusComponent(
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   padding: 8px 0;
 `;
@@ -174,10 +174,18 @@ const SuicideRow = styled.div<{ $urgent: boolean; $muted: boolean }>`
   margin-top: 8px;
   padding: ${({ $muted }) => ($muted ? "6px 10px" : "10px 12px")};
   background: ${({ $urgent, $muted }) =>
-    $urgent ? "#3a0a0a" : $muted ? "#141414" : "#1a1a1a"};
+    $urgent
+      ? "var(--color-status-alert-muted)"
+      : $muted
+        ? "var(--color-surface-panel)"
+        : "var(--color-surface-raised)"};
   border: 1px solid
     ${({ $urgent, $muted }) =>
-      $urgent ? "#ff4d4d" : $muted ? "#222" : "#3a3a3a"};
+      $urgent
+        ? "var(--color-status-nogo-bg)"
+        : $muted
+          ? "var(--color-border-subtle)"
+          : "var(--color-border-subtle)"};
   border-radius: 2px;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -187,18 +195,16 @@ const SuicideRow = styled.div<{ $urgent: boolean; $muted: boolean }>`
 `;
 
 const SuicideLabel = styled.span`
-  font-family: monospace;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const SuicideValue = styled.span<{ $urgent: boolean }>`
-  font-family: monospace;
   font-size: 28px;
   font-weight: 700;
-  color: ${({ $urgent }) => ($urgent ? "#ffdede" : "#ffae42")};
+  color: ${({ $urgent }) => ($urgent ? "var(--color-status-nogo-fg)" : "var(--color-status-warning-bg)")};
   letter-spacing: 0.04em;
   justify-self: end;
   text-align: right;
@@ -206,9 +212,8 @@ const SuicideValue = styled.span<{ $urgent: boolean }>`
 
 const SuicideNote = styled.span`
   grid-column: 1 / -1;
-  font-family: monospace;
-  font-size: 9px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   letter-spacing: 0.03em;
 `;
 
@@ -221,21 +226,20 @@ const MetricGrid = styled.div`
 `;
 
 const MetricLabel = styled.span`
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
 
 const MetricValue = styled.span`
-  font-family: monospace;
   font-size: 12px;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const MetricSub = styled.span`
-  color: #666;
-  font-size: 10px;
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

@@ -45,8 +45,8 @@ const NodeLi = styled.li`
   justify-content: space-between;
   gap: 8px;
   padding: 4px 6px;
-  background: #141414;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
 `;
 
@@ -62,27 +62,26 @@ const NodePrimary = styled.div`
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const NodeMeta = styled.div`
-  font-size: 10px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   letter-spacing: 0.04em;
 `;
 
 const DeleteButton = styled.button`
   background: transparent;
-  border: 1px solid #3a2222;
-  color: #a66;
-  font-family: monospace;
+  border: 1px solid var(--color-status-alert-muted);
+  color: var(--color-text-muted);
   font-size: 11px;
   width: 22px;
   height: 22px;
   border-radius: 2px;
   cursor: pointer;
   &:hover {
-    background: #2a1111;
-    color: #f88;
+    background: var(--color-tag-dark-brown-bg);
+    color: var(--color-tag-red-fg);
   }
 `;

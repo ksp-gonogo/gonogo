@@ -48,9 +48,9 @@ export function VersionMismatchBanner({
 }
 
 const KIND_COLOR: Record<VersionMismatchKind, string> = {
-  major: "#ff3b30",
-  minor: "#ff9f0a",
-  unknown: "#888",
+  major: "var(--color-status-nogo-bg)",
+  minor: "var(--color-status-warning-bg)",
+  unknown: "var(--color-text-muted)",
 };
 
 const Pill = styled.div<{ $kind: VersionMismatchKind }>`
@@ -67,8 +67,7 @@ const Pill = styled.div<{ $kind: VersionMismatchKind }>`
   border: 1px solid ${({ $kind }) => KIND_COLOR[$kind]};
   border-radius: 999px;
   color: ${({ $kind }) => KIND_COLOR[$kind]};
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   letter-spacing: 0.12em;
   pointer-events: none;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
@@ -86,7 +85,7 @@ const Label = styled.span`
 `;
 
 const Detail = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.06em;
   text-transform: none;
 `;

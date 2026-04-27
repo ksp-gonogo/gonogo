@@ -139,7 +139,7 @@ const Wrap = styled.div`
 `;
 
 const Empty = styled.div`
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 12px;
   padding: 8px 0;
 `;
@@ -151,8 +151,8 @@ const List = styled.div`
 `;
 
 const Row = styled.div`
-  background: #161616;
-  border: 1px solid #222;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   padding: 10px 12px;
 `;

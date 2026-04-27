@@ -143,7 +143,7 @@ export function FlightsManager() {
       <Footer>
         {confirmClearAll ? (
           <ConfirmRow>
-            <span style={{ fontSize: 12, color: "#888" }}>
+            <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
               Delete all flight history?
             </span>
             <DangerButton onClick={() => void handleClearAll()}>
@@ -180,20 +180,19 @@ const RowActions = styled.div`
 `;
 
 const GraphButton = styled.button<{ $open: boolean }>`
-  background: ${({ $open }) => ($open ? "#1a2a1a" : "none")};
-  border: 1px solid ${({ $open }) => ($open ? "#2e5a2e" : "#333")};
-  color: ${({ $open }) => ($open ? "#cfe" : "#999")};
+  background: ${({ $open }) => ($open ? "var(--color-status-go-bg)" : "none")};
+  border: 1px solid ${({ $open }) => ($open ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
+  color: ${({ $open }) => ($open ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   cursor: pointer;
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   padding: 3px 8px;
   border-radius: 2px;
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
     &:hover {
-      border-color: #2e5a2e;
-      color: #cfe;
+      border-color: var(--color-status-go-bg);
+      color: var(--color-status-go-fg);
     }
   }
 `;
@@ -203,41 +202,40 @@ const Table = styled.table`
   width: 100%;
   overflow-y: auto;
   font-size: 12px;
-  font-family: monospace;
 `;
 
 const Th = styled.th`
   text-align: left;
   padding: 6px 8px;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #555;
-  border-bottom: 1px solid #222;
+  color: var(--color-text-faint);
+  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const Tr = styled.tr<{ $current: boolean }>`
-  background: ${({ $current }) => ($current ? "#1a2a1a" : "transparent")};
-  &:hover { background: #1e1e1e; }
+  background: ${({ $current }) => ($current ? "var(--color-status-go-bg)" : "transparent")};
+  &:hover { background: var(--color-surface-raised); }
 `;
 
 const Td = styled.td`
   padding: 7px 8px;
-  color: #ccc;
-  border-bottom: 1px solid #1a1a1a;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-surface-raised);
   white-space: nowrap;
 `;
 
 const CurrentBadge = styled.span`
   display: inline-block;
   margin-left: 6px;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   padding: 1px 5px;
-  background: #1e3a1e;
-  border: 1px solid #2a5a2a;
+  background: var(--color-status-go-bg);
+  border: 1px solid var(--color-status-go-bg);
   border-radius: 8px;
-  color: #4c4;
+  color: var(--color-accent-fg);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
@@ -245,11 +243,11 @@ const CurrentBadge = styled.span`
 const DeleteButton = styled.button`
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-faint);
   cursor: pointer;
   font-size: 16px;
   padding: 0 4px;
-  &:hover { color: #f44; }
+  &:hover { color: var(--color-status-nogo-bg); }
 `;
 
 const ConfirmRow = styled.div`
@@ -259,52 +257,48 @@ const ConfirmRow = styled.div`
 `;
 
 const DangerButton = styled.button`
-  background: #2a1010;
-  border: 1px solid #5a1a1a;
-  color: #f88;
+  background: var(--color-tag-dark-brown-bg);
+  border: 1px solid var(--color-status-alert-muted);
+  color: var(--color-tag-red-fg);
   cursor: pointer;
   font-size: 11px;
-  font-family: monospace;
   padding: 3px 8px;
   border-radius: 2px;
-  &:hover { background: #3a1515; }
+  &:hover { background: var(--color-status-alert-muted); }
 `;
 
 const CancelButton = styled.button`
   background: none;
-  border: 1px solid #333;
-  color: #888;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 11px;
-  font-family: monospace;
   padding: 3px 8px;
   border-radius: 2px;
-  &:hover { color: #ccc; }
+  &:hover { color: var(--color-text-primary); }
 `;
 
 const Footer = styled.div`
   display: flex;
   justify-content: flex-end;
   padding: 10px 8px 4px;
-  border-top: 1px solid #222;
+  border-top: 1px solid var(--color-border-subtle);
 `;
 
 const ClearAllButton = styled.button`
   background: none;
-  border: 1px solid #333;
-  color: #666;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-dim);
   cursor: pointer;
   font-size: 11px;
-  font-family: monospace;
   padding: 4px 12px;
   border-radius: 2px;
-  &:hover { color: #f88; border-color: #5a1a1a; }
+  &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;
 
 const EmptyState = styled.div`
   padding: 24px 16px;
   font-size: 12px;
-  color: #555;
-  font-family: monospace;
+  color: var(--color-text-faint);
   text-align: center;
 `;

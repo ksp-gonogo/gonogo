@@ -84,18 +84,17 @@ const Wrap = styled.div`
 `;
 
 const Label = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const Track = styled.div`
   position: relative;
   height: 24px;
-  background: #0d0d0d;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   cursor: pointer;
   touch-action: none;
@@ -107,7 +106,7 @@ const Centre = styled.div`
   top: 4px;
   bottom: 4px;
   width: 1px;
-  background: #222;
+  background: var(--color-border-subtle);
 `;
 
 const Thumb = styled.div<{ $active: boolean }>`
@@ -117,7 +116,7 @@ const Thumb = styled.div<{ $active: boolean }>`
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: ${({ $active }) => ($active ? "#00ff88" : "#7cf")};
+  background: ${({ $active }) => ($active ? "var(--color-accent-fg)" : "var(--color-status-info-fg)")};
   box-shadow: 0 0 6px
     ${({ $active }) =>
       $active ? "rgba(0,255,136,0.5)" : "rgba(124,204,255,0.4)"};
@@ -125,8 +124,7 @@ const Thumb = styled.div<{ $active: boolean }>`
 `;
 
 const Value = styled.span`
-  font-family: monospace;
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   text-align: right;
 `;

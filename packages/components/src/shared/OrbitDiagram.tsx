@@ -85,7 +85,7 @@ const variantConfig = {
     dotR: 0.028,
     vesselDotScale: 1.5,
     showLabels: true,
-    defaultBodyColor: "#4a90d9",
+    defaultBodyColor: "var(--color-status-info-fg)",
     defaultBodyDiscRatio: 0.04,
   },
   mini: {
@@ -94,7 +94,7 @@ const variantConfig = {
     dotR: 0.025,
     vesselDotScale: 1.3,
     showLabels: false,
-    defaultBodyColor: "#444",
+    defaultBodyColor: "var(--color-text-faint)",
     defaultBodyDiscRatio: 0.06,
   },
 } as const;
@@ -213,15 +213,25 @@ export function OrbitDiagram({
       <g transform={`rotate(${-argPe})`}>
         {showMarkers && (
           <>
-            <circle cx={-apoapsis} cy={0} r={dotR} fill="#ff8c00" />
-            <circle cx={periapsis} cy={0} r={dotR} fill="#4499ff" />
+            <circle
+              cx={-apoapsis}
+              cy={0}
+              r={dotR}
+              fill="var(--color-status-warning-bg)"
+            />
+            <circle
+              cx={periapsis}
+              cy={0}
+              r={dotR}
+              fill="var(--color-tag-blue-fg)"
+            />
             {cfg.showLabels && (
               <>
                 <text
                   x={-apoapsis}
                   y={-dotR * 2.5}
                   textAnchor="middle"
-                  fill="#ff8c00"
+                  fill="var(--color-status-warning-bg)"
                   fontSize={scaleRef * 0.04}
                 >
                   Ap
@@ -230,7 +240,7 @@ export function OrbitDiagram({
                   x={periapsis}
                   y={-dotR * 2.5}
                   textAnchor="middle"
-                  fill="#4499ff"
+                  fill="var(--color-tag-blue-fg)"
                   fontSize={scaleRef * 0.04}
                 >
                   Pe
@@ -241,7 +251,12 @@ export function OrbitDiagram({
         )}
 
         {/* Vessel — SVG y-flipped relative to orbital frame */}
-        <circle cx={vx} cy={-vy} r={dotR * cfg.vesselDotScale} fill="#00ff88" />
+        <circle
+          cx={vx}
+          cy={-vy}
+          r={dotR * cfg.vesselDotScale}
+          fill="var(--color-accent-fg)"
+        />
 
         {maneuverHandles && (
           <ManeuverHandles
@@ -307,7 +322,12 @@ function ManeuverHandles({
 
   return (
     <g>
-      <circle cx={burnX} cy={-burnY} r={dotR * 0.8} fill="#ff5a8a" />
+      <circle
+        cx={burnX}
+        cy={-burnY}
+        r={dotR * 0.8}
+        fill="var(--color-tag-red-fg)"
+      />
       <HandleAxis
         burnX={burnX}
         burnY={burnY}
@@ -316,7 +336,7 @@ function ManeuverHandles({
         value={prograde}
         onChange={onPrograde}
         scale={effectiveScale}
-        color="#7cf"
+        color="var(--color-status-info-fg)"
         label="P"
         dotR={dotR}
         strokeW={strokeW}
@@ -329,7 +349,7 @@ function ManeuverHandles({
         value={radial}
         onChange={onRadial}
         scale={effectiveScale}
-        color="#f9c26b"
+        color="var(--color-tag-yellow-fg)"
         label="R"
         dotR={dotR}
         strokeW={strokeW}

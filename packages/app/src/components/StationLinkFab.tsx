@@ -67,7 +67,7 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: 16px;
   min-width: 260px;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const Row = styled.div`
@@ -78,17 +78,15 @@ const Row = styled.div`
 `;
 
 const Label = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const Code = styled.code`
-  color: #7cf;
-  font-family: monospace;
+  color: var(--color-status-info-fg);
   font-size: 18px;
   letter-spacing: 0.12em;
 `;
@@ -97,29 +95,28 @@ const QrRow = styled.div`
   display: flex;
   justify-content: center;
   padding: 12px;
-  background: #fff;
+  background: var(--color-text-primary);
   border-radius: 4px;
 `;
 
 const Hint = styled.p`
   margin: 0;
   font-size: 11px;
-  color: #777;
+  color: var(--color-text-muted);
   line-height: 1.5;
 
   code {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #aaa;
+    color: var(--color-text-primary);
   }
 `;
 
 const Empty = styled.div`
   padding: 16px 0;
   font-size: 12px;
-  color: #666;
-  font-family: monospace;
+  color: var(--color-text-dim);
   text-align: center;
 `;

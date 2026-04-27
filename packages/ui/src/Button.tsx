@@ -2,12 +2,11 @@ import styled from "styled-components";
 
 /** Default action button — neutral dark style */
 export const Button = styled.button`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
-  color: #aaa;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   letter-spacing: 0.1em;
   padding: 5px 12px;
@@ -17,12 +16,12 @@ export const Button = styled.button`
 
   @media (hover: hover) {
     &:hover {
-      border-color: #555;
-      color: #ddd;
+      border-color: var(--color-text-faint);
+      color: var(--color-text-primary);
     }
   }
   &:active {
-    background: #222;
+    background: var(--color-border-subtle);
   }
   &:disabled {
     opacity: 0.4;
@@ -36,16 +35,16 @@ export const Button = styled.button`
 
 /** Confirm / save — green accent */
 export const PrimaryButton = styled(Button)`
-  background: #1a3a1a;
-  border-color: #2a5a2a;
-  color: #00cc66;
+  background: var(--color-status-go-bg);
+  border-color: var(--color-status-go-bg);
+  color: var(--color-accent-fg);
   align-self: flex-end;
 
   @media (hover: hover) {
     &:hover {
-      background: #1f4a1f;
-      border-color: #3a7a3a;
-      color: #00ff88;
+      background: var(--color-status-go-bg);
+      border-color: var(--color-status-go-bg);
+      color: var(--color-accent-fg);
     }
   }
 `;
@@ -53,15 +52,15 @@ export const PrimaryButton = styled(Button)`
 /** Ghost / cancel — no background */
 export const GhostButton = styled(Button)`
   background: none;
-  border-color: #333;
-  /* #999 on the #050505 app background clears WCAG AA 4.5:1 (≈6.1:1);
-     #666 (the previous value) was ~3.5:1 and failed. */
-  color: #999;
+  border-color: var(--color-border-strong);
+  /* var(--color-text-muted) on the var(--color-surface-app) app background clears WCAG AA 4.5:1 (≈6.1:1);
+     var(--color-text-dim) (the previous value) was ~3.5:1 and failed. */
+  color: var(--color-text-muted);
 
   @media (hover: hover) {
     &:hover {
-      border-color: #555;
-      color: #ddd;
+      border-color: var(--color-text-faint);
+      color: var(--color-text-primary);
     }
   }
 `;
@@ -71,15 +70,15 @@ export const IconButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: #555;
-  font-size: var(--font-size-base, 13px);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-base);
   line-height: 1;
   padding: 2px 4px;
   transition: color 0.1s;
 
   @media (hover: hover) {
     &:hover {
-      color: #aaa;
+      color: var(--color-text-primary);
     }
   }
   &:disabled {

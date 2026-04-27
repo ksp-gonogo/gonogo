@@ -317,15 +317,15 @@ const Placeholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   padding: 12px;
   text-align: center;
   code {
-    background: #1a1a1a;
+    background: var(--color-surface-raised);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
 `;
 
@@ -335,31 +335,30 @@ const TagRow = styled.div`
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: #0d0d0d;
-  border-bottom: 1px solid #1f1f1f;
-  font-size: 10px;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
+  font-size: var(--font-size-xs);
 `;
 
 const TagRowLabel = styled.span`
-  color: #555;
+  color: var(--color-text-faint);
   margin-right: 2px;
 `;
 
 const TagChip = styled.button<{ $active: boolean }>`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   padding: 1px 6px;
   border-radius: 999px;
-  border: 1px solid ${(p) => (p.$active ? "#26c6da" : "#2a2a2a")};
-  background: ${(p) => (p.$active ? "#0e2d33" : "#141414")};
-  color: ${(p) => (p.$active ? "#26c6da" : "#9aa")};
+  border: 1px solid ${(p) => (p.$active ? "var(--color-tag-cyan-fg)" : "var(--color-border-subtle)")};
+  background: ${(p) => (p.$active ? "var(--color-border-subtle)" : "var(--color-surface-panel)")};
+  color: ${(p) => (p.$active ? "var(--color-tag-cyan-fg)" : "var(--color-text-muted)")};
   cursor: pointer;
   &:hover {
-    border-color: #26c6da;
-    color: #26c6da;
+    border-color: var(--color-tag-cyan-fg);
+    color: var(--color-tag-cyan-fg);
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
@@ -369,14 +368,14 @@ const Meta = styled.div`
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: #141414;
-  border-bottom: 1px solid #1f1f1f;
-  font-size: 10px;
-  color: #888;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 `;
 
 const MetaTag = styled.span`
-  color: #555;
+  color: var(--color-text-faint);
 `;
 
 const DiagramWrap = styled.div`
@@ -385,7 +384,7 @@ const DiagramWrap = styled.div`
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background: #050505;
+  background: var(--color-surface-app);
   svg {
     display: block;
     flex: 1;
@@ -402,13 +401,12 @@ const ScriptHeader = styled.div`
 const ScriptBox = styled.div`
   max-height: 260px;
   overflow: auto;
-  background: #0a0a0a;
-  border: 1px solid #222;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 6px 8px;
-  font-family: monospace;
   font-size: 11px;
-  color: #cfe;
+  color: var(--color-status-go-fg);
   pre {
     margin: 0;
     white-space: pre;

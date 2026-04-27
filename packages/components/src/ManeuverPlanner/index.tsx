@@ -848,25 +848,25 @@ const Section = styled.section`
 `;
 
 const SectionTitle = styled.div`
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
   margin-bottom: 2px;
 `;
 
 const PrincipiaBanner = styled.div`
   font-size: 11px;
-  background: #3a1a1a;
-  border: 1px solid #4a2a2a;
-  color: #fbb;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-status-nogo-fg);
   padding: 4px 8px;
   border-radius: 2px;
 `;
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   padding: 4px 0;
 `;
@@ -887,8 +887,8 @@ const WaitingPanel = styled.div`
   flex-direction: column;
   gap: 4px;
   padding: 6px 8px;
-  background: #0f0f0f;
-  border: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-raised);
   border-radius: 2px;
 `;
 
@@ -907,15 +907,13 @@ const StatusRow = styled.div`
 const StatusDot = styled.span<{ $ok: boolean }>`
   width: 12px;
   text-align: center;
-  color: ${({ $ok }) => ($ok ? "#5f5" : "#a66")};
-  font-family: monospace;
+  color: ${({ $ok }) => ($ok ? "var(--color-accent-fg)" : "var(--color-text-muted)")};
   font-size: 11px;
 `;
 
 const StatusLabel = styled.span`
-  font-family: monospace;
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const NodeList = styled.ul`
@@ -936,19 +934,18 @@ const ClearAllRow = styled.div`
 const GhostLink = styled.button`
   background: transparent;
   border: none;
-  color: #666;
-  font-family: monospace;
+  color: var(--color-text-dim);
   font-size: 11px;
   cursor: pointer;
   text-decoration: underline;
   &:hover {
-    color: #aaa;
+    color: var(--color-text-primary);
   }
 `;
 
 const PresetDesc = styled.div`
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-dim);
   padding-top: 2px;
 `;
 
@@ -965,11 +962,10 @@ const UTModeRow = styled.div`
 `;
 
 const UTModeButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#2e5a2e" : "#1a1a1a")};
-  border: 1px solid ${({ $active }) => ($active ? "#3e7a3e" : "#2a2a2a")};
-  color: ${({ $active }) => ($active ? "#cfe" : "#888")};
-  font-family: monospace;
-  font-size: 10px;
+  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
+  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
+  font-size: var(--font-size-xs);
   padding: 3px 8px;
   border-radius: 2px;
   cursor: pointer;
@@ -992,15 +988,15 @@ const PreviewGrid = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
 
 const accentColor = {
-  ap: "#ff8c00",
-  pe: "#4499ff",
+  ap: "var(--color-status-warning-bg)",
+  pe: "var(--color-tag-blue-fg)",
 };
 
 const Value = styled.span<{ $accent?: "ap" | "pe" }>`
@@ -1008,7 +1004,7 @@ const Value = styled.span<{ $accent?: "ap" | "pe" }>`
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: ${({ $accent }) => ($accent ? accentColor[$accent] : "#ccc")};
+  color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
 `;
 
@@ -1019,16 +1015,16 @@ const DiagramWrap = styled.div`
 `;
 
 const Note = styled.div`
-  font-size: 10px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   font-style: italic;
 `;
 
 const ErrorLine = styled.div`
   font-size: 11px;
-  color: #fbb;
-  background: #2a1111;
-  border: 1px solid #4a2a2a;
+  color: var(--color-status-nogo-fg);
+  background: var(--color-tag-dark-brown-bg);
+  border: 1px solid var(--color-border-strong);
   padding: 4px 6px;
   border-radius: 2px;
 `;

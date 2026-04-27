@@ -128,11 +128,10 @@ const Panel = styled.div`
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: #0d0d0d;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   overflow: hidden;
-  font-family: monospace;
 `;
 
 const Header = styled.div`
@@ -140,8 +139,8 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background: #141414;
-  border-bottom: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
@@ -150,7 +149,7 @@ const Title = styled.div`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const HeaderActions = styled.div`
@@ -161,20 +160,19 @@ const HeaderActions = styled.div`
 
 const Spinner = styled.span`
   font-size: 14px;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const RunButton = styled.button`
-  background: #1f3a1f;
-  border: 1px solid #2e5a2e;
-  color: #cfe;
-  font-family: monospace;
+  background: var(--color-status-go-bg);
+  border: 1px solid var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
   font-size: 11px;
   padding: 3px 10px;
   border-radius: 2px;
   cursor: pointer;
   &:hover:not(:disabled) {
-    background: #2e5a2e;
+    background: var(--color-status-go-bg);
   }
   &:disabled {
     opacity: 0.4;
@@ -186,17 +184,16 @@ const ErrorBanner = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #3a1a1a;
+  background: var(--color-status-alert-muted);
   border: none;
-  border-bottom: 1px solid #4a2a2a;
-  color: #fbb;
-  font-family: monospace;
+  border-bottom: 1px solid var(--color-border-strong);
+  color: var(--color-status-nogo-fg);
   font-size: 11px;
   padding: 6px 10px;
   cursor: pointer;
   text-align: left;
   &:hover {
-    background: #4a1e1e;
+    background: var(--color-status-alert-muted);
   }
 `;
 
@@ -205,18 +202,18 @@ const ErrorLabel = styled.span`
 `;
 
 const ErrorMeta = styled.span`
-  color: #c88;
-  font-size: 10px;
+  color: var(--color-status-nogo-fg);
+  font-size: var(--font-size-xs);
 `;
 
 const ErrorDetail = styled.pre`
-  background: #1a0d0d;
-  color: #fbb;
+  background: var(--color-status-alert-muted);
+  color: var(--color-status-nogo-fg);
   font-size: 11px;
   padding: 8px 10px;
   margin: 0;
   white-space: pre-wrap;
-  border-bottom: 1px solid #2a1010;
+  border-bottom: 1px solid var(--color-tag-dark-brown-bg);
 `;
 
 const DataGrid = styled.div`
@@ -235,11 +232,11 @@ const DataRow = styled.div`
 `;
 
 const Key = styled.span`
-  color: #777;
+  color: var(--color-text-muted);
 `;
 
 const Value = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -248,7 +245,7 @@ const Empty = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   padding: 12px;
   text-align: center;

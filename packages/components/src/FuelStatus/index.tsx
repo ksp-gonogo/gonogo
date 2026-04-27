@@ -66,13 +66,33 @@ const RESOURCES: readonly ResourceDef[] = [
   {
     name: "LiquidFuel",
     label: "Liquid Fuel",
-    color: "#4caf50",
+    color: "var(--color-accent-fg)",
     scope: "current",
   },
-  { name: "Oxidizer", label: "Oxidizer", color: "#2196f3", scope: "current" },
-  { name: "MonoPropellant", label: "RCS", color: "#ffd54f", scope: "vessel" },
-  { name: "XenonGas", label: "Xenon", color: "#ab47bc", scope: "vessel" },
-  { name: "ElectricCharge", label: "Power", color: "#ff9800", scope: "vessel" },
+  {
+    name: "Oxidizer",
+    label: "Oxidizer",
+    color: "var(--color-status-info-fg)",
+    scope: "current",
+  },
+  {
+    name: "MonoPropellant",
+    label: "RCS",
+    color: "var(--color-status-warning-bg)",
+    scope: "vessel",
+  },
+  {
+    name: "XenonGas",
+    label: "Xenon",
+    color: "var(--color-tag-purple-fg)",
+    scope: "vessel",
+  },
+  {
+    name: "ElectricCharge",
+    label: "Power",
+    color: "var(--color-status-warning-bg)",
+    scope: "vessel",
+  },
 ] as const;
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -229,7 +249,9 @@ function FuelStatusComponent({
                   <BarFill
                     style={{
                       width: `${clampPct((dv / maxStageDv) * 100)}%`,
-                      background: active ? "#ffb74d" : "#555",
+                      background: active
+                        ? "var(--color-status-warning-bg)"
+                        : "var(--color-text-faint)",
                     }}
                   />
                 </Bar>
@@ -323,28 +345,27 @@ const ResourceRow = styled.div`
 `;
 
 const ResourceLabel = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.02em;
 `;
 
 const ScopeHint = styled.span`
-  color: #555;
-  font-size: 9px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 `;
 
 const ResourceReadout = styled.span`
-  color: #888;
-  font-family: monospace;
-  font-size: 10px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
   white-space: nowrap;
 `;
 
 const Bar = styled.div`
   height: 8px;
-  background: #111;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
 `;
 
@@ -358,8 +379,8 @@ const TotalsRow = styled.div`
   gap: 16px;
   margin-top: 8px;
   padding: 6px 8px;
-  background: #141414;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
 `;
 
@@ -370,16 +391,14 @@ const TotalsBlock = styled.div`
 `;
 
 const TotalsLabel = styled.span`
-  color: #555;
-  font-family: monospace;
-  font-size: 9px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 `;
 
 const TotalsValue = styled.span`
-  color: #ffcc80;
-  font-family: monospace;
+  color: var(--color-status-nogo-fg);
   font-size: 13px;
   font-weight: 700;
   display: inline-flex;
@@ -388,23 +407,23 @@ const TotalsValue = styled.span`
 `;
 
 const TotalsModeTag = styled.span`
-  color: #666;
-  font-size: 9px;
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
 `;
 
 const StageStack = styled.div`
   margin-top: 10px;
   padding-top: 6px;
-  border-top: 1px solid #222;
+  border-top: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
   gap: 3px;
 `;
 
 const StageHeader = styled.div`
-  color: #555;
-  font-size: 9px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -416,18 +435,16 @@ const StageRow = styled.div<{ $active?: boolean }>`
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: ${({ $active }) => ($active ? "#ffcc80" : "#888")};
+  color: ${({ $active }) => ($active ? "var(--color-status-nogo-fg)" : "var(--color-text-muted)")};
 `;
 
 const StageLabel = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.02em;
 `;
 
 const StageReadout = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   white-space: nowrap;
   display: flex;
   flex-direction: column;
@@ -438,8 +455,8 @@ const StageReadout = styled.span`
 const StageDv = styled.span``;
 
 const StageMeta = styled.span`
-  color: #555;
-  font-size: 9px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

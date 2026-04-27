@@ -334,7 +334,7 @@ const Row = styled.div`
 const Name = styled.span`
   flex: 1;
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const pulse = keyframes`
@@ -343,10 +343,10 @@ const pulse = keyframes`
 `;
 
 const statusColor: Record<DataSourceStatus, string> = {
-  connected: "#00ff88",
-  disconnected: "#444",
-  reconnecting: "#ff8c00",
-  error: "#ff4444",
+  connected: "var(--color-accent-fg)",
+  disconnected: "var(--color-text-faint)",
+  reconnecting: "var(--color-status-warning-bg)",
+  error: "var(--color-status-nogo-bg)",
 };
 
 const Indicator = styled.span<{ $status: DataSourceStatus }>`
@@ -370,19 +370,19 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
 
 const StreamCount = styled.span`
   font-size: 11px;
-  color: #777;
+  color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
 
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
-  color: ${({ $active }) => ($active ? "#aaa" : "#444")};
+  color: ${({ $active }) => ($active ? "var(--color-text-primary)" : "var(--color-text-faint)")};
   font-size: 13px;
   padding: 0 2px;
 `;
 
 const ConfigForm = styled.div`
-  background: #111;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 8px 10px;
   display: flex;
@@ -393,18 +393,17 @@ const ConfigForm = styled.div`
 const SetupInstructions = styled.pre`
   margin: 0;
   padding: 8px 10px;
-  background: #0a0a0a;
-  border: 1px solid #222;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
-  font-family: monospace;
   font-size: 11px;
-  color: #555;
+  color: var(--color-text-faint);
   white-space: pre-wrap;
   line-height: 1.5;
 `;
 
 const RetryButton = styled(GhostButton)`
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
   white-space: nowrap;
   padding: 2px 6px;
@@ -414,18 +413,17 @@ const VERSION_TAG_COLOR: Record<
   "same" | "minor" | "major" | "unknown",
   string
 > = {
-  same: "#666",
-  minor: "#ff9f0a",
-  major: "#ff3b30",
-  unknown: "#888",
+  same: "var(--color-text-dim)",
+  minor: "var(--color-status-warning-bg)",
+  major: "var(--color-status-nogo-bg)",
+  unknown: "var(--color-text-muted)",
 };
 
 const VersionTag = styled.span<{
   $kind: "same" | "minor" | "major" | "unknown";
 }>`
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
-  font-family: monospace;
   padding: 1px 6px;
   border-radius: 999px;
   border: 1px solid ${({ $kind }) => VERSION_TAG_COLOR[$kind]};

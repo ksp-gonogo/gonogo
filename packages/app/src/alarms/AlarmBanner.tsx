@@ -244,16 +244,16 @@ const TONE_BG: Record<Tone, string> = {
   fire: "rgba(90, 15, 15, 0.95)",
 };
 const TONE_BORDER: Record<Tone, string> = {
-  idle: "#2a2a2a",
-  set: "#3a5a3a",
-  arm: "#ffae42",
-  fire: "#ff4d4d",
+  idle: "var(--color-border-subtle)",
+  set: "var(--color-status-go-bg)",
+  arm: "var(--color-status-warning-bg)",
+  fire: "var(--color-status-nogo-bg)",
 };
 const TONE_COUNT: Record<Tone, string> = {
-  idle: "#888",
-  set: "#cfe",
-  arm: "#ffae42",
-  fire: "#ffdede",
+  idle: "var(--color-text-muted)",
+  set: "var(--color-status-go-fg)",
+  arm: "var(--color-status-warning-bg)",
+  fire: "var(--color-status-nogo-fg)",
 };
 
 const Wrap = styled.div<{ $tone: Tone }>`
@@ -265,8 +265,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
   background: ${({ $tone }) => TONE_BG[$tone]};
   border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
   border-radius: 3px;
-  color: #ccc;
-  font-family: monospace;
+  color: var(--color-text-primary);
   font-size: 12px;
   padding: 6px 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
@@ -288,26 +287,26 @@ const Row = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const Value = styled.span`
   font-weight: 700;
-  color: #e8e8e8;
+  color: var(--color-text-primary);
 `;
 
 const Divider = styled.span`
   width: 1px;
   align-self: stretch;
-  background: #333;
+  background: var(--color-border-strong);
   margin: 0 4px;
 `;
 
 const AlarmName = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   font-weight: 600;
   max-width: 22em;
   overflow: hidden;
@@ -322,7 +321,7 @@ const Countdown = styled.span<{ $tone: Tone }>`
 `;
 
 const Quiet = styled.span`
-  color: #666;
+  color: var(--color-text-dim);
   font-style: italic;
 `;
 
@@ -331,7 +330,7 @@ const FiredList = styled.div`
   flex-direction: column;
   gap: 4px;
   padding-top: 4px;
-  border-top: 1px dashed #ff4d4d;
+  border-top: 1px dashed var(--color-status-nogo-bg);
   margin-top: 2px;
 `;
 
@@ -343,7 +342,7 @@ const FiredRow = styled.div`
 `;
 
 const FiredName = styled.span`
-  color: #ffdede;
+  color: var(--color-status-nogo-fg);
   font-weight: 600;
 `;
 
@@ -353,21 +352,20 @@ const WarnRow = styled.div`
   justify-content: space-between;
   gap: 10px;
   padding-top: 4px;
-  border-top: 1px dashed #ff4d4d;
+  border-top: 1px dashed var(--color-status-nogo-bg);
   margin-top: 2px;
 `;
 
 const WarnLabel = styled.span`
-  color: #ffdede;
+  color: var(--color-status-nogo-fg);
   font-weight: 600;
 `;
 
 const AckButton = styled.button`
   background: none;
-  border: 1px solid #ff4d4d;
-  color: #ffdede;
-  font-family: monospace;
-  font-size: 10px;
+  border: 1px solid var(--color-status-nogo-bg);
+  color: var(--color-status-nogo-fg);
+  font-size: var(--font-size-xs);
   padding: 2px 8px;
   border-radius: 2px;
   cursor: pointer;
@@ -375,7 +373,7 @@ const AckButton = styled.button`
   text-transform: uppercase;
   @media (hover: hover) {
     &:hover {
-      background: #3a0a0a;
+      background: var(--color-status-alert-muted);
     }
   }
 `;

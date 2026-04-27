@@ -1,12 +1,12 @@
 export const GRAPH_PALETTE = [
-  "#00ff88",
-  "#4499ff",
-  "#ff8c00",
-  "#cc44cc",
-  "#ff4466",
-  "#00cccc",
-  "#cccc00",
-  "#ff6633",
+  "var(--color-accent-fg)",
+  "var(--color-tag-blue-fg)",
+  "var(--color-status-warning-bg)",
+  "var(--color-tag-purple-fg)",
+  "var(--color-tag-red-fg)",
+  "var(--color-tag-cyan-fg)",
+  "var(--color-tag-yellow-fg)",
+  "var(--color-tag-orange-fg)",
 ] as const;
 
 export function paletteColor(index: number): string {

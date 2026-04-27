@@ -703,7 +703,7 @@ const GridCell = styled.div`
 
 const CellHeader = styled.div`
   height: 18px;
-  background: #111;
+  background: var(--color-surface-panel);
   cursor: grab;
   flex-shrink: 0;
   border-radius: 2px 2px 0 0;
@@ -714,7 +714,7 @@ const CellHeader = styled.div`
 
   @media (hover: hover) {
     &:hover {
-      background: #1a1a1a;
+      background: var(--color-surface-raised);
     }
   }
 
@@ -748,7 +748,7 @@ const MobileCellHeader = styled.div`
   gap: 8px;
   height: 32px;
   flex-shrink: 0;
-  background: #111;
+  background: var(--color-surface-panel);
   border-radius: 2px 2px 0 0;
   padding: 0 4px;
 `;
@@ -770,7 +770,7 @@ const MobileCellHeaderRight = styled.div`
 
 const MobileCellName = styled.span`
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -781,10 +781,10 @@ const MobileCellName = styled.span`
 
 const ReorderBtn = styled.button`
   background: none;
-  border: 1px solid #333;
-  color: #888;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   line-height: 1;
   width: 28px;
   height: 24px;
@@ -800,8 +800,8 @@ const ReorderBtn = styled.button`
 
   @media (hover: hover) {
     &:not(:disabled):hover {
-      color: #ccc;
-      border-color: #555;
+      color: var(--color-text-primary);
+      border-color: var(--color-text-faint);
     }
   }
 `;
@@ -812,14 +812,14 @@ const GearBtn = styled.button`
   pointer-events: all;
   background: none;
   border: none;
-  color: #444;
+  color: var(--color-text-faint);
   cursor: pointer;
   font-size: 11px;
   line-height: 1;
   padding: 1px 2px;
 
   &:hover {
-    color: #888;
+    color: var(--color-text-muted);
   }
 `;
 
@@ -827,7 +827,7 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   pointer-events: all;
   background: none;
   border: none;
-  color: ${({ $confirming }) => ($confirming ? "#f88" : "#444")};
+  color: ${({ $confirming }) => ($confirming ? "var(--color-tag-red-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
   font-size: 11px;
   line-height: 1;
@@ -835,7 +835,7 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   margin-left: 2px;
 
   &:hover {
-    color: #f66;
+    color: var(--color-status-nogo-fg);
   }
 `;
 
@@ -843,7 +843,7 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   pointer-events: all;
   background: none;
   border: none;
-  color: ${({ $pushed }) => ($pushed ? "#8cf" : "#444")};
+  color: ${({ $pushed }) => ($pushed ? "var(--color-status-info-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
   font-size: 12px;
   line-height: 1;
@@ -851,7 +851,7 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   margin-left: 2px;
 
   &:hover {
-    color: #6af;
+    color: var(--color-status-info-fg);
   }
 `;
 
@@ -869,10 +869,9 @@ const WidgetErrorPanel = styled.div`
   justify-content: center;
   gap: 6px;
   padding: 12px;
-  background: #2a0e0e;
-  border: 1px solid #662222;
-  color: #ffb4b4;
-  font-family: monospace;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-status-alert-muted);
+  color: var(--color-status-nogo-fg);
   font-size: 11px;
   text-align: center;
 `;
@@ -880,29 +879,28 @@ const WidgetErrorPanel = styled.div`
 const WidgetErrorTitle = styled.div`
   font-size: 13px;
   font-weight: bold;
-  color: #ff6666;
+  color: var(--color-status-nogo-fg);
 `;
 
 const WidgetErrorMessage = styled.div`
   word-break: break-word;
   max-width: 90%;
-  color: #ffcccc;
+  color: var(--color-status-nogo-fg);
 `;
 
 const WidgetErrorHint = styled.div`
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const WidgetErrorRetry = styled.button`
   margin-top: 4px;
   padding: 4px 10px;
-  background: #441a1a;
-  border: 1px solid #773333;
-  color: #ffcccc;
-  font-family: monospace;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-status-alert-muted);
+  color: var(--color-status-nogo-fg);
   font-size: 11px;
   cursor: pointer;
   &:hover {
-    background: #5a2222;
+    background: var(--color-status-alert-muted);
   }
 `;

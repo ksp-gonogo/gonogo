@@ -166,8 +166,8 @@ const DiagramWrap = styled.div`
   align-items: stretch;
   justify-content: stretch;
   margin-top: 6px;
-  background: #050505;
-  border: 1px solid #111;
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-surface-panel);
   border-radius: 2px;
   svg {
     display: block;

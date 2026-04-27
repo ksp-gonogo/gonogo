@@ -23,10 +23,9 @@ export function PresetPicker({ value, onChange }: PresetPickerProps) {
 
 const PresetSelect = styled.select`
   width: 100%;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  color: #ccc;
-  font-family: monospace;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
   font-size: 12px;
   padding: 4px 6px;
   border-radius: 2px;

@@ -196,7 +196,7 @@ const SectionTitle = styled.h3`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const ModeRow = styled.div`
@@ -206,10 +206,9 @@ const ModeRow = styled.div`
 `;
 
 const ModeButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#2e5a2e" : "#1a1a1a")};
-  border: 1px solid ${({ $active }) => ($active ? "#3e7a3e" : "#2a2a2a")};
-  color: ${({ $active }) => ($active ? "#cfe" : "#aaa")};
-  font-family: monospace;
+  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
+  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 2px;
@@ -217,7 +216,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
 `;
 
 const ModeHint = styled.span`
-  color: #777;
+  color: var(--color-text-muted);
   font-size: 11px;
 `;
 
@@ -235,16 +234,16 @@ const TagRow = styled.div`
 `;
 
 const TagHint = styled.span`
-  color: #777;
+  color: var(--color-text-muted);
   font-size: 11px;
 `;
 
 const Foot = styled.div`
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
 
   code {
-    background: #1a1a1a;
+    background: var(--color-surface-raised);
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -258,7 +257,7 @@ const BufferRow = styled.div`
 `;
 
 const Count = styled.span`
-  color: #aaa;
+  color: var(--color-text-primary);
   font-size: 12px;
 `;
 

@@ -294,7 +294,7 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
     const textureImage = textureImageRef.current;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#0d0d0d";
+    ctx.fillStyle = "var(--color-surface-panel)";
     ctx.fillRect(0, 0, w, h);
 
     ctx.setTransform(...cameraTransform(camera, w, h));
@@ -309,7 +309,9 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
     }
 
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel
-    ctx.strokeStyle = textureImage ? "rgba(255,255,255,0.05)" : "#1a1a1a";
+    ctx.strokeStyle = textureImage
+      ? "rgba(255,255,255,0.05)"
+      : "var(--color-surface-raised)";
     ctx.lineWidth = 1 / camera.zoom;
     for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
       const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
@@ -326,7 +328,9 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
       ctx.stroke();
     }
 
-    ctx.strokeStyle = textureImage ? "rgba(255,255,255,0.15)" : "#2a2a2a";
+    ctx.strokeStyle = textureImage
+      ? "rgba(255,255,255,0.15)"
+      : "var(--color-border-subtle)";
     ctx.lineWidth = 1.5 / camera.zoom;
     const { y: eqY } = latLonToMap(0, 0, WORLD_W, WORLD_H);
     ctx.beginPath();
@@ -581,7 +585,7 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
 
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "#00ff88";
+      ctx.fillStyle = "var(--color-accent-fg)";
       ctx.fill();
 
       ctx.strokeStyle = "rgba(0,255,136,0.6)";
@@ -684,14 +688,14 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
 // ---------------------------------------------------------------------------
 
 const TELEMETRY_COLOURS = [
-  "#00cc66",
-  "#4499ff",
-  "#ff8c00",
-  "#cc44cc",
-  "#ff4466",
-  "#00cccc",
-  "#cccc00",
-  "#ff6633",
+  "var(--color-accent-fg)",
+  "var(--color-tag-blue-fg)",
+  "var(--color-status-warning-bg)",
+  "var(--color-tag-purple-fg)",
+  "var(--color-tag-red-fg)",
+  "var(--color-tag-cyan-fg)",
+  "var(--color-tag-yellow-fg)",
+  "var(--color-tag-orange-fg)",
 ];
 
 function formatTelValue(value: unknown): string {

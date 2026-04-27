@@ -105,9 +105,7 @@ describe("ComponentOverlay — add → configure → persist", () => {
     // Open the component-add panel, pick Trivial. The list items are
     // <ListItem> buttons whose accessible name combines name + description.
     await user.click(screen.getByRole("button", { name: "Add component" }));
-    await user.click(
-      await screen.findByRole("button", { name: /Trivial/ }),
-    );
+    await user.click(await screen.findByRole("button", { name: /Trivial/ }));
 
     // addItem fired with a fresh DashboardItem. Capture its id so we can
     // assert the updateItemConfig call routes to the same instance.

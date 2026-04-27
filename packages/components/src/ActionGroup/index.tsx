@@ -256,7 +256,7 @@ const LabelArea = styled.div`
   cursor: text;
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -264,7 +264,7 @@ const LabelArea = styled.div`
 
 const GroupLabel = styled.span`
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-primary);
   font-weight: 600;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -273,17 +273,16 @@ const GroupLabel = styled.span`
 `;
 
 const OfficialName = styled.span`
-  font-size: 10px;
-  color: #444;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   letter-spacing: 0.04em;
 `;
 
 const LabelInput = styled.input`
-  background: #1a1a1a;
-  border: 1px solid #444;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-text-faint);
   border-radius: 2px;
-  color: #ccc;
-  font-family: monospace;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -293,7 +292,7 @@ const LabelInput = styled.input`
   outline: none;
 
   &:focus {
-    border-color: #00ff88;
+    border-color: var(--color-accent-fg);
   }
 `;
 
@@ -303,5 +302,9 @@ const StateIndicator = styled.span<{ $on: boolean; $unknown: boolean }>`
   letter-spacing: 0.1em;
   flex-shrink: 0;
   color: ${({ $on, $unknown }) =>
-    $unknown ? "#444" : $on ? "#00ff88" : "#ff4444"};
+    $unknown
+      ? "var(--color-text-faint)"
+      : $on
+        ? "var(--color-accent-fg)"
+        : "var(--color-status-nogo-bg)"};
 `;

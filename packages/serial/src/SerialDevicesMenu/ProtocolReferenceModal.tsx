@@ -179,20 +179,19 @@ function JsonStateContent() {
 // ── Styles ────────────────────────────────────────────────────────────────
 
 const HelpLink = styled.button`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 50%;
-  color: #8af;
+  color: var(--color-status-info-fg);
   width: 18px;
   height: 18px;
   padding: 0;
-  font-family: monospace;
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
   &:hover {
-    background: #222;
-    color: #cef;
+    background: var(--color-border-subtle);
+    color: var(--color-text-primary);
   }
 `;
 
@@ -207,8 +206,8 @@ const Backdrop = styled.div`
 `;
 
 const Dialog = styled.div`
-  background: #0d0d0d;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   max-width: 560px;
   width: 90vw;
@@ -223,35 +222,34 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid #1f1f1f;
-  background: #111;
+  border-bottom: 1px solid var(--color-surface-raised);
+  background: var(--color-surface-panel);
 `;
 
 const Title = styled.h3`
   margin: 0;
-  font-family: monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const Close = styled.button`
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 14px;
   cursor: pointer;
   &:hover {
-    color: #ccc;
+    color: var(--color-text-primary);
   }
 `;
 
 const Body = styled.div`
   overflow-y: auto;
   padding: 14px 18px;
-  color: #bbb;
+  color: var(--color-text-primary);
   font-size: 12px;
   line-height: 1.5;
 
@@ -266,15 +264,15 @@ const Body = styled.div`
     margin: 4px 0;
   }
   code {
-    background: #080808;
-    color: #cfe;
+    background: var(--color-surface-sunken);
+    color: var(--color-status-go-fg);
     padding: 1px 4px;
     border-radius: 2px;
     font-size: 11px;
   }
   pre {
-    background: #080808;
-    color: #cfe;
+    background: var(--color-surface-sunken);
+    color: var(--color-status-go-fg);
     padding: 8px 10px;
     border-radius: 3px;
     font-size: 11px;

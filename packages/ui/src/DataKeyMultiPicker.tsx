@@ -101,38 +101,36 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-family: monospace;
 `;
 
 const SearchInput = styled.input`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
-  color: #ccc;
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
   padding: 6px 8px;
   box-sizing: border-box;
   width: 100%;
 
   &:focus {
-    border-color: #555;
+    border-color: var(--color-text-faint);
     outline: none;
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 
   &::placeholder {
-    color: #555;
+    color: var(--color-text-faint);
   }
 `;
 
 const List = styled.div`
-  background: #141414;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   max-height: 260px;
   overflow-y: auto;
@@ -141,22 +139,22 @@ const List = styled.div`
 const Group = styled.div``;
 
 const GroupHeader = styled.div`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #555;
+  color: var(--color-text-faint);
   padding: 8px 8px 4px;
   position: sticky;
   top: 0;
-  background: #141414;
+  background: var(--color-surface-panel);
 `;
 
 const Row = styled.div<{ $checked: boolean }>`
-  background: ${({ $checked }) => ($checked ? "#1e2e1e" : "transparent")};
+  background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "transparent")};
 
   &:hover {
-    background: #202020;
+    background: var(--color-surface-raised);
   }
 `;
 
@@ -183,10 +181,10 @@ const Box = styled.span<{ $checked: boolean }>`
   justify-content: center;
   width: 14px;
   height: 14px;
-  border: 1px solid ${({ $checked }) => ($checked ? "#3a6f3a" : "#444")};
-  background: ${({ $checked }) => ($checked ? "#2b4a2b" : "#1a1a1a")};
-  color: #cfe;
-  font-size: 10px;
+  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-text-faint)")};
+  background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
+  color: var(--color-status-go-fg);
+  font-size: var(--font-size-xs);
   line-height: 1;
   border-radius: 2px;
   flex: 0 0 auto;
@@ -194,19 +192,19 @@ const Box = styled.span<{ $checked: boolean }>`
 
 const ItemLabel = styled.span`
   font-size: 12px;
-  color: #ccc;
+  color: var(--color-text-primary);
   flex: 1;
 `;
 
 const ItemUnit = styled.span`
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   margin-left: 6px;
 `;
 
 const Empty = styled.div`
   padding: 12px 8px;
   font-size: 12px;
-  color: #555;
+  color: var(--color-text-faint);
   text-align: center;
 `;

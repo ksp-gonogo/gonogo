@@ -26,10 +26,10 @@ function bandFromRatio(ratio: number | undefined): Band {
 }
 
 const BAND_COLOR: Record<Band, string> = {
-  nominal: "#4caf50",
-  warm: "#ffd54f",
-  hot: "#ff9800",
-  critical: "#ff5252",
+  nominal: "var(--color-accent-fg)",
+  warm: "var(--color-status-warning-bg)",
+  hot: "var(--color-status-warning-bg)",
+  critical: "var(--color-status-nogo-bg)",
 };
 
 const BAND_LABEL: Record<Band, string> = {
@@ -182,7 +182,7 @@ function clampPct(pct: number): number {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   padding: 8px 0;
 `;
@@ -195,11 +195,10 @@ const Row = styled.div`
 `;
 
 const RowLabel = styled.div`
-  font-family: monospace;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const RowBody = styled.div`
@@ -209,9 +208,8 @@ const RowBody = styled.div`
 `;
 
 const PartName = styled.div`
-  font-family: monospace;
   font-size: 12px;
-  color: #ccc;
+  color: var(--color-text-primary);
   /* Telemachus returns part "display name" — e.g. "LV-T30 'Reliant'". */
   white-space: nowrap;
   overflow: hidden;
@@ -220,8 +218,8 @@ const PartName = styled.div`
 
 const TempMeter = styled.div<{ $band: Band }>`
   height: 8px;
-  background: #111;
-  border: 1px solid #222;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
 `;
 
@@ -234,19 +232,18 @@ const TempReadout = styled.div`
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-family: monospace;
   font-size: 11px;
-  color: #aaa;
+  color: var(--color-text-primary);
 `;
 
 const MaxTag = styled.span`
-  color: #555;
-  font-size: 10px;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-xs);
 `;
 
 const BandTag = styled.span<{ $band: Band }>`
   margin-left: auto;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${({ $band }) => BAND_COLOR[$band]};
@@ -255,11 +252,10 @@ const BandTag = styled.span<{ $band: Band }>`
 const AlertBanner = styled.div`
   margin-top: 8px;
   padding: 6px 10px;
-  background: #3a0a0a;
-  border: 1px solid #ff4d4d;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-status-nogo-bg);
   border-radius: 2px;
-  color: #ffdede;
-  font-family: monospace;
+  color: var(--color-status-nogo-fg);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;

@@ -452,19 +452,20 @@ type BigButtonVariant = "go" | "nogo" | "abort";
 // Flat look-up tables keep the styled-template readable and quiet
 // SonarQube's nested-ternary warning (S3358). One entry per variant.
 const BIG_BUTTON_BORDER: Record<BigButtonVariant, string> = {
-  go: "#2a8a3a",
-  abort: "#a02020",
-  nogo: "#7a2a2a",
+  go: "var(--color-status-go-bg)",
+  abort: "var(--color-status-nogo-bg)",
+  nogo: "var(--color-status-nogo-bg)",
 };
 const BIG_BUTTON_BG: Record<BigButtonVariant, string> = {
-  go: "radial-gradient(circle at 50% 35%, #2ab04f 0%, #0a3a18 90%)",
-  abort: "radial-gradient(circle at 50% 35%, #e02020 0%, #400808 90%)",
-  nogo: "radial-gradient(circle at 50% 35%, #702020 0%, #180404 90%)",
+  go: "radial-gradient(circle at 50% 35%, var(--color-accent-fg) 0%, var(--color-status-go-bg) 90%)",
+  abort:
+    "radial-gradient(circle at 50% 35%, var(--color-status-nogo-bg) 0%, var(--color-status-alert-muted) 90%)",
+  nogo: "radial-gradient(circle at 50% 35%, var(--color-status-alert-muted) 0%, var(--color-status-alert-muted) 90%)",
 };
 const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
-  go: "#d0ffd0",
-  abort: "#fff0f0",
-  nogo: "#ffd0d0",
+  go: "var(--color-status-go-fg)",
+  abort: "var(--color-status-nogo-fg)",
+  nogo: "var(--color-status-nogo-fg)",
 };
 
 const BigButton = styled.button<{ $variant: BigButtonVariant }>`
@@ -476,7 +477,6 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   background: ${({ $variant }) => BIG_BUTTON_BG[$variant]};
   color: ${({ $variant }) => BIG_BUTTON_COLOR[$variant]};
   cursor: pointer;
-  font-family: monospace;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -504,9 +504,9 @@ const CountdownOverlay = styled.span`
   left: 8px;
   padding: 4px 10px;
   background: rgba(0, 0, 0, 0.6);
-  border: 1px solid #ffae42;
+  border: 1px solid var(--color-status-warning-bg);
   border-radius: 3px;
-  color: #ffae42;
+  color: var(--color-status-warning-bg);
   font-size: 14px;
   letter-spacing: 0.15em;
 `;
@@ -526,7 +526,6 @@ const MainLayout = styled.div`
   height: 100%;
   padding: 12px;
   box-sizing: border-box;
-  font-family: monospace;
 `;
 
 const MainHeader = styled.div`
@@ -539,7 +538,7 @@ const MainHeader = styled.div`
 const HeaderLabel = styled.span`
   font-size: 11px;
   letter-spacing: 0.15em;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 `;
 
@@ -549,12 +548,12 @@ const HeaderRight = styled.div`
 `;
 
 const WarnChip = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.15em;
   padding: 2px 6px;
-  border: 1px solid #8a6a28;
+  border: 1px solid var(--color-status-warning-bg);
   background: rgba(120, 100, 40, 0.25);
-  color: #ffd68a;
+  color: var(--color-status-warning-fg);
   border-radius: 2px;
   text-transform: uppercase;
 `;
@@ -563,16 +562,16 @@ const CountdownBanner = styled.div`
   text-align: center;
   font-size: clamp(24px, 6vw, 56px);
   font-weight: 700;
-  color: #ffae42;
+  color: var(--color-status-warning-bg);
   letter-spacing: 0.1em;
 `;
 
 const AbortBanner = styled.div`
   text-align: center;
   padding: 6px 10px;
-  border: 1px solid #a02020;
+  border: 1px solid var(--color-status-nogo-bg);
   background: rgba(200, 40, 40, 0.2);
-  color: #ffb0b0;
+  color: var(--color-status-nogo-fg);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -600,14 +599,14 @@ const Cell = styled.div<{ $state: CellState }>`
 function cellBorder(state: CellState): string {
   switch (state) {
     case "go":
-      return "#2a7a3a";
+      return "var(--color-status-go-bg)";
     case "no-go":
     case "abort":
-      return "#a02020";
+      return "var(--color-status-nogo-bg)";
     case "neutral":
-      return "#3a5a7a";
+      return "var(--color-status-info-fg)";
     default:
-      return "#333";
+      return "var(--color-border-strong)";
   }
 }
 
@@ -629,14 +628,14 @@ function cellBg(state: CellState): string {
 function cellColor(state: CellState): string {
   switch (state) {
     case "go":
-      return "#a8efb0";
+      return "var(--color-status-go-fg)";
     case "no-go":
     case "abort":
-      return "#efb0b0";
+      return "var(--color-status-nogo-fg)";
     case "neutral":
-      return "#a8c8ef";
+      return "var(--color-status-info-fg)";
     default:
-      return "#888";
+      return "var(--color-text-muted)";
   }
 }
 
@@ -652,17 +651,16 @@ const CellStatus = styled.span`
 `;
 
 const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
-  minor: "#ff9f0a",
-  major: "#ff3b30",
-  unknown: "#888",
+  minor: "var(--color-status-warning-bg)",
+  major: "var(--color-status-nogo-bg)",
+  unknown: "var(--color-text-muted)",
 };
 
 const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
   margin-top: 4px;
   padding: 1px 6px;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
-  font-family: monospace;
   border-radius: 999px;
   border: 1px solid ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
   color: ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
@@ -670,7 +668,7 @@ const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
 `;
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-align: center;
@@ -681,7 +679,6 @@ const ConfigWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: 14px;
-  font-family: monospace;
 `;
 
 // ---------------------------------------------------------------------------

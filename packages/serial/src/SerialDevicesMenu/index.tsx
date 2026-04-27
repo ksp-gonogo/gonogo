@@ -221,34 +221,32 @@ const Toolbar = styled.div`
 
 const Heading = styled.h3`
   margin: 0;
-  font-family: monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 12px;
   padding: 8px 0;
 `;
 
 const WebSerialUnavailableBanner = styled.div`
-  background: #2a2414;
-  border: 1px solid #5a4a1a;
+  background: var(--color-border-subtle);
+  border: 1px solid var(--color-status-warning-bg);
   border-radius: 4px;
-  color: #e6c85a;
-  font-family: monospace;
+  color: var(--color-status-warning-bg);
   font-size: 12px;
   line-height: 1.45;
   padding: 10px 12px;
 `;
 
 const Row = styled.div`
-  background: #161616;
-  border: 1px solid #222;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   padding: 10px 12px;
   display: flex;
@@ -264,16 +262,14 @@ const RowHead = styled.div`
 `;
 
 const RowName = styled.span`
-  font-family: monospace;
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const RowMeta = styled.span`
   font-size: 11px;
-  color: #555;
-  font-family: monospace;
+  color: var(--color-text-faint);
 `;
 
 const RowActions = styled.div`
@@ -283,15 +279,14 @@ const RowActions = styled.div`
 `;
 
 const Status = styled.span<{ $status: string }>`
-  font-size: 10px;
-  font-family: monospace;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${({ $status }) =>
     $status === "connected"
-      ? "#00ff88"
+      ? "var(--color-accent-fg)"
       : $status === "error"
-        ? "#f87"
-        : "#555"};
+        ? "var(--color-status-nogo-fg)"
+        : "var(--color-text-faint)"};
 `;

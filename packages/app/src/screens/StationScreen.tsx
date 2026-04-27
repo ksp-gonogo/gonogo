@@ -398,28 +398,28 @@ const ConnectLayout = styled.div`
   min-height: 100vh;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: #050505;
+  background: var(--color-surface-app);
 `;
 
 const ConnectBox = styled.div`
-  background: #111;
-  border: 1px solid #333;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   padding: 40px 48px;
   max-width: 420px;
   width: 100%;
-  color: #ccc;
+  color: var(--color-text-primary);
 
   h1 {
     margin: 0 0 8px;
     font-size: 20px;
-    color: #fff;
+    color: var(--color-text-primary);
   }
 
   p {
     margin: 0 0 20px;
     font-size: 13px;
-    color: #888;
+    color: var(--color-text-muted);
   }
 `;
 
@@ -430,38 +430,37 @@ const Row = styled.div`
 
 const HostInput = styled.input`
   flex: 1;
-  background: #1a1a1a;
-  border: 1px solid #444;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-text-faint);
   border-radius: 4px;
   padding: 8px 12px;
   font-size: 20px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #7cf;
-  font-family: monospace;
+  color: var(--color-status-info-fg);
 
   &::placeholder {
-    color: #555;
+    color: var(--color-text-faint);
     text-transform: none;
   }
 
   &:focus {
     outline: none;
-    border-color: #7cf;
+    border-color: var(--color-status-info-fg);
   }
 `;
 
 const ConnectButton = styled.button`
-  background: #1a3a5c;
-  border: 1px solid #2a5a8c;
+  background: var(--color-status-info-bg);
+  border: 1px solid var(--color-status-info-bg);
   border-radius: 4px;
   padding: 8px 20px;
-  color: #7cf;
+  color: var(--color-status-info-fg);
   font-size: 14px;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: #1e4a74;
+    background: var(--color-status-info-bg);
   }
 
   &:disabled {
@@ -472,7 +471,7 @@ const ConnectButton = styled.button`
 
 const ErrorMsg = styled.p`
   margin-top: 12px !important;
-  color: #f87 !important;
+  color: var(--color-status-nogo-fg) !important;
   font-size: 12px !important;
 `;
 
@@ -482,7 +481,7 @@ const Layout = styled.div`
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   padding-left: calc(24px + env(safe-area-inset-left, 0px));
   padding-right: calc(24px + env(safe-area-inset-right, 0px));
-  background: #050505;
+  background: var(--color-surface-app);
   min-height: 100vh;
 `;
 
@@ -515,7 +514,7 @@ function StationInfoBroadcaster({ client }: { client: PeerClientService }) {
 const NameRow = styled.div`
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed #222;
+  border-top: 1px dashed var(--color-border-subtle);
 `;
 
 const StationNameChip = styled.div`
@@ -524,7 +523,7 @@ const StationNameChip = styled.div`
   right: 16px;
   padding: 4px 10px;
   background: rgba(20, 20, 20, 0.85);
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   z-index: 800;
 `;

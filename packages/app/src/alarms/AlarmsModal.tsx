@@ -472,33 +472,32 @@ const SectionTitle = styled.h3`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const KindRow = styled.div`
   display: flex;
   gap: 4px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   padding: 2px;
-  background: #0a0a0a;
+  background: var(--color-surface-sunken);
   width: fit-content;
 `;
 
 const KindButton = styled.button<{ $active: boolean }>`
-  background: ${(p) => (p.$active ? "#1f3d2a" : "transparent")};
-  color: ${(p) => (p.$active ? "#9bf0c0" : "#888")};
+  background: ${(p) => (p.$active ? "var(--color-status-go-bg)" : "transparent")};
+  color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   border: none;
   padding: 4px 12px;
   border-radius: 3px;
-  font-family: monospace;
   font-size: 11px;
   cursor: pointer;
   &:hover {
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
@@ -512,27 +511,26 @@ const SideBySide = styled.div`
 `;
 
 const OpSelect = styled.select`
-  font-family: monospace;
   font-size: 12px;
   padding: 4px 6px;
-  background: #0d0d0d;
-  color: #cfe;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  color: var(--color-status-go-fg);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
 `;
 
 const WaitingNote = styled.div`
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 11px;
 `;
 
 const AddedNote = styled.div`
-  color: #9bf0c0;
+  color: var(--color-status-go-fg);
   font-size: 11px;
 `;
 
 const Empty = styled.div`
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 12px;
   padding: 12px 0;
 `;
@@ -551,14 +549,14 @@ const Row = styled.li<{ $state: Alarm["state"] }>`
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  background: #111;
+  background: var(--color-surface-panel);
   border: 1px solid
     ${(p) =>
       p.$state === "firing"
-        ? "#ef5350"
+        ? "var(--color-status-nogo-bg)"
         : p.$state === "arming"
-          ? "#ffa726"
-          : "#1f1f1f"};
+          ? "var(--color-status-warning-bg)"
+          : "var(--color-surface-raised)"};
   border-radius: 3px;
 `;
 
@@ -574,42 +572,40 @@ const RowName = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: monospace;
   font-size: 13px;
-  color: #cfe;
+  color: var(--color-status-go-fg);
 `;
 
 const KindBadge = styled.span`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
-  color: #777;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   padding: 1px 4px;
   border-radius: 999px;
 `;
 
 const RowMeta = styled.div`
-  font-family: monospace;
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   code {
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
 `;
 
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   color: ${(p) =>
     p.$state === "firing"
-      ? "#ef5350"
+      ? "var(--color-status-nogo-bg)"
       : p.$state === "arming"
-        ? "#ffa726"
+        ? "var(--color-status-warning-bg)"
         : p.$state === "fired"
-          ? "#666"
-          : "#9bf0c0"};
+          ? "var(--color-text-dim)"
+          : "var(--color-status-go-fg)"};
 `;
 
 const RowActions = styled.div`
@@ -619,19 +615,18 @@ const RowActions = styled.div`
 `;
 
 const DangerButton = styled.button`
-  background: #4a0e0e;
-  color: #ef5350;
-  border: 1px solid #5a1010;
+  background: var(--color-status-alert-muted);
+  color: var(--color-status-nogo-bg);
+  border: 1px solid var(--color-status-alert-muted);
   padding: 3px 10px;
   border-radius: 3px;
-  font-family: monospace;
   font-size: 11px;
   cursor: pointer;
   &:hover {
-    background: #5a1010;
+    background: var(--color-status-alert-muted);
   }
   &:focus-visible {
-    outline: 2px solid #ef5350;
+    outline: 2px solid var(--color-status-nogo-bg);
     outline-offset: 2px;
   }
 `;

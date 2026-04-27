@@ -322,30 +322,29 @@ const DiscoveredRow = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
-  background: #141414;
-  border: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-raised);
   border-radius: 4px;
   padding: 4px 8px;
-  font-family: monospace;
   font-size: 11px;
 `;
 
 const DiscoveredKind = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: 9px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   flex: 0 0 52px;
 `;
 
 const DiscoveredId = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   flex: 1 1 auto;
 `;
 
 const DiscoveredRange = styled.span`
-  color: #6af;
-  font-size: 10px;
+  color: var(--color-status-info-fg);
+  font-size: var(--font-size-xs);
 `;
 
 const InputsHeader = styled.div`
@@ -359,8 +358,8 @@ const InputRow = styled.div`
   display: flex;
   gap: 6px;
   align-items: flex-end;
-  background: #161616;
-  border: 1px solid #222;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   padding: 6px 8px;
 `;
@@ -377,11 +376,11 @@ const TinyField = styled(Field)`
 const RemoveBtn = styled.button`
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-faint);
   cursor: pointer;
   font-size: 14px;
   padding: 6px;
   &:hover {
-    color: #f87;
+    color: var(--color-status-nogo-fg);
   }
 `;

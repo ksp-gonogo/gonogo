@@ -110,9 +110,8 @@ function renderBody({
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const Empty = styled.div`
-  color: #555;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
   padding: 8px 0;
 `;
 
@@ -135,14 +134,13 @@ const Bullet = styled.span`
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4caf50;
+  background: var(--color-accent-fg);
   flex: 0 0 auto;
 `;
 
 const Name = styled.span`
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
-  color: #ccc;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
   letter-spacing: 0.02em;
 `;
 

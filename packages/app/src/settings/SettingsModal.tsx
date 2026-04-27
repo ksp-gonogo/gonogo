@@ -81,13 +81,12 @@ const Section = styled.section`
 
 const SectionTitle = styled.h3`
   margin: 0;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #888;
-  border-bottom: 1px solid #222;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 4px;
 `;
 
@@ -106,22 +105,19 @@ const RowText = styled.div`
 `;
 
 const RowLabel = styled.span`
-  color: #ccc;
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
 `;
 
 const RowDesc = styled.span`
-  color: #666;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-dim);
+  font-size: var(--font-size-sm);
   max-width: 32em;
 `;
 
 const Empty = styled.div`
-  color: #555;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
   padding: 20px;
   text-align: center;
 `;

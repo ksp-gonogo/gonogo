@@ -205,32 +205,30 @@ export function DataKeyPicker({
 
 const Container = styled.div`
   position: relative;
-  font-family: monospace;
 `;
 
 const PickerInput = styled.input<{ $hasValue: boolean }>`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
-  color: ${({ $hasValue }) => ($hasValue ? "#ccc" : "#888")};
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
+  color: ${({ $hasValue }) => ($hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)")};
+  font-size: var(--font-size-base);
   padding: 6px 8px;
   box-sizing: border-box;
   width: 100%;
 
   &:focus {
-    border-color: #555;
+    border-color: var(--color-text-faint);
     outline: none;
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 
   &::placeholder {
-    color: #555;
+    color: var(--color-text-faint);
   }
 `;
 
@@ -241,14 +239,14 @@ const ClearButton = styled.button`
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #666;
+  color: var(--color-text-dim);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
   padding: 0 2px;
 
   &:hover {
-    color: #ccc;
+    color: var(--color-text-primary);
   }
 `;
 
@@ -257,8 +255,8 @@ const Dropdown = styled.div`
   top: calc(100% + 2px);
   left: 0;
   right: 0;
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
   max-height: 280px;
   overflow-y: auto;
@@ -268,15 +266,15 @@ const Dropdown = styled.div`
 const DropdownGroup = styled.div``;
 
 const GroupHeader = styled.div`
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #555;
+  color: var(--color-text-faint);
   padding: 8px 8px 4px;
   position: sticky;
   top: 0;
-  background: #1a1a1a;
+  background: var(--color-surface-raised);
 `;
 
 const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
@@ -286,27 +284,31 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   padding: 5px 8px;
   cursor: pointer;
   background: ${({ $active, $selected }) =>
-    $active ? "#2a2a2a" : $selected ? "#1e2e1e" : "transparent"};
+    $active
+      ? "var(--color-border-subtle)"
+      : $selected
+        ? "var(--color-status-go-bg)"
+        : "transparent"};
 
   &:hover {
-    background: #2a2a2a;
+    background: var(--color-border-subtle);
   }
 `;
 
 const ItemLabel = styled.span`
   font-size: 12px;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const ItemUnit = styled.span`
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   margin-left: 6px;
 `;
 
 const EmptyState = styled.div`
   padding: 12px 8px;
   font-size: 12px;
-  color: #555;
+  color: var(--color-text-faint);
   text-align: center;
 `;

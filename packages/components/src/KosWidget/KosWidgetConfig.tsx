@@ -271,7 +271,7 @@ const ModeRow = styled.div`
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #bbb;
+  color: var(--color-text-primary);
 `;
 
 const IntervalRow = styled.div`
@@ -279,7 +279,7 @@ const IntervalRow = styled.div`
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   margin-top: 4px;
 `;
 
@@ -297,11 +297,10 @@ const ArgRow = styled.div`
 `;
 
 const TypeSelect = styled.select`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
-  color: #ccc;
-  font-family: monospace;
+  color: var(--color-text-primary);
   font-size: 12px;
   padding: 5px 6px;
 `;
@@ -314,76 +313,73 @@ const PickerWrap = styled.div`
 
 const RemoveButton = styled.button`
   background: none;
-  border: 1px solid #3a1a1a;
+  border: 1px solid var(--color-status-alert-muted);
   border-radius: 3px;
-  color: #a55;
+  color: var(--color-status-nogo-fg);
   font-size: 14px;
   line-height: 1;
   padding: 2px 6px;
   cursor: pointer;
   &:hover {
-    background: #2a1010;
+    background: var(--color-tag-dark-brown-bg);
   }
 `;
 
 const AddButton = styled.button`
   align-self: flex-start;
   background: none;
-  border: 1px dashed #333;
+  border: 1px dashed var(--color-border-strong);
   border-radius: 3px;
-  color: #888;
-  font-family: monospace;
+  color: var(--color-text-muted);
   font-size: 11px;
   padding: 4px 10px;
   cursor: pointer;
   margin-top: 6px;
   &:hover {
-    border-color: #555;
-    color: #ccc;
+    border-color: var(--color-text-faint);
+    color: var(--color-text-primary);
   }
 `;
 
 const HelpToggle = styled.button`
   background: none;
   border: none;
-  color: #888;
-  font-family: monospace;
+  color: var(--color-text-muted);
   font-size: 11px;
   padding: 0;
   cursor: pointer;
   text-align: left;
   &:hover {
-    color: #ccc;
+    color: var(--color-text-primary);
   }
 `;
 
 const HelpBox = styled.div`
-  background: #101010;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 10px 12px;
   margin-top: 6px;
-  font-family: monospace;
   font-size: 11px;
-  color: #aaa;
+  color: var(--color-text-primary);
   line-height: 1.5;
 
   p {
     margin: 0 0 6px;
   }
   pre {
-    background: #080808;
+    background: var(--color-surface-sunken);
     padding: 6px 8px;
     border-radius: 2px;
     margin: 4px 0 10px;
     font-size: 11px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
     overflow-x: auto;
   }
   code {
-    background: #080808;
+    background: var(--color-surface-sunken);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
 `;

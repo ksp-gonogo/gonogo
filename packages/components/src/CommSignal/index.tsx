@@ -131,13 +131,13 @@ function CommSignalComponent(_: Readonly<ComponentProps<CommSignalConfig>>) {
 
 type Tone = "ok" | "warn" | "lost";
 const TONE_COLOR: Record<Tone, string> = {
-  ok: "#00cc66",
-  warn: "#ffb347",
-  lost: "#ff5252",
+  ok: "var(--color-accent-fg)",
+  warn: "var(--color-status-warning-bg)",
+  lost: "var(--color-status-nogo-bg)",
 };
 
 const Empty = styled.div`
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 11px;
   padding: 8px 0;
 `;
@@ -158,8 +158,8 @@ const Bars = styled.div`
 
 const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
   width: 6px;
-  background: ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "#222")};
-  border: 1px solid ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "#2a2a2a")};
+  background: ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
+  border: 1px solid ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
   border-radius: 1px;
   /* Staircase — short to tall. Sits at the bottom of the flex container. */
   &:nth-child(1) {
@@ -177,9 +177,8 @@ const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
 `;
 
 const StrengthPct = styled.span`
-  font-family: monospace;
   font-size: 15px;
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.04em;
 `;
 
@@ -192,16 +191,15 @@ const Grid = styled.div`
 `;
 
 const GridLabel = styled.span`
-  font-size: 10px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 `;
 
 const GridValue = styled.span<{ $tone?: Tone }>`
-  font-family: monospace;
   font-size: 12px;
-  color: ${({ $tone }) => ($tone ? TONE_COLOR[$tone] : "#ccc")};
+  color: ${({ $tone }) => ($tone ? TONE_COLOR[$tone] : "var(--color-text-primary)")};
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

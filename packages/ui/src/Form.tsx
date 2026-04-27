@@ -4,7 +4,6 @@ export const ConfigForm = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: monospace;
 `;
 
 /** Vertical stack: label on top, input below */
@@ -22,16 +21,16 @@ export const FieldRow = styled.div`
 `;
 
 export const FieldLabel = styled.label`
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 export const FieldHint = styled.span`
-  font-size: 10px;
-  color: #444;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
 `;
 
 export const FormActions = styled.div`
@@ -41,24 +40,23 @@ export const FormActions = styled.div`
 `;
 
 const inputBase = `
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 3px;
-  color: #ccc;
-  font-family: monospace;
-  font-size: var(--font-size-base, 13px);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
   padding: 6px 8px;
   box-sizing: border-box;
 
   &:focus {
-    /* #00ff88 on #1a1a1a ≈ 11.4:1 — well clear of WCAG 1.4.11's 3:1 minimum
-       for non-text UI components. The previous #555 border was ~1.4:1. */
-    border-color: #00ff88;
+    /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1 — well clear of WCAG 1.4.11's 3:1 minimum
+       for non-text UI components. The previous var(--color-text-faint) border was ~1.4:1. */
+    border-color: var(--color-accent-fg);
     outline: none;
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 

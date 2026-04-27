@@ -221,9 +221,9 @@ const FAB = styled.button`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #00cc66;
+  background: var(--color-accent-fg);
   border: none;
-  color: #000;
+  color: var(--color-text-inverse);
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -237,7 +237,7 @@ const FAB = styled.button`
     transform 0.1s;
 
   &:hover {
-    background: #00e673;
+    background: var(--color-accent-bg);
     transform: scale(1.05);
   }
   &:active {
@@ -256,8 +256,8 @@ const Backdrop = styled.div`
 `;
 
 const Panel = styled.div`
-  background: #111;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
   width: 480px;
   max-width: 95vw;
@@ -273,54 +273,52 @@ const PanelHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px 10px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
 const PanelTitle = styled.h2`
   margin: 0;
-  font-family: monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: #555;
+  color: var(--color-text-faint);
   text-transform: uppercase;
 `;
 
 const CloseBtn = styled.button`
   background: none;
   border: none;
-  color: #444;
+  color: var(--color-text-faint);
   font-size: 14px;
   cursor: pointer;
   padding: 2px 4px;
   &:hover {
-    color: #aaa;
+    color: var(--color-text-primary);
   }
 `;
 
 const SearchInput = styled.input`
-  background: #0d0d0d;
+  background: var(--color-surface-panel);
   border: none;
-  border-bottom: 1px solid #1a1a1a;
-  color: #ccc;
-  font-family: monospace;
+  border-bottom: 1px solid var(--color-surface-raised);
+  color: var(--color-text-primary);
   font-size: 13px;
   padding: 10px 16px;
   flex-shrink: 0;
 
   &:focus {
     outline: none;
-    border-bottom-color: #00ff88;
+    border-bottom-color: var(--color-accent-fg);
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
 
   &::placeholder {
-    color: #333;
+    color: var(--color-border-strong);
   }
 `;
 
@@ -337,12 +335,12 @@ const ListItem = styled.button`
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid #0d0d0d;
+  border-bottom: 1px solid var(--color-surface-panel);
   padding: 12px 16px;
   cursor: pointer;
 
   &:hover {
-    background: #161616;
+    background: var(--color-surface-raised);
   }
   &:last-child {
     border-bottom: none;
@@ -350,16 +348,14 @@ const ListItem = styled.button`
 `;
 
 const ItemName = styled.span`
-  font-family: monospace;
   font-size: 13px;
   font-weight: 600;
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const ItemDesc = styled.span`
-  font-family: monospace;
   font-size: 11px;
-  color: #555;
+  color: var(--color-text-faint);
   line-height: 1.4;
 `;
 
@@ -371,8 +367,7 @@ const TagRow = styled.div`
 
 const Empty = styled.div`
   padding: 24px 16px;
-  font-family: monospace;
   font-size: 12px;
-  color: #444;
+  color: var(--color-text-faint);
   text-align: center;
 `;

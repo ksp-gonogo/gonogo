@@ -432,15 +432,15 @@ const Placeholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   padding: 12px;
   text-align: center;
   code {
-    background: #1a1a1a;
+    background: var(--color-surface-raised);
     padding: 1px 4px;
     border-radius: 2px;
-    color: #cfe;
+    color: var(--color-status-go-fg);
   }
 `;
 
@@ -470,24 +470,23 @@ const FileButton = styled.button`
   background: transparent;
   border: 1px solid transparent;
   border-radius: 3px;
-  color: #cfe;
-  font-family: monospace;
+  color: var(--color-status-go-fg);
   font-size: 12px;
   cursor: pointer;
   text-align: left;
   &:hover {
-    background: #141414;
-    border-color: #2a2a2a;
+    background: var(--color-surface-panel);
+    border-color: var(--color-border-subtle);
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
 
 const FileName = styled.span<{ $isDir?: boolean }>`
   word-break: break-all;
-  ${({ $isDir }) => ($isDir ? "color: #9cf; font-weight: 600;" : "")}
+  ${({ $isDir }) => ($isDir ? "color: var(--color-status-info-fg); font-weight: 600;" : "")}
 `;
 
 const ListHeader = styled.div`
@@ -495,13 +494,13 @@ const ListHeader = styled.div`
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  background: #141414;
-  border-bottom: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
 const FileSize = styled.span`
-  color: #666;
+  color: var(--color-text-dim);
   font-size: 11px;
   flex-shrink: 0;
 `;
@@ -518,53 +517,50 @@ const ViewerHeader = styled.div`
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  background: #141414;
-  border-bottom: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
 const BackButton = styled.button`
-  background: #1a1a1a;
-  color: #cfe;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-raised);
+  color: var(--color-status-go-fg);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
   padding: 2px 8px;
   font-size: 11px;
-  font-family: monospace;
   cursor: pointer;
   &:hover {
-    background: #222;
+    background: var(--color-border-subtle);
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
 
 const ViewerPath = styled.div`
-  font-family: monospace;
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   word-break: break-all;
   flex: 1;
   min-width: 0;
 `;
 
 const TruncationBanner = styled.div`
-  background: #2a1a0a;
-  color: #ffb74d;
-  border-bottom: 1px solid #3a2a0a;
+  background: var(--color-status-warning-bg-muted);
+  color: var(--color-status-warning-bg);
+  border-bottom: 1px solid var(--color-status-warning-bg-muted);
   padding: 4px 10px;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   flex-shrink: 0;
 `;
 
 const ViewerBody = styled.pre`
   margin: 0;
   padding: 8px 10px;
-  background: #050505;
-  color: #cfe;
-  font-family: monospace;
+  background: var(--color-surface-app);
+  color: var(--color-status-go-fg);
   font-size: 11px;
   line-height: 1.4;
   white-space: pre;
@@ -583,13 +579,12 @@ const ScriptHeader = styled.div`
 const ScriptBox = styled.div`
   max-height: 260px;
   overflow: auto;
-  background: #0a0a0a;
-  border: 1px solid #222;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   padding: 6px 8px;
-  font-family: monospace;
   font-size: 11px;
-  color: #cfe;
+  color: var(--color-status-go-fg);
   pre {
     margin: 0;
     white-space: pre;

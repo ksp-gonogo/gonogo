@@ -94,32 +94,31 @@ const TabsRoot = styled.div`
 const TabBar = styled.div`
   display: flex;
   gap: 2px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#1a1a1a" : "transparent")};
+  background: ${({ $active }) => ($active ? "var(--color-surface-raised)" : "transparent")};
   border: none;
-  color: ${({ $active }) => ($active ? "#ccc" : "#555")};
+  color: ${({ $active }) => ($active ? "var(--color-text-primary)" : "var(--color-text-faint)")};
   cursor: pointer;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 6px 12px;
   border-bottom: 2px solid
-    ${({ $active }) => ($active ? "#00cc66" : "transparent")};
+    ${({ $active }) => ($active ? "var(--color-accent-fg)" : "transparent")};
   margin-bottom: -1px;
 
   @media (hover: hover) {
     &:hover {
-      color: #aaa;
+      color: var(--color-text-primary);
     }
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
 

@@ -140,22 +140,21 @@ const ButtonGrid = styled.div`
 `;
 
 const WarpButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#1f3d2a" : "#161616")};
-  color: ${({ $active }) => ($active ? "#9bf0c0" : "#cfe")};
+  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
+  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-status-go-fg)")};
   border: 1px solid
-    ${({ $active }) => ($active ? "#3a6a4a" : "#2a2a2a")};
+    ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   border-radius: 3px;
   padding: 8px 4px;
-  font-family: monospace;
   font-size: 13px;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   letter-spacing: 0.04em;
   cursor: pointer;
   &:hover {
-    background: ${({ $active }) => ($active ? "#264a32" : "#1f1f1f")};
+    background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   }
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;

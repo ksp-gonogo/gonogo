@@ -1,11 +1,10 @@
 import styled from "styled-components";
 
 export const Panel = styled.div`
-  background: #0d0d0d;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   padding: 12px 16px;
-  font-family: monospace;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -17,16 +16,16 @@ export const Panel = styled.div`
 
 export const PanelTitle = styled.h3`
   margin: 0;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 export const PanelSubtitle = styled.div`
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-muted);
   letter-spacing: 0.05em;
   margin-top: -4px;
 `;
@@ -37,5 +36,5 @@ export const PanelScrollable = styled(Panel)`
 
 export const Placeholder = styled.span`
   font-size: 12px;
-  color: #444;
+  color: var(--color-text-faint);
 `;

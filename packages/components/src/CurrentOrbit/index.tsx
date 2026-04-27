@@ -169,20 +169,20 @@ const Grid = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: 10px;
-  color: #555;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
 
 const accentColor = {
-  ap: "#ff8c00",
-  pe: "#4499ff",
+  ap: "var(--color-status-warning-bg)",
+  pe: "var(--color-tag-blue-fg)",
 };
 
 const Value = styled.span<{ $accent?: "ap" | "pe" }>`
   font-size: 13px;
-  color: ${({ $accent }) => ($accent ? accentColor[$accent] : "#ccc")};
+  color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
 `;
 

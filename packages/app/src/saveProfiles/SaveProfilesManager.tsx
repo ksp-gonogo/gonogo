@@ -23,7 +23,7 @@ const Row = styled.li<{ $active: boolean }>`
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid ${({ $active }) => ($active ? "#2a5a2a" : "#2a2a2a")};
+  border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   background: ${({ $active }) =>
     $active ? "rgba(40, 120, 60, 0.1)" : "rgba(26, 26, 26, 0.6)"};
   border-radius: 3px;
@@ -31,17 +31,16 @@ const Row = styled.li<{ $active: boolean }>`
 
 const Name = styled.div`
   flex: 1;
-  font-family: monospace;
   font-size: 13px;
-  color: #ddd;
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   gap: 2px;
 `;
 
 const Meta = styled.span`
-  font-size: 10px;
-  color: #666;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
   letter-spacing: 0.05em;
 `;
 
@@ -51,11 +50,11 @@ const Actions = styled.div`
 `;
 
 const ScopeNote = styled.div`
-  font-size: 10px;
-  color: #6a8; /* teal — subtle call-out that scope is narrow */
+  font-size: var(--font-size-xs);
+  color: var(--color-status-go-bg); /* teal — subtle call-out that scope is narrow */
   letter-spacing: 0.05em;
   padding: 6px 0 10px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border-subtle);
   margin-bottom: 8px;
 `;
 

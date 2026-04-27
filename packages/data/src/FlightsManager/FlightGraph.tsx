@@ -14,14 +14,14 @@ import { useDataSchema } from "../hooks/useDataSchema";
  */
 
 const PALETTE = [
-  "#4caf50",
-  "#2196f3",
-  "#ffb347",
-  "#ab47bc",
-  "#ff5252",
-  "#00bcd4",
-  "#ffd54f",
-  "#9ccc65",
+  "var(--color-accent-fg)",
+  "var(--color-status-info-fg)",
+  "var(--color-status-warning-bg)",
+  "var(--color-tag-purple-fg)",
+  "var(--color-status-nogo-bg)",
+  "var(--color-status-info-fg)",
+  "var(--color-status-warning-bg)",
+  "var(--color-accent-fg)",
 ];
 
 function getSource(): BufferedDataSource | undefined {
@@ -250,8 +250,8 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  background: #0f0f0f;
-  border-top: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-surface-raised);
 `;
 
 const Toolbar = styled.div`
@@ -261,11 +261,10 @@ const Toolbar = styled.div`
 `;
 
 const PickerLabel = styled.span`
-  font-family: monospace;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const ChartWrap = styled.div`
@@ -274,9 +273,8 @@ const ChartWrap = styled.div`
 `;
 
 const Placeholder = styled.div`
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #555;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
   padding: 24px 0;
   text-align: center;
 `;
@@ -285,9 +283,8 @@ const LoadingBadge = styled.div`
   position: absolute;
   top: 4px;
   right: 4px;
-  font-family: monospace;
-  font-size: 10px;
-  color: #888;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);
   padding: 2px 8px;
   border-radius: 2px;
@@ -295,11 +292,10 @@ const LoadingBadge = styled.div`
 `;
 
 const ErrorLine = styled.div`
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #ffb8b8;
-  background: #2a1111;
-  border: 1px solid #5a2a2a;
+  font-size: var(--font-size-sm);
+  color: var(--color-status-nogo-fg);
+  background: var(--color-tag-dark-brown-bg);
+  border: 1px solid var(--color-status-alert-muted);
   padding: 4px 8px;
   border-radius: 2px;
 `;

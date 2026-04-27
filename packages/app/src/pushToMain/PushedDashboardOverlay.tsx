@@ -215,8 +215,8 @@ const Panel = styled.div`
   width: 100%;
   height: 100%;
   max-width: 1600px;
-  background: #0a0a0a;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   display: flex;
@@ -229,9 +229,8 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #1a1a1a;
-  background: #0f0f0f;
-  font-family: monospace;
+  border-bottom: 1px solid var(--color-surface-raised);
+  background: var(--color-surface-panel);
   flex-shrink: 0;
 `;
 
@@ -239,12 +238,12 @@ const Title = styled.div`
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: #888;
+  color: var(--color-text-muted);
 `;
 
 const Count = styled.div`
   font-size: 11px;
-  color: #555;
+  color: var(--color-text-faint);
 `;
 
 const Viewport = styled.div`
@@ -258,8 +257,8 @@ const Viewport = styled.div`
 
 const ItemFrame = styled.div`
   position: absolute;
-  background: #0d0d0d;
-  border: 1px solid #2a2a2a;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @gonogo/ui's Panel use height: 100% and need a concrete
@@ -275,29 +274,28 @@ const ItemHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px;
-  background: #141414;
-  border-bottom: 1px solid #1f1f1f;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
 
 const StationChip = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #6af;
+  color: var(--color-status-info-fg);
 `;
 
 const DismissBtn = styled.button`
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-faint);
   font-size: 12px;
   line-height: 1;
   padding: 2px 4px;
   cursor: pointer;
   &:hover {
-    color: #f88;
+    color: var(--color-tag-red-fg);
   }
 `;
 
@@ -310,8 +308,7 @@ const ItemBody = styled.div`
 
 const MissingComponent = styled.div`
   padding: 12px;
-  font-family: monospace;
   font-size: 11px;
-  color: #a66;
+  color: var(--color-text-muted);
   text-align: center;
 `;

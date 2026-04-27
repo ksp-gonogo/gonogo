@@ -9,16 +9,15 @@ const Wrap = styled.div<{ $compact: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: monospace;
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
-  color: #ccc;
+  color: var(--color-text-primary);
 `;
 
 const Label = styled.span<{ $compact: boolean }>`
   font-size: ${({ $compact }) => ($compact ? "9px" : "11px")};
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--color-text-dim);
 `;
 
 const NameSpan = styled.button<{ $compact: boolean }>`
@@ -26,31 +25,29 @@ const NameSpan = styled.button<{ $compact: boolean }>`
   border: 1px dashed transparent;
   border-radius: 3px;
   padding: 2px 6px;
-  font-family: monospace;
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
-  color: #7cf;
+  color: var(--color-status-info-fg);
   cursor: text;
   letter-spacing: 0.05em;
 
   &:hover {
-    border-color: #333;
-    color: #aef;
+    border-color: var(--color-border-strong);
+    color: var(--color-status-go-fg);
   }
 `;
 
 const NameInput = styled.input<{ $compact: boolean }>`
-  background: #1a1a1a;
-  border: 1px solid #444;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-text-faint);
   border-radius: 3px;
   padding: 2px 6px;
-  color: #7cf;
-  font-family: monospace;
+  color: var(--color-status-info-fg);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   letter-spacing: 0.05em;
   outline: none;
 
   &:focus {
-    border-color: #7cf;
+    border-color: var(--color-status-info-fg);
   }
 `;
 

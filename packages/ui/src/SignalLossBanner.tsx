@@ -36,8 +36,8 @@ function formatElapsed(ms: number): string {
 }
 
 const SEVERITY_COLOR: Record<Exclude<SignalState, "connected">, string> = {
-  lost: "#ff3b30",
-  partial: "#ff9f0a",
+  lost: "var(--color-status-nogo-bg)",
+  partial: "var(--color-status-warning-bg)",
 };
 
 const Pill = styled.div<{ $severity: Exclude<SignalState, "connected"> }>`
@@ -54,8 +54,7 @@ const Pill = styled.div<{ $severity: Exclude<SignalState, "connected"> }>`
   border: 1px solid ${({ $severity }) => SEVERITY_COLOR[$severity]};
   border-radius: 999px;
   color: ${({ $severity }) => SEVERITY_COLOR[$severity]};
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  font-size: var(--font-size-sm);
   letter-spacing: 0.12em;
   pointer-events: none;
   box-shadow: 0 0 12px rgba(255, 59, 48, 0.35);
@@ -82,6 +81,6 @@ const Label = styled.span`
 `;
 
 const Timer = styled.span`
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.06em;
 `;

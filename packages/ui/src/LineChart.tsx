@@ -162,7 +162,13 @@ export function LineChart({
     >
       <title>Telemetry line chart</title>
       {/* Background */}
-      <rect x={plotX0} y={plotY0} width={plotW} height={plotH} fill="#111" />
+      <rect
+        x={plotX0}
+        y={plotY0}
+        width={plotW}
+        height={plotH}
+        fill="var(--color-surface-panel)"
+      />
 
       {/* Horizontal grid lines + left y-axis ticks. Keyed by index rather
           than value because niceTicks returns duplicate ticks when the domain
@@ -177,7 +183,7 @@ export function LineChart({
               y1={y}
               x2={plotX1}
               y2={y}
-              stroke="#222"
+              stroke="var(--color-border-subtle)"
               strokeWidth={1}
             />
             <text
@@ -185,7 +191,7 @@ export function LineChart({
               y={y}
               textAnchor="end"
               dominantBaseline="middle"
-              fill="#555"
+              fill="var(--color-text-faint)"
               fontSize={11}
             >
               {yTickFormat(tick)}
@@ -205,7 +211,7 @@ export function LineChart({
             y={y}
             textAnchor="start"
             dominantBaseline="middle"
-            fill="#555"
+            fill="var(--color-text-faint)"
             fontSize={11}
           >
             {yTickFormat(tick)}
@@ -224,14 +230,14 @@ export function LineChart({
               y1={plotY0}
               x2={x}
               y2={plotY1}
-              stroke="#222"
+              stroke="var(--color-border-subtle)"
               strokeWidth={1}
             />
             <text
               x={x}
               y={plotY1 + 14}
               textAnchor="middle"
-              fill="#555"
+              fill="var(--color-text-faint)"
               fontSize={11}
             >
               {xTickFormat(tick, xDomain)}
@@ -246,7 +252,7 @@ export function LineChart({
         y1={plotY0}
         x2={plotX0}
         y2={plotY1}
-        stroke="#333"
+        stroke="var(--color-border-strong)"
         strokeWidth={1}
       />
       <line
@@ -254,7 +260,7 @@ export function LineChart({
         y1={plotY1}
         x2={plotX1}
         y2={plotY1}
-        stroke="#333"
+        stroke="var(--color-border-strong)"
         strokeWidth={1}
       />
       {hasSecondary && (
@@ -263,7 +269,7 @@ export function LineChart({
           y1={plotY0}
           x2={plotX1}
           y2={plotY1}
-          stroke="#333"
+          stroke="var(--color-border-strong)"
           strokeWidth={1}
         />
       )}

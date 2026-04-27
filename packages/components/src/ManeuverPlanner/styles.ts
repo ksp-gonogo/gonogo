@@ -7,15 +7,15 @@ import styled from "styled-components";
  */
 
 export const FeasibilityChip = styled.span<{ $ok: boolean }>`
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
   padding: 1px 6px;
   border-radius: 10px;
   /* Failing state shifted brighter — the quiet maroon on dark background
      was sliding past readers. WCAG 1.4.11 non-text contrast met at 3:1. */
-  background: ${({ $ok }) => ($ok ? "#1f3a1f" : "#5a1414")};
-  border: 1px solid ${({ $ok }) => ($ok ? "#2e5a2e" : "#ff4d4d")};
-  color: ${({ $ok }) => ($ok ? "#cfe" : "#ffdede")};
+  background: ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-alert-muted)")};
+  border: 1px solid ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-nogo-bg)")};
+  color: ${({ $ok }) => ($ok ? "var(--color-status-go-fg)" : "var(--color-status-nogo-fg)")};
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
@@ -30,11 +30,10 @@ export const FeasibilityBanner = styled.div`
   flex-direction: column;
   gap: 2px;
   padding: 6px 10px;
-  background: #3a0a0a;
-  border: 1px solid #ff4d4d;
+  background: var(--color-status-alert-muted);
+  border: 1px solid var(--color-status-nogo-bg);
   border-radius: 2px;
-  color: #ffdede;
-  font-family: monospace;
+  color: var(--color-status-nogo-fg);
 `;
 
 export const FeasibilityBannerTitle = styled.span`
@@ -46,5 +45,5 @@ export const FeasibilityBannerTitle = styled.span`
 
 export const FeasibilityBannerBody = styled.span`
   font-size: 11px;
-  color: #ffb8b8;
+  color: var(--color-status-nogo-fg);
 `;

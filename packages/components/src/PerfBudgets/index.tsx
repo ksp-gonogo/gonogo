@@ -102,17 +102,16 @@ function formatRate(n: number): string {
 type Tone = "under" | "near" | "over";
 
 const TONE_COLOR: Record<Tone, string> = {
-  under: "#4caf50",
-  near: "#ffb74d",
-  over: "#ef5350",
+  under: "var(--color-accent-fg)",
+  near: "var(--color-status-warning-bg)",
+  over: "var(--color-status-nogo-bg)",
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const Empty = styled.div`
-  color: #555;
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
   padding: 8px 0;
 `;
 
@@ -130,7 +129,7 @@ const Row = styled.li<{ $tone: Tone }>`
   flex-direction: column;
   gap: 4px;
   padding: 6px 8px;
-  background: #111;
+  background: var(--color-surface-panel);
   border-left: 2px solid ${(p) => TONE_COLOR[p.$tone]};
   border-radius: 2px;
 `;
@@ -143,22 +142,20 @@ const RowHeader = styled.div`
 `;
 
 const Name = styled.span`
-  font-family: monospace;
-  font-size: var(--font-size-sm, 11px);
-  color: #cfe;
+  font-size: var(--font-size-sm);
+  color: var(--color-status-go-fg);
   word-break: break-word;
 `;
 
 const Rate = styled.span<{ $tone: Tone }>`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   color: ${(p) => TONE_COLOR[p.$tone]};
   flex-shrink: 0;
 `;
 
 const Bar = styled.div`
   height: 4px;
-  background: #1a1a1a;
+  background: var(--color-surface-raised);
   border-radius: 2px;
   overflow: hidden;
 `;
@@ -170,9 +167,8 @@ const BarFill = styled.div<{ $tone: Tone }>`
 `;
 
 const Footer = styled.div`
-  font-family: monospace;
-  font-size: 10px;
-  color: #ef5350;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-nogo-bg);
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

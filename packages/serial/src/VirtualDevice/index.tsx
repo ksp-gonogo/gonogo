@@ -153,19 +153,17 @@ registerComponent<VirtualDeviceConfig>({
 export { VirtualDeviceComponent };
 
 const Title = styled.div`
-  font-family: monospace;
   font-size: 13px;
   font-weight: 700;
-  color: #ccc;
+  color: var(--color-text-primary);
   letter-spacing: 0.05em;
 `;
 
 const Subtitle = styled.div`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #555;
+  color: var(--color-text-faint);
   margin-bottom: 6px;
 `;
 
@@ -183,11 +181,10 @@ const ButtonGrid = styled.div`
 `;
 
 const MomentaryButton = styled.button`
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
-  color: #ccc;
-  font-family: monospace;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 700;
   padding: 10px 0;
@@ -197,15 +194,15 @@ const MomentaryButton = styled.button`
 
   @media (hover: hover) {
     &:hover {
-      background: #222;
-      border-color: #7cf;
+      background: var(--color-border-subtle);
+      border-color: var(--color-status-info-fg);
     }
   }
 
   &:active {
-    background: #003f6e;
-    border-color: #7cf;
-    color: #7cf;
+    background: var(--color-status-info-bg);
+    border-color: var(--color-status-info-fg);
+    color: var(--color-status-info-fg);
   }
 
   @media (pointer: coarse) {
@@ -221,19 +218,17 @@ const FrameDisplay = styled.div`
 `;
 
 const FrameLabel = styled.span`
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #444;
+  color: var(--color-text-faint);
 `;
 
 const Frame = styled.pre`
-  background: #050505;
-  border: 1px solid #1a1a1a;
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-surface-raised);
   border-radius: 4px;
-  color: #7cf;
-  font-family: monospace;
+  color: var(--color-status-info-fg);
   font-size: 11px;
   line-height: 1.15;
   padding: 8px;
