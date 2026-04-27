@@ -68,8 +68,28 @@ function CommSignalComponent(_: Readonly<ComponentProps<CommSignalConfig>>) {
   // KSP returns signal strength ∈ [0, 1]. Map to 4 discrete bars; this is
   // familiar, readable at a glance, and robust to telemetry jitter at the
   // edges of a connection.
-  const pct = Math.max(0, Math.min(1, strength ?? 0));
-  const bars = connected === false ? 0 : Math.ceil(pct * 4);
+  //
+  // Some KSP installs don't publish comm.signalStrength at all (mod load
+  // order, RemoteTech overrides, vanilla CommNet variants) — in that case
+  // we derive bars from comm.controlState so the widget still shows
+  // something useful: Full → 4, Partial → 2, None → 0.
+  const strengthValid =
+    typeof strength === "number" && Number.isFinite(strength) && strength > 0;
+  const pct = strengthValid ? Math.max(0, Math.min(1, strength)) : null;
+  let bars: number;
+  if (connected === false) {
+    bars = 0;
+  } else if (pct !== null) {
+    bars = Math.max(1, Math.ceil(pct * 4));
+  } else if (controlState === 2) {
+    bars = 4;
+  } else if (controlState === 1) {
+    bars = 2;
+  } else if (controlState === 0) {
+    bars = 0;
+  } else {
+    bars = 0;
+  }
   const control = describeControl(controlStateName, controlState);
 
   // Aria-live on the wrapper so a loss-of-signal transition gets announced
@@ -89,7 +109,11 @@ function CommSignalComponent(_: Readonly<ComponentProps<CommSignalConfig>>) {
           ))}
         </Bars>
         <StrengthPct>
-          {connected === false ? "—" : `${(pct * 100).toFixed(0)}%`}
+          {connected === false
+            ? "—"
+            : pct !== null
+              ? `${(pct * 100).toFixed(0)}%`
+              : control.label}
         </StrengthPct>
       </Readout>
 
