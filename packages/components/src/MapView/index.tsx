@@ -17,6 +17,7 @@ import {
 import { useDataSchema } from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { dataColor } from "../shared/dataPalette";
 import {
   cameraTransform,
   fitCamera,
@@ -687,17 +688,6 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
 // Telemetry row — own component so useDataValue can be called per key
 // ---------------------------------------------------------------------------
 
-const TELEMETRY_COLOURS = [
-  "var(--color-accent-fg)",
-  "var(--color-tag-blue-fg)",
-  "var(--color-status-warning-bg)",
-  "var(--color-tag-purple-fg)",
-  "var(--color-tag-red-fg)",
-  "var(--color-tag-cyan-fg)",
-  "var(--color-tag-yellow-fg)",
-  "var(--color-tag-orange-fg)",
-];
-
 function formatTelValue(value: unknown): string {
   if (value === undefined) return "—";
   const n = Number(value);
@@ -724,7 +714,7 @@ function TelemetryRow({
     "data",
     dataKey as keyof DataSourceRegistry["data"],
   );
-  const colour = TELEMETRY_COLOURS[colorIndex % TELEMETRY_COLOURS.length];
+  const colour = dataColor(colorIndex);
   return (
     <TelRow>
       <TelKey $colour={colour}>{label}</TelKey>
