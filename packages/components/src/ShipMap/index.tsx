@@ -80,6 +80,7 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     if (!payload) return;
     logger.info("ship-map: payload received", {
       parts: payload.length,
+      payload,
       rawKeys: raw ? Object.keys(raw) : [],
     });
   }, [payload, raw]);
@@ -89,11 +90,13 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
   const hottestPartName = useDataValue("data", "therm.hottestPartName");
 
   // Measure the container so the SVG picks a size without a hardcoded value.
-  const wrapRef = useRef<HTMLDivElement>(null);
+  // State-backed ref (rather than useRef) so the effect re-attaches when
+  // DiagramWrap mounts — it's only rendered once `payload` exists, so a
+  // plain useRef + [] deps would never see the element.
+  const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 320, h: 240 });
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!wrapEl || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       for (const e of entries) {
         const rect = e.contentRect;
@@ -105,9 +108,15 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
         }
       }
     });
-    ro.observe(el);
+    ro.observe(wrapEl);
     return () => ro.disconnect();
-  }, []);
+  }, [wrapEl]);
+
+  // Chip-hover overrides the hottest-part highlight so users can preview
+  // exactly where each tagged part lives. Click locks the selection;
+  // re-clicking clears it.
+  const [stickyTag, setStickyTag] = useState<string | null>(null);
+  const [hoverTag, setHoverTag] = useState<string | null>(null);
 
   const notConfigured = !cpu;
 
@@ -141,6 +150,17 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
         </Placeholder>
       );
     }
+    const tags = Array.from(
+      new Set(
+        payload
+          .map((p) => p.tag)
+          .filter((t): t is string => typeof t === "string" && t.length > 0),
+      ),
+    ).sort();
+    const activeTag = hoverTag ?? stickyTag;
+    const highlight =
+      activeTag ??
+      (typeof hottestPartName === "string" ? hottestPartName : null);
     return (
       <>
         <Meta>
@@ -154,12 +174,32 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
             <MetaTag>· hot: {hottestPartName}</MetaTag>
           )}
         </Meta>
-        <DiagramWrap ref={wrapRef}>
+        {tags.length > 0 && (
+          <TagRow>
+            <TagRowLabel>tags:</TagRowLabel>
+            {tags.map((t) => (
+              <TagChip
+                key={t}
+                type="button"
+                $active={stickyTag === t}
+                onMouseEnter={() => setHoverTag(t)}
+                onMouseLeave={() => setHoverTag(null)}
+                onFocus={() => setHoverTag(t)}
+                onBlur={() => setHoverTag(null)}
+                onClick={() =>
+                  setStickyTag((current) => (current === t ? null : t))
+                }
+                aria-pressed={stickyTag === t}
+              >
+                {t}
+              </TagChip>
+            ))}
+          </TagRow>
+        )}
+        <DiagramWrap ref={setWrapEl}>
           <ShipDiagram
             parts={payload}
-            highlight={
-              typeof hottestPartName === "string" ? hottestPartName : null
-            }
+            highlight={highlight}
             width={size.w}
             height={size.h}
           />
@@ -286,6 +326,41 @@ const Placeholder = styled.div`
     padding: 1px 4px;
     border-radius: 2px;
     color: #cfe;
+  }
+`;
+
+const TagRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #1f1f1f;
+  font-size: 10px;
+`;
+
+const TagRowLabel = styled.span`
+  color: #555;
+  margin-right: 2px;
+`;
+
+const TagChip = styled.button<{ $active: boolean }>`
+  font-family: monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$active ? "#26c6da" : "#2a2a2a")};
+  background: ${(p) => (p.$active ? "#0e2d33" : "#141414")};
+  color: ${(p) => (p.$active ? "#26c6da" : "#9aa")};
+  cursor: pointer;
+  &:hover {
+    border-color: #26c6da;
+    color: #26c6da;
+  }
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
   }
 `;
 
