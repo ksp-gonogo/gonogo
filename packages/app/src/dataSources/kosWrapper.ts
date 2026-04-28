@@ -66,11 +66,63 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
 }
 
 /**
- * Quote a JS string as a kOS string literal. kOS has no escape syntax —
- * the only way to embed a `"` is concatenation with `CHAR(34)`. Splits
- * on `"` and joins the fragments with `+ CHAR(34) +`.
+ * Sentinels the kOS data-source parser keys off. The wrapper's source is
+ * echoed verbatim by the kOS REPL on dispatch, so any contiguous
+ * `[KOSDATA]…[/KOSDATA]` (or KOSERROR) byte sequence in the wrapper text
+ * — even inside a string literal — gets matched by the parser BEFORE
+ * the actual script runs. That captures the wrapper's source as the
+ * widget's payload and the real script's [KOSDATA] never lands.
+ *
+ * Defeating it is purely a wire-bytes concern: `splitSentinels` breaks
+ * each occurrence after the leading `[`, so the resulting pieces concat
+ * to the same runtime string but no sentinel appears intact in the
+ * source.
+ */
+const PARSER_SENTINELS = [
+  "[KOSDATA]",
+  "[/KOSDATA]",
+  "[KOSERROR]",
+  "[/KOSERROR]",
+];
+
+function splitSentinels(s: string): string[] {
+  let pieces: string[] = [s];
+  for (const sentinel of PARSER_SENTINELS) {
+    const next: string[] = [];
+    for (const piece of pieces) {
+      let remaining = piece;
+      while (true) {
+        const idx = remaining.indexOf(sentinel);
+        if (idx < 0) {
+          if (remaining.length > 0) next.push(remaining);
+          break;
+        }
+        // Split after the `[` so neither piece contains the sentinel.
+        // "...x[KOSDATA]y..." → ["...x[", "KOSDATA]y..."]
+        next.push(remaining.slice(0, idx + 1));
+        remaining = remaining.slice(idx + 1);
+      }
+    }
+    pieces = next;
+  }
+  return pieces;
+}
+
+/**
+ * Quote a JS string as a kOS string-concat expression. kOS has no escape
+ * syntax — embed `"` via `CHAR(34)`, and break parser sentinels via the
+ * piece-split above. Output is a kerboscript expression that evaluates
+ * to `s` at runtime but never contains an intact sentinel byte sequence
+ * in its source.
  */
 function quoteKosString(s: string): string {
+  if (s === "") return `""`;
+  const pieces = splitSentinels(s);
+  if (pieces.length === 0) return `""`;
+  return pieces.map(encodeQuotedPiece).join(" + ");
+}
+
+function encodeQuotedPiece(s: string): string {
   if (s === "") return `""`;
   if (!s.includes(`"`)) return `"${s}"`;
   return s

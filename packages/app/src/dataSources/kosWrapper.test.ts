@@ -98,6 +98,46 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(`RUNPATH("0:/a.ks", "a" + CHAR(34) + "b").`);
   });
 
+  it("fragments [KOSDATA] sentinels in body lines so the REPL echo doesn't match the parser", () => {
+    const out = buildKosWrapper({
+      path: "0:/a.ks",
+      body: `PRINT "[KOSDATA]value=" + value + "[/KOSDATA]".`,
+      version: "h",
+      args: [],
+    });
+    // The wrapper text must not contain a contiguous parser sentinel
+    // anywhere — `[KOSDATA]` and `[/KOSDATA]` would lock the data-source
+    // parser onto the wrapper's REPL echo before the script runs.
+    expect(out).not.toContain("[KOSDATA]");
+    expect(out).not.toContain("[/KOSDATA]");
+    // The split point is right after the leading `[`, so each piece is a
+    // separate string concatenation. Spot-check the canonical form.
+    expect(out).toContain(`"[" + "KOSDATA]value="`);
+    expect(out).toContain(`"[" + "/KOSDATA]"`);
+  });
+
+  it("fragments [KOSERROR] sentinels too", () => {
+    const out = buildKosWrapper({
+      path: "0:/a.ks",
+      body: `PRINT "[KOSERROR]boom[/KOSERROR]".`,
+      version: "h",
+      args: [],
+    });
+    expect(out).not.toContain("[KOSERROR]");
+    expect(out).not.toContain("[/KOSERROR]");
+  });
+
+  it("fragments sentinels in path/version too — they get echoed as much as the body", () => {
+    const out = buildKosWrapper({
+      path: "0:/[KOSDATA]/x.ks",
+      body: "PRINT 1.",
+      version: "v[/KOSDATA]",
+      args: [],
+    });
+    expect(out).not.toContain("[KOSDATA]");
+    expect(out).not.toContain("[/KOSDATA]");
+  });
+
   it("ends with a trailing newline so the REPL sees a complete final statement", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
