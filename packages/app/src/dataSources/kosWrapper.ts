@@ -64,6 +64,10 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
     `// gonogo wrapper for ${quoteKosString(path)} v=${quoteKosString(version)}`,
     `FUNCTION gonogoWrapperEnsure {`,
     `  PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
+    // Diagnostic: prints v= and body length on every dispatch so we can
+    // verify the function entered with the right args and that bodyText
+    // resolved to a non-empty string. Cheap; one PRINT per dispatch.
+    `  PRINT "wrapper: entered v=" + bundledVersion + " body-len=" + bodyText:LENGTH.`,
     `  LOCAL needsWrite IS TRUE.`,
     `  IF EXISTS(targetPath) AND EXISTS(versionPath) {`,
     `    LOCAL existing IS OPEN(versionPath):READALL:STRING.`,

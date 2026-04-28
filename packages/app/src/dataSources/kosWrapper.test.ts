@@ -34,6 +34,9 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(
       `PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
     );
+    expect(out).toContain(
+      `PRINT "wrapper: entered v=" + bundledVersion + " body-len=" + bodyText:LENGTH.`,
+    );
     expect(out).toContain(`LOCAL needsWrite IS TRUE.`);
     expect(out).toContain(`IF EXISTS(targetPath) AND EXISTS(versionPath) {`);
     expect(out).toContain(`OPEN(versionPath):READALL:STRING`);
