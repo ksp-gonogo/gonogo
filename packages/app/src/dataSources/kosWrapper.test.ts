@@ -23,7 +23,7 @@ describe("hashKosScript", () => {
 });
 
 describe("buildKosWrapper", () => {
-  it("wraps the check-and-rewrite logic in a function with proper scope", () => {
+  it("wraps check-and-rewrite in a function and passes body as an arg", () => {
     const out = buildKosWrapper({
       path: "0:/widget_scripts/x.ks",
       body: "PRINT 1.",
@@ -31,43 +31,46 @@ describe("buildKosWrapper", () => {
       args: [],
     });
     expect(out).toContain(`FUNCTION gonogoWrapperEnsure {`);
-    expect(out).toContain(`PARAMETER targetPath, versionPath, bundledVersion.`);
+    expect(out).toContain(
+      `PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
+    );
     expect(out).toContain(`LOCAL needsWrite IS TRUE.`);
     expect(out).toContain(`IF EXISTS(targetPath) AND EXISTS(versionPath) {`);
     expect(out).toContain(`OPEN(versionPath):READALL:STRING`);
-    expect(out).toContain(`LOG "PRINT 1." TO targetPath.`);
+    // Body content travels via the bodyText parameter — bound at call
+    // time, so a cached FUNCTION definition can't carry over the
+    // previous dispatch's body.
+    expect(out).toContain(`LOG bodyText TO targetPath.`);
     expect(out).toContain(`LOG bundledVersion TO versionPath.`);
-    // Function call passes path/verPath/version explicitly — no top-level
-    // globals leaked into the REPL session.
     expect(out).toContain(
-      `gonogoWrapperEnsure("0:/widget_scripts/x.ks", "0:/widget_scripts/x.ks.ver", "v1").`,
+      `gonogoWrapperEnsure("0:/widget_scripts/x.ks", "0:/widget_scripts/x.ks.ver", "v1", "PRINT 1.").`,
     );
     expect(out).toContain(`RUNPATH("0:/widget_scripts/x.ks").`);
   });
 
-  it("emits one LOG per body line, preserving order", () => {
+  it("joins body lines with CHAR(10) so a multi-line body is one LOG call", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: "LOCAL x IS 1.\nLOCAL y IS 2.\nPRINT x + y.",
       version: "h",
       args: [],
     });
-    const logIndex = (s: string) => out.indexOf(`LOG "${s}" TO targetPath.`);
-    expect(logIndex("LOCAL x IS 1.")).toBeGreaterThan(-1);
-    expect(logIndex("LOCAL y IS 2.")).toBeGreaterThan(-1);
-    expect(logIndex("PRINT x + y.")).toBeGreaterThan(-1);
-    expect(logIndex("LOCAL x IS 1.")).toBeLessThan(logIndex("LOCAL y IS 2."));
-    expect(logIndex("LOCAL y IS 2.")).toBeLessThan(logIndex("PRINT x + y."));
+    // Single LOG bodyText call inside the function body.
+    const matches = out.match(/LOG bodyText TO targetPath\./g) ?? [];
+    expect(matches).toHaveLength(1);
+    expect(out).toContain(
+      `"LOCAL x IS 1." + CHAR(10) + "LOCAL y IS 2." + CHAR(10) + "PRINT x + y."`,
+    );
   });
 
-  it("emits an empty-string literal for blank body lines", () => {
+  it("represents blank body lines as empty fragments in the join", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: "PRINT 1.\n\nPRINT 2.",
       version: "h",
       args: [],
     });
-    expect(out).toContain(`LOG "" TO targetPath.`);
+    expect(out).toContain(`"PRINT 1." + CHAR(10) + "" + CHAR(10) + "PRINT 2."`);
   });
 
   it("defines the function before invoking it (REPL is order-sensitive)", () => {
@@ -85,17 +88,15 @@ describe("buildKosWrapper", () => {
     expect(runIdx).toBeGreaterThan(callIdx);
   });
 
-  it("escapes embedded double quotes via CHAR(34)", () => {
+  it("escapes embedded double quotes via CHAR(34) inside the body argument", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: `PRINT "hello".`,
       version: "h",
       args: [],
     });
-    // Split on `"`, each fragment quoted, joined with + CHAR(34) +.
-    expect(out).toContain(
-      `LOG "PRINT " + CHAR(34) + "hello" + CHAR(34) + "." TO targetPath.`,
-    );
+    // Body lives in the function call as `..., "PRINT " + CHAR(34) + …`.
+    expect(out).toContain(`"PRINT " + CHAR(34) + "hello" + CHAR(34) + "."`);
   });
 
   it("forwards numeric, boolean, and string args to RUNPATH", () => {

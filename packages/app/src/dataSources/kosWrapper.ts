@@ -46,11 +46,24 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
   const verPath = `${path}${VERSION_SUFFIX}`;
   const lines = body.split("\n");
   const argList = [quoteKosString(path), ...args.map(formatArg)].join(", ");
+  // Body content travels as a function ARGUMENT — a single kerboscript
+  // string expression with CHAR(10) between lines — rather than being
+  // baked into LOG statements inside the function body. Two reasons:
+  //   1. kOS REPL appears to cache FUNCTION definitions (or at least
+  //      not faithfully redefine them on identical-name re-declaration),
+  //      so a prior dispatch's body lines would otherwise stick around
+  //      regardless of the new `bundledVersion`. Symptom: regen changes
+  //      the version but the rewritten file still contains the FIRST
+  //      dispatch's body.
+  //   2. Single LOG call instead of N — measurably faster on bodies
+  //      with hundreds of lines.
+  const bodyExpr =
+    lines.map((line) => quoteKosString(line)).join(" + CHAR(10) + ") || `""`;
 
   const out: string[] = [
     `// gonogo wrapper for ${quoteKosString(path)} v=${quoteKosString(version)}`,
     `FUNCTION gonogoWrapperEnsure {`,
-    `  PARAMETER targetPath, versionPath, bundledVersion.`,
+    `  PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
     `  LOCAL needsWrite IS TRUE.`,
     `  IF EXISTS(targetPath) AND EXISTS(versionPath) {`,
     `    LOCAL existing IS OPEN(versionPath):READALL:STRING.`,
@@ -60,11 +73,11 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
     `    PRINT "wrapper: rewriting " + targetPath + " v=" + bundledVersion.`,
     `    IF EXISTS(targetPath) { DELETEPATH(targetPath). }`,
     `    IF EXISTS(versionPath) { DELETEPATH(versionPath). }`,
-    ...lines.map((line) => `    LOG ${quoteKosString(line)} TO targetPath.`),
+    `    LOG bodyText TO targetPath.`,
     `    LOG bundledVersion TO versionPath.`,
     `  }`,
     `}`,
-    `gonogoWrapperEnsure(${quoteKosString(path)}, ${quoteKosString(verPath)}, ${quoteKosString(version)}).`,
+    `gonogoWrapperEnsure(${quoteKosString(path)}, ${quoteKosString(verPath)}, ${quoteKosString(version)}, ${bodyExpr}).`,
     `RUNPATH(${argList}).`,
   ];
   return `${out.join("\n")}\n`;
