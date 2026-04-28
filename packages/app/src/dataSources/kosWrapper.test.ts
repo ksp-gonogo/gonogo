@@ -23,32 +23,35 @@ describe("hashKosScript", () => {
 });
 
 describe("buildKosWrapper", () => {
-  it("wraps check-and-rewrite in a function and passes body as an arg", () => {
+  it("emits SET-based check-and-rewrite at REPL top level", () => {
     const out = buildKosWrapper({
       path: "0:/widget_scripts/x.ks",
       body: "PRINT 1.",
       version: "v1",
       args: [],
     });
-    expect(out).toContain(`FUNCTION gonogoWrapperEnsure {`);
     expect(out).toContain(
-      `PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
+      `SET gonogoWrapperTarget TO "0:/widget_scripts/x.ks".`,
     );
     expect(out).toContain(
-      `PRINT "wrapper: entered v=" + bundledVersion + " body-len=" + bodyText:LENGTH.`,
+      `SET gonogoWrapperVerPath TO "0:/widget_scripts/x.ks.ver".`,
     );
-    expect(out).toContain(`LOCAL needsWrite IS TRUE.`);
-    expect(out).toContain(`IF EXISTS(targetPath) AND EXISTS(versionPath) {`);
-    expect(out).toContain(`OPEN(versionPath):READALL:STRING`);
-    // Body content travels via the bodyText parameter — bound at call
-    // time, so a cached FUNCTION definition can't carry over the
-    // previous dispatch's body.
-    expect(out).toContain(`LOG bodyText TO targetPath.`);
-    expect(out).toContain(`LOG bundledVersion TO versionPath.`);
+    expect(out).toContain(`SET gonogoWrapperVersion TO "v1".`);
+    expect(out).toContain(`SET gonogoWrapperBody TO "PRINT 1.".`);
+    expect(out).toContain(`SET gonogoWrapperNeedsWrite TO TRUE.`);
     expect(out).toContain(
-      `gonogoWrapperEnsure("0:/widget_scripts/x.ks", "0:/widget_scripts/x.ks.ver", "v1", "PRINT 1.").`,
+      `IF EXISTS(gonogoWrapperTarget) AND EXISTS(gonogoWrapperVerPath) {`,
     );
+    expect(out).toContain(
+      `OPEN(gonogoWrapperVerPath):READALL:STRING:TRIM = gonogoWrapperVersion`,
+    );
+    expect(out).toContain(`SET gonogoWrapperNeedsWrite TO FALSE.`);
+    expect(out).toContain(`LOG gonogoWrapperBody TO gonogoWrapperTarget.`);
+    expect(out).toContain(`LOG gonogoWrapperVersion TO gonogoWrapperVerPath.`);
     expect(out).toContain(`RUNPATH("0:/widget_scripts/x.ks").`);
+    // No FUNCTION wrapping — the previous attempt got bitten by REPL
+    // function caching when the parameter list changed.
+    expect(out).not.toContain(`FUNCTION gonogoWrapperEnsure`);
   });
 
   it("joins body lines with CHAR(10) so a multi-line body is one LOG call", () => {
@@ -58,8 +61,8 @@ describe("buildKosWrapper", () => {
       version: "h",
       args: [],
     });
-    // Single LOG bodyText call inside the function body.
-    const matches = out.match(/LOG bodyText TO targetPath\./g) ?? [];
+    const matches =
+      out.match(/LOG gonogoWrapperBody TO gonogoWrapperTarget\./g) ?? [];
     expect(matches).toHaveLength(1);
     expect(out).toContain(
       `"LOCAL x IS 1." + CHAR(10) + "LOCAL y IS 2." + CHAR(10) + "PRINT x + y."`,
@@ -76,29 +79,26 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(`"PRINT 1." + CHAR(10) + "" + CHAR(10) + "PRINT 2."`);
   });
 
-  it("defines the function before invoking it (REPL is order-sensitive)", () => {
+  it("orders SET assignments before RUNPATH (REPL processes in order)", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: "PRINT 1.",
       version: "v",
       args: [],
     });
-    const defIdx = out.indexOf(`FUNCTION gonogoWrapperEnsure`);
-    const callIdx = out.indexOf(`gonogoWrapperEnsure(`);
+    const setIdx = out.indexOf(`SET gonogoWrapperTarget`);
     const runIdx = out.indexOf(`RUNPATH(`);
-    expect(defIdx).toBeGreaterThanOrEqual(0);
-    expect(callIdx).toBeGreaterThan(defIdx);
-    expect(runIdx).toBeGreaterThan(callIdx);
+    expect(setIdx).toBeGreaterThanOrEqual(0);
+    expect(runIdx).toBeGreaterThan(setIdx);
   });
 
-  it("escapes embedded double quotes via CHAR(34) inside the body argument", () => {
+  it("escapes embedded double quotes via CHAR(34) inside the body assignment", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",
       body: `PRINT "hello".`,
       version: "h",
       args: [],
     });
-    // Body lives in the function call as `..., "PRINT " + CHAR(34) + …`.
     expect(out).toContain(`"PRINT " + CHAR(34) + "hello" + CHAR(34) + "."`);
   });
 

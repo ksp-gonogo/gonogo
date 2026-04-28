@@ -30,58 +30,55 @@ const VERSION_SUFFIX = ".ver";
 /**
  * Build the per-dispatch wrapper kerboscript. Pure — no I/O, no state.
  *
- * The check-and-rewrite logic lives inside a kerboscript FUNCTION
- * because top-level `LOCAL` doesn't persist across REPL statement
- * boundaries the way it does inside a function body. Wrapping in a
- * function gives `needsWrite` and friends proper scope, and it avoids
- * leaking dispatch state into the REPL's globals where a user might
- * later collide with them.
+ * History of approaches and why each failed (don't repeat):
+ *   - Top-level `LOCAL needsWrite IS TRUE.` — LOCALs don't persist
+ *     across statement boundaries at the REPL, so `IF needsWrite { }`
+ *     errored with "Undefined Variable Name 'needswrite'".
+ *   - Wrap in `FUNCTION gonogoWrapperEnsure { ... }` — kOS REPL keeps
+ *     prior FUNCTION definitions cached and ignores re-definitions.
+ *     Adding a 4th `bodyText` parameter caused the cached 3-parameter
+ *     version to reject calls with "Number of arguments ... Called
+ *     with too many arguments."
  *
- * Steady-state path is tiny: EXISTS + READALL + TRIM + equality check,
- * then RUNPATH. Only the one-time-per-version branch carries the LOG
- * storm.
+ * Current approach: use plain `SET` assignments at REPL top level.
+ * `@LAZYGLOBAL on` is the REPL default, so SET on an undeclared name
+ * creates a real global that persists across statements. Names get
+ * a `gonogoWrapper` prefix so they don't collide with whatever a
+ * user has set up in their session.
+ *
+ * Steady-state path is tiny: EXISTS + READALL + TRIM + equality
+ * check, then RUNPATH. Only the one-time-per-version branch carries
+ * the LOG storm.
  */
 export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
   const { path, body, version, args } = opts;
   const verPath = `${path}${VERSION_SUFFIX}`;
   const lines = body.split("\n");
   const argList = [quoteKosString(path), ...args.map(formatArg)].join(", ");
-  // Body content travels as a function ARGUMENT — a single kerboscript
-  // string expression with CHAR(10) between lines — rather than being
-  // baked into LOG statements inside the function body. Two reasons:
-  //   1. kOS REPL appears to cache FUNCTION definitions (or at least
-  //      not faithfully redefine them on identical-name re-declaration),
-  //      so a prior dispatch's body lines would otherwise stick around
-  //      regardless of the new `bundledVersion`. Symptom: regen changes
-  //      the version but the rewritten file still contains the FIRST
-  //      dispatch's body.
-  //   2. Single LOG call instead of N — measurably faster on bodies
-  //      with hundreds of lines.
+  // Body content as a single kerboscript string expression; CHAR(10)
+  // between source lines, evaluated at the SET site once.
   const bodyExpr =
     lines.map((line) => quoteKosString(line)).join(" + CHAR(10) + ") || `""`;
 
   const out: string[] = [
     `// gonogo wrapper for ${quoteKosString(path)} v=${quoteKosString(version)}`,
-    `FUNCTION gonogoWrapperEnsure {`,
-    `  PARAMETER targetPath, versionPath, bundledVersion, bodyText.`,
-    // Diagnostic: prints v= and body length on every dispatch so we can
-    // verify the function entered with the right args and that bodyText
-    // resolved to a non-empty string. Cheap; one PRINT per dispatch.
-    `  PRINT "wrapper: entered v=" + bundledVersion + " body-len=" + bodyText:LENGTH.`,
-    `  LOCAL needsWrite IS TRUE.`,
-    `  IF EXISTS(targetPath) AND EXISTS(versionPath) {`,
-    `    LOCAL existing IS OPEN(versionPath):READALL:STRING.`,
-    `    IF existing:TRIM = bundledVersion { SET needsWrite TO FALSE. }`,
-    `  }`,
-    `  IF needsWrite {`,
-    `    PRINT "wrapper: rewriting " + targetPath + " v=" + bundledVersion.`,
-    `    IF EXISTS(targetPath) { DELETEPATH(targetPath). }`,
-    `    IF EXISTS(versionPath) { DELETEPATH(versionPath). }`,
-    `    LOG bodyText TO targetPath.`,
-    `    LOG bundledVersion TO versionPath.`,
+    `SET gonogoWrapperTarget TO ${quoteKosString(path)}.`,
+    `SET gonogoWrapperVerPath TO ${quoteKosString(verPath)}.`,
+    `SET gonogoWrapperVersion TO ${quoteKosString(version)}.`,
+    `SET gonogoWrapperBody TO ${bodyExpr}.`,
+    `SET gonogoWrapperNeedsWrite TO TRUE.`,
+    `IF EXISTS(gonogoWrapperTarget) AND EXISTS(gonogoWrapperVerPath) {`,
+    `  IF OPEN(gonogoWrapperVerPath):READALL:STRING:TRIM = gonogoWrapperVersion {`,
+    `    SET gonogoWrapperNeedsWrite TO FALSE.`,
     `  }`,
     `}`,
-    `gonogoWrapperEnsure(${quoteKosString(path)}, ${quoteKosString(verPath)}, ${quoteKosString(version)}, ${bodyExpr}).`,
+    `IF gonogoWrapperNeedsWrite {`,
+    `  PRINT "wrapper: rewriting " + gonogoWrapperTarget + " v=" + gonogoWrapperVersion.`,
+    `  IF EXISTS(gonogoWrapperTarget) { DELETEPATH(gonogoWrapperTarget). }`,
+    `  IF EXISTS(gonogoWrapperVerPath) { DELETEPATH(gonogoWrapperVerPath). }`,
+    `  LOG gonogoWrapperBody TO gonogoWrapperTarget.`,
+    `  LOG gonogoWrapperVersion TO gonogoWrapperVerPath.`,
+    `}`,
     `RUNPATH(${argList}).`,
   ];
   return `${out.join("\n")}\n`;
