@@ -132,6 +132,52 @@ describe("KosCpuPicker", () => {
     expect(input.value).toBe("legacy-cpu");
   });
 
+  it("Manage view edits an entry's label and description", async () => {
+    service.upsert({ tagname: "lander", label: "Lander", description: "old" });
+    const user = userEvent.setup();
+
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("button", { name: /Manage CPUs/i }));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+
+    const labelInput = screen.getByLabelText("Label") as HTMLInputElement;
+    await user.clear(labelInput);
+    await user.type(labelInput, "Mun Lander");
+    const descInput = screen.getByLabelText(
+      "Description",
+    ) as HTMLTextAreaElement;
+    await user.clear(descInput);
+    await user.type(descInput, "Suicide-burn computer");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const stored = service.get("lander");
+    expect(stored?.label).toBe("Mun Lander");
+    expect(stored?.description).toBe("Suicide-burn computer");
+  });
+
+  it("Manage view delete needs a second click to confirm", async () => {
+    service.upsert({ tagname: "probe" });
+    const user = userEvent.setup();
+
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("button", { name: /Manage CPUs/i }));
+
+    const deleteBtn = screen.getByRole("button", { name: "Delete" });
+    await user.click(deleteBtn);
+    expect(service.get("probe")).toBeDefined(); // first click only arms it
+    await user.click(screen.getByRole("button", { name: "Confirm?" }));
+    expect(service.get("probe")).toBeUndefined();
+  });
+
+  it("Manage button is hidden when the registry is empty", async () => {
+    const user = userEvent.setup();
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+    expect(screen.queryByRole("button", { name: /Manage CPUs/i })).toBeNull();
+  });
+
   it("filters entries by query", async () => {
     service.upsert({ tagname: "lander", label: "Lander" });
     service.upsert({ tagname: "orbital", label: "Orbital" });

@@ -86,12 +86,22 @@ export function KosCpuPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [adding, setAdding] = useState(false);
+  const [mode, setMode] = useState<"list" | "add" | "manage">("list");
   const [draft, setDraft] = useState({
     tagname: "",
     label: "",
     description: "",
   });
+  // Tagname currently being edited inline within the manage view (or null
+  // for the row-list mode). Edits are local until Save.
+  const [editing, setEditing] = useState<{
+    tagname: string;
+    label: string;
+    description: string;
+  } | null>(null);
+  // Tagname pending delete-confirm — first × click sets this, second click
+  // commits. A click on a different row resets it.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -124,14 +134,18 @@ export function KosCpuPicker({
     setOpen(true);
     setQuery("");
     setActiveIndex(-1);
-    setAdding(false);
+    setMode("list");
+    setEditing(null);
+    setPendingDelete(null);
   }, []);
 
   const closePicker = useCallback(() => {
     setOpen(false);
     setQuery("");
     setActiveIndex(-1);
-    setAdding(false);
+    setMode("list");
+    setEditing(null);
+    setPendingDelete(null);
   }, []);
 
   const selectEntry = useCallback(
@@ -214,9 +228,9 @@ export function KosCpuPicker({
   // can start typing immediately. Pre-fill from the search query when the
   // form was opened via "Save 'foo' to registry".
   useEffect(() => {
-    if (!adding) return;
+    if (mode !== "add") return;
     draftTagnameRef.current?.focus();
-  }, [adding]);
+  }, [mode]);
 
   const displayValue = open ? query : selected ? displayLabel(selected) : value;
 
@@ -247,7 +261,7 @@ export function KosCpuPicker({
       />
       {open && (
         <Dropdown role="listbox" id={listboxId}>
-          {!adding && (
+          {mode === "list" && (
             <>
               {filtered.length === 0 && !showQuickAdd && (
                 <EmptyState>
@@ -315,7 +329,7 @@ export function KosCpuPicker({
                   </ItemDescription>
                 </DropdownItem>
               )}
-              <AddRow>
+              <FooterRow>
                 <GhostButton
                   type="button"
                   onPointerDown={(e) => {
@@ -325,15 +339,26 @@ export function KosCpuPicker({
                       label: "",
                       description: "",
                     });
-                    setAdding(true);
+                    setMode("add");
                   }}
                 >
                   + Add CPU…
                 </GhostButton>
-              </AddRow>
+                {entries.length > 0 && (
+                  <GhostButton
+                    type="button"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      setMode("manage");
+                    }}
+                  >
+                    Manage CPUs…
+                  </GhostButton>
+                )}
+              </FooterRow>
             </>
           )}
-          {adding && (
+          {mode === "add" && (
             <AddForm
               onPointerDown={(e) => {
                 // Stop the input's outside-click handler from closing the
@@ -401,13 +426,182 @@ export function KosCpuPicker({
                   type="button"
                   onPointerDown={(e) => {
                     e.preventDefault();
-                    setAdding(false);
+                    setMode("list");
                   }}
                 >
                   Cancel
                 </GhostButton>
               </FormRow>
             </AddForm>
+          )}
+          {mode === "manage" && (
+            <ManageView
+              onPointerDown={(e) => {
+                // Same rationale as AddForm — keep the outside-click handler
+                // from snapping the picker shut while the user clicks a
+                // button or types inside an input.
+                e.stopPropagation();
+              }}
+            >
+              {entries.length === 0 ? (
+                <EmptyState>
+                  No CPUs in the registry yet. Add one to get started.
+                </EmptyState>
+              ) : (
+                entries.map((entry) => {
+                  const isEditing = editing?.tagname === entry.tagname;
+                  const confirmingDelete = pendingDelete === entry.tagname;
+                  if (isEditing) {
+                    return (
+                      <ManageRow key={entry.tagname}>
+                        <Field>
+                          <FieldLabel>Tagname</FieldLabel>
+                          <ReadonlyValue>{entry.tagname}</ReadonlyValue>
+                          <FieldHint>
+                            Tagname is set in KSP — pick a new tagname there if
+                            this one is wrong.
+                          </FieldHint>
+                        </Field>
+                        <Field>
+                          <FieldLabel
+                            htmlFor={`${optionPrefix}-edit-label-${entry.tagname}`}
+                          >
+                            Label
+                          </FieldLabel>
+                          <Input
+                            id={`${optionPrefix}-edit-label-${entry.tagname}`}
+                            value={editing.label}
+                            onChange={(e) =>
+                              setEditing((prev) =>
+                                prev
+                                  ? { ...prev, label: e.target.value }
+                                  : prev,
+                              )
+                            }
+                          />
+                        </Field>
+                        <Field>
+                          <FieldLabel
+                            htmlFor={`${optionPrefix}-edit-desc-${entry.tagname}`}
+                          >
+                            Description
+                          </FieldLabel>
+                          <Textarea
+                            id={`${optionPrefix}-edit-desc-${entry.tagname}`}
+                            value={editing.description}
+                            rows={2}
+                            onChange={(e) =>
+                              setEditing((prev) =>
+                                prev
+                                  ? { ...prev, description: e.target.value }
+                                  : prev,
+                              )
+                            }
+                          />
+                        </Field>
+                        <FormRow>
+                          <PrimaryButton
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              service.upsert({
+                                tagname: entry.tagname,
+                                label: editing.label,
+                                description: editing.description,
+                              });
+                              setEditing(null);
+                            }}
+                          >
+                            Save
+                          </PrimaryButton>
+                          <GhostButton
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              setEditing(null);
+                            }}
+                          >
+                            Cancel
+                          </GhostButton>
+                        </FormRow>
+                      </ManageRow>
+                    );
+                  }
+                  return (
+                    <ManageRow key={entry.tagname}>
+                      <ManageHeader>
+                        <StatusDot
+                          $state={
+                            entry.online
+                              ? "online"
+                              : entry.lastSeenAt !== undefined
+                                ? "seen"
+                                : "unknown"
+                          }
+                          title={statusTooltip(entry)}
+                          aria-label={statusTooltip(entry)}
+                        />
+                        <ManageMain>
+                          <ItemLabel>{displayLabel(entry)}</ItemLabel>
+                          {entry.label && entry.label !== entry.tagname && (
+                            <ItemTag>{entry.tagname}</ItemTag>
+                          )}
+                          {entry.description && (
+                            <ItemDescription>
+                              {entry.description}
+                            </ItemDescription>
+                          )}
+                        </ManageMain>
+                        <ManageActions>
+                          <GhostButton
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              setPendingDelete(null);
+                              setEditing({
+                                tagname: entry.tagname,
+                                label: entry.label ?? "",
+                                description: entry.description ?? "",
+                              });
+                            }}
+                          >
+                            Edit
+                          </GhostButton>
+                          <DeleteButton
+                            type="button"
+                            $confirming={confirmingDelete}
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              if (confirmingDelete) {
+                                service.remove(entry.tagname);
+                                setPendingDelete(null);
+                              } else {
+                                setPendingDelete(entry.tagname);
+                              }
+                            }}
+                          >
+                            {confirmingDelete ? "Confirm?" : "Delete"}
+                          </DeleteButton>
+                        </ManageActions>
+                      </ManageHeader>
+                    </ManageRow>
+                  );
+                })
+              )}
+              <FooterRow>
+                <GhostButton
+                  type="button"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setMode("list");
+                    setEditing(null);
+                    setPendingDelete(null);
+                  }}
+                >
+                  Done
+                </GhostButton>
+              </FooterRow>
+            </ManageView>
           )}
         </Dropdown>
       )}
@@ -525,9 +719,78 @@ const EmptyState = styled.div`
   text-align: center;
 `;
 
-const AddRow = styled.div`
+const FooterRow = styled.div`
   border-top: 1px solid var(--color-border-subtle);
   padding: 6px 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const ManageView = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ManageRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  &:last-of-type {
+    border-bottom: none;
+  }
+`;
+
+const ManageHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+const ManageMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+`;
+
+const ManageActions = styled.div`
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+`;
+
+const DeleteButton = styled.button<{ $confirming: boolean }>`
+  background: ${({ $confirming }) =>
+    $confirming ? "var(--color-status-nogo-bg)" : "transparent"};
+  color: ${({ $confirming }) =>
+    $confirming ? "var(--color-status-nogo-fg)" : "var(--color-text-muted)"};
+  border: 1px solid var(--color-status-alert-muted);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  &:hover {
+    background: var(--color-status-nogo-bg);
+    color: var(--color-status-nogo-fg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const ReadonlyValue = styled.div`
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 4px 8px;
 `;
 
 const AddForm = styled.div`
