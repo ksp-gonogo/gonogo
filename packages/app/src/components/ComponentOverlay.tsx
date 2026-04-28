@@ -1,5 +1,6 @@
 import type { ComponentDefinition } from "@gonogo/core";
 import { getComponents } from "@gonogo/core";
+import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, useSerialDeviceService } from "@gonogo/serial";
 import { Tag, useFabCluster, useModal } from "@gonogo/ui";
 import type { ReactNode } from "react";
@@ -73,11 +74,12 @@ export function ComponentOverlay({
   const { open: openModal, close: closeModal } = useModal();
   // ModalProvider lives at the app root, above SerialDeviceProvider. Config
   // components opened here via `openConfigOnAdd` portal out of the provider
-  // subtree, so we capture the serial service and re-provide it. Same
-  // pattern as the dashboard's GearButton. Component-level config UIs that
-  // need save-profile / fog / etc. contexts will need the same treatment
-  // if they're ever built.
+  // subtree, so we capture the services screen-side and re-provide them
+  // inside the modal content. Same pattern as the dashboard's GearButton.
+  // Any new context the kOS widgets reach for (KosCpuPicker → registry,
+  // future kOS proxy etc.) needs the same treatment here.
   const serialService = useSerialDeviceService();
+  const cpuRegistry = useCpuRegistryService();
 
   const allComponents = getComponents();
 
@@ -115,22 +117,32 @@ export function ComponentOverlay({
         const ConfigComp = def.configComponent;
         const modalId = openModal(
           <SerialDeviceProvider service={serialService}>
-            <ConfigComp
-              config={item.config ?? def.defaultConfig ?? {}}
-              onSave={(newConfig: Record<string, unknown>) => {
-                // Persist the user's freshly-entered config to the item
-                // that addItem just placed. Without this, the on-add modal
-                // was cosmetic — the widget reverted to defaultConfig.
-                updateItemConfig(item.i, newConfig);
-                closeModal(modalId);
-              }}
-            />
+            <CpuRegistryProvider service={cpuRegistry}>
+              <ConfigComp
+                config={item.config ?? def.defaultConfig ?? {}}
+                onSave={(newConfig: Record<string, unknown>) => {
+                  // Persist the user's freshly-entered config to the item
+                  // that addItem just placed. Without this, the on-add modal
+                  // was cosmetic — the widget reverted to defaultConfig.
+                  updateItemConfig(item.i, newConfig);
+                  closeModal(modalId);
+                }}
+              />
+            </CpuRegistryProvider>
           </SerialDeviceProvider>,
           { title: def.name },
         );
       }
     },
-    [addItem, updateItemConfig, nextY, openModal, closeModal, serialService],
+    [
+      addItem,
+      updateItemConfig,
+      nextY,
+      openModal,
+      closeModal,
+      serialService,
+      cpuRegistry,
+    ],
   );
 
   const cluster = useFabCluster();

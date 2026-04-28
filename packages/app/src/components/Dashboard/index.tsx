@@ -7,6 +7,7 @@ import {
   handleError,
   useTouchDevice,
 } from "@gonogo/core";
+import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
 import {
   type InputMappings,
   InputMappingTab,
@@ -563,11 +564,13 @@ function GearButton({
   onSaveMappings,
 }: GearButtonProps) {
   const { open, close } = useModal();
-  // ModalProvider lives at the app root, above SerialDeviceProvider, so modal
-  // content rendered via portal doesn't see the serial context. Capture the
-  // service here (where the provider IS in scope) and re-provide inside the
-  // modal content so `InputMappingTab` can resolve `useSerialDeviceService`.
+  // ModalProvider lives at the app root, above the screen-side providers.
+  // Modal content rendered via portal doesn't see those contexts unless we
+  // capture the services here (where the providers ARE in scope) and
+  // re-provide inside the modal content. Mirrors the on-add pattern in
+  // ComponentOverlay.
   const serialService = useSerialDeviceService();
+  const cpuRegistry = useCpuRegistryService();
   const ConfigComp = def.configComponent;
   const actions = def.actions ?? [];
   const hasConfig = Boolean(ConfigComp);
@@ -581,28 +584,30 @@ function GearButton({
     }
     const id = open(
       <SerialDeviceProvider service={serialService}>
-        <ErrorBoundary
-          fallback={(error, reset) => (
-            <WidgetError
-              componentName={`${def.name} config`}
-              error={error}
-              onRetry={reset}
+        <CpuRegistryProvider service={cpuRegistry}>
+          <ErrorBoundary
+            fallback={(error, reset) => (
+              <WidgetError
+                componentName={`${def.name} config`}
+                error={error}
+                onRetry={reset}
+              />
+            )}
+          >
+            <GearModalContent
+              item={item}
+              def={def}
+              onSaveConfig={(c) => {
+                onSaveConfig(c);
+                close(id);
+              }}
+              onSaveMappings={(m) => {
+                onSaveMappings(m);
+                close(id);
+              }}
             />
-          )}
-        >
-          <GearModalContent
-            item={item}
-            def={def}
-            onSaveConfig={(c) => {
-              onSaveConfig(c);
-              close(id);
-            }}
-            onSaveMappings={(m) => {
-              onSaveMappings(m);
-              close(id);
-            }}
-          />
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </CpuRegistryProvider>
       </SerialDeviceProvider>,
       { title: def.name },
     );

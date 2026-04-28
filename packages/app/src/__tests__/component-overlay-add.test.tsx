@@ -10,6 +10,7 @@ import {
   clearRegistry,
   registerComponent,
 } from "@gonogo/core";
+import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
 import { ModalProvider } from "@gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -88,16 +89,19 @@ describe("ComponentOverlay — add → configure → persist", () => {
     const addItem = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
+    const cpuRegistry = new CpuRegistryService("main");
 
     render(
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
-          <OverlayProvider
-            addItem={addItem}
-            updateItemConfig={updateItemConfig}
-          >
-            <ComponentOverlay currentLayouts={{ lg: [] }} />
-          </OverlayProvider>
+          <CpuRegistryProvider service={cpuRegistry}>
+            <OverlayProvider
+              addItem={addItem}
+              updateItemConfig={updateItemConfig}
+            >
+              <ComponentOverlay currentLayouts={{ lg: [] }} />
+            </OverlayProvider>
+          </CpuRegistryProvider>
         </SerialDeviceProvider>
       </ModalProvider>,
     );

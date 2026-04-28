@@ -7,6 +7,7 @@
 
 import type { ActionDefinition } from "@gonogo/core";
 import { clearRegistry, registerComponent } from "@gonogo/core";
+import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
 import { ModalProvider } from "@gonogo/ui";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -48,13 +49,16 @@ function renderWithProviders(
   service: SerialDeviceService,
   tree: React.ReactNode,
 ) {
-  // Match the real app's provider order: ModalProvider sits ABOVE
-  // SerialDeviceProvider (app root vs screen-level). If the harness inverted
-  // this, the modal's portal content would see the serial context for free
-  // and we'd never notice when GearButton forgets to re-provide it.
+  // Match the real app's provider order: ModalProvider sits ABOVE the
+  // screen-level providers. If the harness inverted this, modal-portal
+  // content would see those contexts for free and we'd never notice when
+  // GearButton forgets to re-provide them.
+  const cpuRegistry = new CpuRegistryService("main");
   return render(
     <ModalProvider>
-      <SerialDeviceProvider service={service}>{tree}</SerialDeviceProvider>
+      <SerialDeviceProvider service={service}>
+        <CpuRegistryProvider service={cpuRegistry}>{tree}</CpuRegistryProvider>
+      </SerialDeviceProvider>
     </ModalProvider>,
   );
 }
