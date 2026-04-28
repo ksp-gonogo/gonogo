@@ -135,15 +135,24 @@ function KosWrapperTesterComponent({
     }
   }, [error, seed, version]);
 
+  // Setting a flag here and dispatching from a useEffect tied to `seed` so
+  // the wrapper sends the FRESH body/version. queueMicrotask fires before
+  // React's render commit, which means useKosWidget's managedRef still
+  // points at the previous render's body+version — the wrapper would see
+  // matching hashes and skip the rewrite, RUNing the old file.
+  const regenPendingRef = useRef(false);
   const onRegenAndRun = () => {
-    const next = randomValue();
-    setSeed(next);
-    // Fire on the next tick so useKosWidget picks up the new managed payload.
-    queueMicrotask(() => {
-      dispatchStartRef.current = Date.now();
-      dispatch();
-    });
+    regenPendingRef.current = true;
+    setSeed(randomValue());
   };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `seed` is the trigger; dispatch reads the fresh body/version via useKosWidget's refs once render has committed
+  useEffect(() => {
+    if (!regenPendingRef.current) return;
+    regenPendingRef.current = false;
+    dispatchStartRef.current = Date.now();
+    dispatch();
+  }, [seed, dispatch]);
 
   const onRunAgain = () => {
     dispatchStartRef.current = Date.now();
