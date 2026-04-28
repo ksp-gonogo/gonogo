@@ -1,6 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { logger, registerComponent } from "@gonogo/core";
-import { useKosWidget } from "@gonogo/data";
+import { hashKosScript, useKosWidget } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -30,6 +30,7 @@ interface KosFilesConfig {
 }
 
 const DEFAULT_VOLUME = "0:";
+const KOS_FILES_SCRIPT_VERSION = hashKosScript(KOS_FILES_SCRIPT);
 
 type ViewMode = { kind: "list"; path: string } | { kind: "view"; path: string };
 
@@ -68,6 +69,7 @@ function KosFilesComponent({
     script: scriptName,
     args,
     mode: "command",
+    managed: { body: KOS_FILES_SCRIPT, version: KOS_FILES_SCRIPT_VERSION },
   });
 
   // Re-dispatch whenever the view (and therefore args) changes — useKosWidget

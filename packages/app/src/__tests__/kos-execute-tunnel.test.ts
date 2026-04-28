@@ -171,7 +171,12 @@ describe("kOS execute tunnel (station → host → kos)", () => {
 
     const result = await source.executeScript("datastream", "deltav", [2]);
     expect(result).toEqual({ dv: 1234, ok: true });
-    expect(executeScript).toHaveBeenCalledWith("datastream", "deltav", [2]);
+    expect(executeScript).toHaveBeenCalledWith(
+      "datastream",
+      "deltav",
+      [2],
+      undefined,
+    );
   });
 
   it("propagates host-side errors back to the station", async () => {
@@ -246,7 +251,12 @@ describe("kOS execute tunnel (station → host → kos)", () => {
 
     const result = await source.executeScript("datastream", "deltav", [2]);
     expect(result).toEqual({ dv: 42 });
-    expect(executeScript).toHaveBeenCalledWith("datastream", "deltav", [2]);
+    expect(executeScript).toHaveBeenCalledWith(
+      "datastream",
+      "deltav",
+      [2],
+      undefined,
+    );
   });
 
   it("errors if the host has no kos registered", async () => {

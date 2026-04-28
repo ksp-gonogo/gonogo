@@ -1,5 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { logger, registerComponent, useDataValue } from "@gonogo/core";
+import { hashKosScript } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -20,6 +21,8 @@ import {
   SHIP_MAP_SCRIPT_NAME,
   type ShipMapPart,
 } from "./shipMapScript";
+
+const SHIP_MAP_SCRIPT_VERSION = hashKosScript(SHIP_MAP_SCRIPT);
 
 interface ShipMapConfig {
   /** kOS CPU tagname. Required — widget stays in an empty state until set. */
@@ -54,6 +57,7 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     args: [],
     field: "parts",
     mode: "command",
+    managed: { body: SHIP_MAP_SCRIPT, version: SHIP_MAP_SCRIPT_VERSION },
   });
 
   // Auto-refresh on staging. Reads v.currentStage; when it changes and the

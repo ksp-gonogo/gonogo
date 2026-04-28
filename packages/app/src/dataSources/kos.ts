@@ -5,11 +5,12 @@ import type {
   DataSourceStatus,
 } from "@gonogo/core";
 import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
-import type { KosData, KosScriptArg } from "@gonogo/data";
+import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
 import { parseKosData, stripAnsi } from "@gonogo/data";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
+import { buildKosWrapper } from "./kosWrapper";
 
-export type { KosScriptArg };
+export type { KosManagedScript, KosScriptArg };
 
 export interface KosConfig extends Record<string, unknown> {
   /** Proxy host (our @gonogo/telnet-proxy server). */
@@ -37,8 +38,14 @@ const STORAGE_KEY = "gonogo.datasource.kos";
  */
 const LEGACY_KOS_COMPUTE_KEY = "gonogo.datasource.kos-compute";
 
-/** Milliseconds a single executeScript call will wait for its [KOSDATA] line. */
-const DEFAULT_CALL_TIMEOUT_MS = 10_000;
+/**
+ * Milliseconds a single executeScript call will wait for its [KOSDATA] line.
+ * Generous because a managed-script wrapper that needs to rewrite the file
+ * runs ~140 LOG-to-disk ops on the kOS side, each one Unity-tick-bound — a
+ * cold first dispatch after a bundled-script change can take several
+ * seconds before RUNPATH even starts.
+ */
+const DEFAULT_CALL_TIMEOUT_MS = 30_000;
 
 /**
  * Soft cap on kOS executeScript dispatch rate. Each script run holds a
@@ -215,15 +222,22 @@ export class KosDataSource implements DataSource<KosConfig> {
    * object. Calls to the same CPU are serialised by a per-session FIFO
    * queue; calls to different CPUs run in parallel. Rejects if no
    * [KOSDATA] arrives within the call timeout or the session dies.
+   *
+   * If `managed` is provided, the dispatch is wrapped in a check-and-write
+   * preamble that keeps `script` on the kOS volume in sync with the
+   * bundled `managed.body` (versioned via `managed.version` against a
+   * `<script>.ver` sidecar). Without `managed`, `script` is treated as a
+   * pre-existing path on the kOS volume — same behaviour as before.
    */
   executeScript(
     cpu: string,
     script: string,
     args: KosScriptArg[],
+    managed?: KosManagedScript,
   ): Promise<KosData> {
     KOS_DISPATCH_BUDGET.record();
     const session = this.getOrCreateSession(cpu);
-    return session.enqueue(script, args);
+    return session.enqueue(script, args, managed);
   }
 
   // --- Config ---
@@ -383,6 +397,8 @@ interface SessionInit {
 interface PendingCall {
   script: string;
   args: KosScriptArg[];
+  /** When set, the dispatch sends the wrapper instead of a bare RUNPATH. */
+  managed: KosManagedScript | null;
   resolve: (data: KosData) => void;
   reject: (err: Error) => void;
   timer: ReturnType<typeof setTimeout> | null;
@@ -427,9 +443,20 @@ export class KosComputeSession {
     this.init = init;
   }
 
-  enqueue(script: string, args: KosScriptArg[]): Promise<KosData> {
+  enqueue(
+    script: string,
+    args: KosScriptArg[],
+    managed: KosManagedScript | null = null,
+  ): Promise<KosData> {
     return new Promise<KosData>((resolve, reject) => {
-      const call: PendingCall = { script, args, resolve, reject, timer: null };
+      const call: PendingCall = {
+        script,
+        args,
+        managed,
+        resolve,
+        reject,
+        timer: null,
+      };
       this.queue.push(call);
       this.ensureOpen();
       this.drain();
@@ -791,11 +818,27 @@ export class KosComputeSession {
     // recommended form in current kOS. `RUN foo(...)` still works for a
     // bare filename but the parser chokes on paths like "boot/test.ks"
     // because the slash and dot aren't valid inside an identifier.
-    const argList = [
-      JSON.stringify(next.script),
-      ...next.args.map(formatArg),
-    ].join(", ");
-    const cmd = `RUNPATH(${argList}).\n`;
+    //
+    // Managed dispatch: if the caller supplied a bundled body + version,
+    // we send the wrapper instead. The wrapper checks a `<script>.ver`
+    // sidecar, conditionally rewrites the file, then RUNPATHs it. Falls
+    // back to the bare RUNPATH form when no managed payload is supplied
+    // (kept for tests + ad-hoc scripts that already live on disk).
+    let cmd: string;
+    if (next.managed) {
+      cmd = buildKosWrapper({
+        path: next.script,
+        body: next.managed.body,
+        version: next.managed.version,
+        args: next.args,
+      });
+    } else {
+      const argList = [
+        JSON.stringify(next.script),
+        ...next.args.map(formatArg),
+      ].join(", ");
+      cmd = `RUNPATH(${argList}).\n`;
+    }
     logger.tag("kos").debug("dispatching", {
       cpu: this.init.cpu,
       script: next.script,

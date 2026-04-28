@@ -1,5 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { logger, registerComponent } from "@gonogo/core";
+import { hashKosScript } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -32,6 +33,7 @@ interface KosProcessorsConfig {
 }
 
 const DEFAULT_INTERVAL_MS = 5000;
+const KOS_PROCESSORS_SCRIPT_VERSION = hashKosScript(KOS_PROCESSORS_SCRIPT);
 /** Don't let users dial below 1s — running a kerboscript every tick can
  *  starve other scripts on the same CPU. */
 const MIN_INTERVAL_MS = 1000;
@@ -61,6 +63,10 @@ function KosProcessorsComponent({
     field: "processors",
     mode: autoRefresh ? "interval" : "command",
     intervalMs: autoRefresh ? intervalMs : undefined,
+    managed: {
+      body: KOS_PROCESSORS_SCRIPT,
+      version: KOS_PROCESSORS_SCRIPT_VERSION,
+    },
   });
 
   useEffect(() => {

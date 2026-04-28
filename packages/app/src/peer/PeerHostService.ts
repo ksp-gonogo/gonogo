@@ -566,6 +566,7 @@ export class PeerHostService {
         cpu: string,
         script: string,
         args: Array<number | string | boolean>,
+        managed?: import("@gonogo/data").KosManagedScript,
       ) => Promise<import("@gonogo/data").KosData>;
     };
     const source = getDataSource("kos") as
@@ -587,7 +588,12 @@ export class PeerHostService {
       return;
     }
     try {
-      const data = await source.executeScript(msg.cpu, msg.script, msg.args);
+      const data = await source.executeScript(
+        msg.cpu,
+        msg.script,
+        msg.args,
+        msg.managed,
+      );
       respond(data);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));

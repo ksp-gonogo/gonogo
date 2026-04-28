@@ -120,6 +120,14 @@ export type PeerMessage =
       cpu: string;
       script: string;
       args: KosScriptArg[];
+      /**
+       * When set, the host's KosDataSource auto-syncs `script` on the kOS
+       * volume to `managed.body` before RUNPATH. Lets stations benefit
+       * from the same auto-upload that main-screen widgets get — without
+       * it, a station that dispatches a script the main screen has never
+       * run would hit "file not found" on the kOS volume.
+       */
+      managed?: import("@gonogo/data").KosManagedScript;
     }
   | {
       type: "kos-execute-response";

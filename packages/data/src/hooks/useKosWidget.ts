@@ -13,6 +13,20 @@ export type KosWidgetArg =
   | { type: "boolean"; value: boolean }
   | { type: "telemetry"; key: string };
 
+/**
+ * Optional bundled-script payload forwarded to executeScript so the kOS
+ * data source can keep the on-volume copy of `script` in sync with the
+ * bundled body — see packages/app/src/dataSources/kosWrapper.ts. Defined
+ * here (rather than in @gonogo/app) so widgets can pass it through the
+ * hook without an app-package dependency.
+ */
+export interface KosManagedScript {
+  /** Full bundled script body. */
+  body: string;
+  /** Stable hash of `body`; mismatch with the on-volume sidecar triggers a rewrite. */
+  version: string;
+}
+
 export interface UseKosWidgetOptions {
   /** Name of the kOS CPU to target (tagname). */
   cpu: string;
@@ -31,6 +45,14 @@ export interface UseKosWidgetOptions {
    * Defaults to "data" (the BufferedDataSource wrapping Telemachus).
    */
   telemetrySourceId?: string;
+  /**
+   * When set, the data source auto-syncs `script` on the kOS volume to
+   * `managed.body` before RUNPATH (versioned via `managed.version`).
+   * Lets widgets ship updated kerboscripts without users having to copy
+   * and paste each release. Sources that don't support managed scripts
+   * (e.g. PeerClientDataSource today) just ignore the field.
+   */
+  managed?: KosManagedScript;
 }
 
 export interface UseKosWidgetResult {
@@ -51,6 +73,7 @@ interface KosExecutor {
     cpu: string,
     script: string,
     args: KosScriptArg[],
+    managed?: KosManagedScript,
   ): Promise<KosData>;
 }
 
@@ -122,6 +145,10 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   cpuRef.current = opts.cpu;
   const scriptRef = useRef(opts.script);
   scriptRef.current = opts.script;
+  // Same fresh-on-dispatch semantics — a managed payload that flips
+  // version mid-flight should land on the next call without re-mounting.
+  const managedRef = useRef(opts.managed);
+  managedRef.current = opts.managed;
 
   const dispatch = useCallback(() => {
     if (pendingRef.current) return;
@@ -144,6 +171,7 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
         cpuRef.current,
         scriptRef.current,
         resolveArgs(argsRef.current, telemetry),
+        managedRef.current,
       )
       .then((result) => {
         if (!mountedRef.current) return;

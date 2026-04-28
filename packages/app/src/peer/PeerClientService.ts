@@ -462,15 +462,17 @@ export class PeerClientService {
   /**
    * Tunnel a kOS compute script execution through to the host. The host
    * invokes its local KosDataSource.executeScript and replies with
-   * the parsed [KOSDATA] object (or an error). Timeout defaults to 15s —
-   * a shade longer than the host's own per-call timeout so the station
+   * the parsed [KOSDATA] object (or an error). Timeout defaults to 35s —
+   * a shade longer than the host's own per-call timeout (which itself
+   * needs slack for first-write managed dispatches) so the station
    * surfaces the real error rather than a timeout racing it.
    */
   sendKosExecute(
     cpu: string,
     script: string,
     args: Array<number | string | boolean>,
-    timeoutMs = 15_000,
+    managed?: import("@gonogo/data").KosManagedScript,
+    timeoutMs = 35_000,
   ): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       if (!this.conn || this.conn.open === false) {
@@ -490,6 +492,7 @@ export class PeerClientService {
         cpu,
         script,
         args,
+        managed,
       } satisfies PeerMessage);
     });
   }

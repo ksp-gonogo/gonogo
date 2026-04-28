@@ -164,8 +164,9 @@ export class PeerClientDataSource implements DataSource {
     cpu: string,
     script: string,
     args: Array<number | string | boolean>,
+    managed?: import("@gonogo/data").KosManagedScript,
   ): Promise<Record<string, unknown>> {
-    return this.client.sendKosExecute(cpu, script, args);
+    return this.client.sendKosExecute(cpu, script, args, managed);
   }
 
   /**

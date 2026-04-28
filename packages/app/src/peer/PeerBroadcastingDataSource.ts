@@ -37,6 +37,7 @@ type ExecuteScriptAware = {
     cpu: string,
     script: string,
     args: Array<number | string | boolean>,
+    managed?: import("@gonogo/data").KosManagedScript,
   ) => Promise<Record<string, unknown>>;
 };
 
