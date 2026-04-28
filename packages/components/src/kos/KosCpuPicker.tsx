@@ -48,6 +48,22 @@ function displayLabel(entry: KosCpuEntry): string {
   return entry.label ?? entry.tagname;
 }
 
+function statusTooltip(entry: KosCpuEntry, now: number = Date.now()): string {
+  if (entry.online) return "Online — visible in the kOS menu now";
+  if (entry.lastSeenAt === undefined) return "Never seen by discovery";
+  const ageMs = Math.max(0, now - entry.lastSeenAt);
+  const ageStr = formatAge(ageMs);
+  return `Offline — last seen ${ageStr} ago`;
+}
+
+function formatAge(ms: number): string {
+  if (ms < 1000) return "<1s";
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)} min`;
+  if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} h`;
+  return `${Math.round(ms / 86_400_000)} d`;
+}
+
 function matches(entry: KosCpuEntry, q: string): boolean {
   if (!q) return true;
   const needle = q.toLowerCase();
@@ -256,6 +272,17 @@ export function KosCpuPicker({
                     onMouseEnter={() => setActiveIndex(idx)}
                   >
                     <ItemMain>
+                      <StatusDot
+                        $state={
+                          entry.online
+                            ? "online"
+                            : entry.lastSeenAt !== undefined
+                              ? "seen"
+                              : "unknown"
+                        }
+                        title={statusTooltip(entry)}
+                        aria-label={statusTooltip(entry)}
+                      />
                       <ItemLabel>{displayLabel(entry)}</ItemLabel>
                       {entry.label && entry.label !== entry.tagname && (
                         <ItemTag>{entry.tagname}</ItemTag>
@@ -451,8 +478,28 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
 
 const ItemMain = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
+`;
+
+const StatusDot = styled.span<{ $state: "online" | "seen" | "unknown" }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: ${({ $state }) => {
+    if ($state === "online") return "var(--color-status-go-fg)";
+    if ($state === "seen") return "var(--color-text-faint)";
+    return "transparent";
+  }};
+  border: 1px solid
+    ${({ $state }) => {
+      if ($state === "online") return "var(--color-status-go-fg)";
+      if ($state === "seen") return "var(--color-text-faint)";
+      return "var(--color-border-subtle)";
+    }};
+  box-shadow: ${({ $state }) =>
+    $state === "online" ? "0 0 6px var(--color-status-go-fg)" : "none"};
 `;
 
 const ItemLabel = styled.span`

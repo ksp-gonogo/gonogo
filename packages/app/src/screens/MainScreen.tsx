@@ -114,7 +114,7 @@ export function MainScreen() {
     const kos = getDataSource("kos");
     if (!(kos instanceof KosDataSource)) return;
     return kos.onCpusDiscovered((cpus) => {
-      cpuRegistry.reportSeen(cpus.map((c) => c.tagname));
+      cpuRegistry.reportOnline(cpus.map((c) => c.tagname));
     });
   }, [cpuRegistry]);
 

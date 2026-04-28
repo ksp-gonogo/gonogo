@@ -91,48 +91,82 @@ describe("CpuRegistryService", () => {
     expect(svc.list().map((e) => e.tagname)).toEqual(["b"]);
   });
 
-  it("markSeen creates a bare entry when the tagname is unknown", () => {
+  it("markSeen creates a bare entry when the tagname is unknown and marks it online", () => {
     const svc = new CpuRegistryService("main", storage);
     svc.markSeen("orbital", 1234);
     const e = svc.get("orbital");
     expect(e?.tagname).toBe("orbital");
     expect(e?.lastSeenAt).toBe(1234);
     expect(e?.createdAt).toBe(1234);
+    expect(e?.online).toBe(true);
   });
 
-  it("markSeen on an existing entry updates lastSeenAt only", () => {
+  it("markSeen on an existing entry stamps lastSeenAt + online; preserves label/createdAt", () => {
     const svc = new CpuRegistryService("main", storage);
     const a = svc.upsert({ tagname: "x", label: "L" });
+    expect(a.online).toBe(false);
     svc.markSeen("x", 9999);
     const after = svc.get("x");
     expect(after?.label).toBe("L");
     expect(after?.lastSeenAt).toBe(9999);
     expect(after?.createdAt).toBe(a.createdAt);
+    expect(after?.online).toBe(true);
   });
 
-  it("reportSeen stamps multiple tagnames in one shot", () => {
+  it("reportOnline stamps the new set online and demotes the old set", () => {
     const svc = new CpuRegistryService("main", storage);
-    svc.reportSeen(["a", "b", "c"], 5000);
-    expect(
-      svc
-        .list()
-        .map((e) => e.tagname)
-        .sort(),
-    ).toEqual(["a", "b", "c"]);
+    svc.reportOnline(["a", "b", "c"], 5000);
     for (const t of ["a", "b", "c"]) {
+      expect(svc.get(t)?.online).toBe(true);
       expect(svc.get(t)?.lastSeenAt).toBe(5000);
     }
+    // Vessel switch — only "b" is on the new vessel.
+    svc.reportOnline(["b"], 6000);
+    expect(svc.get("a")?.online).toBe(false);
+    expect(svc.get("b")?.online).toBe(true);
+    expect(svc.get("c")?.online).toBe(false);
+    // The demoted entries keep their old lastSeenAt.
+    expect(svc.get("a")?.lastSeenAt).toBe(5000);
+    expect(svc.get("b")?.lastSeenAt).toBe(6000);
+    expect(svc.get("c")?.lastSeenAt).toBe(5000);
   });
 
-  it("list sorts online entries (recent lastSeenAt) ahead of offline", () => {
+  it("reportOnline with an empty list marks every tracked CPU offline", () => {
     const svc = new CpuRegistryService("main", storage);
-    svc.upsert({ tagname: "offline" });
-    svc.markSeen("recent", 9999);
-    svc.markSeen("older", 1000);
+    svc.reportOnline(["a"], 1000);
+    expect(svc.get("a")?.online).toBe(true);
+    svc.reportOnline([], 2000);
+    expect(svc.get("a")?.online).toBe(false);
+  });
+
+  it("online state is in-memory only — fresh service after a reload starts offline", () => {
+    const svc = new CpuRegistryService("main", storage);
+    svc.reportOnline(["a"], 1000);
+    expect(svc.get("a")?.online).toBe(true);
+    const reload = new CpuRegistryService("main", storage);
+    expect(reload.get("a")?.online).toBe(false);
+    expect(reload.get("a")?.lastSeenAt).toBe(1000);
+  });
+
+  it("list sorts online entries first, then by lastSeenAt recency, then alphabetically", () => {
+    const svc = new CpuRegistryService("main", storage);
+    svc.upsert({ tagname: "neverseen" });
+    svc.markSeen("recent-online", 9999);
+    svc.markSeen("older-online", 5000);
+    // Demote older-online to offline by reporting only recent-online.
+    svc.reportOnline(["recent-online"], 9999);
+    // Add an offline entry whose lastSeenAt was once 1000.
+    svc.markSeen("oldest-offline", 1000);
+    svc.reportOnline(["recent-online"], 9999);
     const order = svc.list().map((e) => e.tagname);
-    expect(order[0]).toBe("recent");
-    expect(order[1]).toBe("older");
-    expect(order[2]).toBe("offline");
+    expect(order[0]).toBe("recent-online"); // online wins outright
+    // Among offline, lastSeenAt-most-recent first; never-seen sorted alpha last.
+    expect(order.indexOf("older-online")).toBeLessThan(
+      order.indexOf("oldest-offline"),
+    );
+    expect(order.indexOf("oldest-offline")).toBeLessThan(
+      order.indexOf("neverseen"),
+    );
   });
 
   it("storage is partitioned per screen", () => {
@@ -144,17 +178,19 @@ describe("CpuRegistryService", () => {
     expect(station.list().map((e) => e.tagname)).toEqual(["station-only"]);
   });
 
-  it("subscribe fires on upsert/remove/markSeen", () => {
+  it("subscribe fires on upsert/remove/markSeen/reportOnline", () => {
     const svc = new CpuRegistryService("main", storage);
     const cb = vi.fn();
     const unsub = svc.subscribe(cb);
     svc.upsert({ tagname: "a" });
     svc.markSeen("a");
+    svc.reportOnline(["a"]);
+    svc.reportOnline([]); // toggling online → offline still emits
     svc.remove("a");
-    expect(cb).toHaveBeenCalledTimes(3);
+    expect(cb).toHaveBeenCalledTimes(5);
     unsub();
     svc.upsert({ tagname: "b" });
-    expect(cb).toHaveBeenCalledTimes(3);
+    expect(cb).toHaveBeenCalledTimes(5);
   });
 
   it("recovers from corrupt JSON in storage", () => {

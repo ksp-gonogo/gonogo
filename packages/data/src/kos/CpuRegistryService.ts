@@ -27,6 +27,12 @@ export interface KosCpuEntry {
   lastSeenAt?: number;
   /** ms — when the entry was first created. */
   createdAt: number;
+  /**
+   * True if discovery currently sees this CPU on the active vessel.
+   * Derived from the in-memory online set; not persisted. Stale across
+   * a page reload — `lastSeenAt` is the persisted half of the signal.
+   */
+  online: boolean;
 }
 
 type Listener = () => void;
@@ -35,14 +41,19 @@ function storageKeyFor(screen: Screen): string {
   return `gonogo.kos.cpus.${screen}`;
 }
 
-function isEntry(value: unknown): value is KosCpuEntry {
+/** Stored shape — the persisted half of an entry, without the in-memory `online` flag. */
+type StoredEntry = Omit<KosCpuEntry, "online">;
+
+function isStoredEntry(value: unknown): value is StoredEntry {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return typeof v.tagname === "string" && typeof v.createdAt === "number";
 }
 
 export class CpuRegistryService {
-  private entries: KosCpuEntry[] = [];
+  private entries: StoredEntry[] = [];
+  /** Tagnames currently visible in the kOS top-level menu. Transient. */
+  private onlineSet = new Set<string>();
   private listeners = new Set<Listener>();
   private storage: Storage;
   private screen: Screen;
@@ -54,9 +65,12 @@ export class CpuRegistryService {
   }
 
   list(): readonly KosCpuEntry[] {
-    // Sort: online entries first (lastSeenAt within the freshness window),
-    // then offline-but-known. Within each band, alphabetical by label/tagname.
-    return [...this.entries].sort((a, b) => {
+    // Sort: online first; then by recency of lastSeenAt; then alphabetical
+    // by label/tagname. Online-first matters for the picker — the CPUs the
+    // user can actually run a script on right now should sit at the top.
+    const decorated = this.entries.map((e) => this.decorate(e));
+    return decorated.sort((a, b) => {
+      if (a.online !== b.online) return a.online ? -1 : 1;
       const aSeen = a.lastSeenAt ?? 0;
       const bSeen = b.lastSeenAt ?? 0;
       if (aSeen !== bSeen) return bSeen - aSeen;
@@ -65,12 +79,13 @@ export class CpuRegistryService {
   }
 
   get(tagname: string): KosCpuEntry | undefined {
-    return this.entries.find((e) => e.tagname === tagname);
+    const stored = this.entries.find((e) => e.tagname === tagname);
+    return stored ? this.decorate(stored) : undefined;
   }
 
   /**
    * Insert or update an entry by tagname. Use this for user-driven edits;
-   * discovery uses {@link markSeen} which only stamps `lastSeenAt`.
+   * discovery uses {@link reportOnline} for transient online state.
    */
   upsert(input: {
     tagname: string;
@@ -87,23 +102,24 @@ export class CpuRegistryService {
       existing.description = input.description?.trim() || undefined;
       this.persist();
       this.emit();
-      return existing;
+      return this.decorate(existing);
     }
-    const entry: KosCpuEntry = {
+    const stored: StoredEntry = {
       tagname,
       label: input.label?.trim() || undefined,
       description: input.description?.trim() || undefined,
       createdAt: Date.now(),
     };
-    this.entries.push(entry);
+    this.entries.push(stored);
     this.persist();
     this.emit();
-    return entry;
+    return this.decorate(stored);
   }
 
   remove(tagname: string): void {
     const before = this.entries.length;
     this.entries = this.entries.filter((e) => e.tagname !== tagname);
+    this.onlineSet.delete(tagname);
     if (this.entries.length !== before) {
       this.persist();
       this.emit();
@@ -111,9 +127,9 @@ export class CpuRegistryService {
   }
 
   /**
-   * Discovery hook. Stamps `lastSeenAt = now` on the named entry,
-   * creating a bare entry if the tagname is new. Never removes entries —
-   * an unloaded vessel's CPU just stops getting stamps.
+   * Additive: stamps `lastSeenAt` and marks online. Doesn't touch other
+   * entries' online state. Useful when something has confirmed presence
+   * of one specific CPU (e.g. a successful executeScript).
    */
   markSeen(tagname: string, at: number = Date.now()): void {
     const trimmed = tagname.trim();
@@ -128,18 +144,28 @@ export class CpuRegistryService {
         createdAt: at,
       });
     }
+    this.onlineSet.add(trimmed);
     this.persist();
     this.emit();
   }
 
-  /** Replace the discovered set in one shot. Anything not in `tagnames`
-   * keeps its old `lastSeenAt` (it just doesn't get a new stamp). */
-  reportSeen(tagnames: readonly string[], at: number = Date.now()): void {
-    if (tagnames.length === 0) return;
+  /**
+   * Replace the in-memory online set with `tagnames`. Stamps `lastSeenAt`
+   * for everything in the new set; entries previously online but not in
+   * the new set become offline (their `lastSeenAt` is untouched, so the
+   * picker can still show "last seen N min ago"). Unknown tagnames get
+   * bare entries created — discovery shouldn't lose data.
+   *
+   * This is the canonical hook for the kOS menu peek: "these are the
+   * CPUs kOS is currently exposing on the active vessel."
+   */
+  reportOnline(tagnames: readonly string[], at: number = Date.now()): void {
+    const next = new Set<string>();
     let changed = false;
     for (const raw of tagnames) {
       const trimmed = raw.trim();
       if (!trimmed) continue;
+      next.add(trimmed);
       const existing = this.entries.find((e) => e.tagname === trimmed);
       if (existing) {
         existing.lastSeenAt = at;
@@ -152,6 +178,16 @@ export class CpuRegistryService {
       }
       changed = true;
     }
+    // Detect online-set changes even when no entries were stamped (e.g. the
+    // last visible CPU disappeared and `tagnames` is empty).
+    if (
+      next.size !== this.onlineSet.size ||
+      [...next].some((t) => !this.onlineSet.has(t)) ||
+      [...this.onlineSet].some((t) => !next.has(t))
+    ) {
+      changed = true;
+    }
+    this.onlineSet = next;
     if (changed) {
       this.persist();
       this.emit();
@@ -163,13 +199,17 @@ export class CpuRegistryService {
     return () => this.listeners.delete(cb);
   }
 
+  private decorate(stored: StoredEntry): KosCpuEntry {
+    return { ...stored, online: this.onlineSet.has(stored.tagname) };
+  }
+
   private load(): void {
     const raw = this.storage.getItem(storageKeyFor(this.screen));
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed)) {
-        this.entries = parsed.filter(isEntry);
+        this.entries = parsed.filter(isStoredEntry);
       }
     } catch {
       // Corrupt JSON shouldn't wedge the screen — drop the key.
