@@ -400,6 +400,72 @@ describe("kOS compute integration", () => {
     source.disconnect();
   });
 
+  it("scenario #11: onCpusDiscovered fires with every CPU on the active vessel — even ones the session isn't targeting", async () => {
+    const mock = MockKosTelnet.install();
+    mock.setCpus([
+      {
+        number: 1,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "datastream",
+      },
+      {
+        number: 2,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "lander",
+      },
+      {
+        number: 3,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "probe",
+      },
+    ]);
+    mock.registerScript("noop", () => "[KOSDATA] ok=true [/KOSDATA]");
+
+    const source = makeSource();
+    const seen = vi.fn();
+    source.onCpusDiscovered(seen);
+
+    // Trigger a session — the menu read happens during attach, before
+    // executeScript resolves.
+    await source.executeScript("datastream", "noop", []);
+
+    // The menu fires once on attach, possibly more if the session re-parses;
+    // we just need to assert at least one call delivered the full list.
+    expect(seen).toHaveBeenCalled();
+    const cpus = seen.mock.calls[0][0];
+    expect(cpus.map((c: { tagname: string }) => c.tagname)).toEqual([
+      "datastream",
+      "lander",
+      "probe",
+    ]);
+
+    source.disconnect();
+  });
+
+  it("scenario #11b: onCpusDiscovered unsubscribe stops further callbacks", async () => {
+    const mock = MockKosTelnet.install();
+    mock.setCpus([
+      {
+        number: 1,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "datastream",
+      },
+    ]);
+    mock.registerScript("noop", () => "[KOSDATA] ok=true [/KOSDATA]");
+
+    const source = makeSource();
+    const seen = vi.fn();
+    const unsub = source.onCpusDiscovered(seen);
+    unsub();
+    await source.executeScript("datastream", "noop", []);
+    expect(seen).not.toHaveBeenCalled();
+    source.disconnect();
+  });
+
   it("scenario #4b: widget dispatch with the data source missing surfaces an error", () => {
     // No data source registered — the hook must not crash, just error.
     const { result } = renderHook(() =>

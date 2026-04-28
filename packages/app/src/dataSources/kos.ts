@@ -7,6 +7,7 @@ import type {
 import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
 import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
 import { parseKosData, stripAnsi } from "@gonogo/data";
+import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 import { buildKosWrapper } from "./kosWrapper";
 
@@ -108,6 +109,15 @@ export class KosDataSource implements DataSource<KosConfig> {
   // Per-CPU executeScript sessions, keyed by tagname.
   private readonly sessions = new Map<string, KosComputeSession>();
 
+  /**
+   * Subscribers notified every time a session has a fresh CPU menu —
+   * the parsed list of every kOS CPU on the active vessel. Used by
+   * the screen-side discovery hook to populate the registry; sessions
+   * fan out into here so a single subscriber sees menus from every
+   * open CPU session.
+   */
+  private readonly cpuDiscoveryListeners = new Set<(cpus: KosCpu[]) => void>();
+
   constructor(config?: KosConfig, opts: KosDataSourceOptions = {}) {
     this.cfg = config ?? this.loadConfig();
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
@@ -168,6 +178,20 @@ export class KosDataSource implements DataSource<KosConfig> {
   ): () => void {
     this.remoteVersionListeners.add(cb);
     return () => this.remoteVersionListeners.delete(cb);
+  }
+
+  /**
+   * Subscribe to CPU-menu discovery events. Fires every time any open
+   * session parses a complete kOS top-level menu — the list represents
+   * every CPU on the currently-loaded vessel(s). Subscribers can
+   * stamp these into a per-screen registry.
+   *
+   * Note: only fires while a kOS session is alive. If no widget is
+   * attached, no menu is read and no discovery happens.
+   */
+  onCpusDiscovered(cb: (cpus: KosCpu[]) => void): () => void {
+    this.cpuDiscoveryListeners.add(cb);
+    return () => this.cpuDiscoveryListeners.delete(cb);
   }
 
   disconnect(): void {
@@ -337,6 +361,9 @@ export class KosDataSource implements DataSource<KosConfig> {
       callTimeoutMs: this.callTimeoutMs,
       postAttachDrainDelayMs: this.postAttachDrainDelayMs,
       onStatusChange: () => this.recomputeStatus(),
+      onCpusDiscovered: (cpus) => {
+        for (const cb of this.cpuDiscoveryListeners) cb(cpus);
+      },
     });
     this.sessions.set(cpu, session);
     this.recomputeStatus();
@@ -392,6 +419,13 @@ interface SessionInit {
   callTimeoutMs: number;
   postAttachDrainDelayMs: number;
   onStatusChange: () => void;
+  /**
+   * Fires whenever the session has a fresh CPU menu — every CPU
+   * tagname kOS is currently exposing on the active vessel. Used by
+   * the screen-side discovery hook to populate the kOS CPU registry
+   * without the user having to type tagnames.
+   */
+  onCpusDiscovered?: (cpus: KosCpu[]) => void;
 }
 
 interface PendingCall {
@@ -570,6 +604,10 @@ export class KosComputeSession {
     }
     const menu = parseKosMenu(this.menuBuffer);
     if (menu === null) return;
+    // Surface the full CPU list to the screen-side registry hook before
+    // matching our session's CPU — discovery wants every tagname kOS is
+    // exposing, not just the one this session targets.
+    this.init.onCpusDiscovered?.(menu.cpus);
     const cpu = menu.cpus.find((c) => c.tagname === this.init.cpu);
     if (!cpu) return;
     // State transition BEFORE the send: some WS implementations (and

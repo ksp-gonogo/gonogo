@@ -40,6 +40,7 @@ import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
+import { KosDataSource } from "../dataSources/kos";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { LogsFab } from "../logs/LogsFab";
 import {
@@ -105,6 +106,17 @@ export function MainScreen() {
     // on browsers without Web Serial, or when there are no saved devices.
     void serialService.autoReconnect();
   }, [serialService]);
+
+  useEffect(() => {
+    // Auto-populate the kOS CPU registry from the menu the proxy reads
+    // every time we attach. Stations don't fire this hook — they don't
+    // talk to the proxy directly.
+    const kos = getDataSource("kos");
+    if (!(kos instanceof KosDataSource)) return;
+    return kos.onCpusDiscovered((cpus) => {
+      cpuRegistry.reportSeen(cpus.map((c) => c.tagname));
+    });
+  }, [cpuRegistry]);
 
   useEffect(() => {
     const sources = getDataSources();
