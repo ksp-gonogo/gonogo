@@ -1,0 +1,147 @@
+import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { type ReactNode, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { KosCpuPicker } from "./KosCpuPicker";
+
+class MemoryStorage implements Storage {
+  private map = new Map<string, string>();
+  get length() {
+    return this.map.size;
+  }
+  clear() {
+    this.map.clear();
+  }
+  getItem(k: string) {
+    return this.map.get(k) ?? null;
+  }
+  key(i: number) {
+    return [...this.map.keys()][i] ?? null;
+  }
+  removeItem(k: string) {
+    this.map.delete(k);
+  }
+  setItem(k: string, v: string) {
+    this.map.set(k, v);
+  }
+}
+
+function Wrapper({
+  service,
+  children,
+}: {
+  service: CpuRegistryService;
+  children: ReactNode;
+}) {
+  return (
+    <CpuRegistryProvider service={service}>{children}</CpuRegistryProvider>
+  );
+}
+
+function ControlledPicker({
+  service,
+  initial = "",
+}: {
+  service: CpuRegistryService;
+  initial?: string;
+}) {
+  const [v, setV] = useState(initial);
+  return (
+    <Wrapper service={service}>
+      <KosCpuPicker value={v} onChange={setV} placeholder="Pick a CPU" />
+      <output data-testid="value">{v}</output>
+    </Wrapper>
+  );
+}
+
+describe("KosCpuPicker", () => {
+  let service: CpuRegistryService;
+  beforeEach(() => {
+    service = new CpuRegistryService("main", new MemoryStorage());
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("lists existing entries when opened", async () => {
+    service.upsert({ tagname: "lander", label: "Lander Computer" });
+    service.upsert({ tagname: "orbital", description: "Bus" });
+    const user = userEvent.setup();
+
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+
+    expect(screen.getByText("Lander Computer")).toBeDefined();
+    expect(screen.getByText("orbital")).toBeDefined();
+    expect(screen.getByText("Bus")).toBeDefined();
+  });
+
+  it("selecting an entry calls onChange and closes the dropdown", async () => {
+    service.upsert({ tagname: "flight", label: "Flight" });
+    const user = userEvent.setup();
+
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByText("Flight"));
+
+    expect(screen.getByTestId("value").textContent).toBe("flight");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("typing offers a quick-add suggestion when no match exists", async () => {
+    const user = userEvent.setup();
+    render(<ControlledPicker service={service} />);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.type(screen.getByRole("combobox"), "newcpu");
+
+    const suggestion = screen.getByText(/Save .* as a new CPU tagname/);
+    expect(suggestion.textContent).toContain("newcpu");
+    await user.click(suggestion);
+
+    expect(screen.getByTestId("value").textContent).toBe("newcpu");
+    expect(service.get("newcpu")).toBeDefined();
+  });
+
+  it("Add CPU form persists tagname + label + description", async () => {
+    const user = userEvent.setup();
+    render(<ControlledPicker service={service} />);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("button", { name: /Add CPU/i }));
+
+    await user.type(screen.getByLabelText("Tagname"), "probe");
+    await user.type(screen.getByLabelText(/Label/), "Probe Brain");
+    await user.type(
+      screen.getByLabelText(/Description/),
+      "Long-range science probe",
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByTestId("value").textContent).toBe("probe");
+    const stored = service.get("probe");
+    expect(stored?.label).toBe("Probe Brain");
+    expect(stored?.description).toBe("Long-range science probe");
+  });
+
+  it("displays a non-registry value as the selected display", () => {
+    render(<ControlledPicker service={service} initial="legacy-cpu" />);
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    expect(input.value).toBe("legacy-cpu");
+  });
+
+  it("filters entries by query", async () => {
+    service.upsert({ tagname: "lander", label: "Lander" });
+    service.upsert({ tagname: "orbital", label: "Orbital" });
+    const user = userEvent.setup();
+
+    render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+    await user.type(screen.getByRole("combobox"), "land");
+
+    expect(screen.getByText("Lander")).toBeDefined();
+    expect(screen.queryByText("Orbital")).toBeNull();
+  });
+});

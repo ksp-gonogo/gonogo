@@ -12,6 +12,7 @@ import {
 } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
 import {
   KOS_FILES_SCRIPT,
@@ -360,14 +361,8 @@ function KosFilesConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="kos-files-cpu">kOS CPU tagname</FieldLabel>
-        <Input
-          id="kos-files-cpu"
-          type="text"
-          value={cpu}
-          placeholder="e.g. MainCPU"
-          onChange={(e) => setCpu(e.target.value)}
-        />
+        <FieldLabel htmlFor="kos-files-cpu">kOS CPU</FieldLabel>
+        <KosCpuPicker id="kos-files-cpu" value={cpu} onChange={setCpu} />
       </Field>
 
       <Field>

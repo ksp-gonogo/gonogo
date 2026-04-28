@@ -13,6 +13,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
 import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import {
@@ -168,14 +169,8 @@ function KosProcessorsConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="kos-procs-cpu">kOS CPU tagname</FieldLabel>
-        <Input
-          id="kos-procs-cpu"
-          type="text"
-          value={cpu}
-          placeholder="e.g. MainCPU"
-          onChange={(e) => setCpu(e.target.value)}
-        />
+        <FieldLabel htmlFor="kos-procs-cpu">kOS CPU</FieldLabel>
+        <KosCpuPicker id="kos-procs-cpu" value={cpu} onChange={setCpu} />
         <FieldHint>
           Any kOS CPU on the vessel works — the script just calls{" "}
           <code>LIST PROCESSORS</code>, which sees every CPU regardless of which

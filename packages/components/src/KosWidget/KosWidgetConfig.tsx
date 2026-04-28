@@ -12,6 +12,7 @@ import {
 } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
 import type { KosWidgetConfig } from "./types";
 
 type ArgType = KosWidgetArg["type"];
@@ -66,16 +67,11 @@ export function KosWidgetConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="kw-cpu">CPU tagname</FieldLabel>
-        <Input
-          id="kw-cpu"
-          value={cpu}
-          placeholder="datastream"
-          onChange={(e) => setCpu(e.target.value)}
-        />
+        <FieldLabel htmlFor="kw-cpu">kOS CPU</FieldLabel>
+        <KosCpuPicker id="kw-cpu" value={cpu} onChange={setCpu} />
         <FieldHint>
-          The inner tag of the kOS CPU part you want this widget to attach to
-          (set via kOS&apos;s part right-click menu in-game).
+          Pick from previously-named CPUs or add a new one. The tagname is set
+          via the kOS part&apos;s right-click menu in-game.
         </FieldHint>
       </Field>
 

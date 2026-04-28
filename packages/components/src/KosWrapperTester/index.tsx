@@ -14,6 +14,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
 
 interface KosWrapperTesterConfig {
   /** kOS CPU tagname. Required — widget stays in an empty state until set. */
@@ -264,16 +265,11 @@ function KosWrapperTesterConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="wrapper-tester-cpu">CPU tagname</FieldLabel>
-        <Input
-          id="wrapper-tester-cpu"
-          value={cpu}
-          onChange={(e) => setCpu(e.target.value)}
-          placeholder="e.g. datastream"
-        />
+        <FieldLabel htmlFor="wrapper-tester-cpu">kOS CPU</FieldLabel>
+        <KosCpuPicker id="wrapper-tester-cpu" value={cpu} onChange={setCpu} />
         <FieldHint>
-          The kOS CPU to dispatch against. Match it to a tagname set on a kOS
-          part in-game.
+          The kOS CPU to dispatch against. Pick from the registry or add a new
+          entry.
         </FieldHint>
       </Field>
       <Field>

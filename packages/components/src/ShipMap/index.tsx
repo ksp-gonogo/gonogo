@@ -13,6 +13,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
 import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import { ShipDiagram } from "./ShipDiagram";
@@ -238,17 +239,11 @@ function ShipMapConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="ship-map-cpu">kOS CPU tagname</FieldLabel>
-        <Input
-          id="ship-map-cpu"
-          type="text"
-          value={cpu}
-          placeholder="e.g. MyShipCPU"
-          onChange={(e) => setCpu(e.target.value)}
-        />
+        <FieldLabel htmlFor="ship-map-cpu">kOS CPU</FieldLabel>
+        <KosCpuPicker id="ship-map-cpu" value={cpu} onChange={setCpu} />
         <FieldHint>
-          The tagname of the kOS part on your vessel. Set via the kOS part's
-          right-click menu in KSP.
+          Pick from previously-named CPUs or add a new one. The tagname is set
+          via the kOS part&apos;s right-click menu in KSP.
         </FieldHint>
       </Field>
 
