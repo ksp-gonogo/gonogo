@@ -105,6 +105,22 @@ describe("KosCpuPicker", () => {
     expect(service.get("newcpu")).toBeDefined();
   });
 
+  it("clicking + Add CPU… opens the inline form (not closes the dropdown)", async () => {
+    // Regression: the "+ Add CPU…" button switches mode → unmounts itself
+    // mid-event. The document outside-click handler then sees a detached
+    // target and used to call closePicker(), snapping the dropdown shut
+    // before the form could render.
+    const user = userEvent.setup();
+    render(<ControlledPicker service={service} />);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("button", { name: /Add CPU/i }));
+
+    // The Add form should now be visible — its Tagname field is the
+    // canonical witness that the picker stayed open.
+    expect(screen.getByLabelText("Tagname")).toBeDefined();
+  });
+
   it("Add CPU form persists tagname + label + description", async () => {
     const user = userEvent.setup();
     render(<ControlledPicker service={service} />);

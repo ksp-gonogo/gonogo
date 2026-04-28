@@ -218,7 +218,15 @@ export function KosCpuPicker({
   useEffect(() => {
     if (!open) return;
     const onOutside = (e: PointerEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) closePicker();
+      const target = e.target as Node | null;
+      if (!target) return;
+      // Click handlers that swap modes (Add / Manage) unmount the button
+      // they were attached to before the document-level handler runs.
+      // `contains` then returns false on the detached target and closes
+      // the picker spuriously. If the target was already removed from
+      // the DOM by React's commit, treat it as an in-picker click.
+      if (!document.body.contains(target)) return;
+      if (!containerRef.current?.contains(target)) closePicker();
     };
     document.addEventListener("pointerdown", onOutside);
     return () => document.removeEventListener("pointerdown", onOutside);
