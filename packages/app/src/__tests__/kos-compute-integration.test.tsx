@@ -445,6 +445,89 @@ describe("kOS compute integration", () => {
     source.disconnect();
   });
 
+  it("scenario #11c: menu-peek session feeds discovery on connect — no widget needed", async () => {
+    const mock = MockKosTelnet.install();
+    mock.setCpus([
+      {
+        number: 1,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "datastream",
+      },
+      {
+        number: 2,
+        vesselName: "Test Ship",
+        partType: "KAL9000",
+        tagname: "lander",
+      },
+    ]);
+
+    const source = makeSource();
+    const seen = vi.fn();
+    source.onCpusDiscovered(seen);
+
+    await source.connect();
+    // Mock opens + emits the menu on the next microtask.
+    await waitFor(() => expect(seen).toHaveBeenCalled());
+
+    const cpus = seen.mock.calls[0][0];
+    expect(cpus.map((c: { tagname: string }) => c.tagname)).toEqual([
+      "datastream",
+      "lander",
+    ]);
+    // We never called executeScript, so no per-CPU sessions exist — the
+    // discovery came purely from the menu peek.
+    expect(mock.invocations()).toHaveLength(0);
+
+    source.disconnect();
+  });
+
+  it("scenario #11d: menu-peek refreshes discovery when the CPU list changes", async () => {
+    const mock = MockKosTelnet.install();
+    mock.setCpus([
+      {
+        number: 1,
+        vesselName: "Old Ship",
+        partType: "KAL9000",
+        tagname: "datastream",
+      },
+    ]);
+
+    const source = makeSource();
+    const seen = vi.fn();
+    source.onCpusDiscovered(seen);
+
+    await source.connect();
+    await waitFor(() => expect(seen).toHaveBeenCalled());
+
+    // Simulate a vessel switch that changes the CPU set.
+    mock.setCpus([
+      {
+        number: 1,
+        vesselName: "New Ship",
+        partType: "KAL9000",
+        tagname: "lander",
+      },
+      {
+        number: 2,
+        vesselName: "New Ship",
+        partType: "KAL9000",
+        tagname: "probe",
+      },
+    ]);
+    mock.emitListChanged();
+
+    await waitFor(() => {
+      const last = seen.mock.calls[seen.mock.calls.length - 1][0];
+      expect(last.map((c: { tagname: string }) => c.tagname)).toEqual([
+        "lander",
+        "probe",
+      ]);
+    });
+
+    source.disconnect();
+  });
+
   it("scenario #11b: onCpusDiscovered unsubscribe stops further callbacks", async () => {
     const mock = MockKosTelnet.install();
     mock.setCpus([
