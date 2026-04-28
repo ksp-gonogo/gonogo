@@ -30,9 +30,16 @@ const VERSION_SUFFIX = ".ver";
 /**
  * Build the per-dispatch wrapper kerboscript. Pure — no I/O, no state.
  *
- * The wrapper layout deliberately keeps the steady-state path tiny: an
- * EXISTS+READALL+TRIM+equality check, then RUNPATH. Only the
- * one-time-per-version branch carries the LOG storm.
+ * The check-and-rewrite logic lives inside a kerboscript FUNCTION
+ * because top-level `LOCAL` doesn't persist across REPL statement
+ * boundaries the way it does inside a function body. Wrapping in a
+ * function gives `needsWrite` and friends proper scope, and it avoids
+ * leaking dispatch state into the REPL's globals where a user might
+ * later collide with them.
+ *
+ * Steady-state path is tiny: EXISTS + READALL + TRIM + equality check,
+ * then RUNPATH. Only the one-time-per-version branch carries the LOG
+ * storm.
  */
 export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
   const { path, body, version, args } = opts;
@@ -42,24 +49,22 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
 
   const out: string[] = [
     `// gonogo wrapper for ${quoteKosString(path)} v=${quoteKosString(version)}`,
-    `LOCAL targetPath IS ${quoteKosString(path)}.`,
-    `LOCAL versionPath IS ${quoteKosString(verPath)}.`,
-    `LOCAL bundledVersion IS ${quoteKosString(version)}.`,
-    "",
-    "LOCAL needsWrite IS TRUE.",
-    "IF EXISTS(targetPath) AND EXISTS(versionPath) {",
-    "  LOCAL existing IS OPEN(versionPath):READALL:STRING.",
-    "  IF existing:TRIM = bundledVersion { SET needsWrite TO FALSE. }",
-    "}",
-    "",
-    "IF needsWrite {",
-    `  PRINT "wrapper: rewriting " + targetPath + " v=" + bundledVersion.`,
-    "  IF EXISTS(targetPath) { DELETEPATH(targetPath). }",
-    "  IF EXISTS(versionPath) { DELETEPATH(versionPath). }",
-    ...lines.map((line) => `  LOG ${quoteKosString(line)} TO targetPath.`),
-    "  LOG bundledVersion TO versionPath.",
-    "}",
-    "",
+    `FUNCTION gonogoWrapperEnsure {`,
+    `  PARAMETER targetPath, versionPath, bundledVersion.`,
+    `  LOCAL needsWrite IS TRUE.`,
+    `  IF EXISTS(targetPath) AND EXISTS(versionPath) {`,
+    `    LOCAL existing IS OPEN(versionPath):READALL:STRING.`,
+    `    IF existing:TRIM = bundledVersion { SET needsWrite TO FALSE. }`,
+    `  }`,
+    `  IF needsWrite {`,
+    `    PRINT "wrapper: rewriting " + targetPath + " v=" + bundledVersion.`,
+    `    IF EXISTS(targetPath) { DELETEPATH(targetPath). }`,
+    `    IF EXISTS(versionPath) { DELETEPATH(versionPath). }`,
+    ...lines.map((line) => `    LOG ${quoteKosString(line)} TO targetPath.`),
+    `    LOG bundledVersion TO versionPath.`,
+    `  }`,
+    `}`,
+    `gonogoWrapperEnsure(${quoteKosString(path)}, ${quoteKosString(verPath)}, ${quoteKosString(version)}).`,
     `RUNPATH(${argList}).`,
   ];
   return `${out.join("\n")}\n`;

@@ -23,20 +23,25 @@ describe("hashKosScript", () => {
 });
 
 describe("buildKosWrapper", () => {
-  it("emits a check + RUNPATH for a single-line body", () => {
+  it("wraps the check-and-rewrite logic in a function with proper scope", () => {
     const out = buildKosWrapper({
       path: "0:/widget_scripts/x.ks",
       body: "PRINT 1.",
       version: "v1",
       args: [],
     });
-    expect(out).toContain(`LOCAL targetPath IS "0:/widget_scripts/x.ks".`);
-    expect(out).toContain(`LOCAL versionPath IS "0:/widget_scripts/x.ks.ver".`);
-    expect(out).toContain(`LOCAL bundledVersion IS "v1".`);
+    expect(out).toContain(`FUNCTION gonogoWrapperEnsure {`);
+    expect(out).toContain(`PARAMETER targetPath, versionPath, bundledVersion.`);
+    expect(out).toContain(`LOCAL needsWrite IS TRUE.`);
     expect(out).toContain(`IF EXISTS(targetPath) AND EXISTS(versionPath) {`);
     expect(out).toContain(`OPEN(versionPath):READALL:STRING`);
     expect(out).toContain(`LOG "PRINT 1." TO targetPath.`);
     expect(out).toContain(`LOG bundledVersion TO versionPath.`);
+    // Function call passes path/verPath/version explicitly — no top-level
+    // globals leaked into the REPL session.
+    expect(out).toContain(
+      `gonogoWrapperEnsure("0:/widget_scripts/x.ks", "0:/widget_scripts/x.ks.ver", "v1").`,
+    );
     expect(out).toContain(`RUNPATH("0:/widget_scripts/x.ks").`);
   });
 
@@ -63,6 +68,21 @@ describe("buildKosWrapper", () => {
       args: [],
     });
     expect(out).toContain(`LOG "" TO targetPath.`);
+  });
+
+  it("defines the function before invoking it (REPL is order-sensitive)", () => {
+    const out = buildKosWrapper({
+      path: "0:/a.ks",
+      body: "PRINT 1.",
+      version: "v",
+      args: [],
+    });
+    const defIdx = out.indexOf(`FUNCTION gonogoWrapperEnsure`);
+    const callIdx = out.indexOf(`gonogoWrapperEnsure(`);
+    const runIdx = out.indexOf(`RUNPATH(`);
+    expect(defIdx).toBeGreaterThanOrEqual(0);
+    expect(callIdx).toBeGreaterThan(defIdx);
+    expect(runIdx).toBeGreaterThan(callIdx);
   });
 
   it("escapes embedded double quotes via CHAR(34)", () => {
