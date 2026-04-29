@@ -29,6 +29,16 @@ export interface KosScriptFrameProps {
   onRun?: () => void;
   /** Disable the Run button. */
   runDisabled?: boolean;
+  /**
+   * Interval-mode breaker has tripped — render a "paused" banner with a
+   * Re-enable button instead of the regular error banner. The widget
+   * stops dispatching while this is true.
+   */
+  paused?: boolean;
+  /** Last KosScriptError message, surfaced under the paused banner. */
+  pausedReason?: string | null;
+  /** Re-enable callback. Required when `paused` is true. */
+  onReEnable?: () => void;
   children: ReactNode;
 }
 
@@ -40,10 +50,17 @@ export function KosScriptFrame({
   lastGoodAt,
   onRun,
   runDisabled,
+  paused,
+  pausedReason,
+  onReEnable,
   children,
 }: KosScriptFrameProps) {
   const [errorOpen, setErrorOpen] = useState(false);
-  const err = scriptError ?? parseError;
+  // Paused supersedes the regular error banner — the underlying error
+  // is preserved in `pausedReason` and shown under the Re-enable
+  // affordance instead. Otherwise users get two stacked banners
+  // saying the same thing.
+  const err = paused ? null : (scriptError ?? parseError);
   const ageMs = lastGoodAt ? Date.now() - lastGoodAt : null;
 
   return (
@@ -63,6 +80,19 @@ export function KosScriptFrame({
           )}
         </HeaderActions>
       </Header>
+      {paused && (
+        <PausedBanner role="status" aria-live="polite">
+          <PausedText>
+            <PausedLabel>Paused — kOS errors</PausedLabel>
+            {pausedReason && <PausedReason>{pausedReason}</PausedReason>}
+          </PausedText>
+          {onReEnable && (
+            <ReEnableButton type="button" onClick={onReEnable}>
+              Re-enable
+            </ReEnableButton>
+          )}
+        </PausedBanner>
+      )}
       {err && (
         <ErrorBanner
           type="button"
@@ -188,4 +218,53 @@ const ErrorDetail = styled.pre`
   margin: 0;
   white-space: pre-wrap;
   border-bottom: 1px solid var(--color-tag-dark-brown-bg);
+`;
+
+// Paused banner — visually distinct from ErrorBanner so users don't
+// confuse "transient error" with "I gave up". Uses the warn/alert
+// surface, not the nogo surface; reserved nogo for the genuine
+// abort/failure path.
+const PausedBanner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-status-alert-muted);
+  border-bottom: 1px solid var(--color-border-strong);
+  color: var(--color-status-nogo-fg);
+  font-size: 11px;
+  padding: 6px 10px;
+`;
+
+const PausedText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+`;
+
+const PausedLabel = styled.span`
+  font-weight: 700;
+`;
+
+const PausedReason = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-status-nogo-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ReEnableButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-fg);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover {
+    background: var(--color-surface-raised);
+  }
 `;

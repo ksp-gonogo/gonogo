@@ -28,6 +28,7 @@ export * from "./hooks/useVesselDeltaV";
 export * from "./kos/CpuRegistryContext";
 export * from "./kos/CpuRegistryService";
 export * from "./kos/hashKosScript";
+export * from "./kos/KosScriptError";
 export * from "./kos/kos-data-parser";
 export { debugFlight } from "./logger";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";

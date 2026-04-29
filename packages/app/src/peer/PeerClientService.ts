@@ -1,4 +1,5 @@
 import { debugPeer, logger } from "@gonogo/core";
+import { KosScriptError } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { loadIceServers } from "./iceServers";
 import type { PeerMessage, PeerSchemaSource } from "./protocol";
@@ -607,7 +608,14 @@ export class PeerClientService {
       clearTimeout(pending.timer);
       this.pendingKosExecutes.delete(msg.requestId);
       if (msg.error || !msg.data) {
-        pending.reject(new Error(msg.error ?? "kos execute: empty response"));
+        const message = msg.error ?? "kos execute: empty response";
+        // Preserve the script-vs-infra discriminator across the peer
+        // boundary — the breaker on the station side only counts
+        // KosScriptError, same as on main.
+        const err = msg.isScriptError
+          ? new KosScriptError(message)
+          : new Error(message);
+        pending.reject(err);
       } else {
         pending.resolve(msg.data);
       }

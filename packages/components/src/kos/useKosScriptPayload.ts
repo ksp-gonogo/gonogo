@@ -39,6 +39,10 @@ export interface UseKosScriptPayloadResult<T> {
   running: boolean;
   lastGoodAt: number | null;
   dispatch: () => void;
+  /** Forwarded from useKosWidget — see that hook for breaker semantics. */
+  disabled: boolean;
+  disabledReason: string | null;
+  reEnable: () => void;
 }
 
 export function useKosScriptPayload<T>(
@@ -97,5 +101,8 @@ export function useKosScriptPayload<T>(
     running: widget.running,
     lastGoodAt: widget.lastGoodAt,
     dispatch: widget.dispatch,
+    disabled: widget.disabled,
+    disabledReason: widget.disabledReason,
+    reEnable: widget.reEnable,
   };
 }

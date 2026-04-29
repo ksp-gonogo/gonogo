@@ -65,7 +65,16 @@ function KosFilesComponent({
     ];
   }, [view]);
 
-  const { data, error, running, lastGoodAt, dispatch } = useKosWidget({
+  const {
+    data,
+    error,
+    running,
+    lastGoodAt,
+    dispatch,
+    disabled,
+    disabledReason,
+    reEnable,
+  } = useKosWidget({
     cpu,
     script: scriptName,
     args,
@@ -130,6 +139,9 @@ function KosFilesComponent({
       lastGoodAt={lastGoodAt}
       onRun={dispatch}
       runDisabled={running || notConfigured}
+      paused={disabled}
+      pausedReason={disabledReason}
+      onReEnable={reEnable}
     >
       {renderBody()}
     </KosScriptFrame>

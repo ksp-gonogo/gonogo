@@ -6,7 +6,7 @@ import type {
 } from "@gonogo/core";
 import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
 import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
-import { parseKosData, stripAnsi } from "@gonogo/data";
+import { KosScriptError, parseKosData, stripAnsi } from "@gonogo/data";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 import { buildKosWrapper } from "./kosWrapper";
@@ -60,6 +60,25 @@ const KOS_DISPATCH_BUDGET = new PerfBudget({
   windowMs: 1000,
   unit: "dispatches",
 });
+
+/**
+ * Soft cap on kOS *script* errors per second — i.e. errors raised by the
+ * running kerboscript itself (explicit [KOSERROR], or kOS runtime
+ * exceptions like KOSUndefinedIdentifierException). Infrastructure
+ * failures (timeouts, session disconnects, attach timeouts) deliberately
+ * do NOT record here: those are typically a single transient event that
+ * fans out across every queued widget call, and counting them would
+ * make the gauge meaningless. A sustained rate >5/sec means a widget is
+ * looping a bad script — exactly the FPS-melter we built the breaker
+ * for. The breaker stops the dispatcher; the budget surfaces the rate.
+ */
+const KOS_SCRIPT_ERROR_BUDGET = new PerfBudget({
+  name: "KosDataSource script errors/sec",
+  threshold: 5,
+  windowMs: 1000,
+  unit: "errors",
+});
+
 /**
  * Default delay between detecting attach and draining the queue. Lets
  * kOS's Unity update loop detach the welcomeMenu so RUNPATH lands in the
@@ -836,7 +855,8 @@ export class KosComputeSession {
         script: call.script,
         error: explicit,
       });
-      this.fail(call, new Error(explicit));
+      KOS_SCRIPT_ERROR_BUDGET.record();
+      this.fail(call, new KosScriptError(explicit));
       this.replBuffer = "";
       this.drain();
       return;
@@ -863,7 +883,8 @@ export class KosComputeSession {
         script: call.script,
         error: errorMsg,
       });
-      this.fail(call, new Error(`kOS error: ${errorMsg}`));
+      KOS_SCRIPT_ERROR_BUDGET.record();
+      this.fail(call, new KosScriptError(`kOS error: ${errorMsg}`));
       this.replBuffer = "";
       this.drain();
     }

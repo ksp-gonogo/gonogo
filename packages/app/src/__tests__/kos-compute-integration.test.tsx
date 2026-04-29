@@ -6,7 +6,7 @@
  */
 
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { useKosWidget } from "@gonogo/data";
+import { isKosScriptError, useKosWidget } from "@gonogo/data";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";
@@ -380,6 +380,42 @@ describe("kOS compute integration", () => {
     await expect(promise).rejects.toThrow("engine flameout, abort burn");
     // No "kOS error:" prefix — explicit failures use the author's exact text.
     await expect(promise).rejects.not.toThrow(/^kOS error:/);
+
+    source.disconnect();
+  });
+
+  it("scenario #9b: KOSUndefinedIdentifierException-shaped runtime error rejects with KosScriptError so the breaker can catch it", async () => {
+    // The exact shape that motivated the breaker: gonogo's wrapper
+    // bootstrap referenced `needswrite` before declaration. kOS prints
+    // a VERBOSE DESCRIPTION block restating the headline; parseKosError
+    // pulls the headline out, KosDataSource wraps it in KosScriptError,
+    // and useKosWidget's interval-mode breaker counts it.
+    const mock = MockKosTelnet.install();
+    const DIVIDER = "_".repeat(42);
+    mock.registerScript("undef", () =>
+      [
+        `Undefined Variable Name 'needswrite'.`,
+        DIVIDER,
+        "           VERBOSE DESCRIPTION",
+        `Undefined Variable Name 'needswrite'.`,
+        DIVIDER,
+        DIVIDER,
+        "At interpreter, line 8",
+        `IF needswrite {`,
+        "   ^",
+      ].join("\n"),
+    );
+
+    const source = makeSource();
+    let caught: unknown;
+    try {
+      await source.executeScript("datastream", "undef", []);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect(isKosScriptError(caught)).toBe(true);
+    expect((caught as Error).message).toMatch(/needswrite/);
 
     source.disconnect();
   });

@@ -575,12 +575,14 @@ export class PeerHostService {
     const respond = (
       data?: import("@gonogo/data").KosData,
       error?: string,
+      isScriptError?: boolean,
     ): void => {
       conn.send({
         type: "kos-execute-response",
         requestId: msg.requestId,
         data,
         error,
+        isScriptError,
       } satisfies PeerMessage);
     };
     if (!source || typeof source.executeScript !== "function") {
@@ -597,8 +599,12 @@ export class PeerHostService {
       respond(data);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
+      // Duck-type: avoid importing the concrete class so this file stays
+      // free of @gonogo/app circular references.
+      const isScriptError =
+        (error as { isScriptError?: unknown }).isScriptError === true;
       logger.warn(`[PeerHost] kos execute failed — ${error.message}`);
-      respond(undefined, error.message);
+      respond(undefined, error.message, isScriptError);
     }
   }
 

@@ -52,6 +52,9 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     running,
     lastGoodAt,
     dispatch,
+    disabled,
+    disabledReason,
+    reEnable,
   } = useKosScriptPayload<ShipMapPart[]>({
     cpu,
     script: scriptName,
@@ -134,6 +137,9 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
       lastGoodAt={lastGoodAt}
       onRun={dispatch}
       runDisabled={running || notConfigured}
+      paused={disabled}
+      pausedReason={disabledReason}
+      onReEnable={reEnable}
     >
       {renderBody()}
     </KosScriptFrame>

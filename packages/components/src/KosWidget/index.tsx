@@ -26,7 +26,16 @@ function formatValue(v: unknown): string {
 function KosWidgetComponent({
   config,
 }: Readonly<ComponentProps<KosWidgetConfig>>) {
-  const { data, error, running, lastGoodAt, dispatch } = useKosWidget({
+  const {
+    data,
+    error,
+    running,
+    lastGoodAt,
+    dispatch,
+    disabled,
+    disabledReason,
+    reEnable,
+  } = useKosWidget({
     cpu: config?.cpu ?? "",
     script: config?.script ?? "",
     args: config?.args ?? [],
@@ -38,6 +47,9 @@ function KosWidgetComponent({
   const notConfigured = !config?.cpu || !config?.script;
   const title = config?.title ?? config?.script ?? "kOS Widget";
   const ageMs = lastGoodAt ? Date.now() - lastGoodAt : null;
+  // Paused supersedes the regular error banner — same rationale as
+  // KosScriptFrame: showing both at once is just noise.
+  const showError = !disabled && error;
 
   return (
     <Panel>
@@ -56,7 +68,18 @@ function KosWidgetComponent({
           )}
         </HeaderActions>
       </Header>
-      {error && (
+      {disabled && (
+        <PausedBanner role="status" aria-live="polite">
+          <PausedText>
+            <PausedLabel>Paused — kOS errors</PausedLabel>
+            {disabledReason && <PausedReason>{disabledReason}</PausedReason>}
+          </PausedText>
+          <ReEnableButton type="button" onClick={reEnable}>
+            Re-enable
+          </ReEnableButton>
+        </PausedBanner>
+      )}
+      {showError && (
         <ErrorBanner
           type="button"
           onClick={() => setErrorOpen((o) => !o)}
@@ -68,7 +91,7 @@ function KosWidgetComponent({
           )}
         </ErrorBanner>
       )}
-      {errorOpen && error && <ErrorDetail>{error.message}</ErrorDetail>}
+      {errorOpen && showError && <ErrorDetail>{error.message}</ErrorDetail>}
       {renderBody()}
     </Panel>
   );
@@ -249,4 +272,49 @@ const Empty = styled.div`
   font-size: 11px;
   padding: 12px;
   text-align: center;
+`;
+
+const PausedBanner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-status-alert-muted);
+  border-bottom: 1px solid var(--color-border-strong);
+  color: var(--color-status-nogo-fg);
+  font-size: 11px;
+  padding: 6px 10px;
+`;
+
+const PausedText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+`;
+
+const PausedLabel = styled.span`
+  font-weight: 700;
+`;
+
+const PausedReason = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-status-nogo-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ReEnableButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--color-status-nogo-fg);
+  color: var(--color-status-nogo-fg);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover {
+    background: var(--color-surface-raised);
+  }
 `;

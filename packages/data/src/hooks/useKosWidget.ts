@@ -1,6 +1,25 @@
 import { getDataSource } from "@gonogo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isKosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
+
+/**
+ * Interval-mode circuit breaker: after this many *consecutive* script
+ * errors, the hook stops dispatching and surfaces a `disabled` flag so
+ * the widget chrome can show a paused banner with a re-enable button.
+ *
+ * Consecutive (not windowed) is intentional — a flaky tick that
+ * recovers shouldn't trip; a wedged kerboscript that fails every tick
+ * should. Three at the typical 1Hz interval gives ~3s of error spam
+ * before the dispatcher halts. Only `KosScriptError` (script-author
+ * fault) counts; transport / proxy / timeout errors don't, because
+ * those typically affect every widget at once and would auto-disable
+ * the whole dashboard on a single hiccup.
+ *
+ * Command-mode dispatches are deliberately *not* breaker-gated — the
+ * user is the loop; a button-mash isn't a runaway timer.
+ */
+const INTERVAL_BREAKER_THRESHOLD = 3;
 
 /**
  * Widget-level arg: carries the type discriminant so config UIs can pick an
@@ -66,6 +85,22 @@ export interface UseKosWidgetResult {
   lastGoodAt: number | null;
   /** Command-mode: explicitly trigger a run. No-op in interval mode. */
   dispatch: () => void;
+  /**
+   * True when interval mode has tripped its consecutive-error breaker
+   * and is no longer dispatching. Always false in command mode.
+   */
+  disabled: boolean;
+  /**
+   * Human-readable reason the breaker tripped. Mirrors the last
+   * `KosScriptError.message`. `null` whenever `disabled` is false.
+   */
+  disabledReason: string | null;
+  /**
+   * Re-arm the breaker and resume dispatching. Triggers an immediate
+   * dispatch so the user gets feedback before the next interval tick.
+   * No-op when not currently disabled.
+   */
+  reEnable: () => void;
 }
 
 interface KosExecutor {
@@ -125,11 +160,24 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   const [error, setError] = useState<Error | null>(null);
   const [running, setRunning] = useState(false);
   const [lastGoodAt, setLastGoodAt] = useState<number | null>(null);
+  const [disabled, setDisabled] = useState(false);
+  const [disabledReason, setDisabledReason] = useState<string | null>(null);
 
   // Guard against overlapping dispatches and against state updates after
   // unmount. Both are refs so React renders don't reset the guard.
   const pendingRef = useRef(false);
   const mountedRef = useRef(true);
+  // Consecutive-script-error count for the interval breaker. Only
+  // resets on a successful dispatch or an explicit reEnable() —
+  // transport errors and component re-renders don't touch it.
+  const consecutiveScriptErrorsRef = useRef(0);
+  // After reEnable(), the breaker waits for the next dispatch to either
+  // succeed (clears the flag) or fail (counts ONE error and rearms the
+  // counter). Without this, a still-broken script trips the breaker on
+  // its first re-attempt and the user can't tell whether the button
+  // worked. Equivalent to "must succeed once before counting again,
+  // with one free retry."
+  const graceAfterReEnableRef = useRef(false);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -149,6 +197,12 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   // version mid-flight should land on the next call without re-mounting.
   const managedRef = useRef(opts.managed);
   managedRef.current = opts.managed;
+
+  // Stable across renders so the setInterval below doesn't tear down on
+  // every state update. Reads refs/state directly via closures over
+  // stable refs.
+  const modeRef = useRef(opts.mode);
+  modeRef.current = opts.mode;
 
   const dispatch = useCallback(() => {
     if (pendingRef.current) return;
@@ -178,10 +232,29 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
         setData(result);
         setError(null);
         setLastGoodAt(Date.now());
+        consecutiveScriptErrorsRef.current = 0;
+        graceAfterReEnableRef.current = false;
       })
       .catch((err: unknown) => {
         if (!mountedRef.current) return;
-        setError(err instanceof Error ? err : new Error(String(err)));
+        const errObj = err instanceof Error ? err : new Error(String(err));
+        setError(errObj);
+        // Only script-author errors feed the breaker. Transport,
+        // timeout, "source not registered" — not the user's fault, not
+        // a runaway loop, doesn't trip.
+        if (modeRef.current !== "interval" || !isKosScriptError(errObj)) {
+          return;
+        }
+        if (graceAfterReEnableRef.current) {
+          // Free retry after re-enable — burns the grace, doesn't count.
+          graceAfterReEnableRef.current = false;
+          return;
+        }
+        consecutiveScriptErrorsRef.current += 1;
+        if (consecutiveScriptErrorsRef.current >= INTERVAL_BREAKER_THRESHOLD) {
+          setDisabled(true);
+          setDisabledReason(errObj.message);
+        }
       })
       .finally(() => {
         pendingRef.current = false;
@@ -189,13 +262,33 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
       });
   }, [sourceId, telemetrySourceId]);
 
+  const reEnable = useCallback(() => {
+    if (!disabled) return;
+    consecutiveScriptErrorsRef.current = 0;
+    graceAfterReEnableRef.current = true;
+    setDisabled(false);
+    setDisabledReason(null);
+    // Fire immediately so the user sees a fresh attempt rather than
+    // waiting for the next interval tick. The interval effect re-runs
+    // on `disabled` flipping (it's keyed on `disabled` below) and the
+    // first dispatch from there would race this one — pendingRef
+    // suppresses the duplicate, so it's safe to call now.
+    dispatch();
+  }, [disabled, dispatch]);
+
   // Interval mode: fire immediately on mount, then every intervalMs. The
   // dispatch() guard (pendingRef) makes overlapping ticks skip silently, so
   // a slow script can't buffer a backlog of RUNs.
+  //
+  // The breaker gates this effect on `disabled` — when the breaker
+  // trips we tear the interval down entirely so no more bytes hit the
+  // wire (the FPS-melter case). reEnable() flips `disabled` back to
+  // false, which re-runs this effect and re-arms the timer.
   const intervalMs = opts.intervalMs;
   const mode = opts.mode;
   useEffect(() => {
     if (mode !== "interval") return;
+    if (disabled) return;
     if (!intervalMs || intervalMs <= 0) return;
     dispatch();
     const id = setInterval(() => {
@@ -204,10 +297,28 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
     return () => {
       clearInterval(id);
     };
-  }, [mode, intervalMs, dispatch]);
+  }, [mode, intervalMs, dispatch, disabled]);
 
   return useMemo(
-    () => ({ data, error, running, lastGoodAt, dispatch }),
-    [data, error, running, lastGoodAt, dispatch],
+    () => ({
+      data,
+      error,
+      running,
+      lastGoodAt,
+      dispatch,
+      disabled,
+      disabledReason,
+      reEnable,
+    }),
+    [
+      data,
+      error,
+      running,
+      lastGoodAt,
+      dispatch,
+      disabled,
+      disabledReason,
+      reEnable,
+    ],
   );
 }

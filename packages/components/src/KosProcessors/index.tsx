@@ -57,6 +57,9 @@ function KosProcessorsComponent({
     running,
     lastGoodAt,
     dispatch,
+    disabled,
+    disabledReason,
+    reEnable,
   } = useKosScriptPayload<KosProcessor[]>({
     cpu,
     script: scriptName,
@@ -88,6 +91,9 @@ function KosProcessorsComponent({
       lastGoodAt={lastGoodAt}
       onRun={dispatch}
       runDisabled={running || notConfigured}
+      paused={disabled}
+      pausedReason={disabledReason}
+      onReEnable={reEnable}
     >
       {renderBody()}
     </KosScriptFrame>

@@ -134,6 +134,14 @@ export type PeerMessage =
       requestId: string;
       data?: KosData;
       error?: string;
+      /**
+       * Set when `error` originates from the running kerboscript (explicit
+       * [KOSERROR] or kOS runtime exception), as opposed to transport /
+       * timeout / session-death. Stations re-raise these as
+       * `KosScriptError` so the interval-mode breaker only counts real
+       * script bugs and not flaky proxy hops.
+       */
+      isScriptError?: boolean;
     }
   // ──────────────────────────────────────────────────────────────────────
   // Internal mission alarms. The main screen owns the canonical list and
