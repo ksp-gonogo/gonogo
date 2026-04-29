@@ -43,9 +43,31 @@ export function SystemDiagram({
   );
 
   if (!parent || children.length === 0) {
+    // Diagnostic: list distinct referenceBody values across the whole
+    // body set so the user can see whether Telemachus is actually
+    // emitting parent names that match `parentName`. A common cause
+    // of the empty state is a name mismatch (e.g. "Sun" vs "Kerbol")
+    // or referenceBody not arriving at all.
+    const distinctParents = Array.from(
+      new Set(
+        bodies
+          .map((b) => b.referenceBody)
+          .filter((r): r is string => typeof r === "string" && r.length > 0),
+      ),
+    ).sort();
+    const knownCount = bodies.filter((b) => b.name).length;
     return (
       <Empty>
-        No bodies orbiting <b>{parentName}</b> yet.
+        <div>
+          No bodies orbiting <b>{parentName}</b> yet.
+        </div>
+        <Hint>
+          Telemachus reports {knownCount} {knownCount === 1 ? "body" : "bodies"}
+          {distinctParents.length > 0
+            ? `; parents seen: ${distinctParents.join(", ")}`
+            : "; no referenceBody values yet"}
+          .
+        </Hint>
       </Empty>
     );
   }
@@ -168,8 +190,13 @@ function organise(
   children: CelestialBody[];
   maxRadius: number;
 } {
-  const parent = bodies.find((b) => b.name === parentName) ?? null;
-  const children = bodies.filter((b) => b.referenceBody === parentName);
+  // Case + whitespace insensitive match — Telemachus has historically
+  // shipped slightly different casings for body names across versions
+  // ("Sun" vs "Sun ", and a stray "Kerbol" alias floating around).
+  const target = parentName.trim().toLowerCase();
+  const norm = (s: string | null) => (s ? s.trim().toLowerCase() : null);
+  const parent = bodies.find((b) => norm(b.name) === target) ?? null;
+  const children = bodies.filter((b) => norm(b.referenceBody) === target);
   let maxRadius = 0;
   for (const c of children) {
     if (c.semiMajorAxis && c.semiMajorAxis > maxRadius) {
@@ -182,10 +209,18 @@ function organise(
 const Empty = styled.div`
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   color: var(--color-text-dim);
   font-size: 11px;
   padding: 20px;
   text-align: center;
+`;
+
+const Hint = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+  max-width: 320px;
 `;

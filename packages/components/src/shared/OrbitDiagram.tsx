@@ -211,20 +211,22 @@ export function OrbitDiagram({
   const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
 
   const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
-  // Aim for ~5% of the smaller container dimension, clamped to [12, 20] px.
+  // Aim for ~7% of the smaller container dimension, clamped to [14, 26] px.
   // Tiny widgets keep readable labels; huge ones don't get billboard text.
-  // Falls back to a scaleRef-relative size (~5% of short viewBox side)
+  // Falls back to a scaleRef-relative size (~7% of short viewBox side)
   // before the container has been measured.
   const labelFontSize = (() => {
-    if (!containerSize) return Math.min(vb.w, vb.h) * 0.05;
+    if (!containerSize) return Math.min(vb.w, vb.h) * 0.07;
     const targetPx = clamp(
-      Math.min(containerSize.w, containerSize.h) * 0.05,
-      12,
-      20,
+      Math.min(containerSize.w, containerSize.h) * 0.07,
+      14,
+      26,
     );
-    // SVG with xMidYMid meet on a matching-aspect viewBox: 1 vb unit
-    // renders as (containerW / vb.w) px on both axes.
-    return targetPx * (vb.w / containerSize.w);
+    // SVG `xMidYMid meet`: scale = min(containerW/vb.w, containerH/vb.h),
+    // i.e. 1 vb unit renders as `scale` px. The binding axis (the one
+    // with the larger vb-to-container ratio) governs px↔vb conversion.
+    const vbPerPx = Math.max(vb.w / containerSize.w, vb.h / containerSize.h);
+    return targetPx * vbPerPx;
   })();
   const labelOffset = Math.max(dotR * 2.5, labelFontSize * 0.6);
 
