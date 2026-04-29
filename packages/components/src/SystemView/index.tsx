@@ -34,6 +34,28 @@ function SystemViewComponent({
   const bodies = useCelestialBodies();
   const vesselBody = useDataValue("data", "v.body");
   const targetName = useDataValue("data", "tar.name");
+  // Vessel orbit — feeds the dot drawn on its own orbit when the
+  // chosen frame matches its parent body.
+  const vSma = useDataValue("data", "o.sma");
+  const vEcc = useDataValue("data", "o.eccentricity");
+  const vLan = useDataValue("data", "o.lan");
+  const vArgPe = useDataValue("data", "o.argumentOfPeriapsis");
+  const vInc = useDataValue("data", "o.inclination");
+  const vTrueAnomaly = useDataValue("data", "o.trueAnomaly");
+  const vesselOrbit =
+    typeof vesselBody === "string" &&
+    typeof vSma === "number" &&
+    typeof vEcc === "number"
+      ? {
+          parentName: vesselBody,
+          sma: vSma,
+          ecc: vEcc,
+          lan: typeof vLan === "number" ? vLan : 0,
+          argPe: typeof vArgPe === "number" ? vArgPe : 0,
+          inclination: typeof vInc === "number" ? vInc : 0,
+          trueAnomaly: typeof vTrueAnomaly === "number" ? vTrueAnomaly : 0,
+        }
+      : null;
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody ?? null);
 
@@ -73,6 +95,7 @@ function SystemViewComponent({
             parentName={parentName}
             highlightNames={vesselBody ? [vesselBody] : []}
             targetName={typeof targetName === "string" ? targetName : null}
+            vessel={vesselOrbit}
             width={size.w}
             height={Math.max(size.h, 200)}
           />

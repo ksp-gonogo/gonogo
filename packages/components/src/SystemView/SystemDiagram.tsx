@@ -1,20 +1,51 @@
 import { getBody } from "@gonogo/core";
-import { useMemo } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
- * Top-down view of every body orbiting a chosen parent. Each body is
- * drawn as a filled dot at an (x, y) derived from the current true
- * anomaly + semi-major axis + eccentricity + argument-of-periapsis-ish
- * placement (we use `lan` as a crude rotator so orbits don't all
- * overlap). The parent sits at the origin; its circle is the SoI
- * marker when known, the radius when not.
+ * Top-down view of every body orbiting a chosen parent. Geometry is now
+ * physically meaningful (parent at the focus of each ellipse, body
+ * positioned via the polar form of the conic), with three layered
+ * affordances on top of the basic schematic:
  *
- * The view isn't physically accurate — this is a schematic. Distances
- * use a log-ish scale within the chosen frame so the inner and outer
- * bodies are both visible.
+ *   - Inclination is implied by a stroke gradient perpendicular to each
+ *     orbit's line of nodes — red for the half above the reference
+ *     plane, blue for the half below. Strength scales with inclination,
+ *     so flat orbits are mostly neutral.
+ *   - The active vessel renders as a green dot on its own orbit when
+ *     the chosen frame matches the vessel's parent.
+ *   - Hover any body for a mouse-tracked tooltip with the canonical
+ *     orbital parameters; the SVG `<title>` had a 500ms delay and
+ *     a 3.5px hit target.
+ *
+ * Pan + wheel-zoom let users dig into nested systems without changing
+ * the configured frame. Reset button in the bottom-right snaps back to
+ * the auto-fit view.
  */
+
+export interface VesselOrbit {
+  parentName: string;
+  sma: number;
+  ecc: number;
+  /** Longitude of the ascending node, degrees. */
+  lan: number;
+  /** Argument of periapsis, degrees. */
+  argPe: number;
+  /** Inclination in degrees — drives the inclination gradient. */
+  inclination: number;
+  /** True anomaly, degrees. */
+  trueAnomaly: number;
+}
 
 export interface SystemDiagramProps {
   bodies: readonly CelestialBody[];
@@ -24,17 +55,22 @@ export interface SystemDiagramProps {
   highlightNames?: readonly string[];
   /** Target body to highlight in a distinct colour. */
   targetName?: string | null;
+  /** If set and `parentName` matches, plot the vessel on its orbit. */
+  vessel?: VesselOrbit | null;
   width: number;
   height: number;
 }
 
-const PAD = 16;
+const PAD = 20;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 25;
 
 export function SystemDiagram({
   bodies,
   parentName,
   highlightNames,
   targetName,
+  vessel,
   width,
   height,
 }: SystemDiagramProps) {
@@ -42,6 +78,75 @@ export function SystemDiagram({
     () => organise(bodies, parentName),
     [bodies, parentName],
   );
+
+  // Zoom + pan state — kept above the empty-state return so the hook
+  // count stays stable across renders.
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+  const [hover, setHover] = useState<{
+    body: CelestialBody;
+    /** Cursor position in container-relative px. */
+    px: number;
+    py: number;
+  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tiltGradId = useId();
+
+  const onPointerMove = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const dx = (e.clientX - drag.startX) / zoom;
+      const dy = (e.clientY - drag.startY) / zoom;
+      setPan({ x: drag.panX - dx, y: drag.panY - dy });
+    },
+    [zoom],
+  );
+  const onPointerUp = useCallback(() => {
+    dragRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    globalThis.addEventListener("pointermove", onPointerMove);
+    globalThis.addEventListener("pointerup", onPointerUp);
+    return () => {
+      globalThis.removeEventListener("pointermove", onPointerMove);
+      globalThis.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [onPointerMove, onPointerUp]);
+
+  const handleWheel = useCallback((e: ReactWheelEvent) => {
+    // Don't preventDefault — React's passive listener can't, and
+    // letting the page scroll while the cursor is elsewhere is the
+    // expected behaviour. We only zoom when the cursor is over the
+    // diagram (this handler only fires then).
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * factor)));
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent) => {
+      if (e.button !== 0) return;
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+    },
+    [pan],
+  );
+
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
 
   if (!parent || children.length === 0) {
     // Diagnostic: list distinct referenceBody values across the whole
@@ -73,132 +178,390 @@ export function SystemDiagram({
     );
   }
 
-  const cx = width / 2;
-  const cy = height / 2;
-  const plotRadius = Math.min(width, height) / 2 - PAD;
+  const baseRadius = Math.min(width, height) / 2 - PAD;
+  // Ensure the vessel orbit (if relevant to this frame) fits — if the
+  // vessel's apoapsis exceeds the largest child orbit, scale to it
+  // instead so the dot doesn't fall off-frame.
+  const effectiveMax = Math.max(
+    maxRadius,
+    vessel && nameMatches(vessel.parentName, parentName)
+      ? vessel.sma * (1 + Math.min(vessel.ecc, 0.999))
+      : 0,
+  );
+  const plotScale = effectiveMax > 0 ? baseRadius / effectiveMax : 1;
 
-  // Linear scale. Earlier we used log10(1+sma)/log10(1+maxRadius) but the
-  // log compression made every Kerbol orbit (Moho 5.3e9 → Eeloo 9e10, ~17×
-  // ratio) plot on roughly the same circle. Linear gives a faithful
-  // spatial picture for KSP's body distribution; if we ever need to
-  // accommodate a 100× outer-system mod, switch to a power scale at that
-  // point rather than re-introducing log.
-  const scale = (sma: number) => sma / maxRadius;
+  // ViewBox is origin-centred so all orbital math operates around (0, 0).
+  const halfW = width / 2 / zoom;
+  const halfH = height / 2 / zoom;
+  const vbStr = `${-halfW + pan.x} ${-halfH + pan.y} ${halfW * 2} ${halfH * 2}`;
 
   const highlightSet = new Set(highlightNames ?? []);
+  const showVessel = vessel && nameMatches(vessel.parentName, parentName);
 
   return (
-    <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      role="img"
-      aria-label={`System view around ${parentName}`}
+    <Container
+      ref={containerRef}
+      onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerLeave={() => setHover(null)}
     >
-      <title>
-        System view around {parentName} ({children.length} bodies)
-      </title>
-
-      {/* Orbit circles — bumped opacity / stroke so they read against
-          the dark background. Each orbit is rotated by lan to spread
-          eccentric ellipses around their actual line of nodes. */}
-      {children.map((c) => {
-        const sma = c.semiMajorAxis ?? 0;
-        if (sma <= 0) return null;
-        const r = scale(sma) * plotRadius;
-        const ecc = c.eccentricity ?? 0;
-        const ry = r * Math.sqrt(1 - Math.min(ecc * ecc, 0.999));
-        const rot = c.lan ?? 0;
-        return (
-          <ellipse
-            key={`orbit-${c.index}`}
-            cx={cx}
-            cy={cy}
-            rx={r}
-            ry={ry}
-            fill="none"
-            stroke="var(--color-text-faint)"
-            strokeWidth={0.8}
-            opacity={0.55}
-            transform={`rotate(${rot} ${cx} ${cy})`}
-          />
-        );
-      })}
-
-      {/* Parent body */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={6}
-        fill={parentColor(parent)}
-        stroke="var(--color-text-inverse)"
-        strokeWidth={1}
-      />
-      <text
-        x={cx}
-        y={cy + 18}
-        fill="var(--color-text-primary)"
-        fontSize={10}
-        textAnchor="middle"
+      <svg
+        width={width}
+        height={height}
+        viewBox={vbStr}
+        role="img"
+        aria-label={`System view around ${parentName}`}
       >
-        {parent.name}
-      </text>
+        <title>
+          System view around {parentName} ({children.length} bodies)
+        </title>
 
-      {/* Child bodies */}
-      {children.map((c) => {
-        const sma = c.semiMajorAxis ?? 0;
-        if (sma <= 0) return null;
-        const r = scale(sma) * plotRadius;
-        const theta = ((c.trueAnomaly ?? 0) * Math.PI) / 180;
-        const lanRad = ((c.lan ?? 0) * Math.PI) / 180;
-        // Crude ellipse placement — rotate around centre by lan, offset
-        // on the major axis by (r * cos(theta)). Good enough for a
-        // schematic; use real orbital math later if we need accuracy.
-        const localX = r * Math.cos(theta);
-        const localY =
-          r *
-          Math.sin(theta) *
-          Math.sqrt(1 - Math.min((c.eccentricity ?? 0) ** 2, 0.999));
-        const x = cx + localX * Math.cos(lanRad) - localY * Math.sin(lanRad);
-        const y = cy + localX * Math.sin(lanRad) + localY * Math.cos(lanRad);
-        const isTarget = targetName && c.name === targetName;
-        const isHighlighted =
-          !isTarget && c.name !== null && highlightSet.has(c.name);
-        const dotR = isTarget ? 6 : isHighlighted ? 5 : 3.5;
-        // Body fill: target/highlight overrides win for navigation
-        // affordance; otherwise pull the canonical body colour from
-        // the stock registry so each body reads as itself.
-        const stockColor = c.name ? getBody(c.name)?.color : undefined;
-        const fill = isTarget
-          ? "var(--color-status-nogo-bg)"
-          : isHighlighted
-            ? "var(--color-accent-fg)"
-            : (stockColor ?? "var(--color-status-info-fg)");
-        const labelFill = isTarget
-          ? "var(--color-status-nogo-bg)"
-          : isHighlighted
-            ? "var(--color-accent-fg)"
-            : "var(--color-text-primary)";
-        return (
-          <g key={`body-${c.index}`}>
-            <circle
-              cx={x}
-              cy={y}
-              r={dotR}
-              fill={fill}
-              stroke="var(--color-text-inverse)"
-              strokeWidth={1}
+        {/* Inclination-gradient defs. One per orbit, perpendicular to
+            its line of nodes; intensity scales with |inclination|. */}
+        <defs>
+          {children.map((c) => {
+            if ((c.semiMajorAxis ?? 0) <= 0) return null;
+            return (
+              <InclinationGradient
+                key={`grad-${c.index}`}
+                id={`${tiltGradId}-${c.index}`}
+                lanDeg={c.lan ?? 0}
+                inclination={c.inclination ?? 0}
+                extent={(c.semiMajorAxis ?? 0) * plotScale * 1.2}
+              />
+            );
+          })}
+          {showVessel && (
+            <InclinationGradient
+              id={`${tiltGradId}-vessel`}
+              lanDeg={vessel.lan}
+              inclination={vessel.inclination}
+              extent={vessel.sma * plotScale * 1.2}
+            />
+          )}
+        </defs>
+
+        {/* Orbit ellipses — focus at origin (parent). Each is its own
+            <g rotate(phi)> so the ellipse can sit with periapsis along
+            +x and the focus at origin via cx = -ae. */}
+        {children.map((c) => {
+          const sma = c.semiMajorAxis ?? 0;
+          if (sma <= 0) return null;
+          const a = sma * plotScale;
+          const e = Math.min(Math.max(c.eccentricity ?? 0, 0), 0.999);
+          const b = a * Math.sqrt(1 - e * e);
+          const phi = (c.lan ?? 0) + (c.argumentOfPeriapsis ?? 0);
+          const focusOffset = a * e;
+          return (
+            <g
+              key={`orbit-${c.index}`}
+              transform={`rotate(${phi})`}
+              pointerEvents="none"
             >
-              <title>{bodyTooltip(c)}</title>
-            </circle>
-            <text x={x + dotR + 3} y={y + 3} fill={labelFill} fontSize={10}>
-              {c.name ?? "—"}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+              <ellipse
+                cx={-focusOffset}
+                cy={0}
+                rx={a}
+                ry={b}
+                fill="none"
+                stroke={`url(#${tiltGradId}-${c.index})`}
+                strokeWidth={1.2}
+              />
+            </g>
+          );
+        })}
+
+        {/* Vessel orbit (if any) — same focus-correct geometry. */}
+        {showVessel && (
+          <VesselOrbitPath
+            vessel={vessel}
+            plotScale={plotScale}
+            gradId={`${tiltGradId}-vessel`}
+          />
+        )}
+
+        {/* Parent body */}
+        <circle
+          cx={0}
+          cy={0}
+          r={6 / zoom}
+          fill={parentColor(parent)}
+          stroke="var(--color-text-inverse)"
+          strokeWidth={1 / zoom}
+        />
+        <text
+          x={0}
+          y={18 / zoom}
+          fill="var(--color-text-primary)"
+          fontSize={10 / zoom}
+          textAnchor="middle"
+        >
+          {parent.name}
+        </text>
+
+        {/* Child bodies */}
+        {children.map((c) => {
+          const sma = c.semiMajorAxis ?? 0;
+          if (sma <= 0) return null;
+          const pos = bodyPosition(
+            sma,
+            c.eccentricity ?? 0,
+            c.lan ?? 0,
+            c.argumentOfPeriapsis ?? 0,
+            c.trueAnomaly ?? 0,
+            plotScale,
+          );
+          const isTarget = targetName && c.name === targetName;
+          const isHighlighted =
+            !isTarget && c.name !== null && highlightSet.has(c.name);
+          const dotR = (isTarget ? 6 : isHighlighted ? 5 : 4) / zoom;
+          const stockColor = c.name ? getBody(c.name)?.color : undefined;
+          const fill = isTarget
+            ? "var(--color-status-nogo-bg)"
+            : isHighlighted
+              ? "var(--color-accent-fg)"
+              : (stockColor ?? "var(--color-status-info-fg)");
+          const labelFill = isTarget
+            ? "var(--color-status-nogo-bg)"
+            : isHighlighted
+              ? "var(--color-accent-fg)"
+              : "var(--color-text-primary)";
+          const onEnter = (e: ReactPointerEvent) => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setHover({
+              body: c,
+              px: e.clientX - rect.left,
+              py: e.clientY - rect.top,
+            });
+          };
+          const onMove = (e: ReactPointerEvent) => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setHover((prev) =>
+              prev && prev.body.index === c.index
+                ? {
+                    ...prev,
+                    px: e.clientX - rect.left,
+                    py: e.clientY - rect.top,
+                  }
+                : prev,
+            );
+          };
+          return (
+            <g key={`body-${c.index}`}>
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={dotR}
+                fill={fill}
+                stroke="var(--color-text-inverse)"
+                strokeWidth={1 / zoom}
+                onPointerEnter={onEnter}
+                onPointerMove={onMove}
+                onPointerLeave={() => setHover(null)}
+                style={{ cursor: "pointer" }}
+              />
+              <text
+                x={pos.x + dotR + 3 / zoom}
+                y={pos.y + 3 / zoom}
+                fill={labelFill}
+                fontSize={10 / zoom}
+                pointerEvents="none"
+              >
+                {c.name ?? "—"}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Vessel marker — drawn last so it's always on top. */}
+        {showVessel && (
+          <VesselMarker vessel={vessel} plotScale={plotScale} zoom={zoom} />
+        )}
+      </svg>
+
+      {hover && (
+        <Tooltip
+          style={{
+            // Offset by ~12px so the cursor doesn't sit on top of the
+            // tooltip and break hover; flip to the other side if the
+            // tooltip would clip the right/bottom edges.
+            left: clampTooltipX(
+              hover.px + 12,
+              containerRef.current?.clientWidth,
+            ),
+            top: clampTooltipY(
+              hover.py + 12,
+              containerRef.current?.clientHeight,
+            ),
+          }}
+        >
+          <TooltipTitle>{hover.body.name ?? "(unnamed)"}</TooltipTitle>
+          {tooltipRows(hover.body).map((row) => (
+            <TooltipRow key={row.label}>
+              <span>{row.label}</span>
+              <span>{row.value}</span>
+            </TooltipRow>
+          ))}
+        </Tooltip>
+      )}
+
+      {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+        <ResetButton type="button" onClick={resetView}>
+          Reset view
+        </ResetButton>
+      )}
+    </Container>
   );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function InclinationGradient({
+  id,
+  lanDeg,
+  inclination,
+  extent,
+}: Readonly<{
+  id: string;
+  lanDeg: number;
+  inclination: number;
+  extent: number;
+}>) {
+  // Gradient direction is perpendicular to the line of nodes (LAN
+  // axis). One end represents "above the reference plane" (red),
+  // the other "below" (blue). Strength scales with |inclination|;
+  // flat orbits are mostly neutral.
+  const lanRad = (lanDeg * Math.PI) / 180;
+  const perpAngle = lanRad + Math.PI / 2;
+  const dx = Math.cos(perpAngle) * extent;
+  const dy = Math.sin(perpAngle) * extent;
+  const tilt = Math.min(Math.abs(inclination) / 60, 1);
+  const stopOpacity = 0.35 + 0.55 * tilt;
+  return (
+    <linearGradient
+      id={id}
+      gradientUnits="userSpaceOnUse"
+      x1={-dx}
+      y1={-dy}
+      x2={dx}
+      y2={dy}
+    >
+      <stop
+        offset="0%"
+        stopColor="rgb(80, 130, 230)"
+        stopOpacity={stopOpacity}
+      />
+      <stop offset="50%" stopColor="rgb(160, 160, 170)" stopOpacity={0.45} />
+      <stop
+        offset="100%"
+        stopColor="rgb(230, 90, 90)"
+        stopOpacity={stopOpacity}
+      />
+    </linearGradient>
+  );
+}
+
+function VesselOrbitPath({
+  vessel,
+  plotScale,
+  gradId,
+}: Readonly<{
+  vessel: VesselOrbit;
+  plotScale: number;
+  gradId: string;
+}>) {
+  const a = vessel.sma * plotScale;
+  const e = Math.min(Math.max(vessel.ecc, 0), 0.999);
+  const b = a * Math.sqrt(1 - e * e);
+  const phi = vessel.lan + vessel.argPe;
+  const focusOffset = a * e;
+  return (
+    <g transform={`rotate(${phi})`} pointerEvents="none">
+      <ellipse
+        cx={-focusOffset}
+        cy={0}
+        rx={a}
+        ry={b}
+        fill="none"
+        stroke={`url(#${gradId})`}
+        strokeWidth={1.4}
+        strokeDasharray="4 3"
+      />
+    </g>
+  );
+}
+
+function VesselMarker({
+  vessel,
+  plotScale,
+  zoom,
+}: Readonly<{
+  vessel: VesselOrbit;
+  plotScale: number;
+  zoom: number;
+}>) {
+  const pos = bodyPosition(
+    vessel.sma,
+    vessel.ecc,
+    vessel.lan,
+    vessel.argPe,
+    vessel.trueAnomaly,
+    plotScale,
+  );
+  const r = 5 / zoom;
+  return (
+    <g pointerEvents="none">
+      <circle
+        cx={pos.x}
+        cy={pos.y}
+        r={r}
+        fill="var(--color-accent-fg)"
+        stroke="var(--color-text-inverse)"
+        strokeWidth={1 / zoom}
+      />
+      <circle
+        cx={pos.x}
+        cy={pos.y}
+        r={r * 2.2}
+        fill="none"
+        stroke="var(--color-accent-fg)"
+        strokeWidth={0.6 / zoom}
+        opacity={0.5}
+      />
+    </g>
+  );
+}
+
+// ── Math ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Position of a body on its orbit in the parent frame, with the parent
+ * at the origin (focus of the ellipse). Uses the polar form:
+ *   r(θ) = a (1 - e²) / (1 + e cos θ)
+ * which is exact for an elliptical orbit. The 2D projection is a
+ * top-down view ignoring inclination — the inclination axis is
+ * rendered separately as a stroke gradient.
+ */
+function bodyPosition(
+  sma: number,
+  eccentricity: number,
+  lanDeg: number,
+  argPeDeg: number,
+  trueAnomalyDeg: number,
+  scale: number,
+): { x: number; y: number } {
+  const e = Math.min(Math.max(eccentricity, 0), 0.999);
+  const theta = (trueAnomalyDeg * Math.PI) / 180;
+  const phi = ((lanDeg + argPeDeg) * Math.PI) / 180;
+  const r = ((sma * (1 - e * e)) / (1 + e * Math.cos(theta))) * scale;
+  const localX = r * Math.cos(theta);
+  const localY = r * Math.sin(theta);
+  return {
+    x: localX * Math.cos(phi) - localY * Math.sin(phi),
+    y: localX * Math.sin(phi) + localY * Math.cos(phi),
+  };
 }
 
 function parentColor(parent: CelestialBody): string {
@@ -208,31 +571,46 @@ function parentColor(parent: CelestialBody): string {
   );
 }
 
-function bodyTooltip(c: CelestialBody): string {
-  const lines: string[] = [c.name ?? "(unnamed)"];
-  if (c.radius) lines.push(`Radius: ${formatKm(c.radius)} km`);
-  if (c.semiMajorAxis) lines.push(`SMA: ${formatGm(c.semiMajorAxis)} Gm`);
-  if (c.eccentricity !== null && c.eccentricity !== undefined) {
-    lines.push(`Ecc: ${c.eccentricity.toFixed(3)}`);
-  }
-  if (c.inclination !== null && c.inclination !== undefined) {
-    lines.push(`Inc: ${c.inclination.toFixed(1)}°`);
-  }
-  if (c.period) lines.push(`Period: ${formatHours(c.period)} h`);
-  if (c.hasAtmosphere) lines.push("Atmosphere");
-  return lines.join("\n");
+function tooltipRows(
+  c: CelestialBody,
+): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [];
+  if (c.radius)
+    rows.push({ label: "Radius", value: `${formatKm(c.radius)} km` });
+  if (c.semiMajorAxis)
+    rows.push({ label: "SMA", value: `${formatGm(c.semiMajorAxis)} Gm` });
+  if (c.eccentricity !== null && c.eccentricity !== undefined)
+    rows.push({ label: "Ecc", value: c.eccentricity.toFixed(3) });
+  if (c.inclination !== null && c.inclination !== undefined)
+    rows.push({ label: "Inc", value: `${c.inclination.toFixed(1)}°` });
+  if (c.period)
+    rows.push({ label: "Period", value: `${formatHours(c.period)} h` });
+  if (c.soi) rows.push({ label: "SoI", value: `${formatKm(c.soi)} km` });
+  if (c.hasAtmosphere) rows.push({ label: "Atmos", value: "yes" });
+  return rows;
 }
 
 function formatKm(m: number): string {
   return (m / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
-
 function formatGm(m: number): string {
   return (m / 1e9).toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
-
 function formatHours(s: number): string {
   return (s / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
+function nameMatches(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function clampTooltipX(px: number, max: number | undefined): number {
+  if (max === undefined) return px;
+  return px > max - 220 ? Math.max(0, px - 220 - 24) : px;
+}
+function clampTooltipY(py: number, max: number | undefined): number {
+  if (max === undefined) return py;
+  return py > max - 160 ? Math.max(0, max - 160 - 8) : py;
 }
 
 function organise(
@@ -252,12 +630,28 @@ function organise(
   const children = bodies.filter((b) => norm(b.referenceBody) === target);
   let maxRadius = 0;
   for (const c of children) {
-    if (c.semiMajorAxis && c.semiMajorAxis > maxRadius) {
-      maxRadius = c.semiMajorAxis;
-    }
+    const ecc = Math.min(Math.max(c.eccentricity ?? 0, 0), 0.999);
+    const apo = (c.semiMajorAxis ?? 0) * (1 + ecc);
+    if (apo > maxRadius) maxRadius = apo;
   }
   return { parent, children, maxRadius };
 }
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const Container = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
+  svg {
+    display: block;
+  }
+`;
 
 const Empty = styled.div`
   flex: 1;
@@ -276,4 +670,57 @@ const Hint = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   max-width: 320px;
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  pointer-events: none;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+  min-width: 140px;
+  max-width: 240px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+`;
+
+const TooltipTitle = styled.div`
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--color-status-go-fg);
+`;
+
+const TooltipRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-muted);
+  span:last-child {
+    color: var(--color-text-primary);
+  }
+`;
+
+const ResetButton = styled.button`
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;

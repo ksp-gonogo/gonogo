@@ -29,6 +29,7 @@ export interface CelestialBody {
   inclination: number | null;
   period: number | null;
   lan: number | null;
+  argumentOfPeriapsis: number | null;
   trueAnomaly: number | null;
 }
 
@@ -44,6 +45,7 @@ const BODY_FIELDS = [
   ["inclination", "o.inclination"],
   ["period", "o.period"],
   ["lan", "o.lan"],
+  ["argumentOfPeriapsis", "o.argumentOfPeriapsis"],
   ["trueAnomaly", "o.trueAnomaly"],
 ] as const satisfies ReadonlyArray<readonly [keyof CelestialBody, string]>;
 
@@ -108,6 +110,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
       inclination: null,
       period: null,
       lan: null,
+      argumentOfPeriapsis: null,
       trueAnomaly: null,
     };
     for (const [localField, telemKey] of BODY_FIELDS) {
