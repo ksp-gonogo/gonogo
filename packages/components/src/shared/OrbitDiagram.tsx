@@ -228,7 +228,24 @@ export function OrbitDiagram({
     const vbPerPx = Math.max(vb.w / containerSize.w, vb.h / containerSize.h);
     return targetPx * vbPerPx;
   })();
-  const labelOffset = Math.max(dotR * 2.5, labelFontSize * 0.6);
+  const labelOffset = Math.max(dotR * 2.5, labelFontSize * 0.7);
+  // Offset labels OUTWARD from the body (radial), not just up the y-axis.
+  // Earlier code hardcoded `marker.y - labelOffset`, which placed the
+  // label inside the body whenever the marker sat below origin (argPe
+  // around 270° or any rotation that flipped the apsis line).
+  function radialOffset(p: { x: number; y: number }): {
+    x: number;
+    y: number;
+  } {
+    const len = Math.hypot(p.x, p.y);
+    if (len === 0) return { x: 0, y: -labelOffset };
+    return {
+      x: p.x + (p.x / len) * labelOffset,
+      y: p.y + (p.y / len) * labelOffset,
+    };
+  }
+  const apoLabelPos = radialOffset(apoMarker);
+  const periLabelPos = radialOffset(periMarker);
 
   return (
     <DiagramFrame ref={containerRef}>
@@ -333,8 +350,8 @@ export function OrbitDiagram({
         {showMarkers && cfg.showLabels && (
           <g pointerEvents="none">
             <ApsisLabel
-              x={apoMarker.x}
-              y={apoMarker.y - labelOffset}
+              x={apoLabelPos.x}
+              y={apoLabelPos.y}
               fill="var(--color-status-warning-bg)"
               fontSize={labelFontSize}
               text={
@@ -344,8 +361,8 @@ export function OrbitDiagram({
               }
             />
             <ApsisLabel
-              x={periMarker.x}
-              y={periMarker.y - labelOffset}
+              x={periLabelPos.x}
+              y={periLabelPos.y}
               fill="var(--color-tag-blue-fg)"
               fontSize={labelFontSize}
               text={

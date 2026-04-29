@@ -1,3 +1,4 @@
+import { getBody } from "@gonogo/core";
 import { useMemo } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -76,10 +77,13 @@ export function SystemDiagram({
   const cy = height / 2;
   const plotRadius = Math.min(width, height) / 2 - PAD;
 
-  // Compute a non-linear scale — small semi-major axes compress on log,
-  // large ones don't blow out. Add a tiny epsilon for the central body.
-  const scale = (sma: number) =>
-    Math.log10(1 + sma) / Math.log10(1 + maxRadius);
+  // Linear scale. Earlier we used log10(1+sma)/log10(1+maxRadius) but the
+  // log compression made every Kerbol orbit (Moho 5.3e9 → Eeloo 9e10, ~17×
+  // ratio) plot on roughly the same circle. Linear gives a faithful
+  // spatial picture for KSP's body distribution; if we ever need to
+  // accommodate a 100× outer-system mod, switch to a power scale at that
+  // point rather than re-introducing log.
+  const scale = (sma: number) => sma / maxRadius;
 
   const highlightSet = new Set(highlightNames ?? []);
 
@@ -95,7 +99,9 @@ export function SystemDiagram({
         System view around {parentName} ({children.length} bodies)
       </title>
 
-      {/* Orbit circles */}
+      {/* Orbit circles — bumped opacity / stroke so they read against
+          the dark background. Each orbit is rotated by lan to spread
+          eccentric ellipses around their actual line of nodes. */}
       {children.map((c) => {
         const sma = c.semiMajorAxis ?? 0;
         if (sma <= 0) return null;
@@ -111,8 +117,9 @@ export function SystemDiagram({
             rx={r}
             ry={ry}
             fill="none"
-            stroke="var(--color-status-info-bg)"
-            strokeWidth={1}
+            stroke="var(--color-text-faint)"
+            strokeWidth={0.8}
+            opacity={0.55}
             transform={`rotate(${rot} ${cx} ${cy})`}
           />
         );
@@ -123,13 +130,14 @@ export function SystemDiagram({
         cx={cx}
         cy={cy}
         r={6}
-        fill="var(--color-status-nogo-fg)"
-        stroke="var(--color-status-warning-bg-muted)"
+        fill={parentColor(parent)}
+        stroke="var(--color-text-inverse)"
+        strokeWidth={1}
       />
       <text
         x={cx}
         y={cy + 18}
-        fill="var(--color-status-nogo-fg)"
+        fill="var(--color-text-primary)"
         fontSize={10}
         textAnchor="middle"
       >
@@ -156,12 +164,21 @@ export function SystemDiagram({
         const isTarget = targetName && c.name === targetName;
         const isHighlighted =
           !isTarget && c.name !== null && highlightSet.has(c.name);
-        const dotR = isTarget ? 6 : isHighlighted ? 5 : 3;
+        const dotR = isTarget ? 6 : isHighlighted ? 5 : 3.5;
+        // Body fill: target/highlight overrides win for navigation
+        // affordance; otherwise pull the canonical body colour from
+        // the stock registry so each body reads as itself.
+        const stockColor = c.name ? getBody(c.name)?.color : undefined;
         const fill = isTarget
           ? "var(--color-status-nogo-bg)"
           : isHighlighted
             ? "var(--color-accent-fg)"
-            : "var(--color-status-info-fg)";
+            : (stockColor ?? "var(--color-status-info-fg)");
+        const labelFill = isTarget
+          ? "var(--color-status-nogo-bg)"
+          : isHighlighted
+            ? "var(--color-accent-fg)"
+            : "var(--color-text-primary)";
         return (
           <g key={`body-${c.index}`}>
             <circle
@@ -171,8 +188,10 @@ export function SystemDiagram({
               fill={fill}
               stroke="var(--color-text-inverse)"
               strokeWidth={1}
-            />
-            <text x={x + dotR + 3} y={y + 3} fill={fill} fontSize={10}>
+            >
+              <title>{bodyTooltip(c)}</title>
+            </circle>
+            <text x={x + dotR + 3} y={y + 3} fill={labelFill} fontSize={10}>
               {c.name ?? "—"}
             </text>
           </g>
@@ -180,6 +199,40 @@ export function SystemDiagram({
       })}
     </svg>
   );
+}
+
+function parentColor(parent: CelestialBody): string {
+  return (
+    (parent.name ? getBody(parent.name)?.color : undefined) ??
+    "var(--color-status-warning-bg)"
+  );
+}
+
+function bodyTooltip(c: CelestialBody): string {
+  const lines: string[] = [c.name ?? "(unnamed)"];
+  if (c.radius) lines.push(`Radius: ${formatKm(c.radius)} km`);
+  if (c.semiMajorAxis) lines.push(`SMA: ${formatGm(c.semiMajorAxis)} Gm`);
+  if (c.eccentricity !== null && c.eccentricity !== undefined) {
+    lines.push(`Ecc: ${c.eccentricity.toFixed(3)}`);
+  }
+  if (c.inclination !== null && c.inclination !== undefined) {
+    lines.push(`Inc: ${c.inclination.toFixed(1)}°`);
+  }
+  if (c.period) lines.push(`Period: ${formatHours(c.period)} h`);
+  if (c.hasAtmosphere) lines.push("Atmosphere");
+  return lines.join("\n");
+}
+
+function formatKm(m: number): string {
+  return (m / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function formatGm(m: number): string {
+  return (m / 1e9).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatHours(s: number): string {
+  return (s / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 function organise(
