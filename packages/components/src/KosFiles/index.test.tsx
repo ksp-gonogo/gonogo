@@ -58,9 +58,7 @@ describe("KosFilesComponent", () => {
 
   it("shows the configure-CPU placeholder when not configured", () => {
     render(<KosFilesComponent config={{}} />);
-    expect(
-      screen.getByText(/Configure a kOS CPU tagname/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Pick a kOS CPU/i)).toBeInTheDocument();
   });
 
   it("renders the volume listing on dispatch and lets the user open a file", async () => {

@@ -922,11 +922,20 @@ export class KosComputeSession {
       // Dump what we did receive so the user can see why parseKosData
       // missed the marker — usually means the script errored before
       // emitting [KOSDATA], or the marker literal got mangled.
+      // Probe the buffer for the marker bytes so we can tell
+      // "script never emitted [KOSDATA]" from "parser missed a complete
+      // block that's actually in the buffer". The latter is a parser
+      // bug; the former is a script bug.
+      const cleanBuffer = stripAnsi(this.replBuffer);
       logger.warn(
         `[kos] script "${next.script}" timed out awaiting [KOSDATA]`,
         {
           cpu: this.init.cpu,
           bufferLen: this.replBuffer.length,
+          openIdx: cleanBuffer.indexOf("[KOSDATA]"),
+          closeIdx: cleanBuffer.indexOf("[/KOSDATA]"),
+          openCount: (cleanBuffer.match(/\[KOSDATA\]/g) ?? []).length,
+          closeCount: (cleanBuffer.match(/\[\/KOSDATA\]/g) ?? []).length,
           bufferTail: this.replBuffer.slice(-1000),
         },
       );

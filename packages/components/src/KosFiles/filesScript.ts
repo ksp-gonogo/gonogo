@@ -35,10 +35,19 @@ LOCAL quoteChar IS CHAR(34).
 LOCAL backslash IS CHAR(92).
 
 IF op = "list" {
-  // CD accepts a full path including volume (\`0:/widget_scripts\`,
-  // \`Archive/foo\`). Listing a bare volume (\`0:\`, \`0\`, \`Archive\`)
-  // works too — kOS treats it as the volume root.
-  CD(pathArg).
+  // Normalize bare volume names to volume-rooted paths. CD doesn't accept
+  // \`Archive\` on its own — that's a volume identifier, not a path —
+  // but \`Archive:/\` works (it switches volumes and CDs to root).
+  // Inputs containing "/" are assumed already volume-qualified.
+  LOCAL navPath IS pathArg.
+  IF NOT navPath:CONTAINS("/") {
+    IF navPath:CONTAINS(":") {
+      SET navPath TO navPath + "/".
+    } ELSE {
+      SET navPath TO navPath + ":/".
+    }
+  }
+  CD(navPath).
   LOCAL items IS LIST().
   LIST FILES IN items.
 

@@ -139,8 +139,7 @@ function KosFilesComponent({
     if (notConfigured) {
       return (
         <Placeholder>
-          Configure a kOS CPU tagname and save the script (in the widget&apos;s
-          config) to <code>{KOS_FILES_SCRIPT_NAME}</code>.
+          Pick a kOS CPU in the widget&apos;s config to start.
         </Placeholder>
       );
     }
@@ -397,18 +396,17 @@ function KosFilesConfigComponent({
 
       <Field>
         <ScriptHeader>
-          <FieldLabel>Script</FieldLabel>
+          <FieldLabel>Script (auto-deployed)</FieldLabel>
           <GhostButton type="button" onClick={handleCopy}>
             {copied ? "Copied" : "Copy"}
           </GhostButton>
         </ScriptHeader>
         <FieldHint>
-          Paste this into{" "}
+          The widget syncs this script to{" "}
           <code>
             {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
           </code>{" "}
-          on your kOS Archive volume. Contract:{" "}
-          <code>[KOSDATA]op=…;listing=… or contents=…[/KOSDATA]</code>.
+          automatically — no copy-paste needed. Shown here for reference.
         </FieldHint>
         <ScriptBox>
           <pre>{KOS_FILES_SCRIPT}</pre>

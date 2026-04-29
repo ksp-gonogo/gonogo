@@ -143,8 +143,7 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     if (notConfigured) {
       return (
         <Placeholder>
-          Configure the kOS CPU tagname and save the script (in the
-          widget&apos;s config) to <code>{SHIP_MAP_SCRIPT_NAME}</code>.
+          Pick a kOS CPU in the widget&apos;s config to start.
         </Placeholder>
       );
     }
@@ -275,18 +274,18 @@ function ShipMapConfigComponent({
 
       <Field>
         <ScriptHeader>
-          <FieldLabel>Script</FieldLabel>
+          <FieldLabel>Script (auto-deployed)</FieldLabel>
           <GhostButton type="button" onClick={handleCopy}>
             {copied ? "Copied" : "Copy"}
           </GhostButton>
         </ScriptHeader>
         <FieldHint>
-          Paste this into{" "}
+          The widget syncs this script to{" "}
           <code>
             {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
           </code>{" "}
-          on your kOS Archive volume. Edit freely — the contract is one line of
-          the form <code>[KOSDATA]parts=&lt;json-array&gt;[/KOSDATA]</code>.
+          automatically — no copy-paste needed. Shown here for reference and for
+          hand-editing the on-volume copy if you want to experiment.
         </FieldHint>
         <ScriptBox>
           <pre>{SHIP_MAP_SCRIPT}</pre>

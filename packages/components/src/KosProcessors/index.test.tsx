@@ -58,9 +58,7 @@ describe("KosProcessorsComponent", () => {
 
   it("shows the 'configure CPU' placeholder when not configured", () => {
     render(<KosProcessorsComponent config={{}} />);
-    expect(
-      screen.getByText(/Configure a kOS CPU tagname/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Pick a kOS CPU/i)).toBeInTheDocument();
   });
 
   it("renders a row per processor and surfaces tag/mode/volume/boot", async () => {
