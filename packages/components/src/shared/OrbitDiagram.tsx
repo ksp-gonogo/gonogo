@@ -211,16 +211,16 @@ export function OrbitDiagram({
   const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
 
   const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
-  // Aim for ~7% of the smaller container dimension, clamped to [14, 26] px.
-  // Tiny widgets keep readable labels; huge ones don't get billboard text.
-  // Falls back to a scaleRef-relative size (~7% of short viewBox side)
-  // before the container has been measured.
+  // Aim for ~8% of the smaller container dimension, clamped to [20, 64] px.
+  // Apsis labels are the only on-canvas text; they need enough weight to
+  // read at a glance against the orbit background, even on bigger
+  // widgets where a 26-px cap looked lost in the frame.
   const labelFontSize = (() => {
-    if (!containerSize) return Math.min(vb.w, vb.h) * 0.07;
+    if (!containerSize) return Math.min(vb.w, vb.h) * 0.08;
     const targetPx = clamp(
-      Math.min(containerSize.w, containerSize.h) * 0.07,
-      14,
-      26,
+      Math.min(containerSize.w, containerSize.h) * 0.08,
+      20,
+      64,
     );
     // SVG `xMidYMid meet`: scale = min(containerW/vb.w, containerH/vb.h),
     // i.e. 1 vb unit renders as `scale` px. The binding axis (the one
@@ -403,7 +403,12 @@ function ApsisLabel({
       style={{
         paintOrder: "stroke",
         stroke: "var(--color-surface-app)",
-        strokeWidth: fontSize * 0.4,
+        // Halo for legibility against orbit + body. Too wide and the
+        // dark stroke eats into the glyphs (paint-order draws fill on
+        // top of stroke, but a stroke wider than the glyph stem turns
+        // the letter into a black-and-fill blob). 0.18 keeps the halo
+        // visible without obscuring the text.
+        strokeWidth: fontSize * 0.18,
         strokeLinejoin: "round",
         userSelect: "none",
       }}
