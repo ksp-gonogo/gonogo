@@ -186,11 +186,17 @@ export function OrbitDiagram({
       : fitToAspect(paddedBox, containerAspect),
   );
 
-  // Body disc uses real radius when known, capped for mini so the body doesn't dominate
+  // Body disc renders at the body's real radius when known, in both
+  // variants. Earlier the mini variant capped to `apoapsis * 0.2` so a
+  // small preview wouldn't be dominated by the body, but that turned
+  // sub-orbital trajectories (apoapsis << bodyRadius) into a body-dot
+  // that sat inside its own orbit and hid the "ship will crash" cue.
+  // With render order orbit-then-body, the body naturally occludes any
+  // orbit segment that crosses through it — for normal orbits the
+  // orbit shows as a ring around the body, for sub-orbital the orbit
+  // disappears into the body indicating impact.
   const bodyDisc = bodyRadius
-    ? variant === "mini"
-      ? Math.min(bodyRadius, apoapsis * 0.2)
-      : bodyRadius
+    ? bodyRadius
     : scaleRef * cfg.defaultBodyDiscRatio;
 
   const orbitStroke = isOrbiting
@@ -211,24 +217,22 @@ export function OrbitDiagram({
   const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
 
   const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
-  // Aim for ~8% of the smaller container dimension, clamped to [20, 64] px.
-  // Apsis labels are the only on-canvas text; they need enough weight to
-  // read at a glance against the orbit background, even on bigger
-  // widgets where a 26-px cap looked lost in the frame.
-  const labelFontSize = (() => {
-    if (!containerSize) return Math.min(vb.w, vb.h) * 0.08;
-    const targetPx = clamp(
-      Math.min(containerSize.w, containerSize.h) * 0.08,
-      20,
-      64,
-    );
-    // SVG `xMidYMid meet`: scale = min(containerW/vb.w, containerH/vb.h),
-    // i.e. 1 vb unit renders as `scale` px. The binding axis (the one
-    // with the larger vb-to-container ratio) governs px↔vb conversion.
-    const vbPerPx = Math.max(vb.w / containerSize.w, vb.h / containerSize.h);
-    return targetPx * vbPerPx;
-  })();
-  const labelOffset = Math.max(dotR * 2.5, labelFontSize * 0.7);
+  // Apsis labels are sized in CSS pixels (~8% of the smaller container,
+  // clamped). We CAN'T just multiply by vbPerPx onto the `font-size`
+  // attribute — browsers clamp computed font-size to 5000 px, which
+  // for our viewBoxes (often millions of user units wide) means the
+  // attribute saturates and the text renders at ~1 actual pixel. Fix
+  // is in ApsisLabel: it counter-scales via a parent `<g scale>` so
+  // its child `<text>` can keep `font-size` small (under the cap).
+  const labelPxSize = containerSize
+    ? clamp(Math.min(containerSize.w, containerSize.h) * 0.08, 20, 64)
+    : 32;
+  const vbPerPx = containerSize
+    ? Math.max(vb.w / containerSize.w, vb.h / containerSize.h)
+    : 1;
+  // labelOffset is a user-unit value (apsis position lives in user units),
+  // so convert the px target back to user units for the radial nudge.
+  const labelOffset = Math.max(dotR * 2.5, labelPxSize * 0.7 * vbPerPx);
   // Offset labels OUTWARD from the body (radial), not just up the y-axis.
   // Earlier code hardcoded `marker.y - labelOffset`, which placed the
   // label inside the body whenever the marker sat below origin (argPe
@@ -353,7 +357,8 @@ export function OrbitDiagram({
               x={apoLabelPos.x}
               y={apoLabelPos.y}
               fill="var(--color-status-warning-bg)"
-              fontSize={labelFontSize}
+              fontSizePx={labelPxSize}
+              vbPerPx={vbPerPx}
               text={
                 hoveredMarker === "ap"
                   ? formatAltitude(apoapsis, bodyRadius)
@@ -364,7 +369,8 @@ export function OrbitDiagram({
               x={periLabelPos.x}
               y={periLabelPos.y}
               fill="var(--color-tag-blue-fg)"
-              fontSize={labelFontSize}
+              fontSizePx={labelPxSize}
+              vbPerPx={vbPerPx}
               text={
                 hoveredMarker === "pe"
                   ? formatAltitude(periapsis, bodyRadius)
@@ -399,39 +405,57 @@ function ApsisLabel({
   x,
   y,
   fill,
-  fontSize,
+  fontSizePx,
+  vbPerPx,
   text,
 }: Readonly<{
   x: number;
   y: number;
   fill: string;
-  fontSize: number;
+  /** Target rendered size in CSS pixels. */
+  fontSizePx: number;
+  /** ViewBox-units per CSS pixel — the SVG transform's scale factor. */
+  vbPerPx: number;
   text: string;
 }>) {
+  // Browsers clamp computed `font-size` to ~5000 px. We typically need
+  // labels at ~30–60 actual pixels; for viewBoxes measured in millions
+  // of user units, the unscaled `font-size` would have to be in the
+  // hundreds of thousands — which the browser then clamps to 5000,
+  // which the SVG transform shrinks to ~1 actual pixel.
+  //
+  // Counter-scale: place the text inside a `<g>` whose scale matches
+  // the SVG's vb-to-px ratio. Inside that group, `font-size` stays in
+  // CSS pixels (well under the cap); the group's scale magnifies the
+  // glyphs back to real-world user-unit size, and the SVG transform
+  // shrinks them to the target pixel size on render.
   // paint-order:stroke draws a halo behind the glyphs so the label is
   // legible against any orbit / body colour without needing a rect.
   return (
-    <text
-      x={x}
-      y={y}
-      textAnchor="middle"
-      fill={fill}
-      fontSize={fontSize}
-      style={{
-        paintOrder: "stroke",
-        stroke: "var(--color-surface-app)",
-        // Halo for legibility against orbit + body. Too wide and the
-        // dark stroke eats into the glyphs (paint-order draws fill on
-        // top of stroke, but a stroke wider than the glyph stem turns
-        // the letter into a black-and-fill blob). 0.18 keeps the halo
-        // visible without obscuring the text.
-        strokeWidth: fontSize * 0.18,
-        strokeLinejoin: "round",
-        userSelect: "none",
-      }}
-    >
-      {text}
-    </text>
+    <g transform={`translate(${x}, ${y}) scale(${vbPerPx})`}>
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={fill}
+        fontSize={fontSizePx}
+        style={{
+          paintOrder: "stroke",
+          stroke: "var(--color-surface-app)",
+          // Halo for legibility against orbit + body. Too wide and the
+          // dark stroke eats into the glyphs (paint-order draws fill on
+          // top of stroke, but a stroke wider than the glyph stem turns
+          // the letter into a black-and-fill blob). 0.18 keeps the halo
+          // visible without obscuring the text.
+          strokeWidth: fontSizePx * 0.18,
+          strokeLinejoin: "round",
+          userSelect: "none",
+        }}
+      >
+        {text}
+      </text>
+    </g>
   );
 }
 
