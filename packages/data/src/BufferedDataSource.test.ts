@@ -61,6 +61,41 @@ describe("BufferedDataSource", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  describe("demand subscriptions for indexed/dynamic keys", () => {
+    it("forwards subscriptions for keys outside the static schema upstream", () => {
+      // `b.name[1]` isn't in MOCK_KEYS — the wrapper must still subscribe
+      // upstream when a widget asks for it, otherwise the upstream WS never
+      // carries the key and values never arrive.
+      const spy = vi.fn();
+      buffered.subscribe("b.name[1]", spy);
+      source.emit("b.name[1]", "Kerbin");
+      expect(spy).toHaveBeenCalledWith("Kerbin");
+    });
+
+    it("ref-counts demand subscriptions across multiple subscribers", () => {
+      // Two widgets share one upstream sub. Tearing one down keeps the
+      // upstream alive for the other.
+      const a = vi.fn();
+      const b = vi.fn();
+      const unsubA = buffered.subscribe("b.name[1]", a);
+      buffered.subscribe("b.name[1]", b);
+
+      unsubA();
+      source.emit("b.name[1]", "Kerbin");
+      expect(b).toHaveBeenCalledWith("Kerbin");
+    });
+
+    it("stops fanning out values after the last widget unsubscribes", () => {
+      const spy = vi.fn();
+      const unsub = buffered.subscribe("b.name[1]", spy);
+      source.emit("b.name[1]", "Kerbin");
+      expect(spy).toHaveBeenCalledTimes(1);
+      unsub();
+      source.emit("b.name[1]", "Mun");
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("subscribeCollection", () => {
     it("emits an array of current values whenever any key changes", () => {
       const spy = vi.fn();

@@ -107,6 +107,25 @@ export class BufferedDataSource implements DataSource {
   private lastEmittedCurrent: FlightRecord | null = null;
 
   /**
+   * Keys we've subscribed to upstream because of `connect()` — i.e. every
+   * key the wrapped source advertises in `schema()`. Tracked so demand
+   * subscribes can skip them.
+   */
+  private readonly upfrontKeys = new Set<string>();
+  /**
+   * Indexed/dynamic keys (e.g. `b.name[1]`) aren't in the upstream
+   * schema, so they don't get subscribed at connect-time. When a widget
+   * calls subscribe() for one of these, we forward the subscribe to the
+   * upstream and ref-count callers so we can tear it down once the last
+   * widget leaves. Without this the upstream WS never carries the key
+   * and the widget waits forever.
+   */
+  private readonly demandSubs = new Map<
+    string,
+    { count: number; unsub: () => void }
+  >();
+
+  /**
    * CommNet signal state tracked internally off `comm.connected` samples.
    * The gate only activates after we've observed a `comm.connected: true`
    * AT LEAST ONCE and then seen it flip to `false`. Cold-start `false`
@@ -150,8 +169,11 @@ export class BufferedDataSource implements DataSource {
 
     // Subscribe to every key the upstream exposes. We don't filter — the
     // graph widget may want any of them. Telemachus schema is static so
-    // this is a fixed cost at connect time.
+    // this is a fixed cost at connect time. Indexed keys (e.g.
+    // `b.name[1]`) live outside the schema; they're picked up via demand
+    // subscribes from `subscribe()` below.
     for (const { key } of this.source.schema()) {
+      this.upfrontKeys.add(key);
       const unsub = this.source.subscribe(key, (value) => {
         this.handleSample(key, value);
       });
@@ -172,6 +194,9 @@ export class BufferedDataSource implements DataSource {
   disconnect(): void {
     for (const u of this.upstreamUnsubs) u();
     this.upstreamUnsubs = [];
+    for (const d of this.demandSubs.values()) d.unsub();
+    this.demandSubs.clear();
+    this.upfrontKeys.clear();
     this.upstreamStatusUnsub?.();
     this.upstreamStatusUnsub = null;
   }
@@ -195,6 +220,22 @@ export class BufferedDataSource implements DataSource {
       this.keySubscribers.set(key, bucket);
     }
     bucket.add(cb);
+
+    // For keys NOT covered by the upfront schema sub (indexed keys like
+    // `b.name[1]`), demand-subscribe upstream so values actually flow.
+    // Reference-counted so multiple widgets share a single upstream sub.
+    if (!this.upfrontKeys.has(key)) {
+      const existing = this.demandSubs.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        const unsub = this.source.subscribe(key, (value) => {
+          this.handleSample(key, value);
+        });
+        this.demandSubs.set(key, { count: 1, unsub });
+      }
+    }
+
     // Replay the last-known value so late subscribers aren't stuck on
     // `undefined` until the next sample arrives.
     if (this.lastEmittedValue.has(key)) {
@@ -202,9 +243,18 @@ export class BufferedDataSource implements DataSource {
     }
     return () => {
       const b = this.keySubscribers.get(key);
-      if (!b) return;
-      b.delete(cb);
-      if (b.size === 0) this.keySubscribers.delete(key);
+      if (b) {
+        b.delete(cb);
+        if (b.size === 0) this.keySubscribers.delete(key);
+      }
+      const demand = this.demandSubs.get(key);
+      if (demand) {
+        demand.count -= 1;
+        if (demand.count <= 0) {
+          demand.unsub();
+          this.demandSubs.delete(key);
+        }
+      }
     };
   }
 
