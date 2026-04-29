@@ -1,4 +1,8 @@
-import { orbitalToCartesian, trueAnomalyToRadius } from "@gonogo/core";
+import {
+  formatDistance,
+  orbitalToCartesian,
+  trueAnomalyToRadius,
+} from "@gonogo/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -78,9 +82,12 @@ export interface OrbitDiagramProps {
 }
 
 // Per-variant styling knobs. Kept here so the two call sites don't diverge.
+// Padding is generous on the "full" variant so the apsis labels (sized
+// relative to the viewBox so they read at a sensible pixel size) don't
+// clip when argPe rotates the apsis line vertical.
 const variantConfig = {
   full: {
-    padding: 0.15,
+    padding: 0.25,
     strokeW: 0.014,
     dotR: 0.028,
     vesselDotScale: 1.5,
@@ -133,22 +140,51 @@ export function OrbitDiagram({
   const strokeW = scaleRef * cfg.strokeW;
   const dotR = scaleRef * cfg.dotR;
 
-  // Viewbox sizing considers both orbits so the projected overlay never clips.
-  const vbApo = Math.max(apoapsis, projected?.apoapsis ?? 0);
-  const vbPeri = Math.max(periapsis, projected?.periapsis ?? 0);
-  const vbB = Math.max(b, projB);
-  const vb =
+  // Track the rendered container size so we can pad the viewBox to its
+  // aspect (avoids letterboxing) AND convert px-based label sizes back
+  // into viewBox units.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState<{
+    w: number;
+    h: number;
+  } | null>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const { width, height } = e.contentRect;
+        if (width > 0 && height > 0) setContainerSize({ w: width, h: height });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const containerAspect = containerSize
+    ? containerSize.w / containerSize.h
+    : null;
+
+  // Bbox pipeline shared by both variants:
+  //   orbit (rotated by argPe) → union with projected → pad → centre/aspect-fit
+  // The rotated-bbox step also fixes a long-standing mini-variant clip bug
+  // for orbits with non-zero argPe (the old code used apoapsis/b directly,
+  // which is only correct at argPe=0).
+  const mainBox = orbitBoundingBox(sma, b, c, argPe);
+  const projBox = projected
+    ? orbitBoundingBox(projected.sma, projB, projC, projArgPe)
+    : null;
+  const orbitBox = projBox ? unionBox(mainBox, projBox) : mainBox;
+  const paddedBox = padBox(orbitBox, padding);
+
+  // full: body-centred (origin in viewBox centre) + aspect fit; default to
+  //       a square frame when unmeasured to match pre-aspect-aware behaviour.
+  // mini: orbit-centred (orbit edge-to-edge) + aspect fit when measured;
+  //       leaves the bbox tight when unmeasured.
+  const vb = toViewBox(
     variant === "full"
-      ? (() => {
-          const half = vbApo + padding;
-          return { x: -half, y: -half, w: 2 * half, h: 2 * half };
-        })()
-      : {
-          x: -(vbApo + padding),
-          y: -(vbB + padding),
-          w: vbApo + vbPeri + 2 * padding,
-          h: 2 * (vbB + padding),
-        };
+      ? fitToAspect(symmetriseAroundOrigin(paddedBox), containerAspect ?? 1)
+      : fitToAspect(paddedBox, containerAspect),
+  );
 
   // Body disc uses real radius when known, capped for mini so the body doesn't dominate
   const bodyDisc = bodyRadius
@@ -165,112 +201,310 @@ export function OrbitDiagram({
   const r = trueAnomalyToRadius(sma, ecc, trueAnomaly);
   const { x: vx, y: vy } = orbitalToCartesian(r, trueAnomaly);
 
+  // Rotated marker positions in SVG world space — used so labels and the
+  // hover tooltip stay axis-aligned (they previously lived inside the
+  // rotation group and read sideways at large argPe).
+  const argPeRad = (argPe * Math.PI) / 180;
+  const cosA = Math.cos(argPeRad);
+  const sinA = Math.sin(argPeRad);
+  const apoMarker = { x: -apoapsis * cosA, y: apoapsis * sinA };
+  const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
+
+  const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
+  // Aim for ~5% of the smaller container dimension, clamped to [12, 20] px.
+  // Tiny widgets keep readable labels; huge ones don't get billboard text.
+  // Falls back to a scaleRef-relative size (~5% of short viewBox side)
+  // before the container has been measured.
+  const labelFontSize = (() => {
+    if (!containerSize) return Math.min(vb.w, vb.h) * 0.05;
+    const targetPx = clamp(
+      Math.min(containerSize.w, containerSize.h) * 0.05,
+      12,
+      20,
+    );
+    // SVG with xMidYMid meet on a matching-aspect viewBox: 1 vb unit
+    // renders as (containerW / vb.w) px on both axes.
+    return targetPx * (vb.w / containerSize.w);
+  })();
+  const labelOffset = Math.max(dotR * 2.5, labelFontSize * 0.6);
+
   return (
-    <DiagramSvg
-      viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label="Orbital diagram"
-    >
-      {/* Projected orbit (behind) — dashed, amber to contrast with the
+    <DiagramFrame ref={containerRef}>
+      <DiagramSvg
+        viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Orbital diagram"
+      >
+        {/* Projected orbit (behind) — dashed, amber to contrast with the
           green "current" trajectory. Drawn before the current orbit so
           the live trajectory stays visually dominant. */}
-      {projected && (
-        <g transform={`rotate(${-projArgPe})`}>
+        {projected && (
+          <g transform={`rotate(${-projArgPe})`}>
+            <ellipse
+              cx={-projC}
+              cy={0}
+              rx={projected.sma}
+              ry={projB}
+              fill="none"
+              stroke="rgba(255,180,40,0.75)"
+              strokeWidth={strokeW}
+              strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+            />
+          </g>
+        )}
+
+        {/* Trajectory first so the body overdraws it at the focus */}
+        <g transform={`rotate(${-argPe})`}>
           <ellipse
-            cx={-projC}
+            cx={-c}
             cy={0}
-            rx={projected.sma}
-            ry={projB}
+            rx={sma}
+            ry={b}
             fill="none"
-            stroke="rgba(255,180,40,0.75)"
+            stroke={orbitStroke}
             strokeWidth={strokeW}
-            strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
           />
         </g>
-      )}
 
-      {/* Trajectory first so the body overdraws it at the focus */}
-      <g transform={`rotate(${-argPe})`}>
-        <ellipse
-          cx={-c}
-          cy={0}
-          rx={sma}
-          ry={b}
-          fill="none"
-          stroke={orbitStroke}
-          strokeWidth={strokeW}
-        />
-      </g>
-
-      <circle
-        cx={0}
-        cy={0}
-        r={bodyDisc}
-        fill={bodyColor ?? cfg.defaultBodyColor}
-      />
-
-      <g transform={`rotate(${-argPe})`}>
-        {showMarkers && (
-          <>
-            <circle
-              cx={-apoapsis}
-              cy={0}
-              r={dotR}
-              fill="var(--color-status-warning-bg)"
-            />
-            <circle
-              cx={periapsis}
-              cy={0}
-              r={dotR}
-              fill="var(--color-tag-blue-fg)"
-            />
-            {cfg.showLabels && (
-              <>
-                <text
-                  x={-apoapsis}
-                  y={-dotR * 2.5}
-                  textAnchor="middle"
-                  fill="var(--color-status-warning-bg)"
-                  fontSize={scaleRef * 0.04}
-                >
-                  Ap
-                </text>
-                <text
-                  x={periapsis}
-                  y={-dotR * 2.5}
-                  textAnchor="middle"
-                  fill="var(--color-tag-blue-fg)"
-                  fontSize={scaleRef * 0.04}
-                >
-                  Pe
-                </text>
-              </>
-            )}
-          </>
-        )}
-
-        {/* Vessel — SVG y-flipped relative to orbital frame */}
         <circle
-          cx={vx}
-          cy={-vy}
-          r={dotR * cfg.vesselDotScale}
-          fill="var(--color-accent-fg)"
+          cx={0}
+          cy={0}
+          r={bodyDisc}
+          fill={bodyColor ?? cfg.defaultBodyColor}
         />
 
-        {maneuverHandles && (
-          <ManeuverHandles
-            {...maneuverHandles}
-            sma={sma}
-            ecc={ecc}
-            dotR={dotR}
-            strokeW={strokeW}
-            scaleRef={scaleRef}
+        <g transform={`rotate(${-argPe})`}>
+          {showMarkers && (
+            <>
+              <ApsisMarker
+                cx={-apoapsis}
+                cy={0}
+                r={dotR}
+                fill="var(--color-status-warning-bg)"
+                aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
+                onMouseEnter={() => setHoveredMarker("ap")}
+                onMouseLeave={() => setHoveredMarker(null)}
+                onFocus={() => setHoveredMarker("ap")}
+                onBlur={() => setHoveredMarker(null)}
+                tabIndex={0}
+              />
+              <ApsisMarker
+                cx={periapsis}
+                cy={0}
+                r={dotR}
+                fill="var(--color-tag-blue-fg)"
+                aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius)}`}
+                onMouseEnter={() => setHoveredMarker("pe")}
+                onMouseLeave={() => setHoveredMarker(null)}
+                onFocus={() => setHoveredMarker("pe")}
+                onBlur={() => setHoveredMarker(null)}
+                tabIndex={0}
+              />
+            </>
+          )}
+
+          {/* Vessel — SVG y-flipped relative to orbital frame */}
+          <circle
+            cx={vx}
+            cy={-vy}
+            r={dotR * cfg.vesselDotScale}
+            fill="var(--color-accent-fg)"
           />
+
+          {maneuverHandles && (
+            <ManeuverHandles
+              {...maneuverHandles}
+              sma={sma}
+              ecc={ecc}
+              dotR={dotR}
+              strokeW={strokeW}
+              scaleRef={scaleRef}
+            />
+          )}
+        </g>
+
+        {/* Apsis labels live outside the rotation group so they always
+            read horizontally regardless of argPe. The hover tooltip
+            replaces the static label with the altitude on the
+            corresponding marker. */}
+        {showMarkers && cfg.showLabels && (
+          <g pointerEvents="none">
+            <ApsisLabel
+              x={apoMarker.x}
+              y={apoMarker.y - labelOffset}
+              fill="var(--color-status-warning-bg)"
+              fontSize={labelFontSize}
+              text={
+                hoveredMarker === "ap"
+                  ? formatAltitude(apoapsis, bodyRadius)
+                  : "Ap"
+              }
+            />
+            <ApsisLabel
+              x={periMarker.x}
+              y={periMarker.y - labelOffset}
+              fill="var(--color-tag-blue-fg)"
+              fontSize={labelFontSize}
+              text={
+                hoveredMarker === "pe"
+                  ? formatAltitude(periapsis, bodyRadius)
+                  : "Pe"
+              }
+            />
+          </g>
         )}
-      </g>
-    </DiagramSvg>
+      </DiagramSvg>
+    </DiagramFrame>
   );
+}
+
+function formatAltitude(
+  radius: number,
+  bodyRadius: number | undefined,
+): string {
+  if (bodyRadius === undefined) return formatDistance(radius);
+  return formatDistance(radius - bodyRadius);
+}
+
+const ApsisMarker = styled.circle`
+  cursor: help;
+  outline: none;
+  &:focus-visible {
+    stroke: var(--color-accent-fg);
+    stroke-width: ${({ r }) => Number(r) * 0.5};
+  }
+`;
+
+function ApsisLabel({
+  x,
+  y,
+  fill,
+  fontSize,
+  text,
+}: Readonly<{
+  x: number;
+  y: number;
+  fill: string;
+  fontSize: number;
+  text: string;
+}>) {
+  // paint-order:stroke draws a halo behind the glyphs so the label is
+  // legible against any orbit / body colour without needing a rect.
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      fill={fill}
+      fontSize={fontSize}
+      style={{
+        paintOrder: "stroke",
+        stroke: "var(--color-surface-app)",
+        strokeWidth: fontSize * 0.4,
+        strokeLinejoin: "round",
+        userSelect: "none",
+      }}
+    >
+      {text}
+    </text>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bounding-box pipeline — small composable steps that drive both variants'
+// viewBox math. The SVG group applies rotate(-argPe) and y is flipped vs
+// the orbital frame; both transforms are linear so the projected extents
+// stay axis-aligned and we can work in a single frame.
+// ---------------------------------------------------------------------------
+
+interface BBox {
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+}
+
+/** Bbox of one orbit (focus at origin, rotated by argPe). */
+function orbitBoundingBox(
+  sma: number,
+  b: number,
+  c: number,
+  argPeDeg: number,
+): BBox {
+  const argPeRad = (-argPeDeg * Math.PI) / 180;
+  const cos = Math.cos(argPeRad);
+  const sin = Math.sin(argPeRad);
+  // Ellipse centre is offset by (-c, 0) in the orbital frame, then rotated.
+  const cxRot = -c * cos;
+  const cyRot = -c * sin;
+  const halfX = Math.sqrt((sma * cos) ** 2 + (b * sin) ** 2);
+  const halfY = Math.sqrt((sma * sin) ** 2 + (b * cos) ** 2);
+  return {
+    xMin: cxRot - halfX,
+    xMax: cxRot + halfX,
+    yMin: cyRot - halfY,
+    yMax: cyRot + halfY,
+  };
+}
+
+function unionBox(a: BBox, b: BBox): BBox {
+  return {
+    xMin: Math.min(a.xMin, b.xMin),
+    xMax: Math.max(a.xMax, b.xMax),
+    yMin: Math.min(a.yMin, b.yMin),
+    yMax: Math.max(a.yMax, b.yMax),
+  };
+}
+
+function padBox(box: BBox, p: number): BBox {
+  return {
+    xMin: box.xMin - p,
+    xMax: box.xMax + p,
+    yMin: box.yMin - p,
+    yMax: box.yMax + p,
+  };
+}
+
+/** Expand to the smallest origin-symmetric bbox that contains the input. */
+function symmetriseAroundOrigin(box: BBox): BBox {
+  const halfX = Math.max(Math.abs(box.xMin), Math.abs(box.xMax));
+  const halfY = Math.max(Math.abs(box.yMin), Math.abs(box.yMax));
+  return { xMin: -halfX, xMax: halfX, yMin: -halfY, yMax: halfY };
+}
+
+/**
+ * Pad whichever axis is "too short" so the box's aspect matches the
+ * container. Empty space ends up inside the viewBox margins instead of
+ * being letterboxed by xMidYMid meet.
+ */
+function fitToAspect(box: BBox, targetAspect: number | null): BBox {
+  if (targetAspect == null || targetAspect <= 0) return box;
+  const w = box.xMax - box.xMin;
+  const h = box.yMax - box.yMin;
+  if (w <= 0 || h <= 0) return box;
+  const boxAspect = w / h;
+  if (targetAspect >= boxAspect) {
+    const newW = h * targetAspect;
+    const dx = (newW - w) / 2;
+    return { ...box, xMin: box.xMin - dx, xMax: box.xMax + dx };
+  }
+  const newH = w / targetAspect;
+  const dy = (newH - h) / 2;
+  return { ...box, yMin: box.yMin - dy, yMax: box.yMax + dy };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function toViewBox(box: BBox): { x: number; y: number; w: number; h: number } {
+  return {
+    x: box.xMin,
+    y: box.yMin,
+    w: box.xMax - box.xMin,
+    h: box.yMax - box.yMin,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -464,6 +698,13 @@ function HandleAxis({
     </g>
   );
 }
+
+const DiagramFrame = styled.div`
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+`;
 
 const DiagramSvg = styled.svg`
   width: 100%;
