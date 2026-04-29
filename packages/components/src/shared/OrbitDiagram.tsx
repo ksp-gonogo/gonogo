@@ -164,28 +164,6 @@ export function OrbitDiagram({
     ? containerSize.w / containerSize.h
     : null;
 
-  // Bbox pipeline shared by both variants:
-  //   orbit (rotated by argPe) → union with projected → pad → centre/aspect-fit
-  // The rotated-bbox step also fixes a long-standing mini-variant clip bug
-  // for orbits with non-zero argPe (the old code used apoapsis/b directly,
-  // which is only correct at argPe=0).
-  const mainBox = orbitBoundingBox(sma, b, c, argPe);
-  const projBox = projected
-    ? orbitBoundingBox(projected.sma, projB, projC, projArgPe)
-    : null;
-  const orbitBox = projBox ? unionBox(mainBox, projBox) : mainBox;
-  const paddedBox = padBox(orbitBox, padding);
-
-  // full: body-centred (origin in viewBox centre) + aspect fit; default to
-  //       a square frame when unmeasured to match pre-aspect-aware behaviour.
-  // mini: orbit-centred (orbit edge-to-edge) + aspect fit when measured;
-  //       leaves the bbox tight when unmeasured.
-  const vb = toViewBox(
-    variant === "full"
-      ? fitToAspect(symmetriseAroundOrigin(paddedBox), containerAspect ?? 1)
-      : fitToAspect(paddedBox, containerAspect),
-  );
-
   // Body disc renders at the body's real radius when known, in both
   // variants. Earlier the mini variant capped to `apoapsis * 0.2` so a
   // small preview wouldn't be dominated by the body, but that turned
@@ -198,6 +176,39 @@ export function OrbitDiagram({
   const bodyDisc = bodyRadius
     ? bodyRadius
     : scaleRef * cfg.defaultBodyDiscRatio;
+
+  // Bbox pipeline shared by both variants:
+  //   orbit (rotated by argPe) → union with projected + body → pad →
+  //   centre/aspect-fit
+  // The rotated-bbox step fixes a long-standing mini-variant clip bug
+  // for orbits with non-zero argPe (the old code used apoapsis/b
+  // directly, which is only correct at argPe=0). Including the body
+  // bbox covers sub-orbital trajectories where the body is much larger
+  // than the orbit — without it, the body extends past the viewBox and
+  // renders as a uniform colour across the whole frame.
+  const mainBox = orbitBoundingBox(sma, b, c, argPe);
+  const projBox = projected
+    ? orbitBoundingBox(projected.sma, projB, projC, projArgPe)
+    : null;
+  const bodyBox = {
+    xMin: -bodyDisc,
+    xMax: bodyDisc,
+    yMin: -bodyDisc,
+    yMax: bodyDisc,
+  };
+  const orbitBox = projBox ? unionBox(mainBox, projBox) : mainBox;
+  const orbitOrBodyBox = unionBox(orbitBox, bodyBox);
+  const paddedBox = padBox(orbitOrBodyBox, padding);
+
+  // full: body-centred (origin in viewBox centre) + aspect fit; default to
+  //       a square frame when unmeasured to match pre-aspect-aware behaviour.
+  // mini: orbit-centred (orbit edge-to-edge) + aspect fit when measured;
+  //       leaves the bbox tight when unmeasured.
+  const vb = toViewBox(
+    variant === "full"
+      ? fitToAspect(symmetriseAroundOrigin(paddedBox), containerAspect ?? 1)
+      : fitToAspect(paddedBox, containerAspect),
+  );
 
   const orbitStroke = isOrbiting
     ? "rgba(0,255,136,0.55)"
@@ -225,8 +236,8 @@ export function OrbitDiagram({
   // is in ApsisLabel: it counter-scales via a parent `<g scale>` so
   // its child `<text>` can keep `font-size` small (under the cap).
   const labelPxSize = containerSize
-    ? clamp(Math.min(containerSize.w, containerSize.h) * 0.08, 20, 64)
-    : 32;
+    ? clamp(Math.min(containerSize.w, containerSize.h) * 0.04, 11, 32)
+    : 16;
   const vbPerPx = containerSize
     ? Math.max(vb.w / containerSize.w, vb.h / containerSize.h)
     : 1;
