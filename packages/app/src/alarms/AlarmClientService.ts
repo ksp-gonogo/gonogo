@@ -1,5 +1,6 @@
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { AlarmSnapshot, AlarmTrigger } from "./types";
+import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
 
 /**
  * Station-side mirror of AlarmHostService. Receives snapshots from the
@@ -12,6 +13,8 @@ const EMPTY_SNAPSHOT: AlarmSnapshot = {
   ut: null,
   warp: { index: 0, rate: 1, mode: "UNKNOWN" },
   unscheduledWarp: null,
+  warpTo: null,
+  warpSafetyMarginSeconds: DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
 };
 
 type Listener = (snap: AlarmSnapshot) => void;

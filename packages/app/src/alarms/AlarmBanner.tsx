@@ -2,6 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
 import type { Alarm, AlarmSnapshot } from "./types";
+import {
+  MAX_WARP_SAFETY_MARGIN_SECONDS,
+  MIN_WARP_SAFETY_MARGIN_SECONDS,
+} from "./types";
+
+/** KSP HIGH-warp ladder — index → rate. Mirrors AlarmHostService. */
+const HIGH_WARP_RATES: readonly number[] = [
+  1, 5, 10, 50, 100, 1000, 10000, 100000,
+];
 
 /**
  * Persistent banner on the main screen.
@@ -27,6 +36,20 @@ export function AlarmBanner() {
   const tone = bannerTone(nextAlarm);
   const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
 
+  // The "Warp to" button targets the next pending time alarm — threshold
+  // alarms have no fire-UT, so the warp-to controller can't compute a
+  // safe ladder against them.
+  const warpToCandidate =
+    nextAlarm &&
+    nextAlarm.state === "pending" &&
+    nextAlarm.trigger.kind === "time"
+      ? nextAlarm
+      : null;
+  const warpToTargetRate =
+    snap.warpTo !== null
+      ? (HIGH_WARP_RATES[snap.warpTo.targetIndex] ?? 1)
+      : null;
+
   // Beep on every transition into firing/fired so a telemetry-triggered
   // alarm never silently vanishes. Tracks ids so subsequent re-renders
   // (from the 1Hz tick) don't replay the tone.
@@ -38,6 +61,12 @@ export function AlarmBanner() {
         <Row>
           <Label>Warp</Label>
           <Value>{formatWarp(snap.warp.index, snap.warp.rate)}</Value>
+          {warpToTargetRate !== null && (
+            <>
+              <WarpArrow aria-hidden="true">→</WarpArrow>
+              <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
+            </>
+          )}
           <Divider />
           {nextAlarm ? (
             <>
@@ -56,11 +85,50 @@ export function AlarmBanner() {
                   Acknowledge
                 </AckButton>
               )}
+              {snap.warpTo !== null ? (
+                <StopWarpButton
+                  type="button"
+                  onClick={() => host.cancelWarpTo()}
+                  title="Stop the managed warp and drop to 1×"
+                >
+                  ■ Stop warp
+                </StopWarpButton>
+              ) : (
+                warpToCandidate && (
+                  <WarpToButton
+                    type="button"
+                    onClick={() => host.beginWarpTo()}
+                    title="Warp toward the next time alarm at the highest safe rate"
+                  >
+                    ▶ Warp to alarm
+                  </WarpToButton>
+                )
+              )}
             </>
           ) : (
             <Quiet>No alarms set</Quiet>
           )}
         </Row>
+        {(warpToCandidate || snap.warpTo !== null) && (
+          <SafetyRow>
+            <Label>Safety margin</Label>
+            <SafetyInput
+              type="number"
+              min={MIN_WARP_SAFETY_MARGIN_SECONDS}
+              max={MAX_WARP_SAFETY_MARGIN_SECONDS}
+              step={1}
+              value={snap.warpSafetyMarginSeconds}
+              onChange={(e) => {
+                const n = Number.parseFloat(e.target.value);
+                if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
+              }}
+              aria-label="Warp-to safety margin in real seconds"
+            />
+            <SafetyHint>
+              real seconds before arming — higher = step down earlier
+            </SafetyHint>
+          </SafetyRow>
+        )}
         {firedAlarms.length > 1 && (
           <FiredList>
             {firedAlarms
@@ -210,6 +278,10 @@ function formatWarp(index: number, rate: number): string {
   if (!Number.isFinite(rate) || rate <= 0) {
     return Number.isFinite(index) ? `${index}×` : "—";
   }
+  return formatRate(rate);
+}
+
+function formatRate(rate: number): string {
   if (rate < 1.0001) return "1×";
   if (rate >= 1000) return `${(rate / 1000).toFixed(rate >= 10_000 ? 0 : 1)}k×`;
   if (Number.isInteger(rate)) return `${rate}×`;
@@ -376,4 +448,89 @@ const AckButton = styled.button`
       background: var(--color-status-alert-muted);
     }
   }
+`;
+
+const WarpArrow = styled.span`
+  color: var(--color-text-dim);
+  font-weight: 700;
+`;
+
+const WarpToTarget = styled.span`
+  font-weight: 700;
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+`;
+
+const WarpToButton = styled.button`
+  background: var(--color-status-go-bg);
+  border: 1px solid var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(1.15);
+    }
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const StopWarpButton = styled.button`
+  background: var(--color-status-warning-bg);
+  border: 1px solid var(--color-status-warning-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(1.15);
+    }
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const SafetyRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--color-border-subtle);
+  margin-top: 2px;
+`;
+
+const SafetyInput = styled.input`
+  width: 4em;
+  font-size: 12px;
+  padding: 2px 4px;
+  background: var(--color-surface-panel);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  font-variant-numeric: tabular-nums;
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 1px;
+  }
+`;
+
+const SafetyHint = styled.span`
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
+  font-style: italic;
 `;

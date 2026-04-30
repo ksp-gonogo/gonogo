@@ -248,6 +248,198 @@ describe("AlarmHostService", () => {
     });
   });
 
+  describe("warp-to manual session", () => {
+    it("does nothing when there are no eligible alarms", () => {
+      const { svc, telemetry } = makeService();
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).toBeNull();
+      expect(telemetry.calls).toEqual([]);
+    });
+
+    it("ignores threshold-only alarm lists (no fire-UT to plan against)", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Threshold",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      const before = [...telemetry.calls];
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).toBeNull();
+      expect(telemetry.calls).toEqual(before);
+    });
+
+    it("targets the highest ladder rate that respects the safety margin", () => {
+      const { svc, telemetry } = makeService();
+      // utNow=1000, alarm at ut=100_000 lead=10
+      // remaining=98_990; default margin=10 → maxRate=9899 → 1000× (idx 5)
+      const a = svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).toEqual({
+        alarmId: a.id,
+        targetIndex: 5,
+      });
+      expect(telemetry.calls).toContain("t.timeWarp[5]");
+    });
+
+    it("steps the rate down as remaining time shrinks", () => {
+      const { svc, telemetry } = makeService();
+      // utNow=1000, ut=11_000, lead=10
+      // remaining=9990 → maxRate=999 → 100× (idx 4)
+      svc.addAlarm({
+        name: "Approaching",
+        trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+
+      // Advance UT to 10_000 → remaining=990 → maxRate=99 → 50× (idx 3)
+      telemetry.set("t.universalTime", 10_000);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
+
+      // Cross into the lead window → alarm transitions to arming, warp-to
+      // hands control back to the alarm system's stepWarpDown.
+      telemetry.set("t.universalTime", 10_995);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().warpTo).toBeNull();
+      expect(svc.snapshot().alarms[0].state).toBe("arming");
+    });
+
+    it("retargets to a sooner alarm added mid-session", () => {
+      const { svc } = makeService();
+      const far = svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo?.alarmId).toBe(far.id);
+
+      // Add a sooner alarm — next tick should retarget and pick a lower
+      // safe rate based on its earlier UT.
+      const near = svc.addAlarm({
+        name: "Near",
+        trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
+      });
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().warpTo?.alarmId).toBe(near.id);
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4); // 100×
+    });
+
+    it("caps rate at 100× when any threshold alarm is pending", () => {
+      const { svc } = makeService();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.addAlarm({
+        name: "Threshold",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      svc.beginWarpTo();
+      // Without the cap, far alarm allows idx 5 (1000×). The threshold
+      // presence drops it to idx 4 (100×).
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+    });
+
+    it("auto-cancels when the last pending time alarm is deleted", () => {
+      const { svc } = makeService();
+      const a = svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).not.toBeNull();
+      svc.deleteAlarm(a.id);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().warpTo).toBeNull();
+    });
+
+    it("cancelWarpTo issues t.timeWarp[0] and clears state", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      telemetry.calls.length = 0; // isolate the cancel command
+      svc.cancelWarpTo();
+      expect(telemetry.calls).toContain("t.timeWarp[0]");
+      expect(svc.snapshot().warpTo).toBeNull();
+    });
+
+    it("respects a larger custom safety margin", () => {
+      const { svc } = makeService();
+      svc.setWarpSafetyMargin(100); // 10× the default
+      // remaining=98_990; margin=100 → maxRate=989 → 100× (idx 4)
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+    });
+
+    it("clamps the safety margin within bounds", () => {
+      const { svc } = makeService();
+      svc.setWarpSafetyMargin(5000);
+      expect(svc.snapshot().warpSafetyMarginSeconds).toBe(120);
+      svc.setWarpSafetyMargin(0);
+      expect(svc.snapshot().warpSafetyMarginSeconds).toBe(1);
+    });
+
+    it("persists the safety margin across instances", () => {
+      const storage = memoryStorage();
+      const t1 = fakeTelemetry();
+      t1.set("t.universalTime", 1000);
+      const a = new AlarmHostService(null, t1, {
+        nowMs: () => nowMs,
+        storage,
+      });
+      a.setWarpSafetyMargin(30);
+      a.dispose();
+      const t2 = fakeTelemetry();
+      t2.set("t.universalTime", 1000);
+      const b = new AlarmHostService(null, t2, {
+        nowMs: () => nowMs,
+        storage,
+      });
+      expect(b.snapshot().warpSafetyMarginSeconds).toBe(30);
+      b.dispose();
+    });
+
+    it("does not flag unscheduled-warp while a warp-to session is active", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      // Simulate KSP applying the commanded warp.
+      telemetry.set("t.currentRateIndex", 5);
+      telemetry.set("t.currentRate", 1000);
+      // Advance well beyond WARP_INTENT_WINDOW_MS so the legacy intent
+      // suppression has lapsed — the warp-to session itself must keep the
+      // detector quiet.
+      vi.advanceTimersByTime(5000);
+      expect(svc.snapshot().unscheduledWarp).toBeNull();
+    });
+  });
+
   it("updates and deletes alarms", () => {
     const { svc } = makeService();
     const a = svc.addAlarm({

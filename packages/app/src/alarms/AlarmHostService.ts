@@ -6,9 +6,13 @@ import {
   type AlarmSnapshot,
   type AlarmTrigger,
   type AlarmWarpState,
+  DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
+  MAX_WARP_SAFETY_MARGIN_SECONDS,
+  MIN_WARP_SAFETY_MARGIN_SECONDS,
   migrateAlarm,
   type ThresholdOp,
   type ThresholdTrigger,
+  type TimeTrigger,
 } from "./types";
 
 /**
@@ -31,11 +35,20 @@ import {
  */
 
 const STORAGE_KEY = "gonogo.alarms.list";
+const WARP_MARGIN_STORAGE_KEY = "gonogo.alarms.warpSafetyMargin";
 /** Grace window around a station-initiated warp intent — any observed
  *  warp change within this window is attributed to the station. */
 const WARP_INTENT_WINDOW_MS = 2_000;
 /** Minimum interval between `t.timeWarp[0]` executes to avoid spamming. */
 const WARP_COMMAND_COOLDOWN_MS = 1_500;
+/** KSP HIGH-warp ladder. Index → multiplier. Mirrors WarpControl widget. */
+const HIGH_WARP_RATES: readonly number[] = [
+  1, 5, 10, 50, 100, 1000, 10000, 100000,
+];
+/** Cap warp-to ladder when any threshold alarm is pending — at 100× one
+ *  1-Hz tick advances 100 game-seconds, leaving room for telemetry-driven
+ *  alarms to register before they're skipped past. */
+const THRESHOLD_PRESENT_MAX_INDEX = 4;
 
 interface TelemetryReader {
   getLatestValue(key: string): unknown;
@@ -59,7 +72,7 @@ export class AlarmHostService {
   private snapshotListeners = new Set<SnapshotListener>();
   private fireListeners = new Set<FireListener>();
   private tickHandle: ReturnType<typeof setInterval> | null = null;
-  private lastWarpCommandAt = 0;
+  private lastStepDownAt = 0;
   private lastStationWarpIntentAt: number | null = null;
   private observedWarp: AlarmWarpState = {
     index: 0,
@@ -68,6 +81,10 @@ export class AlarmHostService {
   };
   private observedUT: number | null = null;
   private unscheduledWarp: AlarmSnapshot["unscheduledWarp"] = null;
+  private warpToActive = false;
+  private warpToAlarmId: string | null = null;
+  private warpToTargetIndex = 0;
+  private warpSafetyMarginSeconds: number = DEFAULT_WARP_SAFETY_MARGIN_SECONDS;
   private host: PeerHostService | null;
   private telemetry: TelemetryReader | null;
   private opts: Required<Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs">>;
@@ -98,6 +115,13 @@ export class AlarmHostService {
       ut: this.observedUT,
       warp: this.observedWarp,
       unscheduledWarp: this.unscheduledWarp,
+      warpTo: this.warpToActive
+        ? {
+            alarmId: this.warpToAlarmId ?? "",
+            targetIndex: this.warpToTargetIndex,
+          }
+        : null,
+      warpSafetyMarginSeconds: this.warpSafetyMarginSeconds,
     };
   }
 
@@ -205,6 +229,49 @@ export class AlarmHostService {
     this.lastStationWarpIntentAt = this.opts.nowMs();
   }
 
+  /**
+   * Begin a "warp to next alarm" session. The controller targets the
+   * closest pending time alarm and re-targets each tick — if a sooner
+   * alarm is added mid-session, the rate cap follows automatically.
+   * When any pending threshold alarm exists, the rate is capped at
+   * `THRESHOLD_PRESENT_MAX_INDEX` so a single tick can't skip past a
+   * telemetry-driven cross. No-op when there are no eligible alarms.
+   */
+  beginWarpTo(): void {
+    if (this.findClosestPendingTimeAlarm() === null) return;
+    this.warpToActive = true;
+    this.warpToTargetIndex = 0;
+    // Suppress the unscheduled-warp detector for the warp-up command we're
+    // about to issue.
+    this.lastStationWarpIntentAt = this.opts.nowMs();
+    // Reconcile immediately so the first warp-up command fires without
+    // waiting a full tick.
+    this.tick();
+  }
+
+  /** End the current warp-to session and drop warp to 1×. */
+  cancelWarpTo(): void {
+    if (!this.warpToActive) return;
+    this.warpToActive = false;
+    this.warpToAlarmId = null;
+    this.warpToTargetIndex = 0;
+    this.commandWarp(0);
+    this.emit();
+  }
+
+  /** Update the real-time safety margin used by the warp-to controller. */
+  setWarpSafetyMargin(seconds: number): void {
+    if (!Number.isFinite(seconds)) return;
+    const clamped = Math.max(
+      MIN_WARP_SAFETY_MARGIN_SECONDS,
+      Math.min(MAX_WARP_SAFETY_MARGIN_SECONDS, seconds),
+    );
+    if (clamped === this.warpSafetyMarginSeconds) return;
+    this.warpSafetyMarginSeconds = clamped;
+    this.persistWarpMargin();
+    this.emit();
+  }
+
   dispose(): void {
     if (this.tickHandle !== null) {
       clearInterval(this.tickHandle);
@@ -269,8 +336,101 @@ export class AlarmHostService {
       if (changed) this.persist();
     }
 
+    this.updateWarpTo();
     this.detectUnscheduledWarp();
     this.emit();
+  }
+
+  /**
+   * Walk the warp ladder up/down based on remaining game-time until the
+   * closest pending time alarm's lead window. We pick the highest rate
+   * that leaves at least `warpSafetyMarginSeconds` of real-time before
+   * arming, so the existing alarm-arming `stepWarpDown` is a safety net
+   * rather than the primary control. The closest pending time alarm is
+   * recomputed each tick — adding a sooner alarm mid-session retargets
+   * automatically.
+   */
+  private updateWarpTo(): void {
+    if (!this.warpToActive) return;
+    const closest = this.findClosestPendingTimeAlarm();
+    // Cancel if there's nothing left to warp toward — the alarm system
+    // takes over once an alarm transitions to `arming`/`firing`.
+    if (closest === null) {
+      this.warpToActive = false;
+      this.warpToAlarmId = null;
+      this.warpToTargetIndex = 0;
+      return;
+    }
+    const ut = this.observedUT;
+    if (ut === null) return;
+    this.warpToAlarmId = closest.id;
+    const targetIndex = this.computeWarpToIndex(
+      closest.trigger as TimeTrigger,
+      ut,
+    );
+    this.warpToTargetIndex = targetIndex;
+    if (targetIndex === this.observedWarp.index) return;
+    // Refresh the intent stamp so each issued command suppresses the
+    // unscheduled-warp detector for its observation window.
+    this.lastStationWarpIntentAt = this.opts.nowMs();
+    this.commandWarp(targetIndex);
+  }
+
+  /** Return the pending time alarm with the smallest `trigger.ut`, or null. */
+  private findClosestPendingTimeAlarm(): Alarm | null {
+    let best: Alarm | null = null;
+    let bestUt = Number.POSITIVE_INFINITY;
+    for (const a of this.alarms) {
+      if (a.state !== "pending") continue;
+      if (a.trigger.kind !== "time") continue;
+      if (a.trigger.ut < bestUt) {
+        best = a;
+        bestUt = a.trigger.ut;
+      }
+    }
+    return best;
+  }
+
+  private computeWarpToIndex(trigger: TimeTrigger, utNow: number): number {
+    // Game-seconds remaining until the alarm enters its lead window.
+    const remainingGameSeconds = trigger.ut - trigger.leadSeconds - utNow;
+    if (remainingGameSeconds <= 0) return 0;
+    // Highest sustainable rate where (remaining / rate) >= safetyMargin
+    // real-seconds — i.e. rate <= remaining / safetyMargin.
+    const maxRate = remainingGameSeconds / this.warpSafetyMarginSeconds;
+    // Threshold alarms have no fire-UT — we can't predict when they cross.
+    // A single 10kx tick could skip past one entirely, so when any are
+    // pending, hold rate at a level where one tick advances at most ~100s
+    // of game time. 100× is a pragmatic balance: still useful for long
+    // coast phases, conservative enough that altitude- or velocity-driven
+    // thresholds get a chance to fire.
+    const cap = this.hasPendingThresholdAlarm()
+      ? THRESHOLD_PRESENT_MAX_INDEX
+      : HIGH_WARP_RATES.length - 1;
+    let chosen = 0;
+    for (let i = cap; i >= 0; i--) {
+      if (HIGH_WARP_RATES[i] <= maxRate) {
+        chosen = i;
+        break;
+      }
+    }
+    return chosen;
+  }
+
+  private hasPendingThresholdAlarm(): boolean {
+    return this.alarms.some(
+      (a) => a.state === "pending" && a.trigger.kind === "threshold",
+    );
+  }
+
+  private commandWarp(index: number): void {
+    if (!this.telemetry) return;
+    void this.telemetry.execute(`t.timeWarp[${index}]`).catch((err) => {
+      logger.warn("alarm-host: warp command failed", {
+        index,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
   }
 
   private deriveState(
@@ -346,6 +506,14 @@ export class AlarmHostService {
       return;
     }
 
+    // An active warp-to session is the operator's deliberate command —
+    // never flag it as unscheduled, even after the rate settles and we've
+    // stopped issuing per-tick commands.
+    if (this.warpToActive) {
+      this.unscheduledWarp = null;
+      return;
+    }
+
     // A recent station-initiated change accounts for it, too.
     const now = this.opts.nowMs();
     if (
@@ -368,15 +536,13 @@ export class AlarmHostService {
   }
 
   private stepWarpDown(): void {
+    // The alarm-arming side effect can be re-triggered every tick while
+    // arming; throttle so KSP doesn't get flooded with the same command.
+    // Independent of the warp-to controller's command stream.
     const now = this.opts.nowMs();
-    if (now - this.lastWarpCommandAt < WARP_COMMAND_COOLDOWN_MS) return;
-    this.lastWarpCommandAt = now;
-    if (!this.telemetry) return;
-    void this.telemetry.execute("t.timeWarp[0]").catch((err) => {
-      logger.warn("alarm-host: warp-down command failed", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
+    if (now - this.lastStepDownAt < WARP_COMMAND_COOLDOWN_MS) return;
+    this.lastStepDownAt = now;
+    this.commandWarp(0);
   }
 
   // ── Peer wiring ───────────────────────────────────────────────────────
@@ -433,22 +599,40 @@ export class AlarmHostService {
 
   private load(): void {
     const raw = this.storage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as unknown[];
-      if (Array.isArray(parsed)) {
-        this.alarms = parsed
-          .map(migrateAlarm)
-          .filter((a): a is Alarm => a !== null);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as unknown[];
+        if (Array.isArray(parsed)) {
+          this.alarms = parsed
+            .map(migrateAlarm)
+            .filter((a): a is Alarm => a !== null);
+        }
+      } catch {
+        // Corrupt — nuke and start fresh.
+        this.storage.removeItem(STORAGE_KEY);
       }
-    } catch {
-      // Corrupt — nuke and start fresh.
-      this.storage.removeItem(STORAGE_KEY);
+    }
+    const rawMargin = this.storage.getItem(WARP_MARGIN_STORAGE_KEY);
+    if (rawMargin !== null) {
+      const parsed = Number.parseFloat(rawMargin);
+      if (Number.isFinite(parsed)) {
+        this.warpSafetyMarginSeconds = Math.max(
+          MIN_WARP_SAFETY_MARGIN_SECONDS,
+          Math.min(MAX_WARP_SAFETY_MARGIN_SECONDS, parsed),
+        );
+      }
     }
   }
 
   private persist(): void {
     this.storage.setItem(STORAGE_KEY, JSON.stringify(this.alarms));
+  }
+
+  private persistWarpMargin(): void {
+    this.storage.setItem(
+      WARP_MARGIN_STORAGE_KEY,
+      String(this.warpSafetyMarginSeconds),
+    );
   }
 
   private readTelemetryNumber(key: string): number | null {

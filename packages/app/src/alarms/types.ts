@@ -84,10 +84,26 @@ export interface AlarmSnapshot {
    * explicitly acks.
    */
   unscheduledWarp: { index: number; detectedAtUT: number } | null;
+  /**
+   * Active "warp to next alarm" session. The host steps the warp ladder
+   * up/down each tick so that game-time-remaining never falls below
+   * `warpSafetyMarginSeconds` of real-time, guaranteeing the alarm's
+   * arming window is reachable. Null when no session is active.
+   */
+  warpTo: { alarmId: string; targetIndex: number } | null;
+  /**
+   * Real-time buffer (seconds) the warp-to controller leaves between the
+   * current rate and the alarm's lead window. Higher = more pessimistic /
+   * earlier step-down. Configurable from the banner.
+   */
+  warpSafetyMarginSeconds: number;
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;
 export const DEFAULT_SUSTAIN_SECONDS = 0;
+export const DEFAULT_WARP_SAFETY_MARGIN_SECONDS = 10;
+export const MIN_WARP_SAFETY_MARGIN_SECONDS = 1;
+export const MAX_WARP_SAFETY_MARGIN_SECONDS = 120;
 
 /** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
  *  v2 `trigger` shape. Idempotent — already-v2 records pass through. */
