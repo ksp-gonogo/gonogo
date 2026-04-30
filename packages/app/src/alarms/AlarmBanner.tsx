@@ -37,13 +37,12 @@ export function AlarmBanner() {
   const tone = bannerTone(nextAlarm);
   const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
 
-  // The "Warp to" button targets the next pending time alarm — threshold
-  // alarms have no fire-UT, so the warp-to controller can't compute a
-  // safe ladder against them.
+  // The "Warp to" button targets the next pending alarm. Time alarms
+  // have a fire-UT; threshold alarms get a slope-projected ETA from the
+  // host's rolling sample buffer. Equality ops can't be planned against
+  // (no monotonic distance), so they're excluded.
   const warpToCandidate =
-    nextAlarm &&
-    nextAlarm.state === "pending" &&
-    nextAlarm.trigger.kind === "time"
+    nextAlarm && nextAlarm.state === "pending" && isWarpToCandidate(nextAlarm)
       ? nextAlarm
       : null;
   const warpToTargetRate =
@@ -99,7 +98,7 @@ export function AlarmBanner() {
                   <WarpToButton
                     type="button"
                     onClick={() => host.beginWarpTo()}
-                    title="Warp toward the next time alarm at the highest safe rate"
+                    title="Warp toward the next alarm at the highest safe rate"
                   >
                     ▶ Warp to alarm
                   </WarpToButton>
@@ -163,6 +162,12 @@ export function AlarmBanner() {
       </Stack>
     </Wrap>
   );
+}
+
+function isWarpToCandidate(alarm: Alarm): boolean {
+  if (alarm.trigger.kind === "time") return true;
+  const op = alarm.trigger.op;
+  return op !== "==" && op !== "!=";
 }
 
 type Tone = "idle" | "set" | "arm" | "fire";

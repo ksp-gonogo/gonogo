@@ -256,14 +256,36 @@ describe("AlarmHostService", () => {
       expect(telemetry.calls).toEqual([]);
     });
 
-    it("ignores threshold-only alarm lists (no fire-UT to plan against)", () => {
+    it("activates on a threshold-only list and holds at the ramp-up cap", () => {
       const { svc, telemetry } = makeService();
-      svc.addAlarm({
+      const a = svc.addAlarm({
         name: "Threshold",
         trigger: {
           kind: "threshold",
           dataKey: "v.altitude",
           op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      // No samples yet → ETA unknown → ladder pinned at 100× while the
+      // slope estimator collects data.
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).toEqual({
+        alarmId: a.id,
+        targetIndex: 4,
+      });
+      expect(telemetry.calls).toContain("t.timeWarp[4]");
+    });
+
+    it("ignores equality-op threshold alarms (non-monotonic, can't plan)", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Equality",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: "==",
           value: 70_000,
           sustainSeconds: 0,
         },
@@ -420,6 +442,114 @@ describe("AlarmHostService", () => {
       });
       expect(b.snapshot().warpSafetyMarginSeconds).toBe(30);
       b.dispose();
+    });
+
+    it("ramps up off the cap once a threshold's slope projects a usable ETA", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      telemetry.set("v.altitude", 10_000);
+      svc.beginWarpTo();
+      // Cap until samples accumulate.
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+      // Feed 4 samples, 1 game-second apart (so MIN_SAMPLE_SPAN_GAME_SECONDS
+      // is satisfied), each adding 100 m altitude → slope = 100 m/s,
+      // distance ≈ 60_000 → ETA ≈ 600s → maxRate 60 → idx 3 (50×).
+      for (let i = 1; i <= 4; i++) {
+        telemetry.set("t.universalTime", 1000 + i);
+        telemetry.set("v.altitude", 10_000 + i * 100);
+        vi.advanceTimersByTime(1100);
+      }
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
+    });
+
+    it("ramps down to 1× as the threshold approaches", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      svc.beginWarpTo();
+      // Build a buffer with a 100 m/s climb, well below the threshold.
+      for (let i = 0; i < 6; i++) {
+        telemetry.set("t.universalTime", 1000 + i);
+        telemetry.set("v.altitude", 60_000 + i * 100);
+        vi.advanceTimersByTime(1100);
+      }
+      const farIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
+      expect(farIndex).toBeGreaterThan(0);
+      // Now jump close to the threshold (still ascending) — only ~50m
+      // distance at 100 m/s = 0.5s ETA → drops to idx 0.
+      for (let i = 6; i < 12; i++) {
+        telemetry.set("t.universalTime", 1000 + i);
+        telemetry.set("v.altitude", 69_950 + (i - 6) * 100);
+        vi.advanceTimersByTime(1100);
+      }
+      const nearIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
+      expect(nearIndex).toBeLessThan(farIndex);
+    });
+
+    it("won't ramp up when the value is drifting away from the threshold", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      svc.beginWarpTo();
+      // Descending altitude — moving away from the >= threshold.
+      for (let i = 0; i < 6; i++) {
+        telemetry.set("t.universalTime", 1000 + i);
+        telemetry.set("v.altitude", 60_000 - i * 100);
+        vi.advanceTimersByTime(1100);
+      }
+      // No usable ETA → cap holds at idx 4.
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+    });
+
+    it("ends the session when the threshold's condition starts matching", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          // Sustain so it stays in `pending` (matchSinceUT set, but state
+          // hasn't transitioned yet) — exercises the matchSinceUT guard.
+          sustainSeconds: 30,
+        },
+      });
+      svc.beginWarpTo();
+      expect(svc.snapshot().warpTo).not.toBeNull();
+      // Cross the threshold.
+      telemetry.set("t.universalTime", 2000);
+      telemetry.set("v.altitude", 71_000);
+      vi.advanceTimersByTime(1100);
+      // matchSinceUT now set; alarm still `pending` but no longer
+      // eligible — session terminates.
+      expect(svc.snapshot().alarms[0].matchSinceUT).not.toBeNull();
+      expect(svc.snapshot().warpTo).toBeNull();
     });
 
     it("does not flag unscheduled-warp while a warp-to session is active", () => {

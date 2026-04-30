@@ -12,7 +12,6 @@ import {
   migrateAlarm,
   type ThresholdOp,
   type ThresholdTrigger,
-  type TimeTrigger,
 } from "./types";
 
 /**
@@ -45,10 +44,24 @@ const WARP_COMMAND_COOLDOWN_MS = 1_500;
 const HIGH_WARP_RATES: readonly number[] = [
   1, 5, 10, 50, 100, 1000, 10000, 100000,
 ];
-/** Cap warp-to ladder when any threshold alarm is pending — at 100× one
- *  1-Hz tick advances 100 game-seconds, leaving room for telemetry-driven
- *  alarms to register before they're skipped past. */
+/** Cap warp-to ladder when any threshold alarm is pending without a
+ *  modelable ETA — at 100× one 1-Hz tick advances 100 game-seconds,
+ *  leaving room for telemetry-driven alarms to register before they're
+ *  skipped past. Once enough samples accumulate to estimate ETA against
+ *  a threshold's dataKey, the cap lifts for that target. */
 const THRESHOLD_PRESENT_MAX_INDEX = 4;
+/** Rolling sample buffer per pending threshold alarm — capped count. */
+const THRESHOLD_SAMPLE_COUNT = 16;
+/** Need this many samples before we'll fit a slope. */
+const MIN_SAMPLES_FOR_SLOPE = 4;
+/** And this much game-time spread, so a near-flat sample run doesn't
+ *  produce a noisy slope. */
+const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
+
+interface ThresholdSample {
+  ut: number;
+  value: number;
+}
 
 interface TelemetryReader {
   getLatestValue(key: string): unknown;
@@ -84,6 +97,7 @@ export class AlarmHostService {
   private warpToActive = false;
   private warpToAlarmId: string | null = null;
   private warpToTargetIndex = 0;
+  private thresholdSamples = new Map<string, ThresholdSample[]>();
   private warpSafetyMarginSeconds: number = DEFAULT_WARP_SAFETY_MARGIN_SECONDS;
   private host: PeerHostService | null;
   private telemetry: TelemetryReader | null;
@@ -188,6 +202,8 @@ export class AlarmHostService {
     } else {
       next.state = this.deriveState(next);
     }
+    // Any trigger change invalidates the rolling slope-fit samples.
+    if (patch.trigger) this.thresholdSamples.delete(id);
     this.alarms[idx] = next;
     this.persist();
     this.emit();
@@ -197,6 +213,7 @@ export class AlarmHostService {
     const before = this.alarms.length;
     this.alarms = this.alarms.filter((a) => a.id !== id);
     if (this.alarms.length !== before) {
+      this.thresholdSamples.delete(id);
       this.persist();
       this.emit();
     }
@@ -231,14 +248,15 @@ export class AlarmHostService {
 
   /**
    * Begin a "warp to next alarm" session. The controller targets the
-   * closest pending time alarm and re-targets each tick — if a sooner
-   * alarm is added mid-session, the rate cap follows automatically.
-   * When any pending threshold alarm exists, the rate is capped at
+   * closest pending alarm — time alarms by their UT, threshold alarms by
+   * a least-squares slope projected to the threshold value — and
+   * re-targets each tick. While a pending threshold alarm exists but no
+   * ETA can be fit yet (still collecting samples), the rate is held at
    * `THRESHOLD_PRESENT_MAX_INDEX` so a single tick can't skip past a
    * telemetry-driven cross. No-op when there are no eligible alarms.
    */
   beginWarpTo(): void {
-    if (this.findClosestPendingTimeAlarm() === null) return;
+    if (this.findEligiblePendingAlarm() === null) return;
     this.warpToActive = true;
     this.warpToTargetIndex = 0;
     // Suppress the unscheduled-warp detector for the warp-up command we're
@@ -310,6 +328,7 @@ export class AlarmHostService {
             alarm.matchSinceUT = null;
             changed = true;
           }
+          this.recordThresholdSample(alarm, ut);
         }
 
         const nextState = this.deriveState(alarm, ut);
@@ -343,30 +362,43 @@ export class AlarmHostService {
 
   /**
    * Walk the warp ladder up/down based on remaining game-time until the
-   * closest pending time alarm's lead window. We pick the highest rate
+   * closest pending alarm's lead window. Time alarms use `ut - lead`,
+   * threshold alarms use a slope-projected ETA. We pick the highest rate
    * that leaves at least `warpSafetyMarginSeconds` of real-time before
    * arming, so the existing alarm-arming `stepWarpDown` is a safety net
-   * rather than the primary control. The closest pending time alarm is
+   * rather than the primary control. The closest pending alarm is
    * recomputed each tick — adding a sooner alarm mid-session retargets
-   * automatically.
+   * automatically. While only an unmodelable threshold is pending we
+   * hold at the threshold cap so the slope estimator can collect samples.
    */
   private updateWarpTo(): void {
     if (!this.warpToActive) return;
-    const closest = this.findClosestPendingTimeAlarm();
-    // Cancel if there's nothing left to warp toward — the alarm system
-    // takes over once an alarm transitions to `arming`/`firing`.
-    if (closest === null) {
-      this.warpToActive = false;
-      this.warpToAlarmId = null;
-      this.warpToTargetIndex = 0;
-      return;
-    }
     const ut = this.observedUT;
     if (ut === null) return;
-    this.warpToAlarmId = closest.id;
+    const target = this.findClosestPendingTrackableAlarm();
+    if (target === null) {
+      // No modelable target — but if a threshold is still eligible we
+      // hold at the cap so the slope estimator keeps gathering samples.
+      const eligible = this.findEligiblePendingAlarm();
+      if (eligible === null) {
+        this.warpToActive = false;
+        this.warpToAlarmId = null;
+        this.warpToTargetIndex = 0;
+        return;
+      }
+      this.warpToAlarmId = eligible.id;
+      const targetIndex = THRESHOLD_PRESENT_MAX_INDEX;
+      this.warpToTargetIndex = targetIndex;
+      if (targetIndex !== this.observedWarp.index) {
+        this.lastStationWarpIntentAt = this.opts.nowMs();
+        this.commandWarp(targetIndex);
+      }
+      return;
+    }
+    this.warpToAlarmId = target.alarm.id;
     const targetIndex = this.computeWarpToIndex(
-      closest.trigger as TimeTrigger,
-      ut,
+      target.remainingGameSeconds,
+      target.alarm,
     );
     this.warpToTargetIndex = targetIndex;
     if (targetIndex === this.observedWarp.index) return;
@@ -376,35 +408,20 @@ export class AlarmHostService {
     this.commandWarp(targetIndex);
   }
 
-  /** Return the pending time alarm with the smallest `trigger.ut`, or null. */
-  private findClosestPendingTimeAlarm(): Alarm | null {
-    let best: Alarm | null = null;
-    let bestUt = Number.POSITIVE_INFINITY;
-    for (const a of this.alarms) {
-      if (a.state !== "pending") continue;
-      if (a.trigger.kind !== "time") continue;
-      if (a.trigger.ut < bestUt) {
-        best = a;
-        bestUt = a.trigger.ut;
-      }
-    }
-    return best;
-  }
-
-  private computeWarpToIndex(trigger: TimeTrigger, utNow: number): number {
-    // Game-seconds remaining until the alarm enters its lead window.
-    const remainingGameSeconds = trigger.ut - trigger.leadSeconds - utNow;
+  private computeWarpToIndex(
+    remainingGameSeconds: number,
+    target: Alarm,
+  ): number {
     if (remainingGameSeconds <= 0) return 0;
     // Highest sustainable rate where (remaining / rate) >= safetyMargin
     // real-seconds — i.e. rate <= remaining / safetyMargin.
     const maxRate = remainingGameSeconds / this.warpSafetyMarginSeconds;
-    // Threshold alarms have no fire-UT — we can't predict when they cross.
-    // A single 10kx tick could skip past one entirely, so when any are
-    // pending, hold rate at a level where one tick advances at most ~100s
-    // of game time. 100× is a pragmatic balance: still useful for long
-    // coast phases, conservative enough that altitude- or velocity-driven
-    // thresholds get a chance to fire.
-    const cap = this.hasPendingThresholdAlarm()
+    // The cap exists for thresholds we *can't* model. If a non-target
+    // pending threshold lacks an ETA, hold rate where one tick advances
+    // at most ~100s of game-time so it has a chance to register. The
+    // target itself (whether time or modelable threshold) is already
+    // accounted for by `maxRate`.
+    const cap = this.hasUnmodelableThresholdOther(target)
       ? THRESHOLD_PRESENT_MAX_INDEX
       : HIGH_WARP_RATES.length - 1;
     let chosen = 0;
@@ -415,12 +432,6 @@ export class AlarmHostService {
       }
     }
     return chosen;
-  }
-
-  private hasPendingThresholdAlarm(): boolean {
-    return this.alarms.some(
-      (a) => a.state === "pending" && a.trigger.kind === "threshold",
-    );
   }
 
   private commandWarp(index: number): void {
@@ -463,6 +474,132 @@ export class AlarmHostService {
     const observed = this.readTelemetryNumber(t.dataKey);
     if (observed === null) return false;
     return compare(observed, t.op, t.value);
+  }
+
+  private recordThresholdSample(alarm: Alarm, ut: number): void {
+    if (alarm.trigger.kind !== "threshold") return;
+    // Called from tick() *before* deriveState runs, so `alarm.state` is
+    // last tick's value. The matchSinceUT check above is the live gate —
+    // don't reorder this call to depend on a freshly-derived state.
+    if (alarm.state !== "pending" || alarm.matchSinceUT != null) {
+      this.thresholdSamples.delete(alarm.id);
+      return;
+    }
+    const v = this.readTelemetryNumber(alarm.trigger.dataKey);
+    if (v === null) return;
+    const buf = this.thresholdSamples.get(alarm.id) ?? [];
+    // Avoid duplicate samples at the same UT (e.g. when a tick fires
+    // before telemetry has advanced). Keeps the slope fit honest.
+    const last = buf[buf.length - 1];
+    if (last && last.ut === ut) {
+      last.value = v;
+      return;
+    }
+    buf.push({ ut, value: v });
+    while (buf.length > THRESHOLD_SAMPLE_COUNT) buf.shift();
+    this.thresholdSamples.set(alarm.id, buf);
+  }
+
+  /**
+   * Fit a least-squares slope across the rolling samples and project the
+   * remaining game-time until the threshold crosses. Returns null when:
+   *  - the alarm uses a non-monotonic op (`==` / `!=`)
+   *  - the threshold is already met (`matchSinceUT` set)
+   *  - we don't yet have enough samples / span to fit
+   *  - the slope points away from the threshold (drift / receding)
+   */
+  private estimateThresholdEta(alarm: Alarm): number | null {
+    if (alarm.trigger.kind !== "threshold") return null;
+    const t = alarm.trigger;
+    if (t.op === "==" || t.op === "!=") return null;
+    if (alarm.matchSinceUT != null) return null;
+    const buf = this.thresholdSamples.get(alarm.id);
+    if (!buf || buf.length < MIN_SAMPLES_FOR_SLOPE) return null;
+    const span = buf[buf.length - 1].ut - buf[0].ut;
+    if (span < MIN_SAMPLE_SPAN_GAME_SECONDS) return null;
+    // Normalise x so the regression doesn't lose precision on large UTs.
+    const x0 = buf[0].ut;
+    const n = buf.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+    for (const s of buf) {
+      const x = s.ut - x0;
+      const y = s.value;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    }
+    const denom = n * sumXX - sumX * sumX;
+    if (denom === 0) return null;
+    const slope = (n * sumXY - sumX * sumY) / denom;
+    const latest = buf[buf.length - 1].value;
+    const approachingUp = t.op === ">" || t.op === ">=";
+    const distance = approachingUp ? t.value - latest : latest - t.value;
+    if (distance <= 0) return null; // already crossed, alarm system handles it
+    const approachRate = approachingUp ? slope : -slope;
+    if (approachRate <= 0) return null; // drifting away or stationary
+    return distance / approachRate;
+  }
+
+  /** Pick the closest pending alarm we can plan against — earliest time
+   *  alarm or smallest-ETA threshold alarm — returning the planning input
+   *  the warp ladder consumes (game-seconds remaining before we want the
+   *  rate to be 1×). */
+  private findClosestPendingTrackableAlarm(): {
+    alarm: Alarm;
+    remainingGameSeconds: number;
+  } | null {
+    const ut = this.observedUT;
+    if (ut === null) return null;
+    let best: { alarm: Alarm; remaining: number } | null = null;
+    for (const a of this.alarms) {
+      if (a.state !== "pending") continue;
+      let remaining: number;
+      if (a.trigger.kind === "time") {
+        remaining = a.trigger.ut - a.trigger.leadSeconds - ut;
+      } else {
+        const eta = this.estimateThresholdEta(a);
+        if (eta === null) continue;
+        remaining = eta;
+      }
+      if (remaining <= 0) continue;
+      if (!best || remaining < best.remaining) {
+        best = { alarm: a, remaining };
+      }
+    }
+    return best
+      ? { alarm: best.alarm, remainingGameSeconds: best.remaining }
+      : null;
+  }
+
+  /** Any pending alarm we could plausibly target — informs whether to
+   *  hold session open during the threshold ramp-up phase before an ETA
+   *  is computable. */
+  private findEligiblePendingAlarm(): Alarm | null {
+    for (const a of this.alarms) {
+      if (a.state !== "pending") continue;
+      if (a.trigger.kind === "time") return a;
+      const t = a.trigger;
+      if (t.op === "==" || t.op === "!=") continue;
+      if (a.matchSinceUT != null) continue;
+      return a;
+    }
+    return null;
+  }
+
+  private hasUnmodelableThresholdOther(target: Alarm): boolean {
+    return this.alarms.some((a) => {
+      if (a.id === target.id) return false;
+      if (a.state !== "pending") return false;
+      if (a.trigger.kind !== "threshold") return false;
+      if (a.matchSinceUT != null) return false;
+      const t = a.trigger;
+      if (t.op === "==" || t.op === "!=") return true;
+      return this.estimateThresholdEta(a) === null;
+    });
   }
 
   // ── Warp observation + detection ──────────────────────────────────────
