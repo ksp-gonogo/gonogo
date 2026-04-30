@@ -8,6 +8,7 @@ import {
   useDataValue,
 } from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
@@ -64,6 +65,19 @@ function CurrentOrbitComponent({
       : getBody(bodyName ?? refBody ?? "");
   const { isOrbiting } = useIsOrbiting();
 
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setIsLandscape(width > height && width >= 240);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const hasOrbit =
     sma !== undefined &&
     eccentricity !== undefined &&
@@ -75,57 +89,59 @@ function CurrentOrbitComponent({
       <PanelTitle>ORBIT</PanelTitle>
       {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
 
-      <Grid>
-        <Label>Ap</Label>
-        <Value $accent="ap">
-          {apoapsisA === undefined ? "—" : formatDistance(apoapsisA)}
-        </Value>
+      <Body ref={bodyRef} $landscape={isLandscape}>
+        <Grid $landscape={isLandscape}>
+          <Label>Ap</Label>
+          <Value $accent="ap">
+            {apoapsisA === undefined ? "—" : formatDistance(apoapsisA)}
+          </Value>
 
-        <Label>Pe</Label>
-        <Value $accent="pe">
-          {periapsisA === undefined ? "—" : formatDistance(periapsisA)}
-        </Value>
+          <Label>Pe</Label>
+          <Value $accent="pe">
+            {periapsisA === undefined ? "—" : formatDistance(periapsisA)}
+          </Value>
 
-        <Label>Ecc</Label>
-        <Value>
-          {eccentricity === undefined ? "—" : eccentricity.toFixed(4)}
-        </Value>
+          <Label>Ecc</Label>
+          <Value>
+            {eccentricity === undefined ? "—" : eccentricity.toFixed(4)}
+          </Value>
 
-        <Label>Inc</Label>
-        <Value>
-          {inclination === undefined ? "—" : `${inclination.toFixed(1)}°`}
-        </Value>
+          <Label>Inc</Label>
+          <Value>
+            {inclination === undefined ? "—" : `${inclination.toFixed(1)}°`}
+          </Value>
 
-        <Label>T</Label>
-        <Value>{period === undefined ? "—" : formatDuration(period)}</Value>
+          <Label>T</Label>
+          <Value>{period === undefined ? "—" : formatDuration(period)}</Value>
 
-        <Label>t-Ap</Label>
-        <Value $accent="ap">
-          {timeToAp === undefined ? "—" : formatDuration(timeToAp)}
-        </Value>
+          <Label>t-Ap</Label>
+          <Value $accent="ap">
+            {timeToAp === undefined ? "—" : formatDuration(timeToAp)}
+          </Value>
 
-        <Label>t-Pe</Label>
-        <Value $accent="pe">
-          {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
-        </Value>
-      </Grid>
+          <Label>t-Pe</Label>
+          <Value $accent="pe">
+            {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
+          </Value>
+        </Grid>
 
-      {showDiagram && hasOrbit && (
-        <MiniDiagramWrap>
-          <OrbitDiagram
-            variant="mini"
-            sma={sma}
-            ecc={eccentricity}
-            apoapsis={apoapsisR}
-            periapsis={periapsisR}
-            trueAnomaly={trueAnomaly ?? 0}
-            argPe={argPe ?? 0}
-            bodyColor={body?.color}
-            bodyRadius={body?.radius}
-            isOrbiting={isOrbiting}
-          />
-        </MiniDiagramWrap>
-      )}
+        {showDiagram && hasOrbit && (
+          <MiniDiagramWrap $landscape={isLandscape}>
+            <OrbitDiagram
+              variant="mini"
+              sma={sma}
+              ecc={eccentricity}
+              apoapsis={apoapsisR}
+              periapsis={periapsisR}
+              trueAnomaly={trueAnomaly ?? 0}
+              argPe={argPe ?? 0}
+              bodyColor={body?.color}
+              bodyRadius={body?.radius}
+              isOrbiting={isOrbiting}
+            />
+          </MiniDiagramWrap>
+        )}
+      </Body>
     </Panel>
   );
 }
@@ -161,11 +177,22 @@ registerComponent<CurrentOrbitConfig>({
 
 export { CurrentOrbitComponent };
 
-const Grid = styled.div`
+const Body = styled.div<{ $landscape: boolean }>`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
+  align-items: ${({ $landscape }) => ($landscape ? "stretch" : "initial")};
+  gap: 8px;
+`;
+
+const Grid = styled.div<{ $landscape: boolean }>`
   display: grid;
   grid-template-columns: 3em 1fr;
   gap: 2px 8px;
   align-items: baseline;
+  align-content: start;
+  ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
 `;
 
 const Label = styled.span`
@@ -186,9 +213,16 @@ const Value = styled.span<{ $accent?: "ap" | "pe" }>`
   letter-spacing: 0.03em;
 `;
 
-const MiniDiagramWrap = styled.div`
-  height: 80px;
-  flex-shrink: 0;
-  margin-top: 4px;
+const MiniDiagramWrap = styled.div<{ $landscape: boolean }>`
   display: flex;
+  flex: 1 1 0;
+  min-height: 80px;
+  ${({ $landscape }) =>
+    $landscape
+      ? `
+    min-width: 0;
+  `
+      : `
+    margin-top: 4px;
+  `}
 `;
