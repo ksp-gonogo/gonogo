@@ -52,7 +52,7 @@ jobs:
           - package: ocisly-proxy
             image: gonogo-ocisly-proxy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.resolve.outputs.tag }}
 
