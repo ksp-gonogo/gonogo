@@ -95,4 +95,18 @@ describe("StationScreen smoke", () => {
     const connectButton = screen.getByRole("button", { name: /connect/i });
     expect(connectButton.getAttribute("disabled")).toBeNull();
   });
+
+  it("consumes ?host=<id> from the URL, persists it, and strips the param", () => {
+    // Land on /station?host=ABC123 — the QR-code path. The screen
+    // should pre-fill the input from the URL, drop the param, and (for
+    // the next load) treat localStorage as authoritative.
+    globalThis.history.replaceState({}, "", "/station?host=ABC123");
+    renderScreen(<StationScreen />);
+
+    expect(localStorage.getItem("gonogo-station-host-id")).toBe("ABC123");
+    expect(globalThis.location.search).toBe("");
+
+    // Reset for subsequent tests in this file.
+    globalThis.history.replaceState({}, "", "/");
+  });
 });

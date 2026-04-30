@@ -28,6 +28,18 @@ export function StationLinkFab() {
   );
 }
 
+/**
+ * Build the absolute station URL for this host. `BASE_URL` is "/" in dev
+ * and "/gonogo/" on GitHub Pages — using it (vs. hardcoding "/station")
+ * keeps the QR working on both. The host id rides as `?host=` so the
+ * station screen can auto-connect on landing without the user typing
+ * anything.
+ */
+function buildStationUrl(peerId: string): string {
+  const base = import.meta.env.BASE_URL;
+  return `${globalThis.location.origin}${base}station?host=${encodeURIComponent(peerId)}`;
+}
+
 function StationLinkPanel() {
   // The modal portal renders outside the PeerHostProvider subtree, so the
   // usePeerHost() context hook would always return null in here. Subscribe
@@ -45,18 +57,26 @@ function StationLinkPanel() {
     return <Empty>Connecting to peer network…</Empty>;
   }
 
+  const url = buildStationUrl(peerId);
+
   return (
     <Wrap>
       <Row>
         <Label>Host ID</Label>
         <Code>{peerId}</Code>
       </Row>
+      <UrlRow>
+        <Label>Link</Label>
+        <UrlValue href={url} target="_blank" rel="noreferrer">
+          {url}
+        </UrlValue>
+      </UrlRow>
       <QrRow>
-        <QRCodeSVG value={peerId} size={160} />
+        <QRCodeSVG value={url} size={160} />
       </QrRow>
       <Hint>
-        Open <code>/station</code> on another device and enter this ID, or scan
-        the QR.
+        Scan to open <code>/station</code> on another device — it&apos;ll
+        auto-connect to this host. Or copy the link above.
       </Hint>
     </Wrap>
   );
@@ -75,6 +95,22 @@ const Row = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+`;
+
+const UrlRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const UrlValue = styled.a`
+  color: var(--color-status-info-fg);
+  font-size: 12px;
+  word-break: break-all;
+  text-decoration: underline;
+  &:hover {
+    color: var(--color-text-primary);
+  }
 `;
 
 const Label = styled.span`

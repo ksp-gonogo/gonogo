@@ -209,8 +209,21 @@ export function StationScreen() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only — attemptConnect and client are captured once at mount; re-running would cause reconnect loops
   useEffect(() => {
-    const savedHost = localStorage.getItem(HOST_ID_KEY);
-    if (savedHost) attemptConnect(savedHost);
+    // QR-code / shared-link path: ?host=<peerId> in the URL takes
+    // precedence over localStorage so a fresh device can land directly
+    // on the right host without typing. Drop the param after consuming
+    // it (history.replaceState) so a refresh doesn't keep a stale host
+    // pinned in the URL bar — localStorage is the authoritative store
+    // from the second load onwards.
+    const params = new URLSearchParams(globalThis.location.search);
+    const hostFromUrl = params.get("host");
+    if (hostFromUrl) {
+      const url = new URL(globalThis.location.href);
+      url.searchParams.delete("host");
+      globalThis.history.replaceState({}, "", url.toString());
+    }
+    const initialHost = hostFromUrl ?? localStorage.getItem(HOST_ID_KEY);
+    if (initialHost) attemptConnect(initialHost);
     return () => {
       unsubsRef.current.forEach((u) => {
         u();
