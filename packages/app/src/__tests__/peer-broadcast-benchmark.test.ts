@@ -175,12 +175,13 @@ describe("peer broadcast benchmark", () => {
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
     const countIn1Sec = countBudget.rate(tStart + 999);
 
-    // Log so the test output shows the absolute numbers — useful when
-    // comparing the same test across branches.
-    // eslint-disable-next-line no-console
-    console.log(
-      `[bench broadcast-all] 150 keys × 4 Hz × 2 peers → bytes/sec=${bytesIn1Sec}, msgs/sec=${countIn1Sec}`,
-    );
+    if (process.env.BENCH_LOG) {
+      // Absolute numbers for cross-branch comparison; opt-in via BENCH_LOG=1.
+      // eslint-disable-next-line no-console
+      console.log(
+        `[bench broadcast-all] 150 keys × 4 Hz × 2 peers → bytes/sec=${bytesIn1Sec}, msgs/sec=${countIn1Sec}`,
+      );
+    }
 
     // Sanity bounds (broadcast-all baseline):
     //   600 keys broadcast × 2 peers = 1200 messages/sec
@@ -247,10 +248,12 @@ describe("peer broadcast benchmark", () => {
 
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
     const countIn1Sec = countBudget.rate(tStart + 999);
-    // eslint-disable-next-line no-console
-    console.log(
-      `[bench selective] 150 keys × 4 Hz, peers want 10 each → bytes/sec=${bytesIn1Sec}, msgs/sec=${countIn1Sec}`,
-    );
+    if (process.env.BENCH_LOG) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[bench selective] 150 keys × 4 Hz, peers want 10 each → bytes/sec=${bytesIn1Sec}, msgs/sec=${countIn1Sec}`,
+      );
+    }
 
     // 10 keys × 4 Hz × 2 peers (disjoint sets) = 80 messages/sec.
     expect(countIn1Sec).toBeGreaterThanOrEqual(70);

@@ -1,8 +1,25 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Component, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsProvider, useSetting } from "./SettingsContext";
 import { SettingsService } from "./SettingsService";
+
+class CatchBoundary extends Component<
+  { children: ReactNode; onError: (err: unknown) => void },
+  { caught: boolean }
+> {
+  state = { caught: false };
+  static getDerivedStateFromError() {
+    return { caught: true };
+  }
+  componentDidCatch(error: unknown) {
+    this.props.onError(error);
+  }
+  render() {
+    return this.state.caught ? null : this.props.children;
+  }
+}
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -77,9 +94,21 @@ describe("useSetting", () => {
   it("throws when used outside a SettingsProvider", () => {
     // Silence React's error boundary noise — the throw is the test assertion.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => render(<FlagReadout keyName="flag" />)).toThrow(
-      /SettingsProvider/,
+    const swallowError = (e: ErrorEvent) => e.preventDefault();
+    window.addEventListener("error", swallowError);
+    let caught: unknown;
+    render(
+      <CatchBoundary
+        onError={(err) => {
+          caught = err;
+        }}
+      >
+        <FlagReadout keyName="flag" />
+      </CatchBoundary>,
     );
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toMatch(/SettingsProvider/);
+    window.removeEventListener("error", swallowError);
     spy.mockRestore();
   });
 });

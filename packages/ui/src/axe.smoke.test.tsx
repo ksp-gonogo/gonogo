@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { useEffect } from "react";
 import { describe, it } from "vitest";
 import { Button, GhostButton, IconButton, PrimaryButton } from "./Button";
 import { ModalProvider, useModal } from "./Modal";
@@ -24,7 +25,9 @@ describe("a11y smoke (jest-axe)", () => {
   it("Modal (open) has no axe violations", async () => {
     function Harness() {
       const { open } = useModal();
-      open(<p>Dialog body</p>, { title: "Demo modal" });
+      useEffect(() => {
+        open(<p>Dialog body</p>, { title: "Demo modal" });
+      }, [open]);
       return null;
     }
     const { container } = render(
