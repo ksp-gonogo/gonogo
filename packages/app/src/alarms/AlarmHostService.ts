@@ -563,6 +563,9 @@ export class AlarmHostService {
     this.host.onAlarmDelete((_peerId, id) => {
       this.deleteAlarm(id);
     });
+    this.host.onAlarmAcknowledge((_peerId, id) => {
+      this.acknowledgeAlarm(id);
+    });
     this.host.onAlarmAckUnscheduledWarp(() => {
       this.acknowledgeUnscheduledWarp();
     });

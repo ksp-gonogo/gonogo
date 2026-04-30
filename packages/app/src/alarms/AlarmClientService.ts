@@ -70,6 +70,10 @@ export class AlarmClientService {
     this.client.sendAlarmDelete(id);
   }
 
+  acknowledgeAlarm(id: string): void {
+    this.client.sendAlarmAcknowledge(id);
+  }
+
   acknowledgeUnscheduledWarp(): void {
     this.client.sendAlarmAckUnscheduledWarp();
   }

@@ -398,6 +398,10 @@ export class PeerClientService {
     this.conn?.send({ type: "alarm-delete", id } satisfies PeerMessage);
   }
 
+  sendAlarmAcknowledge(id: string) {
+    this.conn?.send({ type: "alarm-acknowledge", id } satisfies PeerMessage);
+  }
+
   sendAlarmAckUnscheduledWarp() {
     this.conn?.send({
       type: "alarm-ack-unscheduled-warp",

@@ -176,6 +176,10 @@ export type PeerMessage =
       };
     }
   | { type: "alarm-delete"; id: string }
+  // Station → host: user dismissed a fired alarm. No-op on the host if the
+  // alarm has already been ack'd (or doesn't exist), so two stations racing
+  // to dismiss the same alarm collapse to a single removal.
+  | { type: "alarm-acknowledge"; id: string }
   // Station → host: user dismissed the "unscheduled warp" warning.
   | { type: "alarm-ack-unscheduled-warp" }
   // Station → host: user pressed a warp control on the station dashboard.

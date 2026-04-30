@@ -86,6 +86,7 @@ type AlarmUpdateListener = (
   msg: Extract<PeerMessage, { type: "alarm-update" }>,
 ) => void;
 type AlarmDeleteListener = (peerId: string, id: string) => void;
+type AlarmAcknowledgeListener = (peerId: string, id: string) => void;
 type AlarmAckListener = (peerId: string) => void;
 type AlarmWarpIntentListener = (peerId: string, index: number) => void;
 
@@ -105,6 +106,7 @@ export class PeerHostService {
   private alarmAddListeners = new Set<AlarmAddListener>();
   private alarmUpdateListeners = new Set<AlarmUpdateListener>();
   private alarmDeleteListeners = new Set<AlarmDeleteListener>();
+  private alarmAcknowledgeListeners = new Set<AlarmAcknowledgeListener>();
   private alarmAckListeners = new Set<AlarmAckListener>();
   private alarmWarpIntentListeners = new Set<AlarmWarpIntentListener>();
 
@@ -401,6 +403,10 @@ export class PeerHostService {
       for (const cb of this.alarmDeleteListeners) cb(conn.peer, msg.id);
       return;
     }
+    if (msg.type === "alarm-acknowledge") {
+      for (const cb of this.alarmAcknowledgeListeners) cb(conn.peer, msg.id);
+      return;
+    }
     if (msg.type === "alarm-ack-unscheduled-warp") {
       for (const cb of this.alarmAckListeners) cb(conn.peer);
       return;
@@ -487,6 +493,11 @@ export class PeerHostService {
   onAlarmDelete(cb: AlarmDeleteListener): () => void {
     this.alarmDeleteListeners.add(cb);
     return () => this.alarmDeleteListeners.delete(cb);
+  }
+
+  onAlarmAcknowledge(cb: AlarmAcknowledgeListener): () => void {
+    this.alarmAcknowledgeListeners.add(cb);
+    return () => this.alarmAcknowledgeListeners.delete(cb);
   }
 
   onAlarmAckUnscheduledWarp(cb: AlarmAckListener): () => void {

@@ -451,4 +451,47 @@ describe("AlarmHostService", () => {
     svc.deleteAlarm(a.id);
     expect(svc.snapshot().alarms).toHaveLength(0);
   });
+
+  it("removes a fired alarm when a peer station acknowledges it", () => {
+    type AckCb = (peerId: string, id: string) => void;
+    let ackCb: AckCb | null = null as AckCb | null;
+    const fakeHost = {
+      onAlarmAdd: () => () => {},
+      onAlarmUpdate: () => () => {},
+      onAlarmDelete: () => () => {},
+      onAlarmAcknowledge: (cb: AckCb) => {
+        ackCb = cb;
+        return () => {};
+      },
+      onAlarmAckUnscheduledWarp: () => () => {},
+      onAlarmWarpIntent: () => () => {},
+      broadcast: () => {},
+    } as unknown as import("../peer/PeerHostService").PeerHostService;
+
+    const telemetry = fakeTelemetry();
+    telemetry.set("t.universalTime", 1000);
+    telemetry.set("t.currentRateIndex", 0);
+    telemetry.set("t.currentRate", 1);
+    const svc = new AlarmHostService(fakeHost, telemetry, {
+      nowMs: () => nowMs,
+      tickIntervalMs: 1000,
+      storage: memoryStorage(),
+    });
+
+    const a = svc.addAlarm({
+      name: "Apoapsis",
+      trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+    });
+    // Drive the state machine through arming → firing → fired so the
+    // alarm is in the only state acknowledgeAlarm accepts.
+    telemetry.set("t.universalTime", 1001);
+    vi.advanceTimersByTime(1100);
+    telemetry.set("t.universalTime", 1100);
+    vi.advanceTimersByTime(1100);
+    expect(svc.snapshot().alarms[0]?.state).toBe("fired");
+
+    expect(ackCb).not.toBeNull();
+    ackCb?.("station-peer-id", a.id);
+    expect(svc.snapshot().alarms).toHaveLength(0);
+  });
 });
