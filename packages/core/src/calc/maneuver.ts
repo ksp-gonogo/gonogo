@@ -62,6 +62,27 @@ export interface ManeuverPlan {
   projected: ProjectedOrbit | null;
 }
 
+/**
+ * A multi-burn plan — used by Hohmann presets (transfer-to-altitude is
+ * two burns; rendezvous-with-target adds an optional plane-match burn
+ * up front). Each entry is a fully-formed `ManeuverPlan` so the widget
+ * commits them sequentially via the same code path as single-burn
+ * presets.
+ */
+export interface ManeuverSequence {
+  burns: ManeuverPlan[];
+  /** Sum of `Math.abs(burn.requiredDeltaV)` across all burns (m/s). */
+  totalDeltaV: number;
+  /** Orbit shape after the LAST burn — what the vessel ends up on. */
+  finalProjected: ProjectedOrbit | null;
+  /**
+   * For Hohmann transfers, the elliptic orbit between burn 1 and burn 2.
+   * Same shape as `burns[0].projected`, exposed separately so callers can
+   * style it differently in previews.
+   */
+  transferEllipse: ProjectedOrbit | null;
+}
+
 export type Apsis = "apo" | "peri";
 
 // ---------------------------------------------------------------------------
@@ -552,5 +573,292 @@ export function matchTargetPlane(
       period: periodAt(mu, current.sma),
       inclination: targetInclinationDeg,
     },
+  };
+}
+
+/**
+ * Two-burn Hohmann transfer to a circular orbit at radius `targetR`
+ * (distance from body centre, metres).
+ *
+ * Burn 1 happens at the chosen apsis of the current orbit (γ = 0 there,
+ * so a pure prograde burn cleanly reshapes the in-plane ellipse). It puts
+ * the vessel on a transfer ellipse whose far apsis sits at `targetR`.
+ *
+ * Burn 2 happens half a transfer period later, when the vessel reaches
+ * `targetR`. Pure prograde again, circularising the orbit.
+ *
+ * `fromApsis` selects which apsis to start at. Omit it for the default
+ * heuristic: `peri` when the target is at or above the current SMA
+ * (raising), `apo` when below (lowering). For an elliptical current orbit
+ * with `targetR` between PeR and ApR the heuristic still produces a
+ * valid sequence — the transfer ellipse just overlaps the current orbit.
+ *
+ * Returns null when `targetR <= 0`, `mu <= 0`, or the current SMA is
+ * non-positive.
+ */
+export function hohmannToRadius(
+  current: CurrentOrbit,
+  mu: number,
+  currentUT: number,
+  targetR: number,
+  fromApsis?: Apsis,
+): ManeuverSequence | null {
+  if (!(targetR > 0) || !(mu > 0) || !(current.sma > 0)) return null;
+
+  const apsis: Apsis = fromApsis ?? (targetR >= current.sma ? "peri" : "apo");
+  const r1 = apsis === "apo" ? current.ApR : current.PeR;
+  const dt1 = apsis === "apo" ? current.timeToAp : current.timeToPe;
+  if (!(r1 > 0)) return null;
+
+  const transferSma = (r1 + targetR) / 2;
+  if (!(transferSma > 0)) return null;
+
+  // Burn 1: at r1, prograde adjusts to transfer-ellipse speed at that radius.
+  const v1Pre = speedAt(mu, r1, current.sma);
+  const v1Post = speedAt(mu, r1, transferSma);
+  const dv1 = v1Post - v1Pre;
+  const burn1UT = currentUT + dt1;
+
+  const transferApR = Math.max(r1, targetR);
+  const transferPeR = Math.min(r1, targetR);
+  const sumApPe = transferApR + transferPeR;
+  const transferEcc = sumApPe > 0 ? (transferApR - transferPeR) / sumApPe : 0;
+  const transferPeriod = periodAt(mu, transferSma);
+  const transferEllipse: ProjectedOrbit = {
+    sma: transferSma,
+    eccentricity: transferEcc,
+    ApR: transferApR,
+    PeR: transferPeR,
+    period: transferPeriod,
+  };
+
+  // Burn 2: half a transfer period later, at r2 = targetR. Circularise.
+  const v2Pre = speedAt(mu, targetR, transferSma);
+  const v2Post = circularSpeed(mu, targetR);
+  const dv2 = v2Post - v2Pre;
+  const burn2UT = burn1UT + transferPeriod / 2;
+
+  const finalProjected: ProjectedOrbit = {
+    sma: targetR,
+    eccentricity: 0,
+    ApR: targetR,
+    PeR: targetR,
+    period: periodAt(mu, targetR),
+  };
+
+  const burn1: ManeuverPlan = {
+    ut: burn1UT,
+    prograde: dv1,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(dv1),
+    projected: transferEllipse,
+  };
+  const burn2: ManeuverPlan = {
+    ut: burn2UT,
+    prograde: dv2,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(dv2),
+    projected: finalProjected,
+  };
+
+  return {
+    burns: [burn1, burn2],
+    totalDeltaV: Math.abs(dv1) + Math.abs(dv2),
+    finalProjected,
+    transferEllipse,
+  };
+}
+
+/**
+ * State of the target needed for a Hohmann rendezvous calc. All angles
+ * in degrees, distances in metres. Maps directly to Telemachus's
+ * `tar.o.sma`, `tar.o.PeR` (= PeA + bodyRadius), `tar.o.inclination`,
+ * `tar.o.lan`, `tar.o.argumentOfPeriapsis`, `tar.o.trueAnomaly`,
+ * `tar.o.period`.
+ */
+export interface TargetOrbitState {
+  sma: number;
+  PeR: number;
+  inclinationDeg: number;
+  lanDeg: number;
+  argPeDeg: number;
+  trueAnomalyDeg: number;
+  period: number;
+}
+
+/**
+ * Two- or three-burn Hohmann transfer to rendezvous with a target.
+ *
+ * Burn structure:
+ *   - If relative-plane mismatch > 0.5°, prepend a plane-match burn at
+ *     the next relative-plane AN/DN (delegates to `matchTargetPlane`).
+ *   - Two prograde burns: raise/lower vessel orbit to a circle at the
+ *     target's periapsis radius (`target.PeR`); time burn 1 so vessel
+ *     arrives at the target's periapsis position the same UT the target
+ *     reaches periapsis, offset by `standoffMeters` along-track on the
+ *     target's orbit (positive = arrive that far behind the target).
+ *
+ * Approximations and limits:
+ *   - Vessel orbit treated as approximately circular at `vessel.sma`.
+ *     Burn-1 ΔV is exact only for circular orbits; for `vessel.eccentricity
+ *     > ~0.05` it's approximate.
+ *   - Rendezvous radius is the target's periapsis. After the second burn
+ *     the vessel is on a circle at `target.PeR`; the target is on its
+ *     eccentric orbit and will separate immediately. Closest approach is
+ *     at the meeting moment.
+ *   - Phase angle is computed from `LAN + argPe + ν` for both bodies,
+ *     which is the projection onto the orbital plane that matches when
+ *     they're coplanar. Pre-plane-match this is an approximation; it
+ *     gets exact once the plane-match burn aligns the two planes.
+ *
+ * Returns null on degenerate inputs (μ ≤ 0, target.PeR ≤ 0, resonant
+ * orbits where the synodic period is unbounded, etc.).
+ */
+export function hohmannRendezvous(
+  vessel: CurrentOrbit,
+  vesselTrueAnomalyDeg: number,
+  vesselArgPeDeg: number,
+  vesselInclinationDeg: number,
+  vesselLanDeg: number,
+  mu: number,
+  currentUT: number,
+  target: TargetOrbitState,
+  standoffMeters: number,
+): ManeuverSequence | null {
+  if (!(mu > 0)) return null;
+  if (!(target.PeR > 0)) return null;
+  if (!(target.sma > 0)) return null;
+  if (!(vessel.sma > 0)) return null;
+
+  // 1. Plane-mismatch detection — cos(rel) formula matches matchTargetPlane.
+  const i1 = (vesselInclinationDeg * Math.PI) / 180;
+  const i2 = (target.inclinationDeg * Math.PI) / 180;
+  const dOmegaRad = ((target.lanDeg - vesselLanDeg) * Math.PI) / 180;
+  const cosRel =
+    Math.cos(i1) * Math.cos(i2) +
+    Math.sin(i1) * Math.sin(i2) * Math.cos(dOmegaRad);
+  const relIncRad = Math.acos(Math.max(-1, Math.min(1, cosRel)));
+  const relIncDeg = (relIncRad * 180) / Math.PI;
+
+  const PLANE_MATCH_THRESHOLD_DEG = 0.5;
+  const burns: ManeuverPlan[] = [];
+  let effectiveStartUT = currentUT;
+
+  if (relIncDeg > PLANE_MATCH_THRESHOLD_DEG) {
+    const planeMatch = matchTargetPlane(
+      vessel,
+      vesselTrueAnomalyDeg,
+      vesselArgPeDeg,
+      vesselInclinationDeg,
+      vesselLanDeg,
+      target.inclinationDeg,
+      target.lanDeg,
+      mu,
+      currentUT,
+    );
+    burns.push(planeMatch);
+    if (planeMatch.ut > effectiveStartUT) effectiveStartUT = planeMatch.ut;
+  }
+
+  // 2. Phase-angle math. Treat both orbits as circular at SMA for the
+  // closing-rate calc; the rendezvous *radius* is target.PeR (where the
+  // target spends the most predictable moment of its orbit).
+  const r1 = vessel.sma;
+  const r2 = target.PeR;
+  const transferSma = (r1 + r2) / 2;
+  if (!(transferSma > 0)) return null;
+  const transferPeriod = periodAt(mu, transferSma);
+  const transferHalfPeriod = transferPeriod / 2;
+
+  const omegaVessel = Math.sqrt(mu / (r1 * r1 * r1));
+  const omegaTarget = Math.sqrt(mu / (target.sma * target.sma * target.sma));
+  const dPhiDt = omegaTarget - omegaVessel;
+  if (Math.abs(dPhiDt) < 1e-12) return null; // resonant — never aligns
+
+  // Lead angle: target should be `leadAngle` ahead of vessel at burn 1
+  // so it walks 180° − leadAngle while vessel transfers half an orbit
+  // round to the same point. Standoff > 0 → arrive `standoffMeters`
+  // behind the target → leadAngle grows by standoff arc-length / r2.
+  const standoffArc = standoffMeters / r2;
+  const TWO_PI = 2 * Math.PI;
+  let leadAngle = Math.PI - omegaTarget * transferHalfPeriod + standoffArc;
+  leadAngle = ((leadAngle % TWO_PI) + TWO_PI) % TWO_PI;
+
+  // True longitude (planar projection): LAN + argPe + ν (deg → rad).
+  // Exact when both orbits share a plane; approximate otherwise.
+  const vesselTrueLongDeg =
+    vesselLanDeg + vesselArgPeDeg + vesselTrueAnomalyDeg;
+  const targetTrueLongDeg =
+    target.lanDeg + target.argPeDeg + target.trueAnomalyDeg;
+  let phiNow = ((targetTrueLongDeg - vesselTrueLongDeg) * Math.PI) / 180;
+  phiNow = ((phiNow % TWO_PI) + TWO_PI) % TWO_PI;
+
+  // Drift from currentUT to effectiveStartUT (zero if no plane match).
+  const phiAtStart = phiNow + dPhiDt * (effectiveStartUT - currentUT);
+
+  // Wait for φ to reach leadAngle, going in the direction dictated by dPhiDt.
+  // We always normalise the angular delta to [0, 2π) and divide by |dPhiDt|;
+  // sign of dPhiDt only picks the rotation direction, not the wait length.
+  const deltaSigned =
+    dPhiDt > 0 ? leadAngle - phiAtStart : phiAtStart - leadAngle;
+  const deltaNormalised = ((deltaSigned % TWO_PI) + TWO_PI) % TWO_PI;
+  const waitTime = deltaNormalised / Math.abs(dPhiDt);
+  const burn1UT = effectiveStartUT + waitTime;
+
+  // 3. Hohmann burns. Vessel as circular at r1, target circle at r2.
+  const v1Pre = circularSpeed(mu, r1);
+  const v1Post = speedAt(mu, r1, transferSma);
+  const dv1 = v1Post - v1Pre;
+
+  const burn2UT = burn1UT + transferHalfPeriod;
+  const v2Pre = speedAt(mu, r2, transferSma);
+  const v2Post = circularSpeed(mu, r2);
+  const dv2 = v2Post - v2Pre;
+
+  const transferApR = Math.max(r1, r2);
+  const transferPeR = Math.min(r1, r2);
+  const sumApPe = transferApR + transferPeR;
+  const transferEcc = sumApPe > 0 ? (transferApR - transferPeR) / sumApPe : 0;
+  const transferEllipse: ProjectedOrbit = {
+    sma: transferSma,
+    eccentricity: transferEcc,
+    ApR: transferApR,
+    PeR: transferPeR,
+    period: transferPeriod,
+  };
+  const finalProjected: ProjectedOrbit = {
+    sma: r2,
+    eccentricity: 0,
+    ApR: r2,
+    PeR: r2,
+    period: periodAt(mu, r2),
+  };
+
+  burns.push({
+    ut: burn1UT,
+    prograde: dv1,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(dv1),
+    projected: transferEllipse,
+  });
+  burns.push({
+    ut: burn2UT,
+    prograde: dv2,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(dv2),
+    projected: finalProjected,
+  });
+
+  const totalDeltaV = burns.reduce((sum, b) => sum + b.requiredDeltaV, 0);
+
+  return {
+    burns,
+    totalDeltaV,
+    finalProjected,
+    transferEllipse,
   };
 }

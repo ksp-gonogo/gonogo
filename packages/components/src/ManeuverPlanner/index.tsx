@@ -10,7 +10,10 @@ import {
   formatDuration,
   getBody,
   gravParameterFromState,
+  hohmannRendezvous,
+  hohmannToRadius,
   type ManeuverPlan,
+  type ManeuverSequence,
   matchInclination,
   matchTargetPlane,
   registerComponent,
@@ -67,9 +70,29 @@ interface PlanInputs {
   targetInclinationLive: number | undefined;
   targetLanLive: number | undefined;
   lan: number | undefined;
+  /** Body radius — converts the Hohmann altitude input into a radius. */
+  bodyRadius: number | undefined;
+  /** Hohmann target altitude (km above the reference body). */
+  targetAltitudeKm: number;
+  /** Live target orbit fields for hohmann-rendezvous-target. */
+  targetSma: number | undefined;
+  targetPeA: number | undefined;
+  targetArgPe: number | undefined;
+  targetTrueAnomaly: number | undefined;
+  targetPeriod: number | undefined;
+  /** Rendezvous standoff offset along-track on target orbit (m). */
+  standoffMeters: number;
 }
 
-function computePlan(i: PlanInputs): ManeuverPlan | null {
+/** Either a single-burn plan (existing presets) or a multi-burn sequence
+ *  (Hohmann). Render code branches on `"burns" in result`. */
+type PlanResult = ManeuverPlan | ManeuverSequence;
+
+function isSequence(result: PlanResult): result is ManeuverSequence {
+  return "burns" in result;
+}
+
+function computePlan(i: PlanInputs): PlanResult | null {
   if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
   switch (i.preset) {
     case "circularize-apo":
@@ -89,6 +112,10 @@ function computePlan(i: PlanInputs): ManeuverPlan | null {
       );
     case "custom-ut":
       return planCustomUT(i);
+    case "hohmann-to-altitude":
+      return planHohmann(i);
+    case "hohmann-rendezvous-target":
+      return planHohmannRendezvous(i);
     case "match-inclination":
       return planMatchInclination(i, i.targetInclination);
     case "match-target-inclination":
@@ -97,6 +124,62 @@ function computePlan(i: PlanInputs): ManeuverPlan | null {
     case "match-target-plane":
       return planMatchTargetPlane(i);
   }
+}
+
+function planHohmann(i: PlanInputs): ManeuverSequence | null {
+  if (
+    !i.currentOrbit ||
+    i.currentUT === undefined ||
+    i.bodyRadius === undefined ||
+    !(i.bodyRadius > 0)
+  ) {
+    return null;
+  }
+  const targetR = i.bodyRadius + i.targetAltitudeKm * 1000;
+  if (!(targetR > 0)) return null;
+  return hohmannToRadius(i.currentOrbit, i.mu, i.currentUT, targetR);
+}
+
+function planHohmannRendezvous(i: PlanInputs): ManeuverSequence | null {
+  if (
+    !i.currentOrbit ||
+    i.currentUT === undefined ||
+    i.trueAnomaly === undefined ||
+    i.argPe === undefined ||
+    i.inclination === undefined ||
+    i.lan === undefined ||
+    i.targetSma === undefined ||
+    i.targetPeA === undefined ||
+    i.targetInclinationLive === undefined ||
+    i.targetLanLive === undefined ||
+    i.targetArgPe === undefined ||
+    i.targetTrueAnomaly === undefined ||
+    i.targetPeriod === undefined ||
+    i.bodyRadius === undefined ||
+    !(i.bodyRadius > 0)
+  ) {
+    return null;
+  }
+  return hohmannRendezvous(
+    i.currentOrbit,
+    i.trueAnomaly,
+    i.argPe,
+    i.inclination,
+    i.lan,
+    i.mu,
+    i.currentUT,
+    {
+      sma: i.targetSma,
+      // Telemachus reports PeA (altitude); convert to PeR (from body centre).
+      PeR: i.bodyRadius + i.targetPeA,
+      inclinationDeg: i.targetInclinationLive,
+      lanDeg: i.targetLanLive,
+      argPeDeg: i.targetArgPe,
+      trueAnomalyDeg: i.targetTrueAnomaly,
+      period: i.targetPeriod,
+    },
+    i.standoffMeters,
+  );
 }
 
 function planCustomUT(i: PlanInputs): ManeuverPlan | null {
@@ -203,6 +286,33 @@ function computeMu(
   return 0;
 }
 
+/** Relative inclination (°) between two orbits given each one's
+ *  inclination + LAN. Returns null if any input is missing. Used in the
+ *  rendezvous preset description so the user can see whether the
+ *  preset will prepend a plane-match burn (threshold 0.5°). */
+function computeRelInc(
+  inc1: number | undefined,
+  lan1: number | undefined,
+  inc2: number | undefined,
+  lan2: number | undefined,
+): number | null {
+  if (
+    inc1 === undefined ||
+    lan1 === undefined ||
+    inc2 === undefined ||
+    lan2 === undefined
+  ) {
+    return null;
+  }
+  const i1 = (inc1 * Math.PI) / 180;
+  const i2 = (inc2 * Math.PI) / 180;
+  const dOmega = ((lan2 - lan1) * Math.PI) / 180;
+  const cosRel =
+    Math.cos(i1) * Math.cos(i2) +
+    Math.sin(i1) * Math.sin(i2) * Math.cos(dOmega);
+  return (Math.acos(Math.max(-1, Math.min(1, cosRel))) * 180) / Math.PI;
+}
+
 /** True anomaly at the burn for drag-handle placement. Null outside the
  *  custom-* presets or when inputs aren't ready. */
 function computeBurnTrueAnomaly(i: PlanInputs): number | null {
@@ -267,6 +377,12 @@ function ManeuverPlannerComponent({
   const [burnAtUT, setBurnAtUT] = useState(0);
   // Target inclination for the match-inclination preset (°).
   const [targetInclination, setTargetInclination] = useState(0);
+  // Target altitude for the hohmann-to-altitude preset (km above body).
+  const [targetAltitudeKm, setTargetAltitudeKm] = useState(100);
+  // Standoff distance for hohmann-rendezvous-target (m, along-track).
+  const [standoffMeters, setStandoffMeters] = useState(
+    config?.defaultStandoffMeters ?? 500,
+  );
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -289,6 +405,11 @@ function ManeuverPlannerComponent({
   const targetName = useDataValue("data", "tar.name");
   const targetInclinationLive = useDataValue("data", "tar.o.inclination");
   const targetLanLive = useDataValue("data", "tar.o.lan");
+  const targetSma = useDataValue("data", "tar.o.sma");
+  const targetPeA = useDataValue("data", "tar.o.PeA");
+  const targetArgPe = useDataValue("data", "tar.o.argumentOfPeriapsis");
+  const targetTrueAnomaly = useDataValue("data", "tar.o.trueAnomaly");
+  const targetPeriod = useDataValue("data", "tar.o.period");
   const lan = useDataValue("data", "o.lan");
 
   const period = useDataValue("data", "o.period");
@@ -314,7 +435,7 @@ function ManeuverPlannerComponent({
     timeToPe,
   });
 
-  const plan: ManeuverPlan | null = useMemo(
+  const plan: PlanResult | null = useMemo(
     () =>
       computePlan({
         preset,
@@ -334,6 +455,14 @@ function ManeuverPlannerComponent({
         targetInclinationLive,
         targetLanLive,
         lan,
+        bodyRadius: body?.radius,
+        targetAltitudeKm,
+        targetSma,
+        targetPeA,
+        targetArgPe,
+        targetTrueAnomaly,
+        targetPeriod,
+        standoffMeters,
       }),
     [
       currentOrbit,
@@ -353,13 +482,26 @@ function ManeuverPlannerComponent({
       targetInclinationLive,
       targetLanLive,
       lan,
+      body?.radius,
+      targetAltitudeKm,
+      targetSma,
+      targetPeA,
+      targetArgPe,
+      targetTrueAnomaly,
+      targetPeriod,
+      standoffMeters,
     ],
   );
 
+  const requiredDeltaV = plan
+    ? isSequence(plan)
+      ? plan.totalDeltaV
+      : plan.requiredDeltaV
+    : 0;
   const feasible =
     plan === null || vesselDeltaV.totalVac === 0
       ? null
-      : vesselDeltaV.totalVac >= plan.requiredDeltaV;
+      : vesselDeltaV.totalVac >= requiredDeltaV;
 
   // True anomaly at the burn, for drag-handle placement on the preview.
   // Apsis presets are exact (0° / 180°); custom-ut re-uses our propagator.
@@ -383,6 +525,14 @@ function ManeuverPlannerComponent({
         targetInclinationLive,
         targetLanLive,
         lan,
+        bodyRadius: body?.radius,
+        targetAltitudeKm,
+        targetSma,
+        targetPeA,
+        targetArgPe,
+        targetTrueAnomaly,
+        targetPeriod,
+        standoffMeters,
       }),
     [
       preset,
@@ -402,6 +552,14 @@ function ManeuverPlannerComponent({
       targetInclinationLive,
       targetLanLive,
       lan,
+      body?.radius,
+      targetAltitudeKm,
+      targetSma,
+      targetPeA,
+      targetArgPe,
+      targetTrueAnomaly,
+      targetPeriod,
+      standoffMeters,
     ],
   );
 
@@ -411,11 +569,19 @@ function ManeuverPlannerComponent({
     setCommitting(true);
     setError(null);
     try {
-      // Telemachus Reborn uses `[ut,x,y,z]` args on the action key. Each
-      // component in the vector is the prograde/normal/radial ΔV in the
-      // node's local frame (m/s).
-      const action = `o.addManeuverNode[${plan.ut.toFixed(3)},${plan.prograde.toFixed(3)},${plan.normal.toFixed(3)},${plan.radial.toFixed(3)}]`;
-      await execute(action);
+      // Telemachus passes `[ut,x,y,z]` straight to KSP's
+      // `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`. KSP's
+      // node-local frame is `Vector3d(radialOut, normal, prograde)` —
+      // confirmed by kOS's Node.cs which constructs the same vector in
+      // that exact order. So the on-wire order is RADIAL, NORMAL,
+      // PROGRADE — *not* prograde-first. Sending pure prograde in the
+      // first slot turns it into pure radial-out and the burn points
+      // straight up.
+      const burns = isSequence(plan) ? plan.burns : [plan];
+      for (const b of burns) {
+        const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
+        await execute(action);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -506,6 +672,30 @@ function ManeuverPlannerComponent({
         </CustomInputs>
       );
     }
+    if (preset === "hohmann-to-altitude") {
+      return (
+        <CustomInputs>
+          <LabeledInput
+            label="Target alt"
+            value={targetAltitudeKm}
+            onChange={setTargetAltitudeKm}
+            suffix="km"
+          />
+        </CustomInputs>
+      );
+    }
+    if (preset === "hohmann-rendezvous-target") {
+      return (
+        <CustomInputs>
+          <LabeledInput
+            label="Standoff"
+            value={standoffMeters}
+            onChange={setStandoffMeters}
+            suffix="m"
+          />
+        </CustomInputs>
+      );
+    }
     return (
       <CustomInputs>
         {preset === "custom-ut" && renderUtModeInputs()}
@@ -584,6 +774,30 @@ function ManeuverPlannerComponent({
         </PresetDesc>
       );
     }
+    if (preset === "hohmann-rendezvous-target") {
+      if (!targetName) {
+        return <PresetDesc>No target selected in-game.</PresetDesc>;
+      }
+      const planeMismatch = computeRelInc(
+        inclination,
+        lan,
+        targetInclinationLive,
+        targetLanLive,
+      );
+      return (
+        <PresetDesc>
+          Target: {targetName} — PeA{" "}
+          {targetPeA !== undefined
+            ? `${(targetPeA / 1000).toFixed(1)} km`
+            : "—"}
+          , i={(targetInclinationLive ?? 0).toFixed(1)}°, Δplane=
+          {planeMismatch !== null ? `${planeMismatch.toFixed(1)}°` : "—"}
+          {planeMismatch !== null && planeMismatch > 0.5
+            ? " (plane match prepended)"
+            : ""}
+        </PresetDesc>
+      );
+    }
     return null;
   }
 
@@ -629,6 +843,7 @@ function ManeuverPlannerComponent({
 
   function renderPreviewGrid() {
     if (!plan) return null;
+    if (isSequence(plan)) return renderSequencePreview(plan);
     return (
       <PreviewGrid>
         <Label>ΔV</Label>
@@ -649,13 +864,63 @@ function ManeuverPlannerComponent({
           )}
         </Value>
 
-        {renderProjectedRows()}
+        {renderProjectedRows(plan.projected)}
       </PreviewGrid>
     );
   }
 
-  function renderProjectedRows() {
-    if (!plan?.projected) {
+  function renderSequencePreview(seq: ManeuverSequence) {
+    const burn1 = seq.burns[0];
+    const burn2 = seq.burns[1];
+    return (
+      <>
+        <PreviewGrid>
+          <Label>Total ΔV</Label>
+          <Value>{seq.totalDeltaV.toFixed(1)} m/s</Value>
+
+          <Label>Available</Label>
+          <Value>
+            {vesselDeltaV.totalVac === 0
+              ? "—"
+              : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+            {feasible !== null && (
+              <FeasibilityChip $ok={feasible}>
+                {feasible ? "OK" : "SHORT"}
+              </FeasibilityChip>
+            )}
+          </Value>
+        </PreviewGrid>
+
+        <SectionTitle>Burn 1</SectionTitle>
+        <PreviewGrid>
+          <Label>ΔV</Label>
+          <Value>{burn1.prograde.toFixed(1)} m/s prograde</Value>
+          <Label>Burn in</Label>
+          <Value>{formatDuration(burn1.ut - (currentUT ?? 0))}</Value>
+          {renderProjectedRows(seq.transferEllipse, "Transfer")}
+        </PreviewGrid>
+
+        {burn2 && (
+          <>
+            <SectionTitle>Burn 2</SectionTitle>
+            <PreviewGrid>
+              <Label>ΔV</Label>
+              <Value>{burn2.prograde.toFixed(1)} m/s prograde</Value>
+              <Label>Burn in</Label>
+              <Value>{formatDuration(burn2.ut - (currentUT ?? 0))}</Value>
+              {renderProjectedRows(seq.finalProjected, "Final")}
+            </PreviewGrid>
+          </>
+        )}
+      </>
+    );
+  }
+
+  function renderProjectedRows(
+    projected: ManeuverPlan["projected"] | null | undefined,
+    prefix = "New",
+  ) {
+    if (!projected) {
       return (
         <>
           <Label>Projection</Label>
@@ -663,25 +928,24 @@ function ManeuverPlannerComponent({
         </>
       );
     }
-    const p = plan.projected;
     return (
       <>
-        <Label>New Ap</Label>
+        <Label>{prefix} Ap</Label>
         <Value $accent="ap">
-          {formatDistance(p.ApR - (body?.radius ?? 0))}
+          {formatDistance(projected.ApR - (body?.radius ?? 0))}
         </Value>
-        <Label>New Pe</Label>
+        <Label>{prefix} Pe</Label>
         <Value $accent="pe">
-          {formatDistance(p.PeR - (body?.radius ?? 0))}
+          {formatDistance(projected.PeR - (body?.radius ?? 0))}
         </Value>
-        <Label>New Ecc</Label>
-        <Value>{p.eccentricity.toFixed(4)}</Value>
-        <Label>New T</Label>
-        <Value>{formatDuration(p.period)}</Value>
-        {p.inclination !== undefined && (
+        <Label>{prefix} Ecc</Label>
+        <Value>{projected.eccentricity.toFixed(4)}</Value>
+        <Label>{prefix} T</Label>
+        <Value>{formatDuration(projected.period)}</Value>
+        {projected.inclination !== undefined && (
           <>
-            <Label>New Inc</Label>
-            <Value>{p.inclination.toFixed(2)}°</Value>
+            <Label>{prefix} Inc</Label>
+            <Value>{projected.inclination.toFixed(2)}°</Value>
           </>
         )}
       </>
@@ -694,6 +958,11 @@ function ManeuverPlannerComponent({
       preset === "custom-apo" ||
       preset === "custom-peri" ||
       preset === "custom-ut";
+    // For sequences, draw the transfer ellipse dashed (`projected`) and
+    // the final orbit solid (`secondaryProjected`). For single-burn
+    // plans, just the post-burn ellipse goes in `projected`.
+    const projected = isSequence(plan) ? plan.transferEllipse : plan.projected;
+    const secondaryProjected = isSequence(plan) ? plan.finalProjected : null;
     return (
       <DiagramWrap>
         <OrbitDiagram
@@ -707,12 +976,22 @@ function ManeuverPlannerComponent({
           bodyColor={body?.color}
           bodyRadius={body?.radius}
           projected={
-            plan.projected
+            projected
               ? {
-                  sma: plan.projected.sma,
-                  ecc: plan.projected.eccentricity,
-                  apoapsis: plan.projected.ApR,
-                  periapsis: plan.projected.PeR,
+                  sma: projected.sma,
+                  ecc: projected.eccentricity,
+                  apoapsis: projected.ApR,
+                  periapsis: projected.PeR,
+                }
+              : null
+          }
+          secondaryProjected={
+            secondaryProjected
+              ? {
+                  sma: secondaryProjected.sma,
+                  ecc: secondaryProjected.eccentricity,
+                  apoapsis: secondaryProjected.ApR,
+                  periapsis: secondaryProjected.PeR,
                 }
               : null
           }
@@ -740,9 +1019,9 @@ function ManeuverPlannerComponent({
           ΔV shortfall — commit disabled
         </FeasibilityBannerTitle>
         <FeasibilityBannerBody>
-          Required {plan.requiredDeltaV.toFixed(0)} m/s · available{" "}
+          Required {requiredDeltaV.toFixed(0)} m/s · available{" "}
           {vesselDeltaV.totalVac.toFixed(0)} m/s ·{" "}
-          {(plan.requiredDeltaV - vesselDeltaV.totalVac).toFixed(0)} m/s short.
+          {(requiredDeltaV - vesselDeltaV.totalVac).toFixed(0)} m/s short.
         </FeasibilityBannerBody>
       </FeasibilityBanner>
     );
@@ -828,6 +1107,11 @@ registerComponent<ManeuverPlannerConfig>({
     "tar.name",
     "tar.o.inclination",
     "tar.o.lan",
+    "tar.o.sma",
+    "tar.o.PeA",
+    "tar.o.argumentOfPeriapsis",
+    "tar.o.trueAnomaly",
+    "tar.o.period",
   ],
   defaultConfig: { defaultPreset: "circularize-apo" },
   actions: maneuverActions,
@@ -847,13 +1131,13 @@ const Section = styled.section`
   padding-top: 4px;
 `;
 
-const SectionTitle = styled.div`
+const SectionTitle = styled.h4`
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-dim);
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
 `;
 
 const PrincipiaBanner = styled.div`
@@ -892,13 +1176,16 @@ const WaitingPanel = styled.div`
   border-radius: 2px;
 `;
 
-const StatusList = styled.div`
+const StatusList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 `;
 
-const StatusRow = styled.div`
+const StatusRow = styled.li`
   display: flex;
   align-items: center;
   gap: 6px;
@@ -980,14 +1267,15 @@ const PreviewSection = styled.section`
   padding-top: 4px;
 `;
 
-const PreviewGrid = styled.div`
+const PreviewGrid = styled.dl`
   display: grid;
-  grid-template-columns: 4em 1fr;
+  grid-template-columns: max-content 1fr;
   gap: 2px 8px;
   align-items: baseline;
+  margin: 0;
 `;
 
-const Label = styled.span`
+const Label = styled.dt`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   letter-spacing: 0.08em;
@@ -999,13 +1287,14 @@ const accentColor = {
   pe: "var(--color-tag-blue-fg)",
 };
 
-const Value = styled.span<{ $accent?: "ap" | "pe" }>`
+const Value = styled.dd<{ $accent?: "ap" | "pe" }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
+  margin: 0;
 `;
 
 const DiagramWrap = styled.div`

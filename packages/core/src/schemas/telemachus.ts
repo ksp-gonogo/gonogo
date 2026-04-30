@@ -325,12 +325,17 @@ export interface TelemaachusSchema {
   "tar.distance": number;
   "tar.o.PeA": number;
   "tar.o.ApA": number;
+  "tar.o.sma": number;
   "tar.o.inclination": number;
   "tar.o.eccentricity": number;
   "tar.o.period": number;
   "tar.o.relativeVelocity": number;
   "tar.o.orbitingBody": string;
   "tar.o.lan": number;
+  "tar.o.argumentOfPeriapsis": number;
+  "tar.o.trueAnomaly": number;
+  "tar.o.timeToPe": number;
+  "tar.o.timeToAp": number;
 
   // --- dock.* — Docking alignment (meaningful when the target is a vessel
   // or docking port; near-zero noise when the vessel isn't oriented for a

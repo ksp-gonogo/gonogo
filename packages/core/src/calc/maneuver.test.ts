@@ -6,6 +6,8 @@ import {
   customAtApsis,
   customAtUT,
   gravParameterFromState,
+  hohmannRendezvous,
+  hohmannToRadius,
   matchInclination,
   matchTargetPlane,
   stateAtUT,
@@ -416,5 +418,380 @@ describe("matchTargetPlane", () => {
     );
     expect(plan.requiredDeltaV).toBeGreaterThan(0);
     expect(plan.projected?.inclination).toBe(10);
+  });
+});
+
+describe("hohmannToRadius", () => {
+  // 200 km circular target from a 100 km circular start.
+  const KERBIN_200KM = KERBIN_R + 200_000;
+
+  it("returns null for a non-positive targetR", () => {
+    expect(hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, 0, 0)).toBeNull();
+    expect(
+      hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, 0, -10),
+    ).toBeNull();
+  });
+
+  it("returns null when μ is non-positive", () => {
+    expect(
+      hohmannToRadius(KERBIN_100KM_CIRCULAR, 0, 0, KERBIN_200KM),
+    ).toBeNull();
+  });
+
+  it("matches the textbook ΔV for circular→circular raise (Kerbin 100→200 km)", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_200KM,
+    );
+    expect(seq).not.toBeNull();
+    if (!seq) return;
+
+    // Closed-form vis-viva: dv1 = v_t(r1) − v_circ(r1); dv2 = v_circ(r2) − v_t(r2).
+    const r1 = KERBIN_R + 100_000;
+    const r2 = KERBIN_200KM;
+    const at = (r1 + r2) / 2;
+    const vCircR1 = Math.sqrt(KERBIN_MU / r1);
+    const vCircR2 = Math.sqrt(KERBIN_MU / r2);
+    const vTransR1 = Math.sqrt(KERBIN_MU * (2 / r1 - 1 / at));
+    const vTransR2 = Math.sqrt(KERBIN_MU * (2 / r2 - 1 / at));
+    const expectedDv1 = vTransR1 - vCircR1;
+    const expectedDv2 = vCircR2 - vTransR2;
+
+    expect(seq.burns[0].prograde).toBeCloseTo(expectedDv1, 3);
+    expect(seq.burns[1].prograde).toBeCloseTo(expectedDv2, 3);
+    expect(seq.totalDeltaV).toBeCloseTo(
+      Math.abs(expectedDv1) + Math.abs(expectedDv2),
+      3,
+    );
+  });
+
+  it("burns are pure prograde — no normal or radial components", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_200KM,
+    );
+    if (!seq) throw new Error("expected sequence");
+    for (const b of seq.burns) {
+      expect(b.normal).toBe(0);
+      expect(b.radial).toBe(0);
+    }
+  });
+
+  it("schedules burn 2 half a transfer period after burn 1", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_200KM,
+    );
+    if (!seq) throw new Error("expected sequence");
+    const at = (KERBIN_R + 100_000 + KERBIN_200KM) / 2;
+    const halfPeriod = Math.PI * Math.sqrt((at * at * at) / KERBIN_MU);
+    expect(seq.burns[1].ut - seq.burns[0].ut).toBeCloseTo(halfPeriod, 3);
+  });
+
+  it("final orbit is circular at targetR", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_200KM,
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.finalProjected).not.toBeNull();
+    expect(seq.finalProjected?.eccentricity).toBe(0);
+    expect(seq.finalProjected?.ApR).toBe(KERBIN_200KM);
+    expect(seq.finalProjected?.PeR).toBe(KERBIN_200KM);
+  });
+
+  it("transfer ellipse spans r1 and targetR", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_200KM,
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.transferEllipse).not.toBeNull();
+    expect(seq.transferEllipse?.PeR).toBe(KERBIN_R + 100_000);
+    expect(seq.transferEllipse?.ApR).toBe(KERBIN_200KM);
+  });
+
+  it("both burns are negative when lowering to a smaller radius", () => {
+    // 200 km → 100 km circular: brake at apo to lower opposite peri,
+    // then brake at peri to circularise.
+    const start: CurrentOrbit = {
+      sma: KERBIN_200KM,
+      eccentricity: 0,
+      ApR: KERBIN_200KM,
+      PeR: KERBIN_200KM,
+      timeToAp: 0,
+      timeToPe: 0,
+    };
+    const seq = hohmannToRadius(start, KERBIN_MU, 0, KERBIN_R + 100_000);
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.burns[0].prograde).toBeLessThan(0);
+    expect(seq.burns[1].prograde).toBeLessThan(0);
+  });
+
+  it("default heuristic picks peri when raising, apo when lowering", () => {
+    // Raise from elliptic. Heuristic should burn at peri (timeToPe = 1000).
+    const raise = hohmannToRadius(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      0,
+      KERBIN_R + 300_000,
+    );
+    if (!raise) throw new Error("expected raise sequence");
+    expect(raise.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToPe);
+
+    // Lower from elliptic. Heuristic should burn at apo (timeToAp = 600).
+    const lower = hohmannToRadius(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      0,
+      KERBIN_R + 50_000,
+    );
+    if (!lower) throw new Error("expected lower sequence");
+    expect(lower.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToAp);
+  });
+
+  it("respects explicit fromApsis override", () => {
+    // Force apo-first even though we're raising — the burn UT should
+    // match timeToAp, not timeToPe.
+    const seq = hohmannToRadius(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      0,
+      KERBIN_R + 300_000,
+      "apo",
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToAp);
+  });
+
+  it("zero ΔV when target equals current circular radius", () => {
+    const seq = hohmannToRadius(
+      KERBIN_100KM_CIRCULAR,
+      KERBIN_MU,
+      0,
+      KERBIN_R + 100_000,
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.totalDeltaV).toBeCloseTo(0, 6);
+  });
+});
+
+describe("hohmannRendezvous", () => {
+  // Coplanar circular vessel @100km, target circular @200km — clean Hohmann.
+  const VESSEL_100KM_CIRCULAR_RICH = {
+    ...KERBIN_100KM_CIRCULAR,
+    trueAnomaly: 0,
+    argPe: 0,
+    inc: 0,
+    lan: 0,
+  };
+  const TARGET_200KM_CIRCULAR = {
+    sma: KERBIN_R + 200_000,
+    PeR: KERBIN_R + 200_000,
+    inclinationDeg: 0,
+    lanDeg: 0,
+    argPeDeg: 0,
+    trueAnomalyDeg: 90, // 90° ahead of vessel
+    period: 2 * Math.PI * Math.sqrt((KERBIN_R + 200_000) ** 3 / KERBIN_MU),
+  };
+
+  it("returns null on degenerate inputs", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    expect(
+      hohmannRendezvous(v, 0, 0, 0, 0, 0, 0, TARGET_200KM_CIRCULAR, 0),
+    ).toBeNull();
+    expect(
+      hohmannRendezvous(
+        v,
+        0,
+        0,
+        0,
+        0,
+        KERBIN_MU,
+        0,
+        {
+          ...TARGET_200KM_CIRCULAR,
+          PeR: 0,
+        },
+        0,
+      ),
+    ).toBeNull();
+  });
+
+  it("coplanar case produces 2 burns (no plane match)", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seq = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      TARGET_200KM_CIRCULAR,
+      0,
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.burns).toHaveLength(2);
+    // Both prograde burns positive (raising)
+    expect(seq.burns[0].prograde).toBeGreaterThan(0);
+    expect(seq.burns[1].prograde).toBeGreaterThan(0);
+    expect(seq.burns[0].normal).toBe(0);
+    expect(seq.burns[1].normal).toBe(0);
+  });
+
+  it("inclined target prepends a plane-match burn", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seq = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      { ...TARGET_200KM_CIRCULAR, inclinationDeg: 5 },
+      0,
+    );
+    if (!seq) throw new Error("expected sequence");
+    expect(seq.burns).toHaveLength(3);
+    // First burn is the plane match — normal-only
+    expect(seq.burns[0].prograde).toBe(0);
+    expect(Math.abs(seq.burns[0].normal)).toBeGreaterThan(0);
+    expect(seq.burns[0].radial).toBe(0);
+    // Subsequent burns are the Hohmann, prograde-only
+    expect(seq.burns[1].normal).toBe(0);
+    expect(seq.burns[2].normal).toBe(0);
+  });
+
+  it("plane-match threshold is 0.5° — below that, no plane match", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seqLow = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      { ...TARGET_200KM_CIRCULAR, inclinationDeg: 0.3 },
+      0,
+    );
+    if (!seqLow) throw new Error("expected sequence");
+    expect(seqLow.burns).toHaveLength(2);
+  });
+
+  it("burn 2 is half a transfer period after burn 1", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seq = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      TARGET_200KM_CIRCULAR,
+      0,
+    );
+    if (!seq) throw new Error("expected sequence");
+    const transferSma = (KERBIN_R + 100_000 + (KERBIN_R + 200_000)) / 2;
+    const halfPeriod = Math.PI * Math.sqrt(transferSma ** 3 / KERBIN_MU);
+    const [b1, b2] = seq.burns;
+    expect(b2.ut - b1.ut).toBeCloseTo(halfPeriod, 3);
+  });
+
+  it("standoff > 0 increases the wait (arrives behind target)", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const noStandoff = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      TARGET_200KM_CIRCULAR,
+      0,
+    );
+    const withStandoff = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      TARGET_200KM_CIRCULAR,
+      500,
+    );
+    if (!noStandoff || !withStandoff) throw new Error("expected sequences");
+    // Same Hohmann ΔV (standoff doesn't change radii, just timing)
+    expect(withStandoff.burns[0].prograde).toBeCloseTo(
+      noStandoff.burns[0].prograde,
+      3,
+    );
+    // But burn 1 happens later (or at most a synodic period earlier — not equal)
+    expect(withStandoff.burns[0].ut).not.toBe(noStandoff.burns[0].ut);
+  });
+
+  it("eccentric target rendezvous radius is target.PeR, not target.sma", () => {
+    // Target with PeR = 150 km, ApR = 250 km (ecc = ~0.077).
+    const peR = KERBIN_R + 150_000;
+    const apR = KERBIN_R + 250_000;
+    const eccTargetSma = (peR + apR) / 2;
+    const eccTarget: typeof TARGET_200KM_CIRCULAR = {
+      sma: eccTargetSma,
+      PeR: peR,
+      inclinationDeg: 0,
+      lanDeg: 0,
+      argPeDeg: 0,
+      trueAnomalyDeg: 0,
+      period: 2 * Math.PI * Math.sqrt(eccTargetSma ** 3 / KERBIN_MU),
+    };
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seq = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      eccTarget,
+      0,
+    );
+    if (!seq) throw new Error("expected sequence");
+    // Final orbit should be circular at PeR, not at SMA.
+    expect(seq.finalProjected?.ApR).toBe(peR);
+    expect(seq.finalProjected?.PeR).toBe(peR);
+  });
+
+  it("totalDeltaV sums all burns' magnitudes", () => {
+    const v = VESSEL_100KM_CIRCULAR_RICH;
+    const seq = hohmannRendezvous(
+      v,
+      v.trueAnomaly,
+      v.argPe,
+      v.inc,
+      v.lan,
+      KERBIN_MU,
+      0,
+      { ...TARGET_200KM_CIRCULAR, inclinationDeg: 5 },
+      0,
+    );
+    if (!seq) throw new Error("expected sequence");
+    const summed = seq.burns.reduce((s, b) => s + b.requiredDeltaV, 0);
+    expect(seq.totalDeltaV).toBeCloseTo(summed, 6);
   });
 });

@@ -5,7 +5,13 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -176,5 +182,50 @@ describe("ManeuverPlannerComponent", () => {
 
     const addBtn = screen.getByRole("button", { name: /add node/i });
     expect(addBtn).toBeDisabled();
+  });
+
+  it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
+    // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde) —
+    // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
+    // straight to OnGizmoUpdated(Vector3d(x,y,z), ut), so the on-wire
+    // order is [ut, radial, normal, prograde]. Mixing this up turns a
+    // pure-prograde Hohmann burn into a pure-radial one — vessel ends
+    // up pointing straight up instead of along velocity.
+    buffered.disconnect();
+    clearRegistry();
+    const calls: string[] = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+      onExecute: (action) => {
+        calls.push(action);
+      },
+    });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+
+    const addBtn = await screen.findByRole("button", { name: /add node/i });
+    await act(async () => {
+      fireEvent.click(addBtn);
+    });
+
+    // Default preset is circularize-apo: a positive prograde burn,
+    // normal=0, radial=0. So the action string should have the
+    // prograde value in the LAST slot, not the first.
+    expect(calls).toHaveLength(1);
+    const match =
+      /^o\.addManeuverNode\[([^,]+),([^,]+),([^,]+),([^\]]+)\]$/.exec(calls[0]);
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, , radial, normal, prograde] = match;
+    expect(Number(radial)).toBe(0);
+    expect(Number(normal)).toBe(0);
+    expect(Number(prograde)).toBeGreaterThan(0);
   });
 });

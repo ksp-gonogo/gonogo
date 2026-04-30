@@ -77,6 +77,12 @@ export interface OrbitDiagramProps {
    * the two apoapses so the overlay never clips.
    */
   projected?: ProjectedOrbit | null;
+  /**
+   * Optional second projected orbit drawn solid in the projected colour.
+   * Used by the Hohmann preset to render the final circular orbit on top
+   * of the (dashed) transfer ellipse. Same bbox treatment as `projected`.
+   */
+  secondaryProjected?: ProjectedOrbit | null;
   /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
 }
@@ -119,6 +125,7 @@ export function OrbitDiagram({
   variant = "full",
   showMarkers = true,
   projected = null,
+  secondaryProjected = null,
   maneuverHandles = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
@@ -134,8 +141,24 @@ export function OrbitDiagram({
   const projC = projected ? projected.sma * projected.ecc : 0;
   const projArgPe = projected?.argPe ?? argPe;
 
+  // Secondary projected geometry — same derivation as `projected`.
+  const sec2B = secondaryProjected
+    ? secondaryProjected.sma *
+      Math.sqrt(
+        Math.max(0, 1 - secondaryProjected.ecc * secondaryProjected.ecc),
+      )
+    : 0;
+  const sec2C = secondaryProjected
+    ? secondaryProjected.sma * secondaryProjected.ecc
+    : 0;
+  const sec2ArgPe = secondaryProjected?.argPe ?? argPe;
+
   // Scale reference: expand to contain whichever orbit reaches furthest.
-  const scaleRef = Math.max(apoapsis, projected?.apoapsis ?? 0);
+  const scaleRef = Math.max(
+    apoapsis,
+    projected?.apoapsis ?? 0,
+    secondaryProjected?.apoapsis ?? 0,
+  );
   const padding = scaleRef * cfg.padding;
   const strokeW = scaleRef * cfg.strokeW;
   const dotR = scaleRef * cfg.dotR;
@@ -190,13 +213,18 @@ export function OrbitDiagram({
   const projBox = projected
     ? orbitBoundingBox(projected.sma, projB, projC, projArgPe)
     : null;
+  const sec2Box = secondaryProjected
+    ? orbitBoundingBox(secondaryProjected.sma, sec2B, sec2C, sec2ArgPe)
+    : null;
   const bodyBox = {
     xMin: -bodyDisc,
     xMax: bodyDisc,
     yMin: -bodyDisc,
     yMax: bodyDisc,
   };
-  const orbitBox = projBox ? unionBox(mainBox, projBox) : mainBox;
+  let orbitBox = mainBox;
+  if (projBox) orbitBox = unionBox(orbitBox, projBox);
+  if (sec2Box) orbitBox = unionBox(orbitBox, sec2Box);
   const orbitOrBodyBox = unionBox(orbitBox, bodyBox);
   const paddedBox = padBox(orbitOrBodyBox, padding);
 
@@ -284,6 +312,23 @@ export function OrbitDiagram({
               stroke="rgba(255,180,40,0.75)"
               strokeWidth={strokeW}
               strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+            />
+          </g>
+        )}
+
+        {/* Secondary projection — solid amber. Used for the "final"
+          orbit on a Hohmann transfer; the (dashed) `projected` carries
+          the intermediate transfer ellipse. */}
+        {secondaryProjected && (
+          <g transform={`rotate(${-sec2ArgPe})`}>
+            <ellipse
+              cx={-sec2C}
+              cy={0}
+              rx={secondaryProjected.sma}
+              ry={sec2B}
+              fill="none"
+              stroke="rgba(255,180,40,0.95)"
+              strokeWidth={strokeW}
             />
           </g>
         )}

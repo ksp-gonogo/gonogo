@@ -4,12 +4,16 @@ export type PresetId =
   | "custom-apo"
   | "custom-peri"
   | "custom-ut"
+  | "hohmann-to-altitude"
+  | "hohmann-rendezvous-target"
   | "match-inclination"
   | "match-target-inclination"
   | "match-target-plane";
 
 export interface ManeuverPlannerConfig {
   defaultPreset?: PresetId;
+  /** Default standoff distance (m) for hohmann-rendezvous-target. */
+  defaultStandoffMeters?: number;
 }
 
 // Telemachus occasionally sends null / NaN for an orbit value that KSP
@@ -54,6 +58,20 @@ export const PRESETS: Array<{
     label: "Custom burn at UT",
     description:
       "Schedule a ΔV at an arbitrary time from now. Projection reflects real flight-path angle at the burn point.",
+    needsCustomInput: true,
+  },
+  {
+    id: "hohmann-to-altitude",
+    label: "Hohmann to altitude",
+    description:
+      "Two-burn transfer to a circular orbit at the given altitude. Burn 1 at the closer apsis, burn 2 half a transfer period later.",
+    needsCustomInput: true,
+  },
+  {
+    id: "hohmann-rendezvous-target",
+    label: "Hohmann rendezvous (target)",
+    description:
+      "Two- or three-burn rendezvous with the selected target. Auto-prepends a plane match if mismatch > 0.5°. Rendezvous radius = target periapsis. Standoff offsets the meeting point along-track on the target's orbit.",
     needsCustomInput: true,
   },
   {
