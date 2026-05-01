@@ -65,6 +65,35 @@ export const GhostButton = styled(Button)`
   }
 `;
 
+/** Inline subtle link-style button — tertiary actions placed inline with
+ *  surrounding copy (e.g. "Clear all", "Cancel" inside a list row). For a
+ *  paired Cancel / Confirm action row, prefer GhostButton + PrimaryButton. */
+export const TextButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.1s;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-text-primary);
+    }
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
 /** Icon-only button — no chrome, just text/icon */
 export const IconButton = styled.button`
   background: none;

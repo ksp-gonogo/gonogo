@@ -91,6 +91,9 @@ export class PeerClientService {
   private alarmFiredListeners = new Set<
     (fire: { id: string; name: string; ut: number }) => void
   >();
+  private triggerSnapshotListeners = new Set<
+    (snap: import("@gonogo/components").TriggerSnapshot) => void
+  >();
   private gonogoAbortNotifyListeners = new Set<
     (stationName: string, t: number) => void
   >();
@@ -415,6 +418,19 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
+  sendTriggerArm(input: {
+    dataKey: string;
+    op: import("@gonogo/components").ThresholdOp;
+    value: number;
+    inputs: import("@gonogo/components").FrozenPlanInputs;
+  }) {
+    this.conn?.send({ type: "trigger-arm", ...input } satisfies PeerMessage);
+  }
+
+  sendTriggerCancel(id: string) {
+    this.conn?.send({ type: "trigger-cancel", id } satisfies PeerMessage);
+  }
+
   /**
    * Query a range of historical samples from the host's buffered store.
    * Resolves with columnar `{ t, v }` arrays; rejects with a short error
@@ -564,6 +580,13 @@ export class PeerClientService {
     return () => this.alarmFiredListeners.delete(cb);
   }
 
+  onTriggerSnapshot(
+    cb: (snap: import("@gonogo/components").TriggerSnapshot) => void,
+  ) {
+    this.triggerSnapshotListeners.add(cb);
+    return () => this.triggerSnapshotListeners.delete(cb);
+  }
+
   /** For tests + DEBUG_PEER diagnostics — exposes listener Set sizes. */
   _listenerCounts() {
     return {
@@ -663,6 +686,8 @@ export class PeerClientService {
     } else if (msg.type === "alarm-fired") {
       for (const cb of this.alarmFiredListeners)
         cb({ id: msg.id, name: msg.name, ut: msg.ut });
+    } else if (msg.type === "trigger-snapshot") {
+      for (const cb of this.triggerSnapshotListeners) cb(msg.snapshot);
     }
   }
 

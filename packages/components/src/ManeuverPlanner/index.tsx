@@ -2,20 +2,11 @@ import {
   type ActionDefinition,
   type ComponentProps,
   type CurrentOrbit,
-  circularizeAtApo,
-  circularizeAtPeri,
-  customAtApsis,
-  customAtUT,
   formatDistance,
   formatDuration,
   getBody,
-  gravParameterFromState,
-  hohmannRendezvous,
-  hohmannToRadius,
   type ManeuverPlan,
   type ManeuverSequence,
-  matchInclination,
-  matchTargetPlane,
   registerComponent,
   stateAtUT,
   useDataValue,
@@ -30,16 +21,28 @@ import {
 import {
   Button,
   DataKeyPicker,
+  GhostButton,
   Panel,
   PanelSubtitle,
   PanelTitle,
+  PrimaryButton,
+  ScrollArea,
+  TextButton,
 } from "@gonogo/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { LabeledInput } from "./LabeledInput";
+import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { NodeRow } from "./NodeRow";
 import { PresetPicker } from "./PresetPicker";
+import {
+  buildCurrentOrbit,
+  computeMu,
+  computePlan,
+  isSequence,
+  type PlanResult,
+} from "./planning";
 import {
   isFiniteNumber,
   type ManeuverPlannerConfig,
@@ -52,6 +55,16 @@ import {
   FeasibilityBannerTitle,
   FeasibilityChip,
 } from "./styles";
+import {
+  type ManeuverTriggerService,
+  useManeuverTriggerService,
+  useTriggerSnapshot,
+} from "./triggerService";
+import {
+  type FrozenPlanInputs,
+  THRESHOLD_OPS,
+  type ThresholdOp,
+} from "./triggerTypes";
 
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
@@ -70,318 +83,11 @@ interface CompletedEntry {
   completedAt: number;
 }
 
-// Operator set mirrors `ThresholdOp` in the alarms module — kept local so
-// the components package doesn't depend on app-only types.
-type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
-const THRESHOLD_OPS: ThresholdOp[] = [">", ">=", "<", "<=", "==", "!="];
-
-function compareThreshold(
-  value: number,
-  op: ThresholdOp,
-  threshold: number,
-): boolean {
-  switch (op) {
-    case ">":
-      return value > threshold;
-    case ">=":
-      return value >= threshold;
-    case "<":
-      return value < threshold;
-    case "<=":
-      return value <= threshold;
-    case "==":
-      return value === threshold;
-    case "!=":
-      return value !== threshold;
-  }
-}
-
-// User-input fields captured at arm time. Live orbit data is *not* frozen —
-// the trigger is meant to fire "compute the burn against current orbit when
-// the condition holds", which requires fresh `currentOrbit` / `mu` / etc.
-interface FrozenPlanInputs {
-  preset: PresetId;
-  prograde: number;
-  normal: number;
-  radial: number;
-  burnInSeconds: number;
-  utMode: "relative" | "absolute";
-  burnAtUT: number;
-  targetInclination: number;
-  targetAltitudeKm: number;
-  standoffMeters: number;
-}
-
-interface ArmedTrigger {
-  id: string;
-  dataKey: string;
-  op: ThresholdOp;
-  value: number;
-  inputs: FrozenPlanInputs;
-}
-
-/** Subscribes to one armed trigger's data key and fires once when the
- *  comparison first holds. Rendered as a sibling per active trigger so
- *  hooks aren't called in a loop, and unmounts when the trigger disarms. */
-function ArmedTriggerWatcher({
-  trigger,
-  onFire,
-}: {
-  trigger: ArmedTrigger;
-  onFire: (trigger: ArmedTrigger) => void;
-}) {
-  const value = useDataValue("data", trigger.dataKey);
-  const fired = useRef(false);
-  useEffect(() => {
-    if (fired.current) return;
-    if (typeof value !== "number" || !Number.isFinite(value)) return;
-    if (compareThreshold(value, trigger.op, trigger.value)) {
-      fired.current = true;
-      onFire(trigger);
-    }
-  }, [value, trigger, onFire]);
-  return null;
-}
-
 // ---------------------------------------------------------------------------
 // Plan dispatch — lives outside the component so each preset branch can be
 // read in isolation and so the component's cognitive complexity stays low
 // (Sonar S3776). Pure function: same inputs → same ManeuverPlan | null.
 // ---------------------------------------------------------------------------
-
-interface PlanInputs {
-  preset: PresetId;
-  currentOrbit: CurrentOrbit | null;
-  currentUT: number | undefined;
-  mu: number;
-  prograde: number;
-  normal: number;
-  radial: number;
-  burnInSeconds: number;
-  utMode: "relative" | "absolute";
-  burnAtUT: number;
-  trueAnomaly: number | undefined;
-  argPe: number | undefined;
-  inclination: number | undefined;
-  targetInclination: number;
-  targetInclinationLive: number | undefined;
-  targetLanLive: number | undefined;
-  lan: number | undefined;
-  /** Body radius — converts the Hohmann altitude input into a radius. */
-  bodyRadius: number | undefined;
-  /** Hohmann target altitude (km above the reference body). */
-  targetAltitudeKm: number;
-  /** Live target orbit fields for hohmann-rendezvous-target. */
-  targetSma: number | undefined;
-  targetPeA: number | undefined;
-  targetArgPe: number | undefined;
-  targetTrueAnomaly: number | undefined;
-  targetPeriod: number | undefined;
-  /** Rendezvous standoff offset along-track on target orbit (m). */
-  standoffMeters: number;
-}
-
-/** Either a single-burn plan (existing presets) or a multi-burn sequence
- *  (Hohmann). Render code branches on `"burns" in result`. */
-type PlanResult = ManeuverPlan | ManeuverSequence;
-
-function isSequence(result: PlanResult): result is ManeuverSequence {
-  return "burns" in result;
-}
-
-function computePlan(i: PlanInputs): PlanResult | null {
-  if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
-  switch (i.preset) {
-    case "circularize-apo":
-      return circularizeAtApo(i.currentOrbit, i.mu, i.currentUT);
-    case "circularize-peri":
-      return circularizeAtPeri(i.currentOrbit, i.mu, i.currentUT);
-    case "custom-apo":
-    case "custom-peri":
-      return customAtApsis(
-        i.currentOrbit,
-        i.mu,
-        i.currentUT,
-        i.preset === "custom-apo" ? "apo" : "peri",
-        i.prograde,
-        i.normal,
-        i.radial,
-      );
-    case "custom-ut":
-      return planCustomUT(i);
-    case "hohmann-to-altitude":
-      return planHohmann(i);
-    case "hohmann-rendezvous-target":
-      return planHohmannRendezvous(i);
-    case "match-inclination":
-      return planMatchInclination(i, i.targetInclination);
-    case "match-target-inclination":
-      if (i.targetInclinationLive === undefined) return null;
-      return planMatchInclination(i, i.targetInclinationLive);
-    case "match-target-plane":
-      return planMatchTargetPlane(i);
-  }
-}
-
-function planHohmann(i: PlanInputs): ManeuverSequence | null {
-  if (
-    !i.currentOrbit ||
-    i.currentUT === undefined ||
-    i.bodyRadius === undefined ||
-    !(i.bodyRadius > 0)
-  ) {
-    return null;
-  }
-  const targetR = i.bodyRadius + i.targetAltitudeKm * 1000;
-  if (!(targetR > 0)) return null;
-  return hohmannToRadius(i.currentOrbit, i.mu, i.currentUT, targetR);
-}
-
-function planHohmannRendezvous(i: PlanInputs): ManeuverSequence | null {
-  if (
-    !i.currentOrbit ||
-    i.currentUT === undefined ||
-    i.trueAnomaly === undefined ||
-    i.argPe === undefined ||
-    i.inclination === undefined ||
-    i.lan === undefined ||
-    i.targetSma === undefined ||
-    i.targetPeA === undefined ||
-    i.targetInclinationLive === undefined ||
-    i.targetLanLive === undefined ||
-    i.targetArgPe === undefined ||
-    i.targetTrueAnomaly === undefined ||
-    i.targetPeriod === undefined ||
-    i.bodyRadius === undefined ||
-    !(i.bodyRadius > 0)
-  ) {
-    return null;
-  }
-  return hohmannRendezvous(
-    i.currentOrbit,
-    i.trueAnomaly,
-    i.argPe,
-    i.inclination,
-    i.lan,
-    i.mu,
-    i.currentUT,
-    {
-      sma: i.targetSma,
-      // Telemachus reports PeA (altitude); convert to PeR (from body centre).
-      PeR: i.bodyRadius + i.targetPeA,
-      inclinationDeg: i.targetInclinationLive,
-      lanDeg: i.targetLanLive,
-      argPeDeg: i.targetArgPe,
-      trueAnomalyDeg: i.targetTrueAnomaly,
-      period: i.targetPeriod,
-    },
-    i.standoffMeters,
-  );
-}
-
-function planCustomUT(i: PlanInputs): ManeuverPlan | null {
-  if (
-    i.trueAnomaly === undefined ||
-    !i.currentOrbit ||
-    i.currentUT === undefined
-  ) {
-    return null;
-  }
-  const burnUT =
-    i.utMode === "absolute"
-      ? i.burnAtUT
-      : i.currentUT + Math.max(0, i.burnInSeconds);
-  return customAtUT(
-    i.currentOrbit,
-    i.trueAnomaly,
-    i.mu,
-    i.currentUT,
-    burnUT,
-    i.prograde,
-    i.normal,
-    i.radial,
-  );
-}
-
-function planMatchInclination(
-  i: PlanInputs,
-  targetInc: number,
-): ManeuverPlan | null {
-  if (
-    !i.currentOrbit ||
-    i.currentUT === undefined ||
-    i.trueAnomaly === undefined ||
-    i.argPe === undefined ||
-    i.inclination === undefined
-  ) {
-    return null;
-  }
-  return matchInclination(
-    i.currentOrbit,
-    i.trueAnomaly,
-    i.argPe,
-    i.inclination,
-    i.mu,
-    i.currentUT,
-    targetInc,
-  );
-}
-
-/**
- * All orbital scalars must be finite before we can construct a
- * CurrentOrbit — otherwise the propagator hits NaNs and downstream
- * widgets render garbage. Split out so the component body doesn't pay
- * the complexity cost of a six-term && chain.
- */
-function buildCurrentOrbit(vals: {
-  sma: number | undefined;
-  ecc: number | undefined;
-  ApR: number | undefined;
-  PeR: number | undefined;
-  timeToAp: number | undefined;
-  timeToPe: number | undefined;
-}): CurrentOrbit | null {
-  const { sma, ecc, ApR, PeR, timeToAp, timeToPe } = vals;
-  if (
-    !isFiniteNumber(sma) ||
-    !isFiniteNumber(ecc) ||
-    !isFiniteNumber(ApR) ||
-    !isFiniteNumber(PeR) ||
-    !isFiniteNumber(timeToAp) ||
-    !isFiniteNumber(timeToPe)
-  ) {
-    return null;
-  }
-  return { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe };
-}
-
-/**
- * μ from live telemetry only — never the body-registry value. vis-viva
- * (v²·a·r/(2a−r)) is preferred; Kepler's 3rd (4π²a³/T²) is the fallback
- * for the brief window at scene load when orbitalSpeed/radius haven't
- * streamed yet. Returns 0 when neither formula has usable inputs.
- */
-function computeMu(
-  orbitalSpeed: number | undefined,
-  radius: number | undefined,
-  sma: number | undefined,
-  period: number | undefined,
-): number {
-  if (
-    isFiniteNumber(orbitalSpeed) &&
-    isFiniteNumber(radius) &&
-    isFiniteNumber(sma) &&
-    orbitalSpeed > 0 &&
-    sma > 0
-  ) {
-    const viaVisViva = gravParameterFromState(orbitalSpeed, radius, sma);
-    if (viaVisViva > 0) return viaVisViva;
-  }
-  if (isFiniteNumber(period) && isFiniteNumber(sma) && period > 0) {
-    return (4 * Math.PI * Math.PI * sma ** 3) / (period * period);
-  }
-  return 0;
-}
 
 /** Relative inclination (°) between two orbits given each one's
  *  inclination + LAN. Returns null if any input is missing. Used in the
@@ -410,9 +116,20 @@ function computeRelInc(
   return (Math.acos(Math.max(-1, Math.min(1, cosRel))) * 180) / Math.PI;
 }
 
+interface BurnTrueAnomalyInputs {
+  preset: PresetId;
+  currentOrbit: CurrentOrbit | null;
+  currentUT: number | undefined;
+  mu: number;
+  trueAnomaly: number | undefined;
+  utMode: "relative" | "absolute";
+  burnAtUT: number;
+  burnInSeconds: number;
+}
+
 /** True anomaly at the burn for drag-handle placement. Null outside the
  *  custom-* presets or when inputs aren't ready. */
-function computeBurnTrueAnomaly(i: PlanInputs): number | null {
+function computeBurnTrueAnomaly(i: BurnTrueAnomalyInputs): number | null {
   if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
   if (i.preset === "custom-apo") return 180;
   if (i.preset === "custom-peri") return 0;
@@ -425,32 +142,6 @@ function computeBurnTrueAnomaly(i: PlanInputs): number | null {
   if (burnUT <= i.currentUT) return null;
   return stateAtUT(i.currentOrbit, i.trueAnomaly, i.mu, i.currentUT, burnUT)
     .trueAnomalyDeg;
-}
-
-function planMatchTargetPlane(i: PlanInputs): ManeuverPlan | null {
-  if (
-    !i.currentOrbit ||
-    i.currentUT === undefined ||
-    i.trueAnomaly === undefined ||
-    i.argPe === undefined ||
-    i.inclination === undefined ||
-    i.lan === undefined ||
-    i.targetInclinationLive === undefined ||
-    i.targetLanLive === undefined
-  ) {
-    return null;
-  }
-  return matchTargetPlane(
-    i.currentOrbit,
-    i.trueAnomaly,
-    i.argPe,
-    i.inclination,
-    i.lan,
-    i.targetInclinationLive,
-    i.targetLanLive,
-    i.mu,
-    i.currentUT,
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -585,10 +276,28 @@ function ManeuverPlannerComponent({
     };
   }, [completedNodes, execute]);
 
-  // Armed conditional triggers. State lives here but the live-data ref + fire
-  // callback are wired further down, after `currentOrbit` / `mu` / `body` are
-  // derived. The state itself has no orbit-data dependency so it lives above.
-  const [armedTriggers, setArmedTriggers] = useState<ArmedTrigger[]>([]);
+  // Armed conditional triggers come from a service — host service on the
+  // main screen (see @gonogo/app/src/maneuverTriggers), client service on
+  // station screens. When the widget is rendered without a provider (legacy
+  // tests, standalone embeds) we fall back to an in-process LocalService so
+  // the feature still works for the local user.
+  const providedTriggerService = useManeuverTriggerService();
+  const [fallbackTriggerService] = useState<ManeuverTriggerService | null>(
+    () => (providedTriggerService ? null : new LocalManeuverTriggerService()),
+  );
+  useEffect(() => {
+    return () => {
+      if (fallbackTriggerService instanceof LocalManeuverTriggerService) {
+        fallbackTriggerService.dispose();
+      }
+    };
+  }, [fallbackTriggerService]);
+  const triggerService =
+    providedTriggerService ??
+    (fallbackTriggerService as ManeuverTriggerService);
+  const triggerSnapshot = useTriggerSnapshot(triggerService);
+  const armedTriggers = triggerSnapshot.triggers;
+
   // Editor visibility + draft fields for the inline trigger picker.
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
   const [triggerKey, setTriggerKey] = useState<string | null>(null);
@@ -729,27 +438,10 @@ function ManeuverPlannerComponent({
         currentOrbit,
         currentUT,
         mu,
-        prograde,
-        normal,
-        radial,
-        burnInSeconds,
+        trueAnomaly,
         utMode,
         burnAtUT,
-        trueAnomaly,
-        argPe,
-        inclination,
-        targetInclination,
-        targetInclinationLive,
-        targetLanLive,
-        lan,
-        bodyRadius: body?.radius,
-        targetAltitudeKm,
-        targetSma,
-        targetPeA,
-        targetArgPe,
-        targetTrueAnomaly,
-        targetPeriod,
-        standoffMeters,
+        burnInSeconds,
       }),
     [
       preset,
@@ -760,95 +452,16 @@ function ManeuverPlannerComponent({
       utMode,
       burnAtUT,
       burnInSeconds,
-      prograde,
-      normal,
-      radial,
-      argPe,
-      inclination,
-      targetInclination,
-      targetInclinationLive,
-      targetLanLive,
-      lan,
-      body?.radius,
-      targetAltitudeKm,
-      targetSma,
-      targetPeA,
-      targetArgPe,
-      targetTrueAnomaly,
-      targetPeriod,
-      standoffMeters,
     ],
   );
 
-  // Fire-time live snapshot. The watcher's effect closes over an older
-  // `handleFire`, so we read the freshest live values via a ref instead of
-  // the closure to avoid firing against stale orbit data.
-  const liveRef = useRef({
-    currentOrbit,
-    currentUT,
-    mu,
-    trueAnomaly,
-    argPe,
-    inclination,
-    lan,
-    targetInclinationLive,
-    targetLanLive,
-    targetSma,
-    targetPeA,
-    targetArgPe,
-    targetTrueAnomaly,
-    targetPeriod,
-    bodyRadius: body?.radius,
-  });
-  useEffect(() => {
-    liveRef.current = {
-      currentOrbit,
-      currentUT,
-      mu,
-      trueAnomaly,
-      argPe,
-      inclination,
-      lan,
-      targetInclinationLive,
-      targetLanLive,
-      targetSma,
-      targetPeA,
-      targetArgPe,
-      targetTrueAnomaly,
-      targetPeriod,
-      bodyRadius: body?.radius,
-    };
-  });
-
-  const dispatchPlanBurns = useCallback(
-    async (toDispatch: PlanResult): Promise<void> => {
-      const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
-      for (const b of burns) {
-        const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
-        await execute(action);
-      }
-    },
-    [execute],
-  );
-
-  const handleFireTrigger = useCallback(
-    (trigger: ArmedTrigger) => {
-      const live = liveRef.current;
-      const planInputs: PlanInputs = { ...trigger.inputs, ...live };
-      const firedPlan = computePlan(planInputs);
-      setArmedTriggers((prev) => prev.filter((t) => t.id !== trigger.id));
-      if (!firedPlan) {
-        setError(
-          "Trigger fired but plan could not be computed — telemetry incomplete. Re-arm with current orbit.",
-        );
-        return;
-      }
-      dispatchPlanBurns(firedPlan).catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
-      });
-    },
-    [dispatchPlanBurns],
-  );
+  async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
+    const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
+    for (const b of burns) {
+      const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
+      await execute(action);
+    }
+  }
 
   async function handleCommit() {
     if (!plan) return;
@@ -888,20 +501,18 @@ function ManeuverPlannerComponent({
       targetAltitudeKm,
       standoffMeters,
     };
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `arm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setArmedTriggers((prev) => [
-      ...prev,
-      { id, dataKey: triggerKey, op: triggerOp, value: valueN, inputs },
-    ]);
+    triggerService.arm({
+      dataKey: triggerKey,
+      op: triggerOp,
+      value: valueN,
+      inputs,
+    });
     setTriggerEditorOpen(false);
     setError(null);
   }
 
   function handleCancelTrigger(id: string) {
-    setArmedTriggers((prev) => prev.filter((t) => t.id !== id));
+    triggerService.cancel(id);
   }
 
   async function handleDelete(id: number) {
@@ -967,9 +578,9 @@ function ManeuverPlannerComponent({
         )}
         {nodes.length > 1 && (
           <ClearAllRow>
-            <GhostLink type="button" onClick={() => void handleClearAll()}>
+            <TextButton type="button" onClick={() => void handleClearAll()}>
               Clear all
-            </GhostLink>
+            </TextButton>
           </ClearAllRow>
         )}
       </Section>
@@ -1394,12 +1005,15 @@ function ManeuverPlannerComponent({
           </TriggerField>
         </TriggerOpRow>
         <TriggerActions>
-          <GhostLink type="button" onClick={() => setTriggerEditorOpen(false)}>
+          <GhostButton
+            type="button"
+            onClick={() => setTriggerEditorOpen(false)}
+          >
             Cancel
-          </GhostLink>
-          <Button onClick={handleArmTrigger} disabled={armDisabled}>
+          </GhostButton>
+          <PrimaryButton onClick={handleArmTrigger} disabled={armDisabled}>
             Arm
-          </Button>
+          </PrimaryButton>
         </TriggerActions>
       </TriggerEditor>
     );
@@ -1453,14 +1067,16 @@ function ManeuverPlannerComponent({
         )}
         {renderShortfallBanner()}
         {error && <ErrorLine>{error}</ErrorLine>}
+        {renderTriggerEditor()}
         <CommitRow>
-          <GhostLink
+          <GhostButton
             type="button"
             onClick={() => setTriggerEditorOpen((o) => !o)}
             disabled={committing || principia || !plan}
+            aria-expanded={triggerEditorOpen}
           >
             Add Node When…
-          </GhostLink>
+          </GhostButton>
           <Button
             onClick={() => void handleCommit()}
             disabled={committing || principia || feasible === false}
@@ -1468,7 +1084,6 @@ function ManeuverPlannerComponent({
             {committing ? "Adding…" : "Add node"}
           </Button>
         </CommitRow>
-        {renderTriggerEditor()}
       </PreviewSection>
     );
   }
@@ -1489,13 +1104,6 @@ function ManeuverPlannerComponent({
         {renderNewManeuverSection()}
         {waiting ? renderWaitingPanel() : renderPreview()}
       </ScrollBody>
-      {armedTriggers.map((t) => (
-        <ArmedTriggerWatcher
-          key={t.id}
-          trigger={t}
-          onFire={handleFireTrigger}
-        />
-      ))}
     </Panel>
   );
 }
@@ -1582,15 +1190,15 @@ const Empty = styled.div`
   padding: 4px 0;
 `;
 
-const ScrollBody = styled.div`
+const ScrollBody = styled(ScrollArea)`
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  /* Reserve a sliver for the scrollbar so content isn't pushed under it. */
-  padding-right: 4px;
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Reserve a sliver for the scrollbar so content isn't pushed under it. */
+    padding-right: 4px;
+  }
 `;
 
 const WaitingPanel = styled.div`
@@ -1643,18 +1251,6 @@ const ClearAllRow = styled.div`
   display: flex;
   justify-content: flex-end;
   padding-top: 2px;
-`;
-
-const GhostLink = styled.button`
-  background: transparent;
-  border: none;
-  color: var(--color-text-dim);
-  font-size: 11px;
-  cursor: pointer;
-  text-decoration: underline;
-  &:hover {
-    color: var(--color-text-primary);
-  }
 `;
 
 const PresetDesc = styled.div`

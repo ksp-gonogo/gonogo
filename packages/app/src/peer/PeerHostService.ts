@@ -89,6 +89,11 @@ type AlarmDeleteListener = (peerId: string, id: string) => void;
 type AlarmAcknowledgeListener = (peerId: string, id: string) => void;
 type AlarmAckListener = (peerId: string) => void;
 type AlarmWarpIntentListener = (peerId: string, index: number) => void;
+type TriggerArmListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "trigger-arm" }>,
+) => void;
+type TriggerCancelListener = (peerId: string, id: string) => void;
 
 export class PeerHostService {
   private peer: Peer | null = null;
@@ -109,6 +114,8 @@ export class PeerHostService {
   private alarmAcknowledgeListeners = new Set<AlarmAcknowledgeListener>();
   private alarmAckListeners = new Set<AlarmAckListener>();
   private alarmWarpIntentListeners = new Set<AlarmWarpIntentListener>();
+  private triggerArmListeners = new Set<TriggerArmListener>();
+  private triggerCancelListeners = new Set<TriggerCancelListener>();
 
   // Selective subscription state. Maps each connected DataConnection to:
   //   - mode: "broadcast-all" (default) or "selective"
@@ -416,6 +423,15 @@ export class PeerHostService {
       return;
     }
 
+    if (msg.type === "trigger-arm") {
+      for (const cb of this.triggerArmListeners) cb(conn.peer, msg);
+      return;
+    }
+    if (msg.type === "trigger-cancel") {
+      for (const cb of this.triggerCancelListeners) cb(conn.peer, msg.id);
+      return;
+    }
+
     if (msg.type === "peer-data-mode") {
       this.peerMode.set(conn, msg.mode);
       // When switching to selective with no subs yet, the peer will get
@@ -508,6 +524,16 @@ export class PeerHostService {
   onAlarmWarpIntent(cb: AlarmWarpIntentListener): () => void {
     this.alarmWarpIntentListeners.add(cb);
     return () => this.alarmWarpIntentListeners.delete(cb);
+  }
+
+  onTriggerArm(cb: TriggerArmListener): () => void {
+    this.triggerArmListeners.add(cb);
+    return () => this.triggerArmListeners.delete(cb);
+  }
+
+  onTriggerCancel(cb: TriggerCancelListener): () => void {
+    this.triggerCancelListeners.add(cb);
+    return () => this.triggerCancelListeners.delete(cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {

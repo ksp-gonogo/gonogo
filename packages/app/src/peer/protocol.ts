@@ -187,6 +187,24 @@ export type PeerMessage =
   // doesn't false-positive on a legitimate station-initiated change.
   | { type: "alarm-warp-intent"; index: number }
   // ──────────────────────────────────────────────────────────────────────
+  // Maneuver-planner conditional triggers. Host owns the canonical list,
+  // observes the chosen telemetry key on each tick, and dispatches the
+  // burn when the threshold first holds. Stations get the full snapshot
+  // on every change; arming and cancelling is request-only.
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "trigger-snapshot";
+      snapshot: import("@gonogo/components").TriggerSnapshot;
+    }
+  | {
+      type: "trigger-arm";
+      dataKey: string;
+      op: import("@gonogo/components").ThresholdOp;
+      value: number;
+      inputs: import("@gonogo/components").FrozenPlanInputs;
+    }
+  | { type: "trigger-cancel"; id: string }
+  // ──────────────────────────────────────────────────────────────────────
   // Selective subscription — see local_docs/performance_review.md #1.
   //
   // Default mode is "broadcast-all" so a station on an old bundle still
