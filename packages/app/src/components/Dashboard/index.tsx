@@ -18,7 +18,7 @@ import { Tabs, useModal } from "@gonogo/ui";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import "react-grid-layout/css/styles.css";
 import "../../styles/react-resizable.css";
 import { usePushClient } from "../../pushToMain/PushClientContext";
@@ -134,6 +134,13 @@ export interface DashboardProps {
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;
+  /**
+   * If set, the matching cell scrolls into view and runs a brief highlight
+   * animation. The dashboard calls `clearLastAdded(id)` once the animation
+   * finishes so the same id won't re-pulse on subsequent renders.
+   */
+  lastAddedId?: string | null;
+  clearLastAdded?: (id: string) => void;
 }
 
 export function Dashboard(props: Readonly<DashboardProps>) {
@@ -155,6 +162,8 @@ function GridDashboard({
   updateItemConfig,
   updateItemMappings,
   removeItem,
+  lastAddedId,
+  clearLastAdded,
 }: Readonly<DashboardProps>) {
   // Defensive: persisted layouts may carry breakpoint keys that used to
   // exist in COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
@@ -165,43 +174,108 @@ function GridDashboard({
     [layouts, items],
   );
 
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  useScrollIntoViewOnAdd(gridRef, lastAddedId, clearLastAdded);
+
   return (
-    <ResponsiveGridLayout
-      className="dashboard-grid"
-      layouts={filteredLayouts}
-      breakpoints={BREAKPOINTS}
-      cols={COLS}
-      rowHeight={ROW_HEIGHT}
-      margin={[8, 8]}
-      containerPadding={[0, 0]}
-      draggableHandle=".drag-handle"
-      onLayoutChange={onLayoutChange}
-      onBreakpointChange={onBreakpointChange}
-    >
-      {(() => {
-        // Build a single index of layout-by-id once, rather than O(items)
-        // .find() per item — pays off as the dashboard fills up.
-        const bpLayouts = currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
-        const sizeById = new Map<string, Layout>();
-        for (const l of bpLayouts) sizeById.set(l.i, l);
-        return items.map((item) => {
-          const entry = sizeById.get(item.i);
-          return (
-            <GridCell key={item.i}>
-              <GridItemContent
-                item={item}
-                w={entry?.w}
-                h={entry?.h}
-                updateItemConfig={updateItemConfig}
-                updateItemMappings={updateItemMappings}
-                removeItem={removeItem}
-              />
-            </GridCell>
-          );
-        });
-      })()}
-    </ResponsiveGridLayout>
+    <div ref={gridRef}>
+      <ResponsiveGridLayout
+        className="dashboard-grid"
+        layouts={filteredLayouts}
+        breakpoints={BREAKPOINTS}
+        cols={COLS}
+        rowHeight={ROW_HEIGHT}
+        margin={[8, 8]}
+        containerPadding={[0, 0]}
+        draggableHandle=".drag-handle"
+        onLayoutChange={onLayoutChange}
+        onBreakpointChange={onBreakpointChange}
+      >
+        {(() => {
+          // Build a single index of layout-by-id once, rather than O(items)
+          // .find() per item — pays off as the dashboard fills up.
+          const bpLayouts =
+            currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
+          const sizeById = new Map<string, Layout>();
+          for (const l of bpLayouts) sizeById.set(l.i, l);
+          return items.map((item) => {
+            const entry = sizeById.get(item.i);
+            const highlighted = lastAddedId === item.i;
+            return (
+              <GridCell
+                key={item.i}
+                data-i={item.i}
+                data-highlight={highlighted ? "true" : undefined}
+                onAnimationEnd={
+                  highlighted ? () => clearLastAdded?.(item.i) : undefined
+                }
+              >
+                <GridItemContent
+                  item={item}
+                  w={entry?.w}
+                  h={entry?.h}
+                  updateItemConfig={updateItemConfig}
+                  updateItemMappings={updateItemMappings}
+                  removeItem={removeItem}
+                />
+              </GridCell>
+            );
+          });
+        })()}
+      </ResponsiveGridLayout>
+    </div>
   );
+}
+
+/**
+ * After a new widget is added, scroll its cell into view inside the grid
+ * container. Runs once per `lastAddedId` change. The pulse animation lives
+ * in CSS on `GridCell[data-highlight="true"]`; we just have to make sure
+ * the user can see the new widget before the pulse fades.
+ */
+function useScrollIntoViewOnAdd(
+  gridRef: React.RefObject<HTMLDivElement | null>,
+  lastAddedId: string | null | undefined,
+  clearLastAdded: ((id: string) => void) | undefined,
+) {
+  useEffect(() => {
+    if (!lastAddedId) return;
+    const root = gridRef.current;
+    if (!root) return;
+    // RGL positions the cell asynchronously after layout reconciliation;
+    // wait one frame so scrollIntoView targets its final coordinates.
+    const raf = requestAnimationFrame(() => {
+      const cell = root.querySelector<HTMLElement>(
+        `[data-i="${cssEscape(lastAddedId)}"]`,
+      );
+      if (!cell) return;
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      cell.scrollIntoView({
+        block: "center",
+        behavior: reduced ? "auto" : "smooth",
+      });
+    });
+    // Safety net: animation duration + a margin. The cell normally clears
+    // its own highlight via onAnimationEnd, but reduced-motion users skip the
+    // animation entirely so the listener never fires. Clear from here too.
+    const fallback = window.setTimeout(() => {
+      clearLastAdded?.(lastAddedId);
+    }, 2000);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(fallback);
+    };
+  }, [gridRef, lastAddedId, clearLastAdded]);
+}
+
+function cssEscape(value: string): string {
+  // CSS.escape isn't on every test environment's window; UUIDs are safe but
+  // we still wrap so future non-UUID ids don't break the selector.
+  return typeof CSS !== "undefined" && typeof CSS.escape === "function"
+    ? CSS.escape(value)
+    : value.replace(/["\\]/g, "\\$&");
 }
 
 // ---------------------------------------------------------------------------
@@ -314,9 +388,13 @@ function MobileDashboard({
   removeItem,
   moveItemUp,
   moveItemDown,
+  lastAddedId,
+  clearLastAdded,
 }: Readonly<DashboardProps>) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useScrollIntoViewOnAdd(listRef, lastAddedId, clearLastAdded);
   return (
-    <MobileList>
+    <MobileList ref={listRef}>
       {items.map((item, index) => (
         <MobileItemContent
           key={item.i}
@@ -328,6 +406,8 @@ function MobileDashboard({
           removeItem={removeItem}
           moveItemUp={moveItemUp}
           moveItemDown={moveItemDown}
+          isHighlighted={lastAddedId === item.i}
+          onHighlightEnd={clearLastAdded}
         />
       ))}
     </MobileList>
@@ -343,6 +423,8 @@ interface MobileItemContentProps {
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;
+  isHighlighted: boolean;
+  onHighlightEnd?: (id: string) => void;
 }
 
 const MobileItemContent = memo(function MobileItemContent({
@@ -354,6 +436,8 @@ const MobileItemContent = memo(function MobileItemContent({
   removeItem,
   moveItemUp,
   moveItemDown,
+  isHighlighted,
+  onHighlightEnd,
 }: MobileItemContentProps) {
   const def = getComponent(item.componentId);
 
@@ -395,6 +479,10 @@ const MobileItemContent = memo(function MobileItemContent({
       $half={half}
       $height={height}
       data-i={item.i}
+      data-highlight={isHighlighted ? "true" : undefined}
+      onAnimationEnd={
+        isHighlighted ? () => onHighlightEnd?.(item.i) : undefined
+      }
       data-mobile-width={half ? "half" : "full"}
       data-mobile-height={height}
     >
@@ -736,11 +824,33 @@ function GearModalContent({
 // Styles
 // ---------------------------------------------------------------------------
 
+const highlightPulse = keyframes`
+  0% {
+    box-shadow:
+      0 0 0 2px var(--color-accent-fg),
+      0 0 18px 4px rgba(0, 255, 136, 0.55);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 transparent,
+      0 0 0 0 transparent;
+  }
+`;
+
+const highlightStyle = css`
+  &[data-highlight="true"] {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${highlightPulse} 1500ms ease-out 1;
+    }
+  }
+`;
+
 const GridCell = styled.div`
   display: flex;
   flex-direction: column;
   background: transparent;
   overflow: hidden;
+  ${highlightStyle}
 `;
 
 const CellHeader = styled.div`
@@ -781,6 +891,7 @@ const MobileCell = styled.div<{ $half: boolean; $height: number }>`
   overflow: hidden;
   flex: 0 0 ${({ $half }) => ($half ? "calc(50% - 4px)" : "100%")};
   height: ${({ $height }) => $height}px;
+  ${highlightStyle}
 `;
 
 const MobileCellHeader = styled.div`

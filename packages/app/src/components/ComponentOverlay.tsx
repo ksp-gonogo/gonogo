@@ -2,7 +2,7 @@ import type { ComponentDefinition } from "@gonogo/core";
 import { getComponents } from "@gonogo/core";
 import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, useSerialDeviceService } from "@gonogo/serial";
-import { Tag, useFabCluster, useModal } from "@gonogo/ui";
+import { FilterChip, Tag, useFabCluster, useModal } from "@gonogo/ui";
 import type { ReactNode } from "react";
 import {
   createContext,
@@ -69,6 +69,9 @@ export function ComponentOverlay({
 }: Readonly<ComponentOverlayProps>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const { addItem, updateItemConfig } = useOverlay();
   const { open: openModal, close: closeModal } = useModal();
@@ -83,15 +86,53 @@ export function ComponentOverlay({
 
   const allComponents = getComponents();
 
-  const filtered = query.trim()
-    ? allComponents.filter((def) => {
-        const q = query.toLowerCase();
-        return (
+  // Tag → count, descending. Drives the chip row below the search box so the
+  // most-used tags appear first. Recompute per render — the registry is tiny
+  // (~few dozen entries) and we want any newly-registered component to show
+  // up immediately.
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const def of allComponents) {
+      for (const t of def.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0]);
+    });
+  }, [allComponents]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allComponents.filter((def) => {
+      if (q) {
+        const matchesQuery =
           def.name.toLowerCase().includes(q) ||
-          def.tags.some((t) => t.toLowerCase().includes(q))
-        );
-      })
-    : allComponents;
+          def.tags.some((t) => t.toLowerCase().includes(q));
+        if (!matchesQuery) return false;
+      }
+      if (selectedTags.size > 0) {
+        // Additive: a widget passes if it matches ANY selected tag.
+        const matchesTag = def.tags.some((t) => selectedTags.has(t));
+        if (!matchesTag) return false;
+      }
+      return true;
+    });
+  }, [allComponents, query, selectedTags]);
+
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  }, []);
+
+  const closeOverlay = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    setSelectedTags(new Set());
+  }, []);
 
   const nextY = useCallback(() => {
     const items = currentLayouts.lg ?? [];
@@ -117,8 +158,7 @@ export function ComponentOverlay({
       const layout = { x: 0, y: nextY(), ...size };
 
       addItem(item, layout);
-      setOpen(false);
-      setQuery("");
+      closeOverlay();
 
       if (def.openConfigOnAdd && def.configComponent) {
         const ConfigComp = def.configComponent;
@@ -147,6 +187,7 @@ export function ComponentOverlay({
       nextY,
       openModal,
       closeModal,
+      closeOverlay,
       serialService,
       cpuRegistry,
     ],
@@ -169,12 +210,7 @@ export function ComponentOverlay({
       </FAB>
 
       {open && (
-        <Backdrop
-          onClick={() => {
-            setOpen(false);
-            setQuery("");
-          }}
-        >
+        <Backdrop onClick={closeOverlay}>
           <Panel
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -182,13 +218,7 @@ export function ComponentOverlay({
           >
             <PanelHeader>
               <PanelTitle>ADD COMPONENT</PanelTitle>
-              <CloseBtn
-                onClick={() => {
-                  setOpen(false);
-                  setQuery("");
-                }}
-                aria-label="Close"
-              >
+              <CloseBtn onClick={closeOverlay} aria-label="Close">
                 ✕
               </CloseBtn>
             </PanelHeader>
@@ -198,12 +228,25 @@ export function ComponentOverlay({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setOpen(false);
-                  setQuery("");
-                }
+                if (e.key === "Escape") closeOverlay();
               }}
             />
+            {tagCounts.length > 0 && (
+              <ChipRow
+                role="group"
+                aria-label="Filter by tag (any selected match)"
+              >
+                {tagCounts.map(([tag, count]) => (
+                  <FilterChip
+                    key={tag}
+                    label={tag}
+                    count={count}
+                    selected={selectedTags.has(tag)}
+                    onToggle={() => toggleTag(tag)}
+                  />
+                ))}
+              </ChipRow>
+            )}
             <List>
               {filtered.length === 0 && (
                 <Empty>No components match "{query}"</Empty>
@@ -339,6 +382,15 @@ const SearchInput = styled.input`
   &::placeholder {
     color: var(--color-border-strong);
   }
+`;
+
+const ChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-surface-raised);
+  flex-shrink: 0;
 `;
 
 const List = styled.div`

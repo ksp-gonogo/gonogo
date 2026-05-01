@@ -3,6 +3,7 @@ export * from "./DataKeyMultiPicker";
 export * from "./DataKeyPicker";
 export * from "./Fab";
 export * from "./FabCluster";
+export * from "./FilterChip";
 export * from "./Form";
 export * from "./Icons";
 export * from "./LineChart";

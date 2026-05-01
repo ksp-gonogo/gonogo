@@ -4,35 +4,44 @@ import styled, { css } from "styled-components";
 // Colour map for known tags
 // ---------------------------------------------------------------------------
 
-const TAG_COLOURS: Record<string, { bg: string; fg: string; border: string }> =
-  {
-    telemetry: {
-      bg: "var(--color-status-go-bg)",
-      fg: "var(--color-accent-fg)",
-      border: "var(--color-status-go-bg)",
-    },
-    control: {
-      bg: "var(--color-tag-dark-brown-bg)",
-      fg: "var(--color-tag-yellow-fg)",
-      border: "var(--color-tag-dark-brown-border)",
-    },
-    system: {
-      bg: "var(--color-tag-blue-bg)",
-      fg: "var(--color-tag-blue-fg)",
-      border: "var(--color-tag-blue-border)",
-    },
-    kos: {
-      bg: "var(--color-tag-purple-bg)",
-      fg: "var(--color-tag-purple-fg)",
-      border: "var(--color-tag-blue-border)",
-    },
-  };
+export interface TagColours {
+  bg: string;
+  fg: string;
+  border: string;
+}
 
-const FALLBACK = {
+const TAG_COLOURS: Record<string, TagColours> = {
+  telemetry: {
+    bg: "var(--color-status-go-bg)",
+    fg: "var(--color-accent-fg)",
+    border: "var(--color-status-go-bg)",
+  },
+  control: {
+    bg: "var(--color-tag-dark-brown-bg)",
+    fg: "var(--color-tag-yellow-fg)",
+    border: "var(--color-tag-dark-brown-border)",
+  },
+  system: {
+    bg: "var(--color-tag-blue-bg)",
+    fg: "var(--color-tag-blue-fg)",
+    border: "var(--color-tag-blue-border)",
+  },
+  kos: {
+    bg: "var(--color-tag-purple-bg)",
+    fg: "var(--color-tag-purple-fg)",
+    border: "var(--color-tag-blue-border)",
+  },
+};
+
+const FALLBACK: TagColours = {
   bg: "var(--color-surface-panel)",
   fg: "var(--color-text-dim)",
   border: "var(--color-border-subtle)",
 };
+
+export function getTagColours(label: string): TagColours {
+  return TAG_COLOURS[label] ?? FALLBACK;
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -43,7 +52,7 @@ export interface TagProps {
 }
 
 export function Tag({ label }: TagProps) {
-  const colours = TAG_COLOURS[label] ?? FALLBACK;
+  const colours = getTagColours(label);
   return (
     <TagBadge $bg={colours.bg} $fg={colours.fg} $border={colours.border}>
       {label}

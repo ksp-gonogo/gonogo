@@ -62,6 +62,14 @@ export interface DashboardState {
   layouts: Layouts;
   currentLayouts: Layouts;
   breakpoint: string;
+  /**
+   * Set to the id of the most recently added item so the Dashboard can scroll
+   * to and briefly highlight it. Cleared by the Dashboard via `clearLastAdded`
+   * once the highlight animation finishes.
+   */
+  lastAddedId: string | null;
+  /** Clears `lastAddedId` if it matches the supplied id (no-op otherwise). */
+  clearLastAdded: (id: string) => void;
   handleLayoutChange: (current: Layout[], all: Layouts) => void;
   handleBreakpointChange: (bp: string) => void;
   addItem: (item: DashboardItem, layout: Partial<Layout>) => void;
@@ -99,6 +107,7 @@ export function useDashboardState(
     saved?.layouts ?? initial.layouts,
   );
   const [breakpoint, setBreakpoint] = useState<string>(initialBreakpoint);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -147,9 +156,14 @@ export function useDashboardState(
       );
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
+      setLastAddedId(item.i);
     },
     [currentLayouts],
   );
+
+  const clearLastAdded = useCallback((id: string) => {
+    setLastAddedId((prev) => (prev === id ? null : prev));
+  }, []);
 
   const removeItem = useCallback((id: string) => {
     setItemsInner((prev) => prev.filter((it) => it.i !== id));
@@ -236,6 +250,8 @@ export function useDashboardState(
     layouts,
     currentLayouts,
     breakpoint,
+    lastAddedId,
+    clearLastAdded,
     handleLayoutChange,
     handleBreakpointChange,
     addItem,
