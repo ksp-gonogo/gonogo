@@ -1,4 +1,8 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  ConfigComponentProps,
+} from "@gonogo/core";
 import {
   formatDistance,
   registerComponent,
@@ -6,12 +10,42 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Button, Panel, PanelTitle, Tabs } from "@gonogo/ui";
-import { useMemo, useState } from "react";
+import { hashKosScript } from "@gonogo/data";
+import {
+  Button,
+  ConfigForm,
+  Field,
+  FieldHint,
+  FieldLabel,
+  GhostButton,
+  Input,
+  Panel,
+  PanelTitle,
+  PrimaryButton,
+  Tabs,
+} from "@gonogo/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { KosCpuPicker } from "../kos/KosCpuPicker";
+import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
+import {
+  VESSEL_LIST_SCRIPT,
+  VESSEL_LIST_SCRIPT_NAME,
+  type VesselListEntry,
+} from "./vesselListScript";
 
-type TargetPickerConfig = Record<string, never>;
+const VESSEL_LIST_SCRIPT_VERSION = hashKosScript(VESSEL_LIST_SCRIPT);
+
+interface TargetPickerConfig {
+  /**
+   * kOS CPU tagname for the Vessels tab. Empty → Vessels tab shows a
+   * "configure kOS" hint and the rest of the widget still works.
+   */
+  cpu?: string;
+  /** Path of the bundled vessel-list script on the kOS Archive volume. */
+  scriptName?: string;
+}
 type TabId = "bodies" | "vessels" | "current";
 
 const targetPickerActions = [
@@ -24,9 +58,11 @@ const targetPickerActions = [
 ] as const satisfies readonly ActionDefinition[];
 type TargetPickerActions = typeof targetPickerActions;
 
-function TargetPickerComponent(
-  _: Readonly<ComponentProps<TargetPickerConfig>>,
-) {
+function TargetPickerComponent({
+  config,
+}: Readonly<ComponentProps<TargetPickerConfig>>) {
+  const cpu = config?.cpu ?? "";
+  const scriptName = config?.scriptName ?? VESSEL_LIST_SCRIPT_NAME;
   const bodies = useCelestialBodies();
   const tarName = useDataValue("data", "tar.name") as string | undefined;
   const tarType = useDataValue("data", "tar.type") as string | undefined;
@@ -47,6 +83,61 @@ function TargetPickerComponent(
   const targetBody = (index: number) =>
     void execute(`tar.setTargetBody[${index}]`);
   const clearTarget = () => void execute("tar.clearTarget");
+
+  // ── kOS-backed vessel listing ────────────────────────────────────────────
+  // The script accepts a single string parameter — either an empty string
+  // (list-only) or a vessel name to SET TARGET TO. Click handlers stash a
+  // pending name; an effect dispatches once the args have re-resolved on
+  // the next render, then clears the pending state so subsequent manual
+  // refreshes don't accidentally re-target.
+  const [pendingTargetName, setPendingTargetName] = useState("");
+  const argsForKos = useMemo(
+    () => [{ type: "string" as const, value: pendingTargetName }],
+    [pendingTargetName],
+  );
+  const {
+    payload: vessels,
+    error: kosError,
+    parseError: kosParseError,
+    running: kosRunning,
+    lastGoodAt: kosLastGoodAt,
+    dispatch: kosDispatch,
+    disabled: kosDisabled,
+    disabledReason: kosDisabledReason,
+  } = useKosScriptPayload<VesselListEntry[]>({
+    cpu,
+    script: scriptName,
+    args: argsForKos,
+    field: "vessels",
+    mode: "command",
+    managed: { body: VESSEL_LIST_SCRIPT, version: VESSEL_LIST_SCRIPT_VERSION },
+  });
+
+  // After the args render-cycle has caught up, fire the dispatch and reset
+  // the pending name so the next manual refresh defaults back to list-only.
+  // Dispatching directly inside the click handler would race the args ref
+  // — useKosWidget reads argsRef.current, which doesn't update until the
+  // next render after setState.
+  const dispatchPendingRef = useRef(false);
+  useEffect(() => {
+    if (pendingTargetName.length === 0) return;
+    if (dispatchPendingRef.current) return;
+    dispatchPendingRef.current = true;
+    kosDispatch();
+    // Reset after dispatch — by the time the next render happens, the
+    // args ref has already been used.
+    setPendingTargetName("");
+    dispatchPendingRef.current = false;
+  }, [pendingTargetName, kosDispatch]);
+
+  const refreshVessels = () => {
+    // List-only refresh — args already empty.
+    if (cpu) kosDispatch();
+  };
+  const targetVessel = (name: string) => {
+    if (!cpu) return;
+    setPendingTargetName(name);
+  };
 
   const filterText = filter.trim().toLowerCase();
   const isFiltering = filterText.length > 0;
@@ -134,12 +225,68 @@ function TargetPickerComponent(
     </BodiesTab>
   );
 
-  const vesselsContent = (
-    <Hint>
-      Vessels-by-name targeting needs a kOS-backed enumeration script —
-      Telemachus has no list endpoint. Coming in a follow-up.
-    </Hint>
-  );
+  const vesselsContent = (() => {
+    if (!cpu) {
+      return (
+        <Hint>
+          Vessels tab needs a kOS CPU. Open this widget's config and pick one —
+          the rest of the widget works without it.
+        </Hint>
+      );
+    }
+    const sorted = [...(vessels ?? [])].sort((a, b) => a.distance - b.distance);
+    return (
+      <VesselsTab>
+        <VesselsHeader>
+          <GhostButton
+            type="button"
+            onClick={refreshVessels}
+            disabled={kosRunning || kosDisabled}
+          >
+            {kosRunning ? "Refreshing…" : "Refresh"}
+          </GhostButton>
+          {kosLastGoodAt !== null && (
+            <VesselsMeta>
+              {sorted.length} target{sorted.length === 1 ? "" : "s"} · updated{" "}
+              {formatAge(Date.now() - kosLastGoodAt)} ago
+            </VesselsMeta>
+          )}
+        </VesselsHeader>
+        {(kosError || kosParseError) && !kosDisabled && (
+          <ErrorBanner>
+            {(kosError ?? kosParseError)?.message ?? "kOS dispatch failed"}
+          </ErrorBanner>
+        )}
+        {kosDisabled && kosDisabledReason && (
+          <ErrorBanner>{kosDisabledReason}</ErrorBanner>
+        )}
+        {vessels === null && !kosRunning ? (
+          <Hint>Press Refresh to enumerate targets via kOS.</Hint>
+        ) : sorted.length === 0 ? (
+          <Hint>No targets in range.</Hint>
+        ) : (
+          <BodyList>
+            {sorted.map((v) => (
+              <BodyRow
+                key={v.name}
+                type="button"
+                $depth={0}
+                $current={v.name === tarName}
+                onClick={() => targetVessel(v.name)}
+              >
+                <VesselName>
+                  <span>{v.name}</span>
+                  <VesselType>{v.type}</VesselType>
+                </VesselName>
+                <VesselDistance>{formatDistance(v.distance)}</VesselDistance>
+                {v.name === tarName && <BodyTag>TARGET</BodyTag>}
+              </BodyRow>
+            ))}
+          </BodyList>
+        )}
+      </VesselsTab>
+    );
+  })();
 
   const currentContent = (
     <CurrentTab>
@@ -234,6 +381,56 @@ function BodyTreeNode({
         />
       ))}
     </>
+  );
+}
+
+function formatAge(ms: number): string {
+  if (ms < 1000) return "<1s";
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
+  return `${Math.round(ms / 3_600_000)}h`;
+}
+
+// ── Config component ──────────────────────────────────────────────────────────
+
+function TargetPickerConfigComponent({
+  config,
+  onSave,
+}: Readonly<ConfigComponentProps<TargetPickerConfig>>) {
+  const [cpu, setCpu] = useState(config?.cpu ?? "");
+  const [scriptName, setScriptName] = useState(
+    config?.scriptName ?? VESSEL_LIST_SCRIPT_NAME,
+  );
+
+  return (
+    <ConfigForm>
+      <Field>
+        <FieldLabel htmlFor="target-picker-cpu">
+          kOS CPU (Vessels tab)
+        </FieldLabel>
+        <KosCpuPicker id="target-picker-cpu" value={cpu} onChange={setCpu} />
+        <FieldHint>
+          Optional. Without a CPU, the Vessels tab shows a configure-kOS hint.
+          Bodies and Current tabs work either way.
+        </FieldHint>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="target-picker-script">Script name</FieldLabel>
+        <Input
+          id="target-picker-script"
+          type="text"
+          value={scriptName}
+          onChange={(e) => setScriptName(e.target.value)}
+        />
+        <FieldHint>
+          Path on the kOS Archive volume. The widget auto-deploys the bundled
+          script there — usually no need to change.
+        </FieldHint>
+      </Field>
+      <PrimaryButton onClick={() => onSave({ cpu, scriptName })}>
+        Save
+      </PrimaryButton>
+    </ConfigForm>
   );
 }
 
@@ -348,16 +545,73 @@ const ClearButtonRow = styled.div`
   margin-top: 8px;
 `;
 
+const VesselsTab = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  flex: 1;
+  min-height: 0;
+`;
+
+const VesselsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const VesselsMeta = styled.span`
+  font-size: 10px;
+  color: var(--color-text-faint);
+  letter-spacing: 0.04em;
+`;
+
+const ErrorBanner = styled.div`
+  font-size: 10px;
+  color: var(--color-status-warning-bg);
+  padding: 4px 6px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-status-warning-bg);
+  border-radius: 2px;
+`;
+
+const VesselName = styled.span`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const VesselType = styled.span`
+  font-size: 9px;
+  color: var(--color-text-faint);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
+
+const VesselDistance = styled.span`
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+`;
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target body or inspect the current target. The Bodies tab lists every body Telemachus reports (b.name[i]) grouped by reference-body, click to fire tar.setTargetBody. Current tab shows name / type / distance / relative velocity with a clear button. Vessel targeting needs a kOS list endpoint — not in v1.",
-  tags: ["telemetry", "navigation"],
+    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab uses a kOS managed script to enumerate in-range targets (sorted by distance) and click-to-target by name. Current tab shows the active target's name / type / distance / Δv with a clear button.",
+  tags: ["telemetry", "navigation", "kos"],
   defaultSize: { w: 6, h: 11 },
   component: TargetPickerComponent,
+  configComponent: TargetPickerConfigComponent,
   dataRequirements: [
     "b.number",
     "tar.name",
@@ -365,7 +619,7 @@ registerComponent<TargetPickerConfig>({
     "tar.distance",
     "tar.o.relativeVelocity",
   ],
-  defaultConfig: {},
+  defaultConfig: { cpu: "", scriptName: VESSEL_LIST_SCRIPT_NAME },
   actions: targetPickerActions,
   pushable: true,
 });
