@@ -27,3 +27,4 @@ export * from "./theme";
 export * from "./types";
 export * from "./version/compare";
 export * from "./version/runtime";
+export * from "./widgetSize";

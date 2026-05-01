@@ -1,11 +1,23 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  SizeBucket,
+} from "@gonogo/core";
 import {
+  getSizeBucket,
   registerComponent,
   useActionInput,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  BigReadout,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  Readout,
+  ReadoutCaption,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -58,7 +70,10 @@ const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
   { index: 7, label: "100k×" },
 ];
 
-function WarpControlComponent(_: Readonly<ComponentProps<WarpControlConfig>>) {
+function WarpControlComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<WarpControlConfig>>) {
   const rate = useDataValue<number>("data", "t.currentRate");
   const indexRaw = useDataValue<number>("data", "t.timeWarp");
   const mode = useDataValue<string>("data", "t.warpMode");
@@ -95,12 +110,74 @@ function WarpControlComponent(_: Readonly<ComponentProps<WarpControlConfig>>) {
     },
   });
 
+  const bucket: SizeBucket = getSizeBucket(w, h);
+  const rateLabel = formatRate(currentRate);
+  const modeSuffix =
+    typeof mode === "string" && mode !== "" ? ` · ${mode}` : "";
+
+  if (bucket === "tiny") {
+    return (
+      <Panel>
+        <PanelTitle>WARP</PanelTitle>
+        <BigReadout $tone="go" aria-label={`Time warp rate ${rateLabel}`}>
+          {rateLabel}
+        </BigReadout>
+      </Panel>
+    );
+  }
+
+  if (bucket === "small") {
+    const idx = currentIndex ?? 0;
+    const downIdx = Math.max(0, idx - 1);
+    const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
+    return (
+      <Panel>
+        <PanelTitle>WARP</PanelTitle>
+        <Readout $tone="go">
+          {rateLabel}
+          {typeof mode === "string" && mode !== "" && (
+            <ReadoutCaption>{mode}</ReadoutCaption>
+          )}
+        </Readout>
+        <SmallRow role="group" aria-label="Time warp controls">
+          <WarpButton
+            type="button"
+            $active={false}
+            disabled={idx === 0}
+            onClick={() => setWarp(downIdx)}
+            aria-label="Warp down"
+          >
+            −
+          </WarpButton>
+          <WarpButton
+            type="button"
+            $active={idx === 0}
+            aria-pressed={idx === 0}
+            onClick={() => setWarp(0)}
+            aria-label="Drop to realtime"
+          >
+            1×
+          </WarpButton>
+          <WarpButton
+            type="button"
+            $active={false}
+            disabled={idx === HIGH_LEVELS.length - 1}
+            onClick={() => setWarp(upIdx)}
+            aria-label="Warp up"
+          >
+            +
+          </WarpButton>
+        </SmallRow>
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <PanelTitle>WARP</PanelTitle>
       <PanelSubtitle>
-        {formatRate(currentRate)}
-        {typeof mode === "string" && mode !== "" ? ` · ${mode}` : ""}
+        {rateLabel}
+        {modeSuffix}
       </PanelSubtitle>
       <ButtonGrid role="group" aria-label="Time warp levels">
         {HIGH_LEVELS.map((lvl) => {
@@ -139,6 +216,13 @@ const ButtonGrid = styled.div`
   align-content: start;
 `;
 
+const SmallRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-top: 4px;
+`;
+
 const WarpButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-status-go-fg)")};
@@ -156,6 +240,10 @@ const WarpButton = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 
