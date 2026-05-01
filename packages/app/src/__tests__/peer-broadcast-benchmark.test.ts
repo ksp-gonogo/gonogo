@@ -175,7 +175,7 @@ describe("peer broadcast benchmark", () => {
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
     const countIn1Sec = countBudget.rate(tStart + 999);
 
-    if (process.env.BENCH_LOG) {
+    if (import.meta.env.BENCH_LOG) {
       // Absolute numbers for cross-branch comparison; opt-in via BENCH_LOG=1.
       // eslint-disable-next-line no-console
       console.log(
@@ -248,7 +248,7 @@ describe("peer broadcast benchmark", () => {
 
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
     const countIn1Sec = countBudget.rate(tStart + 999);
-    if (process.env.BENCH_LOG) {
+    if (import.meta.env.BENCH_LOG) {
       // eslint-disable-next-line no-console
       console.log(
         `[bench selective] 150 keys × 4 Hz, peers want 10 each → bytes/sec=${bytesIn1Sec}, msgs/sec=${countIn1Sec}`,
