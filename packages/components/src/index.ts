@@ -11,6 +11,7 @@ export * from "./DataSourceStatus";
 export * from "./DistanceToTarget";
 export * from "./FuelStatus";
 export * from "./Graph";
+export * from "./GroundSurvey";
 export * from "./KosFiles";
 export * from "./KosProcessors";
 export * from "./KosTerminal";
