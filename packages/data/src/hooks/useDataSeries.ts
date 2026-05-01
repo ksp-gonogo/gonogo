@@ -1,5 +1,5 @@
-import { getDataSource } from "@gonogo/core";
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { type DataSource, useDataSourceSubscription } from "@gonogo/core";
+import { useCallback, useRef } from "react";
 import type { BufferedDataSource } from "../BufferedDataSource";
 import type { SeriesRange } from "../types";
 
@@ -27,15 +27,14 @@ export function useDataSeries(
   // Mutable internal storage. Kept outside React state so live appends
   // don't allocate new arrays per sample.
   const dataRef = useRef<{ t: number[]; v: unknown[] }>({ t: [], v: [] });
-  // Snapshot identity — bumped (new object) every time onStoreChange fires
-  // so useSyncExternalStore detects the change.
-  const snapshotRef = useRef<SeriesRange>(EMPTY);
 
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      const source = getDataSource(sourceId) as BufferedDataSource | undefined;
-      if (!source) return () => {};
-
+  const setup = useCallback(
+    (
+      rawSource: DataSource,
+      notify: () => void,
+      snapshotRef: { current: SeriesRange },
+    ) => {
+      const source = rawSource as BufferedDataSource;
       const windowMs = windowSec * 1000;
       dataRef.current = { t: [], v: [] };
       snapshotRef.current = EMPTY;
@@ -55,19 +54,16 @@ export function useDataSeries(
             t: dataRef.current.t,
             v: dataRef.current.v,
           };
-          onStoreChange();
+          notify();
         })
         .catch(() => {
           // Intentionally silent — treat as "no backfill available".
         });
 
-      // Live updates via the timestamped API so our appended points share
-      // the buffered source's clock.
       const unsubSamples = source.subscribeSamples(key, ({ t, v }) => {
         const buf = dataRef.current;
         buf.t.push(t);
         buf.v.push(v);
-        // Trim anything older than the window.
         const cutoff = t - windowMs;
         let i = 0;
         while (i < buf.t.length && buf.t[i] < cutoff) i++;
@@ -75,20 +71,17 @@ export function useDataSeries(
           buf.t.splice(0, i);
           buf.v.splice(0, i);
         }
-        // Single fresh wrapper — useSyncExternalStore's identity check
-        // sees the new object reference and triggers a render. The old
-        // code rebuilt the wrapper twice (extra allocation per sample).
+        // Fresh wrapper per update — useSyncExternalStore's identity check
+        // sees the new reference and triggers a render.
         snapshotRef.current = { t: buf.t, v: buf.v };
-        onStoreChange();
+        notify();
       });
 
-      // Clear snapshot on upstream status transitions off "connected" so
-      // graphs don't render stale data during disconnects.
       const unsubStatus = source.onStatusChange((status) => {
         if (status !== "connected") {
           dataRef.current = { t: [], v: [] };
           snapshotRef.current = EMPTY;
-          onStoreChange();
+          notify();
         }
       });
 
@@ -98,10 +91,8 @@ export function useDataSeries(
         unsubStatus();
       };
     },
-    [sourceId, key, windowSec],
+    [key, windowSec],
   );
 
-  const getSnapshot = useCallback(() => snapshotRef.current, []);
-
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useDataSourceSubscription<SeriesRange>(sourceId, setup, EMPTY);
 }

@@ -1,6 +1,6 @@
-import { useCallback, useRef, useSyncExternalStore } from "react";
-import { getDataSource } from "../registry";
-import type { DataSourceRegistry } from "../types";
+import { useCallback } from "react";
+import type { DataSource, DataSourceRegistry } from "../types";
+import { useDataSourceSubscription } from "./useDataSourceSubscription";
 
 /**
  * Subscribe to a live value from a registered data source.
@@ -38,36 +38,29 @@ export function useDataValue<T = unknown>(
 
 // Implementation (not part of the public API surface)
 export function useDataValue(dataSourceId: string, key: string): unknown {
-  const valueRef = useRef<unknown>(undefined);
-
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      const source = getDataSource(dataSourceId);
-      if (!source) return () => {};
-
+  const setup = useCallback(
+    (
+      source: DataSource,
+      notify: () => void,
+      snapshotRef: { current: unknown },
+    ) => {
       const unsubData = source.subscribe(key, (val) => {
-        valueRef.current = val;
-        onStoreChange();
+        snapshotRef.current = val;
+        notify();
       });
-
-      // Clear the value when the source disconnects or errors so components
-      // show unknown state rather than a stale reading.
       const unsubStatus = source.onStatusChange((status) => {
         if (status !== "connected") {
-          valueRef.current = undefined;
-          onStoreChange();
+          snapshotRef.current = undefined;
+          notify();
         }
       });
-
       return () => {
         unsubData();
         unsubStatus();
       };
     },
-    [dataSourceId, key],
+    [key],
   );
 
-  const getSnapshot = useCallback(() => valueRef.current, []);
-
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useDataSourceSubscription<unknown>(dataSourceId, setup, undefined);
 }
