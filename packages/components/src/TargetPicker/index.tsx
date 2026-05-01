@@ -22,6 +22,7 @@ import {
   Panel,
   PanelTitle,
   PrimaryButton,
+  ScrollArea,
   Tabs,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -458,13 +459,13 @@ const FilterInput = styled.input`
   }
 `;
 
-const BodyList = styled.div`
+const BodyList = styled(ScrollArea)`
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
 `;
 
 const BodyRow = styled.button<{ $depth: number; $current: boolean }>`

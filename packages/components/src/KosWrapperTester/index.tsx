@@ -11,6 +11,7 @@ import {
   Panel,
   PanelTitle,
   PrimaryButton,
+  ScrollArea,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -415,17 +416,16 @@ const HistoryWhen = styled.span`
   min-width: 64px;
 `;
 
-const ScriptBox = styled.div`
+const ScriptBox = styled(ScrollArea)`
   margin-top: 10px;
   max-height: 180px;
-  overflow: auto;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
-  padding: 6px 8px;
   font-size: 11px;
   pre {
     margin: 0;
+    padding: 6px 8px;
     white-space: pre;
   }
 `;

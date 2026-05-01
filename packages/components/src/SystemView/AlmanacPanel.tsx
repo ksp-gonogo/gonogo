@@ -1,3 +1,5 @@
+import { ScrollArea } from "@gonogo/ui";
+import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -193,10 +195,9 @@ function normalizeAngle(deg: number): number {
   return d;
 }
 
-const Wrap = styled.aside`
+const WrapOuter = styled.aside`
   display: flex;
   flex-direction: column;
-  gap: 4px;
   padding: 8px 10px;
   min-width: 0;
   max-width: 100%;
@@ -204,8 +205,24 @@ const Wrap = styled.aside`
   border-left: 1px solid var(--color-surface-raised);
   font-size: 11px;
   color: var(--color-text-muted);
-  overflow-y: auto;
 `;
+
+const WrapScroll = styled(ScrollArea)`
+  flex: 1;
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+`;
+
+function Wrap({ children }: { children: ReactNode }) {
+  return (
+    <WrapOuter>
+      <WrapScroll>{children}</WrapScroll>
+    </WrapOuter>
+  );
+}
 
 const Title = styled.div`
   font-size: 13px;

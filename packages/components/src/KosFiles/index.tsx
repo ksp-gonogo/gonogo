@@ -9,8 +9,15 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  ScrollArea,
 } from "@gonogo/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
@@ -451,17 +458,26 @@ const Placeholder = styled.div`
   }
 `;
 
-const List = styled.ul`
+const ListScroll = styled(ScrollArea)`
+  flex: 1;
+`;
+
+const ListUl = styled.ul`
   list-style: none;
   margin: 0;
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
 `;
+
+function List({ children }: { children: ReactNode }) {
+  return (
+    <ListScroll>
+      <ListUl>{children}</ListUl>
+    </ListScroll>
+  );
+}
 
 const Row = styled.li`
   display: flex;
@@ -563,18 +579,27 @@ const TruncationBanner = styled.div`
   flex-shrink: 0;
 `;
 
-const ViewerBody = styled.pre`
+const ViewerBodyScroll = styled(ScrollArea)`
+  flex: 1;
+  background: var(--color-surface-app);
+`;
+
+const ViewerBodyPre = styled.pre`
   margin: 0;
   padding: 8px 10px;
-  background: var(--color-surface-app);
   color: var(--color-status-go-fg);
   font-size: 11px;
   line-height: 1.4;
   white-space: pre;
-  overflow: auto;
-  flex: 1;
-  min-height: 0;
 `;
+
+function ViewerBody({ children }: { children: ReactNode }) {
+  return (
+    <ViewerBodyScroll>
+      <ViewerBodyPre>{children}</ViewerBodyPre>
+    </ViewerBodyScroll>
+  );
+}
 
 const ScriptHeader = styled.div`
   display: flex;
@@ -583,17 +608,16 @@ const ScriptHeader = styled.div`
   gap: 8px;
 `;
 
-const ScriptBox = styled.div`
+const ScriptBox = styled(ScrollArea)`
   max-height: 260px;
-  overflow: auto;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
-  padding: 6px 8px;
   font-size: 11px;
   color: var(--color-status-go-fg);
   pre {
     margin: 0;
+    padding: 6px 8px;
     white-space: pre;
   }
 `;

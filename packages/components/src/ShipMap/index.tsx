@@ -9,6 +9,7 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  ScrollArea,
   Switch,
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
@@ -402,17 +403,16 @@ const ScriptHeader = styled.div`
   gap: 8px;
 `;
 
-const ScriptBox = styled.div`
+const ScriptBox = styled(ScrollArea)`
   max-height: 260px;
-  overflow: auto;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
-  padding: 6px 8px;
   font-size: 11px;
   color: var(--color-status-go-fg);
   pre {
     margin: 0;
+    padding: 6px 8px;
     white-space: pre;
   }
 `;

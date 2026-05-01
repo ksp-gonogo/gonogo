@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent } from "@gonogo/core";
 import { useKosWidget } from "@gonogo/data";
+import { ScrollArea } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { KosWidgetConfigComponent } from "./KosWidgetConfig";
@@ -239,10 +240,11 @@ const ErrorDetail = styled.pre`
   border-bottom: 1px solid var(--color-tag-dark-brown-bg);
 `;
 
-const DataGrid = styled.div`
+const DataGrid = styled(ScrollArea)`
   flex: 1;
-  overflow-y: auto;
-  padding: 6px 10px;
+  [data-scroll-area-inner] {
+    padding: 6px 10px;
+  }
 `;
 
 const DataRow = styled.div`

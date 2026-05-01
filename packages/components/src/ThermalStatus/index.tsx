@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
 import styled from "styled-components";
 
 // Empty config — room to add a "hide heat shield" toggle later.
@@ -102,7 +102,7 @@ function ThermalStatusComponent(
       {noData ? (
         <Empty>No thermal data</Empty>
       ) : (
-        <>
+        <ScrollBody>
           {anyCritical && (
             <AlertBanner role="alert">
               {engineOverheat
@@ -165,7 +165,7 @@ function ThermalStatusComponent(
               </RowBody>
             </Row>
           )}
-        </>
+        </ScrollBody>
       )}
     </Panel>
   );
@@ -180,6 +180,10 @@ function clampPct(pct: number): number {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const ScrollBody = styled(ScrollArea)`
+  flex: 1;
+`;
 
 const Empty = styled.div`
   color: var(--color-text-faint);

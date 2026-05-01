@@ -1196,8 +1196,6 @@ const ScrollBody = styled(ScrollArea)`
     display: flex;
     flex-direction: column;
     gap: 8px;
-    /* Reserve a sliver for the scrollbar so content isn't pushed under it. */
-    padding-right: 4px;
   }
 `;
 

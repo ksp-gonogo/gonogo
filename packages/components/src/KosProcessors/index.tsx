@@ -9,9 +9,10 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  ScrollArea,
   Switch,
 } from "@gonogo/ui";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
@@ -285,17 +286,26 @@ const Placeholder = styled.div`
   }
 `;
 
-const List = styled.ul`
+const ListScroll = styled(ScrollArea)`
+  flex: 1;
+`;
+
+const ListUl = styled.ul`
   list-style: none;
   margin: 0;
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
 `;
+
+function List({ children }: { children: ReactNode }) {
+  return (
+    <ListScroll>
+      <ListUl>{children}</ListUl>
+    </ListScroll>
+  );
+}
 
 const Row = styled.li`
   display: flex;
@@ -374,17 +384,16 @@ const ScriptHeader = styled.div`
   gap: 8px;
 `;
 
-const ScriptBox = styled.div`
+const ScriptBox = styled(ScrollArea)`
   max-height: 260px;
-  overflow: auto;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
-  padding: 6px 8px;
   font-size: 11px;
   color: var(--color-status-go-fg);
   pre {
     margin: 0;
+    padding: 6px 8px;
     white-space: pre;
   }
 `;
