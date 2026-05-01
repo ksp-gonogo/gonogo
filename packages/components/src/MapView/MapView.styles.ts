@@ -2,6 +2,7 @@ import styled from "styled-components";
 
 export const Header = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
 `;
@@ -10,6 +11,36 @@ export const BodyLabel = styled.span`
   font-size: 11px;
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
+`;
+
+export const CompactReadout = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+`;
+
+export const CompactRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+`;
+
+export const CompactLabel = styled.span`
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-faint);
+  min-width: 28px;
+  text-transform: uppercase;
+`;
+
+export const CompactValue = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 `;
 
 /**

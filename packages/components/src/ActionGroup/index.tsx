@@ -50,6 +50,8 @@ export type ActionGroupActions = typeof actionGroupActions;
 function ActionGroupComponent({
   config,
   onConfigChange,
+  w,
+  h,
 }: Readonly<ComponentProps<ActionGroupConfig>>) {
   const group = ACTION_GROUPS.find((g) => g.name === config?.actionGroupId);
   const currentLabel = config?.label ?? group?.name ?? "";
@@ -86,6 +88,13 @@ function ActionGroupComponent({
 
   const isOn = value === true;
   const isUnknown = value === undefined;
+
+  // Selective rendering — drop the secondary "official name" line when the
+  // widget is narrow; drop the toggle button when there's no vertical room.
+  const cols = w ?? 6;
+  const rows = h ?? 6;
+  const showOfficialName = cols >= 5;
+  const showToggleButton = rows >= 4 && Boolean(group.toggle);
 
   const startEditing = () => {
     setDraft(currentLabel);
@@ -148,7 +157,7 @@ function ActionGroupComponent({
             <GroupLabel>{currentLabel}</GroupLabel>
           )}
           {/* Always show official name as secondary, unless it matches the label */}
-          {config?.label && config.label !== group.name && (
+          {showOfficialName && config?.label && config.label !== group.name && (
             <OfficialName>{group.name}</OfficialName>
           )}
         </LabelArea>
@@ -156,7 +165,7 @@ function ActionGroupComponent({
           {isUnknown ? "—" : isOn ? "ON" : "OFF"}
         </StateIndicator>
       </Header>
-      {group.toggle && (
+      {showToggleButton && (
         <Button onClick={handleToggle} aria-label={`Toggle ${currentLabel}`}>
           TOGGLE
         </Button>

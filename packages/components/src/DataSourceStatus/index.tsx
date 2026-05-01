@@ -10,16 +10,19 @@ import {
   useStreamSources,
 } from "@gonogo/core";
 import {
+  BigReadout,
   FieldLabel,
   FieldRow,
   FormActions,
   GhostButton,
   IconButton,
   Input,
+  Panel,
   PanelScrollable,
   PanelTitle,
   Placeholder,
   PrimaryButton,
+  ReadoutCaption,
 } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -88,7 +91,10 @@ function useRemoteStreamVersionMismatch(sourceId: string): {
   return { remote, kind };
 }
 
-function DataSourceStatusComponent() {
+function DataSourceStatusComponent({
+  w,
+  h,
+}: Readonly<{ w?: number; h?: number }>) {
   const sources = useDataSources();
   const streamSources = useStreamSources();
   const [configuringId, setConfiguringId] = useState<string | null>(null);
@@ -119,6 +125,51 @@ function DataSourceStatusComponent() {
     source.configure(parsed);
     setConfiguringId(null);
   };
+
+  // Selective rendering — at small sizes the per-source rows lose their
+  // config buttons and retry chrome; tinier collapses to a healthy/total
+  // count badge.
+  const cols = w ?? 12;
+  const rows = h ?? 10;
+  const showFullRows = rows >= 6 && cols >= 6;
+  const showCompactRows = !showFullRows && rows >= 4 && cols >= 3;
+  const showStreamSection = showFullRows;
+
+  if (!showFullRows && !showCompactRows) {
+    const total = sources.length + streamSources.length;
+    const ok =
+      sources.filter((s) => s.status === "connected").length +
+      streamSources.filter((s) => s.status === "connected").length;
+    return (
+      <Panel>
+        <PanelTitle>SOURCES</PanelTitle>
+        <BigReadout $tone={ok === total && total > 0 ? "go" : "alert"}>
+          {`${ok} / ${total}`}
+          <ReadoutCaption>connected</ReadoutCaption>
+        </BigReadout>
+      </Panel>
+    );
+  }
+
+  if (showCompactRows) {
+    return (
+      <Panel>
+        <PanelTitle>Sources</PanelTitle>
+        {sources.length === 0 && streamSources.length === 0 ? (
+          <Placeholder>No data sources registered</Placeholder>
+        ) : (
+          <CompactList>
+            {[...sources, ...streamSources].map((s) => (
+              <CompactRow key={s.id}>
+                <Indicator $status={s.status} />
+                <Name>{s.name}</Name>
+              </CompactRow>
+            ))}
+          </CompactList>
+        )}
+      </Panel>
+    );
+  }
 
   return (
     <PanelScrollable>
@@ -214,7 +265,7 @@ function DataSourceStatusComponent() {
         </List>
       )}
 
-      {streamSources.length > 0 && (
+      {showStreamSection && streamSources.length > 0 && (
         <>
           <PanelTitle>Stream Sources</PanelTitle>
           <List>
@@ -255,7 +306,7 @@ registerComponent({
     "Shows connection status for all registered data sources and lets you edit their configuration.",
   tags: ["system"],
   defaultSize: { w: 12, h: 10 },
-  minSize: { w: 5, h: 5 },
+  minSize: { w: 3, h: 3 },
   component: DataSourceStatusComponent,
   dataRequirements: [],
   defaultConfig: {},
@@ -324,6 +375,22 @@ const Item = styled.li`
   display: flex;
   flex-direction: column;
   gap: 6px;
+`;
+
+const CompactList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const CompactRow = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
 `;
 
 const Row = styled.div`

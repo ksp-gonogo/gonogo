@@ -148,9 +148,10 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
 const SITUATION_BADGE_MS = 10_000;
 const SITUATION_DEBOUNCE_MS = 2_000;
 
-function ScienceBenchComponent(
-  _: Readonly<ComponentProps<ScienceBenchConfig>>,
-) {
+function ScienceBenchComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<ScienceBenchConfig>>) {
   const body = useDataValue("data", "v.body");
   const situation = useDataValue("data", "v.situationString") as
     | string
@@ -212,6 +213,14 @@ function ScienceBenchComponent(
   const showCareer =
     typeof careerMode === "string" && careerMode.toUpperCase() !== "SANDBOX";
 
+  // Selective rendering — situation pill always; supplementary sections
+  // drop bottom-up as height shrinks.
+  const cols = w ?? 8;
+  const rows = h ?? 10;
+  const showSensors = rows >= 5 && cols >= 4;
+  const showAboard = rows >= 7 && cols >= 4;
+  const showCareerStrip = showCareer && rows >= 9;
+
   return (
     <Panel>
       <PanelTitle>SCIENCE</PanelTitle>
@@ -228,30 +237,34 @@ function ScienceBenchComponent(
         {showNew && <NewBadge>NEW</NewBadge>}
       </SituationLine>
 
-      <Section>
-        <SectionTitle>Sensors</SectionTitle>
-        <SensorList>
-          {sensors.map(([type, raw]) => (
-            <SensorRow key={type} type={type} raw={raw} />
-          ))}
-        </SensorList>
-      </Section>
+      {showSensors && (
+        <Section>
+          <SectionTitle>Sensors</SectionTitle>
+          <SensorList>
+            {sensors.map(([type, raw]) => (
+              <SensorRow key={type} type={type} raw={raw} />
+            ))}
+          </SensorList>
+        </Section>
+      )}
 
-      <Section>
-        <SectionTitle>
-          Aboard
-          {typeof sciCount === "number" && (
-            <SectionMeta>
-              · {sciCount} record{sciCount === 1 ? "" : "s"}
-              {typeof sciDataAmount === "number" &&
-                ` · ${sciDataAmount.toFixed(1)} mits`}
-            </SectionMeta>
-          )}
-        </SectionTitle>
-        <ExperimentList experiments={experiments} sciCount={sciCount} />
-      </Section>
+      {showAboard && (
+        <Section>
+          <SectionTitle>
+            Aboard
+            {typeof sciCount === "number" && (
+              <SectionMeta>
+                · {sciCount} record{sciCount === 1 ? "" : "s"}
+                {typeof sciDataAmount === "number" &&
+                  ` · ${sciDataAmount.toFixed(1)} mits`}
+              </SectionMeta>
+            )}
+          </SectionTitle>
+          <ExperimentList experiments={experiments} sciCount={sciCount} />
+        </Section>
+      )}
 
-      {showCareer && (
+      {showCareerStrip && (
         <CareerStrip>
           <CareerCell>
             <CareerLabel>SCI</CareerLabel>
@@ -517,7 +530,7 @@ registerComponent<ScienceBenchConfig>({
     "Science officer station — current body / situation / biome with a NEW flash on transition, live readings from temp/pres/grav/acc sensors, an experiment-data inventory, and a career-mode strip for funds / reputation / science points.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
-  minSize: { w: 5, h: 5 },
+  minSize: { w: 4, h: 4 },
   component: ScienceBenchComponent,
   dataRequirements: [
     "v.body",

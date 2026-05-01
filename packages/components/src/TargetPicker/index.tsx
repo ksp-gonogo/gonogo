@@ -61,6 +61,8 @@ type TargetPickerActions = typeof targetPickerActions;
 
 function TargetPickerComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const cpu = config?.cpu ?? "";
   const scriptName = config?.scriptName ?? VESSEL_LIST_SCRIPT_NAME;
@@ -327,6 +329,36 @@ function TargetPickerComponent({
     </CurrentTab>
   );
 
+  // Selective rendering — at very small sizes the tabbed picker doesn't
+  // have room, so collapse to a current-target readout (clear button if
+  // there's any width).
+  const cols = w ?? 6;
+  const rows = h ?? 11;
+  const showTabs = rows >= 6 && cols >= 4;
+
+  if (!showTabs) {
+    return (
+      <Panel>
+        <PanelTitle>TARGET</PanelTitle>
+        <CompactCurrent>
+          {tarName ? (
+            <>
+              <CompactName>{tarName}</CompactName>
+              {typeof tarDistance === "number" &&
+                Number.isFinite(tarDistance) && (
+                  <CompactDistance>
+                    {formatDistance(tarDistance)}
+                  </CompactDistance>
+                )}
+            </>
+          ) : (
+            <Hint>No target set</Hint>
+          )}
+        </CompactCurrent>
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <PanelTitle>TARGET PICKER</PanelTitle>
@@ -515,6 +547,29 @@ const Hint = styled.div`
   line-height: 1.4;
 `;
 
+const CompactCurrent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+`;
+
+const CompactName = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+`;
+
+const CompactDistance = styled.div`
+  font-size: 11px;
+  color: var(--color-accent-fg);
+  letter-spacing: 0.04em;
+`;
+
 const CurrentTab = styled.div`
   margin-top: 8px;
   display: flex;
@@ -611,7 +666,7 @@ registerComponent<TargetPickerConfig>({
     "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab uses a kOS managed script to enumerate in-range targets (sorted by distance) and click-to-target by name. Current tab shows the active target's name / type / distance / Δv with a clear button.",
   tags: ["telemetry", "navigation", "kos"],
   defaultSize: { w: 6, h: 11 },
-  minSize: { w: 4, h: 5 },
+  minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
   dataRequirements: [

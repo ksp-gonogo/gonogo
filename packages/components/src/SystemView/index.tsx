@@ -37,6 +37,8 @@ interface SystemViewConfig {
 
 function SystemViewComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
@@ -159,6 +161,13 @@ function SystemViewComponent({
     return () => ro.disconnect();
   }, []);
 
+  // Selective rendering — diagram needs real area; almanac sidebar is
+  // wide chrome. At small sizes collapse to a text "Frame: X" summary.
+  const cols = w ?? 10;
+  const rows = h ?? 12;
+  const showDiagram = rows >= 5 && cols >= 5;
+  const showAlmanac = rows >= 6 && cols >= 9;
+
   return (
     <Panel>
       <PanelTitle>SYSTEM</PanelTitle>
@@ -169,31 +178,42 @@ function SystemViewComponent({
             ? "Pick a frame in the widget config."
             : `Frame: ${parentName}`}
       </PanelSubtitle>
-      <Body>
-        <DiagramWrap ref={wrapRef}>
-          {parentName !== null && bodies.length > 0 && (
-            <SystemDiagram
-              bodies={bodies}
-              parentName={parentName}
-              highlightNames={vesselBody ? [vesselBody] : []}
-              targetName={typeof targetName === "string" ? targetName : null}
-              vessel={vesselOrbit}
-              phaseAngles={phaseAngles}
-              transferStatuses={transferStatuses}
-              onFocusBodyChange={setFocusedBody}
-              width={size.w}
-              height={Math.max(size.h, 200)}
+      {showDiagram ? (
+        <Body $withSidebar={showAlmanac}>
+          <DiagramWrap ref={wrapRef}>
+            {parentName !== null && bodies.length > 0 && (
+              <SystemDiagram
+                bodies={bodies}
+                parentName={parentName}
+                highlightNames={vesselBody ? [vesselBody] : []}
+                targetName={typeof targetName === "string" ? targetName : null}
+                vessel={vesselOrbit}
+                phaseAngles={phaseAngles}
+                transferStatuses={transferStatuses}
+                onFocusBodyChange={setFocusedBody}
+                width={size.w}
+                height={Math.max(size.h, 200)}
+              />
+            )}
+          </DiagramWrap>
+          {showAlmanac && (
+            <AlmanacPanel
+              body={panelBody}
+              phaseAngleDeg={panelPhaseAngle}
+              isVesselParent={panelIsVesselParent}
+              hohmannIdealDeg={panelHohmann?.ideal ?? null}
+              hohmannDeltaDeg={panelHohmann?.delta ?? null}
             />
           )}
-        </DiagramWrap>
-        <AlmanacPanel
-          body={panelBody}
-          phaseAngleDeg={panelPhaseAngle}
-          isVesselParent={panelIsVesselParent}
-          hohmannIdealDeg={panelHohmann?.ideal ?? null}
-          hohmannDeltaDeg={panelHohmann?.delta ?? null}
-        />
-      </Body>
+        </Body>
+      ) : (
+        <CompactBody>
+          <CompactValue>{parentName ?? "—"}</CompactValue>
+          {typeof vesselBody === "string" && vesselBody !== parentName && (
+            <CompactSub>vessel · {vesselBody}</CompactSub>
+          )}
+        </CompactBody>
+      )}
     </Panel>
   );
 }
@@ -275,16 +295,39 @@ function SystemViewConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled.div`
+const Body = styled.div<{ $withSidebar: boolean }>`
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px;
+  grid-template-columns: ${({ $withSidebar }) =>
+    $withSidebar ? "minmax(0, 1fr) 200px" : "minmax(0, 1fr)"};
   gap: 0;
   margin-top: 6px;
   border: 1px solid var(--color-surface-panel);
   border-radius: 2px;
   overflow: hidden;
+`;
+
+const CompactBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+`;
+
+const CompactValue = styled.div`
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+`;
+
+const CompactSub = styled.div`
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
 `;
 
 const DiagramWrap = styled.div`
@@ -309,7 +352,7 @@ registerComponent<SystemViewConfig>({
     "Solar-system diagram driven by Telemachus's b.* bucket. Renders every body orbiting a chosen parent, highlights the vessel's current body and any selected target.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
-  minSize: { w: 6, h: 6 },
+  minSize: { w: 3, h: 4 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
   dataRequirements: ["b.number", "v.body", "tar.name"],

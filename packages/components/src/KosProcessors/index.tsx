@@ -42,6 +42,8 @@ const MIN_INTERVAL_MS = 1000;
 
 function KosProcessorsComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<KosProcessorsConfig>>) {
   const cpu = config?.cpu ?? "";
   const scriptName = config?.scriptName ?? KOS_PROCESSORS_SCRIPT_NAME;
@@ -118,6 +120,50 @@ function KosProcessorsComponent({
     if (payload.length === 0) {
       return <Placeholder>No kOS processors on this vessel.</Placeholder>;
     }
+
+    const cols = w ?? 6;
+    const rows = h ?? 8;
+    const showFullRows = rows >= 6 && cols >= 5;
+    const showCompactRows = !showFullRows && rows >= 4;
+
+    if (!showFullRows && !showCompactRows) {
+      const runCount = payload.filter((p) => p.mode === "RUN").length;
+      return (
+        <CompactSummary>
+          <CompactCount>{payload.length}</CompactCount>
+          <CompactSub>
+            CPU{payload.length === 1 ? "" : "s"} · {runCount} RUN
+          </CompactSub>
+        </CompactSummary>
+      );
+    }
+
+    if (showCompactRows) {
+      return (
+        <List>
+          {payload.map((p, i) => {
+            const key = p.partUid || `${p.tag || "untagged"}-${i}`;
+            const label = p.tag || "untagged";
+            return (
+              <Row key={key}>
+                <ModeDot
+                  $mode={p.mode}
+                  title={`mode: ${p.mode}`}
+                  aria-label={`mode ${p.mode.toLowerCase()}`}
+                />
+                <RowMain>
+                  <RowTitle>
+                    {p.tag ? label : <Untagged>{label}</Untagged>}
+                    <RowMode $mode={p.mode}>{p.mode}</RowMode>
+                  </RowTitle>
+                </RowMain>
+              </Row>
+            );
+          })}
+        </List>
+      );
+    }
+
     return (
       <List>
         {payload.map((p, i) => {
@@ -268,6 +314,28 @@ function KosProcessorsConfigComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const CompactSummary = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+`;
+
+const CompactCount = styled.div`
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-status-go-fg);
+`;
+
+const CompactSub = styled.div`
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
 
 const Placeholder = styled.div`
   flex: 1;
@@ -420,7 +488,7 @@ registerComponent<KosProcessorsConfig>({
     "Lists every kOS CPU on the active vessel — tag, run mode, current volume, and boot file. Driven by a saved kerboscript that calls `LIST PROCESSORS`; press Run to refresh.",
   tags: ["kos", "fleet"],
   defaultSize: { w: 6, h: 8 },
-  minSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: KosProcessorsComponent,
   configComponent: KosProcessorsConfigComponent,
   openConfigOnAdd: true,

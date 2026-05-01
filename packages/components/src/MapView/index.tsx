@@ -31,6 +31,10 @@ import {
   BaseCanvas,
   BodyLabel,
   CanvasContainer,
+  CompactLabel,
+  CompactReadout,
+  CompactRow,
+  CompactValue,
   DataCanvas,
   Header,
   ImagingChip,
@@ -121,7 +125,11 @@ function drawFadedSegments(
   }
 }
 
-function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
+function MapViewComponent({
+  config,
+  w,
+  h,
+}: Readonly<ComponentProps<MapViewConfig>>) {
   const trajectoryLength = config?.trajectoryLength ?? 2000;
   const telemetryKeys = config?.telemetryKeys ?? [];
   const showTelemetry = telemetryKeys.length > 0;
@@ -618,21 +626,64 @@ function MapViewComponent({ config }: Readonly<ComponentProps<MapViewConfig>>) {
     return { label: "IMAGING", variant: "on" };
   }, [body, altSea]);
 
+  // Selective rendering — at small sizes the canvas isn't readable, so
+  // collapse to a lat/lon text readout. Header chrome (imaging chip, follow
+  // toggle) drops at narrow widths.
+  const cols = w ?? 12;
+  const rows = h ?? 18;
+  const showMap = rows >= 6 && cols >= 6;
+  const showImagingChip = showMap && cols >= 8;
+  const showFollowToggle = showMap && cols >= 9;
+  const showBodyLabel = cols >= 5;
+
+  if (!showMap) {
+    return (
+      <Panel>
+        <Header>
+          <PanelTitle>MAP VIEW</PanelTitle>
+          {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
+        </Header>
+        <CompactReadout>
+          <CompactRow>
+            <CompactLabel>Lat</CompactLabel>
+            <CompactValue>
+              {lat === undefined ? "—" : `${lat.toFixed(3)}°`}
+            </CompactValue>
+          </CompactRow>
+          <CompactRow>
+            <CompactLabel>Lon</CompactLabel>
+            <CompactValue>
+              {lon === undefined ? "—" : `${lon.toFixed(3)}°`}
+            </CompactValue>
+          </CompactRow>
+          {altSea !== undefined && rows >= 5 && (
+            <CompactRow>
+              <CompactLabel>Alt</CompactLabel>
+              <CompactValue>{`${(altSea / 1000).toFixed(1)} km`}</CompactValue>
+            </CompactRow>
+          )}
+        </CompactReadout>
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
-        {displayName && <BodyLabel>{displayName}</BodyLabel>}
-        {imagingStatus && (
+        {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
+        {showImagingChip && imagingStatus && (
           <ImagingChip $variant={imagingStatus.variant}>
             {imagingStatus.label}
           </ImagingChip>
         )}
-        <Switch
-          checked={viewMode === "follow"}
-          onChange={(on) => setViewMode(on ? "follow" : "global")}
-          label="Follow"
-        />
+        {showFollowToggle && (
+          <Switch
+            checked={viewMode === "follow"}
+            onChange={(on) => setViewMode(on ? "follow" : "global")}
+            label="Follow"
+          />
+        )}
       </Header>
 
       <MapOuter ref={outerRef}>
@@ -734,7 +785,7 @@ registerComponent<MapViewConfig>({
     "Equirectangular map of the current body with vessel position and trajectory trail.",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
-  minSize: { w: 6, h: 6 },
+  minSize: { w: 3, h: 4 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
   dataRequirements: [

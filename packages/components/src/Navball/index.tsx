@@ -93,6 +93,8 @@ type NavballActions = typeof navballActions;
 function NavballComponent({
   config,
   onConfigChange,
+  w,
+  h,
 }: Readonly<ComponentProps<NavballConfig>>) {
   const useCoM = config?.useCoMFrame === true;
   const controlMode = config?.controlMode === true;
@@ -277,35 +279,78 @@ function NavballComponent({
     return () => ro.disconnect();
   }, []);
 
+  // Selective rendering — at very small sizes the SVG dial doesn't have
+  // room to be readable, so collapse to numeric heading/pitch/roll
+  // readouts. The throttle column and mode badge row drop independently.
+  const cols = w ?? 8;
+  const rows = h ?? 11;
+  const showDial = rows >= 6 && cols >= 4;
+  const showThrottleColumn = showDial && cols >= 5;
+  const showModeBadges = cols >= 5;
+  const showControlSurface = controlMode && rows >= 10 && cols >= 5;
+
   return (
     <Panel>
       <Header>
         <PanelTitle>{controlMode ? "GNC CONTROL" : "ATTITUDE"}</PanelTitle>
-        <ModeBadgeRow>
-          <ModeBadge $on={sasOn}>SAS{sasMode ? `: ${sasMode}` : ""}</ModeBadge>
-          <ModeBadge $on={rcsOn}>RCS</ModeBadge>
-          {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
-        </ModeBadgeRow>
+        {showModeBadges && (
+          <ModeBadgeRow>
+            <ModeBadge $on={sasOn}>
+              SAS{sasMode ? `: ${sasMode}` : ""}
+            </ModeBadge>
+            <ModeBadge $on={rcsOn}>RCS</ModeBadge>
+            {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
+          </ModeBadgeRow>
+        )}
       </Header>
 
       <Body>
-        <DialWrap ref={dialRef}>
-          <AttitudeIndicator
-            heading={heading}
-            pitch={pitch}
-            roll={roll}
-            size={dialSize}
-          />
-          <ThrottleColumn>
-            <ThrottleLabel>THR</ThrottleLabel>
-            <ThrottleBar>
-              <ThrottleFill style={{ height: `${throttle * 100}%` }} />
-            </ThrottleBar>
-            <ThrottleVal>{Math.round(throttle * 100)}%</ThrottleVal>
-          </ThrottleColumn>
-        </DialWrap>
+        {showDial ? (
+          <DialWrap ref={dialRef}>
+            <AttitudeIndicator
+              heading={heading}
+              pitch={pitch}
+              roll={roll}
+              size={dialSize}
+            />
+            {showThrottleColumn && (
+              <ThrottleColumn>
+                <ThrottleLabel>THR</ThrottleLabel>
+                <ThrottleBar>
+                  <ThrottleFill style={{ height: `${throttle * 100}%` }} />
+                </ThrottleBar>
+                <ThrottleVal>{Math.round(throttle * 100)}%</ThrottleVal>
+              </ThrottleColumn>
+            )}
+          </DialWrap>
+        ) : (
+          <NumericReadout>
+            <ReadoutRow>
+              <ReadoutLabel>HDG</ReadoutLabel>
+              <ReadoutValue>
+                {heading === null ? "—" : `${heading.toFixed(0)}°`}
+              </ReadoutValue>
+            </ReadoutRow>
+            <ReadoutRow>
+              <ReadoutLabel>PCH</ReadoutLabel>
+              <ReadoutValue>
+                {pitch === null
+                  ? "—"
+                  : `${pitch >= 0 ? "+" : ""}${pitch.toFixed(0)}°`}
+              </ReadoutValue>
+            </ReadoutRow>
+            <ReadoutRow>
+              <ReadoutLabel>RLL</ReadoutLabel>
+              <ReadoutValue>
+                {roll === null
+                  ? "—"
+                  : `${roll >= 0 ? "+" : ""}${roll.toFixed(0)}°`}
+              </ReadoutValue>
+            </ReadoutRow>
+          </NumericReadout>
+        )}
 
-        {controlMode && (
+        {showControlSurface && (
           <ControlSurface
             disabled={!isControllable}
             sasMode={sasMode ?? null}
@@ -595,6 +640,35 @@ const DialWrap = styled.div`
   justify-content: center;
 `;
 
+const NumericReadout = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+`;
+
+const ReadoutRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+`;
+
+const ReadoutLabel = styled.span`
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-faint);
+  min-width: 28px;
+`;
+
+const ReadoutValue = styled.span`
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+`;
+
 const ThrottleColumn = styled.div`
   display: flex;
   flex-direction: column;
@@ -729,7 +803,7 @@ registerComponent<NavballConfig>({
     "Attitude indicator + control surface. Reads heading/pitch/roll from Telemachus's n.* bucket and exposes a deep action surface — every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim — so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  minSize: { w: 4, h: 6 },
+  minSize: { w: 3, h: 4 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
   dataRequirements: [
