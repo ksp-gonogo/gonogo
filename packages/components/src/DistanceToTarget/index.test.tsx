@@ -1,12 +1,11 @@
-import type { DataKey } from "@gonogo/core";
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import type { DataKey, MockDataSource } from "@gonogo/core";
+import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  type MockDataSourceFixture,
+  setupMockDataSource,
+  teardownMockDataSource,
+} from "../test/setupMockDataSource";
 import { DistanceToTargetComponent } from "./index";
 
 const KEYS: DataKey[] = [
@@ -33,20 +32,19 @@ function prime(source: MockDataSource): void {
 }
 
 describe("DistanceToTargetComponent", () => {
+  let fixture: MockDataSourceFixture;
   let source: MockDataSource;
-  let buffered: BufferedDataSource;
 
   beforeEach(async () => {
-    clearRegistry();
-    source = new MockDataSource({ keys: KEYS, affectedBySignalLoss: true });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
+    fixture = await setupMockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+    });
+    source = fixture.source;
   });
 
   afterEach(() => {
-    cleanup();
-    buffered.disconnect();
+    teardownMockDataSource(fixture);
   });
 
   it("shows a 'no target set' hint until tar.name is reported", () => {

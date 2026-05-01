@@ -1,14 +1,12 @@
 import type { DataKey } from "@gonogo/core";
-import {
-  clearActionHandlers,
-  clearRegistry,
-  DashboardItemContext,
-  MockDataSource,
-  registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render } from "@testing-library/react";
+import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
+import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  type MockDataSourceFixture,
+  setupMockDataSource,
+  teardownMockDataSource,
+} from "../test/setupMockDataSource";
 import { CurrentOrbitComponent } from "./index";
 
 /**
@@ -39,24 +37,19 @@ const ORBIT_KEYS: DataKey[] = [
 ];
 
 describe("CurrentOrbitComponent", () => {
+  let fixture: MockDataSourceFixture;
   let source: MockDataSource;
-  let buffered: BufferedDataSource;
 
   beforeEach(async () => {
-    clearRegistry();
-    source = new MockDataSource({
+    fixture = await setupMockDataSource({
       keys: ORBIT_KEYS,
       affectedBySignalLoss: true,
     });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
+    source = fixture.source;
   });
 
   afterEach(() => {
-    cleanup();
-    buffered.disconnect();
-    clearActionHandlers();
+    teardownMockDataSource(fixture);
   });
 
   function renderOrbit(

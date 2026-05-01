@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@gonogo/core/test": path.resolve(
+        import.meta.dirname,
+        "../core/src/test/helpers.ts",
+      ),
       "@gonogo/core": path.resolve(import.meta.dirname, "../core/src/index.ts"),
       "@gonogo/components": path.resolve(
         import.meta.dirname,

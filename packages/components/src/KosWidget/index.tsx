@@ -1,18 +1,11 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import { formatAge, registerComponent } from "@gonogo/core";
 import { useKosWidget } from "@gonogo/data";
 import { ScrollArea } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { KosWidgetConfigComponent } from "./KosWidgetConfig";
 import type { KosWidgetConfig } from "./types";
-
-function formatAge(ms: number): string {
-  if (ms < 1000) return "<1s";
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${Math.round(ms / 3_600_000)}h`;
-}
 
 function formatValue(v: unknown): string {
   if (typeof v === "number") {

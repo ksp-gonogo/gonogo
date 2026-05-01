@@ -1,5 +1,10 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { logger, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  formatAge,
+  logger,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import { hashKosScript } from "@gonogo/data";
 import {
   ConfigForm,
@@ -306,13 +311,6 @@ function ShipMapConfigComponent({
       </PrimaryButton>
     </ConfigForm>
   );
-}
-
-function formatAge(ms: number): string {
-  if (ms < 1000) return "<1s";
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${Math.round(ms / 3_600_000)}h`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

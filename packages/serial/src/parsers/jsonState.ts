@@ -1,3 +1,4 @@
+import { clamp } from "@gonogo/core";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
 
@@ -179,18 +180,14 @@ function parseAnalog(
   const safeMin = min as number;
   const safeMax = max as number;
   const normalised = clamp(
+    (2 * (val - safeMin)) / (safeMax - safeMin) - 1,
     -1,
     1,
-    (2 * (val - safeMin)) / (safeMax - safeMin) - 1,
   );
   return {
     event: { inputId: id, value: normalised },
     updatedInput,
   };
-}
-
-function clamp(lo: number, hi: number, n: number): number {
-  return Math.max(lo, Math.min(hi, n));
 }
 
 function mergeInputs(

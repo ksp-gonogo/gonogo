@@ -12,6 +12,7 @@
  */
 
 import type { BodyDefinition } from "./bodies";
+import { clamp } from "./utils/math";
 
 export interface Vec3 {
   x: number;
@@ -365,10 +366,6 @@ export function paintFogDisc(
 
   if (maxX < 0) return null;
   return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }
 
 function wrapLon(lon: number): number {

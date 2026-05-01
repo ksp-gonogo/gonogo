@@ -1,4 +1,5 @@
 import {
+  clamp,
   formatDistance,
   orbitalToCartesian,
   trueAnomalyToRadius,
@@ -596,10 +597,6 @@ function fitToAspect(box: BBox, targetAspect: number | null): BBox {
   const newH = w / targetAspect;
   const dy = (newH - h) / 2;
   return { ...box, yMin: box.yMin - dy, yMax: box.yMax + dy };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
 
 function toViewBox(box: BBox): { x: number; y: number; w: number; h: number } {

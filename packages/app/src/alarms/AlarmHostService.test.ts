@@ -1,21 +1,6 @@
+import { memoryStorage } from "@gonogo/core/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmHostService } from "./AlarmHostService";
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    length: 0,
-    clear: () => map.clear(),
-    key: () => null,
-    getItem: (k) => map.get(k) ?? null,
-    setItem: (k, v) => {
-      map.set(k, String(v));
-    },
-    removeItem: (k) => {
-      map.delete(k);
-    },
-  } as Storage;
-}
 
 interface FakeTelemetry {
   getLatestValue: (key: string) => unknown;

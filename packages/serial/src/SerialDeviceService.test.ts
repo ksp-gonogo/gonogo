@@ -1,23 +1,8 @@
+import { memoryStorage } from "@gonogo/core/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SerialDeviceService } from "./SerialDeviceService";
 import type { VirtualTransport } from "./transports/VirtualTransport";
 import type { DeviceInstance, DeviceType } from "./types";
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    length: 0,
-    clear: () => map.clear(),
-    key: () => null,
-    getItem: (k) => map.get(k) ?? null,
-    setItem: (k, v) => {
-      map.set(k, String(v));
-    },
-    removeItem: (k) => {
-      map.delete(k);
-    },
-  } as Storage;
-}
 
 const TYPE: DeviceType = {
   id: "demo",

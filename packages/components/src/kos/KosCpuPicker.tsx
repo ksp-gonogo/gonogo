@@ -1,3 +1,4 @@
+import { formatAgeLong } from "@gonogo/core";
 import {
   type KosCpuEntry,
   useCpuRegistry,
@@ -58,16 +59,8 @@ function statusTooltip(entry: KosCpuEntry, now: number = Date.now()): string {
   if (entry.online) return "Online — visible in the kOS menu now";
   if (entry.lastSeenAt === undefined) return "Never seen by discovery";
   const ageMs = Math.max(0, now - entry.lastSeenAt);
-  const ageStr = formatAge(ageMs);
+  const ageStr = formatAgeLong(ageMs);
   return `Offline — last seen ${ageStr} ago`;
-}
-
-function formatAge(ms: number): string {
-  if (ms < 1000) return "<1s";
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)} min`;
-  if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} h`;
-  return `${Math.round(ms / 86_400_000)} d`;
 }
 
 function matches(entry: KosCpuEntry, q: string): boolean {

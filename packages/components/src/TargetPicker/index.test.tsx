@@ -1,20 +1,22 @@
 import type { DataKey } from "@gonogo/core";
 import {
-  clearRegistry,
   DashboardItemContext,
-  MockDataSource,
+  type MockDataSource,
   registerDataSource,
 } from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
 import {
   act,
-  cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  type MockDataSourceFixture,
+  setupMockDataSource,
+  teardownMockDataSource,
+} from "../test/setupMockDataSource";
 import { TargetPickerComponent } from "./index";
 
 const KEYS: DataKey[] = [
@@ -90,22 +92,18 @@ function registerFakeKosSource(
 }
 
 describe("TargetPickerComponent", () => {
+  let fixture: MockDataSourceFixture;
   let source: MockDataSource;
-  let buffered: BufferedDataSource;
   let onExecute: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    clearRegistry();
     onExecute = vi.fn();
-    source = new MockDataSource({ keys: KEYS, onExecute });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
   });
 
   afterEach(() => {
-    cleanup();
-    buffered.disconnect();
+    teardownMockDataSource(fixture);
   });
 
   function primeBodies() {
