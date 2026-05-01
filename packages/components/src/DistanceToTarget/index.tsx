@@ -38,10 +38,13 @@ interface DistanceToTargetConfig {
   cameraId?: string;
 }
 
-// Distances are in metres. Hysteresis prevents strobing at the threshold —
-// entering the HUD takes 100m; leaving takes 150m.
+// Distances are in metres. Hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;
 const HUD_EXIT_M = 150;
+const APPROACH_ENTER_M = 5_000;
+const APPROACH_EXIT_M = 5_500;
+
+type ViewMode = "tracking" | "approach" | "docking-hud";
 
 function DistanceToTargetComponent({
   config,
@@ -53,15 +56,17 @@ function DistanceToTargetComponent({
   const tarName = useDataValue("data", "tar.name");
   const tarType = useDataValue("data", "tar.type");
   const relVel = useDataValue("data", "tar.o.relativeVelocity");
+  const closestApproachUT = useDataValue("data", "o.closestTgtApprUT");
+  const universalTime = useDataValue("data", "t.universalTime");
   const dockAx = useDataValue("data", "dock.ax");
   const dockAy = useDataValue("data", "dock.ay");
   const dockAz = useDataValue("data", "dock.az");
   const dockX = useDataValue("data", "dock.x");
   const dockY = useDataValue("data", "dock.y");
 
-  // Hysteresis state — sticky across re-renders so we don't flip modes on
-  // single-sample excursions near the threshold.
-  const [inHud, setInHud] = useState(false);
+  // Mode hysteresis — sticky so we don't strobe near a threshold, and the
+  // upgrade direction is asymmetric (smaller window to enter than to exit).
+  const [mode, setMode] = useState<ViewMode>("tracking");
 
   const dockable =
     tarType !== undefined &&
@@ -71,12 +76,19 @@ function DistanceToTargetComponent({
 
   useEffect(() => {
     if (!autoSwitch || !dockable || tarDistance === undefined) {
-      if (inHud) setInHud(false);
+      if (mode !== "tracking") setMode("tracking");
       return;
     }
-    if (!inHud && tarDistance <= HUD_ENTER_M) setInHud(true);
-    else if (inHud && tarDistance > HUD_EXIT_M) setInHud(false);
-  }, [autoSwitch, dockable, tarDistance, inHud]);
+    if (mode === "tracking") {
+      if (tarDistance <= HUD_ENTER_M) setMode("docking-hud");
+      else if (tarDistance < APPROACH_ENTER_M) setMode("approach");
+    } else if (mode === "approach") {
+      if (tarDistance <= HUD_ENTER_M) setMode("docking-hud");
+      else if (tarDistance > APPROACH_EXIT_M) setMode("tracking");
+    } else if (mode === "docking-hud") {
+      if (tarDistance > HUD_EXIT_M) setMode("approach");
+    }
+  }, [autoSwitch, dockable, tarDistance, mode]);
 
   if (tarName === undefined) {
     return (
@@ -87,7 +99,7 @@ function DistanceToTargetComponent({
     );
   }
 
-  if (inHud) {
+  if (mode === "docking-hud") {
     return (
       <DockingHud
         name={tarName}
@@ -100,6 +112,20 @@ function DistanceToTargetComponent({
         y={dockY}
         showCamera={hudMode === "hud-with-camera"}
         cameraId={config?.cameraId}
+      />
+    );
+  }
+
+  if (mode === "approach") {
+    return (
+      <ApproachHud
+        name={tarName}
+        distance={tarDistance}
+        relVel={relVel}
+        closestApproachUT={
+          typeof closestApproachUT === "number" ? closestApproachUT : null
+        }
+        universalTime={typeof universalTime === "number" ? universalTime : null}
       />
     );
   }
@@ -118,6 +144,81 @@ function DistanceToTargetComponent({
       )}
     </Panel>
   );
+}
+
+// ── Approach HUD ──────────────────────────────────────────────────────────────
+
+interface ApproachHudProps {
+  name: string;
+  distance: number | undefined;
+  relVel: number | undefined;
+  closestApproachUT: number | null;
+  universalTime: number | null;
+}
+
+/**
+ * Approach mode: between the long-range tracking readout and the docking
+ * HUD. Vessels in the 100 m – 5 km band are too close to be a "tracking"
+ * problem and too far to align in the reticle. The relevant numbers are
+ * closing rate + time to closest approach.
+ *
+ * `relVel` reads as positive when the gap is opening, negative when
+ * closing — keep that convention so it matches `tar.o.relativeVelocity`'s
+ * sign in the rest of the codebase.
+ */
+function ApproachHud({
+  name,
+  distance,
+  relVel,
+  closestApproachUT,
+  universalTime,
+}: ApproachHudProps) {
+  const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
+  const closingMagnitude =
+    relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
+
+  // o.closestTgtApprUT can come back as NaN when no encounter is predicted.
+  const tcaSeconds =
+    closestApproachUT !== null &&
+    universalTime !== null &&
+    Number.isFinite(closestApproachUT) &&
+    Number.isFinite(universalTime)
+      ? closestApproachUT - universalTime
+      : null;
+
+  return (
+    <Panel>
+      <PanelTitle>APPROACH</PanelTitle>
+      <TargetName>{name}</TargetName>
+      <ApproachGrid>
+        <ApproachLabel>Distance</ApproachLabel>
+        <ApproachValue>
+          {distance === undefined ? "—" : formatDistance(distance)}
+        </ApproachValue>
+
+        <ApproachLabel>Closing rate</ApproachLabel>
+        <ApproachValue $tone={closing ? "ok" : "warn"}>
+          {closingMagnitude === null
+            ? "—"
+            : `${closing ? "−" : "+"}${closingMagnitude.toFixed(1)} m/s`}
+        </ApproachValue>
+
+        <ApproachLabel>TCA</ApproachLabel>
+        <ApproachValue>
+          {tcaSeconds === null ? "—" : formatTca(tcaSeconds)}
+        </ApproachValue>
+      </ApproachGrid>
+    </Panel>
+  );
+}
+
+function formatTca(seconds: number): string {
+  if (!Number.isFinite(seconds)) return "—";
+  const sign = seconds < 0 ? "T+" : "T−";
+  const abs = Math.abs(seconds);
+  const m = Math.floor(abs / 60);
+  const s = Math.floor(abs % 60);
+  return `${sign}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ── Docking HUD ───────────────────────────────────────────────────────────────
@@ -337,6 +438,8 @@ registerComponent<DistanceToTargetConfig>({
     "tar.name",
     "tar.type",
     "tar.o.relativeVelocity",
+    "o.closestTgtApprUT",
+    "t.universalTime",
     "dock.ax",
     "dock.ay",
     "dock.az",
@@ -381,6 +484,36 @@ const SubReadout = styled.div`
   font-size: 11px;
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
+`;
+
+// ── Styles — approach mode ────────────────────────────────────────────────────
+
+const ApproachGrid = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  margin-top: 6px;
+`;
+
+const ApproachLabel = styled.span`
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  align-self: baseline;
+`;
+
+const ApproachValue = styled.span<{ $tone?: "ok" | "warn" }>`
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: ${({ $tone }) =>
+    $tone === "ok"
+      ? "var(--color-accent-fg)"
+      : $tone === "warn"
+        ? "var(--color-status-warning-bg)"
+        : "var(--color-text-primary)"};
 `;
 
 // ── Styles — HUD mode ─────────────────────────────────────────────────────────

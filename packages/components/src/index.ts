@@ -26,5 +26,6 @@ export * from "./PerfBudgets";
 export * from "./ScienceBench";
 export * from "./ShipMap";
 export * from "./SystemView";
+export * from "./TargetPicker";
 export * from "./ThermalStatus";
 export * from "./WarpControl";

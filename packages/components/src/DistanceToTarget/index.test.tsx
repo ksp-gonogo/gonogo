@@ -17,6 +17,8 @@ const KEYS: DataKey[] = [
   { key: "tar.type" },
   { key: "tar.distance" },
   { key: "tar.o.relativeVelocity" },
+  { key: "o.closestTgtApprUT" },
+  { key: "t.universalTime" },
   { key: "dock.ax" },
   { key: "dock.ay" },
   { key: "dock.az" },
@@ -132,5 +134,69 @@ describe("DistanceToTargetComponent", () => {
       source.emit("tar.distance", 200);
     });
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+  });
+
+  it("switches to approach mode for Vessel targets between 100 m and 5 km", () => {
+    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    act(() => {
+      prime(source);
+      source.emit("tar.name", "Test Station");
+      source.emit("tar.type", "Vessel");
+      source.emit("tar.distance", 1_500);
+      source.emit("tar.o.relativeVelocity", -3.4);
+    });
+    expect(screen.getByText("APPROACH")).toBeInTheDocument();
+    expect(screen.getByText("Test Station")).toBeInTheDocument();
+    expect(screen.getByText("Closing rate")).toBeInTheDocument();
+    // Closing → negative relVel → minus-sign + magnitude
+    expect(screen.getByText(/−3\.4 m\/s/)).toBeInTheDocument();
+  });
+
+  it("renders TCA when closestTgtApprUT and universalTime are both available", () => {
+    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    act(() => {
+      prime(source);
+      source.emit("tar.name", "Test Station");
+      source.emit("tar.type", "Vessel");
+      source.emit("tar.distance", 2_000);
+      source.emit("t.universalTime", 1_000);
+      source.emit("o.closestTgtApprUT", 1_125); // 125 s in future = T−02:05
+    });
+    expect(screen.getByText(/T−02:05/)).toBeInTheDocument();
+  });
+
+  it("never enters approach mode for CelestialBody targets even at close range", () => {
+    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    act(() => {
+      prime(source);
+      source.emit("tar.name", "Mun");
+      source.emit("tar.type", "CelestialBody");
+      source.emit("tar.distance", 1_500);
+    });
+    expect(screen.queryByText("APPROACH")).toBeNull();
+    expect(screen.getByText("Mun")).toBeInTheDocument();
+  });
+
+  it("steps through tracking → approach → docking-hud as a vessel closes", () => {
+    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    act(() => {
+      prime(source);
+      source.emit("tar.name", "Test Station");
+      source.emit("tar.type", "Vessel");
+      source.emit("tar.distance", 50_000);
+    });
+    expect(screen.getByText("TARGET")).toBeInTheDocument();
+
+    act(() => {
+      source.emit("tar.distance", 2_000);
+    });
+    expect(screen.getByText("APPROACH")).toBeInTheDocument();
+
+    act(() => {
+      source.emit("tar.distance", 80);
+    });
+    expect(
+      screen.getByRole("region", { name: /Docking HUD/ }),
+    ).toBeInTheDocument();
   });
 });
