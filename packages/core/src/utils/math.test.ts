@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clamp, clamp01, lerp } from "./math";
+import { clamp, clamp01, clampSafe, lerp } from "./math";
 
 describe("clamp", () => {
   it("returns the value when in range", () => {
@@ -50,6 +50,36 @@ describe("clamp01", () => {
 
   it("propagates NaN", () => {
     expect(clamp01(Number.NaN)).toBeNaN();
+  });
+});
+
+describe("clampSafe", () => {
+  it("returns the value when in range", () => {
+    expect(clampSafe(5, 0, 10)).toBe(5);
+  });
+
+  it("clamps below min", () => {
+    expect(clampSafe(-3, 0, 10)).toBe(0);
+  });
+
+  it("clamps above max", () => {
+    expect(clampSafe(99, 0, 10)).toBe(10);
+  });
+
+  it("returns min for NaN", () => {
+    expect(clampSafe(Number.NaN, 0, 10)).toBe(0);
+  });
+
+  it("returns min for +Infinity", () => {
+    expect(clampSafe(Number.POSITIVE_INFINITY, 0, 10)).toBe(0);
+  });
+
+  it("returns min for -Infinity", () => {
+    expect(clampSafe(Number.NEGATIVE_INFINITY, 0, 10)).toBe(0);
+  });
+
+  it("respects negative min for non-finite input", () => {
+    expect(clampSafe(Number.NaN, -50, 50)).toBe(-50);
   });
 });
 

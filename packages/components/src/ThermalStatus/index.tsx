@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import { clampSafe, registerComponent, useDataValue } from "@gonogo/core";
 import {
   EmptyState,
   Panel,
@@ -220,11 +220,7 @@ function ThermalStatusComponent({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function clampPct(pct: number): number {
-  if (!Number.isFinite(pct) || pct < 0) return 0;
-  if (pct > 100) return 100;
-  return pct;
-}
+const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
