@@ -262,6 +262,103 @@ describe("PeerHostService — hello", () => {
   });
 });
 
+describe("PeerHostService — selective subscription", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  // Regression guard: a peer that switches to "selective" mode must only
+  // receive `data` messages whose (sourceId, key) it has subscribed to,
+  // while a peer that stays on the default broadcast-all path keeps
+  // receiving everything. Catches a refactor that loses the per-conn
+  // WeakMap mutation in the data-mode / data-subscribe handlers.
+  it("filters data broadcasts per-peer based on mode + subs", async () => {
+    const { clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    clearRegistry();
+
+    const service = new PeerHostService();
+    service.start();
+    await Promise.resolve();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    const broadcastAllConn = new FakeDataConnection();
+    broadcastAllConn.peer = "broadcast-all-peer";
+    FakePeer.last.emit("connection", broadcastAllConn);
+    broadcastAllConn.emit("open");
+
+    const selectiveConn = new FakeDataConnection();
+    selectiveConn.peer = "selective-peer";
+    FakePeer.last.emit("connection", selectiveConn);
+    selectiveConn.emit("open");
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Selective peer opts in and subscribes to a single key.
+    selectiveConn.emit("data", { type: "peer-data-mode", mode: "selective" });
+    selectiveConn.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "telemachus",
+      keys: ["v.altitude"],
+    });
+
+    const baseAll = broadcastAllConn.sent.length;
+    const baseSelective = selectiveConn.sent.length;
+
+    service.broadcast({
+      type: "data",
+      sourceId: "telemachus",
+      key: "v.altitude",
+      value: 100,
+      t: 1,
+    });
+    service.broadcast({
+      type: "data",
+      sourceId: "telemachus",
+      key: "v.lat",
+      value: 0.5,
+      t: 2,
+    });
+
+    const allNew = broadcastAllConn.sent.slice(baseAll) as Array<{
+      type: string;
+      key?: string;
+    }>;
+    const selectiveNew = selectiveConn.sent.slice(baseSelective) as Array<{
+      type: string;
+      key?: string;
+    }>;
+
+    // broadcast-all peer sees both
+    expect(allNew.filter((m) => m.type === "data")).toHaveLength(2);
+    // selective peer sees only the subscribed key
+    const selectiveData = selectiveNew.filter((m) => m.type === "data");
+    expect(selectiveData).toHaveLength(1);
+    expect(selectiveData[0].key).toBe("v.altitude");
+
+    // Now unsubscribe the selective peer and confirm it stops getting it.
+    selectiveConn.emit("data", {
+      type: "peer-data-unsubscribe",
+      sourceId: "telemachus",
+      keys: ["v.altitude"],
+    });
+
+    const baseSelective2 = selectiveConn.sent.length;
+    service.broadcast({
+      type: "data",
+      sourceId: "telemachus",
+      key: "v.altitude",
+      value: 200,
+      t: 3,
+    });
+    const after = selectiveConn.sent.slice(baseSelective2) as Array<{
+      type: string;
+    }>;
+    expect(after.filter((m) => m.type === "data")).toHaveLength(0);
+
+    clearRegistry();
+  });
+});
+
 describe("PeerHostService — schema broadcast", () => {
   beforeEach(() => {
     FakePeer.last = null;

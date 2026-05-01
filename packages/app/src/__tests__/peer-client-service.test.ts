@@ -379,4 +379,79 @@ describe("PeerClientService.sendQueryRange", () => {
 
     await expect(pending).rejects.toThrow(/disconnected/);
   });
+
+  it("rejects with timeout when no response arrives within timeoutMs", async () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[0];
+      peer.emit("open");
+      peer._lastConn?.emit("open");
+      if (!peer._lastConn)
+        throw new Error("expected an active peer connection");
+      peer._lastConn.send = () => {};
+
+      const pending = svc
+        .sendQueryRange("data", "v.altitude", 0, 1_000, undefined, 250)
+        .catch((e: Error) => e);
+
+      vi.advanceTimersByTime(250);
+      const result = await pending;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(/queryRange timeout/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("PeerClientService.sendKosExecute", () => {
+  beforeEach(() => {
+    FakePeer.instances = [];
+  });
+
+  it("rejects with timeout when no response arrives within timeoutMs", async () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[0];
+      peer.emit("open");
+      peer._lastConn?.emit("open");
+      if (!peer._lastConn)
+        throw new Error("expected an active peer connection");
+      // FakeDataConnection has no `open` field; force-set so sendKosExecute's
+      // `conn.open === false` guard doesn't preempt the timeout path.
+      (peer._lastConn as unknown as { open: boolean }).open = true;
+      peer._lastConn.send = () => {};
+
+      const pending = svc
+        .sendKosExecute("cpu", "script", [], undefined, 100)
+        .catch((e: Error) => e);
+
+      vi.advanceTimersByTime(100);
+      const result = await pending;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(/kos execute timeout/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects pending kos executes when the connection drops", async () => {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    (peer._lastConn as unknown as { open: boolean }).open = true;
+    peer._lastConn.send = () => {};
+
+    const pending = svc.sendKosExecute("cpu", "script", []);
+    peer._lastConn.emit("close");
+
+    await expect(pending).rejects.toThrow(/closed|disconnected/);
+  });
 });

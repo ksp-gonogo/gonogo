@@ -1,9 +1,12 @@
 import { debugPeer, logger } from "@gonogo/core";
 import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
-import { KosScriptError } from "@gonogo/data";
+import { KosScriptError, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { loadIceServers } from "./iceServers";
+import { MessageDispatcher } from "./MessageDispatcher";
 import type { PeerMessage, PeerSchemaSource } from "./protocol";
+import { RequestTracker } from "./RequestTracker";
+import { RetryPolicy } from "./RetryPolicy";
 import { getStationPeerId } from "./stationPeerId";
 
 export type ConnStatus =
@@ -15,23 +18,6 @@ export type ConnStatus =
 
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
-
-/**
- * Longer retry gap when the broker reports our station peer id is still
- * held. The broker's id TTL is on the order of 30–60 s, so a short
- * 2 s loop just generates noise. 8 s keeps the log usable without
- * missing the window when the broker finally releases the id.
- */
-const UNAVAILABLE_ID_RETRY_MS = 8_000;
-
-/** PeerJS error shape — `.type` is the one load-bearing field we read. */
-interface PeerJsError extends Error {
-  type?: string;
-}
-
-function isPeerJsError(e: unknown): e is PeerJsError {
-  return e instanceof Error && typeof (e as PeerJsError).type === "string";
-}
 
 export interface PeerClientOptions {
   retryIntervalMs?: number;
@@ -47,90 +33,74 @@ export class PeerClientService {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private hostPeerId: string | null = null;
-  private intentionalDisconnect = false;
-  private retryTimer: ReturnType<typeof setTimeout> | null = null;
-  private retryStart: number | null = null;
-  private readonly retryIntervalMs: number;
-  private readonly retryTimeoutMs: number;
   private readonly stationPeerId: string;
-  /** Last observed PeerJS error-type string — suppresses duplicate noisy
-   *  logs when the same condition (e.g. `unavailable-id`) persists across
-   *  retries. */
-  private lastErrorType: string | null = null;
-  /** ms override applied to the next retry. Set by error-type-specific
-   *  handling; cleared back to `retryIntervalMs` after one use. */
-  private nextRetryOverrideMs: number | null = null;
+  private readonly retryPolicy: RetryPolicy;
 
-  private dataListeners = new Set<
-    (sourceId: string, key: string, value: unknown, t: number) => void
+  private dataListeners = new ListenerSet<
+    [sourceId: string, key: string, value: unknown, t: number]
   >();
-  private sourceStatusListeners = new Set<
-    (sourceId: string, status: string) => void
+  private sourceStatusListeners = new ListenerSet<
+    [sourceId: string, status: string]
   >();
-  private connStatusListeners = new Set<(status: ConnStatus) => void>();
-  private schemaListeners = new Set<(sources: PeerSchemaSource[]) => void>();
-  private kosDataListeners = new Set<
-    (sessionId: string, data: string) => void
+  private connStatusListeners = new ListenerSet<[status: ConnStatus]>();
+  private schemaListeners = new ListenerSet<[sources: PeerSchemaSource[]]>();
+  private kosDataListeners = new ListenerSet<
+    [sessionId: string, data: string]
   >();
-  private kosOpenedListeners = new Set<(sessionId: string) => void>();
-  private kosCloseListeners = new Set<(sessionId: string) => void>();
-  private ocislyProxyPeerIdListeners = new Set<
-    (peerId: string | null) => void
+  private kosOpenedListeners = new ListenerSet<[sessionId: string]>();
+  private kosCloseListeners = new ListenerSet<[sessionId: string]>();
+  private ocislyProxyPeerIdListeners = new ListenerSet<
+    [peerId: string | null]
   >();
   private ocislyProxyPeerId: string | null = null;
   private hostVersion: { version: string; buildTime: string } | null = null;
-  private hostHelloListeners = new Set<
-    (info: { version: string; buildTime: string }) => void
+  private hostHelloListeners = new ListenerSet<
+    [info: { version: string; buildTime: string }]
   >();
-  private gonogoCountdownStartListeners = new Set<(t0Ms: number) => void>();
-  private gonogoCountdownCancelListeners = new Set<
-    (reason: string | undefined) => void
+  private gonogoCountdownStartListeners = new ListenerSet<[t0Ms: number]>();
+  private gonogoCountdownCancelListeners = new ListenerSet<
+    [reason: string | undefined]
   >();
-  private alarmSnapshotListeners = new Set<
-    (snap: import("../alarms/types").AlarmSnapshot) => void
+  private alarmSnapshotListeners = new ListenerSet<
+    [snap: import("../alarms/types").AlarmSnapshot]
   >();
-  private alarmFiredListeners = new Set<
-    (fire: { id: string; name: string; ut: number }) => void
+  private alarmFiredListeners = new ListenerSet<
+    [fire: { id: string; name: string; ut: number }]
   >();
-  private triggerSnapshotListeners = new Set<
-    (snap: import("@gonogo/components").TriggerSnapshot) => void
+  private triggerSnapshotListeners = new ListenerSet<
+    [snap: import("@gonogo/components").TriggerSnapshot]
   >();
-  private gonogoAbortNotifyListeners = new Set<
-    (stationName: string, t: number) => void
-  >();
-
-  private pendingQueries = new Map<
-    string,
-    {
-      resolve: (range: { t: number[]; v: unknown[] }) => void;
-      reject: (err: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
-    }
+  private gonogoAbortNotifyListeners = new ListenerSet<
+    [stationName: string, t: number]
   >();
 
-  private pendingKosExecutes = new Map<
-    string,
-    {
-      resolve: (data: KosData) => void;
-      reject: (err: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
-    }
-  >();
+  private pendingQueries = new RequestTracker<{
+    t: number[];
+    v: unknown[];
+  }>();
+  private pendingKosExecutes = new RequestTracker<KosData>();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
     peerId,
   }: PeerClientOptions = {}) {
-    this.retryIntervalMs = retryIntervalMs;
-    this.retryTimeoutMs = retryTimeoutMs;
     this.stationPeerId = peerId ?? getStationPeerId();
+    this.retryPolicy = new RetryPolicy({
+      retryIntervalMs,
+      retryTimeoutMs,
+      stationPeerId: this.stationPeerId,
+      hostPeerId: () => this.hostPeerId,
+      tearDown: () => this.tearDownPeer(),
+      rejectPending: (reason) => this.rejectPendingQueries(reason),
+      emitStatus: (status) => this.emitConnStatus(status),
+      reopen: () => this.openPeer(),
+    });
   }
 
   connect(hostPeerId: string) {
     this.hostPeerId = hostPeerId;
-    this.intentionalDisconnect = false;
-    this.retryStart = null;
+    this.retryPolicy.beginConnect();
     this.openPeer();
   }
 
@@ -145,13 +115,10 @@ export class PeerClientService {
     );
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
-      // Fresh peer opened cleanly — clear the "still stuck on this error"
-      // memo so future transitions log once again.
-      this.lastErrorType = null;
       this.conn = this.peer.connect(this.hostPeerId);
       this.conn.on("open", () => {
         logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
-        this.retryStart = null;
+        this.retryPolicy.onConnected();
         // Opt into selective broadcast immediately. The host's default
         // is broadcast-all so v1 stations still work; v2 stations switch
         // here. Following peer-data-subscribe messages from
@@ -162,85 +129,13 @@ export class PeerClientService {
       this.conn.on("data", (raw) => this.handleMessage(raw as PeerMessage));
       this.conn.on("close", () => {
         logger.info(`[PeerClient] connection closed`);
-        this.handleUnexpectedClose();
+        this.retryPolicy.handleUnexpectedClose();
       });
       this.conn.on("error", (err) => {
         logger.error("[PeerClient] connection error", err);
       });
     });
-    this.peer.on("error", (err) => this.handlePeerError(err));
-  }
-
-  /**
-   * Classify the PeerJS error, log meaningfully (deduplicated per
-   * error-type so sustained conditions like "unavailable-id" emit one
-   * line rather than flooding the console on every retry), and let
-   * `handleUnexpectedClose` schedule the next attempt.
-   */
-  private handlePeerError(err: unknown): void {
-    const type = isPeerJsError(err) ? (err.type ?? null) : null;
-    const repeat = type !== null && type === this.lastErrorType;
-
-    if (!repeat) {
-      if (type === "unavailable-id") {
-        // Broker still holds this station's id because our previous Peer
-        // hasn't been garbage-collected yet. Retry more slowly — the id
-        // will free itself within ~a minute.
-        logger.warn(
-          `[PeerClient] station peer id is still held by the broker — retrying slowly until it releases`,
-          { stationPeerId: this.stationPeerId },
-        );
-      } else if (type === "peer-unavailable") {
-        // Host isn't online (refreshing, shutdown). Normal retry cadence.
-        logger.info(
-          `[PeerClient] host ${this.hostPeerId} unavailable — will retry`,
-        );
-      } else {
-        logger.error(
-          "[PeerClient] peer error",
-          err instanceof Error ? err : new Error(String(err)),
-        );
-      }
-    } else {
-      // Same error as last time; keep it out of the visible log but still
-      // record at debug level for traceability.
-      debugPeer("PeerClient repeat error", {
-        type,
-        message: err instanceof Error ? err.message : String(err),
-      });
-    }
-
-    if (type === "unavailable-id") {
-      this.nextRetryOverrideMs = UNAVAILABLE_ID_RETRY_MS;
-    }
-    this.lastErrorType = type;
-    this.handleUnexpectedClose();
-  }
-
-  private handleUnexpectedClose() {
-    if (this.intentionalDisconnect) return;
-    if (this.retryTimer !== null) return; // already scheduled
-
-    this.tearDownPeer();
-    this.rejectPendingQueries("peer connection closed");
-
-    if (this.retryStart === null) this.retryStart = Date.now();
-    if (Date.now() - this.retryStart >= this.retryTimeoutMs) {
-      logger.warn("[PeerClient] giving up on reconnect");
-      this.retryStart = null;
-      this.lastErrorType = null;
-      this.nextRetryOverrideMs = null;
-      this.emitConnStatus("disconnected");
-      return;
-    }
-
-    this.emitConnStatus("reconnecting");
-    const delay = this.nextRetryOverrideMs ?? this.retryIntervalMs;
-    this.nextRetryOverrideMs = null;
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null;
-      this.openPeer();
-    }, delay);
+    this.peer.on("error", (err) => this.retryPolicy.handlePeerError(err));
   }
 
   private tearDownPeer() {
@@ -262,9 +157,7 @@ export class PeerClientService {
   }
 
   private emitConnStatus(status: ConnStatus) {
-    this.connStatusListeners.forEach((cb) => {
-      cb(status);
-    });
+    this.connStatusListeners.fire(status);
   }
 
   sendExecute(sourceId: string, action: string) {
@@ -449,36 +342,26 @@ export class PeerClientService {
       return Promise.reject(new Error("not connected"));
     }
     const requestId = crypto.randomUUID();
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        if (this.pendingQueries.delete(requestId)) {
-          reject(new Error("queryRange timeout"));
-        }
-      }, timeoutMs);
-      this.pendingQueries.set(requestId, { resolve, reject, timer });
-      this.conn?.send({
-        type: "query-range-request",
-        requestId,
-        sourceId,
-        key,
-        tStart,
-        tEnd,
-        flightId,
-      } satisfies PeerMessage);
-    });
+    const pending = this.pendingQueries.track(
+      requestId,
+      timeoutMs,
+      "queryRange timeout",
+    );
+    this.conn.send({
+      type: "query-range-request",
+      requestId,
+      sourceId,
+      key,
+      tStart,
+      tEnd,
+      flightId,
+    } satisfies PeerMessage);
+    return pending;
   }
 
   private rejectPendingQueries(reason: string) {
-    for (const [id, pending] of this.pendingQueries) {
-      clearTimeout(pending.timer);
-      pending.reject(new Error(reason));
-      this.pendingQueries.delete(id);
-    }
-    for (const [id, pending] of this.pendingKosExecutes) {
-      clearTimeout(pending.timer);
-      pending.reject(new Error(reason));
-      this.pendingKosExecutes.delete(id);
-    }
+    this.pendingQueries.rejectAll(reason);
+    this.pendingKosExecutes.rejectAll(reason);
   }
 
   /**
@@ -496,96 +379,80 @@ export class PeerClientService {
     managed?: KosManagedScript,
     timeoutMs = 35_000,
   ): Promise<KosData> {
-    return new Promise((resolve, reject) => {
-      if (!this.conn || this.conn.open === false) {
-        reject(new Error("not connected to host"));
-        return;
-      }
-      const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => {
-        if (this.pendingKosExecutes.delete(requestId)) {
-          reject(new Error("kos execute timeout"));
-        }
-      }, timeoutMs);
-      this.pendingKosExecutes.set(requestId, { resolve, reject, timer });
-      this.conn.send({
-        type: "kos-execute-request",
-        requestId,
-        cpu,
-        script,
-        args,
-        managed,
-      } satisfies PeerMessage);
-    });
+    if (!this.conn || this.conn.open === false) {
+      return Promise.reject(new Error("not connected to host"));
+    }
+    const requestId = crypto.randomUUID();
+    const pending = this.pendingKosExecutes.track(
+      requestId,
+      timeoutMs,
+      "kos execute timeout",
+    );
+    this.conn.send({
+      type: "kos-execute-request",
+      requestId,
+      cpu,
+      script,
+      args,
+      managed,
+    } satisfies PeerMessage);
+    return pending;
   }
 
   onData(
     cb: (sourceId: string, key: string, value: unknown, t: number) => void,
   ) {
-    this.dataListeners.add(cb);
-    return () => this.dataListeners.delete(cb);
+    return this.dataListeners.add(cb);
   }
 
   onSourceStatus(cb: (sourceId: string, status: string) => void) {
-    this.sourceStatusListeners.add(cb);
-    return () => this.sourceStatusListeners.delete(cb);
+    return this.sourceStatusListeners.add(cb);
   }
 
   onConnectionStatus(cb: (status: ConnStatus) => void) {
-    this.connStatusListeners.add(cb);
-    return () => this.connStatusListeners.delete(cb);
+    return this.connStatusListeners.add(cb);
   }
 
   onSchema(cb: (sources: PeerSchemaSource[]) => void) {
-    this.schemaListeners.add(cb);
-    return () => this.schemaListeners.delete(cb);
+    return this.schemaListeners.add(cb);
   }
 
   onKosOpened(cb: (sessionId: string) => void) {
-    this.kosOpenedListeners.add(cb);
-    return () => this.kosOpenedListeners.delete(cb);
+    return this.kosOpenedListeners.add(cb);
   }
 
   onKosData(cb: (sessionId: string, data: string) => void) {
-    this.kosDataListeners.add(cb);
-    return () => this.kosDataListeners.delete(cb);
+    return this.kosDataListeners.add(cb);
   }
 
   onKosClose(cb: (sessionId: string) => void) {
-    this.kosCloseListeners.add(cb);
-    return () => this.kosCloseListeners.delete(cb);
+    return this.kosCloseListeners.add(cb);
   }
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
-    this.gonogoCountdownStartListeners.add(cb);
-    return () => this.gonogoCountdownStartListeners.delete(cb);
+    return this.gonogoCountdownStartListeners.add(cb);
   }
 
   onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
-    this.gonogoCountdownCancelListeners.add(cb);
-    return () => this.gonogoCountdownCancelListeners.delete(cb);
+    return this.gonogoCountdownCancelListeners.add(cb);
   }
 
   onGonogoAbortNotify(cb: (stationName: string, t: number) => void) {
-    this.gonogoAbortNotifyListeners.add(cb);
-    return () => this.gonogoAbortNotifyListeners.delete(cb);
+    return this.gonogoAbortNotifyListeners.add(cb);
   }
 
   onAlarmSnapshot(cb: (snap: import("../alarms/types").AlarmSnapshot) => void) {
-    this.alarmSnapshotListeners.add(cb);
-    return () => this.alarmSnapshotListeners.delete(cb);
+    return this.alarmSnapshotListeners.add(cb);
   }
 
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
-    this.alarmFiredListeners.add(cb);
-    return () => this.alarmFiredListeners.delete(cb);
+    return this.alarmFiredListeners.add(cb);
   }
 
   onTriggerSnapshot(
     cb: (snap: import("@gonogo/components").TriggerSnapshot) => void,
   ) {
-    this.triggerSnapshotListeners.add(cb);
-    return () => this.triggerSnapshotListeners.delete(cb);
+    return this.triggerSnapshotListeners.add(cb);
   }
 
   /** For tests + DEBUG_PEER diagnostics — exposes listener Set sizes. */
@@ -601,40 +468,31 @@ export class PeerClientService {
     };
   }
 
-  private handleMessage(msg: PeerMessage) {
-    if (msg.type === "hello") {
+  private readonly dispatcher = new MessageDispatcher<void>({
+    hello: (msg) => {
       this.hostVersion = { version: msg.version, buildTime: msg.buildTime };
       logger.info(
         `[PeerClient] host hello — v${msg.version} (build ${msg.buildTime})`,
       );
-      for (const cb of this.hostHelloListeners) cb(this.hostVersion);
-      return;
-    }
-    if (msg.type === "data") {
+      this.hostHelloListeners.fire(this.hostVersion);
+    },
+    data: (msg) => {
       debugPeer("client handleMessage data", {
         sourceId: msg.sourceId,
         key: msg.key,
         dataListenerCount: this.dataListeners.size,
       });
       const t = msg.t ?? Date.now();
-      this.dataListeners.forEach((cb) => {
-        cb(msg.sourceId, msg.key, msg.value, t);
-      });
-    } else if (msg.type === "query-range-response") {
-      const pending = this.pendingQueries.get(msg.requestId);
-      if (!pending) return;
-      clearTimeout(pending.timer);
-      this.pendingQueries.delete(msg.requestId);
+      this.dataListeners.fire(msg.sourceId, msg.key, msg.value, t);
+    },
+    "query-range-response": (msg) => {
       if (msg.error) {
-        pending.reject(new Error(msg.error));
+        this.pendingQueries.reject(msg.requestId, new Error(msg.error));
       } else {
-        pending.resolve({ t: msg.t, v: msg.v });
+        this.pendingQueries.resolve(msg.requestId, { t: msg.t, v: msg.v });
       }
-    } else if (msg.type === "kos-execute-response") {
-      const pending = this.pendingKosExecutes.get(msg.requestId);
-      if (!pending) return;
-      clearTimeout(pending.timer);
-      this.pendingKosExecutes.delete(msg.requestId);
+    },
+    "kos-execute-response": (msg) => {
       if (msg.error || !msg.data) {
         const message = msg.error ?? "kos execute: empty response";
         // Preserve the script-vs-infra discriminator across the peer
@@ -643,53 +501,59 @@ export class PeerClientService {
         const err = msg.isScriptError
           ? new KosScriptError(message)
           : new Error(message);
-        pending.reject(err);
+        this.pendingKosExecutes.reject(msg.requestId, err);
       } else {
-        pending.resolve(msg.data);
+        this.pendingKosExecutes.resolve(msg.requestId, msg.data);
       }
-    } else if (msg.type === "status") {
-      this.sourceStatusListeners.forEach((cb) => {
-        cb(msg.sourceId, msg.status);
-      });
-    } else if (msg.type === "schema") {
+    },
+    status: (msg) => {
+      this.sourceStatusListeners.fire(msg.sourceId, msg.status);
+    },
+    schema: (msg) => {
       logger.info(
         `[PeerClient] schema received — ${msg.sources.length} sources`,
       );
-      this.schemaListeners.forEach((cb) => {
-        cb(msg.sources);
-      });
-    } else if (msg.type === "kos-opened") {
-      this.kosOpenedListeners.forEach((cb) => {
-        cb(msg.sessionId);
-      });
-    } else if (msg.type === "kos-data") {
-      this.kosDataListeners.forEach((cb) => {
-        cb(msg.sessionId, msg.data);
-      });
-    } else if (msg.type === "kos-close") {
-      this.kosCloseListeners.forEach((cb) => {
-        cb(msg.sessionId);
-      });
-    } else if (msg.type === "ocisly-proxy-peer-id") {
+      this.schemaListeners.fire(msg.sources);
+    },
+    "kos-opened": (msg) => {
+      this.kosOpenedListeners.fire(msg.sessionId);
+    },
+    "kos-data": (msg) => {
+      this.kosDataListeners.fire(msg.sessionId, msg.data);
+    },
+    "kos-close": (msg) => {
+      this.kosCloseListeners.fire(msg.sessionId);
+    },
+    "ocisly-proxy-peer-id": (msg) => {
       this.ocislyProxyPeerId = msg.peerId;
-      this.ocislyProxyPeerIdListeners.forEach((cb) => {
-        cb(msg.peerId);
+      this.ocislyProxyPeerIdListeners.fire(msg.peerId);
+    },
+    "gonogo-countdown-start": (msg) => {
+      this.gonogoCountdownStartListeners.fire(msg.t0Ms);
+    },
+    "gonogo-countdown-cancel": (msg) => {
+      this.gonogoCountdownCancelListeners.fire(msg.reason);
+    },
+    "gonogo-abort-notify": (msg) => {
+      this.gonogoAbortNotifyListeners.fire(msg.stationName, msg.t);
+    },
+    "alarm-snapshot": (msg) => {
+      this.alarmSnapshotListeners.fire(msg.snapshot);
+    },
+    "alarm-fired": (msg) => {
+      this.alarmFiredListeners.fire({
+        id: msg.id,
+        name: msg.name,
+        ut: msg.ut,
       });
-    } else if (msg.type === "gonogo-countdown-start") {
-      for (const cb of this.gonogoCountdownStartListeners) cb(msg.t0Ms);
-    } else if (msg.type === "gonogo-countdown-cancel") {
-      for (const cb of this.gonogoCountdownCancelListeners) cb(msg.reason);
-    } else if (msg.type === "gonogo-abort-notify") {
-      for (const cb of this.gonogoAbortNotifyListeners)
-        cb(msg.stationName, msg.t);
-    } else if (msg.type === "alarm-snapshot") {
-      for (const cb of this.alarmSnapshotListeners) cb(msg.snapshot);
-    } else if (msg.type === "alarm-fired") {
-      for (const cb of this.alarmFiredListeners)
-        cb({ id: msg.id, name: msg.name, ut: msg.ut });
-    } else if (msg.type === "trigger-snapshot") {
-      for (const cb of this.triggerSnapshotListeners) cb(msg.snapshot);
-    }
+    },
+    "trigger-snapshot": (msg) => {
+      this.triggerSnapshotListeners.fire(msg.snapshot);
+    },
+  });
+
+  private handleMessage(msg: PeerMessage) {
+    this.dispatcher.dispatch(msg, undefined);
   }
 
   /** Latest OCISLY proxy peer id the host has announced, or null if none. */
@@ -709,10 +573,7 @@ export class PeerClientService {
   onHostHello(
     cb: (info: { version: string; buildTime: string }) => void,
   ): () => void {
-    this.hostHelloListeners.add(cb);
-    return () => {
-      this.hostHelloListeners.delete(cb);
-    };
+    return this.hostHelloListeners.add(cb);
   }
 
   /**
@@ -720,10 +581,7 @@ export class PeerClientService {
    * (including null → proxy is down).
    */
   onOcislyProxyPeerIdChange(cb: (peerId: string | null) => void): () => void {
-    this.ocislyProxyPeerIdListeners.add(cb);
-    return () => {
-      this.ocislyProxyPeerIdListeners.delete(cb);
-    };
+    return this.ocislyProxyPeerIdListeners.add(cb);
   }
 
   /**
@@ -746,11 +604,7 @@ export class PeerClientService {
   }
 
   disconnect() {
-    this.intentionalDisconnect = true;
-    if (this.retryTimer !== null) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
+    this.retryPolicy.cancel();
     this.tearDownPeer();
     this.rejectPendingQueries("peer client disconnected");
     this.hostPeerId = null;

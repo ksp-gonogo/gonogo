@@ -1,9 +1,11 @@
 import { debugPeer, logger, PerfBudget } from "@gonogo/core";
 import type { DataKeyMeta } from "@gonogo/data";
-import { isScriptable } from "@gonogo/data";
+import { isScriptable, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { loadIceServers } from "./iceServers";
+import { KosSessionManager } from "./KosSessionManager";
+import { MessageDispatcher } from "./MessageDispatcher";
 import type { PeerMessage } from "./protocol";
 
 const PEER_ID_KEY = "gonogo-host-peer-id";
@@ -58,11 +60,6 @@ function getOrCreatePeerId(): string {
   return id;
 }
 
-interface KosSession {
-  ws: WebSocket;
-  conn: DataConnection;
-}
-
 type StationInfoListener = (
   peerId: string,
   info: { name: string; version?: string; buildTime?: string },
@@ -99,24 +96,57 @@ type TriggerCancelListener = (peerId: string, id: string) => void;
 export class PeerHostService {
   private peer: Peer | null = null;
   private connections: Set<DataConnection> = new Set();
-  private idListeners = new Set<(id: string | null) => void>();
-  private kosSessions = new Map<string, KosSession>();
+  private idListeners = new ListenerSet<[string | null]>();
+  private kosSessions = new KosSessionManager({
+    getKosConfig: async () => {
+      const { getDataSource } = await import("@gonogo/core");
+      return getDataSource("kos")?.getConfig() as
+        | { host?: string; port?: number; kosHost?: string; kosPort?: number }
+        | undefined;
+    },
+  });
   private ocislyProxyPeerId: string | null = null;
-  private stationInfoListeners = new Set<StationInfoListener>();
-  private gonogoVoteListeners = new Set<GonogoVoteListener>();
-  private gonogoAbortListeners = new Set<GonogoAbortListener>();
-  private peerConnectListeners = new Set<PeerLifecycleListener>();
-  private peerDisconnectListeners = new Set<PeerLifecycleListener>();
-  private widgetPushListeners = new Set<WidgetPushListener>();
-  private widgetRecallListeners = new Set<WidgetRecallListener>();
-  private alarmAddListeners = new Set<AlarmAddListener>();
-  private alarmUpdateListeners = new Set<AlarmUpdateListener>();
-  private alarmDeleteListeners = new Set<AlarmDeleteListener>();
-  private alarmAcknowledgeListeners = new Set<AlarmAcknowledgeListener>();
-  private alarmAckListeners = new Set<AlarmAckListener>();
-  private alarmWarpIntentListeners = new Set<AlarmWarpIntentListener>();
-  private triggerArmListeners = new Set<TriggerArmListener>();
-  private triggerCancelListeners = new Set<TriggerCancelListener>();
+  private stationInfoListeners = new ListenerSet<
+    Parameters<StationInfoListener>
+  >();
+  private gonogoVoteListeners = new ListenerSet<
+    Parameters<GonogoVoteListener>
+  >();
+  private gonogoAbortListeners = new ListenerSet<
+    Parameters<GonogoAbortListener>
+  >();
+  private peerConnectListeners = new ListenerSet<
+    Parameters<PeerLifecycleListener>
+  >();
+  private peerDisconnectListeners = new ListenerSet<
+    Parameters<PeerLifecycleListener>
+  >();
+  private widgetPushListeners = new ListenerSet<
+    Parameters<WidgetPushListener>
+  >();
+  private widgetRecallListeners = new ListenerSet<
+    Parameters<WidgetRecallListener>
+  >();
+  private alarmAddListeners = new ListenerSet<Parameters<AlarmAddListener>>();
+  private alarmUpdateListeners = new ListenerSet<
+    Parameters<AlarmUpdateListener>
+  >();
+  private alarmDeleteListeners = new ListenerSet<
+    Parameters<AlarmDeleteListener>
+  >();
+  private alarmAcknowledgeListeners = new ListenerSet<
+    Parameters<AlarmAcknowledgeListener>
+  >();
+  private alarmAckListeners = new ListenerSet<Parameters<AlarmAckListener>>();
+  private alarmWarpIntentListeners = new ListenerSet<
+    Parameters<AlarmWarpIntentListener>
+  >();
+  private triggerArmListeners = new ListenerSet<
+    Parameters<TriggerArmListener>
+  >();
+  private triggerCancelListeners = new ListenerSet<
+    Parameters<TriggerCancelListener>
+  >();
 
   // Selective subscription state. Maps each connected DataConnection to:
   //   - mode: "broadcast-all" (default) or "selective"
@@ -145,9 +175,7 @@ export class PeerHostService {
       localStorage.setItem(PEER_ID_KEY, id);
       this.peerId = id;
       logger.info(`[PeerHost] open — id=${id}`);
-      this.idListeners.forEach((cb) => {
-        cb(id);
-      });
+      this.idListeners.fire(id);
     });
 
     this.peer.on("connection", (conn) => {
@@ -174,16 +202,16 @@ export class PeerHostService {
             peerId: this.ocislyProxyPeerId,
           } satisfies PeerMessage);
         }
-        for (const cb of this.peerConnectListeners) cb(conn.peer);
+        this.peerConnectListeners.fire(conn.peer);
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
       conn.on("close", () => {
         this.connections.delete(conn);
-        this.closeKosSessionsForConn(conn);
+        this.kosSessions.closeAllForConn(conn);
         logger.info(
           `[PeerHost] connection closed — peer=${conn.peer}, total=${this.connections.size}`,
         );
-        for (const cb of this.peerDisconnectListeners) cb(conn.peer);
+        this.peerDisconnectListeners.fire(conn.peer);
       });
       conn.on("error", (err) => {
         logger.error(`[PeerHost] connection error — peer=${conn.peer}`, err);
@@ -287,8 +315,7 @@ export class PeerHostService {
   }
 
   onPeerIdChange(cb: (id: string | null) => void) {
-    this.idListeners.add(cb);
-    return () => this.idListeners.delete(cb);
+    return this.idListeners.add(cb);
   }
 
   // Schema is sent once per station connect. Stations cache what arrives here
@@ -314,126 +341,77 @@ export class PeerHostService {
     });
   }
 
-  private handleIncoming(msg: PeerMessage, conn: DataConnection) {
-    debugPeer("host handleIncoming", {
-      type: msg.type,
-      peer: conn.peer,
-      sessionId: "sessionId" in msg ? msg.sessionId : undefined,
-    });
-    if (msg.type === "execute") {
+  private readonly dispatcher = new MessageDispatcher<DataConnection>({
+    execute: (msg) => {
       logger.info(
         `[PeerHost] execute — source=${msg.sourceId} action=${msg.action}`,
       );
       import("@gonogo/core").then(({ getDataSource }) => {
         getDataSource(msg.sourceId)?.execute(msg.action);
       });
-      return;
-    }
-
-    if (msg.type === "query-range-request") {
+    },
+    "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
-      return;
-    }
-
-    if (msg.type === "kos-execute-request") {
+    },
+    "kos-execute-request": (msg, conn) => {
       void this.handleKosExecuteRequest(msg, conn);
-      return;
-    }
-
-    if (msg.type === "kos-open") {
-      void this.handleKosOpen(msg, conn);
-      return;
-    }
-
-    if (msg.type === "kos-data") {
-      const session = this.kosSessions.get(msg.sessionId);
-      if (session?.ws.readyState === WebSocket.OPEN) {
-        session.ws.send(msg.data);
-      }
-      return;
-    }
-
-    if (msg.type === "kos-resize") {
-      void this.handleKosResize(msg);
-      return;
-    }
-
-    if (msg.type === "kos-close") {
-      const session = this.kosSessions.get(msg.sessionId);
-      if (session) {
-        // Remove before closing so the WS close event doesn't echo kos-close back.
-        this.kosSessions.delete(msg.sessionId);
-        session.ws.close();
-      }
-      return;
-    }
-
-    if (msg.type === "station-info") {
-      const info = {
+    },
+    "kos-open": (msg, conn) => {
+      void this.kosSessions.handleOpen(msg, conn);
+    },
+    "kos-data": (msg) => {
+      this.kosSessions.handleData(msg);
+    },
+    "kos-resize": (msg) => {
+      void this.kosSessions.handleResize(msg);
+    },
+    "kos-close": (msg) => {
+      this.kosSessions.handleClose(msg);
+    },
+    "station-info": (msg, conn) => {
+      this.stationInfoListeners.fire(conn.peer, {
         name: msg.name,
         version: msg.version,
         buildTime: msg.buildTime,
-      };
-      for (const cb of this.stationInfoListeners) cb(conn.peer, info);
-      return;
-    }
-
-    if (msg.type === "gonogo-vote") {
-      for (const cb of this.gonogoVoteListeners) cb(conn.peer, msg.status);
-      return;
-    }
-
-    if (msg.type === "gonogo-abort") {
-      for (const cb of this.gonogoAbortListeners) cb(conn.peer);
-      return;
-    }
-
-    if (msg.type === "widget-push") {
-      for (const cb of this.widgetPushListeners) cb(conn.peer, msg);
-      return;
-    }
-
-    if (msg.type === "widget-recall") {
-      for (const cb of this.widgetRecallListeners)
-        cb(conn.peer, msg.widgetInstanceId);
-      return;
-    }
-
-    if (msg.type === "alarm-add") {
-      for (const cb of this.alarmAddListeners) cb(conn.peer, msg);
-      return;
-    }
-    if (msg.type === "alarm-update") {
-      for (const cb of this.alarmUpdateListeners) cb(conn.peer, msg);
-      return;
-    }
-    if (msg.type === "alarm-delete") {
-      for (const cb of this.alarmDeleteListeners) cb(conn.peer, msg.id);
-      return;
-    }
-    if (msg.type === "alarm-acknowledge") {
-      for (const cb of this.alarmAcknowledgeListeners) cb(conn.peer, msg.id);
-      return;
-    }
-    if (msg.type === "alarm-ack-unscheduled-warp") {
-      for (const cb of this.alarmAckListeners) cb(conn.peer);
-      return;
-    }
-    if (msg.type === "alarm-warp-intent") {
-      for (const cb of this.alarmWarpIntentListeners) cb(conn.peer, msg.index);
-      return;
-    }
-
-    if (msg.type === "trigger-arm") {
-      for (const cb of this.triggerArmListeners) cb(conn.peer, msg);
-      return;
-    }
-    if (msg.type === "trigger-cancel") {
-      for (const cb of this.triggerCancelListeners) cb(conn.peer, msg.id);
-      return;
-    }
-
-    if (msg.type === "peer-data-mode") {
+      });
+    },
+    "gonogo-vote": (msg, conn) => {
+      this.gonogoVoteListeners.fire(conn.peer, msg.status);
+    },
+    "gonogo-abort": (_msg, conn) => {
+      this.gonogoAbortListeners.fire(conn.peer);
+    },
+    "widget-push": (msg, conn) => {
+      this.widgetPushListeners.fire(conn.peer, msg);
+    },
+    "widget-recall": (msg, conn) => {
+      this.widgetRecallListeners.fire(conn.peer, msg.widgetInstanceId);
+    },
+    "alarm-add": (msg, conn) => {
+      this.alarmAddListeners.fire(conn.peer, msg);
+    },
+    "alarm-update": (msg, conn) => {
+      this.alarmUpdateListeners.fire(conn.peer, msg);
+    },
+    "alarm-delete": (msg, conn) => {
+      this.alarmDeleteListeners.fire(conn.peer, msg.id);
+    },
+    "alarm-acknowledge": (msg, conn) => {
+      this.alarmAcknowledgeListeners.fire(conn.peer, msg.id);
+    },
+    "alarm-ack-unscheduled-warp": (_msg, conn) => {
+      this.alarmAckListeners.fire(conn.peer);
+    },
+    "alarm-warp-intent": (msg, conn) => {
+      this.alarmWarpIntentListeners.fire(conn.peer, msg.index);
+    },
+    "trigger-arm": (msg, conn) => {
+      this.triggerArmListeners.fire(conn.peer, msg);
+    },
+    "trigger-cancel": (msg, conn) => {
+      this.triggerCancelListeners.fire(conn.peer, msg.id);
+    },
+    "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
       // When switching to selective with no subs yet, the peer will get
       // nothing until it subscribes. That's intentional — the new mode
@@ -442,9 +420,8 @@ export class PeerHostService {
       if (msg.mode === "selective" && !this.peerSubs.has(conn)) {
         this.peerSubs.set(conn, new Map());
       }
-      return;
-    }
-    if (msg.type === "peer-data-subscribe") {
+    },
+    "peer-data-subscribe": (msg, conn) => {
       let subs = this.peerSubs.get(conn);
       if (!subs) {
         subs = new Map();
@@ -456,15 +433,22 @@ export class PeerHostService {
         subs.set(msg.sourceId, bucket);
       }
       for (const k of msg.keys) bucket.add(k);
-      return;
-    }
-    if (msg.type === "peer-data-unsubscribe") {
+    },
+    "peer-data-unsubscribe": (msg, conn) => {
       const subs = this.peerSubs.get(conn);
       const bucket = subs?.get(msg.sourceId);
       if (!bucket) return;
       for (const k of msg.keys) bucket.delete(k);
-      return;
-    }
+    },
+  });
+
+  private handleIncoming(msg: PeerMessage, conn: DataConnection) {
+    debugPeer("host handleIncoming", {
+      type: msg.type,
+      peer: conn.peer,
+      sessionId: "sessionId" in msg ? msg.sessionId : undefined,
+    });
+    this.dispatcher.dispatch(msg, conn);
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -473,78 +457,63 @@ export class PeerHostService {
   // ───────────────────────────────────────────────────────────────────────
 
   onStationInfo(cb: StationInfoListener): () => void {
-    this.stationInfoListeners.add(cb);
-    return () => this.stationInfoListeners.delete(cb);
+    return this.stationInfoListeners.add(cb);
   }
 
   onGonogoVote(cb: GonogoVoteListener): () => void {
-    this.gonogoVoteListeners.add(cb);
-    return () => this.gonogoVoteListeners.delete(cb);
+    return this.gonogoVoteListeners.add(cb);
   }
 
   onGonogoAbort(cb: GonogoAbortListener): () => void {
-    this.gonogoAbortListeners.add(cb);
-    return () => this.gonogoAbortListeners.delete(cb);
+    return this.gonogoAbortListeners.add(cb);
   }
 
   onPeerConnect(cb: PeerLifecycleListener): () => void {
-    this.peerConnectListeners.add(cb);
-    return () => this.peerConnectListeners.delete(cb);
+    return this.peerConnectListeners.add(cb);
   }
 
   onPeerDisconnect(cb: PeerLifecycleListener): () => void {
-    this.peerDisconnectListeners.add(cb);
-    return () => this.peerDisconnectListeners.delete(cb);
+    return this.peerDisconnectListeners.add(cb);
   }
 
   onAlarmAdd(cb: AlarmAddListener): () => void {
-    this.alarmAddListeners.add(cb);
-    return () => this.alarmAddListeners.delete(cb);
+    return this.alarmAddListeners.add(cb);
   }
 
   onAlarmUpdate(cb: AlarmUpdateListener): () => void {
-    this.alarmUpdateListeners.add(cb);
-    return () => this.alarmUpdateListeners.delete(cb);
+    return this.alarmUpdateListeners.add(cb);
   }
 
   onAlarmDelete(cb: AlarmDeleteListener): () => void {
-    this.alarmDeleteListeners.add(cb);
-    return () => this.alarmDeleteListeners.delete(cb);
+    return this.alarmDeleteListeners.add(cb);
   }
 
   onAlarmAcknowledge(cb: AlarmAcknowledgeListener): () => void {
-    this.alarmAcknowledgeListeners.add(cb);
-    return () => this.alarmAcknowledgeListeners.delete(cb);
+    return this.alarmAcknowledgeListeners.add(cb);
   }
 
   onAlarmAckUnscheduledWarp(cb: AlarmAckListener): () => void {
-    this.alarmAckListeners.add(cb);
-    return () => this.alarmAckListeners.delete(cb);
+    return this.alarmAckListeners.add(cb);
   }
 
   onAlarmWarpIntent(cb: AlarmWarpIntentListener): () => void {
-    this.alarmWarpIntentListeners.add(cb);
-    return () => this.alarmWarpIntentListeners.delete(cb);
+    return this.alarmWarpIntentListeners.add(cb);
   }
 
   onTriggerArm(cb: TriggerArmListener): () => void {
-    this.triggerArmListeners.add(cb);
-    return () => this.triggerArmListeners.delete(cb);
+    return this.triggerArmListeners.add(cb);
   }
 
   onTriggerCancel(cb: TriggerCancelListener): () => void {
-    this.triggerCancelListeners.add(cb);
-    return () => this.triggerCancelListeners.delete(cb);
+    return this.triggerCancelListeners.add(cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {
-    this.widgetPushListeners.add(cb);
-    return () => this.widgetPushListeners.delete(cb);
+    return this.widgetPushListeners.add(cb);
   }
 
   onWidgetRecall(cb: WidgetRecallListener): () => void {
-    this.widgetRecallListeners.add(cb);
-    return () => this.widgetRecallListeners.delete(cb);
+    return this.widgetRecallListeners.add(cb);
   }
 
   getConnectedPeerIds(): string[] {
@@ -636,124 +605,12 @@ export class PeerHostService {
     }
   }
 
-  private async handleKosOpen(
-    msg: Extract<PeerMessage, { type: "kos-open" }>,
-    conn: DataConnection,
-  ) {
-    // Close any existing session with this ID (StrictMode fires effects twice).
-    // Remove from map BEFORE closing so the close-event handler doesn't echo
-    // kos-close back to the station.
-    const existing = this.kosSessions.get(msg.sessionId);
-    if (existing) {
-      this.kosSessions.delete(msg.sessionId);
-      existing.ws.close();
-    }
-
-    const { getDataSource } = await import("@gonogo/core");
-    const kosConfig = getDataSource("kos")?.getConfig() as
-      | { host?: string; port?: number; kosHost?: string; kosPort?: number }
-      | undefined;
-    const proxyHost = kosConfig?.host ?? "localhost";
-    const proxyPort = kosConfig?.port ?? 3001;
-    // Always use the host's kos config for the actual kOS address — stations
-    // don't have a real kos data source and would send localhost as a fallback.
-    const kosHost = kosConfig?.kosHost ?? msg.kosHost;
-    const kosPort = kosConfig?.kosPort ?? msg.kosPort;
-
-    const url =
-      `ws://${proxyHost}:${proxyPort}/kos` +
-      `?host=${encodeURIComponent(kosHost)}&port=${kosPort}` +
-      `&id=${msg.sessionId}&cols=${msg.cols}&rows=${msg.rows}`;
-
-    logger.info(`[PeerHost] kos-open — session=${msg.sessionId} url=${url}`);
-
-    const ws = new WebSocket(url);
-    this.kosSessions.set(msg.sessionId, { ws, conn });
-
-    ws.addEventListener("open", () => {
-      conn.send({
-        type: "kos-opened",
-        sessionId: msg.sessionId,
-      } satisfies PeerMessage);
-    });
-
-    ws.addEventListener("message", (e) => {
-      const data = typeof e.data === "string" ? e.data : String(e.data);
-      conn.send({
-        type: "kos-data",
-        sessionId: msg.sessionId,
-        data,
-      } satisfies PeerMessage);
-    });
-
-    ws.addEventListener("close", () => {
-      // If this ws has already been replaced (e.g. a duplicate kos-open arrived
-      // and swapped in a newer session), ignore its late close — otherwise we'd
-      // wipe the live replacement out of the map and fire a spurious kos-close.
-      const current = this.kosSessions.get(msg.sessionId);
-      if (current?.ws !== ws) return;
-      this.kosSessions.delete(msg.sessionId);
-      conn.send({
-        type: "kos-close",
-        sessionId: msg.sessionId,
-      } satisfies PeerMessage);
-    });
-
-    ws.addEventListener("error", () => {
-      // Ignore errors from a ws we've already replaced — its CONNECTING→CLOSED
-      // transition (from the replacement close()) fires "error" as well as
-      // "close", and logging it would just be noise.
-      const current = this.kosSessions.get(msg.sessionId);
-      if (current?.ws !== ws) return;
-      logger.error(`[PeerHost] kos ws error — session=${msg.sessionId}`);
-    });
-  }
-
-  private async handleKosResize(
-    msg: Extract<PeerMessage, { type: "kos-resize" }>,
-  ) {
-    const { getDataSource } = await import("@gonogo/core");
-    const kosConfig = getDataSource("kos")?.getConfig() as
-      | { host?: string; port?: number }
-      | undefined;
-    const proxyHost = kosConfig?.host ?? "localhost";
-    const proxyPort = kosConfig?.port ?? 3001;
-
-    fetch(`http://${proxyHost}:${proxyPort}/kos/resize`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: msg.sessionId,
-        cols: msg.cols,
-        rows: msg.rows,
-      }),
-    }).catch(() => {});
-  }
-
-  private closeKosSessionsForConn(conn: DataConnection) {
-    for (const [sessionId, session] of this.kosSessions) {
-      if (session.conn === conn) {
-        // Remove before closing so the WS close event doesn't try to notify a disconnected peer.
-        this.kosSessions.delete(sessionId);
-        session.ws.close();
-        logger.info(
-          `[PeerHost] kos session closed on peer disconnect — session=${sessionId}`,
-        );
-      }
-    }
-  }
-
   stop() {
-    for (const session of this.kosSessions.values()) {
-      session.ws.close();
-    }
-    this.kosSessions.clear();
+    this.kosSessions.closeAll();
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;
-    this.idListeners.forEach((cb) => {
-      cb(null);
-    });
+    this.idListeners.fire(null);
     logger.info("[PeerHost] stopped");
   }
 }
