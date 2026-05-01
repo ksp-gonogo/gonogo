@@ -1,3 +1,5 @@
+import { logger } from "@gonogo/core";
+
 export interface LocalStorageStoreOptions<T> {
   /** localStorage key */
   key: string;
@@ -7,7 +9,9 @@ export interface LocalStorageStoreOptions<T> {
    *  `globalThis.localStorage`. Useful for tests. */
   storage?: Storage;
   /** Optional callback fired when a stored value can't be parsed.
-   *  Receives the offending raw string. Default: no-op. */
+   *  Receives the offending raw string. Default: logs a warning via
+   *  the central logger under the `storage` tag. Pass an explicit
+   *  callback (e.g. `() => {}`) to silence. */
   onCorruption?: (raw: string, error: unknown) => void;
 }
 
@@ -36,7 +40,7 @@ export class LocalStorageStore<T> {
     this.key = opts.key;
     this.defaults = opts.defaults;
     this.storage = opts.storage ?? globalThis.localStorage;
-    this.onCorruption = opts.onCorruption ?? (() => {});
+    this.onCorruption = opts.onCorruption ?? defaultCorruptionLogger(this.key);
   }
 
   get(): T {
@@ -126,4 +130,15 @@ export class LocalStorageStore<T> {
     }
     return this.defaults;
   }
+}
+
+function defaultCorruptionLogger(
+  key: string,
+): (raw: string, error: unknown) => void {
+  return (raw, error) => {
+    logger.tag("storage").warn(`Corrupt JSON for ${key} — using defaults`, {
+      raw: raw.length > 200 ? `${raw.slice(0, 200)}…` : raw,
+      error,
+    });
+  };
 }

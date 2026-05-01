@@ -1,3 +1,4 @@
+import { logger } from "@gonogo/core";
 import { memoryStorage } from "@gonogo/core/test";
 import { describe, expect, it, vi } from "vitest";
 import { LocalStorageStore } from "./LocalStorageStore";
@@ -46,6 +47,28 @@ describe("LocalStorageStore", () => {
     expect(onCorruption).toHaveBeenCalledTimes(1);
     expect(onCorruption.mock.calls[0][0]).toBe("{not json");
     expect(onCorruption.mock.calls[0][1]).toBeInstanceOf(Error);
+  });
+
+  it("logs corruption via the central logger when no callback is provided", () => {
+    const storage = memoryStorage();
+    storage.setItem("the-key", "{also not json");
+    const warn = vi.fn();
+    const tagSpy = vi.spyOn(logger, "tag").mockReturnValue({
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn,
+      error: vi.fn(),
+    });
+    const store = new LocalStorageStore<Cfg>({
+      key: "the-key",
+      defaults: DEFAULTS,
+      storage,
+    });
+    expect(store.get()).toEqual(DEFAULTS);
+    expect(tagSpy).toHaveBeenCalledWith("storage");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain("the-key");
+    tagSpy.mockRestore();
   });
 
   it("round-trips set → get", () => {
