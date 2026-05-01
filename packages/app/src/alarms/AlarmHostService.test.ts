@@ -599,46 +599,210 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().alarms).toHaveLength(0);
   });
 
-  it("removes a fired alarm when a peer station acknowledges it", () => {
-    type AckCb = (peerId: string, id: string) => void;
-    let ackCb: AckCb | null = null as AckCb | null;
-    const fakeHost = {
-      onAlarmAdd: () => () => {},
-      onAlarmUpdate: () => () => {},
-      onAlarmDelete: () => () => {},
-      onAlarmAcknowledge: (cb: AckCb) => {
-        ackCb = cb;
-        return () => {};
+  describe("peer bridge", () => {
+    type AddCb = (
+      peerId: string,
+      msg: {
+        name: string;
+        notes?: string;
+        trigger: import("./types").AlarmTrigger;
       },
-      onAlarmAckUnscheduledWarp: () => () => {},
-      onAlarmWarpIntent: () => () => {},
-      broadcast: () => {},
-    } as unknown as import("../peer/PeerHostService").PeerHostService;
+    ) => void;
+    type UpdateCb = (
+      peerId: string,
+      msg: {
+        id: string;
+        patch: Partial<
+          Pick<import("./types").Alarm, "name" | "notes" | "trigger">
+        >;
+      },
+    ) => void;
+    type IdCb = (peerId: string, id: string) => void;
+    type VoidCb = (peerId: string) => void;
+    interface CapturedHost {
+      addCb: AddCb | null;
+      updateCb: UpdateCb | null;
+      deleteCb: IdCb | null;
+      ackCb: IdCb | null;
+      ackUnscheduledCb: VoidCb | null;
+      warpIntentCb: VoidCb | null;
+      broadcasts: unknown[];
+    }
 
-    const telemetry = fakeTelemetry();
-    telemetry.set("t.universalTime", 1000);
-    telemetry.set("t.currentRateIndex", 0);
-    telemetry.set("t.currentRate", 1);
-    const svc = new AlarmHostService(fakeHost, telemetry, {
-      nowMs: () => nowMs,
-      tickIntervalMs: 1000,
-      storage: memoryStorage(),
+    function makeHost(): {
+      host: import("../peer/PeerHostService").PeerHostService;
+      captured: CapturedHost;
+    } {
+      const captured: CapturedHost = {
+        addCb: null,
+        updateCb: null,
+        deleteCb: null,
+        ackCb: null,
+        ackUnscheduledCb: null,
+        warpIntentCb: null,
+        broadcasts: [],
+      };
+      const host = {
+        onAlarmAdd: (cb: AddCb) => {
+          captured.addCb = cb;
+          return () => {};
+        },
+        onAlarmUpdate: (cb: UpdateCb) => {
+          captured.updateCb = cb;
+          return () => {};
+        },
+        onAlarmDelete: (cb: IdCb) => {
+          captured.deleteCb = cb;
+          return () => {};
+        },
+        onAlarmAcknowledge: (cb: IdCb) => {
+          captured.ackCb = cb;
+          return () => {};
+        },
+        onAlarmAckUnscheduledWarp: (cb: VoidCb) => {
+          captured.ackUnscheduledCb = cb;
+          return () => {};
+        },
+        onAlarmWarpIntent: (cb: VoidCb) => {
+          captured.warpIntentCb = cb;
+          return () => {};
+        },
+        broadcast: (msg: unknown) => {
+          captured.broadcasts.push(msg);
+        },
+      } as unknown as import("../peer/PeerHostService").PeerHostService;
+      return { host, captured };
+    }
+
+    function makeServiceWithHost(): {
+      svc: AlarmHostService;
+      telemetry: FakeTelemetry;
+      captured: CapturedHost;
+    } {
+      const telemetry = fakeTelemetry();
+      telemetry.set("t.universalTime", 1000);
+      telemetry.set("t.currentRateIndex", 0);
+      telemetry.set("t.currentRate", 1);
+      const { host, captured } = makeHost();
+      const svc = new AlarmHostService(host, telemetry, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage: memoryStorage(),
+      });
+      return { svc, telemetry, captured };
+    }
+
+    it("creates an alarm when a peer broadcasts alarm-add (with peerId as createdBy)", () => {
+      const { svc, captured } = makeServiceWithHost();
+      expect(captured.addCb).not.toBeNull();
+      captured.addCb?.("peer-123", {
+        name: "Peer alarm",
+        notes: "from station",
+        trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      });
+      const alarms = svc.snapshot().alarms;
+      expect(alarms).toHaveLength(1);
+      expect(alarms[0].name).toBe("Peer alarm");
+      expect(alarms[0].notes).toBe("from station");
+      expect(alarms[0].createdBy).toBe("peer-123");
     });
 
-    const a = svc.addAlarm({
-      name: "Apoapsis",
-      trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+    it("patches an alarm when a peer broadcasts alarm-update", () => {
+      const { svc, captured } = makeServiceWithHost();
+      const a = svc.addAlarm({
+        name: "Original",
+        trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      });
+      captured.updateCb?.("peer-1", {
+        id: a.id,
+        patch: { name: "Renamed by station" },
+      });
+      expect(svc.snapshot().alarms[0].name).toBe("Renamed by station");
     });
-    // Drive the state machine through arming → firing → fired so the
-    // alarm is in the only state acknowledgeAlarm accepts.
-    telemetry.set("t.universalTime", 1001);
-    vi.advanceTimersByTime(1100);
-    telemetry.set("t.universalTime", 1100);
-    vi.advanceTimersByTime(1100);
-    expect(svc.snapshot().alarms[0]?.state).toBe("fired");
 
-    expect(ackCb).not.toBeNull();
-    ackCb?.("station-peer-id", a.id);
-    expect(svc.snapshot().alarms).toHaveLength(0);
+    it("deletes an alarm when a peer broadcasts alarm-delete", () => {
+      const { svc, captured } = makeServiceWithHost();
+      const a = svc.addAlarm({
+        name: "Doomed",
+        trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      });
+      captured.deleteCb?.("peer-1", a.id);
+      expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+
+    it("clears unscheduled-warp when a peer acknowledges it", () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      telemetry.set("t.currentRateIndex", 3);
+      telemetry.set("t.currentRate", 10);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().unscheduledWarp).not.toBeNull();
+      captured.ackUnscheduledCb?.("peer-1");
+      expect(svc.snapshot().unscheduledWarp).toBeNull();
+    });
+
+    it("suppresses unscheduled-warp detection after a peer warp-intent event", () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      captured.warpIntentCb?.("peer-1");
+      telemetry.set("t.currentRateIndex", 3);
+      telemetry.set("t.currentRate", 10);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().unscheduledWarp).toBeNull();
+    });
+
+    it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      svc.addAlarm({
+        name: "Apoapsis",
+        trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+      });
+      telemetry.set("t.universalTime", 1001);
+      vi.advanceTimersByTime(1100);
+      const types = captured.broadcasts.map(
+        (m) => (m as { type: string }).type,
+      );
+      expect(types).toContain("alarm-snapshot");
+      expect(types).toContain("alarm-fired");
+    });
+
+    it("removes a fired alarm when a peer station acknowledges it", () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      const a = svc.addAlarm({
+        name: "Apoapsis",
+        trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+      });
+      // Drive the state machine through arming → firing → fired so the
+      // alarm is in the only state acknowledgeAlarm accepts.
+      telemetry.set("t.universalTime", 1001);
+      vi.advanceTimersByTime(1100);
+      telemetry.set("t.universalTime", 1100);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0]?.state).toBe("fired");
+
+      expect(captured.ackCb).not.toBeNull();
+      captured.ackCb?.("station-peer-id", a.id);
+      expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+  });
+
+  describe("time alarm firing→fired window", () => {
+    it("transitions firing within 2s of UT and to fired thereafter", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 1500, leadSeconds: 5 },
+      });
+      // Cross UT — within the 2s firing window.
+      telemetry.set("t.universalTime", 1500);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      // Still within the window at UT-pass +1s.
+      telemetry.set("t.universalTime", 1501);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      // 2s past — transitions to fired.
+      telemetry.set("t.universalTime", 1502);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("fired");
+    });
   });
 });

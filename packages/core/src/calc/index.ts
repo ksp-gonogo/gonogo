@@ -1,6 +1,11 @@
 export * from "./maneuver";
 export { mapClamped } from "./map";
 export {
+  type SlopeFitResult,
+  type SlopeSample,
+  slopeFit,
+} from "./slopeFit";
+export {
   buildBodyRotation,
   eccentricToTrueAnomaly,
   type GeoState,
