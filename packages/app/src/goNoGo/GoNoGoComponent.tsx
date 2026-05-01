@@ -52,17 +52,19 @@ type GoNoGoActions = typeof actions;
 
 function GoNoGoComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<GoNoGoWidgetConfig>>) {
   const screen = useScreen();
-  if (screen === "station") return <StationView />;
-  return <MainView config={config} />;
+  if (screen === "station") return <StationView w={w} h={h} />;
+  return <MainView config={config} w={w} h={h} />;
 }
 
 // ---------------------------------------------------------------------------
 // Station view
 // ---------------------------------------------------------------------------
 
-function StationView() {
+function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
   const missionTime = useDataValue("data", "v.missionTime");
   const launched = typeof missionTime === "number" && missionTime > 0;
@@ -254,7 +256,12 @@ export function CountdownAnnouncer({
 
 function MainView({
   config,
-}: Readonly<{ config: GoNoGoWidgetConfig | undefined }>) {
+  w,
+}: Readonly<{
+  config: GoNoGoWidgetConfig | undefined;
+  w: number | undefined;
+  h: number | undefined;
+}>) {
   const host = useGoNoGoHost();
   const snapshot = useGoNoGoSnapshot();
   // Bumped from the countdown ticker below — useReducer so Sonar's
@@ -291,12 +298,18 @@ function MainView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
+  // Selective rendering — chrome (auto-stage warning, per-cell version chip)
+  // drops at small widths so the GO/NO-GO grid stays the focus.
+  const cols = w ?? 4;
+  const showWarnChip = cols >= 6;
+  const showVersionChips = cols >= 5;
+
   return (
     <MainLayout>
       <MainHeader>
         <HeaderLabel>{launched ? "MISSION ACTIVE" : "GO / NO-GO"}</HeaderLabel>
         <HeaderRight>
-          {hostConfig.triggerStageAtZero && !launched && (
+          {showWarnChip && hostConfig.triggerStageAtZero && !launched && (
             <WarnChip title="At T-0 the next stage will auto-fire">
               AUTO STAGE AT T-0
             </WarnChip>
@@ -324,9 +337,10 @@ function MainView({
           const cellState = deriveCellState(s, launched, abort);
           const versionKind = compareVersions(VERSION, s.version);
           const showVersionChip =
-            versionKind === "minor" ||
-            versionKind === "major" ||
-            versionKind === "unknown";
+            showVersionChips &&
+            (versionKind === "minor" ||
+              versionKind === "major" ||
+              versionKind === "unknown");
           return (
             <Cell
               key={s.peerId}

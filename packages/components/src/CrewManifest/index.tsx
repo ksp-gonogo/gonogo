@@ -1,6 +1,12 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  BigReadout,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ReadoutCaption,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 type CrewManifestConfig = Record<string, never>;
@@ -29,9 +35,10 @@ function toCrewNames(raw: unknown): string[] {
   return out;
 }
 
-function CrewManifestComponent(
-  _: Readonly<ComponentProps<CrewManifestConfig>>,
-) {
+function CrewManifestComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<CrewManifestConfig>>) {
   const crewRaw = useDataValue("data", "v.crew");
   const crewCount = useDataValue("data", "v.crewCount");
   const crewCapacity = useDataValue("data", "v.crewCapacity");
@@ -40,6 +47,30 @@ function CrewManifestComponent(
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
+
+  // Selective rendering — at very small sizes the roster is dropped in
+  // favour of a single big "n / m" headcount readout.
+  const cols = w ?? 6;
+  const rows = h ?? 8;
+  const showRoster = rows >= 5 && cols >= 4;
+
+  if (!showRoster) {
+    return (
+      <Panel>
+        <PanelTitle>CREW</PanelTitle>
+        {known ? (
+          <BigReadout $tone="go">
+            {crewCount !== undefined ? `${crewCount}` : "—"}
+            {crewCapacity !== undefined && (
+              <ReadoutCaption>of {crewCapacity} aboard</ReadoutCaption>
+            )}
+          </BigReadout>
+        ) : (
+          <Empty>No crew data</Empty>
+        )}
+      </Panel>
+    );
+  }
 
   return (
     <Panel>
@@ -153,7 +184,7 @@ registerComponent<CrewManifestConfig>({
     "Kerbals aboard the active vessel — count vs capacity + full roster. Shows EVA state and handles unmanned probes gracefully.",
   tags: ["telemetry", "crew"],
   defaultSize: { w: 6, h: 8 },
-  minSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: CrewManifestComponent,
   dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
   defaultConfig: {},

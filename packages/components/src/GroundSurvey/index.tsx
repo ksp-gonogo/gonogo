@@ -27,6 +27,8 @@ interface GroundSurveyConfig {
 
 function GroundSurveyComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<GroundSurveyConfig>>) {
   const freezeBelowM = config?.freezeBelowM ?? 1000;
   const windowMs = 120_000;
@@ -63,27 +65,39 @@ function GroundSurveyComponent({
 
   const verdict = rateSmoothness(survey.samples);
 
+  // Selective rendering — badge is the headline; strip and supporting
+  // readouts drop as height/width shrink.
+  const cols = w ?? 8;
+  const rows = h ?? 7;
+  const showStrip = rows >= 5;
+  const showSubtitle = rows >= 4;
+  const showSpeed = cols >= 5 && rows >= 4;
+
   return (
     <Panel>
       <Header>
         <Titles>
           <PanelTitle>GROUND SURVEY</PanelTitle>
-          <PanelSubtitle>{subtitleFor(survey, freezeBelowM)}</PanelSubtitle>
+          {showSubtitle && (
+            <PanelSubtitle>{subtitleFor(survey, freezeBelowM)}</PanelSubtitle>
+          )}
         </Titles>
         <BadgeArea>
           <SmoothnessBadge verdict={verdict} />
-          <SpeedReadout speed={survey.surfaceSpeed} />
+          {showSpeed && <SpeedReadout speed={survey.surfaceSpeed} />}
         </BadgeArea>
       </Header>
-      <StripWrap ref={wrapRef}>
-        <ProfileStrip
-          samples={survey.samples}
-          nowMs={now}
-          windowMs={windowMs}
-          width={size.w}
-          height={size.h}
-        />
-      </StripWrap>
+      {showStrip && (
+        <StripWrap ref={wrapRef}>
+          <ProfileStrip
+            samples={survey.samples}
+            nowMs={now}
+            windowMs={windowMs}
+            width={size.w}
+            height={size.h}
+          />
+        </StripWrap>
+      )}
     </Panel>
   );
 }
@@ -177,6 +191,7 @@ function GroundSurveyConfigComponent({
 
 const Header = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
@@ -264,7 +279,7 @@ registerComponent<GroundSurveyConfig>({
     "Lunar Lander-style terrain-elevation strip built from v.altitude − v.heightFromTerrain over the last 2 minutes. Smoothness badge (A/B/C/F) rates the area for landing; the strip freezes once the ship drops below 1 km AGL so the verdict reflects the survey, not the descent.",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 7 },
-  minSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: GroundSurveyComponent,
   configComponent: GroundSurveyConfigComponent,
   dataRequirements: [

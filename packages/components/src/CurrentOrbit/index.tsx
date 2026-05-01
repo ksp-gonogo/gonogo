@@ -32,6 +32,8 @@ export type CurrentOrbitActions = typeof currentOrbitActions;
 function CurrentOrbitComponent({
   config,
   onConfigChange,
+  w,
+  h,
 }: Readonly<ComponentProps<CurrentOrbitConfig>>) {
   const showDiagram = config?.showDiagram ?? true;
 
@@ -84,10 +86,22 @@ function CurrentOrbitComponent({
     apoapsisR !== undefined &&
     periapsisR !== undefined;
 
+  // Selective rendering — Ap/Pe always; supplementary rows drop bottom-up
+  // as height shrinks. Diagram needs real area to be readable.
+  const cols = w ?? 9;
+  const rows = h ?? 18;
+  const showSubtitle = rows >= 4;
+  const showInclinationRow = rows >= 5;
+  const showApProgressRows = rows >= 6;
+  const showEccentricityRows = rows >= 8;
+  const showDiagramSlot = showDiagram && hasOrbit && rows >= 8 && cols >= 5;
+
   return (
     <Panel>
       <PanelTitle>ORBIT</PanelTitle>
-      {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
+      {showSubtitle && refBody !== undefined && (
+        <PanelSubtitle>{refBody}</PanelSubtitle>
+      )}
 
       <Body ref={bodyRef} $landscape={isLandscape}>
         <Grid $landscape={isLandscape}>
@@ -101,31 +115,45 @@ function CurrentOrbitComponent({
             {periapsisA === undefined ? "—" : formatDistance(periapsisA)}
           </Value>
 
-          <Label>Ecc</Label>
-          <Value>
-            {eccentricity === undefined ? "—" : eccentricity.toFixed(4)}
-          </Value>
+          {showInclinationRow && (
+            <>
+              <Label>Inc</Label>
+              <Value>
+                {inclination === undefined ? "—" : `${inclination.toFixed(1)}°`}
+              </Value>
+            </>
+          )}
 
-          <Label>Inc</Label>
-          <Value>
-            {inclination === undefined ? "—" : `${inclination.toFixed(1)}°`}
-          </Value>
+          {showApProgressRows && (
+            <>
+              <Label>t-Ap</Label>
+              <Value $accent="ap">
+                {timeToAp === undefined ? "—" : formatDuration(timeToAp)}
+              </Value>
 
-          <Label>T</Label>
-          <Value>{period === undefined ? "—" : formatDuration(period)}</Value>
+              <Label>t-Pe</Label>
+              <Value $accent="pe">
+                {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
+              </Value>
+            </>
+          )}
 
-          <Label>t-Ap</Label>
-          <Value $accent="ap">
-            {timeToAp === undefined ? "—" : formatDuration(timeToAp)}
-          </Value>
+          {showEccentricityRows && (
+            <>
+              <Label>Ecc</Label>
+              <Value>
+                {eccentricity === undefined ? "—" : eccentricity.toFixed(4)}
+              </Value>
 
-          <Label>t-Pe</Label>
-          <Value $accent="pe">
-            {timeToPe === undefined ? "—" : formatDuration(timeToPe)}
-          </Value>
+              <Label>T</Label>
+              <Value>
+                {period === undefined ? "—" : formatDuration(period)}
+              </Value>
+            </>
+          )}
         </Grid>
 
-        {showDiagram && hasOrbit && (
+        {showDiagramSlot && (
           <MiniDiagramWrap $landscape={isLandscape}>
             <OrbitDiagram
               variant="mini"
@@ -153,7 +181,7 @@ registerComponent<CurrentOrbitConfig>({
     "Displays orbital parameters: apoapsis, periapsis, eccentricity, inclination, period, and time to Ap/Pe.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
-  minSize: { w: 4, h: 6 },
+  minSize: { w: 3, h: 4 },
   component: CurrentOrbitComponent,
   dataRequirements: [
     "o.ApA",

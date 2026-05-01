@@ -49,9 +49,10 @@ function formatDegrees(d: number | undefined): string {
   return `${d.toFixed(1)}°`;
 }
 
-function LandingStatusComponent(
-  _: Readonly<ComponentProps<LandingStatusConfig>>,
-) {
+function LandingStatusComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<LandingStatusConfig>>) {
   const bodyName = useDataValue("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
   const atmospheric = body?.hasAtmosphere ?? false;
@@ -83,10 +84,22 @@ function LandingStatusComponent(
 
   const descending = verticalSpeed !== undefined && verticalSpeed < 0;
 
+  // Selective rendering — countdown is always the headline; metric rows
+  // drop from the bottom (slope/predicted first) as height shrinks.
+  const cols = w ?? 8;
+  const rows = h ?? 10;
+  const showSubtitle = rows >= 6;
+  const showAtmosphericNote = rows >= 7;
+  const showImpactRows = rows >= 6;
+  const showAltitudeRows = rows >= 8;
+  const showSlopeRows = rows >= 10;
+  const showAnyMetricGrid = showImpactRows || showAltitudeRows || showSlopeRows;
+  const showBestImpactInline = cols >= 8;
+
   return (
     <Panel>
       <PanelTitle>LANDING</PanelTitle>
-      {bodyName !== undefined && (
+      {showSubtitle && bodyName !== undefined && (
         <PanelSubtitle>
           {bodyName}
           {atmospheric ? " · atmospheric" : " · vacuum"}
@@ -100,7 +113,7 @@ function LandingStatusComponent(
             : "No landing in progress"}
         </Empty>
       ) : (
-        <>
+        <Body>
           {/* Suicide burn — the headline on airless bodies. On atmospheric
               bodies KSP's prediction ignores aerobraking, so we still show it
               but demote it visually. */}
@@ -118,45 +131,65 @@ function LandingStatusComponent(
                   ? "IGNITE"
                   : `T−${formatSeconds(suicideBurn)}`}
             </SuicideValue>
-            {atmospheric && (
+            {atmospheric && showAtmosphericNote && (
               <SuicideNote>
                 atmospheric — ignores aerobraking, treat as upper bound
               </SuicideNote>
             )}
           </SuicideRow>
 
-          <MetricGrid>
-            <MetricLabel>Impact in</MetricLabel>
-            <MetricValue>{formatSeconds(timeToImpact)}</MetricValue>
+          {showAnyMetricGrid && (
+            <MetricGrid>
+              {showImpactRows && (
+                <>
+                  <MetricLabel>Impact in</MetricLabel>
+                  <MetricValue>{formatSeconds(timeToImpact)}</MetricValue>
 
-            <MetricLabel>Impact speed</MetricLabel>
-            <MetricValue>
-              {formatMps(impactSpeed)}
-              {bestImpactSpeed !== undefined &&
-                Number.isFinite(bestImpactSpeed) && (
-                  <MetricSub> · best {formatMps(bestImpactSpeed)}</MetricSub>
-                )}
-            </MetricValue>
+                  <MetricLabel>Impact speed</MetricLabel>
+                  <MetricValue>
+                    {formatMps(impactSpeed)}
+                    {showBestImpactInline &&
+                      bestImpactSpeed !== undefined &&
+                      Number.isFinite(bestImpactSpeed) && (
+                        <MetricSub>
+                          {" "}
+                          · best {formatMps(bestImpactSpeed)}
+                        </MetricSub>
+                      )}
+                  </MetricValue>
+                </>
+              )}
 
-            <MetricLabel>Altitude</MetricLabel>
-            <MetricValue>{formatMeters(heightFromTerrain)}</MetricValue>
+              {showAltitudeRows && (
+                <>
+                  <MetricLabel>Altitude</MetricLabel>
+                  <MetricValue>{formatMeters(heightFromTerrain)}</MetricValue>
 
-            <MetricLabel>Descent</MetricLabel>
-            <MetricValue>
-              {verticalSpeed === undefined ? "—" : formatMps(verticalSpeed)}
-            </MetricValue>
+                  <MetricLabel>Descent</MetricLabel>
+                  <MetricValue>
+                    {verticalSpeed === undefined
+                      ? "—"
+                      : formatMps(verticalSpeed)}
+                  </MetricValue>
+                </>
+              )}
 
-            <MetricLabel>Slope</MetricLabel>
-            <MetricValue>{formatDegrees(slope)}</MetricValue>
+              {showSlopeRows && (
+                <>
+                  <MetricLabel>Slope</MetricLabel>
+                  <MetricValue>{formatDegrees(slope)}</MetricValue>
 
-            <MetricLabel>Predicted</MetricLabel>
-            <MetricValue>
-              {isSentinel(predictedLat, predictedLon)
-                ? "—"
-                : `${(predictedLat ?? 0).toFixed(3)}°, ${(predictedLon ?? 0).toFixed(3)}°`}
-            </MetricValue>
-          </MetricGrid>
-        </>
+                  <MetricLabel>Predicted</MetricLabel>
+                  <MetricValue>
+                    {isSentinel(predictedLat, predictedLon)
+                      ? "—"
+                      : `${(predictedLat ?? 0).toFixed(3)}°, ${(predictedLon ?? 0).toFixed(3)}°`}
+                  </MetricValue>
+                </>
+              )}
+            </MetricGrid>
+          )}
+        </Body>
       )}
     </Panel>
   );
@@ -168,6 +201,14 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: 11px;
   padding: 8px 0;
+`;
+
+const Body = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
 `;
 
 const SuicideRow = styled.div<{ $urgent: boolean; $muted: boolean }>`

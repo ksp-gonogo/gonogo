@@ -1,6 +1,12 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Panel,
+  PanelTitle,
+  type ReadoutTone,
+  ScrollArea,
+  StatusPill,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 // Empty config — room to add a "hide heat shield" toggle later.
@@ -39,6 +45,20 @@ const BAND_LABEL: Record<Band, string> = {
   critical: "critical",
 };
 
+const BAND_TONE: Record<Band, ReadoutTone> = {
+  nominal: "go",
+  warm: "warning",
+  hot: "warning",
+  critical: "alert",
+};
+
+const BAND_RANK: Record<Band, number> = {
+  nominal: 0,
+  warm: 1,
+  hot: 2,
+  critical: 3,
+};
+
 function formatTempC(c: number | undefined): string {
   if (c === undefined || !Number.isFinite(c)) return "—";
   if (Math.abs(c) >= 1000) return `${c.toFixed(0)}°C`;
@@ -53,9 +73,10 @@ function formatKw(kw: number | undefined): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function ThermalStatusComponent(
-  _: Readonly<ComponentProps<ThermalStatusConfig>>,
-) {
+function ThermalStatusComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<ThermalStatusConfig>>) {
   const hottestName = useDataValue("data", "therm.hottestPartName");
   const hottestTempC = useDataValue("data", "therm.hottestPartTemp");
   const hottestMaxK = useDataValue("data", "therm.hottestPartMaxTemp");
@@ -69,9 +90,6 @@ function ThermalStatusComponent(
   const shieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
   const shieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
 
-  // Convert raw Kelvin to Celsius for the secondary readouts where only K is
-  // emitted (engine / shield max). Telemachus ships shield temp as both K and
-  // °C, so we read the °C variant directly where we can.
   const engineTempC =
     engineTempK === undefined ? undefined : engineTempK - 273.15;
   const engineMaxC = engineMaxK === undefined ? undefined : engineMaxK - 273.15;
@@ -81,91 +99,119 @@ function ThermalStatusComponent(
   const hottestBand = bandFromRatio(hottestRatio);
   const engineBand = engineOverheat ? "critical" : bandFromRatio(engineRatio);
 
-  // If ratios indicate a critical state or the engines-overheating flag is
-  // set, announce to assistive tech via role="alert". Steady-state nominal
-  // readings don't interrupt.
-  const anyCritical =
-    hottestBand === "critical" || engineBand === "critical" || engineOverheat;
+  // The pill summarises the worst observed band — it's the at-a-glance
+  // affordance the tiny mode lives by.
+  const worstBand: Band =
+    BAND_RANK[engineBand] > BAND_RANK[hottestBand] ? engineBand : hottestBand;
+  const anyCritical = worstBand === "critical";
 
   const noData =
     hottestName === undefined &&
     hottestTempC === undefined &&
     engineTempK === undefined;
 
+  // Selective rendering — pill is always shown; rows drop from the bottom
+  // (heat shield first, then engine, then hottest-part) as height shrinks.
+  const cols = w ?? 8;
+  const rows = h ?? 7;
+  const showHottestRow = rows >= 5;
+  const showEngineRow = rows >= 6;
+  const hasShieldData = shieldTempC !== undefined || shieldFluxKw !== undefined;
+  const showShieldRow = rows >= 7 && hasShieldData;
+  // On wider widgets we can afford a critical-state explainer next to the
+  // pill rather than burning a whole row on the alert banner.
+  const showInlineAlert = anyCritical && cols >= 6;
+
   return (
     <Panel>
       <PanelTitle>THERMAL</PanelTitle>
-      <PanelSubtitle>
-        {anyCritical ? "Critical — check overheats" : "Aggregate hottest-of"}
-      </PanelSubtitle>
-
       {noData ? (
         <Empty>No thermal data</Empty>
       ) : (
-        <ScrollBody>
-          {anyCritical && (
-            <AlertBanner role="alert">
-              {engineOverheat
-                ? "Engine overheating (>90% max)"
-                : "Part approaching max temperature"}
-            </AlertBanner>
+        <Body>
+          <PillRow
+            role={anyCritical ? "alert" : "status"}
+            aria-live={anyCritical ? "assertive" : "polite"}
+          >
+            <StatusPill $tone={BAND_TONE[worstBand]}>
+              {BAND_LABEL[worstBand]}
+            </StatusPill>
+            {showInlineAlert && (
+              <CriticalNote>
+                {engineOverheat
+                  ? "Engine overheating (>90% max)"
+                  : "Part approaching max temperature"}
+              </CriticalNote>
+            )}
+          </PillRow>
+
+          {(showHottestRow || showEngineRow || showShieldRow) && (
+            <RowsScroll>
+              {showHottestRow && (
+                <Row>
+                  <RowLabel>Hottest part</RowLabel>
+                  <RowBody>
+                    <PartName>{hottestName ?? "—"}</PartName>
+                    <TempMeter>
+                      <TempBar
+                        style={{
+                          width: `${clampPct((hottestRatio ?? 0) * 100)}%`,
+                          background: BAND_COLOR[hottestBand],
+                        }}
+                      />
+                    </TempMeter>
+                    <TempReadout>
+                      {formatTempC(hottestTempC)}
+                      {hottestMaxC !== undefined && (
+                        <MaxTag> / {formatTempC(hottestMaxC)} max</MaxTag>
+                      )}
+                      <BandTag $band={hottestBand}>
+                        {BAND_LABEL[hottestBand]}
+                      </BandTag>
+                    </TempReadout>
+                  </RowBody>
+                </Row>
+              )}
+
+              {showEngineRow && (
+                <Row>
+                  <RowLabel>Hottest engine</RowLabel>
+                  <RowBody>
+                    <TempMeter>
+                      <TempBar
+                        style={{
+                          width: `${clampPct((engineRatio ?? 0) * 100)}%`,
+                          background: BAND_COLOR[engineBand],
+                        }}
+                      />
+                    </TempMeter>
+                    <TempReadout>
+                      {formatTempC(engineTempC)}
+                      {engineMaxC !== undefined && (
+                        <MaxTag> / {formatTempC(engineMaxC)} max</MaxTag>
+                      )}
+                      <BandTag $band={engineBand}>
+                        {BAND_LABEL[engineBand]}
+                      </BandTag>
+                    </TempReadout>
+                  </RowBody>
+                </Row>
+              )}
+
+              {showShieldRow && (
+                <Row>
+                  <RowLabel>Heat shield</RowLabel>
+                  <RowBody>
+                    <TempReadout>
+                      {formatTempC(shieldTempC)}
+                      <MaxTag> · flux {formatKw(shieldFluxKw)}</MaxTag>
+                    </TempReadout>
+                  </RowBody>
+                </Row>
+              )}
+            </RowsScroll>
           )}
-
-          <Row>
-            <RowLabel>Hottest part</RowLabel>
-            <RowBody>
-              <PartName>{hottestName ?? "—"}</PartName>
-              <TempMeter $band={hottestBand}>
-                <TempBar
-                  style={{
-                    width: `${clampPct((hottestRatio ?? 0) * 100)}%`,
-                    background: BAND_COLOR[hottestBand],
-                  }}
-                />
-              </TempMeter>
-              <TempReadout>
-                {formatTempC(hottestTempC)}
-                {hottestMaxC !== undefined && (
-                  <MaxTag> / {formatTempC(hottestMaxC)} max</MaxTag>
-                )}
-                <BandTag $band={hottestBand}>{BAND_LABEL[hottestBand]}</BandTag>
-              </TempReadout>
-            </RowBody>
-          </Row>
-
-          <Row>
-            <RowLabel>Hottest engine</RowLabel>
-            <RowBody>
-              <TempMeter $band={engineBand}>
-                <TempBar
-                  style={{
-                    width: `${clampPct((engineRatio ?? 0) * 100)}%`,
-                    background: BAND_COLOR[engineBand],
-                  }}
-                />
-              </TempMeter>
-              <TempReadout>
-                {formatTempC(engineTempC)}
-                {engineMaxC !== undefined && (
-                  <MaxTag> / {formatTempC(engineMaxC)} max</MaxTag>
-                )}
-                <BandTag $band={engineBand}>{BAND_LABEL[engineBand]}</BandTag>
-              </TempReadout>
-            </RowBody>
-          </Row>
-
-          {(shieldTempC !== undefined || shieldFluxKw !== undefined) && (
-            <Row>
-              <RowLabel>Heat shield</RowLabel>
-              <RowBody>
-                <TempReadout>
-                  {formatTempC(shieldTempC)}
-                  <MaxTag> · flux {formatKw(shieldFluxKw)}</MaxTag>
-                </TempReadout>
-              </RowBody>
-            </Row>
-          )}
-        </ScrollBody>
+        </Body>
       )}
     </Panel>
   );
@@ -181,8 +227,30 @@ function clampPct(pct: number): number {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const ScrollBody = styled(ScrollArea)`
+const Body = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+`;
+
+const PillRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CriticalNote = styled.span`
+  font-size: 11px;
+  color: var(--color-status-nogo-fg);
+  letter-spacing: 0.04em;
+`;
+
+const RowsScroll = styled(ScrollArea)`
+  flex: 1;
+  min-height: 0;
 `;
 
 const Empty = styled.div`
@@ -195,7 +263,10 @@ const Row = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 8px;
+
+  & + & {
+    margin-top: 8px;
+  }
 `;
 
 const RowLabel = styled.div`
@@ -214,13 +285,12 @@ const RowBody = styled.div`
 const PartName = styled.div`
   font-size: 12px;
   color: var(--color-text-primary);
-  /* Telemachus returns part "display name" — e.g. "LV-T30 'Reliant'". */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
-const TempMeter = styled.div<{ $band: Band }>`
+const TempMeter = styled.div`
   height: 8px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
@@ -229,7 +299,9 @@ const TempMeter = styled.div<{ $band: Band }>`
 
 const TempBar = styled.div`
   height: 100%;
-  transition: width 150ms linear, background 150ms linear;
+  transition:
+    width 150ms linear,
+    background 150ms linear;
 `;
 
 const TempReadout = styled.div`
@@ -253,19 +325,6 @@ const BandTag = styled.span<{ $band: Band }>`
   color: ${({ $band }) => BAND_COLOR[$band]};
 `;
 
-const AlertBanner = styled.div`
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-status-nogo-bg);
-  border-radius: 2px;
-  color: var(--color-status-nogo-fg);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ThermalStatusConfig>({
@@ -275,7 +334,7 @@ registerComponent<ThermalStatusConfig>({
     "Aggregate thermal readouts — hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
-  minSize: { w: 3, h: 3 },
+  minSize: { w: 3, h: 4 },
   component: ThermalStatusComponent,
   dataRequirements: [
     "therm.hottestPartName",

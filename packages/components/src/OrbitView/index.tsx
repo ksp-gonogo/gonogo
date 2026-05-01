@@ -5,7 +5,13 @@ import {
   useActionInput,
   useDataValue,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  type ReadoutTone,
+  StatusPill,
+} from "@gonogo/ui";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
@@ -29,6 +35,8 @@ export type OrbitViewActions = typeof orbitViewActions;
 function OrbitViewComponent({
   config,
   onConfigChange,
+  w,
+  h,
 }: Readonly<ComponentProps<OrbitViewConfig>>) {
   const showMarkers = config?.showMarkers ?? true;
 
@@ -58,12 +66,39 @@ function OrbitViewComponent({
     apoapsisR !== undefined &&
     periapsisR !== undefined;
 
+  // Selective rendering — at small sizes the SVG diagram doesn't have room
+  // to be readable, so collapse to a single status pill (the user's
+  // canonical example for "tiny mode").
+  const cols = w ?? 9;
+  const rows = h ?? 18;
+  const showDiagram = rows >= 5 && cols >= 5;
+  const showSubtitle = rows >= 4;
+
+  let pillLabel = "—";
+  let pillTone: ReadoutTone = "default";
+  if (hasOrbit) {
+    if (eccentricity >= 1) {
+      pillLabel = "Escape";
+      pillTone = "warning";
+    } else if (isOrbiting) {
+      pillLabel = "Stable orbit";
+      pillTone = "go";
+    } else {
+      pillLabel = "Sub-orbital";
+      pillTone = "alert";
+    }
+  }
+
   return (
     <Panel>
       <PanelTitle>ORBIT VIEW</PanelTitle>
-      {bodyName !== undefined && <PanelSubtitle>{bodyName}</PanelSubtitle>}
+      {showSubtitle && bodyName !== undefined && (
+        <PanelSubtitle>{bodyName}</PanelSubtitle>
+      )}
 
-      {hasOrbit ? (
+      {!hasOrbit ? (
+        <NoData>No orbital data</NoData>
+      ) : showDiagram ? (
         <OrbitDiagram
           variant="full"
           sma={sma}
@@ -78,7 +113,9 @@ function OrbitViewComponent({
           isOrbiting={isOrbiting}
         />
       ) : (
-        <NoData>No orbital data</NoData>
+        <PillFill>
+          <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
+        </PillFill>
       )}
     </Panel>
   );
@@ -91,7 +128,7 @@ registerComponent<OrbitViewConfig>({
     "SVG diagram of the current orbit ellipse with vessel position, apoapsis, and periapsis markers.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
-  minSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: OrbitViewComponent,
   dataRequirements: [
     "o.sma",
@@ -115,4 +152,11 @@ const NoData = styled.div`
   font-size: 11px;
   color: var(--color-text-faint);
   padding: 8px 0;
+`;
+
+const PillFill = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;

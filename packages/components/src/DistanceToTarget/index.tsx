@@ -48,6 +48,8 @@ type ViewMode = "tracking" | "approach" | "docking-hud";
 
 function DistanceToTargetComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<DistanceToTargetConfig>>) {
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
@@ -130,18 +132,27 @@ function DistanceToTargetComponent({
     );
   }
 
+  // Tracking mode — selectively render auxiliary readouts as height shrinks.
+  const rows = h ?? 5;
+  const cols = w ?? 6;
+  const showSubReadout =
+    rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
+  const showTargetName = rows >= 4 || cols >= 5;
+
   return (
     <Panel>
       <PanelTitle>TARGET</PanelTitle>
-      <TargetName>{tarName}</TargetName>
-      {tarDistance === undefined ? (
-        <Dash>—</Dash>
-      ) : (
-        <Distance>{formatDistance(tarDistance)}</Distance>
-      )}
-      {relVel !== undefined && Number.isFinite(relVel) && (
-        <SubReadout>Δv {relVel.toFixed(2)} m/s</SubReadout>
-      )}
+      <TrackingBody>
+        {showTargetName && <TargetName>{tarName}</TargetName>}
+        {tarDistance === undefined ? (
+          <Dash>—</Dash>
+        ) : (
+          <Distance>{formatDistance(tarDistance)}</Distance>
+        )}
+        {showSubReadout && (
+          <SubReadout>Δv {(relVel as number).toFixed(2)} m/s</SubReadout>
+        )}
+      </TrackingBody>
     </Panel>
   );
 }
@@ -454,6 +465,15 @@ registerComponent<DistanceToTargetConfig>({
 export { DistanceToTargetComponent };
 
 // ── Styles — compact mode ─────────────────────────────────────────────────────
+
+const TrackingBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+`;
 
 const TargetName = styled.div`
   font-size: 13px;

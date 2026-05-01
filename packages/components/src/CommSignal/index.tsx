@@ -44,7 +44,10 @@ function formatDelay(seconds: number | undefined): string {
   return `${m}m ${s}s`;
 }
 
-function CommSignalComponent(_: Readonly<ComponentProps<CommSignalConfig>>) {
+function CommSignalComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<CommSignalConfig>>) {
   const connected = useDataValue("data", "comm.connected");
   const strength = useDataValue("data", "comm.signalStrength");
   const controlState = useDataValue("data", "comm.controlState");
@@ -92,37 +95,50 @@ function CommSignalComponent(_: Readonly<ComponentProps<CommSignalConfig>>) {
   }
   const control = describeControl(controlStateName, controlState);
 
+  // Selective rendering — bars + headline value always show; subtitle and
+  // detail grid drop as height shrinks.
+  const cols = w ?? 6;
+  const rows = h ?? 5;
+  const showSubtitle = rows >= 4;
+  const showDetailGrid = rows >= 4 && cols >= 4;
+  const headline =
+    connected === false
+      ? "—"
+      : pct !== null
+        ? `${(pct * 100).toFixed(0)}%`
+        : control.label;
+
   // Aria-live on the wrapper so a loss-of-signal transition gets announced
   // once; loud role=alert is owned by the separate SignalLossBanner primitive
   // at the page level — we don't duplicate it here.
   return (
     <Panel>
       <PanelTitle>COMMNET</PanelTitle>
-      <PanelSubtitle>
-        {connected === false ? "No signal" : "Signal to KSC"}
-      </PanelSubtitle>
+      {showSubtitle && (
+        <PanelSubtitle>
+          {connected === false ? "No signal" : "Signal to KSC"}
+        </PanelSubtitle>
+      )}
 
-      <Readout role="status" aria-live="polite">
-        <Bars aria-label={`Signal ${bars} of 4`}>
-          {[1, 2, 3, 4].map((i) => (
-            <Bar key={i} $lit={i <= bars} $tone={control.tone} />
-          ))}
-        </Bars>
-        <StrengthPct>
-          {connected === false
-            ? "—"
-            : pct !== null
-              ? `${(pct * 100).toFixed(0)}%`
-              : control.label}
-        </StrengthPct>
-      </Readout>
+      <Body>
+        <Readout role="status" aria-live="polite">
+          <Bars aria-label={`Signal ${bars} of 4`}>
+            {[1, 2, 3, 4].map((i) => (
+              <Bar key={i} $lit={i <= bars} $tone={control.tone} />
+            ))}
+          </Bars>
+          <StrengthPct>{headline}</StrengthPct>
+        </Readout>
 
-      <Grid>
-        <GridLabel>Control</GridLabel>
-        <GridValue $tone={control.tone}>{control.label}</GridValue>
-        <GridLabel>Delay</GridLabel>
-        <GridValue>{formatDelay(delay)}</GridValue>
-      </Grid>
+        {showDetailGrid && (
+          <Grid>
+            <GridLabel>Control</GridLabel>
+            <GridValue $tone={control.tone}>{control.label}</GridValue>
+            <GridLabel>Delay</GridLabel>
+            <GridValue>{formatDelay(delay)}</GridValue>
+          </Grid>
+        )}
+      </Body>
     </Panel>
   );
 }
@@ -142,11 +158,20 @@ const Empty = styled.div`
   padding: 8px 0;
 `;
 
+const Body = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  align-content: center;
+`;
+
 const Readout = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-top: 6px;
 `;
 
 const Bars = styled.div`
@@ -186,7 +211,6 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 2px 10px;
-  margin-top: 8px;
   align-items: baseline;
 `;
 
