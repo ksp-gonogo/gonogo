@@ -225,6 +225,7 @@ registerComponent<ActionGroupConfig>({
     "Toggle a KSP action group or system (SAS, RCS, gear, brakes, lights, AG1–AG10).",
   tags: ["control", "telemetry"],
   defaultSize: { w: 6, h: 6 },
+  minSize: { w: 3, h: 3 },
   // Compact controls pair nicely two-per-row on mobile.
   mobileWidth: "half",
   component: ActionGroupComponent,

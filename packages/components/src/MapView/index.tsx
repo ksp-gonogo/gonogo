@@ -734,6 +734,7 @@ registerComponent<MapViewConfig>({
     "Equirectangular map of the current body with vessel position and trajectory trail.",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
+  minSize: { w: 6, h: 6 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
   dataRequirements: [

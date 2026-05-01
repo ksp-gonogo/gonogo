@@ -255,6 +255,7 @@ registerComponent({
     "Shows connection status for all registered data sources and lets you edit their configuration.",
   tags: ["system"],
   defaultSize: { w: 12, h: 10 },
+  minSize: { w: 5, h: 5 },
   component: DataSourceStatusComponent,
   dataRequirements: [],
   defaultConfig: {},

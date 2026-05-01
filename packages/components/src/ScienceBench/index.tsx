@@ -517,6 +517,7 @@ registerComponent<ScienceBenchConfig>({
     "Science officer station — current body / situation / biome with a NEW flash on transition, live readings from temp/pres/grav/acc sensors, an experiment-data inventory, and a career-mode strip for funds / reputation / science points.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
+  minSize: { w: 5, h: 5 },
   component: ScienceBenchComponent,
   dataRequirements: [
     "v.body",

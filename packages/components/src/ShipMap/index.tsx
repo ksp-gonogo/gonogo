@@ -426,6 +426,7 @@ registerComponent<ShipMapConfig>({
     "kOS-driven part diagram of the active vessel. The widget runs a saved kerboscript on-demand (and on staging) and plots every part as a dot, sized by mass, edges following the parent/child tree. Highlights the part currently reported as hottest by Telemachus.",
   tags: ["kos", "telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
+  minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
   configComponent: ShipMapConfigComponent,
   openConfigOnAdd: true,

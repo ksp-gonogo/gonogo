@@ -631,6 +631,7 @@ registerComponent<KosFilesConfig>({
     "View files on a kOS volume without alt-tabbing. Lists the chosen volume's top-level files; click one to read its contents. Driven by a saved kerboscript dispatcher; press Run to refresh.",
   tags: ["kos", "files"],
   defaultSize: { w: 6, h: 10 },
+  minSize: { w: 4, h: 5 },
   component: KosFilesComponent,
   configComponent: KosFilesConfigComponent,
   openConfigOnAdd: true,

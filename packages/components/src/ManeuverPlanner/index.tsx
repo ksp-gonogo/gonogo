@@ -1119,6 +1119,7 @@ registerComponent<ManeuverPlannerConfig>({
     "Plan maneuver nodes: circularise / custom ΔV at next apsis, with live preview + feasibility check against vessel ΔV.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 10, h: 18 },
+  minSize: { w: 6, h: 9 },
   component: ManeuverPlannerComponent,
   dataRequirements: [
     "o.sma",

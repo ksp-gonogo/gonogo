@@ -464,6 +464,7 @@ registerComponent<GraphConfig>({
   description: "Line chart of one or more live telemetry series over time.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
+  minSize: { w: 5, h: 4 },
   // Plot area collapses below ~240px tall — give graphs extra room on mobile.
   mobileHeight: 280,
   component: GraphComponent,

@@ -153,6 +153,7 @@ registerComponent<CurrentOrbitConfig>({
     "Displays orbital parameters: apoapsis, periapsis, eccentricity, inclination, period, and time to Ap/Pe.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
+  minSize: { w: 4, h: 6 },
   component: CurrentOrbitComponent,
   dataRequirements: [
     "o.ApA",

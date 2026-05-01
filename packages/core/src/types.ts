@@ -185,6 +185,13 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /** Default grid size when placed from the overlay. Falls back to { w: 3, h: 3 }. */
   defaultSize?: { w: number; h: number };
   /**
+   * Minimum grid size — RGL prevents the user dragging below these dimensions
+   * and saved layouts smaller than this are clamped on load. Use to gate sizes
+   * where the widget becomes unreadable. Falls back to { w: 1, h: 1 } (no
+   * floor) when omitted, but most widgets should set this.
+   */
+  minSize?: { w: number; h: number };
+  /**
    * Width hint for the mobile / touch dashboard layout, which is a flex-wrap
    * column rather than a grid. `'half'` items take ~50% of the row and pair
    * up when consecutive; `'full'` (default) takes the full row. Use `'half'`

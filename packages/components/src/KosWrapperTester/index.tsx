@@ -443,6 +443,7 @@ registerComponent<KosWrapperTesterConfig>({
     "Dev-only widget that exercises the kOS managed-script wrapper end-to-end. Generates a kerboscript with a fresh random literal each press, dispatches it via the wrapper (which auto-syncs the file on the kOS volume), and verifies the round-trip value matches what was sent. A match proves the wrapper wrote and ran the freshly-generated body; a mismatch points at a stale on-volume copy.",
   tags: ["debug", "kos"],
   defaultSize: { w: 6, h: 9 },
+  minSize: { w: 5, h: 6 },
   component: KosWrapperTesterComponent,
   configComponent: KosWrapperTesterConfigComponent,
   openConfigOnAdd: true,

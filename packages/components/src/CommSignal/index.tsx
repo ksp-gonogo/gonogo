@@ -211,6 +211,7 @@ registerComponent<CommSignalConfig>({
     "Signal bars, percentage, probe control state (full / partial / none), and signal delay from KSP's CommNet.",
   tags: ["telemetry", "comms"],
   defaultSize: { w: 6, h: 5 },
+  minSize: { w: 3, h: 3 },
   component: CommSignalComponent,
   dataRequirements: [
     "comm.connected",

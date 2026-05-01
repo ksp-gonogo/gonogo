@@ -611,6 +611,7 @@ registerComponent<TargetPickerConfig>({
     "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab uses a kOS managed script to enumerate in-range targets (sorted by distance) and click-to-target by name. Current tab shows the active target's name / type / distance / Δv with a clear button.",
   tags: ["telemetry", "navigation", "kos"],
   defaultSize: { w: 6, h: 11 },
+  minSize: { w: 4, h: 5 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
   dataRequirements: [

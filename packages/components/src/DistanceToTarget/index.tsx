@@ -431,6 +431,7 @@ registerComponent<DistanceToTargetConfig>({
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
+  minSize: { w: 3, h: 4 },
   component: DistanceToTargetComponent,
   configComponent: DistanceToTargetConfigComponent,
   dataRequirements: [

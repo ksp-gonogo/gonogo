@@ -309,6 +309,7 @@ registerComponent<SystemViewConfig>({
     "Solar-system diagram driven by Telemachus's b.* bucket. Renders every body orbiting a chosen parent, highlights the vessel's current body and any selected target.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
+  minSize: { w: 6, h: 6 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
   dataRequirements: ["b.number", "v.body", "tar.name"],

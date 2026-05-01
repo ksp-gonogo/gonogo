@@ -251,6 +251,7 @@ registerComponent<LandingStatusConfig>({
     "Suicide-burn countdown, impact time + speed, descent rate, predicted coordinates, and slope angle — focused on vacuum-body landings.",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 10 },
+  minSize: { w: 4, h: 5 },
   component: LandingStatusComponent,
   dataRequirements: [
     "v.body",

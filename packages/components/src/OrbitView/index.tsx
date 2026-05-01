@@ -91,6 +91,7 @@ registerComponent<OrbitViewConfig>({
     "SVG diagram of the current orbit ellipse with vessel position, apoapsis, and periapsis markers.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
+  minSize: { w: 4, h: 4 },
   component: OrbitViewComponent,
   dataRequirements: [
     "o.sma",

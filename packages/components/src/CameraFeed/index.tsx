@@ -349,6 +349,7 @@ registerComponent<CameraFeedConfig>({
   description: "Live video from an OCISLY Hullcam, streamed via the proxy.",
   tags: ["camera", "telemetry"],
   defaultSize: { w: 6, h: 6 },
+  minSize: { w: 4, h: 3 },
   component: CameraFeedComponent,
   configComponent: CameraFeedConfigComponent,
   defaultConfig: { mode: "single", showOverlay: true, showMetadata: false },

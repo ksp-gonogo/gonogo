@@ -106,7 +106,14 @@ export function ComponentOverlay({
         componentId: def.id,
         config: def.defaultConfig ? { ...def.defaultConfig } : undefined,
       };
-      const size = def.defaultSize ?? { w: 3, h: 3 };
+      const defaultSize = def.defaultSize ?? { w: 3, h: 3 };
+      const min = def.minSize;
+      const size = min
+        ? {
+            w: Math.max(defaultSize.w, min.w),
+            h: Math.max(defaultSize.h, min.h),
+          }
+        : defaultSize;
       const layout = { x: 0, y: nextY(), ...size };
 
       addItem(item, layout);

@@ -128,6 +128,7 @@ registerComponent<KosWidgetConfig>({
     "Runs a kOS script on demand or on an interval and displays its [KOSDATA] output.",
   tags: ["kos", "telemetry", "custom"],
   defaultSize: { w: 6, h: 5 },
+  minSize: { w: 3, h: 3 },
   openConfigOnAdd: true,
   component: KosWidgetComponent,
   configComponent: KosWidgetConfigComponent,

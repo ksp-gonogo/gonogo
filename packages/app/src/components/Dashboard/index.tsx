@@ -80,6 +80,42 @@ function filterLayouts(layouts: Layouts): Layouts {
   return next;
 }
 
+/**
+ * Inject `minW`/`minH` from each item's registered component definition into
+ * its layout entries (RGL uses these to gate resize/drag). Also clamps `w`/`h`
+ * up to the floor — covers persisted layouts saved before a widget gained a
+ * minSize (or when a user shrank one below the new floor).
+ */
+function applyMinSizes(layouts: Layouts, items: DashboardItem[]): Layouts {
+  const idToComponentId = new Map<string, string>();
+  for (const it of items) idToComponentId.set(it.i, it.componentId);
+
+  const next: Layouts = {};
+  for (const [bp, entries] of Object.entries(layouts)) {
+    next[bp] = entries.map((entry) => {
+      const componentId = idToComponentId.get(entry.i);
+      if (!componentId) return entry;
+      const def = getComponent(componentId);
+      const min = def?.minSize;
+      if (!min) return entry;
+      const w = Math.max(entry.w, min.w);
+      const h = Math.max(entry.h, min.h);
+      // Skip the spread when nothing changed — preserves entry identity for
+      // RGL's internal reconciliation.
+      if (
+        w === entry.w &&
+        h === entry.h &&
+        entry.minW === min.w &&
+        entry.minH === min.h
+      ) {
+        return entry;
+      }
+      return { ...entry, w, h, minW: min.w, minH: min.h };
+    });
+  }
+  return next;
+}
+
 // ---------------------------------------------------------------------------
 // Dashboard — fully controlled. State lives in `useDashboardState` (called
 // by the owning screen) so external consumers like the Phase 4 InputDispatcher
@@ -122,10 +158,11 @@ function GridDashboard({
 }: Readonly<DashboardProps>) {
   // Defensive: persisted layouts may carry breakpoint keys that used to
   // exist in COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
-  // before handing the map off so it doesn't warn on every render.
+  // before handing the map off so it doesn't warn on every render. Then
+  // inject minW/minH + clamp from each item's registered minSize.
   const filteredLayouts = useMemo<Layouts>(
-    () => filterLayouts(layouts),
-    [layouts],
+    () => applyMinSizes(filterLayouts(layouts), items),
+    [layouts, items],
   );
 
   return (

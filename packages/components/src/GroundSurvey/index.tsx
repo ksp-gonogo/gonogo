@@ -264,6 +264,7 @@ registerComponent<GroundSurveyConfig>({
     "Lunar Lander-style terrain-elevation strip built from v.altitude − v.heightFromTerrain over the last 2 minutes. Smoothness badge (A/B/C/F) rates the area for landing; the strip freezes once the ship drops below 1 km AGL so the verdict reflects the survey, not the descent.",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 7 },
+  minSize: { w: 4, h: 4 },
   component: GroundSurveyComponent,
   configComponent: GroundSurveyConfigComponent,
   dataRequirements: [

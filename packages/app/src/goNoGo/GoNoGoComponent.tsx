@@ -692,6 +692,7 @@ registerComponent<GoNoGoWidgetConfig>({
     "Mission readiness poll — button on station screens, grid of lights on main. Morphs into ABORT after launch.",
   tags: ["mission-control"],
   defaultSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: GoNoGoComponent,
   configComponent: GoNoGoConfigComponent,
   dataRequirements: ["v.missionTime"],

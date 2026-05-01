@@ -729,6 +729,7 @@ registerComponent<NavballConfig>({
     "Attitude indicator + control surface. Reads heading/pitch/roll from Telemachus's n.* bucket and exposes a deep action surface — every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim — so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
+  minSize: { w: 4, h: 6 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
   dataRequirements: [

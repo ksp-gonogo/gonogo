@@ -275,6 +275,7 @@ registerComponent<ThermalStatusConfig>({
     "Aggregate thermal readouts — hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
+  minSize: { w: 3, h: 3 },
   component: ThermalStatusComponent,
   dataRequirements: [
     "therm.hottestPartName",

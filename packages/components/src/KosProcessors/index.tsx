@@ -420,6 +420,7 @@ registerComponent<KosProcessorsConfig>({
     "Lists every kOS CPU on the active vessel — tag, run mode, current volume, and boot file. Driven by a saved kerboscript that calls `LIST PROCESSORS`; press Run to refresh.",
   tags: ["kos", "fleet"],
   defaultSize: { w: 6, h: 8 },
+  minSize: { w: 4, h: 4 },
   component: KosProcessorsComponent,
   configComponent: KosProcessorsConfigComponent,
   openConfigOnAdd: true,

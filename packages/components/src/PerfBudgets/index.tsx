@@ -180,6 +180,7 @@ registerComponent<PerfBudgetsConfig>({
     "Live view of every registered PerfBudget — current rate vs soft cap, with exceedance counts. Updates 1 Hz. Useful for spotting performance regressions at a glance during development or real flights.",
   tags: ["debug", "perf"],
   defaultSize: { w: 6, h: 6 },
+  minSize: { w: 4, h: 3 },
   component: PerfBudgetsComponent,
   dataRequirements: [],
   defaultConfig: {},

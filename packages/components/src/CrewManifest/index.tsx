@@ -153,6 +153,7 @@ registerComponent<CrewManifestConfig>({
     "Kerbals aboard the active vessel — count vs capacity + full roster. Shows EVA state and handles unmanned probes gracefully.",
   tags: ["telemetry", "crew"],
   defaultSize: { w: 6, h: 8 },
+  minSize: { w: 4, h: 4 },
   component: CrewManifestComponent,
   dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
   defaultConfig: {},
