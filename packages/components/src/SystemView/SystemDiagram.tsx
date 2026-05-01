@@ -57,6 +57,19 @@ export interface SystemDiagramProps {
   targetName?: string | null;
   /** If set and `parentName` matches, plot the vessel on its orbit. */
   vessel?: VesselOrbit | null;
+  /**
+   * Live phase angles (deg, to active vessel) keyed by body index. When
+   * provided, each body gets a tiny numeric label rendered next to its
+   * orbit dot. The vessel's own parent body (if any) should be excluded
+   * by the caller — the angle is meaningless there.
+   */
+  phaseAngles?: ReadonlyMap<number, number>;
+  /**
+   * Fires whenever the hovered body changes. Lets the surrounding widget
+   * mirror the focus into a side panel; passes `null` when the cursor
+   * leaves all dots.
+   */
+  onFocusBodyChange?: (body: CelestialBody | null) => void;
   width: number;
   height: number;
 }
@@ -71,6 +84,8 @@ export function SystemDiagram({
   highlightNames,
   targetName,
   vessel,
+  phaseAngles,
+  onFocusBodyChange,
   width,
   height,
 }: SystemDiagramProps) {
@@ -120,6 +135,13 @@ export function SystemDiagram({
       globalThis.removeEventListener("pointerup", onPointerUp);
     };
   }, [onPointerMove, onPointerUp]);
+
+  // Mirror hover into the surrounding widget so it can drive a side panel.
+  // Only the body identity matters — cursor-position changes don't propagate.
+  const focusedBody = hover?.body ?? null;
+  useEffect(() => {
+    onFocusBodyChange?.(focusedBody);
+  }, [focusedBody, onFocusBodyChange]);
 
   const handleWheel = useCallback((e: ReactWheelEvent) => {
     // Don't preventDefault — React's passive listener can't, and
@@ -371,6 +393,17 @@ export function SystemDiagram({
               >
                 {c.name ?? "—"}
               </text>
+              {phaseAngles?.has(c.index) && (
+                <text
+                  x={pos.x + dotR + 3 / zoom}
+                  y={pos.y + 14 / zoom}
+                  fill="var(--color-text-faint)"
+                  fontSize={8 / zoom}
+                  pointerEvents="none"
+                >
+                  {`${normalizePhaseAngle(phaseAngles.get(c.index) as number).toFixed(0)}°`}
+                </text>
+              )}
             </g>
           );
         })}
@@ -598,6 +631,18 @@ function formatGm(m: number): string {
 }
 function formatHours(s: number): string {
   return (s / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
+/**
+ * Telemachus reports phase angles in [0, 360); rendering them as the closest
+ * signed value (-180, 180] makes the leading/trailing relationship obvious
+ * at a glance.
+ */
+function normalizePhaseAngle(deg: number): number {
+  let d = deg % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
 }
 
 function nameMatches(a: string, b: string): boolean {

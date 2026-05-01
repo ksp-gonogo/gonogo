@@ -31,6 +31,13 @@ export interface CelestialBody {
   lan: number | null;
   argumentOfPeriapsis: number | null;
   trueAnomaly: number | null;
+  // Almanac fields — unused by the orbit math, surfaced in the side panel.
+  mass: number | null;
+  geeASL: number | null;
+  rotationPeriod: number | null;
+  tidallyLocked: boolean | null;
+  hasOxygen: boolean | null;
+  hasOcean: boolean | null;
 }
 
 const BODY_FIELDS = [
@@ -47,6 +54,12 @@ const BODY_FIELDS = [
   ["lan", "o.lan"],
   ["argumentOfPeriapsis", "o.argumentOfPeriapsis"],
   ["trueAnomaly", "o.trueAnomaly"],
+  ["mass", "mass"],
+  ["geeASL", "geeASL"],
+  ["rotationPeriod", "rotationPeriod"],
+  ["tidallyLocked", "tidallyLocked"],
+  ["hasOxygen", "atmosphereContainsOxygen"],
+  ["hasOcean", "ocean"],
 ] as const satisfies ReadonlyArray<readonly [keyof CelestialBody, string]>;
 
 function telemachusKey(field: string, index: number): string {
@@ -112,12 +125,23 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
       lan: null,
       argumentOfPeriapsis: null,
       trueAnomaly: null,
+      mass: null,
+      geeASL: null,
+      rotationPeriod: null,
+      tidallyLocked: null,
+      hasOxygen: null,
+      hasOcean: null,
     };
     for (const [localField, telemKey] of BODY_FIELDS) {
       const raw = valuesRef.current.get(telemachusKey(telemKey, i));
       if (raw === undefined) continue;
-      if (localField === "hasAtmosphere") {
-        body.hasAtmosphere = typeof raw === "boolean" ? raw : null;
+      if (
+        localField === "hasAtmosphere" ||
+        localField === "tidallyLocked" ||
+        localField === "hasOxygen" ||
+        localField === "hasOcean"
+      ) {
+        body[localField] = typeof raw === "boolean" ? raw : null;
       } else if (localField === "name" || localField === "referenceBody") {
         body[localField] = typeof raw === "string" ? raw : null;
       } else {

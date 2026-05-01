@@ -11,10 +11,12 @@ import {
   PrimaryButton,
   Select,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram } from "./SystemDiagram";
-import { useCelestialBodies } from "./useCelestialBodies";
+import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
+import { usePhaseAngles } from "./usePhaseAngles";
 
 interface SystemViewConfig {
   /**
@@ -59,6 +61,37 @@ function SystemViewComponent({
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody ?? null);
 
+  // Children of the chosen frame — the only bodies actually drawn. Phase
+  // angles only get subscribed for these, so the b.o.phaseAngle[i] sub
+  // count tracks what's on screen, not the whole solar system.
+  const children = useMemo(() => {
+    if (parentName === null) return [] as readonly CelestialBody[];
+    return bodies.filter(
+      (b) => b.referenceBody !== null && b.referenceBody === parentName,
+    );
+  }, [bodies, parentName]);
+  const phaseAngles = usePhaseAngles(children);
+
+  const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
+  // Default focus to the vessel's body when nothing is hovered — gives the
+  // panel useful content out of the box.
+  const vesselBodyRecord = useMemo(
+    () =>
+      typeof vesselBody === "string"
+        ? (bodies.find((b) => b.name === vesselBody) ?? null)
+        : null,
+    [bodies, vesselBody],
+  );
+  const panelBody = focusedBody ?? vesselBodyRecord;
+  const panelPhaseAngle =
+    panelBody && phaseAngles.has(panelBody.index)
+      ? (phaseAngles.get(panelBody.index) ?? null)
+      : null;
+  const panelIsVesselParent =
+    panelBody !== null &&
+    typeof vesselBody === "string" &&
+    panelBody.name === vesselBody;
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 280 });
   useEffect(() => {
@@ -88,19 +121,28 @@ function SystemViewComponent({
             ? "Pick a frame in the widget config."
             : `Frame: ${parentName}`}
       </PanelSubtitle>
-      <DiagramWrap ref={wrapRef}>
-        {parentName !== null && bodies.length > 0 && (
-          <SystemDiagram
-            bodies={bodies}
-            parentName={parentName}
-            highlightNames={vesselBody ? [vesselBody] : []}
-            targetName={typeof targetName === "string" ? targetName : null}
-            vessel={vesselOrbit}
-            width={size.w}
-            height={Math.max(size.h, 200)}
-          />
-        )}
-      </DiagramWrap>
+      <Body>
+        <DiagramWrap ref={wrapRef}>
+          {parentName !== null && bodies.length > 0 && (
+            <SystemDiagram
+              bodies={bodies}
+              parentName={parentName}
+              highlightNames={vesselBody ? [vesselBody] : []}
+              targetName={typeof targetName === "string" ? targetName : null}
+              vessel={vesselOrbit}
+              phaseAngles={phaseAngles}
+              onFocusBodyChange={setFocusedBody}
+              width={size.w}
+              height={Math.max(size.h, 200)}
+            />
+          )}
+        </DiagramWrap>
+        <AlmanacPanel
+          body={panelBody}
+          phaseAngleDeg={panelPhaseAngle}
+          isVesselParent={panelIsVesselParent}
+        />
+      </Body>
     </Panel>
   );
 }
@@ -182,16 +224,25 @@ function SystemViewConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const DiagramWrap = styled.div`
+const Body = styled.div`
   flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 0;
+  margin-top: 6px;
+  border: 1px solid var(--color-surface-panel);
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const DiagramWrap = styled.div`
+  min-width: 0;
   min-height: 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  margin-top: 6px;
   background: var(--color-surface-app);
-  border: 1px solid var(--color-surface-panel);
-  border-radius: 2px;
   svg {
     display: block;
     flex: 1;
@@ -215,6 +266,8 @@ registerComponent<SystemViewConfig>({
   pushable: true,
 });
 
+export { AlmanacPanel } from "./AlmanacPanel";
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";
+export { usePhaseAngles } from "./usePhaseAngles";
 export { SystemViewComponent };
