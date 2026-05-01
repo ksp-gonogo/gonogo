@@ -1,23 +1,11 @@
-import type {
-  ActionDefinition,
-  ComponentProps,
-  SizeBucket,
-} from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
-  getSizeBucket,
   registerComponent,
   useActionInput,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import {
-  BigReadout,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  Readout,
-  ReadoutCaption,
-} from "@gonogo/ui";
+import { Panel, PanelTitle, ReadoutCaption } from "@gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -26,6 +14,13 @@ import styled from "styled-components";
  * `t.timeWarp[N]` actions. Manual warp (via the in-game keys or another
  * surface) is reflected here too — this widget is purely a thin UI over
  * the same telemetry the alarm banner reads.
+ *
+ * Layout is flex-flow + selective rendering rather than discrete bucket
+ * branches: rate readout and button block sit side-by-side when there's
+ * horizontal room, stack when narrow, and the full 8-button ladder yields
+ * to a 3-button stepper when there's no longer room for both. The grid
+ * inside the ladder uses `auto-fit` so 8 buttons reflow naturally between
+ * 8×1 / 4×2 / 2×4 / 1×8 depending on body shape.
  */
 
 type WarpControlConfig = Record<string, never>;
@@ -110,91 +105,85 @@ function WarpControlComponent({
     },
   });
 
-  const bucket: SizeBucket = getSizeBucket(w, h);
+  // Content-priority decisions, not layout decisions — CSS handles the
+  // arrangement once we've decided what's in the body.
+  // Full ladder needs enough area for 8 buttons to wrap legibly. We only
+  // require the area; auto-fit handles whether it ends up 8×1, 4×2, 2×4…
+  const cols = w ?? 6;
+  const rows = h ?? 5;
+  const showFullLadder = cols * rows >= 20 && cols >= 4 && rows >= 3;
+  const showStepper = !showFullLadder && cols >= 3 && rows >= 3;
+  const showModeCaption = rows >= 4;
+
   const rateLabel = formatRate(currentRate);
-  const modeSuffix =
-    typeof mode === "string" && mode !== "" ? ` · ${mode}` : "";
-
-  if (bucket === "tiny") {
-    return (
-      <Panel>
-        <PanelTitle>WARP</PanelTitle>
-        <BigReadout $tone="go" aria-label={`Time warp rate ${rateLabel}`}>
-          {rateLabel}
-        </BigReadout>
-      </Panel>
-    );
-  }
-
-  if (bucket === "small") {
-    const idx = currentIndex ?? 0;
-    const downIdx = Math.max(0, idx - 1);
-    const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
-    return (
-      <Panel>
-        <PanelTitle>WARP</PanelTitle>
-        <Readout $tone="go">
-          {rateLabel}
-          {typeof mode === "string" && mode !== "" && (
-            <ReadoutCaption>{mode}</ReadoutCaption>
-          )}
-        </Readout>
-        <SmallRow role="group" aria-label="Time warp controls">
-          <WarpButton
-            type="button"
-            $active={false}
-            disabled={idx === 0}
-            onClick={() => setWarp(downIdx)}
-            aria-label="Warp down"
-          >
-            −
-          </WarpButton>
-          <WarpButton
-            type="button"
-            $active={idx === 0}
-            aria-pressed={idx === 0}
-            onClick={() => setWarp(0)}
-            aria-label="Drop to realtime"
-          >
-            1×
-          </WarpButton>
-          <WarpButton
-            type="button"
-            $active={false}
-            disabled={idx === HIGH_LEVELS.length - 1}
-            onClick={() => setWarp(upIdx)}
-            aria-label="Warp up"
-          >
-            +
-          </WarpButton>
-        </SmallRow>
-      </Panel>
-    );
-  }
+  const idx = currentIndex ?? 0;
+  const downIdx = Math.max(0, idx - 1);
+  const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
     <Panel>
       <PanelTitle>WARP</PanelTitle>
-      <PanelSubtitle>
-        {rateLabel}
-        {modeSuffix}
-      </PanelSubtitle>
-      <ButtonGrid role="group" aria-label="Time warp levels">
-        {HIGH_LEVELS.map((lvl) => {
-          const active = currentIndex === lvl.index;
-          return (
+      <Body>
+        <Rate $tone="go">
+          <RateValue aria-label={`Time warp rate ${rateLabel}`}>
+            {rateLabel}
+          </RateValue>
+          {showModeCaption && typeof mode === "string" && mode !== "" && (
+            <ReadoutCaption>{mode}</ReadoutCaption>
+          )}
+        </Rate>
+
+        {showFullLadder && (
+          <FullLadder role="group" aria-label="Time warp levels">
+            {HIGH_LEVELS.map((lvl) => {
+              const active = currentIndex === lvl.index;
+              return (
+                <WarpButton
+                  key={lvl.index}
+                  type="button"
+                  $active={active}
+                  aria-pressed={active}
+                  onClick={() => setWarp(lvl.index)}
+                >
+                  {lvl.label}
+                </WarpButton>
+              );
+            })}
+          </FullLadder>
+        )}
+
+        {showStepper && (
+          <Stepper role="group" aria-label="Time warp controls">
             <WarpButton
-              key={lvl.index}
               type="button"
-              $active={active}
-              aria-pressed={active}
-              onClick={() => setWarp(lvl.index)}
+              $active={false}
+              disabled={idx === 0}
+              onClick={() => setWarp(downIdx)}
+              aria-label="Warp down"
             >
-              {lvl.label}
+              −
             </WarpButton>
-          );
-        })}
-      </ButtonGrid>
+            <WarpButton
+              type="button"
+              $active={idx === 0}
+              aria-pressed={idx === 0}
+              onClick={() => setWarp(0)}
+              aria-label="Drop to realtime"
+            >
+              1×
+            </WarpButton>
+            <WarpButton
+              type="button"
+              $active={false}
+              disabled={idx === HIGH_LEVELS.length - 1}
+              onClick={() => setWarp(upIdx)}
+              aria-label="Warp up"
+            >
+              +
+            </WarpButton>
+          </Stepper>
+        )}
+      </Body>
     </Panel>
   );
 }
@@ -207,36 +196,66 @@ function formatRate(rate: number | null): string {
   return `${rate.toFixed(2)}×`;
 }
 
-const ButtonGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-top: 6px;
+const Body = styled.div`
   flex: 1;
-  align-content: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
 `;
 
-const SmallRow = styled.div`
+const Rate = styled.div<{ $tone: "go" }>`
+  flex: 1 1 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  color: var(--color-status-go-fg);
+`;
+
+const RateValue = styled.span`
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+`;
+
+const FullLadder = styled.div`
+  flex: 2 1 140px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: 4px;
-  margin-top: 4px;
+  align-content: center;
+`;
+
+const Stepper = styled.div`
+  flex: 1 1 100px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(28px, 1fr));
+  gap: 4px;
+  align-content: center;
 `;
 
 const WarpButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-status-go-fg)")};
+  background: ${({ $active }) =>
+    $active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
+  color: var(--color-status-go-fg);
   border: 1px solid
-    ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
+    ${({ $active }) =>
+      $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: 3px;
-  padding: 8px 4px;
+  padding: 6px 4px;
   font-size: 13px;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   letter-spacing: 0.04em;
   cursor: pointer;
-  &:hover {
-    background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  }
+  min-width: 0;
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
@@ -254,7 +273,7 @@ registerComponent<WarpControlConfig>({
     "Set KSP time warp from the dashboard. Shows current warp rate and mode; button row maps to t.timeWarp[0..7].",
   tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
-  minSize: { w: 3, h: 2 },
+  minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
   dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode"],
   defaultConfig: {},
