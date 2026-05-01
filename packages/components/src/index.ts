@@ -20,6 +20,7 @@ export * from "./KosWrapperTester";
 export * from "./LandingStatus";
 export * from "./ManeuverPlanner";
 export * from "./MapView";
+export * from "./Navball";
 export * from "./OrbitView";
 export * from "./PerfBudgets";
 export * from "./ScienceBench";
