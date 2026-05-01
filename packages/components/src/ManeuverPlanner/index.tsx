@@ -11,6 +11,7 @@ import {
   stateAtUT,
   useDataValue,
   useExecuteAction,
+  useOrbitElements,
 } from "@gonogo/core";
 import {
   type ParsedManeuverNode,
@@ -177,12 +178,14 @@ function ManeuverPlannerComponent({
   // Live orbit state — everything we need for the preset math + preview.
   const sma = useDataValue("data", "o.sma");
   const ecc = useDataValue("data", "o.eccentricity");
-  const ApR = useDataValue("data", "o.ApR");
-  const PeR = useDataValue("data", "o.PeR");
+  const {
+    apoapsisRadius: ApR,
+    periapsisRadius: PeR,
+    timeToApoapsis: timeToAp,
+    timeToPeriapsis: timeToPe,
+  } = useOrbitElements();
   const argPe = useDataValue("data", "o.argumentOfPeriapsis");
   const trueAnomaly = useDataValue("data", "o.trueAnomaly");
-  const timeToAp = useDataValue("data", "o.timeToAp");
-  const timeToPe = useDataValue("data", "o.timeToPe");
   const currentUT = useDataValue("data", "t.universalTime");
   const orbitalSpeed = useDataValue("data", "o.orbitalSpeed");
   const radius = useDataValue("data", "o.radius");

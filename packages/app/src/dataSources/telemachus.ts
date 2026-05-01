@@ -4,7 +4,7 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { registerDataSource } from "@gonogo/core";
+import { PerfBudget, registerDataSource } from "@gonogo/core";
 
 // TelemaachusSchema lives in @gonogo/core and is pre-registered in DataSourceRegistry.
 // Re-export it here so callers that import from this module path keep working.
@@ -235,6 +235,20 @@ interface RetryOptions {
   retryTimeoutMs?: number;
 }
 
+/**
+ * Soft cap on samples emitted to local subscribers. Telemachus runs at 4 Hz
+ * across ~170 schema keys (worst-case 680/sec when every key changes per
+ * tick), plus indexed runtime keys. 2500 leaves ~3.5x headroom over the
+ * realistic steady state — tight enough to flag a runaway WS rate or a
+ * duplicated subscription, loose enough to absorb a normal full-tick burst.
+ */
+const TELEMACHUS_SAMPLE_BUDGET = new PerfBudget({
+  name: "Telemachus samples emitted/sec",
+  threshold: 2500,
+  windowMs: 1000,
+  unit: "samples",
+});
+
 export class TelemachusDataSource implements DataSource<TelemachusConfig> {
   id = "telemachus";
   name = "Telemachus Reborn";
@@ -427,6 +441,7 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
       const data = JSON.parse(raw) as Record<string, unknown>;
       for (const [key, callbacks] of this.subscriptions) {
         if (key in data) {
+          TELEMACHUS_SAMPLE_BUDGET.record();
           callbacks.forEach((cb) => {
             cb(data[key]);
           });

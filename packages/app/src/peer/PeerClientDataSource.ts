@@ -4,7 +4,7 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { debugPeer } from "@gonogo/core";
+import { debugPeer, PerfBudget } from "@gonogo/core";
 import type { DataKeyMeta } from "@gonogo/data";
 import type { PeerClientService } from "./PeerClientService";
 
@@ -17,6 +17,20 @@ interface SeriesRange {
   t: number[];
   v: unknown[];
 }
+
+/**
+ * Soft cap on samples fanned out to local station-side subscribers from the
+ * peer link. The host forwards Telemachus (~170 keys @ 4 Hz, worst-case
+ * 680/sec) plus selective subs the station opts into, so 2500 leaves
+ * comfortable headroom over realistic steady state while still catching a
+ * runaway broadcast or a duplicated peer message.
+ */
+const PEER_CLIENT_SAMPLE_BUDGET = new PerfBudget({
+  name: "PeerClient samples emitted/sec",
+  threshold: 2500,
+  windowMs: 1000,
+  unit: "samples",
+});
 
 export class PeerClientDataSource implements DataSource {
   private subscribers = new Map<string, Set<(value: unknown) => void>>();
@@ -58,6 +72,7 @@ export class PeerClientDataSource implements DataSource {
         });
       }
       this.lastValues.set(key, value);
+      PEER_CLIENT_SAMPLE_BUDGET.record();
       this.subscribers.get(key)?.forEach((cb) => {
         cb(value);
       });

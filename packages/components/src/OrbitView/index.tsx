@@ -4,6 +4,7 @@ import {
   registerComponent,
   useActionInput,
   useDataValue,
+  useOrbitElements,
 } from "@gonogo/core";
 import {
   Panel,
@@ -52,8 +53,8 @@ function OrbitViewComponent({
   const sma = useDataValue("data", "o.sma");
   const eccentricity = useDataValue("data", "o.eccentricity");
   const trueAnomaly = useDataValue("data", "o.trueAnomaly");
-  const apoapsisR = useDataValue("data", "o.ApR");
-  const periapsisR = useDataValue("data", "o.PeR");
+  const { apoapsisRadius: apoapsisR, periapsisRadius: periapsisR } =
+    useOrbitElements();
   const argPe = useDataValue("data", "o.argumentOfPeriapsis");
   const bodyName = useDataValue("data", "v.body");
 

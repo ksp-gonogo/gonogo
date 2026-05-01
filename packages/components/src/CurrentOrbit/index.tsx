@@ -6,6 +6,7 @@ import {
   registerComponent,
   useActionInput,
   useDataValue,
+  useOrbitElements,
 } from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
@@ -46,18 +47,20 @@ function CurrentOrbitComponent({
     },
   });
 
-  const apoapsisA = useDataValue("data", "o.ApA");
-  const periapsisA = useDataValue("data", "o.PeA");
-  const apoapsisR = useDataValue("data", "o.ApR");
-  const periapsisR = useDataValue("data", "o.PeR");
+  const {
+    apoapsisAltitude: apoapsisA,
+    periapsisAltitude: periapsisA,
+    apoapsisRadius: apoapsisR,
+    periapsisRadius: periapsisR,
+    timeToApoapsis: timeToAp,
+    timeToPeriapsis: timeToPe,
+  } = useOrbitElements();
   const sma = useDataValue("data", "o.sma");
   const eccentricity = useDataValue("data", "o.eccentricity");
   const trueAnomaly = useDataValue("data", "o.trueAnomaly");
   const argPe = useDataValue("data", "o.argumentOfPeriapsis");
   const inclination = useDataValue("data", "o.inclination");
   const period = useDataValue("data", "o.period");
-  const timeToAp = useDataValue("data", "o.timeToAp");
-  const timeToPe = useDataValue("data", "o.timeToPe");
   const refBody = useDataValue("data", "o.referenceBody");
   const bodyName = useDataValue("data", "v.body");
 
