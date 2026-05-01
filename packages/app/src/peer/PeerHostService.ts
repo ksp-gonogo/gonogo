@@ -1,5 +1,6 @@
 import { debugPeer, logger, PerfBudget } from "@gonogo/core";
 import type { DataKeyMeta } from "@gonogo/data";
+import { isScriptable } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { loadIceServers } from "./iceServers";
@@ -598,17 +599,7 @@ export class PeerHostService {
     conn: DataConnection,
   ) {
     const { getDataSource } = await import("@gonogo/core");
-    type KosExec = {
-      executeScript?: (
-        cpu: string,
-        script: string,
-        args: Array<number | string | boolean>,
-        managed?: import("@gonogo/data").KosManagedScript,
-      ) => Promise<import("@gonogo/data").KosData>;
-    };
-    const source = getDataSource("kos") as
-      | (ReturnType<typeof getDataSource> & KosExec)
-      | undefined;
+    const source = getDataSource("kos");
     const respond = (
       data?: import("@gonogo/data").KosData,
       error?: string,
@@ -622,7 +613,7 @@ export class PeerHostService {
         isScriptError,
       } satisfies PeerMessage);
     };
-    if (!source || typeof source.executeScript !== "function") {
+    if (!isScriptable(source)) {
       respond(undefined, "kos data source not registered on main screen");
       return;
     }

@@ -1,11 +1,11 @@
-import type {
-  ConfigField,
-  DataKey,
-  DataSource,
-  DataSourceStatus,
-} from "@gonogo/core";
+import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
 import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
-import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
+import type {
+  KosData,
+  KosManagedScript,
+  KosScriptArg,
+  ScriptableDataSource,
+} from "@gonogo/data";
 import { KosScriptError, parseKosData, stripAnsi } from "@gonogo/data";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
@@ -103,7 +103,7 @@ interface KosDataSourceOptions {
  * lazily on demand and tear down when the source disconnects. This keeps
  * the proxy from holding a permanent telnet session that nothing reads.
  */
-export class KosDataSource implements DataSource<KosConfig> {
+export class KosDataSource implements ScriptableDataSource<KosConfig> {
   id = "kos";
   name = "kOS";
   status: DataSourceStatus = "disconnected";

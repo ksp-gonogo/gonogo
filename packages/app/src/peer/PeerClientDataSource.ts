@@ -1,11 +1,12 @@
-import type {
-  ConfigField,
-  DataKey,
-  DataSource,
-  DataSourceStatus,
-} from "@gonogo/core";
+import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
 import { debugPeer, PerfBudget } from "@gonogo/core";
-import type { DataKeyMeta } from "@gonogo/data";
+import type {
+  DataKeyMeta,
+  KosData,
+  KosManagedScript,
+  KosScriptArg,
+  ScriptableDataSource,
+} from "@gonogo/data";
 import type { PeerClientService } from "./PeerClientService";
 
 interface Sample {
@@ -32,7 +33,7 @@ const PEER_CLIENT_SAMPLE_BUDGET = new PerfBudget({
   unit: "samples",
 });
 
-export class PeerClientDataSource implements DataSource {
+export class PeerClientDataSource implements ScriptableDataSource {
   private subscribers = new Map<string, Set<(value: unknown) => void>>();
   private sampleSubscribers = new Map<string, Set<(sample: Sample) => void>>();
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
@@ -178,9 +179,9 @@ export class PeerClientDataSource implements DataSource {
   async executeScript(
     cpu: string,
     script: string,
-    args: Array<number | string | boolean>,
-    managed?: import("@gonogo/data").KosManagedScript,
-  ): Promise<Record<string, unknown>> {
+    args: KosScriptArg[],
+    managed?: KosManagedScript,
+  ): Promise<KosData> {
     return this.client.sendKosExecute(cpu, script, args, managed);
   }
 

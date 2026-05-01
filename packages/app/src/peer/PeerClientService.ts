@@ -1,4 +1,5 @@
 import { debugPeer, logger } from "@gonogo/core";
+import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
 import { KosScriptError } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { loadIceServers } from "./iceServers";
@@ -110,7 +111,7 @@ export class PeerClientService {
   private pendingKosExecutes = new Map<
     string,
     {
-      resolve: (data: Record<string, unknown>) => void;
+      resolve: (data: KosData) => void;
       reject: (err: Error) => void;
       timer: ReturnType<typeof setTimeout>;
     }
@@ -491,10 +492,10 @@ export class PeerClientService {
   sendKosExecute(
     cpu: string,
     script: string,
-    args: Array<number | string | boolean>,
-    managed?: import("@gonogo/data").KosManagedScript,
+    args: KosScriptArg[],
+    managed?: KosManagedScript,
     timeoutMs = 35_000,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<KosData> {
     return new Promise((resolve, reject) => {
       if (!this.conn || this.conn.open === false) {
         reject(new Error("not connected to host"));

@@ -5,6 +5,8 @@ import type {
   DataSourceStatus,
 } from "@gonogo/core";
 import { debugPeer } from "@gonogo/core";
+import type { ScriptableDataSource } from "@gonogo/data";
+import { isScriptable } from "@gonogo/data";
 import type { PeerHostService } from "./PeerHostService";
 
 interface Sample {
@@ -30,15 +32,6 @@ type CollectionAware = {
     keys: readonly string[],
     cb: (values: unknown[]) => void,
   ) => () => void;
-};
-
-type ExecuteScriptAware = {
-  executeScript: (
-    cpu: string,
-    script: string,
-    args: Array<number | string | boolean>,
-    managed?: import("@gonogo/data").KosManagedScript,
-  ) => Promise<Record<string, unknown>>;
 };
 
 type LatestValueAware = {
@@ -69,14 +62,6 @@ function hasSubscribeCollection(
   return (
     typeof (source as Partial<CollectionAware>).subscribeCollection ===
     "function"
-  );
-}
-
-function hasExecuteScript(
-  source: DataSource,
-): source is DataSource & ExecuteScriptAware {
-  return (
-    typeof (source as Partial<ExecuteScriptAware>).executeScript === "function"
   );
 }
 
@@ -219,12 +204,12 @@ export class PeerBroadcastingDataSource implements DataSource {
     return { t: [], v: [] };
   }
 
-  // Conditional getters so `typeof wrapper.executeScript === "function"`
-  // reflects whether the wrapped source actually supports the method — the
-  // host's kos-execute-request handler (and useKosWidget on main) both gate
-  // on that exact check.
-  get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
-    if (!hasExecuteScript(this.real)) return undefined;
+  // Conditional getter so `isScriptable(wrapper)` reflects whether the
+  // wrapped source actually supports executeScript — the host's
+  // kos-execute-request handler (and useKosWidget on main) both narrow
+  // through `isScriptable`.
+  get executeScript(): ScriptableDataSource["executeScript"] | undefined {
+    if (!isScriptable(this.real)) return undefined;
     return this.real.executeScript.bind(this.real);
   }
 

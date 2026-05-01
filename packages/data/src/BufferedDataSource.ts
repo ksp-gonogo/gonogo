@@ -2,6 +2,10 @@ import type { ConfigField, DataSource, DataSourceStatus } from "@gonogo/core";
 import { PerfBudget } from "@gonogo/core";
 import { getDerivedKeys } from "./derive";
 import { FlightDetector } from "./flightDetector";
+import {
+  isScriptable,
+  type ScriptableDataSource,
+} from "./kos/ScriptableDataSource";
 import { debugFlight } from "./logger";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
@@ -283,6 +287,14 @@ export class BufferedDataSource implements DataSource {
 
   setupInstructions(): string | null {
     return this.source.setupInstructions?.() ?? null;
+  }
+
+  // Conditional getter so `isScriptable(buffered)` reflects whether the
+  // wrapped source actually supports executeScript — matches the
+  // PeerBroadcastingDataSource pattern.
+  get executeScript(): ScriptableDataSource["executeScript"] | undefined {
+    if (!isScriptable(this.source)) return undefined;
+    return this.source.executeScript.bind(this.source);
   }
 
   // --- Buffered-layer extensions ----------------------------------------

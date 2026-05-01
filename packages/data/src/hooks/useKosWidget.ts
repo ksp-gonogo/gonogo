@@ -2,6 +2,7 @@ import { getDataSource } from "@gonogo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isKosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
+import { isScriptable } from "../kos/ScriptableDataSource";
 
 /**
  * Interval-mode circuit breaker: after this many *consecutive* script
@@ -103,15 +104,6 @@ export interface UseKosWidgetResult {
   reEnable: () => void;
 }
 
-interface KosExecutor {
-  executeScript(
-    cpu: string,
-    script: string,
-    args: KosScriptArg[],
-    managed?: KosManagedScript,
-  ): Promise<KosData>;
-}
-
 interface TelemetryReader {
   getLatestValue(key: string): unknown;
 }
@@ -206,10 +198,8 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
 
   const dispatch = useCallback(() => {
     if (pendingRef.current) return;
-    const source = getDataSource(sourceId) as unknown as
-      | KosExecutor
-      | undefined;
-    if (!source || typeof source.executeScript !== "function") {
+    const source = getDataSource(sourceId);
+    if (!isScriptable(source)) {
       setError(
         new Error(`kOS compute data source "${sourceId}" is not registered`),
       );
