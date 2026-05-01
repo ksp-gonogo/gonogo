@@ -14,6 +14,7 @@ import {
   PanelTitle,
   PrimaryButton,
   Select,
+  WidgetHeader,
 } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -169,9 +170,9 @@ function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
 
   return (
     <Panel>
-      <Header>
+      <WidgetHeader>
         <PanelTitle>GRAPH</PanelTitle>
-      </Header>
+      </WidgetHeader>
       {series.length === 0 ? (
         <EmptyState>Configure series to begin graphing.</EmptyState>
       ) : (
@@ -384,14 +385,6 @@ function parseDomain(
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--color-border-subtle);
-`;
 
 const ChartArea = styled.div`
   flex: 1;
