@@ -456,14 +456,13 @@ export class AlarmHostService {
       if (ut - now <= leadSeconds) return "arming";
       return "pending";
     }
-    // Threshold trigger
+    // Threshold trigger. Once an alarm has fired, it stays fired until
+    // the operator acks or deletes it — a value oscillating around the
+    // threshold (altitude bobbing across 70 km, etc.) used to regress
+    // fired→pending→firing and re-chime each cycle.
+    if (alarm.state === "fired") return "fired";
     const t = alarm.trigger;
-    if (alarm.matchSinceUT == null) {
-      // Once an alarm has fired, a state of "fired" should not regress
-      // to "pending" just because the condition fell out of match. The
-      // tick() filter drops fired alarms after a few seconds.
-      return alarm.state === "fired" ? "fired" : "pending";
-    }
+    if (alarm.matchSinceUT == null) return "pending";
     const heldFor = now - alarm.matchSinceUT;
     if (heldFor < t.sustainSeconds) return "pending";
     if (heldFor < t.sustainSeconds + 2) return "firing";

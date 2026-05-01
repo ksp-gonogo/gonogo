@@ -9,14 +9,25 @@ import type { Alarm } from "./types";
  * later still chimes.
  */
 export function useFireBeep(alarms: readonly Alarm[]): void {
-  const firedIdsRef = useRef<Set<string>>(new Set());
+  // Seed from the initial alarms so a hot reload (or any other remount)
+  // with a still-fired alarm in localStorage doesn't replay the chime.
+  // Only ids that transition into firing/fired *after* mount should beep.
+  const firedIdsRef = useRef<Set<string> | null>(null);
+  if (firedIdsRef.current === null) {
+    firedIdsRef.current = new Set(
+      alarms
+        .filter((a) => a.state === "firing" || a.state === "fired")
+        .map((a) => a.id),
+    );
+  }
   useEffect(() => {
+    const seen = firedIdsRef.current ?? new Set<string>();
     const justFired: string[] = [];
     const stillRelevant = new Set<string>();
     for (const a of alarms) {
       if (a.state === "firing" || a.state === "fired") {
         stillRelevant.add(a.id);
-        if (!firedIdsRef.current.has(a.id)) justFired.push(a.id);
+        if (!seen.has(a.id)) justFired.push(a.id);
       }
     }
     firedIdsRef.current = stillRelevant;

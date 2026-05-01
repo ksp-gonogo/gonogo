@@ -224,6 +224,38 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1010);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
     });
+
+    it("stays fired when an oscillating value re-crosses the threshold", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Apoapsis bell",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      // Cross threshold → fires.
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1000);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      // Two seconds later the firing window closes → fired.
+      telemetry.set("t.universalTime", 1003);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("fired");
+      // Drop below, then cross again — pre-fix this regressed to firing
+      // and chimed a second time.
+      telemetry.set("v.altitude", 69_500);
+      telemetry.set("t.universalTime", 1006);
+      vi.advanceTimersByTime(1100);
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1009);
+      vi.advanceTimersByTime(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("fired");
+    });
   });
 
   it("migrates v1 persisted alarms into the v2 trigger shape", () => {
