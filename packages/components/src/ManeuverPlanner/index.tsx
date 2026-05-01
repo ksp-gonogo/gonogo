@@ -419,11 +419,10 @@ function ManeuverPlannerComponent({
     ],
   );
 
-  const requiredDeltaV = plan
-    ? isSequence(plan)
-      ? plan.totalDeltaV
-      : plan.requiredDeltaV
-    : 0;
+  let requiredDeltaV = 0;
+  if (plan) {
+    requiredDeltaV = isSequence(plan) ? plan.totalDeltaV : plan.requiredDeltaV;
+  }
   const feasible =
     plan === null || vesselDeltaV.totalVac === 0
       ? null
@@ -716,11 +715,11 @@ function ManeuverPlannerComponent({
       return (
         <PresetDesc>
           Target: {targetName} — PeA{" "}
-          {targetPeA !== undefined
-            ? `${(targetPeA / 1000).toFixed(1)} km`
-            : "—"}
+          {targetPeA === undefined
+            ? "—"
+            : `${(targetPeA / 1000).toFixed(1)} km`}
           , i={(targetInclinationLive ?? 0).toFixed(1)}°, Δplane=
-          {planeMismatch !== null ? `${planeMismatch.toFixed(1)}°` : "—"}
+          {planeMismatch === null ? "—" : `${planeMismatch.toFixed(1)}°`}
           {planeMismatch !== null && planeMismatch > 0.5
             ? " (plane match prepended)"
             : ""}

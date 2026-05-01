@@ -167,7 +167,7 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
           .map((p) => p.tag)
           .filter((t): t is string => typeof t === "string" && t.length > 0),
       ),
-    ).sort();
+    ).sort((a, b) => a.localeCompare(b));
     const activeTag = hoverTag ?? stickyTag;
     const highlight =
       activeTag ??

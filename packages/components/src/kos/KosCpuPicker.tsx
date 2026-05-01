@@ -48,6 +48,12 @@ function displayLabel(entry: KosCpuEntry): string {
   return entry.label ?? entry.tagname;
 }
 
+function statusState(entry: KosCpuEntry): "online" | "seen" | "unknown" {
+  if (entry.online) return "online";
+  if (entry.lastSeenAt === undefined) return "unknown";
+  return "seen";
+}
+
 function statusTooltip(entry: KosCpuEntry, now: number = Date.now()): string {
   if (entry.online) return "Online — visible in the kOS menu now";
   if (entry.lastSeenAt === undefined) return "Never seen by discovery";
@@ -79,7 +85,7 @@ export function KosCpuPicker({
   onChange,
   id,
   placeholder = "Select or add a kOS CPU…",
-}: KosCpuPickerProps) {
+}: Readonly<KosCpuPickerProps>) {
   const entries = useCpuRegistry();
   const service = useCpuRegistryService();
 
@@ -240,7 +246,8 @@ export function KosCpuPicker({
     draftTagnameRef.current?.focus();
   }, [mode]);
 
-  const displayValue = open ? query : selected ? displayLabel(selected) : value;
+  const selectedDisplay = selected ? displayLabel(selected) : value;
+  const displayValue = open ? query : selectedDisplay;
 
   const activeOption =
     open && activeIndex >= 0 ? filtered[activeIndex] : undefined;
@@ -295,13 +302,7 @@ export function KosCpuPicker({
                   >
                     <ItemMain>
                       <StatusDot
-                        $state={
-                          entry.online
-                            ? "online"
-                            : entry.lastSeenAt !== undefined
-                              ? "seen"
-                              : "unknown"
-                        }
+                        $state={statusState(entry)}
                         title={statusTooltip(entry)}
                         aria-label={statusTooltip(entry)}
                       />
@@ -539,13 +540,7 @@ export function KosCpuPicker({
                     <ManageRow key={entry.tagname}>
                       <ManageHeader>
                         <StatusDot
-                          $state={
-                            entry.online
-                              ? "online"
-                              : entry.lastSeenAt !== undefined
-                                ? "seen"
-                                : "unknown"
-                          }
+                          $state={statusState(entry)}
                           title={statusTooltip(entry)}
                           aria-label={statusTooltip(entry)}
                         />
@@ -666,12 +661,11 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   gap: 2px;
   padding: 6px 8px;
   cursor: pointer;
-  background: ${({ $active, $selected }) =>
-    $active
-      ? "var(--color-border-subtle)"
-      : $selected
-        ? "var(--color-status-go-bg)"
-        : "transparent"};
+  background: ${({ $active, $selected }) => {
+    if ($active) return "var(--color-border-subtle)";
+    if ($selected) return "var(--color-status-go-bg)";
+    return "transparent";
+  }};
 
   &:hover {
     background: var(--color-border-subtle);

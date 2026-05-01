@@ -79,7 +79,7 @@ export function ShipDiagram({
   highlightColor = "var(--color-tag-yellow-fg)",
   width,
   height,
-}: Props) {
+}: Readonly<Props>) {
   const [hovered, setHovered] = useState<ProjectedPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [cam, setCam] = useState({ zoom: 1, panX: 0, panY: 0 });
@@ -422,12 +422,12 @@ export function ShipDiagram({
               </span>
             </div>
           ) : null}
-          {hovered.stage !== undefined ? (
+          {hovered.stage === undefined ? null : (
             <div className="row">
               <span>stage</span>
               <span>{hovered.stage}</span>
             </div>
-          ) : null}
+          )}
           {hovered.resources && hovered.resources.length > 0
             ? hovered.resources.map((r) => (
                 <div className="row" key={r.n}>
@@ -798,7 +798,7 @@ function blendHex(a: string, b: string, ratio: number): string {
 function parseHex(hex: string): [number, number, number] | null {
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
   if (!m) return null;
-  const n = parseInt(m[1], 16);
+  const n = Number.parseInt(m[1], 16);
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 

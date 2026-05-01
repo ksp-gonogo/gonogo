@@ -30,7 +30,7 @@ export function MissionProfilesModal({
   currentLayouts,
   onLoad,
   onClose,
-}: MissionProfilesModalProps) {
+}: Readonly<MissionProfilesModalProps>) {
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
   const [newName, setNewName] = useState("");
