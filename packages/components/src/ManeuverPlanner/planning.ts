@@ -11,6 +11,7 @@ import {
   type ManeuverSequence,
   matchInclination,
   matchTargetPlane,
+  stateAtUT,
 } from "@gonogo/core";
 import { isFiniteNumber, type PresetId } from "./presets";
 
@@ -250,6 +251,63 @@ export function buildCurrentOrbit(vals: {
     return null;
   }
   return { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe };
+}
+
+/** Relative inclination (°) between two orbits given each one's
+ *  inclination + LAN. Returns null if any input is missing. Used in the
+ *  rendezvous preset description so the user can see whether the
+ *  preset will prepend a plane-match burn (threshold 0.5°). */
+export function computeRelInc(
+  inc1: number | undefined,
+  lan1: number | undefined,
+  inc2: number | undefined,
+  lan2: number | undefined,
+): number | null {
+  if (
+    inc1 === undefined ||
+    lan1 === undefined ||
+    inc2 === undefined ||
+    lan2 === undefined
+  ) {
+    return null;
+  }
+  const i1 = (inc1 * Math.PI) / 180;
+  const i2 = (inc2 * Math.PI) / 180;
+  const dOmega = ((lan2 - lan1) * Math.PI) / 180;
+  const cosRel =
+    Math.cos(i1) * Math.cos(i2) +
+    Math.sin(i1) * Math.sin(i2) * Math.cos(dOmega);
+  return (Math.acos(Math.max(-1, Math.min(1, cosRel))) * 180) / Math.PI;
+}
+
+export interface BurnTrueAnomalyInputs {
+  preset: PresetId;
+  currentOrbit: CurrentOrbit | null;
+  currentUT: number | undefined;
+  mu: number;
+  trueAnomaly: number | undefined;
+  utMode: "relative" | "absolute";
+  burnAtUT: number;
+  burnInSeconds: number;
+}
+
+/** True anomaly at the burn for drag-handle placement. Null outside the
+ *  custom-* presets or when inputs aren't ready. */
+export function computeBurnTrueAnomaly(
+  i: BurnTrueAnomalyInputs,
+): number | null {
+  if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
+  if (i.preset === "custom-apo") return 180;
+  if (i.preset === "custom-peri") return 0;
+  if (i.preset !== "custom-ut") return null;
+  if (i.trueAnomaly === undefined) return null;
+  const burnUT =
+    i.utMode === "absolute"
+      ? i.burnAtUT
+      : i.currentUT + Math.max(0, i.burnInSeconds);
+  if (burnUT <= i.currentUT) return null;
+  return stateAtUT(i.currentOrbit, i.trueAnomaly, i.mu, i.currentUT, burnUT)
+    .trueAnomalyDeg;
 }
 
 /**

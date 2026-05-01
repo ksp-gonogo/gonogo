@@ -330,6 +330,83 @@ describe("ManeuverPlannerComponent", () => {
     }
   });
 
+  it("reveals per-preset custom inputs when a custom preset is selected", () => {
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+
+    // Default preset (circularize-apo) has no custom inputs.
+    expect(screen.queryByText("Prograde")).toBeNull();
+    expect(screen.queryByText("Target inc")).toBeNull();
+
+    // custom-apo: prograde / normal / radial fields appear.
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    act(() => {
+      fireEvent.change(select, { target: { value: "custom-apo" } });
+    });
+    expect(screen.getByText("Prograde")).toBeInTheDocument();
+    expect(screen.getByText("Normal")).toBeInTheDocument();
+    expect(screen.getByText("Radial")).toBeInTheDocument();
+
+    // match-inclination: target inc field, no prograde.
+    act(() => {
+      fireEvent.change(select, { target: { value: "match-inclination" } });
+    });
+    expect(screen.getByText("Target inc")).toBeInTheDocument();
+    expect(screen.queryByText("Prograde")).toBeNull();
+
+    // hohmann-to-altitude: target altitude.
+    act(() => {
+      fireEvent.change(select, { target: { value: "hohmann-to-altitude" } });
+    });
+    expect(screen.getByText("Target alt")).toBeInTheDocument();
+
+    // hohmann-rendezvous-target: standoff.
+    act(() => {
+      fireEvent.change(select, {
+        target: { value: "hohmann-rendezvous-target" },
+      });
+    });
+    expect(screen.getByText("Standoff")).toBeInTheDocument();
+  });
+
+  it("resets prograde/normal/radial to 0 when switching away from a custom preset", () => {
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    act(() => {
+      fireEvent.change(select, { target: { value: "custom-apo" } });
+    });
+
+    // Find the prograde input by walking up from its label.
+    const progradeLabel = screen.getByText("Prograde");
+    const progradeInput = progradeLabel.parentElement?.querySelector(
+      'input[type="number"]',
+    ) as HTMLInputElement;
+    expect(progradeInput).toBeTruthy();
+    act(() => {
+      fireEvent.change(progradeInput, { target: { value: "42" } });
+    });
+    expect(progradeInput.value).toBe("42");
+
+    // Switch to a non-custom-input preset; switch back; the value should be 0.
+    act(() => {
+      fireEvent.change(select, { target: { value: "circularize-apo" } });
+    });
+    act(() => {
+      fireEvent.change(select, { target: { value: "custom-apo" } });
+    });
+    const reopenedLabel = screen.getByText("Prograde");
+    const reopenedInput = reopenedLabel.parentElement?.querySelector(
+      'input[type="number"]',
+    ) as HTMLInputElement;
+    expect(reopenedInput.value).toBe("0");
+  });
+
   it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
     // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde) —
     // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
