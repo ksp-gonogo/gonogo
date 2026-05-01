@@ -1,11 +1,13 @@
-import type { ConfigField, DataSource, DataSourceStatus } from "@gonogo/core";
+import type { DataSource, DataSourceStatus } from "@gonogo/core";
 import { PerfBudget } from "@gonogo/core";
+import { DataSourceWrapper } from "./DataSourceWrapper";
 import { getDerivedKeys } from "./derive";
 import { FlightDetector } from "./flightDetector";
 import {
   isScriptable,
   type ScriptableDataSource,
 } from "./kos/ScriptableDataSource";
+import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
 import { debugFlight } from "./logger";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
@@ -67,10 +69,7 @@ interface SampleRow {
  * available. The detector is seeded from persisted flights on `connect()`
  * so we resume rather than duplicate after a reload.
  */
-export class BufferedDataSource implements DataSource {
-  readonly id: string;
-  readonly name: string;
-  private readonly source: DataSource;
+export class BufferedDataSource extends DataSourceWrapper {
   private readonly store: Store;
   private readonly detector = new FlightDetector();
   private readonly inMemoryLimit: number;
@@ -91,20 +90,10 @@ export class BufferedDataSource implements DataSource {
   private readonly lastEmittedValue = new Map<string, unknown>();
 
   private readonly buffers = new Map<string, SampleRow[]>();
-  private readonly keySubscribers = new Map<
-    string,
-    Set<(value: unknown) => void>
-  >();
-  private readonly sampleSubscribers = new Map<
-    string,
-    Set<(sample: Sample) => void>
-  >();
-  private readonly statusSubscribers = new Set<
-    (status: DataSourceStatus) => void
-  >();
-  private readonly flightSubscribers = new Set<
-    (flight: FlightRecord | null) => void
-  >();
+  private readonly keySubscribers = new KeyedListenerSet<[unknown]>();
+  private readonly sampleSubscribers = new KeyedListenerSet<[Sample]>();
+  private readonly statusSubscribers = new ListenerSet<[DataSourceStatus]>();
+  private readonly flightSubscribers = new ListenerSet<[FlightRecord | null]>();
 
   private upstreamUnsubs: Array<() => void> = [];
   private upstreamStatusUnsub: (() => void) | null = null;
@@ -144,19 +133,21 @@ export class BufferedDataSource implements DataSource {
   private hasConfirmedConnection = false;
 
   constructor(opts: Options) {
-    this.id = opts.id ?? "data";
-    this.name = opts.name ?? `Buffered ${opts.source.name}`;
-    this.source = opts.source;
+    super(opts.source, {
+      id: opts.id ?? "data",
+      name: opts.name ?? `Buffered ${opts.source.name}`,
+    });
     this.store = opts.store;
     this.inMemoryLimit = opts.inMemoryLimit ?? 500;
     this.now = opts.now ?? Date.now;
   }
 
-  // --- DataSource surface ------------------------------------------------
-
-  get status(): DataSourceStatus {
-    return this.source.status;
+  /** Alias for `this.real` for readability inside this wrapper. */
+  private get source(): DataSource {
+    return this.real;
   }
+
+  // --- DataSource surface ------------------------------------------------
 
   /**
    * Sets up the wrapper's subscriptions to the wrapped source. Does NOT
@@ -185,9 +176,7 @@ export class BufferedDataSource implements DataSource {
     }
 
     this.upstreamStatusUnsub = this.source.onStatusChange((status) => {
-      this.statusSubscribers.forEach((cb) => {
-        cb(status);
-      });
+      this.statusSubscribers.fire(status);
     });
   }
 
@@ -218,12 +207,7 @@ export class BufferedDataSource implements DataSource {
   }
 
   subscribe(key: string, cb: (value: unknown) => void): () => void {
-    let bucket = this.keySubscribers.get(key);
-    if (!bucket) {
-      bucket = new Set();
-      this.keySubscribers.set(key, bucket);
-    }
-    bucket.add(cb);
+    const removeLocal = this.keySubscribers.add(key, cb);
 
     // For keys NOT covered by the upfront schema sub (indexed keys like
     // `b.name[1]`), demand-subscribe upstream so values actually flow.
@@ -246,11 +230,7 @@ export class BufferedDataSource implements DataSource {
       cb(this.lastEmittedValue.get(key));
     }
     return () => {
-      const b = this.keySubscribers.get(key);
-      if (b) {
-        b.delete(cb);
-        if (b.size === 0) this.keySubscribers.delete(key);
-      }
+      removeLocal();
       const demand = this.demandSubs.get(key);
       if (demand) {
         demand.count -= 1;
@@ -263,30 +243,7 @@ export class BufferedDataSource implements DataSource {
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
-    this.statusSubscribers.add(cb);
-    return () => {
-      this.statusSubscribers.delete(cb);
-    };
-  }
-
-  execute(action: string): Promise<void> {
-    return this.source.execute(action);
-  }
-
-  configSchema(): ConfigField[] {
-    return this.source.configSchema();
-  }
-
-  configure(config: Record<string, unknown>): void {
-    this.source.configure(config);
-  }
-
-  getConfig(): Record<string, unknown> {
-    return this.source.getConfig();
-  }
-
-  setupInstructions(): string | null {
-    return this.source.setupInstructions?.() ?? null;
+    return this.statusSubscribers.add(cb);
   }
 
   // Conditional getter so `isScriptable(buffered)` reflects whether the
@@ -379,25 +336,11 @@ export class BufferedDataSource implements DataSource {
    * store uses an injected `now()`).
    */
   subscribeSamples(key: string, cb: (sample: Sample) => void): () => void {
-    let bucket = this.sampleSubscribers.get(key);
-    if (!bucket) {
-      bucket = new Set();
-      this.sampleSubscribers.set(key, bucket);
-    }
-    bucket.add(cb);
-    return () => {
-      const b = this.sampleSubscribers.get(key);
-      if (!b) return;
-      b.delete(cb);
-      if (b.size === 0) this.sampleSubscribers.delete(key);
-    };
+    return this.sampleSubscribers.add(key, cb);
   }
 
   onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {
-    this.flightSubscribers.add(cb);
-    return () => {
-      this.flightSubscribers.delete(cb);
-    };
+    return this.flightSubscribers.add(cb);
   }
 
   listFlights(): Promise<FlightRecord[]> {
@@ -503,22 +446,12 @@ export class BufferedDataSource implements DataSource {
     // Fan out to live subscribers regardless of whether we have a flight;
     // useDataValue callers get live values during warmup.
     this.lastEmittedValue.set(key, value);
-    const subs = this.keySubscribers.get(key);
-    if (subs) {
-      subs.forEach((cb) => {
-        cb(value);
-      });
-    }
+    this.keySubscribers.fire(key, value);
 
     // Fan out timestamped samples (only when a flight is established —
     // useDataSeries consumers don't want pre-flight noise).
     if (current) {
-      const sampleSubs = this.sampleSubscribers.get(key);
-      if (sampleSubs) {
-        sampleSubs.forEach((cb) => {
-          cb({ t, v: value });
-        });
-      }
+      this.sampleSubscribers.fire(key, { t, v: value });
     }
 
     // Run derived keys that depend on this raw key.
@@ -556,20 +489,10 @@ export class BufferedDataSource implements DataSource {
       }
 
       this.lastEmittedValue.set(def.id, result);
-      const subs = this.keySubscribers.get(def.id);
-      if (subs) {
-        subs.forEach((cb) => {
-          cb(result);
-        });
-      }
+      this.keySubscribers.fire(def.id, result);
 
       if (flightId) {
-        const sampleSubs = this.sampleSubscribers.get(def.id);
-        if (sampleSubs) {
-          sampleSubs.forEach((cb) => {
-            cb({ t: derivedT, v: result });
-          });
-        }
+        this.sampleSubscribers.fire(def.id, { t: derivedT, v: result });
       }
     }
   }
@@ -595,8 +518,6 @@ export class BufferedDataSource implements DataSource {
     // Reset derivation state across flight boundaries so rates don't
     // straddle two flights.
     this.derivedPrevious.clear();
-    this.flightSubscribers.forEach((cb) => {
-      cb(next);
-    });
+    this.flightSubscribers.fire(next);
   }
 }

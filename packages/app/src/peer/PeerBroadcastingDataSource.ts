@@ -1,12 +1,7 @@
-import type {
-  ConfigField,
-  DataKey,
-  DataSource,
-  DataSourceStatus,
-} from "@gonogo/core";
+import type { DataSource } from "@gonogo/core";
 import { debugPeer } from "@gonogo/core";
 import type { ScriptableDataSource } from "@gonogo/data";
-import { isScriptable } from "@gonogo/data";
+import { DataSourceWrapper, isScriptable } from "@gonogo/data";
 import type { PeerHostService } from "./PeerHostService";
 
 interface Sample {
@@ -81,13 +76,11 @@ function hasOnConfigChange(
   );
 }
 
-export class PeerBroadcastingDataSource implements DataSource {
+export class PeerBroadcastingDataSource extends DataSourceWrapper {
   private seenKeys = new Set<string>();
 
-  constructor(
-    private real: DataSource,
-    host: PeerHostService,
-  ) {
+  constructor(real: DataSource, host: PeerHostService) {
+    super(real);
     const schemaKeys = real.schema();
     debugPeer("PBDS wrap", {
       id: real.id,
@@ -131,53 +124,6 @@ export class PeerBroadcastingDataSource implements DataSource {
     this.real.onStatusChange((status) => {
       host.broadcast({ type: "status", sourceId: this.id, status });
     });
-  }
-
-  get id() {
-    return this.real.id;
-  }
-  get name() {
-    return this.real.name;
-  }
-  get status() {
-    return this.real.status;
-  }
-
-  connect() {
-    return this.real.connect();
-  }
-
-  disconnect() {
-    return this.real.disconnect();
-  }
-
-  schema(): DataKey[] {
-    return this.real.schema();
-  }
-  configSchema(): ConfigField[] {
-    return this.real.configSchema();
-  }
-  configure(config: Record<string, unknown>) {
-    return this.real.configure(config);
-  }
-  getConfig() {
-    return this.real.getConfig();
-  }
-  setupInstructions() {
-    return this.real.setupInstructions?.() ?? null;
-  }
-
-  // Clean pass-through — broadcasting is fully decoupled from UI subscriptions.
-  subscribe(key: string, cb: (value: unknown) => void) {
-    return this.real.subscribe(key, cb);
-  }
-
-  onStatusChange(cb: (status: DataSourceStatus) => void) {
-    return this.real.onStatusChange(cb);
-  }
-
-  async execute(action: string) {
-    return this.real.execute(action);
   }
 
   // The BufferedDataSource extensions `useDataSeries` expects. When the wrapped

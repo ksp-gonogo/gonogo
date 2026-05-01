@@ -10,6 +10,8 @@
  * Large per-body state (fog masks) is kept in IndexedDB keyed by profile id.
  */
 
+import { LocalStorageStore } from "@gonogo/data";
+
 const PROFILES_KEY = "gonogo.saveProfiles.list";
 const ACTIVE_KEY = "gonogo.saveProfiles.active";
 const DEFAULT_NAME = "Survey Profile 1";
@@ -35,12 +37,18 @@ export class SaveProfileService {
   private profiles = new Map<string, SaveProfile>();
   private activeId: string;
   private storage: Storage;
+  private profilesStore: LocalStorageStore<SaveProfile[]>;
 
   private profilesListeners = new Set<ProfilesListener>();
   private activeListeners = new Set<ActiveListener>();
 
   constructor(storage: Storage = globalThis.localStorage) {
     this.storage = storage;
+    this.profilesStore = new LocalStorageStore<SaveProfile[]>({
+      key: PROFILES_KEY,
+      defaults: [],
+      storage,
+    });
     this.load();
     if (this.profiles.size === 0) {
       const seed = this.createInternal(DEFAULT_NAME);
@@ -189,25 +197,18 @@ export class SaveProfileService {
   }
 
   private load(): void {
-    const raw = this.storage.getItem(PROFILES_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as SaveProfile[];
+    const parsed = this.profilesStore.get();
+    if (Array.isArray(parsed)) {
       for (const p of parsed) {
         if (typeof p?.id === "string" && typeof p?.name === "string") {
           this.profiles.set(p.id, p);
         }
       }
-    } catch {
-      // Corrupt value — drop it and let the seed path recreate.
     }
   }
 
   private save(): void {
-    this.storage.setItem(
-      PROFILES_KEY,
-      JSON.stringify(Array.from(this.profiles.values())),
-    );
+    this.profilesStore.set(Array.from(this.profiles.values()));
     this.storage.setItem(ACTIVE_KEY, this.activeId);
   }
 

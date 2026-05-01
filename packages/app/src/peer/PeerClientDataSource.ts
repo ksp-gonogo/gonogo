@@ -7,6 +7,7 @@ import type {
   KosScriptArg,
   ScriptableDataSource,
 } from "@gonogo/data";
+import { KeyedListenerSet, ListenerSet } from "@gonogo/data";
 import type { PeerClientService } from "./PeerClientService";
 
 interface Sample {
@@ -34,9 +35,9 @@ const PEER_CLIENT_SAMPLE_BUDGET = new PerfBudget({
 });
 
 export class PeerClientDataSource implements ScriptableDataSource {
-  private subscribers = new Map<string, Set<(value: unknown) => void>>();
-  private sampleSubscribers = new Map<string, Set<(sample: Sample) => void>>();
-  private statusListeners = new Set<(status: DataSourceStatus) => void>();
+  private subscribers = new KeyedListenerSet<[unknown]>();
+  private sampleSubscribers = new KeyedListenerSet<[Sample]>();
+  private statusListeners = new ListenerSet<[DataSourceStatus]>();
   private seenKeys = new Set<string>();
   private cachedSchema: DataKeyMeta[] = [];
   // Latest value per key so synchronous snapshot readers (e.g. useKosWidget
@@ -69,32 +70,24 @@ export class PeerClientDataSource implements ScriptableDataSource {
         debugPeer("PCDS first data", {
           id: this.id,
           key,
-          subscriberCount: this.subscribers.get(key)?.size ?? 0,
+          subscriberCount: this.subscribers.size(key),
         });
       }
       this.lastValues.set(key, value);
       PEER_CLIENT_SAMPLE_BUDGET.record();
-      this.subscribers.get(key)?.forEach((cb) => {
-        cb(value);
-      });
-      this.sampleSubscribers.get(key)?.forEach((cb) => {
-        cb({ t, v: value });
-      });
+      this.subscribers.fire(key, value);
+      this.sampleSubscribers.fire(key, { t, v: value });
     });
     client.onSourceStatus((sourceId, status) => {
       if (sourceId !== this.id) return;
       this.status = status as DataSourceStatus;
-      this.statusListeners.forEach((cb) => {
-        cb(this.status);
-      });
+      this.statusListeners.fire(this.status);
     });
   }
 
   connect() {
     this.status = "connected";
-    this.statusListeners.forEach((cb) => {
-      cb("connected");
-    });
+    this.statusListeners.fire("connected");
     return Promise.resolve();
   }
 
@@ -150,18 +143,11 @@ export class PeerClientDataSource implements ScriptableDataSource {
     key: string,
     cb: (value: unknown) => void,
   ): () => void {
-    let bucket = this.subscribers.get(key);
-    if (!bucket) {
-      bucket = new Set();
-      this.subscribers.set(key, bucket);
-    }
-    bucket.add(cb);
-    return () => bucket.delete(cb);
+    return this.subscribers.add(key, cb);
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void) {
-    this.statusListeners.add(cb);
-    return () => this.statusListeners.delete(cb);
+    return this.statusListeners.add(cb);
   }
 
   async execute(action: string) {
@@ -190,18 +176,10 @@ export class PeerClientDataSource implements ScriptableDataSource {
    * screens so live samples carry the host's clock alongside the value.
    */
   subscribeSamples(key: string, cb: (sample: Sample) => void) {
-    let bucket = this.sampleSubscribers.get(key);
-    if (!bucket) {
-      bucket = new Set();
-      this.sampleSubscribers.set(key, bucket);
-    }
-    bucket.add(cb);
+    const removeLocal = this.sampleSubscribers.add(key, cb);
     this.refKey(key);
     return () => {
-      const b = this.sampleSubscribers.get(key);
-      if (!b) return;
-      b.delete(cb);
-      if (b.size === 0) this.sampleSubscribers.delete(key);
+      removeLocal();
       this.unrefKey(key);
     };
   }

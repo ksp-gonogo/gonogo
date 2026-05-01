@@ -1,4 +1,5 @@
 import type { Screen } from "@gonogo/core";
+import { LocalStorageStore } from "@gonogo/data";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 
@@ -40,12 +41,16 @@ function generateId(): string {
 export class MissionProfilesService {
   private profiles: MissionProfile[] = [];
   private listeners = new Set<Listener>();
-  private storage: Storage;
+  private store: LocalStorageStore<MissionProfile[]>;
   private screen: Screen;
 
   constructor(screen: Screen, storage: Storage = globalThis.localStorage) {
     this.screen = screen;
-    this.storage = storage;
+    this.store = new LocalStorageStore<MissionProfile[]>({
+      key: storageKeyFor(screen),
+      defaults: [],
+      storage,
+    });
     this.load();
   }
 
@@ -104,27 +109,17 @@ export class MissionProfilesService {
   }
 
   private load(): void {
-    const raw = this.storage.getItem(storageKeyFor(this.screen));
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as MissionProfile[];
-      if (Array.isArray(parsed)) {
-        this.profiles = parsed.filter(
-          (p): p is MissionProfile =>
-            typeof p?.id === "string" && typeof p?.name === "string",
-        );
-      }
-    } catch {
-      // Corrupt — drop it. A failing deserialise shouldn't wedge the app.
-      this.storage.removeItem(storageKeyFor(this.screen));
+    const stored = this.store.get();
+    if (Array.isArray(stored)) {
+      this.profiles = stored.filter(
+        (p): p is MissionProfile =>
+          typeof p?.id === "string" && typeof p?.name === "string",
+      );
     }
   }
 
   private persist(): void {
-    this.storage.setItem(
-      storageKeyFor(this.screen),
-      JSON.stringify(this.profiles),
-    );
+    this.store.set(this.profiles);
   }
 
   private emit(): void {

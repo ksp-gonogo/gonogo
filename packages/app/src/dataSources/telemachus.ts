@@ -5,6 +5,7 @@ import type {
   DataSourceStatus,
 } from "@gonogo/core";
 import { PerfBudget, registerDataSource } from "@gonogo/core";
+import { LocalStorageStore } from "@gonogo/data";
 
 // TelemaachusSchema lives in @gonogo/core and is pre-registered in DataSourceRegistry.
 // Re-export it here so callers that import from this module path keep working.
@@ -226,7 +227,10 @@ export interface TelemachusConfig extends Record<string, unknown> {
 }
 
 const DEFAULT_CONFIG: TelemachusConfig = { host: "localhost", port: 8085 };
-const STORAGE_KEY = "gonogo.datasource.telemachus";
+const configStore = new LocalStorageStore<TelemachusConfig>({
+  key: "gonogo.datasource.telemachus",
+  defaults: DEFAULT_CONFIG,
+});
 const RETRY_INTERVAL_MS = 5_000;
 const RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -276,7 +280,7 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
       retryTimeoutMs = RETRY_TIMEOUT_MS,
     }: RetryOptions = {},
   ) {
-    this.cfg = config ?? this.loadConfig();
+    this.cfg = config ?? configStore.get();
     this.retryIntervalMs = retryIntervalMs;
     this.retryTimeoutMs = retryTimeoutMs;
   }
@@ -366,11 +370,7 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
           ? config.port
           : Number(config.port) || this.cfg.port,
     };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.cfg));
-    } catch {
-      /* localStorage unavailable */
-    }
+    configStore.set(this.cfg);
     this.disconnect();
     void this.connect();
   }
@@ -450,19 +450,6 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
     } catch {
       /* ignore malformed messages */
     }
-  }
-
-  private loadConfig(): TelemachusConfig {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Partial<TelemachusConfig>;
-        return { ...DEFAULT_CONFIG, ...parsed };
-      }
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_CONFIG;
   }
 
   private setStatus(status: DataSourceStatus): void {

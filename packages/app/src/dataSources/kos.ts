@@ -6,7 +6,12 @@ import type {
   KosScriptArg,
   ScriptableDataSource,
 } from "@gonogo/data";
-import { KosScriptError, parseKosData, stripAnsi } from "@gonogo/data";
+import {
+  KosScriptError,
+  LocalStorageStore,
+  parseKosData,
+  stripAnsi,
+} from "@gonogo/data";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 import { buildKosWrapper } from "./kosWrapper";
@@ -30,14 +35,19 @@ const DEFAULT_CONFIG: KosConfig = {
   kosHost: "localhost",
   kosPort: 5410,
 };
-const STORAGE_KEY = "gonogo.datasource.kos";
 /**
  * Pre-merge, executeScript() lived on a separate `kos-compute` source with
  * its own localStorage key. We still read it as a fallback so users who
  * configured kos-compute but never opened the kos config don't lose their
- * proxy/kOS endpoint when the merge lands. New writes go to STORAGE_KEY only.
+ * proxy/kOS endpoint when the merge lands. New writes go to the current
+ * store only — the legacy partial is folded into the store's defaults so
+ * `get()` returns the merged shape.
  */
 const LEGACY_KOS_COMPUTE_KEY = "gonogo.datasource.kos-compute";
+const configStore = new LocalStorageStore<KosConfig>({
+  key: "gonogo.datasource.kos",
+  defaults: { ...DEFAULT_CONFIG, ...readStoredPartial(LEGACY_KOS_COMPUTE_KEY) },
+});
 
 /**
  * Milliseconds a single executeScript call will wait for its [KOSDATA] line.
@@ -142,7 +152,7 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   private readonly cpuDiscoveryListeners = new Set<(cpus: KosCpu[]) => void>();
 
   constructor(config?: KosConfig, opts: KosDataSourceOptions = {}) {
-    this.cfg = config ?? this.loadConfig();
+    this.cfg = config ?? configStore.get();
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
     this.postAttachDrainDelayMs =
       opts.postAttachDrainDelayMs ?? DEFAULT_POST_ATTACH_DRAIN_DELAY_MS;
@@ -358,7 +368,7 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
           ? config.kosPort
           : Number(config.kosPort) || this.cfg.kosPort,
     };
-    this.saveConfig();
+    configStore.set(this.cfg);
     // Tear down any open per-CPU sessions — they'd still be pointed at the
     // old endpoint. Next executeScript() will open fresh sessions against
     // the new config. Then notify config listeners (KosTerminal) so live
@@ -382,20 +392,6 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     this.configListeners.forEach((cb) => {
       cb();
     });
-  }
-
-  private loadConfig(): KosConfig {
-    const fromKos = readStoredPartial(STORAGE_KEY);
-    const fromLegacy = readStoredPartial(LEGACY_KOS_COMPUTE_KEY);
-    return { ...DEFAULT_CONFIG, ...fromLegacy, ...fromKos };
-  }
-
-  private saveConfig(): void {
-    try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(this.cfg));
-    } catch {
-      /* localStorage unavailable */
-    }
   }
 
   // --- executeScript session management ---

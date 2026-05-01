@@ -1,5 +1,6 @@
 import { logger } from "@gonogo/core";
 import type { BufferedDataSource } from "@gonogo/data";
+import { LocalStorageStore } from "@gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 import {
   type Alarm,
@@ -103,6 +104,7 @@ export class AlarmHostService {
   private telemetry: TelemetryReader | null;
   private opts: Required<Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs">>;
   private storage: Storage;
+  private alarmStore: LocalStorageStore<Alarm[]>;
 
   constructor(
     host: PeerHostService | null,
@@ -116,6 +118,11 @@ export class AlarmHostService {
       tickIntervalMs: opts.tickIntervalMs ?? 1000,
     };
     this.storage = opts.storage ?? globalThis.localStorage;
+    this.alarmStore = new LocalStorageStore<Alarm[]>({
+      key: STORAGE_KEY,
+      defaults: [],
+      storage: this.storage,
+    });
     this.load();
     this.bindPeerListeners();
     this.start();
@@ -737,19 +744,11 @@ export class AlarmHostService {
   }
 
   private load(): void {
-    const raw = this.storage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as unknown[];
-        if (Array.isArray(parsed)) {
-          this.alarms = parsed
-            .map(migrateAlarm)
-            .filter((a): a is Alarm => a !== null);
-        }
-      } catch {
-        // Corrupt — nuke and start fresh.
-        this.storage.removeItem(STORAGE_KEY);
-      }
+    const stored = this.alarmStore.get();
+    if (Array.isArray(stored) && stored.length > 0) {
+      this.alarms = stored
+        .map(migrateAlarm)
+        .filter((a): a is Alarm => a !== null);
     }
     const rawMargin = this.storage.getItem(WARP_MARGIN_STORAGE_KEY);
     if (rawMargin !== null) {
@@ -764,7 +763,7 @@ export class AlarmHostService {
   }
 
   private persist(): void {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify(this.alarms));
+    this.alarmStore.set(this.alarms);
   }
 
   private persistWarpMargin(): void {

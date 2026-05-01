@@ -13,6 +13,7 @@ import {
   type TriggerSnapshot,
 } from "@gonogo/components";
 import { getBody } from "@gonogo/core";
+import { LocalStorageStore } from "@gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**
@@ -55,7 +56,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private vesselUnsub: (() => void) | null = null;
   private host: PeerHostService | null;
   private telemetry: TelemetryReader | null;
-  private storage: Storage;
+  private store: LocalStorageStore<ArmedTrigger[]>;
   private readonly nowMs: () => number;
 
   constructor(
@@ -66,7 +67,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     this.host = host;
     this.telemetry = telemetry;
     this.nowMs = opts.nowMs ?? (() => Date.now());
-    this.storage = opts.storage ?? globalThis.localStorage;
+    this.store = new LocalStorageStore<ArmedTrigger[]>({
+      key: STORAGE_KEY,
+      defaults: [],
+      storage: opts.storage ?? globalThis.localStorage,
+    });
     this.load();
     this.bindPeerListeners();
     this.bindVesselWatcher();
@@ -293,21 +298,15 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   }
 
   private persist(): void {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify(this.triggers));
+    this.store.set(this.triggers);
   }
 
   private load(): void {
-    const raw = this.storage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) {
-        this.triggers = parsed
-          .map(migrateTrigger)
-          .filter((t): t is ArmedTrigger => t !== null);
-      }
-    } catch {
-      this.storage.removeItem(STORAGE_KEY);
+    const parsed = this.store.get();
+    if (Array.isArray(parsed)) {
+      this.triggers = parsed
+        .map(migrateTrigger)
+        .filter((t): t is ArmedTrigger => t !== null);
     }
   }
 }

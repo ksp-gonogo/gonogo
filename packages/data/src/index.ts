@@ -1,4 +1,5 @@
 export * from "./BufferedDataSource";
+export * from "./DataSourceWrapper";
 export * from "./derive";
 export * from "./FlightsFab";
 export * from "./FlightsManager";
@@ -31,6 +32,7 @@ export * from "./kos/hashKosScript";
 export * from "./kos/KosScriptError";
 export * from "./kos/kos-data-parser";
 export * from "./kos/ScriptableDataSource";
+export * from "./ListenerSet";
 export { debugFlight } from "./logger";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, TELEMACHUS_META } from "./schema/telemachusMeta";
