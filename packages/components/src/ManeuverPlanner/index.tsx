@@ -21,9 +21,20 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { useManeuverNodes, useVesselDeltaV } from "@gonogo/data";
-import { Button, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
-import { useMemo, useState } from "react";
+import {
+  type ParsedManeuverNode,
+  useDataSchema,
+  useManeuverNodes,
+  useVesselDeltaV,
+} from "@gonogo/data";
+import {
+  Button,
+  DataKeyPicker,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+} from "@gonogo/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { LabeledInput } from "./LabeledInput";
@@ -45,6 +56,92 @@ import {
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
+
+// A maneuver counts as "complete" once its remaining ΔV crosses below this
+// threshold *after* having been observed above it — guards against tiny
+// freshly-planned correction burns being mistaken for completed ones.
+const COMPLETED_THRESHOLD_DV = 0.5;
+// Wall-clock hold so the operator gets visual confirmation. Real time, not
+// game time — timewarp would otherwise expire it instantly post-burn.
+const COMPLETED_HOLD_MS = 10_000;
+
+interface CompletedEntry {
+  snapshot: ParsedManeuverNode;
+  completedAt: number;
+}
+
+// Operator set mirrors `ThresholdOp` in the alarms module — kept local so
+// the components package doesn't depend on app-only types.
+type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
+const THRESHOLD_OPS: ThresholdOp[] = [">", ">=", "<", "<=", "==", "!="];
+
+function compareThreshold(
+  value: number,
+  op: ThresholdOp,
+  threshold: number,
+): boolean {
+  switch (op) {
+    case ">":
+      return value > threshold;
+    case ">=":
+      return value >= threshold;
+    case "<":
+      return value < threshold;
+    case "<=":
+      return value <= threshold;
+    case "==":
+      return value === threshold;
+    case "!=":
+      return value !== threshold;
+  }
+}
+
+// User-input fields captured at arm time. Live orbit data is *not* frozen —
+// the trigger is meant to fire "compute the burn against current orbit when
+// the condition holds", which requires fresh `currentOrbit` / `mu` / etc.
+interface FrozenPlanInputs {
+  preset: PresetId;
+  prograde: number;
+  normal: number;
+  radial: number;
+  burnInSeconds: number;
+  utMode: "relative" | "absolute";
+  burnAtUT: number;
+  targetInclination: number;
+  targetAltitudeKm: number;
+  standoffMeters: number;
+}
+
+interface ArmedTrigger {
+  id: string;
+  dataKey: string;
+  op: ThresholdOp;
+  value: number;
+  inputs: FrozenPlanInputs;
+}
+
+/** Subscribes to one armed trigger's data key and fires once when the
+ *  comparison first holds. Rendered as a sibling per active trigger so
+ *  hooks aren't called in a loop, and unmounts when the trigger disarms. */
+function ArmedTriggerWatcher({
+  trigger,
+  onFire,
+}: {
+  trigger: ArmedTrigger;
+  onFire: (trigger: ArmedTrigger) => void;
+}) {
+  const value = useDataValue("data", trigger.dataKey);
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    if (typeof value !== "number" || !Number.isFinite(value)) return;
+    if (compareThreshold(value, trigger.op, trigger.value)) {
+      fired.current = true;
+      onFire(trigger);
+    }
+  }, [value, trigger, onFire]);
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Plan dispatch — lives outside the component so each preset branch can be
@@ -417,6 +514,126 @@ function ManeuverPlannerComponent({
   const nodes = useManeuverNodes();
   const vesselDeltaV = useVesselDeltaV();
   const execute = useExecuteAction("data");
+  const schema = useDataSchema("data");
+
+  // Completion tracking. Keyed by UT (stable across index shifts when KSP
+  // re-numbers the list after a removal). `completedNodes` is React state so
+  // re-renders pick up the green flash; `maxDvByUt` is a ref because it's
+  // pure derived bookkeeping.
+  const [completedNodes, setCompletedNodes] = useState<
+    Map<number, CompletedEntry>
+  >(() => new Map());
+  const maxDvByUt = useRef<Map<number, number>>(new Map());
+  // Latest `nodes` for use inside the auto-removal timeout — without this
+  // ref the timeout would close over a stale list and look up the wrong id.
+  const nodesRef = useRef(nodes);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    const max = maxDvByUt.current;
+    for (const n of nodes) {
+      const prev = max.get(n.UT) ?? 0;
+      if (n.deltaVMagnitude > prev) max.set(n.UT, n.deltaVMagnitude);
+    }
+    setCompletedNodes((current) => {
+      let next = current;
+      for (const n of nodes) {
+        if (current.has(n.UT)) continue;
+        const observedMax = max.get(n.UT) ?? 0;
+        if (
+          observedMax > COMPLETED_THRESHOLD_DV &&
+          n.deltaVMagnitude < COMPLETED_THRESHOLD_DV
+        ) {
+          if (next === current) next = new Map(current);
+          next.set(n.UT, { snapshot: n, completedAt: Date.now() });
+        }
+      }
+      return next;
+    });
+  }, [nodes]);
+
+  useEffect(() => {
+    if (completedNodes.size === 0) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (const [ut, entry] of completedNodes) {
+      const remaining = Math.max(
+        0,
+        COMPLETED_HOLD_MS - (Date.now() - entry.completedAt),
+      );
+      timers.push(
+        setTimeout(() => {
+          const live = nodesRef.current.find((n) => n.UT === ut);
+          if (live) {
+            void execute(`o.removeManeuverNode[${live.id}]`).catch(() => {
+              // Swallow — if KSP can't find the node it's already gone.
+            });
+          }
+          setCompletedNodes((current) => {
+            if (!current.has(ut)) return current;
+            const next = new Map(current);
+            next.delete(ut);
+            return next;
+          });
+          maxDvByUt.current.delete(ut);
+        }, remaining),
+      );
+    }
+    return () => {
+      for (const t of timers) clearTimeout(t);
+    };
+  }, [completedNodes, execute]);
+
+  // Armed conditional triggers. State lives here but the live-data ref + fire
+  // callback are wired further down, after `currentOrbit` / `mu` / `body` are
+  // derived. The state itself has no orbit-data dependency so it lives above.
+  const [armedTriggers, setArmedTriggers] = useState<ArmedTrigger[]>([]);
+  // Editor visibility + draft fields for the inline trigger picker.
+  const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
+  const [triggerKey, setTriggerKey] = useState<string | null>(null);
+  const [triggerOp, setTriggerOp] = useState<ThresholdOp>(">=");
+  const [triggerValueDraft, setTriggerValueDraft] = useState("80000");
+
+  const numericKeys = useMemo(
+    () =>
+      schema.filter(
+        (k) =>
+          k.unit !== "bool" &&
+          k.unit !== "enum" &&
+          k.unit !== "raw" &&
+          k.group !== "Actions",
+      ),
+    [schema],
+  );
+
+  // Live nodes + phantom entries for completed nodes that have already
+  // disappeared from `o.maneuverNodes` (e.g. user manually deleted before the
+  // 10 s hold elapsed). The phantom is rendered inert — no Delete button
+  // wiring beyond letting the timer drop it on schedule.
+  const displayedNodes = useMemo<
+    Array<{ node: ParsedManeuverNode; completed: boolean; phantom: boolean }>
+  >(() => {
+    const liveUts = new Set<number>();
+    const live = nodes.map((n) => {
+      liveUts.add(n.UT);
+      return {
+        node: n,
+        completed: completedNodes.has(n.UT),
+        phantom: false,
+      };
+    });
+    const phantoms: Array<{
+      node: ParsedManeuverNode;
+      completed: boolean;
+      phantom: boolean;
+    }> = [];
+    for (const [ut, entry] of completedNodes) {
+      if (!liveUts.has(ut))
+        phantoms.push({ node: entry.snapshot, completed: true, phantom: true });
+    }
+    return [...live, ...phantoms];
+  }, [nodes, completedNodes]);
 
   const principia = physicsMode === "n_body";
   const body = getBody(bodyName ?? refBody ?? "");
@@ -563,6 +780,76 @@ function ManeuverPlannerComponent({
     ],
   );
 
+  // Fire-time live snapshot. The watcher's effect closes over an older
+  // `handleFire`, so we read the freshest live values via a ref instead of
+  // the closure to avoid firing against stale orbit data.
+  const liveRef = useRef({
+    currentOrbit,
+    currentUT,
+    mu,
+    trueAnomaly,
+    argPe,
+    inclination,
+    lan,
+    targetInclinationLive,
+    targetLanLive,
+    targetSma,
+    targetPeA,
+    targetArgPe,
+    targetTrueAnomaly,
+    targetPeriod,
+    bodyRadius: body?.radius,
+  });
+  useEffect(() => {
+    liveRef.current = {
+      currentOrbit,
+      currentUT,
+      mu,
+      trueAnomaly,
+      argPe,
+      inclination,
+      lan,
+      targetInclinationLive,
+      targetLanLive,
+      targetSma,
+      targetPeA,
+      targetArgPe,
+      targetTrueAnomaly,
+      targetPeriod,
+      bodyRadius: body?.radius,
+    };
+  });
+
+  const dispatchPlanBurns = useCallback(
+    async (toDispatch: PlanResult): Promise<void> => {
+      const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
+      for (const b of burns) {
+        const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
+        await execute(action);
+      }
+    },
+    [execute],
+  );
+
+  const handleFireTrigger = useCallback(
+    (trigger: ArmedTrigger) => {
+      const live = liveRef.current;
+      const planInputs: PlanInputs = { ...trigger.inputs, ...live };
+      const firedPlan = computePlan(planInputs);
+      setArmedTriggers((prev) => prev.filter((t) => t.id !== trigger.id));
+      if (!firedPlan) {
+        setError(
+          "Trigger fired but plan could not be computed — telemetry incomplete. Re-arm with current orbit.",
+        );
+        return;
+      }
+      dispatchPlanBurns(firedPlan).catch((err) => {
+        setError(err instanceof Error ? err.message : String(err));
+      });
+    },
+    [dispatchPlanBurns],
+  );
+
   async function handleCommit() {
     if (!plan) return;
     if (principia) return;
@@ -577,16 +864,44 @@ function ManeuverPlannerComponent({
       // PROGRADE — *not* prograde-first. Sending pure prograde in the
       // first slot turns it into pure radial-out and the burn points
       // straight up.
-      const burns = isSequence(plan) ? plan.burns : [plan];
-      for (const b of burns) {
-        const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
-        await execute(action);
-      }
+      await dispatchPlanBurns(plan);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setCommitting(false);
     }
+  }
+
+  function handleArmTrigger() {
+    if (!triggerKey || principia) return;
+    const valueN = Number.parseFloat(triggerValueDraft);
+    if (!Number.isFinite(valueN)) return;
+    const inputs: FrozenPlanInputs = {
+      preset,
+      prograde,
+      normal,
+      radial,
+      burnInSeconds,
+      utMode,
+      burnAtUT,
+      targetInclination,
+      targetAltitudeKm,
+      standoffMeters,
+    };
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `arm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setArmedTriggers((prev) => [
+      ...prev,
+      { id, dataKey: triggerKey, op: triggerOp, value: valueN, inputs },
+    ]);
+    setTriggerEditorOpen(false);
+    setError(null);
+  }
+
+  function handleCancelTrigger(id: string) {
+    setArmedTriggers((prev) => prev.filter((t) => t.id !== id));
   }
 
   async function handleDelete(id: number) {
@@ -632,17 +947,20 @@ function ManeuverPlannerComponent({
     return (
       <Section>
         <SectionTitle>Planned nodes</SectionTitle>
-        {nodes.length === 0 ? (
+        {displayedNodes.length === 0 ? (
           <Empty>No maneuver nodes planned.</Empty>
         ) : (
           <NodeList>
-            {nodes.map((n) => (
+            {displayedNodes.map((d) => (
               <NodeRow
-                key={n.id}
-                node={n}
+                key={d.phantom ? `phantom-${d.node.UT}` : d.node.id}
+                node={d.node}
                 currentUT={currentUT}
                 availableDv={vesselDeltaV.totalVac}
-                onDelete={() => void handleDelete(n.id)}
+                completed={d.completed}
+                onDelete={
+                  d.phantom ? undefined : () => void handleDelete(d.node.id)
+                }
               />
             ))}
           </NodeList>
@@ -1027,6 +1345,99 @@ function ManeuverPlannerComponent({
     );
   }
 
+  function renderTriggerEditor() {
+    if (!triggerEditorOpen) return null;
+    const valueN = Number.parseFloat(triggerValueDraft);
+    const armDisabled =
+      !triggerKey || !Number.isFinite(valueN) || principia || !plan;
+    return (
+      <TriggerEditor>
+        <TriggerEditorTitle>When this condition holds</TriggerEditorTitle>
+        <TriggerField>
+          <TriggerFieldLabel>Telemetry key</TriggerFieldLabel>
+          <DataKeyPicker
+            keys={numericKeys}
+            value={triggerKey}
+            onChange={setTriggerKey}
+            placeholder="Search telemetry…"
+            clearable
+          />
+        </TriggerField>
+        <TriggerOpRow>
+          <TriggerField>
+            <TriggerFieldLabel htmlFor="mnv-trigger-op">
+              Operator
+            </TriggerFieldLabel>
+            <OpSelect
+              id="mnv-trigger-op"
+              value={triggerOp}
+              onChange={(e) => setTriggerOp(e.target.value as ThresholdOp)}
+            >
+              {THRESHOLD_OPS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </OpSelect>
+          </TriggerField>
+          <TriggerField>
+            <TriggerFieldLabel htmlFor="mnv-trigger-value">
+              Value
+            </TriggerFieldLabel>
+            <ValueInput
+              id="mnv-trigger-value"
+              type="number"
+              step="any"
+              value={triggerValueDraft}
+              onChange={(e) => setTriggerValueDraft(e.target.value)}
+            />
+          </TriggerField>
+        </TriggerOpRow>
+        <TriggerActions>
+          <GhostLink type="button" onClick={() => setTriggerEditorOpen(false)}>
+            Cancel
+          </GhostLink>
+          <Button onClick={handleArmTrigger} disabled={armDisabled}>
+            Arm
+          </Button>
+        </TriggerActions>
+      </TriggerEditor>
+    );
+  }
+
+  function renderArmedTriggersSection() {
+    if (armedTriggers.length === 0) return null;
+    return (
+      <Section>
+        <SectionTitle>Armed triggers</SectionTitle>
+        <NodeList>
+          {armedTriggers.map((t) => {
+            const presetLabel =
+              PRESETS.find((p) => p.id === t.inputs.preset)?.label ??
+              t.inputs.preset;
+            return (
+              <ArmedRow key={t.id} role="status">
+                <ArmedMain>
+                  <ArmedPrimary>
+                    {t.dataKey} {t.op} {t.value}
+                  </ArmedPrimary>
+                  <ArmedMeta>→ {presetLabel}</ArmedMeta>
+                </ArmedMain>
+                <CancelTriggerButton
+                  type="button"
+                  onClick={() => handleCancelTrigger(t.id)}
+                  aria-label="Cancel armed trigger"
+                >
+                  ✕
+                </CancelTriggerButton>
+              </ArmedRow>
+            );
+          })}
+        </NodeList>
+      </Section>
+    );
+  }
+
   function renderPreview() {
     if (!plan) return null;
     return (
@@ -1043,6 +1454,13 @@ function ManeuverPlannerComponent({
         {renderShortfallBanner()}
         {error && <ErrorLine>{error}</ErrorLine>}
         <CommitRow>
+          <GhostLink
+            type="button"
+            onClick={() => setTriggerEditorOpen((o) => !o)}
+            disabled={committing || principia || !plan}
+          >
+            Add Node When…
+          </GhostLink>
           <Button
             onClick={() => void handleCommit()}
             disabled={committing || principia || feasible === false}
@@ -1050,6 +1468,7 @@ function ManeuverPlannerComponent({
             {committing ? "Adding…" : "Add node"}
           </Button>
         </CommitRow>
+        {renderTriggerEditor()}
       </PreviewSection>
     );
   }
@@ -1066,9 +1485,17 @@ function ManeuverPlannerComponent({
           </PrincipiaBanner>
         )}
         {renderNodesSection()}
+        {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? renderWaitingPanel() : renderPreview()}
       </ScrollBody>
+      {armedTriggers.map((t) => (
+        <ArmedTriggerWatcher
+          key={t.id}
+          trigger={t}
+          onFire={handleFireTrigger}
+        />
+      ))}
     </Panel>
   );
 }
@@ -1321,5 +1748,124 @@ const ErrorLine = styled.div`
 const CommitRow = styled.div`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   padding-top: 4px;
+`;
+
+const TriggerEditor = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+`;
+
+const TriggerEditorTitle = styled.div`
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+`;
+
+const TriggerField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+`;
+
+const TriggerFieldLabel = styled.label`
+  font-size: 11px;
+  color: var(--color-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+const TriggerOpRow = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const OpSelect = styled.select`
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  padding: 3px 4px;
+  font-size: 13px;
+`;
+
+const ValueInput = styled.input`
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  padding: 3px 6px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  min-width: 0;
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const TriggerActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+`;
+
+const ArmedRow = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-status-warning-bg);
+  border-radius: 2px;
+`;
+
+const ArmedMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+`;
+
+const ArmedPrimary = styled.div`
+  font-size: 13px;
+  color: var(--color-status-warning-bg);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+`;
+
+const ArmedMeta = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
+  letter-spacing: 0.04em;
+`;
+
+const CancelTriggerButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--color-status-alert-muted);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  cursor: pointer;
+  &:hover {
+    background: var(--color-tag-dark-brown-bg);
+    color: var(--color-tag-red-fg);
+  }
 `;

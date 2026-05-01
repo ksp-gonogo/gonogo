@@ -7,46 +7,58 @@ interface NodeRowProps {
   node: ParsedManeuverNode;
   currentUT: number | undefined;
   availableDv: number;
-  onDelete: () => void;
+  completed?: boolean;
+  /** Omitted on phantom rows (the underlying node is already gone from KSP). */
+  onDelete?: () => void;
 }
 
 export function NodeRow({
   node,
   currentUT,
   availableDv,
+  completed = false,
   onDelete,
 }: NodeRowProps) {
   const timeTo = currentUT !== undefined ? node.UT - currentUT : null;
   const feasible =
-    availableDv === 0 ? null : availableDv >= node.deltaVMagnitude;
+    completed || availableDv === 0 ? null : availableDv >= node.deltaVMagnitude;
   return (
-    <NodeLi>
+    <NodeLi $completed={completed} role={completed ? "status" : undefined}>
       <NodeMain>
-        <NodePrimary>
-          {node.deltaVMagnitude.toFixed(0)} m/s
+        <NodePrimary $completed={completed}>
+          {completed
+            ? "Burn complete"
+            : `${node.deltaVMagnitude.toFixed(0)} m/s`}
           {feasible === false && (
             <FeasibilityChip $ok={false}>SHORT</FeasibilityChip>
           )}
         </NodePrimary>
         <NodeMeta>
-          burn in {timeTo === null ? "—" : formatDuration(timeTo)}
+          {completed
+            ? "Removing in 10 s"
+            : `burn in ${timeTo === null ? "—" : formatDuration(timeTo)}`}
         </NodeMeta>
       </NodeMain>
-      <DeleteButton type="button" onClick={onDelete} aria-label="Delete node">
-        ✕
-      </DeleteButton>
+      {onDelete && (
+        <DeleteButton type="button" onClick={onDelete} aria-label="Delete node">
+          ✕
+        </DeleteButton>
+      )}
     </NodeLi>
   );
 }
 
-const NodeLi = styled.li`
+const NodeLi = styled.li<{ $completed: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 4px 6px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
+  background: ${({ $completed }) =>
+    $completed ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
+  border: 1px solid
+    ${({ $completed }) =>
+      $completed ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: 2px;
 `;
 
@@ -57,12 +69,14 @@ const NodeMain = styled.div`
   min-width: 0;
 `;
 
-const NodePrimary = styled.div`
+const NodePrimary = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--color-text-primary);
+  color: ${({ $completed }) =>
+    $completed ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
+  font-weight: ${({ $completed }) => ($completed ? 600 : 400)};
 `;
 
 const NodeMeta = styled.div`

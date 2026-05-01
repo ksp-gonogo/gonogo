@@ -12,7 +12,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
@@ -180,8 +180,154 @@ describe("ManeuverPlannerComponent", () => {
     expect(alert.textContent).toMatch(/shortfall/i);
     expect(alert.textContent).toMatch(/short\.?$/i);
 
-    const addBtn = screen.getByRole("button", { name: /add node/i });
+    const addBtn = screen.getByRole("button", { name: /^add node$/i });
     expect(addBtn).toBeDisabled();
+  });
+
+  it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {
+    buffered.disconnect();
+    clearRegistry();
+    const calls: string[] = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+      onExecute: (action) => {
+        calls.push(action);
+      },
+    });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+
+    // Open the trigger editor.
+    fireEvent.click(screen.getByRole("button", { name: /add node when/i }));
+
+    // Pick the o.ApA telemetry key via the data-key search input.
+    const picker = screen.getByPlaceholderText("Search telemetry…");
+    await act(async () => {
+      fireEvent.focus(picker);
+      fireEvent.change(picker, { target: { value: "o.ApA" } });
+      fireEvent.keyDown(picker, { key: "Enter" });
+    });
+
+    // Set threshold above current ApA (107000) so it doesn't fire on arm.
+    const valueInput = screen.getByLabelText(/^Value$/);
+    fireEvent.change(valueInput, { target: { value: "200000" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^arm$/i }));
+    });
+
+    // Armed row visible, no burn dispatched yet.
+    expect(screen.getByText(/o\.ApA >= 200000/)).toBeInTheDocument();
+    expect(calls).toHaveLength(0);
+
+    // Apoapsis climbs past the threshold — trigger fires and the burn is
+    // dispatched with the frozen circularize-apo preset.
+    await act(async () => {
+      source.emit("o.ApA", 250000);
+    });
+
+    expect(calls.length).toBe(1);
+    expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
+    // Armed row removed after firing.
+    expect(screen.queryByText(/o\.ApA >= 200000/)).toBeNull();
+  });
+
+  it("fires immediately when the trigger condition is already true at arm time", async () => {
+    buffered.disconnect();
+    clearRegistry();
+    const calls: string[] = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+      onExecute: (action) => {
+        calls.push(action);
+      },
+    });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /add node when/i }));
+    const picker = screen.getByPlaceholderText("Search telemetry…");
+    await act(async () => {
+      fireEvent.focus(picker);
+      fireEvent.change(picker, { target: { value: "o.ApA" } });
+      fireEvent.keyDown(picker, { key: "Enter" });
+    });
+    // Threshold below current ApA (107000) — should fire on arm.
+    const valueInput = screen.getByLabelText(/^Value$/);
+    fireEvent.change(valueInput, { target: { value: "50000" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^arm$/i }));
+    });
+
+    expect(calls.length).toBe(1);
+    expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
+  });
+
+  it("flashes a completed node green for 10s then auto-removes it from KSP", async () => {
+    buffered.disconnect();
+    clearRegistry();
+    const calls: string[] = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+      onExecute: (action) => {
+        calls.push(action);
+      },
+    });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+      act(() => {
+        emitFullOrbit(source);
+        // Plan a 30 m/s prograde burn — well above the 0.5 m/s threshold.
+        source.emit("o.maneuverNodes", [
+          { UT: 1_000_120, deltaV: [0, 0, 30], orbitPatch: null },
+        ]);
+      });
+
+      // Initial render: live row shows "30 m/s", not the completion banner.
+      expect(screen.getByText(/30 m\/s/)).toBeInTheDocument();
+      expect(screen.queryByText(/Burn complete/i)).toBeNull();
+
+      // Burn completes — remaining ΔV drops below threshold.
+      act(() => {
+        source.emit("o.maneuverNodes", [
+          { UT: 1_000_120, deltaV: [0, 0, 0.1], orbitPatch: null },
+        ]);
+      });
+
+      // Green-flash state visible, but no removal call yet.
+      expect(screen.getByText(/Burn complete/i)).toBeInTheDocument();
+      expect(calls).toHaveLength(0);
+
+      // Advance past the 10 s hold — auto-remove should fire.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+
+      expect(calls).toEqual(["o.removeManeuverNode[0]"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
@@ -210,7 +356,7 @@ describe("ManeuverPlannerComponent", () => {
       emitFullOrbit(source);
     });
 
-    const addBtn = await screen.findByRole("button", { name: /add node/i });
+    const addBtn = await screen.findByRole("button", { name: /^add node$/i });
     await act(async () => {
       fireEvent.click(addBtn);
     });
