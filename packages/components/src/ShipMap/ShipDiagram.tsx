@@ -1,6 +1,7 @@
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { useZoomPan } from "../shared/useZoomPan";
 import type { ShipMapPart } from "./shipMapScript";
 
 type PartType =
@@ -60,14 +61,6 @@ interface Props {
   height: number;
 }
 
-interface PointerPos {
-  x: number;
-  y: number;
-}
-
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 12;
-const PAN_THRESHOLD = 4;
 /** Lateral offset under which a child counts as "stack-attached" rather
  *  than side-mounted. KSP stack diameters are ~1.25m; 0.3m is well
  *  under the radius so axial-stack joints don't get misclassified. */
@@ -82,8 +75,13 @@ export function ShipDiagram({
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ProjectedPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  const [cam, setCam] = useState({ zoom: 1, panX: 0, panY: 0 });
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const {
+    ref: wrapperRef,
+    cam,
+    reset: resetView,
+    panMoved,
+    pointerHandlers,
+  } = useZoomPan<HTMLDivElement>();
 
   const { projected, bounds, stages, edges } = useMemo(
     () => project(parts),
@@ -106,117 +104,6 @@ export function ShipDiagram({
     setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  // ── Pan / zoom ─────────────────────────────────────────────────────────────
-  const activePointers = useRef<Map<number, PointerPos>>(new Map());
-  const lastPanPos = useRef<PointerPos | null>(null);
-  const lastPinchDist = useRef<number | null>(null);
-  const panMoved = useRef(false);
-
-  const resetView = useCallback(
-    () => setCam({ zoom: 1, panX: 0, panY: 0 }),
-    [],
-  );
-
-  const zoomAbout = useCallback(
-    (factor: number, screenX: number, screenY: number) => {
-      setCam((prev) => {
-        const newZoom = Math.max(
-          ZOOM_MIN,
-          Math.min(ZOOM_MAX, prev.zoom * factor),
-        );
-        if (newZoom === prev.zoom) return prev;
-        const worldX = (screenX - prev.panX) / prev.zoom;
-        const worldY = (screenY - prev.panY) / prev.zoom;
-        return {
-          zoom: newZoom,
-          panX: screenX - worldX * newZoom,
-          panY: screenY - worldY * newZoom,
-        };
-      });
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      zoomAbout(factor, mx, my);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [zoomAbout]);
-
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    panMoved.current = false;
-    if (activePointers.current.size === 2) {
-      lastPanPos.current = null;
-      const [a, b] = [...activePointers.current.values()];
-      lastPinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
-    } else if (activePointers.current.size === 1) {
-      lastPanPos.current = { x: e.clientX, y: e.clientY };
-      lastPinchDist.current = null;
-    }
-  }, []);
-
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const tracked = activePointers.current.get(e.pointerId);
-      if (!tracked) return;
-      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      if (activePointers.current.size >= 2) {
-        const el = wrapperRef.current;
-        if (!el) return;
-        const [a, b] = [...activePointers.current.values()];
-        const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        if (lastPinchDist.current === null || lastPinchDist.current === 0) {
-          lastPinchDist.current = dist;
-          return;
-        }
-        const ratio = dist / lastPinchDist.current;
-        lastPinchDist.current = dist;
-        const rect = el.getBoundingClientRect();
-        const mx = (a.x + b.x) / 2 - rect.left;
-        const my = (a.y + b.y) / 2 - rect.top;
-        panMoved.current = true;
-        zoomAbout(ratio, mx, my);
-        return;
-      }
-
-      if (!lastPanPos.current) return;
-      const dx = e.clientX - lastPanPos.current.x;
-      const dy = e.clientY - lastPanPos.current.y;
-      if (!panMoved.current && Math.hypot(dx, dy) < PAN_THRESHOLD) return;
-      panMoved.current = true;
-      lastPanPos.current = { x: e.clientX, y: e.clientY };
-      setCam((prev) => ({
-        ...prev,
-        panX: prev.panX + dx,
-        panY: prev.panY + dy,
-      }));
-    },
-    [zoomAbout],
-  );
-
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    activePointers.current.delete(e.pointerId);
-    if (activePointers.current.size === 1) {
-      const [remaining] = [...activePointers.current.values()];
-      lastPanPos.current = { ...remaining };
-      lastPinchDist.current = null;
-    } else if (activePointers.current.size === 0) {
-      lastPanPos.current = null;
-      lastPinchDist.current = null;
-    }
-  }, []);
-
   if (parts.length === 0) {
     return (
       <Empty>
@@ -236,11 +123,7 @@ export function ShipDiagram({
     <Wrapper
       ref={wrapperRef}
       onMouseMove={onWrapperMouseMove}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onPointerLeave={onPointerUp}
+      {...pointerHandlers}
       $panning={panMoved.current}
     >
       <ResetButton type="button" onClick={resetView} aria-label="Reset view">
