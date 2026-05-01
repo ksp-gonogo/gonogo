@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@gonogo/core";
 import { formatAge, registerComponent } from "@gonogo/core";
 import { useKosWidget } from "@gonogo/data";
-import { ScrollArea } from "@gonogo/ui";
+import { EmptyState, ScrollArea } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { KosWidgetConfigComponent } from "./KosWidgetConfig";
@@ -93,13 +93,17 @@ function KosWidgetComponent({
   function renderBody() {
     if (notConfigured) {
       return (
-        <Empty>
+        <EmptyState layout="fill">
           Configure the CPU tagname and script name in the widget settings.
-        </Empty>
+        </EmptyState>
       );
     }
     if (!data) {
-      return <Empty>{running ? "Running…" : "No data yet. Press Run."}</Empty>;
+      return (
+        <EmptyState layout="fill">
+          {running ? "Running…" : "No data yet. Press Run."}
+        </EmptyState>
+      );
     }
     return (
       <DataGrid>
@@ -257,17 +261,6 @@ const Key = styled.span`
 const Value = styled.span`
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-`;
-
-const Empty = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 12px;
-  text-align: center;
 `;
 
 const PausedBanner = styled.div`

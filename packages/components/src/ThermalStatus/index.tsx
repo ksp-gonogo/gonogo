@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
 import {
+  EmptyState,
   Panel,
   PanelTitle,
   type ReadoutTone,
@@ -126,7 +127,7 @@ function ThermalStatusComponent({
     <Panel>
       <PanelTitle>THERMAL</PanelTitle>
       {noData ? (
-        <Empty>No thermal data</Empty>
+        <EmptyState>No thermal data</EmptyState>
       ) : (
         <Body>
           <PillRow
@@ -251,12 +252,6 @@ const CriticalNote = styled.span`
 const RowsScroll = styled(ScrollArea)`
   flex: 1;
   min-height: 0;
-`;
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 8px 0;
 `;
 
 const Row = styled.div`

@@ -1,5 +1,6 @@
 import { useDataSchema } from "@gonogo/data";
 import {
+  Badge,
   DataKeyPicker,
   Field,
   FieldHint,
@@ -329,9 +330,9 @@ export function AlarmsModal({
                       />
                     ) : (
                       <RowName>
-                        <KindBadge>
+                        <Badge tone="neutral" size="md">
                           {a.trigger.kind === "time" ? "TIME" : "COND"}
-                        </KindBadge>
+                        </Badge>
                         {a.name}
                       </RowName>
                     )}
@@ -574,16 +575,6 @@ const RowName = styled.div`
   gap: 8px;
   font-size: 13px;
   color: var(--color-status-go-fg);
-`;
-
-const KindBadge = styled.span`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  padding: 1px 4px;
-  border-radius: 999px;
 `;
 
 const RowMeta = styled.div`

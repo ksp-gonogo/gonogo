@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import { getBody, registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
 
 // Empty config — kept for forward-compat. Follow-ups: hide suicide-burn row
@@ -107,11 +107,11 @@ function LandingStatusComponent({
       )}
 
       {noPrediction ? (
-        <Empty>
+        <EmptyState>
           {descending
             ? "Waiting for a landing prediction…"
             : "No landing in progress"}
-        </Empty>
+        </EmptyState>
       ) : (
         <Body>
           {/* Suicide burn — the headline on airless bodies. On atmospheric
@@ -196,12 +196,6 @@ function LandingStatusComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 8px 0;
-`;
 
 const Body = styled.div`
   flex: 1;

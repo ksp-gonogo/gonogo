@@ -22,6 +22,7 @@ import {
 import {
   Button,
   DataKeyPicker,
+  EmptyState,
   GhostButton,
   Panel,
   PanelSubtitle,
@@ -561,7 +562,7 @@ function ManeuverPlannerComponent({
       <Section>
         <SectionTitle>Planned nodes</SectionTitle>
         {displayedNodes.length === 0 ? (
-          <Empty>No maneuver nodes planned.</Empty>
+          <EmptyState>No maneuver nodes planned.</EmptyState>
         ) : (
           <NodeList>
             {displayedNodes.map((d) => (
@@ -1185,12 +1186,6 @@ const PrincipiaBanner = styled.div`
   color: var(--color-status-nogo-fg);
   padding: 4px 8px;
   border-radius: 2px;
-`;
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 4px 0;
 `;
 
 const ScrollBody = styled(ScrollArea)`

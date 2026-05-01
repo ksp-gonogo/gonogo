@@ -2,6 +2,7 @@ import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
 import {
   BigReadout,
+  EmptyState,
   Panel,
   PanelSubtitle,
   PanelTitle,
@@ -66,7 +67,7 @@ function CrewManifestComponent({
             )}
           </BigReadout>
         ) : (
-          <Empty>No crew data</Empty>
+          <EmptyState>No crew data</EmptyState>
         )}
       </Panel>
     );
@@ -109,19 +110,19 @@ function renderBody({
   crewCount: number | undefined;
   names: string[];
 }): React.ReactNode {
-  if (!known) return <Empty>Waiting for telemetry…</Empty>;
+  if (!known) return <EmptyState>Waiting for telemetry…</EmptyState>;
 
   const unmanned =
     crewCount === 0 || (crewCount === undefined && names.length === 0);
-  if (unmanned) return <Empty>Unmanned — no kerbals aboard.</Empty>;
+  if (unmanned) return <EmptyState>Unmanned — no kerbals aboard.</EmptyState>;
 
   if (names.length === 0) {
     return (
       <Roster>
-        <Empty>
+        <EmptyState>
           {crewCount} aboard, names unavailable. Telemachus may withhold crew
           names when out of CommNet range.
-        </Empty>
+        </EmptyState>
       </Roster>
     );
   }
@@ -139,12 +140,6 @@ function renderBody({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
-  padding: 8px 0;
-`;
 
 const Roster = styled.ul`
   list-style: none;

@@ -1,6 +1,12 @@
 import type { ComponentProps } from "@gonogo/core";
 import { PerfBudget, registerComponent } from "@gonogo/core";
-import { BigReadout, Panel, PanelTitle, ReadoutCaption } from "@gonogo/ui";
+import {
+  BigReadout,
+  EmptyState,
+  Panel,
+  PanelTitle,
+  ReadoutCaption,
+} from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -49,10 +55,10 @@ function PerfBudgetsComponent({
     return (
       <Panel>
         <PanelTitle>PERF BUDGETS</PanelTitle>
-        <Empty>
+        <EmptyState>
           No budgets registered yet. Budgets self-register at module load — make
           sure the relevant services are imported.
-        </Empty>
+        </EmptyState>
       </Panel>
     );
   }
@@ -166,12 +172,6 @@ const TONE_COLOR: Record<Tone, string> = {
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
-  padding: 8px 0;
-`;
 
 const List = styled.ul`
   list-style: none;

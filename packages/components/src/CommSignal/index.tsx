@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -63,7 +63,7 @@ function CommSignalComponent({
     return (
       <Panel>
         <PanelTitle>COMMNET</PanelTitle>
-        <Empty>No signal data</Empty>
+        <EmptyState>No signal data</EmptyState>
       </Panel>
     );
   }
@@ -151,12 +151,6 @@ const TONE_COLOR: Record<Tone, string> = {
   warn: "var(--color-status-warning-bg)",
   lost: "var(--color-status-nogo-bg)",
 };
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: 11px;
-  padding: 8px 0;
-`;
 
 const Body = styled.div`
   flex: 1;
