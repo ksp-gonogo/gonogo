@@ -65,6 +65,12 @@ export interface SystemDiagramProps {
    */
   phaseAngles?: ReadonlyMap<number, number>;
   /**
+   * Hohmann transfer-window state per body — `"go"` when the live phase
+   * angle is within ±2° of the ideal, `"soon"` within ±10°. Drives the
+   * colour of the phase-angle label.
+   */
+  transferStatuses?: ReadonlyMap<number, "go" | "soon">;
+  /**
    * Fires whenever the hovered body changes. Lets the surrounding widget
    * mirror the focus into a side panel; passes `null` when the cursor
    * leaves all dots.
@@ -85,6 +91,7 @@ export function SystemDiagram({
   targetName,
   vessel,
   phaseAngles,
+  transferStatuses,
   onFocusBodyChange,
   width,
   height,
@@ -397,8 +404,17 @@ export function SystemDiagram({
                 <text
                   x={pos.x + dotR + 3 / zoom}
                   y={pos.y + 14 / zoom}
-                  fill="var(--color-text-faint)"
+                  fill={
+                    transferStatuses?.get(c.index) === "go"
+                      ? "var(--color-status-go-fg)"
+                      : transferStatuses?.get(c.index) === "soon"
+                        ? "var(--color-status-warning-bg)"
+                        : "var(--color-text-faint)"
+                  }
                   fontSize={8 / zoom}
+                  fontWeight={
+                    transferStatuses?.get(c.index) === "go" ? 700 : 400
+                  }
                   pointerEvents="none"
                 >
                   {`${normalizePhaseAngle(phaseAngles.get(c.index) as number).toFixed(0)}°`}

@@ -15,6 +15,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram } from "./SystemDiagram";
+import {
+  angleDelta,
+  hohmannPhaseAngle,
+  type TransferStatus,
+  transferStatus,
+} from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 
@@ -72,6 +78,28 @@ function SystemViewComponent({
   }, [bodies, parentName]);
   const phaseAngles = usePhaseAngles(children);
 
+  // Transfer-window highlighting. Only meaningful when the rendered frame is
+  // the same parent the vessel orbits — otherwise the bodies aren't co-orbital
+  // with the vessel and the Hohmann formula doesn't apply.
+  const transferStatuses = useMemo(() => {
+    const out = new Map<number, "go" | "soon">();
+    if (typeof vesselBody !== "string") return out;
+    if (parentName !== vesselBody) return out;
+    if (typeof vSma !== "number" || !Number.isFinite(vSma)) return out;
+    for (const child of children) {
+      const rB = child.semiMajorAxis;
+      if (typeof rB !== "number" || !Number.isFinite(rB)) continue;
+      const live = phaseAngles.get(child.index);
+      if (typeof live !== "number") continue;
+      const ideal = hohmannPhaseAngle(vSma, rB);
+      if (!Number.isFinite(ideal)) continue;
+      const delta = angleDelta(live, ideal);
+      const status: TransferStatus = transferStatus(delta);
+      if (status !== "off") out.set(child.index, status);
+    }
+    return out;
+  }, [children, phaseAngles, vesselBody, parentName, vSma]);
+
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   // Default focus to the vessel's body when nothing is hovered — gives the
   // panel useful content out of the box.
@@ -91,6 +119,26 @@ function SystemViewComponent({
     panelBody !== null &&
     typeof vesselBody === "string" &&
     panelBody.name === vesselBody;
+  // Hohmann ideal + delta for the panel's body, if all the inputs line up.
+  const panelHohmann =
+    panelBody !== null &&
+    typeof vesselBody === "string" &&
+    parentName === vesselBody &&
+    panelBody.referenceBody === vesselBody &&
+    typeof vSma === "number" &&
+    Number.isFinite(vSma) &&
+    typeof panelBody.semiMajorAxis === "number" &&
+    Number.isFinite(panelBody.semiMajorAxis)
+      ? (() => {
+          const ideal = hohmannPhaseAngle(vSma, panelBody.semiMajorAxis);
+          if (!Number.isFinite(ideal)) return null;
+          const delta =
+            panelPhaseAngle !== null
+              ? angleDelta(panelPhaseAngle, ideal)
+              : null;
+          return { ideal, delta };
+        })()
+      : null;
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 280 });
@@ -131,6 +179,7 @@ function SystemViewComponent({
               targetName={typeof targetName === "string" ? targetName : null}
               vessel={vesselOrbit}
               phaseAngles={phaseAngles}
+              transferStatuses={transferStatuses}
               onFocusBodyChange={setFocusedBody}
               width={size.w}
               height={Math.max(size.h, 200)}
@@ -141,6 +190,8 @@ function SystemViewComponent({
           body={panelBody}
           phaseAngleDeg={panelPhaseAngle}
           isVesselParent={panelIsVesselParent}
+          hohmannIdealDeg={panelHohmann?.ideal ?? null}
+          hohmannDeltaDeg={panelHohmann?.delta ?? null}
         />
       </Body>
     </Panel>

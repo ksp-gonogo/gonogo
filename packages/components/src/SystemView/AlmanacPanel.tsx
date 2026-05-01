@@ -8,6 +8,10 @@ export interface AlmanacPanelProps {
   phaseAngleDeg?: number | null;
   /** Whether this body is the vessel's current parent — phase angle is meaningless. */
   isVesselParent?: boolean;
+  /** Hohmann ideal departure phase angle (deg), if the vessel and body share a parent. */
+  hohmannIdealDeg?: number | null;
+  /** Signed delta from ideal (deg). Negative = early; positive = late. */
+  hohmannDeltaDeg?: number | null;
 }
 
 interface AlmanacRow {
@@ -19,6 +23,8 @@ function buildRows(
   body: CelestialBody,
   phaseAngleDeg: number | null,
   isVesselParent: boolean,
+  hohmannIdealDeg: number | null,
+  hohmannDeltaDeg: number | null,
 ): AlmanacRow[] {
   const rows: AlmanacRow[] = [];
   if (body.radius !== null) {
@@ -83,6 +89,25 @@ function buildRows(
       value: `${normalizeAngle(phaseAngleDeg).toFixed(1)}°`,
     });
   }
+  if (
+    !isVesselParent &&
+    hohmannIdealDeg !== null &&
+    hohmannIdealDeg !== undefined &&
+    Number.isFinite(hohmannIdealDeg)
+  ) {
+    rows.push({
+      label: "Hohmann ideal",
+      value: `${hohmannIdealDeg >= 0 ? "+" : ""}${hohmannIdealDeg.toFixed(1)}°`,
+    });
+    if (hohmannDeltaDeg !== null && hohmannDeltaDeg !== undefined) {
+      const a = Math.abs(hohmannDeltaDeg);
+      const tier = a < 2 ? "GO" : a < 10 ? "SOON" : "OFF";
+      rows.push({
+        label: "Δ from ideal",
+        value: `${hohmannDeltaDeg >= 0 ? "+" : ""}${hohmannDeltaDeg.toFixed(1)}° · ${tier}`,
+      });
+    }
+  }
   return rows;
 }
 
@@ -90,6 +115,8 @@ export function AlmanacPanel({
   body,
   phaseAngleDeg = null,
   isVesselParent = false,
+  hohmannIdealDeg = null,
+  hohmannDeltaDeg = null,
 }: AlmanacPanelProps) {
   if (!body) {
     return (
@@ -101,7 +128,13 @@ export function AlmanacPanel({
       </Wrap>
     );
   }
-  const rows = buildRows(body, phaseAngleDeg, isVesselParent);
+  const rows = buildRows(
+    body,
+    phaseAngleDeg,
+    isVesselParent,
+    hohmannIdealDeg,
+    hohmannDeltaDeg,
+  );
   return (
     <Wrap>
       <Title>{body.name ?? "(unnamed)"}</Title>
