@@ -1,10 +1,12 @@
+import { registerKosScript } from "@gonogo/core";
+
 /**
  * Kerboscript for the kOS Processors widget. Lists every kOS CPU on the
  * active vessel (via `LIST PROCESSORS`) and emits their tag, run mode,
  * current volume, boot file, and mounting part.
  *
  * Output contract:
- *   [KOSDATA]processors=<json-array>[/KOSDATA]
+ *   [KOSDATA:kos-processors]processors=<json-array>[/KOSDATA]
  * Each entry: { tag, mode, volume, bootFile, partTitle, partUid }
  *
  * `mode` is the string kOS reports — "READY", "STARVED", "OFF". Anything
@@ -59,7 +61,7 @@ FOR proc IN procs {
 SET json TO json + "]".
 
 PRINT "kos-procs: emitted " + procs:LENGTH + " processors, " + json:LENGTH + " chars".
-PRINT "[KOSDATA]processors=" + json + "[/KOSDATA]".
+PRINT "[KOSDATA:kos-processors]processors=" + json + "[/KOSDATA]".
 `;
 
 export interface KosProcessor {
@@ -73,3 +75,17 @@ export interface KosProcessor {
 
 /** Default script path on the kOS Archive volume. */
 export const KOS_PROCESSORS_SCRIPT_NAME = "0:/widget_scripts/processors.ks";
+
+/** Topic id for the centralised kOS compute fanout. */
+export const KOS_PROCESSORS_TOPIC_ID = "kos-processors";
+
+// Self-register at module load — same lifecycle as registerComponent. The
+// 5s passive cadence matches the previous default autoRefresh interval, so
+// users see the same refresh feel without any per-widget config.
+registerKosScript({
+  id: KOS_PROCESSORS_TOPIC_ID,
+  name: "kOS Processors",
+  script: KOS_PROCESSORS_SCRIPT,
+  intervalMs: 5_000,
+  fields: [{ name: "processors", type: "json" }],
+});

@@ -1,80 +1,52 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { logger, registerComponent } from "@gonogo/core";
-import { hashKosScript } from "@gonogo/data";
+import {
+  logger,
+  registerComponent,
+  useDataValue,
+  useExecuteAction,
+} from "@gonogo/core";
+import { useKosScriptStatus } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
   GhostButton,
-  Input,
   PrimaryButton,
   ScrollArea,
-  Switch,
 } from "@gonogo/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
-import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import {
   KOS_PROCESSORS_SCRIPT,
-  KOS_PROCESSORS_SCRIPT_NAME,
+  KOS_PROCESSORS_TOPIC_ID,
   type KosProcessor,
 } from "./processorsScript";
 
-interface KosProcessorsConfig {
-  /** kOS CPU tagname this widget runs the listing script on. */
-  cpu?: string;
-  /** Path of the saved kerboscript on the kOS Archive volume. */
-  scriptName?: string;
-  /** Auto-refresh by re-running the script on a timer. Default true. */
-  autoRefresh?: boolean;
-  /** Poll interval in ms when autoRefresh is true. Default 5000. */
-  intervalMs?: number;
-}
+const PROCESSORS_KEY = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.processors`;
+const DISPATCH_NOW_ACTION = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.dispatchNow`;
+const RE_ENABLE_ACTION = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.reEnable`;
 
-const DEFAULT_INTERVAL_MS = 5000;
-const KOS_PROCESSORS_SCRIPT_VERSION = hashKosScript(KOS_PROCESSORS_SCRIPT);
-/** Don't let users dial below 1s — running a kerboscript every tick can
- *  starve other scripts on the same CPU. */
-const MIN_INTERVAL_MS = 1000;
+// Config is intentionally empty post-migration — the per-widget CPU /
+// scriptName / interval all moved to the centralised kOS compute layer.
+// Kept around so saved layouts with stale fields still type-check.
+type KosProcessorsConfig = Record<string, never>;
 
 function KosProcessorsComponent({
-  config,
   w,
   h,
 }: Readonly<ComponentProps<KosProcessorsConfig>>) {
-  const cpu = config?.cpu ?? "";
-  const scriptName = config?.scriptName ?? KOS_PROCESSORS_SCRIPT_NAME;
-  const autoRefresh = config?.autoRefresh !== false;
-  const intervalMs = Math.max(
-    MIN_INTERVAL_MS,
-    config?.intervalMs ?? DEFAULT_INTERVAL_MS,
-  );
+  const payload = useDataValue<KosProcessor[]>("kos", PROCESSORS_KEY);
+  const status = useKosScriptStatus(KOS_PROCESSORS_TOPIC_ID);
+  const executeKos = useExecuteAction("kos");
 
-  const {
-    payload,
-    error: scriptError,
-    parseError,
-    running,
-    lastGoodAt,
-    dispatch,
-    disabled,
-    disabledReason,
-    reEnable,
-  } = useKosScriptPayload<KosProcessor[]>({
-    cpu,
-    script: scriptName,
-    args: [],
-    field: "processors",
-    mode: autoRefresh ? "interval" : "command",
-    intervalMs: autoRefresh ? intervalMs : undefined,
-    managed: {
-      body: KOS_PROCESSORS_SCRIPT,
-      version: KOS_PROCESSORS_SCRIPT_VERSION,
-    },
-  });
+  const dispatch = useCallback(() => {
+    void executeKos(DISPATCH_NOW_ACTION);
+  }, [executeKos]);
+  const reEnable = useCallback(() => {
+    void executeKos(RE_ENABLE_ACTION);
+  }, [executeKos]);
 
   useEffect(() => {
     if (!payload) return;
@@ -83,19 +55,17 @@ function KosProcessorsComponent({
     });
   }, [payload]);
 
-  const notConfigured = !cpu;
-
   return (
     <KosScriptFrame
-      title={cpu ? `Processors · ${cpu}` : "Processors"}
-      running={running}
-      scriptError={scriptError}
-      parseError={parseError}
-      lastGoodAt={lastGoodAt}
+      title="Processors"
+      running={status.running}
+      scriptError={status.scriptError}
+      parseError={status.parseError}
+      lastGoodAt={status.lastGoodAt}
       onRun={dispatch}
-      runDisabled={running || notConfigured}
-      paused={disabled}
-      pausedReason={disabledReason}
+      runDisabled={status.running}
+      paused={status.paused}
+      pausedReason={status.scriptError?.message ?? null}
       onReEnable={reEnable}
     >
       {renderBody()}
@@ -103,17 +73,12 @@ function KosProcessorsComponent({
   );
 
   function renderBody() {
-    if (notConfigured) {
-      return (
-        <Placeholder>
-          Pick a kOS CPU in the widget&apos;s config to start.
-        </Placeholder>
-      );
-    }
     if (!payload) {
       return (
         <Placeholder>
-          {running ? "Scanning…" : "Press Run to list vessel processors."}
+          {status.running
+            ? "Scanning…"
+            : "Press Run to list vessel processors."}
         </Placeholder>
       );
     }
@@ -198,17 +163,8 @@ function KosProcessorsComponent({
 // ── Config ────────────────────────────────────────────────────────────────────
 
 function KosProcessorsConfigComponent({
-  config,
   onSave,
 }: Readonly<ConfigComponentProps<KosProcessorsConfig>>) {
-  const [cpu, setCpu] = useState(config?.cpu ?? "");
-  const [scriptName, setScriptName] = useState(
-    config?.scriptName ?? KOS_PROCESSORS_SCRIPT_NAME,
-  );
-  const [autoRefresh, setAutoRefresh] = useState(config?.autoRefresh !== false);
-  const [intervalText, setIntervalText] = useState(
-    String(config?.intervalMs ?? DEFAULT_INTERVAL_MS),
-  );
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -221,59 +177,13 @@ function KosProcessorsConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="kos-procs-cpu">kOS CPU</FieldLabel>
-        <KosCpuPicker id="kos-procs-cpu" value={cpu} onChange={setCpu} />
+        <FieldLabel>Active kOS CPU</FieldLabel>
         <FieldHint>
-          Any kOS CPU on the vessel works — the script just calls{" "}
-          <code>LIST PROCESSORS</code>, which sees every CPU regardless of which
-          one runs it.
+          The active CPU is set on the kOS data source. The processors script
+          runs on that CPU and emits its `LIST PROCESSORS` output — any CPU on
+          the vessel works because the listing is vessel-wide.
         </FieldHint>
       </Field>
-
-      <Field>
-        <FieldLabel htmlFor="kos-procs-script-name">Script name</FieldLabel>
-        <Input
-          id="kos-procs-script-name"
-          type="text"
-          value={scriptName}
-          onChange={(e) => setScriptName(e.target.value)}
-        />
-        <FieldHint>
-          Path to the saved script on your kOS volume. Prefer the Archive (
-          <code>0:/…</code>). Defaults to{" "}
-          <code>{KOS_PROCESSORS_SCRIPT_NAME}</code>.
-        </FieldHint>
-      </Field>
-
-      <Field>
-        <FieldLabel>Auto-refresh</FieldLabel>
-        <Switch
-          checked={autoRefresh}
-          onChange={setAutoRefresh}
-          label="Re-run the listing script on a timer"
-        />
-        <FieldHint>
-          Off by request — the widget then only updates when you press Run.
-        </FieldHint>
-      </Field>
-
-      {autoRefresh && (
-        <Field>
-          <FieldLabel htmlFor="kos-procs-interval">Interval (ms)</FieldLabel>
-          <Input
-            id="kos-procs-interval"
-            type="number"
-            min={MIN_INTERVAL_MS}
-            step={500}
-            value={intervalText}
-            onChange={(e) => setIntervalText(e.target.value)}
-          />
-          <FieldHint>
-            Default {DEFAULT_INTERVAL_MS} ms. Below {MIN_INTERVAL_MS} ms is
-            clamped — running every tick starves other scripts on the same CPU.
-          </FieldHint>
-        </Field>
-      )}
 
       <Field>
         <ScriptHeader>
@@ -283,32 +193,15 @@ function KosProcessorsConfigComponent({
           </GhostButton>
         </ScriptHeader>
         <FieldHint>
-          The widget syncs this script to{" "}
-          <code>
-            {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
-          </code>{" "}
-          automatically — no copy-paste needed. Shown here for reference.
+          The kOS data source syncs this script to its conventional path
+          automatically. Shown here for reference.
         </FieldHint>
         <ScriptBox>
           <pre>{KOS_PROCESSORS_SCRIPT}</pre>
         </ScriptBox>
       </Field>
 
-      <PrimaryButton
-        onClick={() =>
-          onSave({
-            cpu,
-            scriptName,
-            autoRefresh,
-            intervalMs: Math.max(
-              MIN_INTERVAL_MS,
-              Number.parseInt(intervalText, 10) || DEFAULT_INTERVAL_MS,
-            ),
-          })
-        }
-      >
-        Save
-      </PrimaryButton>
+      <PrimaryButton onClick={() => onSave({})}>Save</PrimaryButton>
     </ConfigForm>
   );
 }
@@ -491,14 +384,9 @@ registerComponent<KosProcessorsConfig>({
   minSize: { w: 3, h: 3 },
   component: KosProcessorsComponent,
   configComponent: KosProcessorsConfigComponent,
-  openConfigOnAdd: true,
-  dataRequirements: [],
-  defaultConfig: {
-    cpu: "",
-    scriptName: KOS_PROCESSORS_SCRIPT_NAME,
-    autoRefresh: true,
-    intervalMs: DEFAULT_INTERVAL_MS,
-  },
+  openConfigOnAdd: false,
+  dataRequirements: [PROCESSORS_KEY],
+  defaultConfig: {},
   actions: [],
   pushable: true,
 });

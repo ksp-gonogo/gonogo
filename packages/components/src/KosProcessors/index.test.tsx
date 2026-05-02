@@ -1,101 +1,120 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { KosProcessorsComponent } from "./index";
+import "./processorsScript"; // self-registers the kOS script
+import { KOS_PROCESSORS_TOPIC_ID } from "./processorsScript";
 
-interface FakeSource {
-  id: string;
-  name: string;
-  status: "connected";
-  affectedBySignalLoss: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  schema: () => [];
-  subscribe: () => () => void;
-  onStatusChange: () => () => void;
-  execute: () => Promise<void>;
-  configSchema: () => [];
-  configure: () => void;
-  getConfig: () => Record<string, unknown>;
-  executeScript: (
-    cpu: string,
-    script: string,
-    args: unknown[],
-  ) => Promise<Record<string, unknown>>;
-}
+const TOPIC_KEY = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.processors`;
 
-function registerFakeKos(
-  executeScript: FakeSource["executeScript"],
-): FakeSource {
-  const src: FakeSource = {
+/**
+ * Fake `kos` data source that speaks just enough of the centralised compute
+ * surface for KosProcessors to render. Mirrors the slice of KosDataSource
+ * the widget actually touches: subscribe, getTopicStatus, onTopicStatusChange,
+ * execute. Lets us exercise the real component path without spinning up
+ * MockKosTelnet.
+ */
+function registerFakeKos(initialPayload?: unknown) {
+  const subs = new Set<(value: unknown) => void>();
+  const statusListeners = new Set<() => void>();
+  let lastValue: unknown = initialPayload;
+
+  const fake = {
     id: "kos",
     name: "kOS",
-    status: "connected",
+    status: "connected" as const,
     affectedBySignalLoss: false,
     connect: async () => {},
     disconnect: () => {},
     schema: () => [],
-    subscribe: () => () => {},
+    subscribe(key: string, cb: (value: unknown) => void): () => void {
+      if (key !== TOPIC_KEY) return () => {};
+      subs.add(cb);
+      if (lastValue !== undefined) {
+        queueMicrotask(() => cb(lastValue));
+      }
+      return () => subs.delete(cb);
+    },
     onStatusChange: () => () => {},
-    execute: async () => {},
+    async execute() {},
     configSchema: () => [],
     configure: () => {},
     getConfig: () => ({}),
-    executeScript,
+    getTopicStatus: (id: string) => {
+      if (id !== KOS_PROCESSORS_TOPIC_ID) return null;
+      return {
+        lastGoodAt: lastValue !== undefined ? Date.now() : null,
+        scriptError: null,
+        parseError: null,
+        paused: false,
+        running: false,
+      };
+    },
+    onTopicStatusChange: (id: string, cb: () => void) => {
+      if (id !== KOS_PROCESSORS_TOPIC_ID) return () => {};
+      statusListeners.add(cb);
+      return () => statusListeners.delete(cb);
+    },
+    push(value: unknown) {
+      lastValue = value;
+      for (const cb of subs) cb(value);
+      for (const cb of statusListeners) cb();
+    },
   };
+
   registerDataSource(
-    src as unknown as Parameters<typeof registerDataSource>[0],
+    fake as unknown as Parameters<typeof registerDataSource>[0],
   );
-  return src;
+  return fake;
 }
 
 describe("KosProcessorsComponent", () => {
+  beforeEach(() => {
+    clearRegistry();
+    // Re-import the script so it re-registers (clearRegistry wipes the
+    // kos-script registry too).
+    void import("./processorsScript");
+  });
+
   afterEach(() => {
     cleanup();
     clearRegistry();
   });
 
-  it("shows the 'configure CPU' placeholder when not configured", () => {
+  it("shows the run-prompt placeholder before any payload arrives", () => {
+    registerFakeKos();
     render(<KosProcessorsComponent config={{}} />);
-    expect(screen.getByText(/Pick a kOS CPU/i)).toBeInTheDocument();
+    expect(screen.getByText(/Press Run/i)).toBeInTheDocument();
   });
 
-  it("renders a row per processor and surfaces tag/mode/volume/boot", async () => {
-    const user = userEvent.setup();
-    registerFakeKos(async () => ({
-      processors: JSON.stringify([
-        {
-          tag: "MainCPU",
-          mode: "READY",
-          volume: "boot",
-          bootFile: "boot/main.ks",
-          partTitle: "KAL9000 Scriptable Control System",
-          partUid: "uid-1",
-        },
-        {
-          tag: "",
-          mode: "OFF",
-          volume: "",
-          bootFile: "",
-          partTitle: "kOS CPU",
-          partUid: "uid-2",
-        },
-      ]),
-    }));
+  it("renders a row per processor when the centralised feed delivers data", async () => {
+    const fake = registerFakeKos();
+    render(<KosProcessorsComponent config={{}} />);
 
-    render(<KosProcessorsComponent config={{ cpu: "MainCPU" }} />);
+    fake.push([
+      {
+        tag: "MainCPU",
+        mode: "READY",
+        volume: "boot",
+        bootFile: "boot/main.ks",
+        partTitle: "KAL9000 Scriptable Control System",
+        partUid: "uid-1",
+      },
+      {
+        tag: "",
+        mode: "OFF",
+        volume: "",
+        bootFile: "",
+        partTitle: "kOS CPU",
+        partUid: "uid-2",
+      },
+    ]);
 
-    // Trigger the Run button so the script "executes".
-    await user.click(screen.getByRole("button", { name: /Run/i }));
-
-    // Tagged processor — tag and metadata visible.
     expect(await screen.findByText("MainCPU")).toBeInTheDocument();
     expect(screen.getByText(/KAL9000/)).toBeInTheDocument();
     expect(screen.getByText(/vol · boot/)).toBeInTheDocument();
     expect(screen.getByText(/boot · boot\/main\.ks/)).toBeInTheDocument();
 
-    // Untagged processor — falls back to "untagged" label and shows OFF mode.
     expect(screen.getByText(/untagged/i)).toBeInTheDocument();
     expect(screen.getByText("OFF")).toBeInTheDocument();
   });
