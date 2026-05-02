@@ -198,11 +198,14 @@ export class FlightReplayDataSource implements DataSource {
    * land in the right state for that moment.
    */
   seek(t: number): void {
-    if (t > this.currentT) {
+    if (t >= this.currentT) {
+      // applyForwardTo emits any pending samples whose tuple[0] <= t,
+      // and is a no-op once cursors are exhausted — safe even when
+      // t === currentT on the very first seek (where launch-time samples
+      // still need to fire).
       this.applyForwardTo(t);
       return;
     }
-    if (t === this.currentT) return;
     // Rewind — restart cursors and re-emit a snapshot.
     for (const [key, state] of this.keyStates) {
       state.cursor = 0;
@@ -237,6 +240,23 @@ export class FlightReplayDataSource implements DataSource {
   /** Total fixture duration in milliseconds (last sample - launchedAt). */
   duration(): number {
     return fixtureDurationMs(this.fixture);
+  }
+
+  /**
+   * The earliest sample `t` not yet emitted across any key, or `null` when
+   * the fixture has been fully replayed. Used by stepwise test helpers that
+   * need to walk the fixture one sample at a time so React's effect cycle
+   * runs between each.
+   */
+  nextPendingSampleT(): number | null {
+    let earliest: number | null = null;
+    for (const [key, state] of this.keyStates) {
+      const series = this.fixture.samples[key];
+      if (!series || state.cursor >= series.length) continue;
+      const t = series[state.cursor][0];
+      if (earliest === null || t < earliest) earliest = t;
+    }
+    return earliest;
   }
 
   // ── Internals ────────────────────────────────────────────────────────────

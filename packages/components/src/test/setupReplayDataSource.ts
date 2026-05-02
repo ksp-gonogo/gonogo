@@ -9,7 +9,7 @@ import {
   FlightReplayDataSource,
   MemoryStore,
 } from "@gonogo/data";
-import { cleanup } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 
 export interface SetupReplayOptions {
   fixture: FlightFixture;
@@ -79,4 +79,45 @@ export function teardownReplayDataSource(
   fixture.buffered.disconnect();
   fixture.replay.disconnect();
   clearActionHandlers();
+}
+
+/**
+ * Advance the replay clock sample-by-sample, with each sample fired inside
+ * its own `act()` scope. Two reasons for the per-step boundary:
+ *
+ * 1. State updates land inside scope (no out-of-act warnings).
+ * 2. React's effect cycle fully drains between samples, so widgets whose
+ *    behaviour depends on the *sequence* of inputs (mode transitions in
+ *    DistanceToTarget, alarm latching, etc.) see every intermediate state
+ *    instead of having multiple emits batched into one render.
+ *
+ * Use in widget integration tests:
+ *
+ * ```ts
+ * await stepwise(fixture, 5_000);
+ * expect(await screen.findByText(...)).toBeInTheDocument();
+ * ```
+ */
+export async function stepwise(
+  fixture: ReplayDataSourceFixture,
+  dt: number,
+): Promise<void> {
+  if (dt <= 0) return;
+  const targetT = fixture.replay.now() + dt;
+  // Walk one pending sample at a time, each inside its own act() so
+  // React's commit + effect cycle drains before the next sample fires.
+  while (true) {
+    const next = fixture.replay.nextPendingSampleT();
+    if (next === null || next > targetT) break;
+    await act(async () => {
+      fixture.replay.seek(next);
+    });
+  }
+  // Land exactly on `targetT` even when no sample sits there — keeps
+  // currentT consistent with what the caller asked for.
+  if (fixture.replay.now() < targetT) {
+    await act(async () => {
+      fixture.replay.seek(targetT);
+    });
+  }
 }

@@ -154,6 +154,30 @@ describe("FlightReplayDataSource — seek", () => {
   });
 });
 
+describe("FlightReplayDataSource — nextPendingSampleT", () => {
+  it("returns the earliest unemitted sample t across all keys", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    // Sample ts across the three series — earliest unemitted is launchedAt.
+    expect(src.nextPendingSampleT()).toBe(1_000_000);
+  });
+
+  it("advances past emitted samples as the cursor moves", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    src.advance(3_000); // past 1_000_000 (alt + body) but not 1_002_000 (hv)
+    expect(src.nextPendingSampleT()).toBe(1_005_000);
+    // The hv sample at 1_002_000 also fired in that advance window.
+  });
+
+  it("returns null once every key's cursor is past the end", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    src.advance(20_000); // past the last sample (1_010_000)
+    expect(src.nextPendingSampleT()).toBeNull();
+  });
+});
+
 describe("FlightReplayDataSource — autoplay", () => {
   it("advances on the wall clock when autoplay is set", async () => {
     vi.useFakeTimers();
