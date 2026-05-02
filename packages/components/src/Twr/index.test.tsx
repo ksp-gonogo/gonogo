@@ -1,9 +1,8 @@
 import type { DataKey } from "@gonogo/core";
 import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -34,41 +33,40 @@ describe("TwrComponent", () => {
   }
 
   it("shows the empty state before any telemetry arrives", async () => {
-    const { container } = renderTwr();
-    await flushAsync();
-    expect(container.textContent).toMatch(/no engine data/i);
+    renderTwr();
+    expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
   });
 
   it("renders TWR rounded to two decimals", async () => {
-    const { container } = renderTwr();
+    renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 1.832);
     });
-    await flushAsync();
-    expect(container.textContent).toContain("1.83");
+    // findByText awaits the value appearing — covers both the synchronous
+    // emit propagation and any follow-up state updates from the buffered
+    // series subscription that lives behind the sparkline.
+    expect(await screen.findByText("1.83")).toBeInTheDocument();
   });
 
   it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {
-    const { container } = renderTwr();
+    renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 0.85);
     });
-    await flushAsync();
-    // The gauge SVG carries an aria-label embedding the value; that's the
+    // The gauge's aria-label embeds the live value — that's the
     // screen-reader-friendly assertion that doesn't depend on
     // styled-components colour resolution.
-    const gauge = container.querySelector('svg[aria-label^="TWR "]');
-    expect(gauge?.getAttribute("aria-label")).toBe("TWR 0.85");
+    expect(await screen.findByLabelText("TWR 0.85")).toBeInTheDocument();
   });
 
   it("draws three coloured zones on the dial (nogo / warning / ok)", async () => {
-    const { container } = renderTwr();
+    renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 1.5);
     });
-    await flushAsync();
-    // 1 track + 3 zone arcs = 4 paths inside the gauge svg.
-    const gauge = container.querySelector('svg[aria-label^="TWR "]');
-    expect(gauge?.querySelectorAll("path")).toHaveLength(4);
+    // Wait for the gauge to render the new value, then count the zone arcs
+    // (1 track + 3 zones = 4 paths inside the gauge svg).
+    const gauge = await screen.findByLabelText("TWR 1.50");
+    expect(gauge.querySelectorAll("path")).toHaveLength(4);
   });
 });

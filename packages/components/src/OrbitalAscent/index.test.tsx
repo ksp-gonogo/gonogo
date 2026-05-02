@@ -6,10 +6,9 @@ import {
   registerBody,
   registerStockBodies,
 } from "@gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -79,8 +78,10 @@ describe("OrbitalAscentComponent", () => {
 
   it("renders the title and no reference curve before v.body arrives", async () => {
     const { container } = renderAscent();
-    await flushAsync();
-    expect(container.textContent).toContain("ORBITAL ASCENT");
+    // Wait for the panel to actually render (covers any post-mount async
+    // settling from the buffered series subscription) before asserting
+    // the negative.
+    await screen.findByText("ORBITAL ASCENT");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
     );
@@ -114,22 +115,20 @@ describe("OrbitalAscentComponent", () => {
     act(() => {
       source.emit("v.body", "Modtopia");
     });
-    await flushAsync();
 
-    expect(container.textContent).toMatch(/no reference data/i);
+    expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
     );
   });
 
   it("falls back to a notice when the body is not in the registry", async () => {
-    const { container } = renderAscent();
+    renderAscent();
 
     act(() => {
       source.emit("v.body", "MysteryRock");
     });
-    await flushAsync();
 
-    expect(container.textContent).toMatch(/unknown body/i);
+    expect(await screen.findByText(/unknown body/i)).toBeInTheDocument();
   });
 });

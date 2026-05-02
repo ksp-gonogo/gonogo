@@ -6,10 +6,9 @@ import {
   registerBody,
   registerStockBodies,
 } from "@gonogo/core";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -70,8 +69,7 @@ describe("EscapeProfileComponent", () => {
 
   it("renders the title and no curve before v.body arrives", async () => {
     const { container } = renderEscape();
-    await flushAsync();
-    expect(container.textContent).toContain("ESCAPE PROFILE");
+    await screen.findByText("ESCAPE PROFILE");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
     );
@@ -100,13 +98,12 @@ describe("EscapeProfileComponent", () => {
       maxAtmosphere: 0,
     });
 
-    const { container } = renderEscape();
+    renderEscape();
 
     act(() => {
       source.emit("v.body", "Modtopia");
     });
-    await flushAsync();
 
-    expect(container.textContent).toMatch(/no reference data/i);
+    expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();
   });
 });
