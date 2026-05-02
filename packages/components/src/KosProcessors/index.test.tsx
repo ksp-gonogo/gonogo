@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { KosProcessorsComponent } from "./index";
 import "./processorsScript"; // self-registers the kOS script
@@ -91,24 +91,26 @@ describe("KosProcessorsComponent", () => {
     const fake = registerFakeKos();
     render(<KosProcessorsComponent config={{}} />);
 
-    fake.push([
-      {
-        tag: "MainCPU",
-        mode: "READY",
-        volume: "boot",
-        bootFile: "boot/main.ks",
-        partTitle: "KAL9000 Scriptable Control System",
-        partUid: "uid-1",
-      },
-      {
-        tag: "",
-        mode: "OFF",
-        volume: "",
-        bootFile: "",
-        partTitle: "kOS CPU",
-        partUid: "uid-2",
-      },
-    ]);
+    act(() => {
+      fake.push([
+        {
+          tag: "MainCPU",
+          mode: "READY",
+          volume: "boot",
+          bootFile: "boot/main.ks",
+          partTitle: "KAL9000 Scriptable Control System",
+          partUid: "uid-1",
+        },
+        {
+          tag: "",
+          mode: "OFF",
+          volume: "",
+          bootFile: "",
+          partTitle: "kOS CPU",
+          partUid: "uid-2",
+        },
+      ]);
+    });
 
     expect(await screen.findByText("MainCPU")).toBeInTheDocument();
     expect(screen.getByText(/KAL9000/)).toBeInTheDocument();

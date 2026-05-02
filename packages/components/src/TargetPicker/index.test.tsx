@@ -178,10 +178,12 @@ describe("TargetPickerComponent", () => {
     renderPicker();
     fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
 
-    fake.push([
-      { name: "Far Probe", type: "Probe", distance: 12_000 },
-      { name: "Close Sat", type: "Satellite", distance: 80 },
-    ]);
+    act(() => {
+      fake.push([
+        { name: "Far Probe", type: "Probe", distance: 12_000 },
+        { name: "Close Sat", type: "Satellite", distance: 80 },
+      ]);
+    });
 
     await waitFor(() => {
       expect(screen.getByText("Close Sat")).toBeInTheDocument();
@@ -196,7 +198,9 @@ describe("TargetPickerComponent", () => {
     const fake = registerFakeKosSource(async () => ({}));
     renderPicker();
     fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
-    fake.push([{ name: "X", type: "Probe", distance: 1 }]);
+    act(() => {
+      fake.push([{ name: "X", type: "Probe", distance: 1 }]);
+    });
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: /Refresh/i }));
@@ -213,7 +217,9 @@ describe("TargetPickerComponent", () => {
     });
     renderPicker();
     fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
-    fake.push([{ name: "Hubble Mk II", type: "Probe", distance: 200 }]);
+    act(() => {
+      fake.push([{ name: "Hubble Mk II", type: "Probe", distance: 200 }]);
+    });
     await waitFor(() =>
       expect(screen.getByText("Hubble Mk II")).toBeInTheDocument(),
     );

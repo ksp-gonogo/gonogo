@@ -3,6 +3,7 @@ import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -32,24 +33,27 @@ describe("TwrComponent", () => {
     );
   }
 
-  it("shows the empty state before any telemetry arrives", () => {
+  it("shows the empty state before any telemetry arrives", async () => {
     const { container } = renderTwr();
+    await flushAsync();
     expect(container.textContent).toMatch(/no engine data/i);
   });
 
-  it("renders TWR rounded to two decimals", () => {
+  it("renders TWR rounded to two decimals", async () => {
     const { container } = renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 1.832);
     });
+    await flushAsync();
     expect(container.textContent).toContain("1.83");
   });
 
-  it("renders the TWR value as the gauge's aria-label so screen readers can read it", () => {
+  it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {
     const { container } = renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 0.85);
     });
+    await flushAsync();
     // The gauge SVG carries an aria-label embedding the value; that's the
     // screen-reader-friendly assertion that doesn't depend on
     // styled-components colour resolution.
@@ -57,11 +61,12 @@ describe("TwrComponent", () => {
     expect(gauge?.getAttribute("aria-label")).toBe("TWR 0.85");
   });
 
-  it("draws three coloured zones on the dial (nogo / warning / ok)", () => {
+  it("draws three coloured zones on the dial (nogo / warning / ok)", async () => {
     const { container } = renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 1.5);
     });
+    await flushAsync();
     // 1 track + 3 zone arcs = 4 paths inside the gauge svg.
     const gauge = container.querySelector('svg[aria-label^="TWR "]');
     expect(gauge?.querySelectorAll("path")).toHaveLength(4);

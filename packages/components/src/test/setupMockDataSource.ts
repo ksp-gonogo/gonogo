@@ -6,7 +6,7 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { cleanup } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 
 export interface SetupMockOptions {
   /** Schema keys exposed by the mock source. */
@@ -85,4 +85,30 @@ export function teardownMockDataSource(fixture: MockDataSourceFixture): void {
   cleanup();
   fixture.buffered.disconnect();
   clearActionHandlers();
+}
+
+/**
+ * Flush pending microtasks inside an `act()` scope so React state updates
+ * scheduled by async work (e.g. `useDataSeries`'s `queryRange().then(notify)`
+ * backfill) settle before the next assertion. Without this, those late
+ * updates fire after the synchronous test body and produce "not wrapped in
+ * act(...)" warnings even when the assertion itself succeeds.
+ *
+ * Use after `render` (and after any `act(() => emit())` whose downstream
+ * effects schedule further async work):
+ *
+ * ```ts
+ * const { container } = render(...);
+ * await flushAsync();
+ * expect(...);
+ * ```
+ */
+export async function flushAsync(): Promise<void> {
+  await act(async () => {
+    // Two awaits — one to clear the immediate microtask queue (which is
+    // where queryRange's .then callback lives), one to clear any state
+    // updates that callback scheduled.
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 }

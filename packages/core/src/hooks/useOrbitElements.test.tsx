@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import { MockDataSource } from "../testing/MockDataSource";
@@ -13,7 +13,11 @@ beforeEach(async () => {
   await source.connect();
 });
 
+// Cleanup before disconnect so React unmounts before the status subscriber
+// fires its "disconnected" callback — otherwise the resulting setState lands
+// outside any act() scope (CLAUDE.md → Testing Philosophy).
 afterEach(() => {
+  cleanup();
   source.disconnect();
   clearRegistry();
 });

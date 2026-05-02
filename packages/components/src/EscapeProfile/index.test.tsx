@@ -9,6 +9,7 @@ import {
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -67,8 +68,9 @@ describe("EscapeProfileComponent", () => {
     );
   }
 
-  it("renders the title and no curve before v.body arrives", () => {
+  it("renders the title and no curve before v.body arrives", async () => {
     const { container } = renderEscape();
+    await flushAsync();
     expect(container.textContent).toContain("ESCAPE PROFILE");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
@@ -89,7 +91,7 @@ describe("EscapeProfileComponent", () => {
     });
   });
 
-  it("falls back to a notice when the body has no GM", () => {
+  it("falls back to a notice when the body has no GM", async () => {
     registerBody({
       id: "Modtopia",
       name: "Modtopia",
@@ -103,6 +105,7 @@ describe("EscapeProfileComponent", () => {
     act(() => {
       source.emit("v.body", "Modtopia");
     });
+    await flushAsync();
 
     expect(container.textContent).toMatch(/no reference data/i);
   });

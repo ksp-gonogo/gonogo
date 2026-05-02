@@ -2,11 +2,7 @@ import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { registerComponent } from "@gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@gonogo/data";
 import { useDataSchema } from "@gonogo/data";
-import type {
-  ChartSeries,
-  ChartSeriesData,
-  ThresholdRule,
-} from "@gonogo/ui";
+import type { ChartSeries, ChartSeriesData, ThresholdRule } from "@gonogo/ui";
 import {
   ConfigForm,
   DataKeyPicker,

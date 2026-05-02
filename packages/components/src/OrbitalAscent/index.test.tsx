@@ -9,6 +9,7 @@ import {
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -76,8 +77,9 @@ describe("OrbitalAscentComponent", () => {
     );
   }
 
-  it("renders the title and no reference curve before v.body arrives", () => {
+  it("renders the title and no reference curve before v.body arrives", async () => {
     const { container } = renderAscent();
+    await flushAsync();
     expect(container.textContent).toContain("ORBITAL ASCENT");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
@@ -98,7 +100,7 @@ describe("OrbitalAscentComponent", () => {
     });
   });
 
-  it("falls back to a notice when the body has no GM registered", () => {
+  it("falls back to a notice when the body has no GM registered", async () => {
     registerBody({
       id: "Modtopia",
       name: "Modtopia",
@@ -112,6 +114,7 @@ describe("OrbitalAscentComponent", () => {
     act(() => {
       source.emit("v.body", "Modtopia");
     });
+    await flushAsync();
 
     expect(container.textContent).toMatch(/no reference data/i);
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
@@ -119,12 +122,13 @@ describe("OrbitalAscentComponent", () => {
     );
   });
 
-  it("falls back to a notice when the body is not in the registry", () => {
+  it("falls back to a notice when the body is not in the registry", async () => {
     const { container } = renderAscent();
 
     act(() => {
       source.emit("v.body", "MysteryRock");
     });
+    await flushAsync();
 
     expect(container.textContent).toMatch(/unknown body/i);
   });

@@ -3,6 +3,7 @@ import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  flushAsync,
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
@@ -35,18 +36,20 @@ describe("SemiMajorAxisComponent", () => {
     );
   }
 
-  it("shows the empty state before any orbit data arrives", () => {
+  it("shows the empty state before any orbit data arrives", async () => {
     const { container } = renderSma();
+    await flushAsync();
     expect(container.textContent).toMatch(/no orbit data/i);
   });
 
-  it("renders SMA via formatDistance and includes the reference body subtitle", () => {
+  it("renders SMA via formatDistance and includes the reference body subtitle", async () => {
     const { container } = renderSma();
     act(() => {
       source.emit("o.referenceBody", "Kerbin");
       // SMA from body centre — Kerbin radius 600km + 75km altitude = 675km.
       source.emit("o.sma", 675_000);
     });
+    await flushAsync();
     // formatDistance(675_000) → "675.0 km"
     expect(container.textContent).toContain("675.0 km");
     expect(container.textContent).toContain("Kerbin");
