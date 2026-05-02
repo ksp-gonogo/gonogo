@@ -18,6 +18,10 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { TargetPickerComponent } from "./index";
+import "./vesselListScript"; // self-registers the centralised feed
+import { TARGET_VESSELS_TOPIC_ID } from "./vesselListScript";
+
+const TOPIC_KEY = `kos.compute.${TARGET_VESSELS_TOPIC_ID}.vessels`;
 
 const KEYS: DataKey[] = [
   { key: "v.name" },
@@ -45,50 +49,76 @@ function renderPicker(
   );
 }
 
-interface FakeKosSource {
-  id: string;
-  name: string;
-  status: "connected";
-  affectedBySignalLoss: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  schema: () => [];
-  subscribe: () => () => void;
-  onStatusChange: () => () => void;
-  execute: () => Promise<void>;
-  configSchema: () => [];
-  configure: () => void;
-  getConfig: () => Record<string, unknown>;
+/**
+ * Fake `kos` source supporting just enough of the centralised compute
+ * surface for TargetPicker: subscribe (for vessel list), execute (for the
+ * dispatchNow action), executeScript (for set-target RPC),
+ * getTopicStatus / onTopicStatusChange (for status pills).
+ */
+function registerFakeKosSource(
   executeScript: (
     cpu: string,
     script: string,
     args: unknown[],
-  ) => Promise<Record<string, unknown>>;
-}
+  ) => Promise<Record<string, unknown>>,
+  opts: { activeCpu?: string } = {},
+) {
+  const subs = new Set<(value: unknown) => void>();
+  const statusListeners = new Set<() => void>();
+  const actions: string[] = [];
+  let lastValue: unknown;
 
-function registerFakeKosSource(
-  executeScript: FakeKosSource["executeScript"],
-): FakeKosSource {
-  const src: FakeKosSource = {
+  const fake = {
     id: "kos",
     name: "kOS",
-    status: "connected",
+    status: "connected" as const,
     affectedBySignalLoss: false,
     connect: async () => {},
     disconnect: () => {},
     schema: () => [],
-    subscribe: () => () => {},
+    subscribe(key: string, cb: (value: unknown) => void): () => void {
+      if (key !== TOPIC_KEY) return () => {};
+      subs.add(cb);
+      if (lastValue !== undefined) {
+        queueMicrotask(() => cb(lastValue));
+      }
+      return () => subs.delete(cb);
+    },
     onStatusChange: () => () => {},
-    execute: async () => {},
+    async execute(action: string) {
+      actions.push(action);
+    },
     configSchema: () => [],
     configure: () => {},
-    getConfig: () => ({}),
+    getConfig: () => ({ activeCpu: opts.activeCpu ?? "datastream" }),
     executeScript,
+    getTopicStatus: (id: string) => {
+      if (id !== TARGET_VESSELS_TOPIC_ID) return null;
+      return {
+        lastGoodAt: lastValue !== undefined ? Date.now() : null,
+        scriptError: null,
+        parseError: null,
+        paused: false,
+        running: false,
+      };
+    },
+    onTopicStatusChange: (id: string, cb: () => void) => {
+      if (id !== TARGET_VESSELS_TOPIC_ID) return () => {};
+      statusListeners.add(cb);
+      return () => statusListeners.delete(cb);
+    },
+    push(value: unknown) {
+      lastValue = value;
+      for (const cb of subs) cb(value);
+      for (const cb of statusListeners) cb();
+    },
+    actions,
   };
+
   registerDataSource(
-    src as unknown as Parameters<typeof registerDataSource>[0],
+    fake as unknown as Parameters<typeof registerDataSource>[0],
   );
-  return src;
+  return fake;
 }
 
 describe("TargetPickerComponent", () => {
@@ -100,6 +130,7 @@ describe("TargetPickerComponent", () => {
     onExecute = vi.fn();
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
+    void import("./vesselListScript");
   });
 
   afterEach(() => {
@@ -142,61 +173,64 @@ describe("TargetPickerComponent", () => {
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
-  it("prompts for a kOS CPU on the vessels tab when none is configured", () => {
+  it("renders vessels from the centralised feed sorted by distance", async () => {
+    const fake = registerFakeKosSource(async () => ({}));
     renderPicker();
     fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
-    expect(
-      screen.getByText(/Vessels tab needs a kOS CPU/i),
-    ).toBeInTheDocument();
-  });
 
-  it("dispatches the kOS list-only script on Refresh click and renders vessels sorted by distance", async () => {
-    const calls: Array<{ cpu: string; args: unknown[] }> = [];
-    registerFakeKosSource(async (cpu, _script, args) => {
-      calls.push({ cpu, args });
-      return {
-        vessels: JSON.stringify([
-          { name: "Far Probe", type: "Probe", distance: 12_000 },
-          { name: "Close Sat", type: "Satellite", distance: 80 },
-        ]),
-      };
-    });
-    renderPicker({ cpu: "MyCPU" });
-    fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
-    fireEvent.click(screen.getByRole("button", { name: /Refresh/i }));
+    fake.push([
+      { name: "Far Probe", type: "Probe", distance: 12_000 },
+      { name: "Close Sat", type: "Satellite", distance: 80 },
+    ]);
+
     await waitFor(() => {
       expect(screen.getByText("Close Sat")).toBeInTheDocument();
       expect(screen.getByText("Far Probe")).toBeInTheDocument();
     });
-    // Sorted: Close Sat (80m) appears before Far Probe (12km) in the DOM order.
     const rows = screen.getAllByRole("button", { name: /Probe|Satellite/ });
     expect(rows[0]).toHaveTextContent("Close Sat");
     expect(rows[1]).toHaveTextContent("Far Probe");
-    // List-only refresh — args come through as an empty string.
-    expect(calls[0]?.args).toEqual([""]);
   });
 
-  it("dispatches with the vessel name on click to set target via kOS", async () => {
-    const calls: Array<{ args: unknown[] }> = [];
-    registerFakeKosSource(async (_cpu, _script, args) => {
-      calls.push({ args });
-      return {
-        vessels: JSON.stringify([
-          { name: "Hubble Mk II", type: "Probe", distance: 200 },
-        ]),
-      };
-    });
-    renderPicker({ cpu: "MyCPU" });
+  it("Refresh fires kos.compute.target-vessels.dispatchNow", async () => {
+    const fake = registerFakeKosSource(async () => ({}));
+    renderPicker();
     fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
+    fake.push([{ name: "X", type: "Probe", distance: 1 }]);
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+
     fireEvent.click(screen.getByRole("button", { name: /Refresh/i }));
+    await waitFor(() => {
+      expect(fake.actions).toContain("kos.compute.target-vessels.dispatchNow");
+    });
+  });
+
+  it("clicking a vessel runs the set-target script with that name and refreshes the feed", async () => {
+    const calls: Array<{ cpu: string; script: string; args: unknown[] }> = [];
+    const fake = registerFakeKosSource(async (cpu, script, args) => {
+      calls.push({ cpu, script, args });
+      return { ok: true };
+    });
+    renderPicker();
+    fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
+    fake.push([{ name: "Hubble Mk II", type: "Probe", distance: 200 }]);
     await waitFor(() =>
       expect(screen.getByText("Hubble Mk II")).toBeInTheDocument(),
     );
+
     fireEvent.click(screen.getByRole("button", { name: /Hubble/ }));
     await waitFor(() => {
+      expect(calls.length).toBeGreaterThan(0);
       const last = calls[calls.length - 1];
-      expect(last?.args).toEqual(["Hubble Mk II"]);
+      expect(last.args).toEqual(["Hubble Mk II"]);
+      expect(last.cpu).toBe("datastream");
+      expect(last.script).toMatch(/setTarget\.ks$/);
     });
+    // After the set-target promise resolves, the widget asks the feed for a
+    // fresh sample so the new TARGET row updates.
+    await waitFor(() =>
+      expect(fake.actions).toContain("kos.compute.target-vessels.dispatchNow"),
+    );
   });
 
   it("renders current target details and clears via tar.clearTarget", async () => {

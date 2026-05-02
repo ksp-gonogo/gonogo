@@ -6,12 +6,13 @@ import type {
 import {
   formatAge,
   formatDistance,
+  getDataSource,
   registerComponent,
   useActionInput,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { hashKosScript } from "@gonogo/data";
+import { hashKosScript, isScriptable, useKosScriptStatus } from "@gonogo/data";
 import {
   Button,
   ConfigForm,
@@ -19,35 +20,28 @@ import {
   FieldHint,
   FieldLabel,
   GhostButton,
-  Input,
   Panel,
   PanelTitle,
   PrimaryButton,
   ScrollArea,
   Tabs,
 } from "@gonogo/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
-import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
+import { SET_TARGET_SCRIPT, SET_TARGET_SCRIPT_NAME } from "./setTargetScript";
 import {
-  VESSEL_LIST_SCRIPT,
-  VESSEL_LIST_SCRIPT_NAME,
+  TARGET_VESSELS_TOPIC_ID,
   type VesselListEntry,
 } from "./vesselListScript";
 
-const VESSEL_LIST_SCRIPT_VERSION = hashKosScript(VESSEL_LIST_SCRIPT);
+const VESSELS_KEY = `kos.compute.${TARGET_VESSELS_TOPIC_ID}.vessels`;
+const DISPATCH_NOW_ACTION = `kos.compute.${TARGET_VESSELS_TOPIC_ID}.dispatchNow`;
+const SET_TARGET_SCRIPT_VERSION = hashKosScript(SET_TARGET_SCRIPT);
 
-interface TargetPickerConfig {
-  /**
-   * kOS CPU tagname for the Vessels tab. Empty → Vessels tab shows a
-   * "configure kOS" hint and the rest of the widget still works.
-   */
-  cpu?: string;
-  /** Path of the bundled vessel-list script on the kOS Archive volume. */
-  scriptName?: string;
-}
+// Config is empty post-migration — the per-widget CPU / scriptName moved
+// to the centralised kOS data source.
+type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
 
 const targetPickerActions = [
@@ -61,18 +55,16 @@ const targetPickerActions = [
 type TargetPickerActions = typeof targetPickerActions;
 
 function TargetPickerComponent({
-  config,
   w,
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
-  const cpu = config?.cpu ?? "";
-  const scriptName = config?.scriptName ?? VESSEL_LIST_SCRIPT_NAME;
   const bodies = useCelestialBodies();
   const tarName = useDataValue("data", "tar.name") as string | undefined;
   const tarType = useDataValue("data", "tar.type") as string | undefined;
   const tarDistance = useDataValue("data", "tar.distance");
   const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");
   const execute = useExecuteAction("data");
+  const executeKos = useExecuteAction("kos");
 
   const [tab, setTab] = useState<TabId>("bodies");
   const [filter, setFilter] = useState("");
@@ -88,60 +80,41 @@ function TargetPickerComponent({
     void execute(`tar.setTargetBody[${index}]`);
   const clearTarget = () => void execute("tar.clearTarget");
 
-  // ── kOS-backed vessel listing ────────────────────────────────────────────
-  // The script accepts a single string parameter — either an empty string
-  // (list-only) or a vessel name to SET TARGET TO. Click handlers stash a
-  // pending name; an effect dispatches once the args have re-resolved on
-  // the next render, then clears the pending state so subsequent manual
-  // refreshes don't accidentally re-target.
-  const [pendingTargetName, setPendingTargetName] = useState("");
-  const argsForKos = useMemo(
-    () => [{ type: "string" as const, value: pendingTargetName }],
-    [pendingTargetName],
+  // ── Centralised vessel listing ───────────────────────────────────────────
+  // The Vessels tab subscribes to the `target-vessels` feed. One loop runs
+  // on the active CPU regardless of how many TargetPickers are open; the
+  // active CPU lives on the kOS data source config now (no per-widget CPU
+  // picker).
+  const vessels = useDataValue<VesselListEntry[]>("kos", VESSELS_KEY);
+  const status = useKosScriptStatus(TARGET_VESSELS_TOPIC_ID);
+
+  const refreshVessels = useCallback(() => {
+    void executeKos(DISPATCH_NOW_ACTION);
+  }, [executeKos]);
+
+  // Set-target is a one-shot RPC — kept off the centralised feed because
+  // it takes a per-call name argument. After the script resolves we kick
+  // the central feed for a fresh sample so the new TARGET row updates.
+  const targetVessel = useCallback(
+    (name: string) => {
+      const source = getDataSource("kos");
+      if (!isScriptable(source)) return;
+      void source
+        .executeScript(
+          // The compute fanout owns the active CPU; we have to peek at its
+          // config to dispatch. Empty string short-circuits in the source.
+          (source.getConfig() as { activeCpu?: string }).activeCpu ?? "",
+          SET_TARGET_SCRIPT_NAME,
+          [name],
+          { body: SET_TARGET_SCRIPT, version: SET_TARGET_SCRIPT_VERSION },
+        )
+        .then(() => executeKos(DISPATCH_NOW_ACTION))
+        .catch(() => {
+          /* errors surface on next feed cycle */
+        });
+    },
+    [executeKos],
   );
-  const {
-    payload: vessels,
-    error: kosError,
-    parseError: kosParseError,
-    running: kosRunning,
-    lastGoodAt: kosLastGoodAt,
-    dispatch: kosDispatch,
-    disabled: kosDisabled,
-    disabledReason: kosDisabledReason,
-  } = useKosScriptPayload<VesselListEntry[]>({
-    cpu,
-    script: scriptName,
-    args: argsForKos,
-    field: "vessels",
-    mode: "command",
-    managed: { body: VESSEL_LIST_SCRIPT, version: VESSEL_LIST_SCRIPT_VERSION },
-  });
-
-  // After the args render-cycle has caught up, fire the dispatch and reset
-  // the pending name so the next manual refresh defaults back to list-only.
-  // Dispatching directly inside the click handler would race the args ref
-  // — useKosWidget reads argsRef.current, which doesn't update until the
-  // next render after setState.
-  const dispatchPendingRef = useRef(false);
-  useEffect(() => {
-    if (pendingTargetName.length === 0) return;
-    if (dispatchPendingRef.current) return;
-    dispatchPendingRef.current = true;
-    kosDispatch();
-    // Reset after dispatch — by the time the next render happens, the
-    // args ref has already been used.
-    setPendingTargetName("");
-    dispatchPendingRef.current = false;
-  }, [pendingTargetName, kosDispatch]);
-
-  const refreshVessels = () => {
-    // List-only refresh — args already empty.
-    if (cpu) kosDispatch();
-  };
-  const targetVessel = (name: string) => {
-    if (!cpu) return;
-    setPendingTargetName(name);
-  };
 
   const filterText = filter.trim().toLowerCase();
   const isFiltering = filterText.length > 0;
@@ -230,42 +203,34 @@ function TargetPickerComponent({
   );
 
   const vesselsContent = (() => {
-    if (!cpu) {
-      return (
-        <Hint>
-          Vessels tab needs a kOS CPU. Open this widget's config and pick one —
-          the rest of the widget works without it.
-        </Hint>
-      );
-    }
     const sorted = [...(vessels ?? [])].sort((a, b) => a.distance - b.distance);
+    const error =
+      status.scriptError && !status.paused
+        ? status.scriptError
+        : status.parseError;
     return (
       <VesselsTab>
         <VesselsHeader>
           <GhostButton
             type="button"
             onClick={refreshVessels}
-            disabled={kosRunning || kosDisabled}
+            disabled={status.running || status.paused}
           >
-            {kosRunning ? "Refreshing…" : "Refresh"}
+            {status.running ? "Refreshing…" : "Refresh"}
           </GhostButton>
-          {kosLastGoodAt !== null && (
+          {status.lastGoodAt !== null && (
             <VesselsMeta>
               {sorted.length} target{sorted.length === 1 ? "" : "s"} · updated{" "}
-              {formatAge(Date.now() - kosLastGoodAt)} ago
+              {formatAge(Date.now() - status.lastGoodAt)} ago
             </VesselsMeta>
           )}
         </VesselsHeader>
-        {(kosError || kosParseError) && !kosDisabled && (
-          <ErrorBanner>
-            {(kosError ?? kosParseError)?.message ?? "kOS dispatch failed"}
-          </ErrorBanner>
+        {error && <ErrorBanner>{error.message}</ErrorBanner>}
+        {status.paused && status.scriptError && (
+          <ErrorBanner>{status.scriptError.message}</ErrorBanner>
         )}
-        {kosDisabled && kosDisabledReason && (
-          <ErrorBanner>{kosDisabledReason}</ErrorBanner>
-        )}
-        {vessels === null && !kosRunning ? (
-          <Hint>Press Refresh to enumerate targets via kOS.</Hint>
+        {vessels === null && !status.running ? (
+          <Hint>Waiting for kOS feed…</Hint>
         ) : sorted.length === 0 ? (
           <Hint>No targets in range.</Hint>
         ) : (
@@ -421,42 +386,19 @@ function BodyTreeNode({
 // ── Config component ──────────────────────────────────────────────────────────
 
 function TargetPickerConfigComponent({
-  config,
   onSave,
 }: Readonly<ConfigComponentProps<TargetPickerConfig>>) {
-  const [cpu, setCpu] = useState(config?.cpu ?? "");
-  const [scriptName, setScriptName] = useState(
-    config?.scriptName ?? VESSEL_LIST_SCRIPT_NAME,
-  );
-
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="target-picker-cpu">
-          kOS CPU (Vessels tab)
-        </FieldLabel>
-        <KosCpuPicker id="target-picker-cpu" value={cpu} onChange={setCpu} />
+        <FieldLabel>Active kOS CPU (Vessels tab)</FieldLabel>
         <FieldHint>
-          Optional. Without a CPU, the Vessels tab shows a configure-kOS hint.
-          Bodies and Current tabs work either way.
+          The Vessels tab subscribes to the centralised kOS feed. Set the active
+          CPU on the kOS data source — it applies to every centralised kOS
+          widget. Bodies and Current tabs work without a CPU configured.
         </FieldHint>
       </Field>
-      <Field>
-        <FieldLabel htmlFor="target-picker-script">Script name</FieldLabel>
-        <Input
-          id="target-picker-script"
-          type="text"
-          value={scriptName}
-          onChange={(e) => setScriptName(e.target.value)}
-        />
-        <FieldHint>
-          Path on the kOS Archive volume. The widget auto-deploys the bundled
-          script there — usually no need to change.
-        </FieldHint>
-      </Field>
-      <PrimaryButton onClick={() => onSave({ cpu, scriptName })}>
-        Save
-      </PrimaryButton>
+      <PrimaryButton onClick={() => onSave({})}>Save</PrimaryButton>
     </ConfigForm>
   );
 }
@@ -664,13 +606,14 @@ registerComponent<TargetPickerConfig>({
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
   dataRequirements: [
+    VESSELS_KEY,
     "b.number",
     "tar.name",
     "tar.type",
     "tar.distance",
     "tar.o.relativeVelocity",
   ],
-  defaultConfig: { cpu: "", scriptName: VESSEL_LIST_SCRIPT_NAME },
+  defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,
 });

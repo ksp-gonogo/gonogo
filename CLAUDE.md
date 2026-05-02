@@ -166,6 +166,78 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
 
 Connects via WebSocket to `ws://host:8085/datalink`. Subscribe by sending `{ "run": ["v.sasValue", ...], "rate": 250 }`. Server streams JSON updates: `{ "v.sasValue": true, ... }`. Execute actions via HTTP GET: `GET http://host:8085/telemachus/datalink?a=<actionKey>` with `mode: 'no-cors'` (state change arrives back over the WS). Toggle keys use `f.` prefix; value keys use `v.` prefix (e.g. `f.ag1` toggles, `v.ag1Value` reads).
 
+## Centralised kOS scripts
+
+The kOS data source runs registered kerboscripts on the user's active CPU and fans the parsed payloads out to subscribers as standard `kos.compute.<id>.<field>` data keys. One loop per script, regardless of how many widgets subscribe. This is the **default path for any new kOS-driven widget** — `useKosScriptPayload` / `useKosWidget` are reserved for the niche RPC case (per-call args, request/response).
+
+### When to use this vs. raw `executeScript`
+
+- **Centralised feed** (this section) — passive listing / telemetry / state snapshot, same payload for every subscriber. Examples: ShipMap parts, KosProcessors listing, TargetPicker vessel list. The widget calls `useDataValue` and is done.
+- **Raw `executeScript`** — RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents), TargetPicker's set-target click. The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout.
+
+### Adding a new feed-style widget
+
+Three pieces — the kerboscript, the registration, and the widget consumption.
+
+**1. The kerboscript** — emit a topic-tagged `[KOSDATA]` block:
+
+```
+PRINT "[KOSDATA:my-feed]parts=" + json + "[/KOSDATA]".
+```
+
+The topic id (`my-feed`) must match the `id` you register below. JSON values are passed as JSON-encoded strings; scalars (number / boolean / string) can be emitted directly.
+
+**2. Self-register at module load**, alongside `registerComponent`. Same lifecycle pattern. Put this at the bottom of your `<widget>Script.ts`:
+
+```ts
+import { registerKosScript } from "@gonogo/core";
+
+registerKosScript({
+  id: "my-feed",                       // must match [KOSDATA:<id>]
+  name: "My Feed",                     // shown in debug surfaces
+  script: MY_FEED_SCRIPT,              // kerboscript source
+  intervalMs: 5_000,                   // passive cadence (script-defined, not subscriber-driven)
+  fields: [
+    { name: "parts", type: "json" },   // JSON.parse before delivery
+    { name: "count", type: "scalar" }, // pass-through number/bool/string
+  ],
+});
+```
+
+The data source runs the script on `0:/widget_scripts/<id>.ks` via the managed wrapper (auto-syncs the on-volume copy). No script-name config needed.
+
+**3. Read from the widget** with the standard hooks:
+
+```ts
+import { useDataValue, useExecuteAction } from "@gonogo/core";
+import { useKosScriptStatus } from "@gonogo/data";
+
+const parts = useDataValue<MyPart[]>("kos", "kos.compute.my-feed.parts");
+const status = useKosScriptStatus("my-feed");
+const executeKos = useExecuteAction("kos");
+
+const dispatchNow = () => void executeKos("kos.compute.my-feed.dispatchNow");
+const reEnable = () => void executeKos("kos.compute.my-feed.reEnable");
+```
+
+`useDataValue` carries the value; `useKosScriptStatus` carries `running / lastGoodAt / scriptError / parseError / paused` — bits that don't fit the value channel. The standard `KosScriptFrame` chrome accepts all those props directly.
+
+Add the data key to the widget's `dataRequirements` so the orchestrator's debug surfaces know about it.
+
+### Lifecycle, breaker, sticky cache
+
+- **0 → 1 subscriber** on a topic starts the loop. **1 → 0** schedules teardown after a 5s grace so React StrictMode remounts don't churn the dispatcher.
+- The loop runs the script on `KosConfig.activeCpu`. If unset, the loop surfaces a "no CPU" error and idles. CPU is global on the data source — no per-widget picker.
+- **Sticky cache**: late subscribers get the most recent value immediately on the next microtask, no full-cycle wait.
+- **Breaker**: three consecutive `KosScriptError`s (script-author faults — runtime exceptions, `[KOSERROR]`, KOSUndefinedIdentifierException) trip a per-topic breaker. Transport / proxy / timeout errors don't count. Cleared via `kos.compute.<id>.reEnable`.
+- **PerfBudget**: the fanout is covered by `KosDataSource.compute samples emitted/sec` (500/sec). New scripts inherit it — no per-script budget needed.
+
+### What NOT to do
+
+- Don't call `KosDataSource.executeScript` directly from a feed widget — you'll get a duplicate dispatch and break the "one loop per script" invariant.
+- Don't mock `useDataValue` or `useKosScriptStatus` in tests. Use a fake `kos` source that implements `subscribe / getTopicStatus / onTopicStatusChange` (see `KosProcessors/index.test.tsx` for the reusable pattern).
+- Don't put per-call args in the script. The centralised registry assumes a no-args, on-interval contract; if you need args, you're in the RPC case and should use `executeScript` directly.
+
 ## CI/CD
 
 - `.github/workflows/ci.yml` — runs `pnpm test` on all PRs and pushes to any branch.

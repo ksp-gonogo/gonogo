@@ -1,13 +1,17 @@
+import { registerKosScript } from "@gonogo/core";
+
 /**
- * Kerboscript for the Target Picker widget's Vessels tab. Single-shot
- * dispatcher that optionally sets the KSP target by name and always
- * emits the current list of in-range targets so the widget can refresh.
+ * Kerboscript for the Target Picker's Vessels tab. Pure feed — enumerates
+ * every vessel in range and emits `name`, `type`, and `distance` for each.
  *
- * Pass an empty string for `setTargetName` to list-only. Pass `<clear>`
- * to clear the target (kerboscript's `SET TARGET TO ""` semantics).
+ * This script used to also accept a `setTargetName` parameter and SET TARGET
+ * inline; that side-effect now lives in `setTargetScript.ts`, which the
+ * widget invokes on demand through `executeScript`. Splitting the two lets
+ * the listing slot into the centralised `kos.compute.target-vessels.vessels`
+ * fanout while the rare "set target" RPC stays a one-shot.
  *
  * Output contract:
- *   [KOSDATA]vessels=<json-array>[/KOSDATA]
+ *   [KOSDATA:target-vessels]vessels=<json-array>[/KOSDATA]
  *
  * Each entry: `{ name, type, distance }`. `distance` is metres from the
  * active ship, rounded to 1 decimal so the JSON stays compact.
@@ -17,26 +21,10 @@
  * payload well-formed — same approach the ShipMap script uses for part
  * titles.
  */
-export const VESSEL_LIST_SCRIPT = `// gonogo target-picker — list nearby targets, optionally set/clear.
-PARAMETER setTargetName IS "".
-
+export const VESSEL_LIST_SCRIPT = `// gonogo target-vessels — list every in-range target.
 LOCAL quoteChar IS CHAR(34).
 LOCAL ts IS LIST().
 LIST TARGETS IN ts.
-
-IF setTargetName:LENGTH > 0 {
-  IF setTargetName = "<clear>" {
-    SET TARGET TO "".
-  } ELSE {
-    LOCAL found IS FALSE.
-    FOR v IN ts {
-      IF NOT found AND v:NAME = setTargetName {
-        SET TARGET TO v.
-        SET found TO TRUE.
-      }
-    }
-  }
-}
 
 LOCAL json IS "[".
 LOCAL first IS TRUE.
@@ -53,10 +41,13 @@ FOR v IN ts {
     + "}".
 }
 SET json TO json + "]".
-PRINT "[KOSDATA]vessels=" + json + "[/KOSDATA]".
+PRINT "[KOSDATA:target-vessels]vessels=" + json + "[/KOSDATA]".
 `;
 
 export const VESSEL_LIST_SCRIPT_NAME = "0:/widget_scripts/targetlist.ks";
+
+/** Topic id for the centralised kOS compute fanout. */
+export const TARGET_VESSELS_TOPIC_ID = "target-vessels";
 
 export interface VesselListEntry {
   name: string;
@@ -64,3 +55,14 @@ export interface VesselListEntry {
   /** Metres from the active vessel. */
   distance: number;
 }
+
+// Self-register at module load. 5s passive cadence — frequent enough to
+// keep distances fresh on a moving formation, infrequent enough not to
+// hold the kOS REPL captive.
+registerKosScript({
+  id: TARGET_VESSELS_TOPIC_ID,
+  name: "Target Vessels",
+  script: VESSEL_LIST_SCRIPT,
+  intervalMs: 5_000,
+  fields: [{ name: "vessels", type: "json" }],
+});
