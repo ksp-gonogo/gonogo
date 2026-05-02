@@ -25,6 +25,13 @@ export interface BodyDefinition {
   name: string;
   /** Mean radius in metres. */
   radius: number;
+  /**
+   * Standard gravitational parameter (GM) in m³/s². Required for orbital
+   * mechanics utilities like `circularOrbitVelocity` and `surfaceGravity`.
+   * Optional because mod-added bodies may not supply it; consumers must
+   * tolerate `undefined` and degrade gracefully.
+   */
+  gm?: number;
   /** Path or URL to a surface texture image (equirectangular projection). */
   texture?: string;
   /** Fallback display colour (CSS colour string) used when no texture is available. */

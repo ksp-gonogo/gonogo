@@ -54,6 +54,7 @@ describe("builtin derived keys — delta-V / mass", () => {
       expect.arrayContaining([
         "v.missionTimeHours",
         "v.altitudeRate",
+        "v.horizontalVelocity",
         "dv.total",
         "dv.current",
         "dv.currentTWR",
@@ -61,6 +62,24 @@ describe("builtin derived keys — delta-V / mass", () => {
         "dv.totalMass",
       ]),
     );
+  });
+
+  it("v.horizontalVelocity = sqrt(orbital² - vertical²)", () => {
+    const def = findDef("v.horizontalVelocity");
+    expect(def.fn([sample(2300), sample(0)], null)).toBeCloseTo(2300);
+    // 3-4-5 triangle: orbital 2500, vertical 1500 → horizontal 2000
+    expect(def.fn([sample(2500), sample(1500)], null)).toBeCloseTo(2000);
+  });
+
+  it("v.horizontalVelocity clamps to 0 when vertical exceeds orbital due to FP noise", () => {
+    const def = findDef("v.horizontalVelocity");
+    expect(def.fn([sample(100), sample(100.0000001)], null)).toBe(0);
+  });
+
+  it("v.horizontalVelocity returns undefined when inputs aren't finite", () => {
+    const def = findDef("v.horizontalVelocity");
+    expect(def.fn([sample(NaN), sample(0)], null)).toBeUndefined();
+    expect(def.fn([sample(100), sample(NaN)], null)).toBeUndefined();
   });
 
   it("dv.total sums deltaVActual across stages", () => {

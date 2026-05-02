@@ -30,6 +30,8 @@ export interface ChartSeries {
   color: string;
   /** Defaults to `"line"` when omitted. */
   type?: SeriesType;
+  /** Render as a dashed line. Used to set reference / target curves apart from live traces. */
+  dashed?: boolean;
   data: ChartSeriesData;
 }
 
@@ -131,6 +133,7 @@ export function LineChart({
         return {
           id: s.id,
           color: s.color,
+          dashed: s.dashed ?? false,
           d: buildPath(s.data.x, s.data.y, scaleX, scaleY),
         };
       });
@@ -275,7 +278,7 @@ export function LineChart({
       )}
 
       {/* Series paths */}
-      {paths.map(({ id, color, d }) => (
+      {paths.map(({ id, color, d, dashed }) => (
         <path
           key={id}
           d={d}
@@ -284,6 +287,7 @@ export function LineChart({
           fill="none"
           strokeLinejoin="round"
           strokeLinecap="round"
+          strokeDasharray={dashed ? "4 3" : undefined}
         />
       ))}
 

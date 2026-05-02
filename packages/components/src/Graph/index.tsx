@@ -40,6 +40,21 @@ function computeValueDomain(values: readonly number[]): [number, number] {
   return min === max ? [min - 1, min + 1] : [min, max];
 }
 
+/**
+ * X domain for non-time graphs. Combines the live X buffer with any reference
+ * curves so an empty / partial trace doesn't squash a wide reference curve
+ * into a sliver, and so a reference curve always defines a sensible plot
+ * window even before the first telemetry sample arrives.
+ */
+function computeXDomain(
+  liveXs: readonly number[],
+  overlays: readonly ChartSeries[],
+): [number, number] {
+  const all = [...liveXs];
+  for (const o of overlays) all.push(...o.data.x);
+  return computeValueDomain(all);
+}
+
 function formatNumericTick(value: number, unit?: string): string {
   const abs = Math.abs(value);
   let text: string;
@@ -71,9 +86,49 @@ function resolveAxes(
   });
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── GraphView ────────────────────────────────────────────────────────────────
+//
+// The shared rendering engine. Takes a resolved GraphConfig and optional
+// reference curves (pre-computed by the caller — typically a domain-specific
+// preset widget like OrbitalAscent that wants to overlay an ideal curve on top
+// of live telemetry). Curves are injected as synthetic ChartSeries entries
+// alongside the live ones; the X domain expands to cover them.
 
-function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
+/**
+ * A pre-computed reference curve to overlay on the chart. The caller is
+ * responsible for sampling whatever function it wants to display (e.g.
+ * `circularOrbitVelocity` over an altitude range) and producing the parallel
+ * `xs` / `ys` arrays. No data subscription happens for these — they are
+ * static for the lifetime of the prop.
+ */
+export interface ReferenceCurve {
+  /** Stable ID; must not collide with any series ID. */
+  id: string;
+  /** Legend label / debug name. */
+  label: string;
+  xs: number[];
+  ys: number[];
+  /** CSS color. Defaults to a dim accent if omitted. */
+  color?: string;
+  /** Which Y axis the curve belongs to. Defaults to "primary". */
+  axis?: "primary" | "secondary";
+}
+
+interface GraphViewProps {
+  config: GraphConfig | undefined;
+  referenceCurves?: ReadonlyArray<ReferenceCurve>;
+  /** Override the panel header. Defaults to "GRAPH". */
+  title?: string;
+  /** Replaces the empty-state copy when no series are configured. */
+  emptyState?: string;
+}
+
+export function GraphView({
+  config,
+  referenceCurves,
+  title = "GRAPH",
+  emptyState = "Configure series to begin graphing.",
+}: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
     [config?.series],
@@ -141,7 +196,7 @@ function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
     return new Set(units).size > 2;
   })();
 
-  const chartSeries: ChartSeries[] = series.map((cfg, i) => {
+  const liveSeries: ChartSeries[] = series.map((cfg, i) => {
     const meta = metaMap.get(cfg.key);
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
     const data = xIsTime
@@ -157,12 +212,30 @@ function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
     };
   });
 
+  // Reference curves only make sense on a non-time X axis (they're a
+  // function of the X dimension, not time). Silently skip them on time-X
+  // graphs rather than silently corrupting the time domain.
+  const overlaySeries: ChartSeries[] =
+    !xIsTime && referenceCurves
+      ? referenceCurves.map((curve) => ({
+          id: `__ref_${curve.id}`,
+          label: curve.label,
+          axis: curve.axis ?? "primary",
+          color: curve.color ?? "var(--color-text-faint)",
+          type: "line" as const,
+          dashed: true,
+          data: { x: curve.xs, y: curve.ys },
+        }))
+      : [];
+
+  const chartSeries: ChartSeries[] = [...liveSeries, ...overlaySeries];
+
   const xDomain: [number, number] = xIsTime
     ? (() => {
         const now = Date.now();
         return [now - windowSec * 1000, now];
       })()
-    : computeValueDomain(xData.v as number[]);
+    : computeXDomain(xData.v as number[], overlaySeries);
 
   const xTickFormat = xIsTime
     ? undefined
@@ -171,10 +244,10 @@ function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
   return (
     <Panel>
       <WidgetHeader>
-        <PanelTitle>GRAPH</PanelTitle>
+        <PanelTitle>{title}</PanelTitle>
       </WidgetHeader>
-      {series.length === 0 ? (
-        <EmptyState>Configure series to begin graphing.</EmptyState>
+      {series.length === 0 && overlaySeries.length === 0 ? (
+        <EmptyState>{emptyState}</EmptyState>
       ) : (
         <ChartArea ref={containerRef}>
           {size && (
@@ -212,6 +285,12 @@ function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
       )}
     </Panel>
   );
+}
+
+// ── Registered widget ────────────────────────────────────────────────────────
+
+function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
+  return <GraphView config={config} />;
 }
 
 // ── Config component ──────────────────────────────────────────────────────────
@@ -469,4 +548,6 @@ registerComponent<GraphConfig>({
   pushable: true,
 });
 
+export type { GraphConfig, GraphSeriesConfig } from "./types";
+export { TIME_AXIS } from "./types";
 export { GraphComponent };

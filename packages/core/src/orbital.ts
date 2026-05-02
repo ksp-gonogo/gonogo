@@ -9,6 +9,46 @@
  * Telemachus output). Radians are only used internally.
  */
 
+import type { BodyDefinition } from "./bodies";
+
+// ---------------------------------------------------------------------------
+// Gravity / circular-orbit reference curves
+// ---------------------------------------------------------------------------
+
+/**
+ * Speed required for a circular orbit at the given altitude above sea level.
+ * `sqrt(GM / (R + h))`. Returns `undefined` when the body has no `gm`
+ * registered (e.g. a mod-added body) so callers can degrade rather than
+ * silently produce NaN.
+ *
+ * @param body     Body definition (carries `radius` and optional `gm`).
+ * @param altitude Altitude above sea level in metres. Must be > -radius.
+ * @returns        Circular-orbit speed in m/s, or `undefined`.
+ */
+export function circularOrbitVelocity(
+  body: BodyDefinition,
+  altitude: number,
+): number | undefined {
+  if (body.gm === undefined) return undefined;
+  const r = body.radius + altitude;
+  if (!(r > 0)) return undefined;
+  return Math.sqrt(body.gm / r);
+}
+
+/**
+ * Gravitational acceleration at the given altitude above sea level.
+ * `GM / (R + h)²`. Returns `undefined` when the body has no `gm`.
+ */
+export function surfaceGravity(
+  body: BodyDefinition,
+  altitude: number,
+): number | undefined {
+  if (body.gm === undefined) return undefined;
+  const r = body.radius + altitude;
+  if (!(r > 0)) return undefined;
+  return body.gm / (r * r);
+}
+
 // ---------------------------------------------------------------------------
 // Keplerian orbit geometry
 // ---------------------------------------------------------------------------

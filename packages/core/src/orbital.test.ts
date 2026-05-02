@@ -1,12 +1,32 @@
 import { describe, expect, it } from "vitest";
+import type { BodyDefinition } from "./bodies";
 import {
+  circularOrbitVelocity,
   formatDistance,
   formatDuration,
   generateOrbitPoints,
   latLonToMap,
   orbitalToCartesian,
+  surfaceGravity,
   trueAnomalyToRadius,
 } from "./orbital";
+
+const KERBIN: BodyDefinition = {
+  id: "Kerbin",
+  name: "Kerbin",
+  radius: 600_000,
+  gm: 3.5316e12,
+  hasAtmosphere: true,
+  maxAtmosphere: 70_000,
+};
+
+const MOD_BODY: BodyDefinition = {
+  id: "Modtopia",
+  name: "Modtopia",
+  radius: 500_000,
+  hasAtmosphere: false,
+  maxAtmosphere: 0,
+};
 
 // ── trueAnomalyToRadius ────────────────────────────────────────────────────
 
@@ -173,5 +193,54 @@ describe("formatDistance", () => {
 
   it("returns — for Infinity", () => {
     expect(formatDistance(Infinity)).toBe("—");
+  });
+});
+
+// ── circularOrbitVelocity ──────────────────────────────────────────────────
+
+describe("circularOrbitVelocity", () => {
+  it("returns ~2,287 m/s for a 75 km Kerbin orbit", () => {
+    // Wiki value: ~2,287 m/s for low Kerbin orbit at 75 km.
+    const v = circularOrbitVelocity(KERBIN, 75_000);
+    expect(v).toBeCloseTo(2287, 0);
+  });
+
+  it("returns surface circular speed at altitude 0", () => {
+    const gm = KERBIN.gm ?? 0;
+    const v = circularOrbitVelocity(KERBIN, 0);
+    expect(v).toBeCloseTo(Math.sqrt(gm / KERBIN.radius), 3);
+  });
+
+  it("decreases as altitude increases", () => {
+    const low = circularOrbitVelocity(KERBIN, 100_000) ?? 0;
+    const high = circularOrbitVelocity(KERBIN, 1_000_000) ?? 0;
+    expect(high).toBeLessThan(low);
+  });
+
+  it("returns undefined when body has no gm", () => {
+    expect(circularOrbitVelocity(MOD_BODY, 100_000)).toBeUndefined();
+  });
+
+  it("returns undefined for altitudes inside the body", () => {
+    expect(circularOrbitVelocity(KERBIN, -700_000)).toBeUndefined();
+  });
+});
+
+// ── surfaceGravity ─────────────────────────────────────────────────────────
+
+describe("surfaceGravity", () => {
+  it("returns ~9.81 m/s² at Kerbin sea level", () => {
+    const g = surfaceGravity(KERBIN, 0);
+    expect(g).toBeCloseTo(9.81, 1);
+  });
+
+  it("decreases with altitude", () => {
+    const g0 = surfaceGravity(KERBIN, 0) ?? 0;
+    const g100 = surfaceGravity(KERBIN, 100_000) ?? 0;
+    expect(g100).toBeLessThan(g0);
+  });
+
+  it("returns undefined when body has no gm", () => {
+    expect(surfaceGravity(MOD_BODY, 0)).toBeUndefined();
   });
 });

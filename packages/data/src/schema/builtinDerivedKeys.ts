@@ -39,6 +39,26 @@ export function registerBuiltinDerivedKeys(): void {
     },
   });
 
+  // Horizontal velocity in the inertial frame, derived from the orbital
+  // speed magnitude and the radial (vertical) component:
+  //   v_horizontal = sqrt(v_orbital² - v_vertical²)
+  // The OrbitalAscent widget uses this against altitude to plot how far the
+  // vessel is from circular-orbit speed at its current radius.
+  registerDerivedKey({
+    id: "v.horizontalVelocity",
+    inputs: ["v.orbitalVelocity", "v.verticalSpeed"],
+    meta: { label: "Horizontal velocity", unit: "m/s", group: "Velocity" },
+    fn: ([orbital, vertical]) => {
+      const vo = orbital.v as number;
+      const vv = vertical.v as number;
+      if (!Number.isFinite(vo) || !Number.isFinite(vv)) return undefined;
+      const sq = vo * vo - vv * vv;
+      // Floating-point noise can push this just below zero on a perfectly
+      // vertical climb. Clamp rather than producing NaN.
+      return Math.sqrt(Math.max(sq, 0));
+    },
+  });
+
   // ── Delta-V & mass, projected out of the complex dv.stages array ──────
   // `dv.stages` is a StageInfo[] — great for the FuelStatus widget but
   // unusable as a Graph series. These derived keys expose the scalar
