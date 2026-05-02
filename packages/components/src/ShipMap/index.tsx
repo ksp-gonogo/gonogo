@@ -4,74 +4,57 @@ import {
   logger,
   registerComponent,
   useDataValue,
+  useExecuteAction,
 } from "@gonogo/core";
-import { hashKosScript } from "@gonogo/data";
+import { useKosScriptStatus } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
   GhostButton,
-  Input,
   PrimaryButton,
   ScrollArea,
   Switch,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
-import { useKosScriptPayload } from "../kos/useKosScriptPayload";
 import { ShipDiagram } from "./ShipDiagram";
 import {
   SHIP_MAP_SCRIPT,
-  SHIP_MAP_SCRIPT_NAME,
+  SHIP_MAP_TOPIC_ID,
   type ShipMapPart,
 } from "./shipMapScript";
 
-const SHIP_MAP_SCRIPT_VERSION = hashKosScript(SHIP_MAP_SCRIPT);
+const PARTS_KEY = `kos.compute.${SHIP_MAP_TOPIC_ID}.parts`;
+const DISPATCH_NOW_ACTION = `kos.compute.${SHIP_MAP_TOPIC_ID}.dispatchNow`;
+const RE_ENABLE_ACTION = `kos.compute.${SHIP_MAP_TOPIC_ID}.reEnable`;
 
 interface ShipMapConfig {
-  /** kOS CPU tagname. Required — widget stays in an empty state until set. */
-  cpu?: string;
-  /**
-   * Path of the saved kerboscript on the kOS Archive volume. The `.ks`
-   * extension and subpaths (`widget_scripts/shipmap`) are both fine —
-   * the widget dispatches via kOS's RUNPATH under the hood. Defaults to
-   * `shipmap`.
-   */
-  scriptName?: string;
   /** If true, re-run the script automatically when v.currentStage changes. */
   refreshOnStage?: boolean;
 }
 
 function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
-  const cpu = config?.cpu ?? "";
-  const scriptName = config?.scriptName ?? SHIP_MAP_SCRIPT_NAME;
   const refreshOnStage = config?.refreshOnStage !== false;
 
-  const {
-    payload,
-    raw,
-    error: scriptError,
-    parseError,
-    running,
-    lastGoodAt,
-    dispatch,
-    disabled,
-    disabledReason,
-    reEnable,
-  } = useKosScriptPayload<ShipMapPart[]>({
-    cpu,
-    script: scriptName,
-    args: [],
-    field: "parts",
-    mode: "command",
-    managed: { body: SHIP_MAP_SCRIPT, version: SHIP_MAP_SCRIPT_VERSION },
-  });
+  // Centralised compute fanout: one loop per registered script, regardless
+  // of how many ShipMaps are mounted. The active CPU lives on the kOS data
+  // source's config now (no per-widget CPU picker).
+  const payload = useDataValue<ShipMapPart[]>("kos", PARTS_KEY);
+  const status = useKosScriptStatus(SHIP_MAP_TOPIC_ID);
+  const executeKos = useExecuteAction("kos");
 
-  // Auto-refresh on staging. Reads v.currentStage; when it changes and the
-  // widget is configured, re-run the script. Debounced via stage-value diff.
+  const dispatch = useCallback(() => {
+    void executeKos(DISPATCH_NOW_ACTION);
+  }, [executeKos]);
+  const reEnable = useCallback(() => {
+    void executeKos(RE_ENABLE_ACTION);
+  }, [executeKos]);
+
+  // Auto-refresh on staging. Reads v.currentStage; when it changes, ask the
+  // central loop for a fresh sample without waiting for the next interval.
   const currentStage = useDataValue("data", "v.currentStage");
   const lastStageRef = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -81,13 +64,12 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     lastStageRef.current = currentStage;
     if (prev === undefined) return;
     if (prev === currentStage) return;
-    if (!cpu) return;
     logger.info("ship-map: restaging, re-running script", {
       previousStage: prev,
       currentStage,
     });
     dispatch();
-  }, [currentStage, refreshOnStage, cpu, dispatch]);
+  }, [currentStage, refreshOnStage, dispatch]);
 
   // Diagnostic logging — makes the first-time iteration cheap.
   useEffect(() => {
@@ -95,9 +77,8 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     logger.info("ship-map: payload received", {
       parts: payload.length,
       payload,
-      rawKeys: raw ? Object.keys(raw) : [],
     });
-  }, [payload, raw]);
+  }, [payload]);
 
   // Highlight the hottest part (if Telemachus is shipping thermal data).
   // Falls back to null when therm.* isn't emitting yet.
@@ -132,19 +113,17 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
   const [stickyTag, setStickyTag] = useState<string | null>(null);
   const [hoverTag, setHoverTag] = useState<string | null>(null);
 
-  const notConfigured = !cpu;
-
   return (
     <KosScriptFrame
-      title={config?.cpu ? `Ship Map · ${config.cpu}` : "Ship Map"}
-      running={running}
-      scriptError={scriptError}
-      parseError={parseError}
-      lastGoodAt={lastGoodAt}
+      title="Ship Map"
+      running={status.running}
+      scriptError={status.scriptError}
+      parseError={status.parseError}
+      lastGoodAt={status.lastGoodAt}
       onRun={dispatch}
-      runDisabled={running || notConfigured}
-      paused={disabled}
-      pausedReason={disabledReason}
+      runDisabled={status.running}
+      paused={status.paused}
+      pausedReason={status.scriptError?.message ?? null}
       onReEnable={reEnable}
     >
       {renderBody()}
@@ -152,17 +131,10 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
   );
 
   function renderBody() {
-    if (notConfigured) {
-      return (
-        <Placeholder>
-          Pick a kOS CPU in the widget&apos;s config to start.
-        </Placeholder>
-      );
-    }
     if (!payload) {
       return (
         <Placeholder>
-          {running ? "Running shipmap…" : "No ship data yet. Press Run."}
+          {status.running ? "Running shipmap…" : "No ship data yet. Press Run."}
         </Placeholder>
       );
     }
@@ -181,9 +153,9 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
       <>
         <Meta>
           {payload.length} part{payload.length === 1 ? "" : "s"}
-          {lastGoodAt && (
+          {status.lastGoodAt && (
             <MetaTag>
-              · updated {formatAge(Date.now() - lastGoodAt)} ago
+              · updated {formatAge(Date.now() - status.lastGoodAt)} ago
             </MetaTag>
           )}
           {hottestPartName !== undefined && (
@@ -231,10 +203,6 @@ function ShipMapConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<ShipMapConfig>>) {
-  const [cpu, setCpu] = useState(config?.cpu ?? "");
-  const [scriptName, setScriptName] = useState(
-    config?.scriptName ?? SHIP_MAP_SCRIPT_NAME,
-  );
   const [refreshOnStage, setRefreshOnStage] = useState(
     config?.refreshOnStage !== false,
   );
@@ -250,28 +218,11 @@ function ShipMapConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="ship-map-cpu">kOS CPU</FieldLabel>
-        <KosCpuPicker id="ship-map-cpu" value={cpu} onChange={setCpu} />
+        <FieldLabel>Active kOS CPU</FieldLabel>
         <FieldHint>
-          Pick from previously-named CPUs or add a new one. The tagname is set
-          via the kOS part&apos;s right-click menu in KSP.
-        </FieldHint>
-      </Field>
-
-      <Field>
-        <FieldLabel htmlFor="ship-map-script-name">Script name</FieldLabel>
-        <Input
-          id="ship-map-script-name"
-          type="text"
-          value={scriptName}
-          onChange={(e) => setScriptName(e.target.value)}
-        />
-        <FieldHint>
-          Path to the saved script on your kOS volume. The widget runs{" "}
-          <code>RUNPATH("{scriptName}").</code> Prefer the Archive (
-          <code>0:/…</code>) — the CPU&apos;s local volume gets wiped on reverts
-          and isn&apos;t always populated. Subpaths and the <code>.ks</code>{" "}
-          extension are optional. Defaults to <code>shipmap</code>.
+          The active CPU is set on the kOS data source (open the data source
+          config). It applies to every centralised kOS widget so two Ship Maps
+          share a single dispatch per cycle.
         </FieldHint>
       </Field>
 
@@ -292,10 +243,7 @@ function ShipMapConfigComponent({
           </GhostButton>
         </ScriptHeader>
         <FieldHint>
-          The widget syncs this script to{" "}
-          <code>
-            {scriptName.endsWith(".ks") ? scriptName : `${scriptName}.ks`}
-          </code>{" "}
+          The kOS data source syncs this script to its conventional path
           automatically — no copy-paste needed. Shown here for reference and for
           hand-editing the on-volume copy if you want to experiment.
         </FieldHint>
@@ -304,9 +252,7 @@ function ShipMapConfigComponent({
         </ScriptBox>
       </Field>
 
-      <PrimaryButton
-        onClick={() => onSave({ cpu, scriptName, refreshOnStage })}
-      >
+      <PrimaryButton onClick={() => onSave({ refreshOnStage })}>
         Save
       </PrimaryButton>
     </ConfigForm>
@@ -428,10 +374,8 @@ registerComponent<ShipMapConfig>({
   component: ShipMapComponent,
   configComponent: ShipMapConfigComponent,
   openConfigOnAdd: true,
-  dataRequirements: ["v.currentStage", "therm.hottestPartName"],
+  dataRequirements: [PARTS_KEY, "v.currentStage", "therm.hottestPartName"],
   defaultConfig: {
-    cpu: "",
-    scriptName: SHIP_MAP_SCRIPT_NAME,
     refreshOnStage: true,
   },
   actions: [],

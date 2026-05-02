@@ -1,7 +1,9 @@
+import { registerKosScript } from "@gonogo/core";
+
 /**
  * Kerboscript for the Ship Map widget. Enumerates SHIP:PARTS, projects each
  * part's position into ship-local (star/top/fore) coordinates, and emits a
- * JSON array inside a [KOSDATA] block.
+ * JSON array inside a [KOSDATA:shipmap] block.
  *
  * v2 — adds category (derived from p:MODULES + resource scan), thermal
  * data (temp / maxTemp), stage, per-resource amount/capacity, and the
@@ -9,8 +11,13 @@
  * v1 payloads still parse — every new field is optional in
  * `ShipMapPart`.
  *
+ * v3 — block carries the `:shipmap` topic id so the centralised kOS
+ * compute fanout (KosDataSource.kos.compute.shipmap.parts) can route
+ * the payload alongside other registered scripts. The single-block
+ * parser still reads bare `[KOSDATA]` for backwards compat.
+ *
  * Output contract:
- *   [KOSDATA]parts=<json-array>[/KOSDATA]
+ *   [KOSDATA:shipmap]parts=<json-array>[/KOSDATA]
  * Where each array element is:
  *   { uid, name, title, category, mass, x, y, z,
  *     temp, maxTemp, stage, resources, tag, parent }
@@ -134,7 +141,7 @@ FOR p IN SHIP:PARTS {
 SET json TO json + "]".
 
 PRINT "shipmap: emitted " + SHIP:PARTS:LENGTH + " parts, " + json:LENGTH + " chars".
-PRINT "[KOSDATA]parts=" + json + "[/KOSDATA]".
+PRINT "[KOSDATA:shipmap]parts=" + json + "[/KOSDATA]".
 `;
 
 /**
@@ -167,3 +174,30 @@ export interface ShipMapPart {
 
 /** Default script path on the kOS Archive volume. */
 export const SHIP_MAP_SCRIPT_NAME = "0:/widget_scripts/shipmap.ks";
+
+/**
+ * Topic id used by the centralised kOS compute fanout. Subscribers read
+ * `kos.compute.${SHIP_MAP_TOPIC_ID}.parts` via `useDataValue` — this constant
+ * is exported so widget code stays in lockstep with the registration below.
+ */
+export const SHIP_MAP_TOPIC_ID = "shipmap";
+
+/**
+ * Self-register the script with the central compute layer at module load,
+ * matching how widgets self-register into the component registry. The
+ * KosDataSource picks it up automatically via `getKosScripts()` and runs
+ * it on the configured active CPU once any widget subscribes.
+ *
+ * The 30s passive cadence matches the original "Run on demand" UX —
+ * frequent enough to feel live, infrequent enough not to hold the REPL
+ * captive when nothing's changing. Widgets call the
+ * `kos.compute.shipmap.dispatchNow` action on Run + staging to force a
+ * fresh sample before the next tick.
+ */
+registerKosScript({
+  id: SHIP_MAP_TOPIC_ID,
+  name: "Ship Map",
+  script: SHIP_MAP_SCRIPT,
+  intervalMs: 30_000,
+  fields: [{ name: "parts", type: "json" }],
+});
