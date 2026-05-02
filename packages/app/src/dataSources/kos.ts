@@ -14,6 +14,7 @@ import {
 } from "@gonogo/data";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
+import { KosComputeManager, type KosTopicStatus } from "./kosCompute";
 import { buildKosWrapper } from "./kosWrapper";
 
 export type { KosManagedScript, KosScriptArg };
@@ -27,6 +28,13 @@ export interface KosConfig extends Record<string, unknown> {
   kosHost: string;
   /** kOS telnet port. */
   kosPort: number;
+  /**
+   * CPU tagname that the centralised compute fanout dispatches to. Empty
+   * string = none selected, loops surface a "no CPU" error and idle. The
+   * legacy ad-hoc executeScript path takes its CPU as a parameter and is
+   * unaffected.
+   */
+  activeCpu: string;
 }
 
 const DEFAULT_CONFIG: KosConfig = {
@@ -34,6 +42,7 @@ const DEFAULT_CONFIG: KosConfig = {
   port: 3001,
   kosHost: "localhost",
   kosPort: 5410,
+  activeCpu: "",
 };
 /**
  * Pre-merge, executeScript() lived on a separate `kos-compute` source with
@@ -138,6 +147,11 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   // Per-CPU executeScript sessions, keyed by tagname.
   private readonly sessions = new Map<string, KosComputeSession>();
 
+  // Centralised compute fanout — owns kos.compute.* schema/subscribe/execute.
+  // Constructed eagerly (no I/O on its own) so subscribe() can route topics
+  // before the source is connect()ed.
+  private readonly compute: KosComputeManager;
+
   // Long-lived menu-peek session — populates discovery without needing a
   // widget. Re-created in configure() against the new endpoint.
   private peekSession: KosMenuPeekSession | null = null;
@@ -156,6 +170,11 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     this.callTimeoutMs = opts.callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
     this.postAttachDrainDelayMs =
       opts.postAttachDrainDelayMs ?? DEFAULT_POST_ATTACH_DRAIN_DELAY_MS;
+    this.compute = new KosComputeManager({
+      executeScript: (cpu, script, args, managed) =>
+        this.executeScript(cpu, script, args, managed),
+      getActiveCpu: () => this.cfg.activeCpu,
+    });
   }
 
   // --- Connection (no-op; sessions open lazily) ---
@@ -249,6 +268,7 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   disconnect(): void {
+    this.compute.dispose();
     for (const s of this.sessions.values()) s.close();
     this.sessions.clear();
     this.stopPeekSession();
@@ -258,11 +278,20 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   // --- Data ---
 
   schema(): DataKey[] {
-    return [];
+    return this.compute.schema();
   }
 
-  subscribe(): () => void {
-    return () => {};
+  subscribe(key: string, cb: (value: unknown) => void): () => void {
+    return this.compute.subscribe(key, cb);
+  }
+
+  /** Snapshot of a centralised compute topic's status. Used by `useKosScriptStatus`. */
+  getTopicStatus(topicId: string): KosTopicStatus | null {
+    return this.compute.getTopicStatus(topicId);
+  }
+
+  onTopicStatusChange(topicId: string, cb: () => void): () => void {
+    return this.compute.onTopicStatusChange(topicId, cb);
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
@@ -282,11 +311,13 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     return () => this.configListeners.delete(cb);
   }
 
-  async execute(): Promise<void> {
-    // Widgets use executeScript(cpu, script, args) directly via the hook.
-    // The generic execute(action) channel doesn't carry enough structure.
+  async execute(action: string): Promise<void> {
+    // Centralised compute actions: kos.compute.<topicId>.{dispatchNow,reEnable}.
+    if (await this.compute.execute(action)) return;
+    // Anything else still goes through executeScript() directly — the generic
+    // action channel doesn't carry enough structure for ad-hoc scripts.
     throw new Error(
-      "KosDataSource.execute is not supported; use executeScript instead",
+      `KosDataSource.execute: unknown action "${action}". Use executeScript() for ad-hoc scripts or kos.compute.<id>.{dispatchNow,reEnable} for managed feeds.`,
     );
   }
 
@@ -342,6 +373,12 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
         type: "number",
         placeholder: "5410",
       },
+      {
+        key: "activeCpu",
+        label: "Active CPU",
+        type: "text",
+        placeholder: "datastream",
+      },
     ];
   }
 
@@ -351,10 +388,12 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
       port: this.cfg.port,
       kosHost: this.cfg.kosHost,
       kosPort: this.cfg.kosPort,
+      activeCpu: this.cfg.activeCpu,
     };
   }
 
   configure(config: Record<string, unknown>): void {
+    const prevActiveCpu = this.cfg.activeCpu;
     this.cfg = {
       host: typeof config.host === "string" ? config.host : this.cfg.host,
       port:
@@ -367,6 +406,10 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
         typeof config.kosPort === "number"
           ? config.kosPort
           : Number(config.kosPort) || this.cfg.kosPort,
+      activeCpu:
+        typeof config.activeCpu === "string"
+          ? config.activeCpu
+          : this.cfg.activeCpu,
     };
     configStore.set(this.cfg);
     // Tear down any open per-CPU sessions — they'd still be pointed at the
@@ -375,6 +418,9 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     // terminals reconnect too.
     for (const s of this.sessions.values()) s.close();
     this.sessions.clear();
+    if (this.cfg.activeCpu !== prevActiveCpu) {
+      this.compute.onActiveCpuChanged();
+    }
     // Restart the menu-peek against the new endpoint. Skipped on the
     // disconnected branch (peekSession is null then).
     if (this.peekSession) {

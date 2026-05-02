@@ -22,6 +22,7 @@ export { FogMaskStore } from "./fog/FogMaskStore";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";
+export * from "./hooks/useKosScriptStatus";
 export * from "./hooks/useKosWidget";
 export * from "./hooks/useManeuverFeasibility";
 export * from "./hooks/useManeuverNodes";

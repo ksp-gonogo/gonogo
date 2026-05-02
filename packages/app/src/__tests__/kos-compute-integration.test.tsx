@@ -19,6 +19,7 @@ function makeSource(opts: { callTimeoutMs?: number } = {}) {
       port: 3001,
       kosHost: "localhost",
       kosPort: 5410,
+      activeCpu: "datastream",
     },
     {
       callTimeoutMs: opts.callTimeoutMs ?? 2_000,
