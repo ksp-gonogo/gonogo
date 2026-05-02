@@ -1,8 +1,12 @@
 import React, { useMemo } from "react";
 import {
+  buildBandPath,
   buildPath,
+  buildStepPath,
   formatTimeLabel,
+  makeLogScale,
   makeScale,
+  niceLogTicks,
   niceTicks,
 } from "./lineChartMath";
 
@@ -10,18 +14,27 @@ import {
  * Columnar pairs of numeric values to plot. `x` and `y` are parallel arrays
  * of equal length. For time-on-x charts, `x` is unix ms; for parametric
  * charts (e.g. altitude vs velocity), `x` carries that dimension's values.
+ *
+ * `y2` is only consulted for `type: "band"` series — it carries the upper
+ * bound paired against `y` (the lower bound). Other series types ignore it.
  */
 export interface ChartSeriesData {
   x: number[];
   y: number[];
+  y2?: number[];
 }
 
 /**
- * Render type for a single series. Only `"line"` is implemented today; the
- * field is required on input so adding bar / step / scatter later needs no
- * schema migration, just a new branch in the renderer.
+ * Render type for a single series.
+ * - `line`    — straight segments through every sample (default).
+ * - `step`    — step-after; flat hold then jump. Right shape for discrete-state
+ *               telemetry (stage number, throttle setting) where linear
+ *               interpolation between transitions is misleading.
+ * - `scatter` — discrete points, no joining. For sparse / noisy data.
+ * - `band`    — filled envelope between `y` (lower) and `y2` (upper). Requires
+ *               `data.y2` to be present and the same length as `data.y`.
  */
-export type SeriesType = "line";
+export type SeriesType = "line" | "step" | "scatter" | "band";
 
 export interface ChartSeries {
   id: string;
@@ -32,8 +45,26 @@ export interface ChartSeries {
   type?: SeriesType;
   /** Render as a dashed line. Used to set reference / target curves apart from live traces. */
   dashed?: boolean;
+  /** Fill opacity (0..1) for `band` series. Defaults 0.2. */
+  fillOpacity?: number;
   data: ChartSeriesData;
 }
+
+/**
+ * Horizontal reference line at a constant Y. Renders across the plot width
+ * with an optional right-anchored label. Useful for "atmosphere ceiling",
+ * "max-Q", "throttle limit", etc.
+ */
+export interface ThresholdRule {
+  id: string;
+  value: number;
+  axis: "primary" | "secondary";
+  label?: string;
+  color?: string;
+  dashed?: boolean;
+}
+
+export type AxisScale = "linear" | "log";
 
 /** Default tick formatter for an x-axis representing wall-clock time (unix ms). */
 export const timeXTickFormat = (
@@ -51,12 +82,27 @@ export interface LineChartProps {
   xTickFormat?: (value: number, domain: readonly [number, number]) => string;
   /** Tick label formatter for both y-axes. Defaults to k/M-suffixed numeric. */
   yTickFormat?: (value: number) => string;
+  /** Linear (default) or log10 scale on each Y axis. */
+  yScalePrimary?: AxisScale;
+  yScaleSecondary?: AxisScale;
+  /** Horizontal reference lines drawn across the plot. */
+  thresholds?: ReadonlyArray<ThresholdRule>;
   width: number;
   height: number;
 }
 
 const MARGIN = { top: 10, right: 50, bottom: 28, left: 50 };
 const TICK_COUNT = 5;
+const SCATTER_RADIUS = 2;
+const DEFAULT_BAND_OPACITY = 0.2;
+
+/** Pull every plottable Y value out of a series, including band upper bounds. */
+function seriesYValues(s: ChartSeries): number[] {
+  if ((s.type ?? "line") === "band" && s.data.y2) {
+    return [...s.data.y, ...s.data.y2];
+  }
+  return s.data.y;
+}
 
 export function LineChart({
   series,
@@ -65,6 +111,9 @@ export function LineChart({
   yDomainSecondary,
   xTickFormat = timeXTickFormat,
   yTickFormat = formatYTick,
+  yScalePrimary = "linear",
+  yScaleSecondary = "linear",
+  thresholds,
   width,
   height,
 }: Readonly<LineChartProps>) {
@@ -85,59 +134,98 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
-  const primaryDomain = useMemo((): [number, number] => {
-    if (yDomainPrimary) return yDomainPrimary;
-    if (primarySeries.length === 0) return [0, 1];
-    const all = primarySeries.flatMap((s) => s.data.y);
-    return [Math.min(...all), Math.max(...all)];
-  }, [primarySeries, yDomainPrimary]);
+  const primaryDomain = useMemo(
+    (): [number, number] =>
+      computeYDomain(primarySeries, yDomainPrimary, yScalePrimary),
+    [primarySeries, yDomainPrimary, yScalePrimary],
+  );
 
-  const secondaryDomain = useMemo((): [number, number] => {
-    if (yDomainSecondary) return yDomainSecondary;
-    if (secondarySeries.length === 0) return [0, 1];
-    const all = secondarySeries.flatMap((s) => s.data.y);
-    return [Math.min(...all), Math.max(...all)];
-  }, [secondarySeries, yDomainSecondary]);
+  const secondaryDomain = useMemo(
+    (): [number, number] =>
+      computeYDomain(secondarySeries, yDomainSecondary, yScaleSecondary),
+    [secondarySeries, yDomainSecondary, yScaleSecondary],
+  );
 
   const scaleX = makeScale(xDomain[0], xDomain[1], plotX0, plotX1);
-  const scaleYPrimary = makeScale(
-    primaryDomain[0],
-    primaryDomain[1],
-    plotY1,
-    plotY0,
-  );
-  const scaleYSecondary = makeScale(
-    secondaryDomain[0],
-    secondaryDomain[1],
-    plotY1,
-    plotY0,
-  );
+  const scaleYPrimary =
+    yScalePrimary === "log"
+      ? makeLogScale(primaryDomain[0], primaryDomain[1], plotY1, plotY0)
+      : makeScale(primaryDomain[0], primaryDomain[1], plotY1, plotY0);
+  const scaleYSecondary =
+    yScaleSecondary === "log"
+      ? makeLogScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0)
+      : makeScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0);
 
   const xTicks = niceTicks(xDomain[0], xDomain[1], TICK_COUNT);
-  const yTicksPrimary = niceTicks(
-    primaryDomain[0],
-    primaryDomain[1],
-    TICK_COUNT,
-  );
-  const yTicksSecondary = hasSecondary
-    ? niceTicks(secondaryDomain[0], secondaryDomain[1], TICK_COUNT)
-    : [];
+  const yTicksPrimary =
+    yScalePrimary === "log"
+      ? niceLogTicks(primaryDomain[0], primaryDomain[1], TICK_COUNT)
+      : niceTicks(primaryDomain[0], primaryDomain[1], TICK_COUNT);
+  const yTicksSecondary = !hasSecondary
+    ? []
+    : yScaleSecondary === "log"
+      ? niceLogTicks(secondaryDomain[0], secondaryDomain[1], TICK_COUNT)
+      : niceTicks(secondaryDomain[0], secondaryDomain[1], TICK_COUNT);
 
-  // Dispatch per series.type. Today only "line" is implemented; future types
-  // (bar, step, scatter) add their own parallel collectors + render blocks.
-  const paths = useMemo(() => {
+  // Per-series renderable. Dispatch on type — line/step/scatter share the
+  // stroked-path render block; band gets a filled closed path.
+  const drawables = useMemo(() => {
     return series
-      .filter((s) => s.data.x.length > 0 && (s.type ?? "line") === "line")
+      .filter((s) => s.data.x.length > 0)
       .map((s) => {
         const scaleY = s.axis === "primary" ? scaleYPrimary : scaleYSecondary;
+        const type = s.type ?? "line";
+        if (type === "band") {
+          if (!s.data.y2) {
+            return {
+              id: s.id,
+              kind: "noop" as const,
+            };
+          }
+          return {
+            id: s.id,
+            kind: "band" as const,
+            color: s.color,
+            opacity: s.fillOpacity ?? DEFAULT_BAND_OPACITY,
+            d: buildBandPath(s.data.x, s.data.y, s.data.y2, scaleX, scaleY),
+          };
+        }
+        if (type === "scatter") {
+          const points = s.data.x.map((xv, i) => ({
+            cx: scaleX(xv),
+            cy: scaleY(s.data.y[i]),
+          }));
+          return {
+            id: s.id,
+            kind: "scatter" as const,
+            color: s.color,
+            points,
+          };
+        }
+        const builder = type === "step" ? buildStepPath : buildPath;
         return {
           id: s.id,
+          kind: "stroked" as const,
           color: s.color,
           dashed: s.dashed ?? false,
-          d: buildPath(s.data.x, s.data.y, scaleX, scaleY),
+          d: builder(s.data.x, s.data.y, scaleX, scaleY),
         };
       });
   }, [series, scaleX, scaleYPrimary, scaleYSecondary]);
+
+  const thresholdLines = useMemo(() => {
+    if (!thresholds) return [];
+    return thresholds.map((t) => ({
+      id: t.id,
+      label: t.label,
+      color: t.color ?? "var(--color-text-faint)",
+      dashed: t.dashed ?? true,
+      y:
+        t.axis === "primary"
+          ? scaleYPrimary(t.value)
+          : scaleYSecondary(t.value),
+    }));
+  }, [thresholds, scaleYPrimary, scaleYSecondary]);
 
   // Container is narrower/shorter than the margins — nothing meaningful to
   // draw, and negative <rect> dimensions spam the console. Render an empty
@@ -277,18 +365,83 @@ export function LineChart({
         />
       )}
 
-      {/* Series paths */}
-      {paths.map(({ id, color, d, dashed }) => (
-        <path
-          key={id}
-          d={d}
-          stroke={color}
-          strokeWidth={1.5}
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          strokeDasharray={dashed ? "4 3" : undefined}
-        />
+      {/* Bands first (filled, behind everything else). */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "band" }> => d.kind === "band",
+        )
+        .map((d) => (
+          <path
+            key={d.id}
+            d={d.d}
+            fill={d.color}
+            fillOpacity={d.opacity}
+            stroke="none"
+          />
+        ))}
+
+      {/* Stroked series (line + step). */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .map((d) => (
+          <path
+            key={d.id}
+            d={d.d}
+            stroke={d.color}
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            strokeDasharray={d.dashed ? "4 3" : undefined}
+          />
+        ))}
+
+      {/* Scatter dots. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "scatter" }> =>
+            d.kind === "scatter",
+        )
+        .flatMap((d) =>
+          d.points.map((p, i) => (
+            <circle
+              // biome-ignore lint/suspicious/noArrayIndexKey: scatter points have no other identity
+              key={`${d.id}-${i}`}
+              cx={p.cx}
+              cy={p.cy}
+              r={SCATTER_RADIUS}
+              fill={d.color}
+            />
+          )),
+        )}
+
+      {/* Threshold rules (horizontal reference lines). */}
+      {thresholdLines.map((t) => (
+        <React.Fragment key={t.id}>
+          <line
+            x1={plotX0}
+            y1={t.y}
+            x2={plotX1}
+            y2={t.y}
+            stroke={t.color}
+            strokeWidth={1}
+            strokeDasharray={t.dashed ? "4 3" : undefined}
+          />
+          {t.label && (
+            <text
+              x={plotX1 - 4}
+              y={t.y - 3}
+              textAnchor="end"
+              fill={t.color}
+              fontSize={10}
+            >
+              {t.label}
+            </text>
+          )}
+        </React.Fragment>
       ))}
 
       {/* Series labels (top-left legend) */}
@@ -305,6 +458,25 @@ export function LineChart({
       ))}
     </svg>
   );
+}
+
+/**
+ * Compute the auto-scale Y domain for an axis. Honours an explicit pin when
+ * provided; otherwise scans every series (including band upper bounds). On a
+ * log axis, non-positive values are filtered out before computing the range
+ * so a stray zero doesn't peg the floor at -∞.
+ */
+function computeYDomain(
+  axisSeries: ChartSeries[],
+  pinned: [number, number] | undefined,
+  scale: AxisScale,
+): [number, number] {
+  if (pinned) return pinned;
+  if (axisSeries.length === 0) return scale === "log" ? [1, 10] : [0, 1];
+  let all: number[] = axisSeries.flatMap(seriesYValues);
+  if (scale === "log") all = all.filter((v) => v > 0);
+  if (all.length === 0) return scale === "log" ? [1, 10] : [0, 1];
+  return [Math.min(...all), Math.max(...all)];
 }
 
 function formatYTick(n: number): string {

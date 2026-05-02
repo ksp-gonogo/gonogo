@@ -2,7 +2,11 @@ import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { registerComponent } from "@gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@gonogo/data";
 import { useDataSchema } from "@gonogo/data";
-import type { ChartSeries } from "@gonogo/ui";
+import type {
+  ChartSeries,
+  ChartSeriesData,
+  ThresholdRule,
+} from "@gonogo/ui";
 import {
   ConfigForm,
   DataKeyPicker,
@@ -21,7 +25,11 @@ import styled from "styled-components";
 import { alignXY } from "./align";
 import { GraphSeries } from "./GraphSeries";
 import { paletteColor } from "./palette";
-import type { GraphConfig, GraphSeriesConfig } from "./types";
+import type {
+  GraphConfig,
+  GraphSeriesConfig,
+  GraphThresholdConfig,
+} from "./types";
 import { TIME_AXIS } from "./types";
 
 function withDefaults(raw: GraphSeriesConfig): GraphSeriesConfig {
@@ -199,9 +207,26 @@ export function GraphView({
   const liveSeries: ChartSeries[] = series.map((cfg, i) => {
     const meta = metaMap.get(cfg.key);
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
-    const data = xIsTime
+    const baseData = xIsTime
       ? { x: raw.t, y: raw.v as number[] }
       : alignXY(raw as SeriesRange<number>, xData);
+
+    // Band series pair `key` (lower bound) with `keyHigh` (upper bound).
+    // The upper-bound samples are fetched in parallel via a second
+    // GraphSeries below, then paired here against the same X values.
+    let data: ChartSeriesData = baseData;
+    if (cfg.type === "band" && cfg.keyHigh) {
+      const rawHigh = seriesData.get(cfg.keyHigh) ?? { t: [], v: [] };
+      const highData = xIsTime
+        ? { x: rawHigh.t, y: rawHigh.v as number[] }
+        : alignXY(rawHigh as SeriesRange<number>, xData);
+      // Pair by index — both are clipped to the shared window already, and
+      // for time-X both fetchers share the same windowSec so lengths align.
+      // Mismatched lengths fall through to LineChart's safe band builder
+      // which clamps to the shortest array.
+      data = { x: baseData.x, y: baseData.y, y2: highData.y };
+    }
+
     return {
       id: cfg.id,
       label: cfg.label ?? meta?.label ?? cfg.key,
@@ -211,6 +236,13 @@ export function GraphView({
       data,
     };
   });
+
+  // Extra data keys that need their own fetchers — band upper bounds.
+  // Series order is stable so duplicate keys (band low + line elsewhere)
+  // are deduped at render-time by the seriesData map keying on data-key.
+  const extraFetchKeys = series
+    .filter((cfg) => cfg.type === "band" && cfg.keyHigh)
+    .map((cfg) => cfg.keyHigh as string);
 
   // Reference curves only make sense on a non-time X axis (they're a
   // function of the X dimension, not time). Silently skip them on time-X
@@ -246,31 +278,45 @@ export function GraphView({
       <WidgetHeader>
         <PanelTitle>{title}</PanelTitle>
       </WidgetHeader>
-      {series.length === 0 && overlaySeries.length === 0 ? (
-        <EmptyState>{emptyState}</EmptyState>
-      ) : (
-        <ChartArea ref={containerRef}>
-          {size && (
-            <LineChart
-              series={chartSeries}
-              xDomain={xDomain}
-              xTickFormat={xTickFormat}
-              yDomainPrimary={config?.yDomainPrimary}
-              yDomainSecondary={config?.yDomainSecondary}
-              width={size.w}
-              height={size.h}
-            />
-          )}
-          {hasThirdUnit && (
-            <AxisWarning>Add explicit axes to plot 3+ units</AxisWarning>
-          )}
-        </ChartArea>
-      )}
+      {/* ChartArea is always rendered so the ResizeObserver effect (deps:
+          []) attaches once and never has to re-attach when the chart's
+          data state flips. The empty-state text overlays when there's no
+          data to plot. */}
+      <ChartArea ref={containerRef}>
+        {size && (
+          <LineChart
+            series={chartSeries}
+            xDomain={xDomain}
+            xTickFormat={xTickFormat}
+            yDomainPrimary={config?.yDomainPrimary}
+            yDomainSecondary={config?.yDomainSecondary}
+            yScalePrimary={config?.yScalePrimary}
+            yScaleSecondary={config?.yScaleSecondary}
+            thresholds={config?.thresholds as ThresholdRule[] | undefined}
+            width={size.w}
+            height={size.h}
+          />
+        )}
+        {hasThirdUnit && (
+          <AxisWarning>Add explicit axes to plot 3+ units</AxisWarning>
+        )}
+        {series.length === 0 && overlaySeries.length === 0 && (
+          <EmptyStateOverlay>{emptyState}</EmptyStateOverlay>
+        )}
+      </ChartArea>
       {/* Invisible data-fetcher components, one per series + one for X when non-time */}
       {series.map((cfg) => (
         <GraphSeries
           key={cfg.id}
           dataKey={cfg.key}
+          windowSec={windowSec}
+          onData={handleData}
+        />
+      ))}
+      {extraFetchKeys.map((k) => (
+        <GraphSeries
+          key={`extra-${k}`}
+          dataKey={k}
           windowSec={windowSec}
           onData={handleData}
         />
@@ -316,6 +362,15 @@ function GraphConfigComponent({
   const [yMaxSecondary, setYMaxSecondary] = useState(
     config?.yDomainSecondary ? String(config.yDomainSecondary[1]) : "",
   );
+  const [yScalePrimary, setYScalePrimary] = useState(
+    config?.yScalePrimary ?? "linear",
+  );
+  const [yScaleSecondary, setYScaleSecondary] = useState(
+    config?.yScaleSecondary ?? "linear",
+  );
+  const [thresholds, setThresholds] = useState<GraphThresholdConfig[]>(
+    config?.thresholds ?? [],
+  );
 
   const schema = useDataSchema("data");
   const numericKeys = schema.filter(
@@ -348,14 +403,45 @@ function GraphConfigComponent({
     setSeriesList((prev) => prev.filter((s) => s.id !== id));
   };
 
+  const addThreshold = () => {
+    setThresholds((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        value: 0,
+        axis: "primary",
+        label: "",
+        dashed: true,
+      },
+    ]);
+  };
+
+  const updateThreshold = (
+    id: string,
+    patch: Partial<GraphThresholdConfig>,
+  ) => {
+    setThresholds((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    );
+  };
+
+  const removeThreshold = (id: string) => {
+    setThresholds((prev) => prev.filter((t) => t.id !== id));
+  };
+
   const handleSave = () => {
     onSave({
       ...config,
-      series: seriesList.filter((s) => s.key !== ""),
+      series: seriesList.filter(
+        (s) => s.key !== "" && (s.type !== "band" || (s.keyHigh ?? "") !== ""),
+      ),
       windowSec: Math.max(10, Number.parseInt(windowSec, 10) || 300),
       xKey,
       yDomainPrimary: parseDomain(yMinPrimary, yMaxPrimary),
       yDomainSecondary: parseDomain(yMinSecondary, yMaxSecondary),
+      yScalePrimary,
+      yScaleSecondary,
+      thresholds: thresholds.filter((t) => Number.isFinite(t.value)),
     });
   };
 
@@ -373,30 +459,58 @@ function GraphConfigComponent({
       <Field>
         <FieldLabel>Series</FieldLabel>
         {seriesList.map((s) => (
-          <SeriesRow key={s.id}>
-            <DataKeyPicker
-              keys={numericKeys}
-              value={s.key || null}
-              onChange={(k) => updateSeries(s.id, { key: k ?? "" })}
-              placeholder="Pick a key…"
-              clearable
-            />
-            <Select
-              value={s.axis}
-              onChange={(e) =>
-                updateSeries(s.id, {
-                  axis: e.target.value as GraphSeriesConfig["axis"],
-                })
-              }
-            >
-              <option value="auto">Auto axis</option>
-              <option value="primary">Primary (left)</option>
-              <option value="secondary">Secondary (right)</option>
-            </Select>
-            <RemoveButton type="button" onClick={() => removeSeries(s.id)}>
-              ×
-            </RemoveButton>
-          </SeriesRow>
+          <SeriesGroup key={s.id}>
+            <SeriesRow>
+              <DataKeyPicker
+                keys={numericKeys}
+                value={s.key || null}
+                onChange={(k) => updateSeries(s.id, { key: k ?? "" })}
+                placeholder={
+                  s.type === "band" ? "Pick lower bound…" : "Pick a key…"
+                }
+                clearable
+              />
+              <Select
+                value={s.type ?? "line"}
+                onChange={(e) =>
+                  updateSeries(s.id, {
+                    type: e.target.value as GraphSeriesConfig["type"],
+                  })
+                }
+              >
+                <option value="line">Line</option>
+                <option value="step">Step</option>
+                <option value="scatter">Scatter</option>
+                <option value="band">Band</option>
+              </Select>
+              <Select
+                value={s.axis}
+                onChange={(e) =>
+                  updateSeries(s.id, {
+                    axis: e.target.value as GraphSeriesConfig["axis"],
+                  })
+                }
+              >
+                <option value="auto">Auto axis</option>
+                <option value="primary">Primary (left)</option>
+                <option value="secondary">Secondary (right)</option>
+              </Select>
+              <RemoveButton type="button" onClick={() => removeSeries(s.id)}>
+                ×
+              </RemoveButton>
+            </SeriesRow>
+            {s.type === "band" && (
+              <SeriesRow>
+                <DataKeyPicker
+                  keys={numericKeys}
+                  value={s.keyHigh ?? null}
+                  onChange={(k) => updateSeries(s.id, { keyHigh: k ?? "" })}
+                  placeholder="Pick upper bound…"
+                  clearable
+                />
+              </SeriesRow>
+            )}
+          </SeriesGroup>
         ))}
         <AddButton type="button" onClick={addSeries}>
           + Add series
@@ -428,6 +542,15 @@ function GraphConfigComponent({
             value={yMaxPrimary}
             onChange={(e) => setYMaxPrimary(e.target.value)}
           />
+          <Select
+            value={yScalePrimary}
+            onChange={(e) =>
+              setYScalePrimary(e.target.value as "linear" | "log")
+            }
+          >
+            <option value="linear">Linear</option>
+            <option value="log">Log10</option>
+          </Select>
         </DomainRow>
       </Field>
       <Field>
@@ -445,7 +568,56 @@ function GraphConfigComponent({
             value={yMaxSecondary}
             onChange={(e) => setYMaxSecondary(e.target.value)}
           />
+          <Select
+            value={yScaleSecondary}
+            onChange={(e) =>
+              setYScaleSecondary(e.target.value as "linear" | "log")
+            }
+          >
+            <option value="linear">Linear</option>
+            <option value="log">Log10</option>
+          </Select>
         </DomainRow>
+      </Field>
+      <Field>
+        <FieldLabel>Threshold lines</FieldLabel>
+        {thresholds.map((t) => (
+          <SeriesRow key={t.id}>
+            <Input
+              type="text"
+              placeholder="Label"
+              value={t.label ?? ""}
+              onChange={(e) => updateThreshold(t.id, { label: e.target.value })}
+            />
+            <Input
+              type="number"
+              placeholder="value"
+              value={Number.isFinite(t.value) ? String(t.value) : ""}
+              onChange={(e) =>
+                updateThreshold(t.id, {
+                  value: Number.parseFloat(e.target.value),
+                })
+              }
+            />
+            <Select
+              value={t.axis}
+              onChange={(e) =>
+                updateThreshold(t.id, {
+                  axis: e.target.value as "primary" | "secondary",
+                })
+              }
+            >
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+            </Select>
+            <RemoveButton type="button" onClick={() => removeThreshold(t.id)}>
+              ×
+            </RemoveButton>
+          </SeriesRow>
+        ))}
+        <AddButton type="button" onClick={addThreshold}>
+          + Add threshold
+        </AddButton>
       </Field>
       <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigForm>
@@ -471,13 +643,15 @@ const ChartArea = styled.div`
   min-height: 0;
 `;
 
-const EmptyState = styled.div`
-  flex: 1;
+const EmptyStateOverlay = styled.div`
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   color: var(--color-text-faint);
+  pointer-events: none;
 `;
 
 const AxisWarning = styled.div`
@@ -497,6 +671,13 @@ const SeriesRow = styled.div`
   gap: 6px;
   align-items: center;
   margin-bottom: 6px;
+`;
+
+const SeriesGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
 `;
 
 const DomainRow = styled.div`
@@ -548,6 +729,10 @@ registerComponent<GraphConfig>({
   pushable: true,
 });
 
-export type { GraphConfig, GraphSeriesConfig } from "./types";
+export type {
+  GraphConfig,
+  GraphSeriesConfig,
+  GraphThresholdConfig,
+} from "./types";
 export { TIME_AXIS } from "./types";
 export { GraphComponent };

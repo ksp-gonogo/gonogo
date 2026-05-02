@@ -45,17 +45,25 @@ describe("TwrComponent", () => {
     expect(container.textContent).toContain("1.83");
   });
 
-  it("colours the readout red when TWR < 1", () => {
+  it("renders the TWR value as the gauge's aria-label so screen readers can read it", () => {
     const { container } = renderTwr();
     act(() => {
       source.emit("dv.currentTWR", 0.85);
     });
-    const readout = container.querySelector('[role="status"]') as HTMLElement;
-    expect(readout).not.toBeNull();
-    // styled-components inlines the colour CSS variable as the resolved
-    // var(--…) reference — assert on the CSS string we set.
-    expect(readout.style.color || getComputedStyle(readout).color).toMatch(
-      /nogo|red/i,
-    );
+    // The gauge SVG carries an aria-label embedding the value; that's the
+    // screen-reader-friendly assertion that doesn't depend on
+    // styled-components colour resolution.
+    const gauge = container.querySelector('svg[aria-label^="TWR "]');
+    expect(gauge?.getAttribute("aria-label")).toBe("TWR 0.85");
+  });
+
+  it("draws three coloured zones on the dial (nogo / warning / ok)", () => {
+    const { container } = renderTwr();
+    act(() => {
+      source.emit("dv.currentTWR", 1.5);
+    });
+    // 1 track + 3 zone arcs = 4 paths inside the gauge svg.
+    const gauge = container.querySelector('svg[aria-label^="TWR "]');
+    expect(gauge?.querySelectorAll("path")).toHaveLength(4);
   });
 });

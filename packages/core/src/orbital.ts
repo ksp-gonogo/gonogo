@@ -49,6 +49,57 @@ export function surfaceGravity(
   return body.gm / (r * r);
 }
 
+/**
+ * Escape velocity from the given altitude above sea level.
+ * `sqrt(2·GM / (R + h))` = circularOrbitVelocity × √2.
+ * A trajectory whose speed equals this at the current radius is a
+ * parabolic escape — anything above is hyperbolic.
+ */
+export function escapeVelocity(
+  body: BodyDefinition,
+  altitude: number,
+): number | undefined {
+  if (body.gm === undefined) return undefined;
+  const r = body.radius + altitude;
+  if (!(r > 0)) return undefined;
+  return Math.sqrt((2 * body.gm) / r);
+}
+
+/**
+ * Period of a circular orbit at the given semi-major axis. Kepler's third
+ * law: `T = 2π·sqrt(a³ / GM)`. Returns seconds, or `undefined` when GM
+ * is missing.
+ */
+export function orbitalPeriod(
+  body: BodyDefinition,
+  sma: number,
+): number | undefined {
+  if (body.gm === undefined) return undefined;
+  if (!(sma > 0)) return undefined;
+  return 2 * Math.PI * Math.sqrt((sma * sma * sma) / body.gm);
+}
+
+/**
+ * Atmospheric pressure at the given altitude, using the body's exponential
+ * scale-height model: `P(h) = P₀·exp(-h/H)`. Beyond `maxAtmosphere` the
+ * function returns 0 (KSP atmospheres are hard-cut at that altitude).
+ * Returns `undefined` for airless bodies and bodies without an
+ * `atmosphere` model registered.
+ */
+export function pressureAtAltitude(
+  body: BodyDefinition,
+  altitude: number,
+): number | undefined {
+  if (!body.hasAtmosphere) return undefined;
+  if (!body.atmosphere) return undefined;
+  if (altitude < 0) return body.atmosphere.surfacePressure;
+  if (altitude >= body.maxAtmosphere) return 0;
+  return (
+    body.atmosphere.surfacePressure *
+    Math.exp(-altitude / body.atmosphere.scaleHeight)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Keplerian orbit geometry
 // ---------------------------------------------------------------------------

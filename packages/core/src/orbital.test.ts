@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { BodyDefinition } from "./bodies";
 import {
   circularOrbitVelocity,
+  escapeVelocity,
   formatDistance,
   formatDuration,
   generateOrbitPoints,
   latLonToMap,
+  orbitalPeriod,
   orbitalToCartesian,
+  pressureAtAltitude,
   surfaceGravity,
   trueAnomalyToRadius,
 } from "./orbital";
@@ -18,6 +21,7 @@ const KERBIN: BodyDefinition = {
   gm: 3.5316e12,
   hasAtmosphere: true,
   maxAtmosphere: 70_000,
+  atmosphere: { surfacePressure: 101_325, scaleHeight: 5_600 },
 };
 
 const MOD_BODY: BodyDefinition = {
@@ -242,5 +246,84 @@ describe("surfaceGravity", () => {
 
   it("returns undefined when body has no gm", () => {
     expect(surfaceGravity(MOD_BODY, 0)).toBeUndefined();
+  });
+});
+
+// ── escapeVelocity ─────────────────────────────────────────────────────────
+
+describe("escapeVelocity", () => {
+  it("is √2 × circular speed at the same altitude", () => {
+    const vC = circularOrbitVelocity(KERBIN, 75_000) ?? 0;
+    const vE = escapeVelocity(KERBIN, 75_000) ?? 0;
+    expect(vE).toBeCloseTo(vC * Math.SQRT2, 3);
+  });
+
+  it("returns ~3,431 m/s for surface escape from Kerbin", () => {
+    // Wiki: ~3,431 m/s for sea-level escape (sqrt(2·GM/R)).
+    const v = escapeVelocity(KERBIN, 0);
+    expect(v).toBeCloseTo(3431, 0);
+  });
+
+  it("returns undefined when body has no gm", () => {
+    expect(escapeVelocity(MOD_BODY, 100_000)).toBeUndefined();
+  });
+});
+
+// ── orbitalPeriod ──────────────────────────────────────────────────────────
+
+describe("orbitalPeriod", () => {
+  it("matches a known low-Kerbin orbit period (~30 min at 75 km)", () => {
+    // Kerbin LKO at 75 km altitude → SMA = 675 km → T ≈ 1,800 s ≈ 30 min.
+    const T = orbitalPeriod(KERBIN, 675_000);
+    expect(T).toBeCloseTo(1851, -1);
+  });
+
+  it("scales as a^1.5 (Kepler)", () => {
+    const T1 = orbitalPeriod(KERBIN, 1_000_000) ?? 0;
+    const T8 = orbitalPeriod(KERBIN, 4_000_000) ?? 0;
+    // a × 4 → T × 8
+    expect(T8 / T1).toBeCloseTo(8, 1);
+  });
+
+  it("returns undefined when body has no gm or sma is non-positive", () => {
+    expect(orbitalPeriod(MOD_BODY, 1_000_000)).toBeUndefined();
+    expect(orbitalPeriod(KERBIN, 0)).toBeUndefined();
+  });
+});
+
+// ── pressureAtAltitude ─────────────────────────────────────────────────────
+
+describe("pressureAtAltitude", () => {
+  it("returns surface pressure at altitude 0", () => {
+    expect(pressureAtAltitude(KERBIN, 0)).toBeCloseTo(101_325, 0);
+  });
+
+  it("falls off exponentially: down by 1/e at one scale-height", () => {
+    const p = pressureAtAltitude(KERBIN, 5_600) ?? 0;
+    expect(p).toBeCloseTo(101_325 / Math.E, 0);
+  });
+
+  it("returns 0 at and beyond maxAtmosphere", () => {
+    expect(pressureAtAltitude(KERBIN, 70_000)).toBe(0);
+    expect(pressureAtAltitude(KERBIN, 200_000)).toBe(0);
+  });
+
+  it("returns surface pressure for negative altitudes (e.g. mountain valley)", () => {
+    expect(pressureAtAltitude(KERBIN, -100)).toBeCloseTo(101_325, 0);
+  });
+
+  it("returns undefined for airless bodies", () => {
+    expect(pressureAtAltitude(MOD_BODY, 0)).toBeUndefined();
+  });
+
+  it("returns undefined for atmospheric bodies missing the model", () => {
+    const bareAtmoBody: BodyDefinition = {
+      id: "X",
+      name: "X",
+      radius: 500_000,
+      hasAtmosphere: true,
+      maxAtmosphere: 50_000,
+    };
+    expect(pressureAtAltitude(bareAtmoBody, 0)).toBeUndefined();
   });
 });

@@ -55,6 +55,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     texture: tex("Eve"),
     hasAtmosphere: true,
     maxAtmosphere: 90000,
+    // 5 atm at sea level, very thick.
+    atmosphere: { surfacePressure: 506_625, scaleHeight: 7_000 },
     rotationPeriod: 80500,
   });
 
@@ -84,6 +86,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     longitudeOffset: 90,
     hasAtmosphere: true,
     maxAtmosphere: 70000,
+    // 1 atm at sea level, ~Earth-like.
+    atmosphere: { surfacePressure: 101_325, scaleHeight: 5_600 },
     rotationPeriod: 21549.425,
     // Sweet spot modelled on real low-Earth-orbit imaging scaled for Kerbin:
     // below the atmosphere gives no useful data, deep space gives too little
@@ -137,6 +141,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     texture: tex("Duna"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
+    // ~0.067 atm at sea level — too thin for jet engines, just enough for chutes.
+    atmosphere: { surfacePressure: 6_755, scaleHeight: 2_700 },
     rotationPeriod: 65517.859,
   });
 
@@ -176,6 +182,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     parent: "Sun",
     hasAtmosphere: true,
     maxAtmosphere: 200000,
+    // ~15 atm at "sea level" (datum), gas giant — there's no surface to land on.
+    atmosphere: { surfacePressure: 1_519_875, scaleHeight: 20_000 },
     rotationPeriod: 36000,
   });
 
@@ -189,6 +197,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     texture: tex("Laythe"),
     hasAtmosphere: true,
     maxAtmosphere: 50000,
+    // ~0.6 atm at sea level — breathable-ish on Jool's tropical moon.
+    atmosphere: { surfacePressure: 60_795, scaleHeight: 4_000 },
     rotationPeriod: 52980.879,
   });
 

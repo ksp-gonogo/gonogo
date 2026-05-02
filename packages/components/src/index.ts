@@ -3,15 +3,18 @@
 // Add new component imports here as they are built.
 
 export * from "./ActionGroup";
+export * from "./AtmosphereProfile";
 export * from "./CameraFeed";
 export * from "./CommSignal";
 export * from "./CrewManifest";
 export * from "./CurrentOrbit";
 export * from "./DataSourceStatus";
 export * from "./DistanceToTarget";
+export * from "./EscapeProfile";
 export * from "./FuelStatus";
 export * from "./Graph";
 export * from "./GroundSurvey";
+export * from "./KeplerPeriod";
 export * from "./KosFiles";
 export * from "./KosProcessors";
 export * from "./KosTerminal";

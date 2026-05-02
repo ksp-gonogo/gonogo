@@ -18,6 +18,19 @@ export interface BodyMapConfig {
   height: number;
 }
 
+/**
+ * Approximate exponential atmosphere model. Real KSP atmospheres are
+ * tabulated and not purely exponential, but a single scale-height
+ * approximation is enough to draw a recognisable pressure-vs-altitude
+ * curve and to distinguish "thin" from "thick" atmospheres at a glance.
+ */
+export interface AtmosphereModel {
+  /** Surface pressure in pascals. */
+  surfacePressure: number;
+  /** Scale height (e-folding altitude) in metres. */
+  scaleHeight: number;
+}
+
 export interface BodyDefinition {
   /** Unique identifier — must match Telemachus v.body / o.referenceBody strings. */
   id: string;
@@ -57,6 +70,13 @@ export interface BodyDefinition {
   hasAtmosphere: boolean;
   /** The height above sea level where the atmosphere is stopped */
   maxAtmosphere: number;
+  /**
+   * Optional atmosphere model. Only meaningful when `hasAtmosphere` is
+   * true. Used by widgets that want to show an atmospheric pressure profile.
+   * Mod-added atmospheric bodies may omit it; consumers must tolerate
+   * `undefined`.
+   */
+  atmosphere?: AtmosphereModel;
   /**
    * Sidereal rotation period in seconds. Used by the trajectory predictor to
    * convert inertial positions into body-fixed lat/lon over time. Tidally
