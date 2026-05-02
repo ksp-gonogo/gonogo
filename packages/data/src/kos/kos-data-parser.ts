@@ -9,6 +9,13 @@
  * If the chunk contains multiple `[KOSDATA] … [/KOSDATA]` blocks, the last
  * one wins. That matches the intended contract: scripts emit exactly one,
  * so if we see more than one the later one is always newer.
+ *
+ * Topics: blocks may optionally carry a topic id like `[KOSDATA:shipmap]…
+ * [/KOSDATA]`, used by the centralised kOS compute fanout to multiplex
+ * several feeds on a single CPU's print stream. `parseKosData` ignores
+ * the topic and returns the body of the last block found (matching the
+ * legacy single-block contract); `parseKosDataTopics` returns one entry
+ * per topic, with bare `[KOSDATA]` keyed under `default`.
  */
 
 import { PerfBudget } from "@gonogo/core";
@@ -33,7 +40,15 @@ export type KosData = Record<string, KosDataValue>;
 /** Runtime-resolved arg value passed to a kOS compute data source. */
 export type KosScriptArg = number | string | boolean;
 
-const BLOCK_RE = /\[KOSDATA\]([\s\S]*?)\[\/KOSDATA\]/g;
+/**
+ * Group 1 = optional topic id (`shipmap` in `[KOSDATA:shipmap]`); undefined
+ * for bare `[KOSDATA]`. Group 2 = body. Topic charset is `[\w-]` so script
+ * authors can use kebab-case ids without clashing with `;` or `=` in the body.
+ */
+const BLOCK_RE = /\[KOSDATA(?::([\w-]+))?\]([\s\S]*?)\[\/KOSDATA\]/g;
+
+/** Topic id used when a block omits the `:topic` suffix. */
+export const DEFAULT_KOS_TOPIC = "default";
 
 /**
  * Strip ANSI control sequences. kOS's GUI repaint emits screen contents
@@ -72,11 +87,34 @@ export function parseKosData(text: string): KosData | null {
   BLOCK_RE.lastIndex = 0;
   let match = BLOCK_RE.exec(clean);
   while (match !== null) {
-    lastBody = match[1];
+    lastBody = match[2];
     match = BLOCK_RE.exec(clean);
   }
   if (lastBody === null) return null;
   return parseBody(lastBody);
+}
+
+/**
+ * Topic-aware parse. Returns the latest body per topic id seen in `text`,
+ * keyed by topic. Bare `[KOSDATA]` blocks are keyed under `DEFAULT_KOS_TOPIC`.
+ *
+ * Returns `null` if no complete block is present at all (parity with
+ * `parseKosData`). When two blocks share a topic id, the later one wins —
+ * same "newer block beats older" rule as the single-block parser.
+ */
+export function parseKosDataTopics(text: string): Map<string, KosData> | null {
+  KOS_PARSE_BUDGET.record();
+  const clean = stripAnsi(text);
+  const result = new Map<string, KosData>();
+  BLOCK_RE.lastIndex = 0;
+  let match = BLOCK_RE.exec(clean);
+  while (match !== null) {
+    const topic = match[1] ?? DEFAULT_KOS_TOPIC;
+    result.set(topic, parseBody(match[2]));
+    match = BLOCK_RE.exec(clean);
+  }
+  if (result.size === 0) return null;
+  return result;
 }
 
 function parseBody(body: string): KosData {

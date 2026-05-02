@@ -1,3 +1,4 @@
+import { clearKosScripts } from "./kos/scriptRegistry";
 import { logger } from "./logger";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
@@ -59,4 +60,5 @@ export function clearRegistry(): void {
   components.clear();
   dataSources.clear();
   themes.clear();
+  clearKosScripts();
 }

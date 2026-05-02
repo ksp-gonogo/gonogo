@@ -16,6 +16,7 @@ export * from "./hooks/useStreamList";
 export * from "./hooks/useStreamSources";
 export * from "./hooks/useTouchDevice";
 export * from "./kos/KosProxyContext";
+export * from "./kos/scriptRegistry";
 export * from "./logger";
 export * from "./orbital";
 export * from "./perf/PerfBudget";

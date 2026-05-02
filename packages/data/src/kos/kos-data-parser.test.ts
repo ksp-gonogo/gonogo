@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseKosData } from "./kos-data-parser";
+import {
+  DEFAULT_KOS_TOPIC,
+  parseKosData,
+  parseKosDataTopics,
+} from "./kos-data-parser";
 
 describe("parseKosData", () => {
   it("returns null when there's no [KOSDATA] block", () => {
@@ -121,5 +125,55 @@ describe("parseKosData", () => {
     const chunk =
       "\x1b]2;Hopper CPU\x07[KOSDATA] dv=1234 [/KOSDATA]\x1b]2;Hopper CPU\x07";
     expect(parseKosData(chunk)).toEqual({ dv: 1234 });
+  });
+
+  it("accepts a topic-tagged block and ignores the topic id (legacy contract)", () => {
+    expect(parseKosData("[KOSDATA:shipmap] parts=[] [/KOSDATA]")).toEqual({
+      parts: "[]",
+    });
+  });
+});
+
+describe("parseKosDataTopics", () => {
+  it("returns null when there's no [KOSDATA] block", () => {
+    expect(parseKosDataTopics("kOS> ")).toBeNull();
+  });
+
+  it("keys a bare [KOSDATA] block under the default topic", () => {
+    const result = parseKosDataTopics("[KOSDATA] x=1 [/KOSDATA]");
+    expect(result).not.toBeNull();
+    expect(result?.get(DEFAULT_KOS_TOPIC)).toEqual({ x: 1 });
+    expect(result?.size).toBe(1);
+  });
+
+  it("keys a topic-tagged block under its topic id", () => {
+    const result = parseKosDataTopics("[KOSDATA:shipmap] parts=[] [/KOSDATA]");
+    expect(result?.get("shipmap")).toEqual({ parts: "[]" });
+    expect(result?.has(DEFAULT_KOS_TOPIC)).toBe(false);
+  });
+
+  it("returns one entry per topic when multiple topics are interleaved", () => {
+    const chunk = [
+      "[KOSDATA:shipmap] parts=[] [/KOSDATA]",
+      "[KOSDATA:processors] list=[] [/KOSDATA]",
+      "[KOSDATA] dv=42 [/KOSDATA]",
+    ].join("\n");
+    const result = parseKosDataTopics(chunk);
+    expect(result?.get("shipmap")).toEqual({ parts: "[]" });
+    expect(result?.get("processors")).toEqual({ list: "[]" });
+    expect(result?.get(DEFAULT_KOS_TOPIC)).toEqual({ dv: 42 });
+  });
+
+  it("keeps the LAST block per topic when a topic appears more than once", () => {
+    const chunk =
+      "[KOSDATA:shipmap] v=1 [/KOSDATA]\n[KOSDATA:shipmap] v=2 [/KOSDATA]";
+    expect(parseKosDataTopics(chunk)?.get("shipmap")).toEqual({ v: 2 });
+  });
+
+  it("accepts kebab-case topic ids", () => {
+    const result = parseKosDataTopics(
+      "[KOSDATA:fuel-status] frac=0.42 [/KOSDATA]",
+    );
+    expect(result?.get("fuel-status")).toEqual({ frac: 0.42 });
   });
 });
