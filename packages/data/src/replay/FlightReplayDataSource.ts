@@ -193,6 +193,50 @@ export class FlightReplayDataSource implements DataSource {
     this.executeLog.push(action);
   }
 
+  /**
+   * No-op stub of `KosDataSource.executeScript` — present so kOS widgets
+   * (KosFiles, KosWidget, TargetPicker's set-target) don't crash with
+   * "method not found" when the replay source is swapped under the `"kos"`
+   * registry slot. Returns an empty payload immediately. The widget layer
+   * can still detect replay mode via `useReplayActive()` and short-circuit
+   * before calling, but this guarantees a graceful failure if it doesn't.
+   */
+  async executeScript(
+    _cpu: string,
+    _script: string,
+    args: unknown[],
+    _managed?: unknown,
+  ): Promise<Record<string, unknown>> {
+    this.executeLog.push(`executeScript:${args.length}args`);
+    return {};
+  }
+
+  /**
+   * Stubs that mirror `KosDataSource`'s topic-status surface so widgets
+   * using `useKosScriptStatus` don't blow up when the replay source is
+   * registered under `"kos"`. Status is "running with no errors" — the
+   * fixture playback IS the run.
+   */
+  getTopicStatus(_topicId: string): {
+    lastGoodAt: number | null;
+    scriptError: Error | null;
+    parseError: Error | null;
+    paused: boolean;
+    running: boolean;
+  } | null {
+    return {
+      lastGoodAt: this.currentT,
+      scriptError: null,
+      parseError: null,
+      paused: false,
+      running: false,
+    };
+  }
+
+  onTopicStatusChange(_topicId: string, _cb: () => void): () => void {
+    return () => {};
+  }
+
   configSchema(): ConfigField[] {
     return [];
   }

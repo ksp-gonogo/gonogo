@@ -114,6 +114,12 @@ export class BufferedDataSource extends DataSourceWrapper {
    */
   private readonly upfrontKeys = new Set<string>();
   /**
+   * Schema entries from non-Telemachus feeders (e.g. kOS centralised
+   * compute). Surfaced through `schema()` so the picker shows them and
+   * exports include them. Populated via `registerExternalKeys`.
+   */
+  private readonly externalSchema = new Map<string, DataKeyMeta>();
+  /**
    * Indexed/dynamic keys (e.g. `b.name[1]`) aren't in the upstream
    * schema, so they don't get subscribed at connect-time. When a widget
    * calls subscribe() for one of these, we forward the subscribe to the
@@ -211,7 +217,8 @@ export class BufferedDataSource extends DataSourceWrapper {
       key: def.id,
       ...def.meta,
     }));
-    return [...raw, ...derived];
+    const external: DataKeyMeta[] = [...this.externalSchema.values()];
+    return [...raw, ...derived, ...external];
   }
 
   subscribe(key: string, cb: (value: unknown) => void): () => void {
@@ -345,6 +352,58 @@ export class BufferedDataSource extends DataSourceWrapper {
    */
   subscribeSamples(key: string, cb: (sample: Sample) => void): () => void {
     return this.sampleSubscribers.add(key, cb);
+  }
+
+  // ── External-source ingestion (kOS) ──────────────────────────────────────
+  //
+  // The wrapped Telemachus source drives FlightDetector + signal-loss gating
+  // and is the canonical sample feed. But we also want non-Telemachus
+  // sources (the kOS centralised compute fanout) to land in the same flight
+  // record so they replay alongside Telemachus telemetry. These methods are
+  // the public seam for that — they bypass the gate + detector but feed the
+  // store + buffer + subscriber fanout exactly like a Telemachus sample.
+  //
+  // Keys must be globally unique across all feeders. kOS already namespaces
+  // its keys (`kos.compute.<topic>.<field>`) so collision with Telemachus
+  // is impossible by construction.
+
+  /**
+   * Schema entries from non-Telemachus sources, surfaced through `schema()`
+   * so the data picker shows them and `exportFlight` captures their samples.
+   * Caller (typically the app shell, after wiring the kOS source) calls
+   * this once per known schema; calling again for the same key replaces.
+   */
+  registerExternalKeys(keys: ReadonlyArray<DataKeyMeta>): void {
+    for (const k of keys) this.externalSchema.set(k.key, k);
+  }
+
+  /**
+   * Append a sample from a non-Telemachus source. Same fanout chain as
+   * Telemachus samples (store, in-memory buffer, live + sample subscribers,
+   * derived keys), minus the FlightDetector tick (driven by `v.missionTime`
+   * exclusively) and the signal-loss gate (kOS isn't comm-affected).
+   *
+   * If no flight is established yet (Telemachus warmup hasn't completed),
+   * the sample is fanned out live but NOT persisted — same shape as
+   * Telemachus pre-flight samples.
+   */
+  appendExternalSample(key: string, value: unknown): void {
+    const t = this.now();
+    this.lastRawSample.set(key, { t, v: value });
+
+    const current = this.detector.getCurrent();
+    if (current) {
+      void this.store.appendSample(current.id, key, t, value);
+      this.pushToBuffer(key, t, value);
+    }
+
+    this.lastEmittedValue.set(key, value);
+    this.keySubscribers.fire(key, value);
+    if (current) this.sampleSubscribers.fire(key, { t, v: value });
+
+    // Derived keys can opt in by listing an external key as one of their
+    // inputs — same machinery as Telemachus-driven derivations.
+    this.runDerivedKeys(key, current?.id ?? null);
   }
 
   onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {

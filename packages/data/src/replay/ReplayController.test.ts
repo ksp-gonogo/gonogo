@@ -1,4 +1,9 @@
-import { clearRegistry, getDataSource, registerDataSource } from "@gonogo/core";
+import {
+  clearRegistry,
+  type DataSource,
+  getDataSource,
+  registerDataSource,
+} from "@gonogo/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BufferedDataSource } from "../BufferedDataSource";
 import { MemoryStore } from "../storage/MemoryStore";
@@ -141,5 +146,36 @@ describe("ReplayController", () => {
     await expect(
       getReplayController().start(live, "no-such-flight"),
     ).rejects.toThrow();
+  });
+
+  it("also displaces the 'kos' source so kOS widgets read from replay", async () => {
+    // Register a stand-in kOS source.
+    const kosLive: DataSource = {
+      id: "kos",
+      name: "Live kOS",
+      status: "connected",
+      affectedBySignalLoss: false,
+      connect: async () => {},
+      disconnect: () => {},
+      schema: () => [],
+      subscribe: () => () => {},
+      onStatusChange: () => () => {},
+      execute: async () => {},
+      configSchema: () => [],
+      configure: () => {},
+      getConfig: () => ({}),
+    };
+    registerDataSource(kosLive);
+
+    await getReplayController().start(live, FIXTURE.flight.id);
+
+    const kosNow = getDataSource("kos");
+    expect(kosNow).not.toBe(kosLive);
+    // The proxy reports id "kos" so widgets keying off source.id agree
+    // with the registry slot.
+    expect(kosNow?.id).toBe("kos");
+
+    await getReplayController().stop();
+    expect(getDataSource("kos")).toBe(kosLive);
   });
 });

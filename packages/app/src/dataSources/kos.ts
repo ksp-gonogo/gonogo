@@ -285,6 +285,16 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
     return this.compute.subscribe(key, cb);
   }
 
+  /**
+   * Pipe every per-field emission from the centralised compute fanout to
+   * an external sink. Used by the app shell to capture kOS samples into
+   * `BufferedDataSource` so they persist into the flight history and are
+   * available for in-app replay. Pass `null` to detach. Idempotent.
+   */
+  setSampleSink(sink: ((key: string, value: unknown) => void) | null): void {
+    this.compute.setSampleSink(sink);
+  }
+
   /** Snapshot of a centralised compute topic's status. Used by `useKosScriptStatus`. */
   getTopicStatus(topicId: string): KosTopicStatus | null {
     return this.compute.getTopicStatus(topicId);

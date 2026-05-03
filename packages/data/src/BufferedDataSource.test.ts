@@ -617,3 +617,134 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     expect(range.v).toContain(777);
   });
 });
+
+// ── External-source ingestion (kOS) ────────────────────────────────────────
+
+describe("BufferedDataSource — external-source ingestion (appendExternalSample)", () => {
+  let source: MockDataSource;
+  let store: MemoryStore;
+  let buffered: BufferedDataSource;
+  let clock = 1000;
+
+  beforeEach(async () => {
+    source = new MockDataSource({ keys: MOCK_KEYS });
+    store = new MemoryStore();
+    clock = 1000;
+    buffered = new BufferedDataSource({
+      source,
+      store,
+      now: () => clock,
+      inMemoryLimit: 100,
+    });
+    await buffered.connect();
+    // Establish a flight so persistence + sample fanout fires.
+    source.emit("v.name", "Kerbal X");
+    source.emit("v.missionTime", 0);
+  });
+
+  afterEach(() => {
+    buffered.disconnect();
+  });
+
+  it("fans out external samples to live subscribers", () => {
+    const spy = vi.fn();
+    buffered.subscribe("kos.compute.demo.value", spy);
+    buffered.appendExternalSample("kos.compute.demo.value", 42);
+    expect(spy).toHaveBeenCalledWith(42);
+  });
+
+  it("persists external samples into the current flight's store", async () => {
+    clock = 2000;
+    buffered.appendExternalSample("kos.compute.demo.value", 100);
+    clock = 3000;
+    buffered.appendExternalSample("kos.compute.demo.value", 200);
+    const range = await buffered.queryRange(
+      "kos.compute.demo.value",
+      0,
+      10_000,
+    );
+    expect(range).toEqual({ t: [2000, 3000], v: [100, 200] });
+  });
+
+  it("fires timestamped sample subscribers (useDataSeries path)", () => {
+    const samples: { t: number; v: unknown }[] = [];
+    buffered.subscribeSamples("kos.compute.demo.value", (s) => samples.push(s));
+    clock = 2500;
+    buffered.appendExternalSample("kos.compute.demo.value", 7);
+    expect(samples).toEqual([{ t: 2500, v: 7 }]);
+  });
+
+  it("replays the last-known external value to late subscribers", () => {
+    buffered.appendExternalSample("kos.compute.demo.value", "ready");
+    const spy = vi.fn();
+    buffered.subscribe("kos.compute.demo.value", spy);
+    expect(spy).toHaveBeenCalledWith("ready");
+  });
+
+  it("does NOT pass through the signal-loss gate (kOS isn't comm-affected)", async () => {
+    source.affectedBySignalLoss = true;
+    source.emit("comm.connected", true); // confirm a prior link
+    source.emit("comm.connected", false); // gate now active
+    clock = 4000;
+    buffered.appendExternalSample("kos.compute.demo.value", 99);
+    const range = await buffered.queryRange(
+      "kos.compute.demo.value",
+      0,
+      10_000,
+    );
+    expect(range.v).toContain(99);
+  });
+
+  it("does not advance the FlightDetector (driven by v.missionTime only)", () => {
+    const before = buffered.getCurrentFlight()?.id;
+    buffered.appendExternalSample("kos.compute.demo.value", 1);
+    const after = buffered.getCurrentFlight()?.id;
+    expect(after).toBe(before);
+  });
+});
+
+describe("BufferedDataSource — registerExternalKeys", () => {
+  let source: MockDataSource;
+  let store: MemoryStore;
+  let buffered: BufferedDataSource;
+
+  beforeEach(async () => {
+    source = new MockDataSource({ keys: MOCK_KEYS });
+    store = new MemoryStore();
+    buffered = new BufferedDataSource({ source, store });
+    await buffered.connect();
+  });
+
+  afterEach(() => {
+    buffered.disconnect();
+  });
+
+  it("merges external keys into schema() output", () => {
+    buffered.registerExternalKeys([
+      { key: "kos.compute.demo.value", label: "Demo value", group: "kOS" },
+    ]);
+    const keys = buffered.schema().map((k) => k.key);
+    expect(keys).toContain("kos.compute.demo.value");
+  });
+
+  it("preserves the supplied DataKeyMeta shape", () => {
+    buffered.registerExternalKeys([
+      { key: "kos.compute.x.y", label: "X.Y", group: "kOS", unit: "raw" },
+    ]);
+    const found = buffered.schema().find((k) => k.key === "kos.compute.x.y");
+    expect(found).toMatchObject({ label: "X.Y", group: "kOS", unit: "raw" });
+  });
+
+  it("re-registering a key replaces the previous metadata", () => {
+    buffered.registerExternalKeys([
+      { key: "kos.compute.demo.value", label: "Old" },
+    ]);
+    buffered.registerExternalKeys([
+      { key: "kos.compute.demo.value", label: "New" },
+    ]);
+    const found = buffered
+      .schema()
+      .find((k) => k.key === "kos.compute.demo.value");
+    expect(found?.label).toBe("New");
+  });
+});

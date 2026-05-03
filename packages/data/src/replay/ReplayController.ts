@@ -1,8 +1,25 @@
-import { registerDataSource } from "@gonogo/core";
+import {
+  type DataSource,
+  getDataSource,
+  registerDataSource,
+} from "@gonogo/core";
 import type { BufferedDataSource } from "../BufferedDataSource";
 import type { FlightChapterRecord } from "../types";
 import { FLIGHT_FIXTURE_FORMAT, type FlightFixture } from "./FlightFixture";
 import { FlightReplayDataSource } from "./FlightReplayDataSource";
+
+/**
+ * Source ids the controller takes over during replay. The replay source is
+ * registered under each of these so widgets reading from any of them see
+ * captured samples instead of live data. The originals are stashed at
+ * `start()` and restored verbatim at `stop()`.
+ *
+ * `kos` covers the centralised compute fanout (ShipMap, KosProcessors,
+ * TargetPicker vessel list). RPC paths (`executeScript`) get a no-op
+ * stub on `FlightReplayDataSource`; widgets that explicitly need to
+ * suppress RPCs check `useReplayActive()`.
+ */
+const SWAP_SOURCE_IDS = ["data", "kos"] as const;
 
 /**
  * Public state observable by the banner / FlightsManager UI.
@@ -63,6 +80,11 @@ export class ReplayController {
    * recording keeps going.
    */
   private liveSource: BufferedDataSource | null = null;
+  /**
+   * Snapshot of every source we displaced. Re-registered verbatim on stop.
+   * Kept connected throughout — only the registry slot is swapped.
+   */
+  private displacedSources = new Map<string, DataSource>();
 
   getState(): ReplayControllerState {
     return this.state;
@@ -87,15 +109,41 @@ export class ReplayController {
     if (this.state.active) await this.stop();
 
     const fixture = await live.exportFlight(flightId);
+    this.liveSource = live;
+
+    // Stash every source we're about to displace, then register the same
+    // replay instance under each id so widgets reading from any of them see
+    // captured samples. One replay source serves both `"data"` and `"kos"`
+    // because the fixture contains keys from both namespaces (Telemachus
+    // `v.altitude` etc and `kos.compute.<topic>.<field>`).
+    //
+    // The replay's `.id` property reads as `"data"` even when retrieved
+    // via `getDataSource("kos")` — the registry slot is the source of
+    // truth, the field is informational. Widgets keying off `source.id`
+    // would see the mismatch; nothing in the codebase does today.
+    this.displacedSources.clear();
+    for (const id of SWAP_SOURCE_IDS) {
+      const existing = getDataSource(id);
+      if (existing) this.displacedSources.set(id, existing);
+    }
+
     const replay = new FlightReplayDataSource({
       fixture,
-      id: live.id, // Take over the same registry slot ("data" by default).
-      autoplay: false, // The controller drives play/pause.
+      id: live.id,
+      autoplay: false,
     });
     await replay.connect();
 
-    this.liveSource = live;
-    registerDataSource(replay);
+    // The replay's class id is `live.id` (typically `"data"`). For other
+    // slots we need a thin override that exposes the same source under a
+    // different id — handed to the registry directly.
+    for (const id of SWAP_SOURCE_IDS) {
+      if (id === replay.id) {
+        registerDataSource(replay);
+      } else {
+        registerDataSource(makeIdProxy(replay, id));
+      }
+    }
 
     this.state = {
       active: true,
@@ -116,7 +164,11 @@ export class ReplayController {
     if (!this.state.active || !this.liveSource || !this.state.replay) return;
     this.stopPolling();
     this.state.replay.disconnect();
-    registerDataSource(this.liveSource);
+    // Restore each displaced source to its original registry slot.
+    for (const [, src] of this.displacedSources) {
+      registerDataSource(src);
+    }
+    this.displacedSources.clear();
     this.liveSource = null;
     this.state = IDLE_STATE;
     this.notify();
@@ -225,6 +277,29 @@ export class ReplayController {
   private notify(): void {
     for (const cb of this.listeners) cb(this.state);
   }
+}
+
+/**
+ * Wrap a `DataSource` with a different `id`, forwarding every method to
+ * the wrapped instance. Used so a single `FlightReplayDataSource` can
+ * sit in multiple registry slots (`"data"`, `"kos"`) at once during
+ * replay. Only forwards the standard DataSource surface — extra methods
+ * on subclasses (e.g. `executeScript`, `getTopicStatus`) are reachable
+ * via `Object.getPrototypeOf` lookups but the proxy doesn't enumerate
+ * them upfront.
+ */
+function makeIdProxy(source: DataSource, id: string): DataSource {
+  return new Proxy(source, {
+    get(target, prop, receiver) {
+      if (prop === "id") return id;
+      const value = Reflect.get(target, prop, receiver);
+      // Re-bind methods so `this` inside the source is still the original.
+      // Without this, calls like `proxy.subscribe(...)` would lose the
+      // KosComputeManager / FlightReplayDataSource internal state.
+      if (typeof value === "function") return value.bind(target);
+      return value;
+    },
+  });
 }
 
 /**

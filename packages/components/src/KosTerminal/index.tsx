@@ -1,5 +1,7 @@
 import type { ComponentProps } from "@gonogo/core";
 import { getDataSource, registerComponent, useKosProxy } from "@gonogo/core";
+import { useReplayActive } from "@gonogo/data";
+import { Panel, PanelTitle } from "@gonogo/ui";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useReducer, useRef } from "react";
@@ -137,7 +139,30 @@ function getKosEndpoint() {
   };
 }
 
-function KosTerminalComponent({
+function KosTerminalComponent(
+  props: Readonly<ComponentProps<KosTerminalConfig>>,
+) {
+  // Outer guard. The terminal opens its own WebSocket directly to the kOS
+  // proxy — bypassing the data-source registry entirely — so the
+  // ReplayController's source swap can't intercept its traffic. During
+  // replay, mount a placeholder instead so the user can't fire
+  // commands at whatever live CPU happens to be reachable.
+  //
+  // Splitting the live body into a child component keeps the hooks order
+  // inside it stable across mounts/unmounts (React rules of hooks).
+  const replayActive = useReplayActive();
+  if (replayActive) {
+    return (
+      <Panel>
+        <PanelTitle>kOS TERMINAL</PanelTitle>
+        <ReplayPlaceholder>Terminal disabled during replay.</ReplayPlaceholder>
+      </Panel>
+    );
+  }
+  return <KosTerminalLive {...props} />;
+}
+
+function KosTerminalLive({
   config,
 }: Readonly<ComponentProps<KosTerminalConfig>>) {
   const { createConnection, resize } = useKosProxy();
@@ -377,4 +402,15 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   .xterm-viewport {
     border-radius: 4px;
   }
+`;
+
+const ReplayPlaceholder = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-faint);
+  padding: 16px;
+  text-align: center;
 `;

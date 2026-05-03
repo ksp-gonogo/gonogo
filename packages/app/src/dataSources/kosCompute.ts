@@ -114,10 +114,25 @@ export interface KosComputeManagerDeps {
   getActiveCpu: () => string;
 }
 
+/**
+ * Sink for every per-field sample emitted by the compute fanout. Used to
+ * record kOS samples into the BufferedDataSource flight history so they
+ * replay alongside Telemachus telemetry. Set via
+ * `KosComputeManager.setSampleSink` (typically called once at app
+ * bootstrap).
+ */
+export type KosSampleSink = (key: string, value: unknown) => void;
+
 export class KosComputeManager {
   private readonly topics = new Map<string, ComputeTopic>();
+  private sampleSink: KosSampleSink | null = null;
 
   constructor(private readonly deps: KosComputeManagerDeps) {}
+
+  /** Replace the sample sink. Pass `null` to detach. */
+  setSampleSink(sink: KosSampleSink | null): void {
+    this.sampleSink = sink;
+  }
 
   /** Enumerate `kos.compute.*` keys for every registered script. */
   schema(): DataKey[] {
@@ -402,6 +417,12 @@ export class KosComputeManager {
       const subs = topic.subs.get(field.name);
       if (subs) {
         for (const cb of subs) cb(value);
+      }
+      // External sink (BufferedDataSource capture for replay). Fires for
+      // every field emission whether or not anyone is subscribed — captured
+      // samples sit in the store and replay later.
+      if (this.sampleSink) {
+        this.sampleSink(`kos.compute.${topic.def.id}.${field.name}`, value);
       }
     }
   }

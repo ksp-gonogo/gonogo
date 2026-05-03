@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isKosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
 import { isScriptable } from "../kos/ScriptableDataSource";
+import { useReplayActive } from "../replay/useReplayActive";
 
 /**
  * Interval-mode circuit breaker: after this many *consecutive* script
@@ -159,6 +160,12 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
   // unmount. Both are refs so React renders don't reset the guard.
   const pendingRef = useRef(false);
   const mountedRef = useRef(true);
+  // Replay-mode guard read from a ref so the dispatch closure stays
+  // stable across renders. Refused dispatches surface a clear error
+  // instead of returning empty data from the no-op replay stub.
+  const replayActive = useReplayActive();
+  const replayActiveRef = useRef(replayActive);
+  replayActiveRef.current = replayActive;
   // Consecutive-script-error count for the interval breaker. Only
   // resets on a successful dispatch or an explicit reEnable() —
   // transport errors and component re-renders don't touch it.
@@ -198,6 +205,14 @@ export function useKosWidget(opts: UseKosWidgetOptions): UseKosWidgetResult {
 
   const dispatch = useCallback(() => {
     if (pendingRef.current) return;
+    if (replayActiveRef.current) {
+      // Replay mode: the kOS source is the FlightReplayDataSource, which
+      // has a no-op `executeScript`. Refusing here surfaces a clear
+      // status to the widget instead of returning an empty payload that
+      // the user might mistake for "kOS returned nothing".
+      setError(new Error("kOS dispatch disabled during flight replay"));
+      return;
+    }
     const source = getDataSource(sourceId);
     if (!isScriptable(source)) {
       setError(

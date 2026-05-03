@@ -42,6 +42,7 @@ export * from "./replay/fixtureIO";
 export * from "./replay/ReplayBanner";
 export * from "./replay/ReplayController";
 export * from "./replay/synthesizeFlight";
+export * from "./replay/useReplayActive";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, TELEMACHUS_META } from "./schema/telemachusMeta";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
