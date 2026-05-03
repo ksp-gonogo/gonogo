@@ -12,6 +12,22 @@ const components = new Map<string, AnyDef>();
 const dataSources = new Map<string, AnySource>();
 const themes = new Map<string, ThemeDefinition>();
 
+// Bumped whenever the data-source map mutates (register / replace / clear).
+// `useDataSourceSubscription` watches this so a swap of the source under an
+// existing id (e.g. live → replay) re-triggers the hook's subscribe path
+// against the new source instance instead of staying bound to the old one.
+const dataSourceListeners = new Set<() => void>();
+function notifyDataSourceChange(): void {
+  for (const cb of dataSourceListeners) cb();
+}
+
+export function onDataSourcesChange(cb: () => void): () => void {
+  dataSourceListeners.add(cb);
+  return () => {
+    dataSourceListeners.delete(cb);
+  };
+}
+
 // Generic so that component/defaultConfig pairing is checked at the call site,
 // but erased to AnyDef in the registry so the orchestrator can render any component.
 export function registerComponent<TConfig = Record<string, unknown>>(
@@ -25,6 +41,17 @@ export function registerDataSource<
   TConfig extends Record<string, unknown> = Record<string, unknown>,
 >(source: DataSource<TConfig>): void {
   dataSources.set(source.id, source as AnySource);
+  notifyDataSourceChange();
+}
+
+/**
+ * Remove the source registered under `id`. No-op if nothing is registered.
+ * Notifies subscribers so any `useDataSourceSubscription` consumers
+ * re-evaluate against the empty registry slot (returning their initial
+ * snapshot until something else takes the slot).
+ */
+export function unregisterDataSource(id: string): void {
+  if (dataSources.delete(id)) notifyDataSourceChange();
 }
 
 export function registerTheme(def: ThemeDefinition): void {
@@ -61,4 +88,5 @@ export function clearRegistry(): void {
   dataSources.clear();
   themes.clear();
   clearKosScripts();
+  notifyDataSourceChange();
 }

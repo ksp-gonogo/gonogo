@@ -84,4 +84,25 @@ export interface FlightRecord {
   /** Last observed mission time for revert detection. Seconds. */
   lastMissionTime: number;
   sampleCount: number;
+  /**
+   * User-authored chapters / markers. Window bounds are **elapsed
+   * milliseconds since `launchedAt`** so they stay readable when reviewing
+   * the record by hand and survive any future re-anchoring of `launchedAt`.
+   * Optional — flights start with none.
+   */
+  chapters?: FlightChapterRecord[];
+}
+
+/**
+ * One named slice of a flight, persisted on the FlightRecord. Mirrors the
+ * shape of `FlightChapter` (used in fixtures) — when the flight is exported,
+ * its chapters round-trip into the fixture's chapters array.
+ */
+export interface FlightChapterRecord {
+  id: string;
+  label: string;
+  /** Elapsed ms since `launchedAt`. */
+  startMs: number;
+  /** Elapsed ms since `launchedAt`. */
+  endMs: number;
 }

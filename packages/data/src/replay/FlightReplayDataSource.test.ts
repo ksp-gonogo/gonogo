@@ -178,6 +178,82 @@ describe("FlightReplayDataSource — nextPendingSampleT", () => {
   });
 });
 
+describe("FlightReplayDataSource — queryRange (BufferedDataSource shape)", () => {
+  it("returns columnar samples within [tStart, tEnd] inclusive", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    const range = await src.queryRange("v.altitude", 1_005_000, 1_010_000);
+    expect(range).toEqual({ t: [1_005_000, 1_010_000], v: [100, 1_000] });
+  });
+
+  it("clips to the requested window", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    const range = await src.queryRange("v.altitude", 1_001_000, 1_006_000);
+    expect(range).toEqual({ t: [1_005_000], v: [100] });
+  });
+
+  it("returns empty arrays for unknown keys", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    expect(
+      await src.queryRange("v.missing", 0, Number.MAX_SAFE_INTEGER),
+    ).toEqual({
+      t: [],
+      v: [],
+    });
+  });
+
+  it("does not depend on the cursor — historical query independent of playback position", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    src.advance(5_000); // move cursor forward
+    const range = await src.queryRange(
+      "v.altitude",
+      0,
+      Number.MAX_SAFE_INTEGER,
+    );
+    // Still returns every sample regardless of cursor position.
+    expect(range.t).toEqual([1_000_000, 1_005_000, 1_010_000]);
+  });
+});
+
+describe("FlightReplayDataSource — subscribeSamples (timestamped fanout)", () => {
+  it("emits { t, v } per sample as the cursor advances", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    const samples: Array<{ t: number; v: unknown }> = [];
+    src.subscribeSamples("v.altitude", (s) => samples.push(s));
+
+    src.advance(10_000);
+
+    expect(samples).toEqual([
+      { t: 1_000_000, v: 0 },
+      { t: 1_005_000, v: 100 },
+      { t: 1_010_000, v: 1_000 },
+    ]);
+  });
+
+  it("rewind emits the snapshot tuple's actual t (not the seek target)", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    src.advance(10_000); // play through
+
+    const samples: Array<{ t: number; v: unknown }> = [];
+    src.subscribeSamples("v.altitude", (s) => samples.push(s));
+    src.seek(1_006_000); // rewind — snapshot at-or-before is t=1_005_000
+
+    expect(samples).toEqual([{ t: 1_005_000, v: 100 }]);
+  });
+
+  it("respects unsubscribe", async () => {
+    const src = new FlightReplayDataSource({ fixture: ASCENT });
+    await src.connect();
+    const samples: Array<{ t: number; v: unknown }> = [];
+    const unsub = src.subscribeSamples("v.altitude", (s) => samples.push(s));
+    unsub();
+    src.advance(10_000);
+    expect(samples).toEqual([]);
+  });
+});
+
 describe("FlightReplayDataSource — autoplay", () => {
   it("advances on the wall clock when autoplay is set", async () => {
     vi.useFakeTimers();

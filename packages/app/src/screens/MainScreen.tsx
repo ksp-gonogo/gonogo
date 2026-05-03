@@ -12,6 +12,7 @@ import {
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
+  ReplayBanner,
 } from "@gonogo/data";
 import {
   InputDispatcher,
@@ -203,6 +204,7 @@ export function MainScreen() {
                                 <MainAlarmsFab />
                               </FabClusterProvider>
                               <AlarmBanner />
+                              <ReplayBanner />
                               <SignalLossIndicator />
                               <PushedDashboardOverlay />
                             </Layout>

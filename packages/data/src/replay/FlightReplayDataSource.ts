@@ -4,6 +4,7 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
+import type { Sample, SeriesRange } from "../types";
 import { type FlightFixture, fixtureDurationMs } from "./FlightFixture";
 
 /**
@@ -57,8 +58,10 @@ interface KeyState {
   lastValue: unknown;
   /** Whether `lastValue` is meaningful (i.e. at least one sample emitted). */
   hasLast: boolean;
-  /** Live subscriber callbacks. */
+  /** Live value subscriber callbacks. */
   subs: Set<(value: unknown) => void>;
+  /** Live timestamped sample subscriber callbacks (for `subscribeSamples`). */
+  sampleSubs: Set<(sample: Sample) => void>;
 }
 
 export class FlightReplayDataSource implements DataSource {
@@ -98,6 +101,7 @@ export class FlightReplayDataSource implements DataSource {
         lastValue: undefined,
         hasLast: false,
         subs: new Set(),
+        sampleSubs: new Set(),
       });
     }
   }
@@ -135,6 +139,51 @@ export class FlightReplayDataSource implements DataSource {
     this.statusSubs.add(cb);
     return () => {
       this.statusSubs.delete(cb);
+    };
+  }
+
+  // ── BufferedDataSource-shape consumer surface ────────────────────────────
+  //
+  // The widget hooks (useDataSeries) call queryRange + subscribeSamples on
+  // the registered "data" source — assuming it's a BufferedDataSource. To
+  // let widgets work in replay mode wholesale, the replay source mimics
+  // both. queryRange reads directly from the in-memory fixture (no store
+  // round-trip needed); subscribeSamples is the timestamped fanout already
+  // wired in `applyForwardTo`.
+
+  /**
+   * Inclusive at both ends. Slices the fixture's per-key tuple array to
+   * `[tStart, tEnd]` and returns columnar arrays. Synchronous internally;
+   * async-wrapped to match the BufferedDataSource contract.
+   */
+  async queryRange(
+    key: string,
+    tStart: number,
+    tEnd: number,
+  ): Promise<SeriesRange> {
+    const series = this.fixture.samples[key];
+    if (!series || series.length === 0) return { t: [], v: [] };
+    const t: number[] = [];
+    const v: unknown[] = [];
+    for (const [ts, value] of series) {
+      if (ts < tStart) continue;
+      if (ts > tEnd) break;
+      t.push(ts);
+      v.push(value);
+    }
+    return { t, v };
+  }
+
+  /**
+   * Timestamped variant of `subscribe`. Fires `{ t, v }` every time the
+   * cursor advances past a tuple — the in-replay equivalent of
+   * BufferedDataSource's per-sample fanout.
+   */
+  subscribeSamples(key: string, cb: (sample: Sample) => void): () => void {
+    const state = this.ensureKeyState(key);
+    state.sampleSubs.add(cb);
+    return () => {
+      state.sampleSubs.delete(cb);
     };
   }
 
@@ -222,11 +271,18 @@ export class FlightReplayDataSource implements DataSource {
         lastIdx = i;
       }
       if (lastIdx >= 0) {
-        const [, v] = series[lastIdx];
+        const [tEmit, v] = series[lastIdx];
         state.cursor = lastIdx + 1;
         state.lastValue = v;
         state.hasLast = true;
         for (const cb of state.subs) cb(v);
+        // Sample subscribers on rewind: surface the snapshot timestamp
+        // (the actual recorded `t`, not the seek target) so consumers can
+        // drop pre-seek points correctly.
+        if (state.sampleSubs.size > 0) {
+          const sample: Sample = { t: tEmit, v };
+          for (const cb of state.sampleSubs) cb(sample);
+        }
       }
     }
     this.currentT = t;
@@ -272,6 +328,12 @@ export class FlightReplayDataSource implements DataSource {
         state.lastValue = tuple[1];
         state.hasLast = true;
         for (const cb of state.subs) cb(tuple[1]);
+        // Timestamped fanout for `subscribeSamples` consumers (useDataSeries).
+        // Mirrors BufferedDataSource: same value goes to both surfaces.
+        if (state.sampleSubs.size > 0) {
+          const sample: Sample = { t: tuple[0], v: tuple[1] };
+          for (const cb of state.sampleSubs) cb(sample);
+        }
       }
     }
     this.currentT = targetT;
@@ -285,6 +347,7 @@ export class FlightReplayDataSource implements DataSource {
         lastValue: undefined,
         hasLast: false,
         subs: new Set(),
+        sampleSubs: new Set(),
       };
       this.keyStates.set(key, state);
     }

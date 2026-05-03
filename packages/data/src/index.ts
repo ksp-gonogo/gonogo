@@ -39,6 +39,8 @@ export * from "./replay/clipFixture";
 export * from "./replay/FlightFixture";
 export * from "./replay/FlightReplayDataSource";
 export * from "./replay/fixtureIO";
+export * from "./replay/ReplayBanner";
+export * from "./replay/ReplayController";
 export * from "./replay/synthesizeFlight";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, TELEMACHUS_META } from "./schema/telemachusMeta";

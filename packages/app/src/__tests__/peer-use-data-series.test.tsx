@@ -1,6 +1,6 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { useDataSeries } from "@gonogo/data";
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";
@@ -52,6 +52,10 @@ describe("useDataSeries against PeerClientDataSource", () => {
   });
 
   afterEach(() => {
+    // Unmount before clearing so the registry-change listener inside
+    // useDataSourceSubscription doesn't fire a setState into a still-
+    // mounted component (which would land outside any act() scope).
+    cleanup();
     clearRegistry();
   });
 

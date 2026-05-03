@@ -3,7 +3,9 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";
 import { useFlight } from "../hooks/useFlight";
+import { getReplayController } from "../replay/ReplayController";
 import type { FlightRecord } from "../types";
+import { ChaptersEditor } from "./ChaptersEditor";
 import { FlightGraph } from "./FlightGraph";
 
 function formatDate(ms: number): string {
@@ -86,6 +88,15 @@ export function FlightsManager() {
     downloadJson(fixture, fixtureFilename(flight));
   };
 
+  const handleReplay = async (flight: FlightRecord) => {
+    const src = getSource();
+    if (!src) return;
+    await getReplayController().start(src, flight.id);
+    // The banner takes over from here; close the modal so the dashboard
+    // is visible underneath.
+    setExpandedFlightId(null);
+  };
+
   const handleClearAll = async () => {
     const src = getSource();
     if (!src) return;
@@ -139,6 +150,14 @@ export function FlightsManager() {
                       >
                         {isExpanded ? "− graph" : "＋ graph"}
                       </GraphButton>
+                      <ReplayButton
+                        type="button"
+                        onClick={() => void handleReplay(f)}
+                        aria-label={`Replay flight ${f.vesselName || ""}`}
+                        title="Replay this flight in the dashboard"
+                      >
+                        ▶ replay
+                      </ReplayButton>
                       <ExportButton
                         type="button"
                         onClick={() => void handleExport(f)}
@@ -169,6 +188,10 @@ export function FlightsManager() {
                 {isExpanded && (
                   <Tr $current={false}>
                     <Td colSpan={5} style={{ padding: 0 }}>
+                      <ChaptersEditor
+                        flight={f}
+                        onChange={() => void reload()}
+                      />
                       <FlightGraph
                         flightId={f.id}
                         launchedAt={f.launchedAt}
@@ -253,6 +276,24 @@ const ExportButton = styled.button`
     &:hover {
       border-color: var(--color-tag-blue-fg);
       color: var(--color-tag-blue-fg);
+    }
+  }
+`;
+
+const ReplayButton = styled.button`
+  background: none;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--color-tag-purple-fg);
+      color: var(--color-tag-purple-fg);
     }
   }
 `;

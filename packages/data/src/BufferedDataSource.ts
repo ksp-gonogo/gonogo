@@ -13,7 +13,13 @@ import type { FlightFixture } from "./replay/FlightFixture";
 import { exportFlightToFixture } from "./replay/fixtureIO";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
-import type { DataKeyMeta, FlightRecord, Sample, SeriesRange } from "./types";
+import type {
+  DataKeyMeta,
+  FlightChapterRecord,
+  FlightRecord,
+  Sample,
+  SeriesRange,
+} from "./types";
 
 /**
  * Soft cap on samples flowing into the buffered layer. Telemachus runs
@@ -357,14 +363,80 @@ export class BufferedDataSource extends DataSourceWrapper {
    * Export a recorded flight as a portable `FlightFixture` — every sample
    * across every schema-known key, packaged with the flight metadata.
    * Suitable for `JSON.stringify()` and round-tripping through the replay
-   * pipeline (or out to a `.json` file on disk).
+   * pipeline (or out to a `.json` file on disk). Persisted chapters on
+   * the FlightRecord are carried into the fixture's `chapters` array.
    */
-  exportFlight(id: string): Promise<FlightFixture> {
+  async exportFlight(id: string): Promise<FlightFixture> {
     const schema = this.schema();
-    return exportFlightToFixture(this.store, id, {
+    const fixture = await exportFlightToFixture(this.store, id, {
       keys: schema.map((k) => k.key),
       schema,
     });
+    if (!fixture.flight.chapters || fixture.flight.chapters.length === 0) {
+      return fixture;
+    }
+    return { ...fixture, chapters: fixture.flight.chapters };
+  }
+
+  // ── Chapters (markers on a recorded flight) ──────────────────────────────
+
+  /**
+   * Add a new chapter to the flight and persist. Returns the upserted
+   * FlightRecord so callers can refresh their view immediately.
+   */
+  async addChapter(
+    flightId: string,
+    chapter: Omit<FlightChapterRecord, "id"> & { id?: string },
+  ): Promise<FlightRecord | null> {
+    const flight = await this.store.getFlight(flightId);
+    if (!flight) return null;
+    const id =
+      chapter.id ??
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `ch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const next: FlightChapterRecord = {
+      id,
+      label: chapter.label,
+      startMs: chapter.startMs,
+      endMs: chapter.endMs,
+    };
+    const updated: FlightRecord = {
+      ...flight,
+      chapters: [...(flight.chapters ?? []), next],
+    };
+    await this.store.upsertFlight(updated);
+    if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    return updated;
+  }
+
+  async updateChapter(
+    flightId: string,
+    chapterId: string,
+    patch: Partial<Omit<FlightChapterRecord, "id">>,
+  ): Promise<FlightRecord | null> {
+    const flight = await this.store.getFlight(flightId);
+    if (!flight) return null;
+    const chapters = (flight.chapters ?? []).map((c) =>
+      c.id === chapterId ? { ...c, ...patch } : c,
+    );
+    const updated: FlightRecord = { ...flight, chapters };
+    await this.store.upsertFlight(updated);
+    if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    return updated;
+  }
+
+  async removeChapter(
+    flightId: string,
+    chapterId: string,
+  ): Promise<FlightRecord | null> {
+    const flight = await this.store.getFlight(flightId);
+    if (!flight) return null;
+    const chapters = (flight.chapters ?? []).filter((c) => c.id !== chapterId);
+    const updated: FlightRecord = { ...flight, chapters };
+    await this.store.upsertFlight(updated);
+    if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    return updated;
   }
 
   getCurrentFlight(): FlightRecord | null {

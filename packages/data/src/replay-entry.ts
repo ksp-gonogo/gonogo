@@ -11,5 +11,11 @@ export * from "./replay/clipFixture";
 export * from "./replay/FlightFixture";
 export * from "./replay/FlightReplayDataSource";
 export * from "./replay/fixtureIO";
+export * from "./replay/ReplayController";
 export * from "./replay/synthesizeFlight";
-export type { FlightRecord, Sample, SeriesRange } from "./types";
+export type {
+  FlightChapterRecord,
+  FlightRecord,
+  Sample,
+  SeriesRange,
+} from "./types";
