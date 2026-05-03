@@ -69,10 +69,14 @@ function OrbitViewComponent({
 
   // Selective rendering — at small sizes the SVG diagram doesn't have room
   // to be readable, so collapse to a single status pill (the user's
-  // canonical example for "tiny mode").
+  // canonical example for "tiny mode"). Accept either:
+  //   - Square / portrait ≥ 5 cols × 5 rows (the original threshold), or
+  //   - Landscape ≥ 8 cols × 3 rows (wide-short, e.g. the dashboard's
+  //     header strip — the diagram aspect-fits horizontally and stays
+  //     legible).
   const cols = w ?? 9;
   const rows = h ?? 18;
-  const showDiagram = rows >= 5 && cols >= 5;
+  const showDiagram = (rows >= 5 && cols >= 5) || (cols >= 8 && rows >= 3);
   const showSubtitle = rows >= 4;
 
   let pillLabel = "—";

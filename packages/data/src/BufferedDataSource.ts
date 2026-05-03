@@ -9,6 +9,8 @@ import {
 } from "./kos/ScriptableDataSource";
 import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
 import { debugFlight } from "./logger";
+import type { FlightFixture } from "./replay/FlightFixture";
+import { exportFlightToFixture } from "./replay/fixtureIO";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
 import type { DataKeyMeta, FlightRecord, Sample, SeriesRange } from "./types";
@@ -345,6 +347,24 @@ export class BufferedDataSource extends DataSourceWrapper {
 
   listFlights(): Promise<FlightRecord[]> {
     return this.store.listFlights();
+  }
+
+  getFlight(id: string): Promise<FlightRecord | null> {
+    return this.store.getFlight(id);
+  }
+
+  /**
+   * Export a recorded flight as a portable `FlightFixture` — every sample
+   * across every schema-known key, packaged with the flight metadata.
+   * Suitable for `JSON.stringify()` and round-tripping through the replay
+   * pipeline (or out to a `.json` file on disk).
+   */
+  exportFlight(id: string): Promise<FlightFixture> {
+    const schema = this.schema();
+    return exportFlightToFixture(this.store, id, {
+      keys: schema.map((k) => k.key),
+      schema,
+    });
   }
 
   getCurrentFlight(): FlightRecord | null {

@@ -25,6 +25,33 @@ function getSource(): BufferedDataSource | undefined {
   return getDataSource("data") as BufferedDataSource | undefined;
 }
 
+function fixtureFilename(flight: FlightRecord): string {
+  const safeName = (flight.vesselName || "flight")
+    .replace(/[^a-z0-9._-]+/gi, "_")
+    .toLowerCase();
+  const stamp = new Date(flight.launchedAt)
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace(/Z$/, "");
+  return `${safeName}-${stamp}.fixture.json`;
+}
+
+function downloadJson(payload: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  // Append → click → remove keeps Firefox happy; the synchronous click
+  // triggers the download immediately, then we revoke the blob URL.
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function FlightsManager() {
   const currentFlight = useFlight();
   const [flights, setFlights] = useState<FlightRecord[]>([]);
@@ -50,6 +77,13 @@ export function FlightsManager() {
     await src.deleteFlight(id);
     setConfirmDeleteId(null);
     await reload();
+  };
+
+  const handleExport = async (flight: FlightRecord) => {
+    const src = getSource();
+    if (!src) return;
+    const fixture = await src.exportFlight(flight.id);
+    downloadJson(fixture, fixtureFilename(flight));
   };
 
   const handleClearAll = async () => {
@@ -105,6 +139,14 @@ export function FlightsManager() {
                       >
                         {isExpanded ? "− graph" : "＋ graph"}
                       </GraphButton>
+                      <ExportButton
+                        type="button"
+                        onClick={() => void handleExport(f)}
+                        aria-label={`Download fixture for ${f.vesselName || "flight"}`}
+                        title="Download as replay fixture (.json)"
+                      >
+                        ↓ fixture
+                      </ExportButton>
                       {confirmDeleteId === f.id ? (
                         <ConfirmRow>
                           <DangerButton onClick={() => void handleDelete(f.id)}>
@@ -193,6 +235,24 @@ const GraphButton = styled.button<{ $open: boolean }>`
     &:hover {
       border-color: var(--color-status-go-bg);
       color: var(--color-status-go-fg);
+    }
+  }
+`;
+
+const ExportButton = styled.button`
+  background: none;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--color-tag-blue-fg);
+      color: var(--color-tag-blue-fg);
     }
   }
 `;

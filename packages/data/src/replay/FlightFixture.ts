@@ -16,6 +16,19 @@ import type { FlightRecord } from "../types";
  * shape). Replay APIs that talk in elapsed time normalise them against
  * `flight.launchedAt`.
  */
+/**
+ * Optional named slice of a flight (e.g. "ascent", "circularization",
+ * "docking-approach"). Window bounds are **elapsed milliseconds since
+ * `flight.launchedAt`** so they stay readable when reviewing a fixture
+ * by hand and survive any future re-anchoring of `launchedAt`.
+ */
+export interface FlightChapter {
+  readonly id: string;
+  readonly label: string;
+  readonly startMs: number;
+  readonly endMs: number;
+}
+
 export interface FlightFixture {
   /**
    * Format identifier + version. Bump the version when the on-disk shape
@@ -42,6 +55,12 @@ export interface FlightFixture {
   readonly samples: Readonly<
     Record<string, ReadonlyArray<readonly [number, unknown]>>
   >;
+  /**
+   * Optional named windows. Lets a long recording carry markers for
+   * specific activities ("ascent", "docking", "landing") so tests can
+   * target a slice via `clipFixture(fixture, chapterId)`.
+   */
+  readonly chapters?: ReadonlyArray<FlightChapter>;
 }
 
 export const FLIGHT_FIXTURE_FORMAT = "gonogo-flight-fixture/v1" as const;
@@ -79,6 +98,22 @@ export function isFlightFixture(value: unknown): value is FlightFixture {
       const t = tuple[0];
       if (typeof t !== "number" || t < prevT) return false;
       prevT = t;
+    }
+  }
+  if (v.chapters !== undefined) {
+    if (!Array.isArray(v.chapters)) return false;
+    for (const c of v.chapters as Array<Partial<FlightChapter>>) {
+      if (
+        !c ||
+        typeof c !== "object" ||
+        typeof c.id !== "string" ||
+        typeof c.label !== "string" ||
+        typeof c.startMs !== "number" ||
+        typeof c.endMs !== "number" ||
+        c.endMs < c.startMs
+      ) {
+        return false;
+      }
     }
   }
   return true;

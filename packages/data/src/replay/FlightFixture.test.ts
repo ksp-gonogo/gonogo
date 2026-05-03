@@ -70,6 +70,29 @@ describe("isFlightFixture", () => {
     expect(isFlightFixture("string")).toBe(false);
     expect(isFlightFixture(42)).toBe(false);
   });
+
+  it("accepts a fixture with valid chapters", () => {
+    const withChapters = {
+      ...baseFixture,
+      chapters: [
+        { id: "ascent", label: "Ascent", startMs: 0, endMs: 5_000 },
+        { id: "orbit", label: "Orbit", startMs: 5_000, endMs: 10_000 },
+      ],
+    };
+    expect(isFlightFixture(withChapters)).toBe(true);
+  });
+
+  it("rejects when a chapter has endMs before startMs", () => {
+    const bad = {
+      ...baseFixture,
+      chapters: [{ id: "x", label: "X", startMs: 100, endMs: 50 }],
+    };
+    expect(isFlightFixture(bad)).toBe(false);
+  });
+
+  it("rejects when chapters isn't an array", () => {
+    expect(isFlightFixture({ ...baseFixture, chapters: "ascent" })).toBe(false);
+  });
 });
 
 describe("fixtureDurationMs", () => {

@@ -35,6 +35,7 @@ export * from "./kos/kos-data-parser";
 export * from "./kos/ScriptableDataSource";
 export * from "./ListenerSet";
 export { debugFlight } from "./logger";
+export * from "./replay/clipFixture";
 export * from "./replay/FlightFixture";
 export * from "./replay/FlightReplayDataSource";
 export * from "./replay/fixtureIO";
