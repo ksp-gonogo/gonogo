@@ -15,6 +15,7 @@ import {
 import { hashKosScript, isScriptable, useKosScriptStatus } from "@gonogo/data";
 import {
   Button,
+  CheckIcon,
   ConfigForm,
   Field,
   FieldHint,
@@ -241,7 +242,7 @@ function TargetPickerComponent({
           </GhostButton>
           {status.lastGoodAt !== null && (
             <VesselsMeta $flash={flashConfirm} role="status" aria-live="polite">
-              {flashConfirm ? "✓ " : ""}
+              {flashConfirm && <CheckIcon size={12} strokeWidth={2.5} />}{" "}
               {sorted.length} target{sorted.length === 1 ? "" : "s"} ·{" "}
               {flashConfirm
                 ? "updated just now"

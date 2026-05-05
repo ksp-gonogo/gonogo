@@ -1,3 +1,4 @@
+import { CloseIcon, PushUpIcon, RecallIcon } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
@@ -45,7 +46,8 @@ export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
       title={confirming ? "Click again to confirm" : "Remove widget"}
       $confirming={confirming}
     >
-      {confirming ? "✕?" : "✕"}
+      <CloseIcon size={12} />
+      {confirming ? "?" : null}
     </RemoveBtn>
   );
 }
@@ -93,7 +95,7 @@ export function PushButton({
       title={pushed ? "Recall from main" : "Push to main"}
       $pushed={pushed}
     >
-      {pushed ? "⇦" : "⇪"}
+      {pushed ? <RecallIcon size={14} /> : <PushUpIcon size={14} />}
     </PushBtn>
   );
 }

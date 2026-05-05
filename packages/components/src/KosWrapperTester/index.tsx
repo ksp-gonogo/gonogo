@@ -2,6 +2,8 @@ import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { logger, registerComponent } from "@gonogo/core";
 import { hashKosScript, useKosWidget } from "@gonogo/data";
 import {
+  CheckIcon,
+  CloseIcon,
   ConfigForm,
   Field,
   FieldHint,
@@ -245,7 +247,19 @@ function KosWrapperTesterComponent({
                       <span>
                         v=<code>{h.versionSent}</code> · {h.expected} →{" "}
                         {h.observed ?? "—"}
-                        {h.observed === h.expected ? " ✓" : " ✗"}
+                        {h.observed === h.expected ? (
+                          <CheckIcon
+                            size={11}
+                            strokeWidth={2.5}
+                            style={{ marginLeft: 3 }}
+                          />
+                        ) : (
+                          <CloseIcon
+                            size={11}
+                            strokeWidth={2.5}
+                            style={{ marginLeft: 3 }}
+                          />
+                        )}
                       </span>
                     )}
                   </HistoryItem>

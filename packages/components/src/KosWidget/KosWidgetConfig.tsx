@@ -2,6 +2,8 @@ import type { ConfigComponentProps } from "@gonogo/core";
 import type { KosWidgetArg } from "@gonogo/data";
 import { useDataSchema } from "@gonogo/data";
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   ConfigForm,
   DataKeyPicker,
   Field,
@@ -228,7 +230,12 @@ export function KosWidgetConfigComponent({
 
       <Field>
         <HelpToggle type="button" onClick={() => setHelpOpen((o) => !o)}>
-          {helpOpen ? "▾" : "▸"} How to write a widget script
+          {helpOpen ? (
+            <ChevronDownIcon size={12} />
+          ) : (
+            <ChevronRightIcon size={12} />
+          )}{" "}
+          How to write a widget script
         </HelpToggle>
         {helpOpen && (
           <HelpBox>
@@ -345,6 +352,9 @@ const HelpToggle = styled.button`
   padding: 0;
   cursor: pointer;
   text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   &:hover {
     color: var(--color-text-primary);
   }

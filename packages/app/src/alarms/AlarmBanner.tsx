@@ -1,3 +1,4 @@
+import { ArrowRightIcon, PlayIcon, StopIcon } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -63,7 +64,9 @@ export function AlarmBanner() {
           <Value>{formatWarp(snap.warp.index, snap.warp.rate)}</Value>
           {warpToTargetRate !== null && (
             <>
-              <WarpArrow aria-hidden="true">→</WarpArrow>
+              <WarpArrow aria-hidden="true">
+                <ArrowRightIcon size={14} />
+              </WarpArrow>
               <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
             </>
           )}
@@ -91,7 +94,7 @@ export function AlarmBanner() {
                   onClick={() => host.cancelWarpTo()}
                   title="Stop the managed warp and drop to 1×"
                 >
-                  ■ Stop warp
+                  <StopIcon size={12} /> Stop warp
                 </StopWarpButton>
               ) : (
                 warpToCandidate && (
@@ -100,7 +103,7 @@ export function AlarmBanner() {
                     onClick={() => host.beginWarpTo()}
                     title="Warp toward the next alarm at the highest safe rate"
                   >
-                    ▶ Warp to alarm
+                    <PlayIcon size={12} /> Warp to alarm
                   </WarpToButton>
                 )
               )}
@@ -393,7 +396,8 @@ const AckButton = styled.button`
 
 const WarpArrow = styled.span`
   color: var(--color-text-dim);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
 `;
 
 const WarpToTarget = styled.span`
@@ -413,6 +417,9 @@ const WarpToButton = styled.button`
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);
@@ -435,6 +442,9 @@ const StopWarpButton = styled.button`
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);

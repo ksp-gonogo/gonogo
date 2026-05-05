@@ -11,7 +11,7 @@ import {
   SerialDeviceProvider,
   useSerialDeviceService,
 } from "@gonogo/serial";
-import { Tabs, useModal } from "@gonogo/ui";
+import { GearIcon, Tabs, useModal } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
@@ -88,7 +88,7 @@ export function GearButton({
       aria-label={`Configure ${def.name}`}
       title="Configure"
     >
-      ⚙
+      <GearIcon size={14} />
     </GearBtn>
   );
 }

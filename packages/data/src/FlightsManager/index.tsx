@@ -1,4 +1,5 @@
 import { getDataSource } from "@gonogo/core";
+import { StarIcon } from "@gonogo/ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";
@@ -219,7 +220,9 @@ export function FlightsManager() {
                 }
               />
             </ThCheckbox>
-            <ThStar aria-label="Starred (exempt from auto-delete)">★</ThStar>
+            <ThStar aria-label="Starred (exempt from auto-delete)">
+              <StarIcon size={12} fill="currentColor" />
+            </ThStar>
             <Th>Vessel</Th>
             <Th>Launched</Th>
             <Th>Duration</Th>
@@ -259,7 +262,10 @@ export function FlightsManager() {
                           : "Star to keep from auto-delete"
                       }
                     >
-                      {f.starred ? "★" : "☆"}
+                      <StarIcon
+                        size={14}
+                        fill={f.starred ? "currentColor" : "none"}
+                      />
                     </StarButton>
                   </Td>
                   <Td>
@@ -617,8 +623,9 @@ const StarButton = styled.button<{ $on: boolean }>`
   border: none;
   cursor: pointer;
   padding: 0 2px;
-  font-size: 16px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: ${({ $on }) =>
     $on ? "var(--color-tag-yellow-fg, gold)" : "var(--color-text-faint)"};
 

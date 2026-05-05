@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import type { KeyOption } from "./DataKeyPicker";
+import { CheckIcon } from "./Icons";
 
 export interface DataKeyMultiPickerProps {
   keys: KeyOption[];
@@ -82,7 +83,9 @@ export function DataKeyMultiPicker({
                       onChange={() => toggle(opt.key)}
                     />
                     <RowLabel htmlFor={id}>
-                      <Box $checked={checked}>{checked ? "✓" : ""}</Box>
+                      <Box $checked={checked}>
+                        {checked && <CheckIcon size={11} strokeWidth={3} />}
+                      </Box>
                       <ItemLabel>{opt.label ?? opt.key}</ItemLabel>
                       {opt.unit && <ItemUnit>{opt.unit}</ItemUnit>}
                     </RowLabel>

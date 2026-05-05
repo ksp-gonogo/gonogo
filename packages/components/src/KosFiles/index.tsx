@@ -2,6 +2,8 @@ import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import { logger, registerComponent } from "@gonogo/core";
 import { hashKosScript, useKosWidget } from "@gonogo/data";
 import {
+  ArrowLeftIcon,
+  ArrowUpIcon,
   ConfigForm,
   Field,
   FieldHint,
@@ -167,7 +169,7 @@ function KosFilesComponent({
         <ViewerWrap>
           <ViewerHeader>
             <BackButton type="button" onClick={handleBackToList}>
-              ← Back
+              <ArrowLeftIcon size={12} /> Back
             </BackButton>
             <ViewerPath>{view.path}</ViewerPath>
           </ViewerHeader>
@@ -182,7 +184,7 @@ function KosFilesComponent({
       <ListHeader>
         {!atRoot && (
           <BackButton type="button" onClick={handleAscend}>
-            ↑ Up
+            <ArrowUpIcon size={12} /> Up
           </BackButton>
         )}
         <ViewerPath>{currentPath}</ViewerPath>
@@ -553,6 +555,9 @@ const BackButton = styled.button`
   padding: 2px 8px;
   font-size: 11px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   &:hover {
     background: var(--color-border-subtle);
   }

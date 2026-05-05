@@ -3,6 +3,7 @@ import {
   ErrorBoundary,
   getComponent,
 } from "@gonogo/core";
+import { CloseIcon } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -157,7 +158,7 @@ function PushedItem({
           aria-label="Dismiss pushed widget"
           title="Dismiss"
         >
-          ✕
+          <CloseIcon size={14} />
         </DismissBtn>
       </ItemHeader>
       <ItemBody>

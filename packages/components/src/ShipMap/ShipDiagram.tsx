@@ -1,3 +1,4 @@
+import { StarIcon } from "@gonogo/ui";
 import type React from "react";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
@@ -281,7 +282,11 @@ export function ShipDiagram({
             top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
           }}
         >
-          {hovered.tag ? <div className="tag">★ {hovered.tag}</div> : null}
+          {hovered.tag ? (
+            <div className="tag">
+              <StarIcon size={11} fill="currentColor" /> {hovered.tag}
+            </div>
+          ) : null}
           <div className="title">{hovered.title || hovered.name}</div>
           <div className="row">
             <span>type</span>

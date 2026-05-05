@@ -4,6 +4,7 @@ import {
   getComponent,
 } from "@gonogo/core";
 import type { InputMappings } from "@gonogo/serial";
+import { ChevronDownIcon, ChevronUpIcon } from "@gonogo/ui";
 import { memo, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import type { DashboardItem, DashboardProps } from "./index";
@@ -181,7 +182,7 @@ function ReorderButton({
   onClick: () => void;
 }>) {
   const label = direction === "up" ? "Move up" : "Move down";
-  const glyph = direction === "up" ? "▲" : "▼";
+  const Glyph = direction === "up" ? ChevronUpIcon : ChevronDownIcon;
   return (
     <ReorderBtn
       type="button"
@@ -190,7 +191,7 @@ function ReorderButton({
       aria-label={label}
       title={label}
     >
-      {glyph}
+      <Glyph size={16} />
     </ReorderBtn>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
+import { CloseIcon } from "./Icons";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -147,7 +148,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
                 <DialogTitle id={titleId}>{entry.title}</DialogTitle>
               )}
               <CloseButton onClick={onClose} aria-label="Close">
-                ✕
+                <CloseIcon size={16} />
               </CloseButton>
             </DialogHeader>
             <DialogBody>{entry.content}</DialogBody>

@@ -14,6 +14,7 @@ import {
   FieldLabel,
   FieldRow,
   FormActions,
+  GearIcon,
   GhostButton,
   IconButton,
   Input,
@@ -210,7 +211,7 @@ function DataSourceStatusComponent({
                       aria-label={`Configure ${source.name}`}
                       $active={isConfiguring}
                     >
-                      ⚙
+                      <GearIcon size={14} />
                     </ConfigButton>
                   )}
                 </Row>

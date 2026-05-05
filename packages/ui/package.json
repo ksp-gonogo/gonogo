@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*"
+    "@gonogo/core": "workspace:*",
+    "lucide-react": "^1.14.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

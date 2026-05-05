@@ -9,7 +9,13 @@ import {
   useOrbitElements,
 } from "@gonogo/core";
 import { useDataSchema, useManeuverNodes, useVesselDeltaV } from "@gonogo/data";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  CheckIcon,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -388,7 +394,9 @@ function ManeuverPlannerComponent({
         <StatusList>
           {telemetryStatus.map((s) => (
             <StatusRow key={s.label}>
-              <StatusDot $ok={s.ok}>{s.ok ? "✓" : "·"}</StatusDot>
+              <StatusDot $ok={s.ok}>
+                {s.ok ? <CheckIcon size={11} strokeWidth={2.5} /> : "·"}
+              </StatusDot>
               <StatusLabel>{s.label}</StatusLabel>
             </StatusRow>
           ))}
@@ -578,7 +586,9 @@ const StatusRow = styled.li`
 
 const StatusDot = styled.span<{ $ok: boolean }>`
   width: 12px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: ${({ $ok }) => ($ok ? "var(--color-accent-fg)" : "var(--color-text-muted)")};
   font-size: 11px;
 `;

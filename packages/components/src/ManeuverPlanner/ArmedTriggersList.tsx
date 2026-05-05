@@ -1,3 +1,4 @@
+import { ArrowRightIcon, CloseIcon } from "@gonogo/ui";
 import styled from "styled-components";
 import { PRESETS } from "./presets";
 import type { ArmedTrigger } from "./triggerTypes";
@@ -24,14 +25,16 @@ export function ArmedTriggersList({
               <Primary>
                 {t.dataKey} {t.op} {t.value}
               </Primary>
-              <Meta>→ {presetLabel}</Meta>
+              <Meta>
+                <ArrowRightIcon size={11} /> {presetLabel}
+              </Meta>
             </Main>
             <CancelButton
               type="button"
               onClick={() => onCancel(t.id)}
               aria-label="Cancel armed trigger"
             >
-              ✕
+              <CloseIcon size={12} />
             </CancelButton>
           </ArmedRow>
         );
@@ -78,17 +81,22 @@ const Meta = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 `;
 
 const CancelButton = styled.button`
   background: transparent;
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-text-muted);
-  font-size: 11px;
   width: 22px;
   height: 22px;
   border-radius: 2px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   &:hover {
     background: var(--color-tag-dark-brown-bg);
     color: var(--color-tag-red-fg);

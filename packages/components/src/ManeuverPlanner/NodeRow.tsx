@@ -1,5 +1,6 @@
 import { formatDuration } from "@gonogo/core";
 import type { ParsedManeuverNode } from "@gonogo/data";
+import { CloseIcon } from "@gonogo/ui";
 import styled from "styled-components";
 import { FeasibilityChip } from "./styles";
 
@@ -41,7 +42,7 @@ export function NodeRow({
       </NodeMain>
       {onDelete && (
         <DeleteButton type="button" onClick={onDelete} aria-label="Delete node">
-          ✕
+          <CloseIcon size={12} />
         </DeleteButton>
       )}
     </NodeLi>
@@ -89,11 +90,13 @@ const DeleteButton = styled.button`
   background: transparent;
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-text-muted);
-  font-size: 11px;
   width: 22px;
   height: 22px;
   border-radius: 2px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   &:hover {
     background: var(--color-tag-dark-brown-bg);
     color: var(--color-tag-red-fg);

@@ -2,7 +2,13 @@ import type { ComponentDefinition } from "@gonogo/core";
 import { getComponents } from "@gonogo/core";
 import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, useSerialDeviceService } from "@gonogo/serial";
-import { FilterChip, Tag, useFabCluster, useModal } from "@gonogo/ui";
+import {
+  CloseIcon,
+  FilterChip,
+  Tag,
+  useFabCluster,
+  useModal,
+} from "@gonogo/ui";
 import type { ReactNode } from "react";
 import {
   createContext,
@@ -219,7 +225,7 @@ export function ComponentOverlay({
             <PanelHeader>
               <PanelTitle>ADD COMPONENT</PanelTitle>
               <CloseBtn onClick={closeOverlay} aria-label="Close">
-                ✕
+                <CloseIcon size={16} />
               </CloseBtn>
             </PanelHeader>
             <SearchInput
