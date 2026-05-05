@@ -9,7 +9,10 @@ export function FlightsFab() {
   const { open } = useModal();
 
   function handleClick() {
-    open(<FlightsManager />, { title: "Flight History" });
+    open(<FlightsManager />, {
+      title: "Flight History",
+      width: "min(1024px, 95vw)",
+    });
   }
 
   return (

@@ -20,11 +20,18 @@ import { CloseIcon } from "./Icons";
 interface ModalEntry {
   id: string;
   title?: string;
+  width?: string;
   content: ReactNode;
 }
 
+interface ModalOpenOptions {
+  title?: string;
+  /** CSS length for the dialog max-width. Defaults to 560px. */
+  width?: string;
+}
+
 interface ModalContextValue {
-  open: (content: ReactNode, options?: { title?: string }) => string;
+  open: (content: ReactNode, options?: ModalOpenOptions) => string;
   close: (id: string) => void;
 }
 
@@ -42,9 +49,12 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [modals, setModals] = useState<ModalEntry[]>([]);
 
   const open = useCallback(
-    (content: ReactNode, options?: { title?: string }): string => {
+    (content: ReactNode, options?: ModalOpenOptions): string => {
       const id = crypto.randomUUID();
-      setModals((prev) => [...prev, { id, title: options?.title, content }]);
+      setModals((prev) => [
+        ...prev,
+        { id, title: options?.title, width: options?.width, content },
+      ]);
       return id;
     },
     [],
@@ -142,6 +152,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
             aria-modal="true"
             aria-labelledby={entry.title ? titleId : undefined}
             onClick={(e) => e.stopPropagation()}
+            $width={entry.width}
           >
             <DialogHeader>
               {entry.title && (
@@ -174,12 +185,12 @@ const Backdrop = styled.div`
   z-index: 1000;
 `;
 
-const Dialog = styled.div`
+const Dialog = styled.div<{ $width?: string }>`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   min-width: min(320px, 100vw - 16px);
-  max-width: 560px;
+  max-width: ${({ $width }) => $width ?? "560px"};
   width: 90vw;
   max-height: 80vh;
   display: flex;
