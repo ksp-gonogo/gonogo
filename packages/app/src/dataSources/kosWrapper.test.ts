@@ -140,6 +140,22 @@ describe("buildKosWrapper", () => {
     expect(out).toContain(`"[" + "/KOSDATA]"`);
   });
 
+  it("fragments topic-tagged [KOSDATA:topic] sentinels — the parser regex matches both forms", () => {
+    const out = buildKosWrapper({
+      path: "0:/a.ks",
+      body: `PRINT "[KOSDATA:my-topic]value=" + value + "[/KOSDATA]".`,
+      version: "h",
+      args: [],
+    });
+    // The wrapper text must not contain a contiguous `[KOSDATA:my-topic]`
+    // anywhere — leaving the open marker intact pairs with a later
+    // `[/KOSDATA]` from the real script's PRINT and the lazy regex
+    // captures the wrapper source as the payload.
+    expect(out).not.toContain("[KOSDATA:my-topic]");
+    expect(out).not.toContain("[/KOSDATA]");
+    expect(out).toContain(`"[" + "KOSDATA:my-topic]value="`);
+  });
+
   it("fragments [KOSERROR] sentinels too", () => {
     const out = buildKosWrapper({
       path: "0:/a.ks",

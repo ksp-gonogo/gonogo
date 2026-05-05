@@ -96,12 +96,19 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
  * each occurrence after the leading `[`, so the resulting pieces concat
  * to the same runtime string but no sentinel appears intact in the
  * source.
+ *
+ * The sentinels are written as prefixes (no trailing `]`) so they catch
+ * both the bare `[KOSDATA]` form AND the topic-tagged `[KOSDATA:foo]`
+ * form. Without that, scripts that emit `[KOSDATA:topic]…[/KOSDATA]`
+ * leave the open marker intact in wrapper-echoed source; a later
+ * `[/KOSDATA]` from the real script's PRINT then closes it and the lazy
+ * parser regex captures the wrapper source as the payload.
  */
 const PARSER_SENTINELS = [
-  "[KOSDATA]",
-  "[/KOSDATA]",
-  "[KOSERROR]",
-  "[/KOSERROR]",
+  "[KOSDATA",
+  "[/KOSDATA",
+  "[KOSERROR",
+  "[/KOSERROR",
 ];
 
 function splitSentinels(s: string): string[] {
