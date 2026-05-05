@@ -237,6 +237,7 @@ export function LineChart({
         height={Math.max(0, h)}
         role="img"
         aria-label="Chart too small to render"
+        style={{ display: "block" }}
       >
         <title>Chart too small to render</title>
       </svg>
@@ -249,7 +250,13 @@ export function LineChart({
       height={h}
       role="img"
       aria-label="Telemetry line chart"
-      style={{ fontFamily: "monospace", overflow: "visible" }}
+      // `display: block` removes the inline-baseline whitespace that an SVG
+      // otherwise carries below itself. With a flex `min-height:0` ancestor
+      // (ChartArea) the baseline gap pushes contentRect a few px past the
+      // height we just set, ResizeObserver fires, we set a larger height,
+      // and the chart slowly grows turn after turn — visible most clearly
+      // on graphs the user keeps open through a long flight.
+      style={{ fontFamily: "monospace", overflow: "visible", display: "block" }}
     >
       <title>Telemetry line chart</title>
       {/* Background */}

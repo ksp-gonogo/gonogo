@@ -70,6 +70,7 @@ export function Sparkline({
         height={Math.max(0, height)}
         role="img"
         aria-label={ariaLabel}
+        style={{ display: "block" }}
       >
         <title>{ariaLabel}</title>
       </svg>
