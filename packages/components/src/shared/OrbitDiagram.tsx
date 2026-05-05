@@ -449,12 +449,14 @@ function formatAltitude(
   return formatDistance(radius - bodyRadius);
 }
 
-const ApsisMarker = styled.circle`
+const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
+  style: { "--apsis-focus-stroke-w": `${Number(r) * 0.5}px` },
+}))`
   cursor: help;
   outline: none;
   &:focus-visible {
     stroke: var(--color-accent-fg);
-    stroke-width: ${({ r }) => Number(r) * 0.5};
+    stroke-width: var(--apsis-focus-stroke-w);
   }
 `;
 
