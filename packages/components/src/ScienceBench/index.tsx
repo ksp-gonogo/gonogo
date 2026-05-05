@@ -26,28 +26,65 @@ const SENSOR_UNITS: Record<SensorType, string> = {
 /**
  * Telemachus's `s.sensor.<type>` is documented loosely ("Sensor data by
  * type"). Defensive parser: accepts arrays of `{ partName, value }`-shaped
- * entries OR plain object maps OR a single number, and falls back to a
- * raw-string render so an unfamiliar shape is still visible to the operator.
+ * entries OR plain object maps OR a single number OR Telemachus's parallel
+ * `[names, values]` tuple, and falls back to "no sensors" when nothing
+ * resolves to a real reading.
+ *
+ * Returns `"no sensors"` to mean "vessel has no sensor of this type" — the
+ * UI distinguishes this from the loading state (`null`).
  */
 interface SensorReading {
   partName: string;
   value: number;
 }
 
-export function parseSensorReadings(
-  raw: unknown,
-): SensorReading[] | string | null {
+export type SensorParseResult = SensorReading[] | "no sensors" | null;
+
+/** Telemachus emits this exact string when no sensor of the requested type exists. */
+const NO_SENSORS_SENTINEL = "No Sensors of the Appropriate Type";
+
+export function parseSensorReadings(raw: unknown): SensorParseResult {
   if (raw === null || raw === undefined) return null;
   if (typeof raw === "number" && Number.isFinite(raw)) {
     return [{ partName: "Sensor", value: raw }];
   }
   if (Array.isArray(raw)) {
+    // Parallel-arrays tuple: `[partNames[], values[]]`. Telemachus uses this
+    // shape for `s.sensor.<type>` — names in slot 0, values in slot 1, by
+    // index. Detect it before falling through to the heterogeneous-entries
+    // path so we don't drop matched name/value pairs on the floor.
+    if (
+      raw.length === 2 &&
+      Array.isArray(raw[0]) &&
+      Array.isArray(raw[1]) &&
+      raw[0].every((n) => typeof n === "string") &&
+      raw[1].every((v) => typeof v === "number")
+    ) {
+      const names = raw[0] as string[];
+      const values = raw[1] as number[];
+      // Telemachus's empty state is the literal name "No Sensors …" paired
+      // with a single 0. Surface as "no sensors" so the UI shows a friendly
+      // empty row instead of the raw shape.
+      if (
+        names.length === 1 &&
+        names[0] === NO_SENSORS_SENTINEL
+      ) {
+        return "no sensors";
+      }
+      const out: SensorReading[] = [];
+      for (let i = 0; i < Math.min(names.length, values.length); i++) {
+        if (Number.isFinite(values[i])) {
+          out.push({ partName: names[i], value: values[i] });
+        }
+      }
+      return out.length > 0 ? out : "no sensors";
+    }
     const out: SensorReading[] = [];
     for (const entry of raw) {
       const parsed = readingFromObject(entry);
       if (parsed) out.push(parsed);
     }
-    return out.length > 0 ? out : asRawString(raw);
+    return out.length > 0 ? out : "no sensors";
   }
   if (typeof raw === "object") {
     const out: SensorReading[] = [];
@@ -56,9 +93,9 @@ export function parseSensorReadings(
         out.push({ partName: k, value: v });
       }
     }
-    return out.length > 0 ? out : asRawString(raw);
+    return out.length > 0 ? out : "no sensors";
   }
-  return asRawString(raw);
+  return "no sensors";
 }
 
 function readingFromObject(entry: unknown): SensorReading | null {
@@ -82,15 +119,6 @@ function readingFromObject(entry: unknown): SensorReading | null {
           ? e.part
           : "Sensor";
   return { partName, value };
-}
-
-function asRawString(raw: unknown): string {
-  try {
-    const s = JSON.stringify(raw);
-    return s.length > 80 ? `${s.slice(0, 77)}…` : s;
-  } catch {
-    return "[unreadable]";
-  }
 }
 
 interface ParsedExperiment {
@@ -297,12 +325,13 @@ function SensorRow({ type, raw }: { type: SensorType; raw: unknown }) {
 }
 
 function renderSensorValues(
-  parsed: SensorReading[] | string | null,
+  parsed: SensorParseResult,
   type: SensorType,
 ): React.ReactNode {
   if (parsed === null) return <SensorMuted>—</SensorMuted>;
-  if (typeof parsed === "string") return <SensorMuted>{parsed}</SensorMuted>;
-  if (parsed.length === 0) return <SensorMuted>no parts</SensorMuted>;
+  if (parsed === "no sensors")
+    return <SensorMuted>None installed</SensorMuted>;
+  if (parsed.length === 0) return <SensorMuted>None installed</SensorMuted>;
   // Two readings can share a partName (e.g. duplicate sensor parts). Pair
   // the name with the value to keep keys stable across renders without
   // resorting to the array index.

@@ -130,9 +130,26 @@ describe("parseSensorReadings", () => {
     ]);
   });
 
-  it("falls back to a raw string for unrecognised shapes", () => {
-    const result = parseSensorReadings({ unknown: "shape" });
-    expect(typeof result).toBe("string");
+  it("returns 'no sensors' for unrecognised shapes", () => {
+    expect(parseSensorReadings({ unknown: "shape" })).toBe("no sensors");
+  });
+
+  it("parses Telemachus's parallel-arrays shape [names, values]", () => {
+    expect(
+      parseSensorReadings([
+        ["Sensor A", "Sensor B"],
+        [12.5, 7.25],
+      ]),
+    ).toEqual([
+      { partName: "Sensor A", value: 12.5 },
+      { partName: "Sensor B", value: 7.25 },
+    ]);
+  });
+
+  it("returns 'no sensors' for the Telemachus empty-state sentinel", () => {
+    expect(
+      parseSensorReadings([["No Sensors of the Appropriate Type"], [0]]),
+    ).toBe("no sensors");
   });
 });
 
