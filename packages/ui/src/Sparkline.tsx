@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { buildPath, makeScale } from "./lineChartMath";
 
 /**
@@ -17,12 +17,20 @@ export interface SparklineProps {
   height: number;
   /** Stroke colour. Defaults to `var(--color-text-primary)`. */
   color?: string;
-  /** Stroke width in pixels. Defaults to 1. */
+  /** Stroke width in pixels. Defaults to 1.5 — thin enough to feel inline,
+   *  thick enough not to read as a misdraw on standard-DPI screens. */
   strokeWidth?: number;
   /** Pin the Y range; otherwise auto-scaled. Useful for "0..max-throttle" gauges. */
   yDomain?: [number, number];
   /** Render a faint baseline at y=0 if 0 falls within the visible range. */
   showZeroBaseline?: boolean;
+  /**
+   * Render a faint plot background + soft fill under the line so the
+   * sparkline reads as a chart rather than a single floating stroke.
+   * Defaults to `true`; set false when embedding inside a chip that
+   * already provides its own background.
+   */
+  background?: boolean;
   /** ARIA label for screen readers. Defaults to "Trend sparkline". */
   ariaLabel?: string;
 }
@@ -32,9 +40,10 @@ export function Sparkline({
   width,
   height,
   color = "var(--color-text-primary)",
-  strokeWidth = 1,
+  strokeWidth = 1.5,
   yDomain,
   showZeroBaseline = false,
+  background = true,
   ariaLabel = "Trend sparkline",
 }: Readonly<SparklineProps>) {
   // Filter out non-finite values defensively — a stray NaN in the source
@@ -81,9 +90,17 @@ export function Sparkline({
   const scaleX = makeScale(0, finite.length - 1, 0, width);
   const scaleY = makeScale(domain[0], domain[1], height, 0);
   const d = buildPath(xs, finite, scaleX, scaleY);
+  // Filled-area path: the line plus the bottom-left/right corners. Gives
+  // the sparkline visual weight against a plot background without
+  // requiring a second data array.
+  const dFill = `${d} L ${width},${height} L 0,${height} Z`;
 
   const showBaseline = showZeroBaseline && domain[0] <= 0 && domain[1] >= 0;
   const zeroY = showBaseline ? scaleY(0) : null;
+
+  // Stable, instance-scoped ID so the gradient doesn't collide when several
+  // sparklines render on the same page (React 18 useId is fine for SVG defs).
+  const fillId = `sparkline-fill-${useIdSafe()}`;
 
   return (
     <svg
@@ -94,6 +111,24 @@ export function Sparkline({
       style={{ display: "block" }}
     >
       <title>{ariaLabel}</title>
+      {background && (
+        <>
+          <defs>
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          <rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            fill="var(--color-surface-app)"
+            opacity={0.6}
+          />
+        </>
+      )}
       {showBaseline && zeroY !== null && (
         <line
           x1={0}
@@ -104,6 +139,7 @@ export function Sparkline({
           strokeWidth={1}
         />
       )}
+      {background && <path d={dFill} fill={`url(#${fillId})`} stroke="none" />}
       <path
         d={d}
         stroke={color}
@@ -114,4 +150,10 @@ export function Sparkline({
       />
     </svg>
   );
+}
+
+// React 18's useId emits ":r0:"-style strings that aren't valid in SVG
+// `url(#id)` references inside JSX. Strip the colons.
+function useIdSafe(): string {
+  return useId().replace(/:/g, "");
 }
