@@ -23,6 +23,8 @@ import {
 interface GroundSurveyConfig {
   /** Below this hft (m) the strip freezes. Default 1000. */
   freezeBelowM?: number;
+  /** Above this hft (m) the strip stays idle. Default 10 000. */
+  surveyCeilingM?: number;
 }
 
 function GroundSurveyComponent({
@@ -31,9 +33,14 @@ function GroundSurveyComponent({
   h,
 }: Readonly<ComponentProps<GroundSurveyConfig>>) {
   const freezeBelowM = config?.freezeBelowM ?? 1000;
+  const surveyCeilingM = config?.surveyCeilingM ?? 10_000;
   const windowMs = 120_000;
 
-  const survey = useGroundSurveySamples({ freezeBelowM, windowMs });
+  const survey = useGroundSurveySamples({
+    freezeBelowM,
+    surveyCeilingM,
+    windowMs,
+  });
 
   // Drive the right-edge of the strip with a low-rate clock so the line
   // keeps scrolling in idle / sparse-sample phases. 250 ms matches
@@ -79,7 +86,9 @@ function GroundSurveyComponent({
         <Titles>
           <PanelTitle>GROUND SURVEY</PanelTitle>
           {showSubtitle && (
-            <PanelSubtitle>{subtitleFor(survey, freezeBelowM)}</PanelSubtitle>
+            <PanelSubtitle>
+              {subtitleFor(survey, freezeBelowM, surveyCeilingM)}
+            </PanelSubtitle>
           )}
         </Titles>
         <BadgeArea>
@@ -105,6 +114,7 @@ function GroundSurveyComponent({
 function subtitleFor(
   survey: ReturnType<typeof useGroundSurveySamples>,
   freezeBelowM: number,
+  surveyCeilingM: number,
 ): string {
   if (survey.body === null) return "Awaiting telemetry…";
   const parts: string[] = [];
@@ -116,6 +126,8 @@ function subtitleFor(
   if (survey.surveyState === "active") parts.push("surveying");
   else if (survey.surveyState === "frozen") {
     parts.push(`frozen (< ${formatMetres(freezeBelowM)} AGL)`);
+  } else if (survey.surveyState === "above-ceiling") {
+    parts.push(`above ceiling (> ${formatMetres(surveyCeilingM)} AGL)`);
   } else parts.push("idle");
   return parts.join(" · ");
 }
@@ -151,9 +163,31 @@ function GroundSurveyConfigComponent({
   const [freezeBelowM, setFreezeBelowM] = useState(
     String(config?.freezeBelowM ?? 1000),
   );
+  const [surveyCeilingM, setSurveyCeilingM] = useState(
+    String(config?.surveyCeilingM ?? 10_000),
+  );
 
   return (
     <ConfigForm>
+      <Field>
+        <FieldLabel htmlFor="ground-survey-ceiling">
+          Survey ceiling (m AGL)
+        </FieldLabel>
+        <Input
+          id="ground-survey-ceiling"
+          type="number"
+          min={500}
+          max={500_000}
+          value={surveyCeilingM}
+          onChange={(e) => setSurveyCeilingM(e.target.value)}
+        />
+        <FieldHint>
+          Above this height-above-terrain the strip stays idle — terrain
+          readings from orbit smear over hundreds of km of ground per sample
+          and the smoothness verdict becomes meaningless. Default 10 000 m,
+          well below LKO and well above any useful reconnaissance pass.
+        </FieldHint>
+      </Field>
       <Field>
         <FieldLabel htmlFor="ground-survey-freeze">
           Freeze threshold (m)
@@ -175,9 +209,13 @@ function GroundSurveyConfigComponent({
       </Field>
       <PrimaryButton
         onClick={() => {
-          const parsed = Number.parseInt(freezeBelowM, 10);
+          const freeze = Number.parseInt(freezeBelowM, 10);
+          const ceiling = Number.parseInt(surveyCeilingM, 10);
           onSave({
-            freezeBelowM: Number.isFinite(parsed) && parsed > 0 ? parsed : 1000,
+            freezeBelowM:
+              Number.isFinite(freeze) && freeze > 0 ? freeze : 1000,
+            surveyCeilingM:
+              Number.isFinite(ceiling) && ceiling > 0 ? ceiling : 10_000,
           });
         }}
       >
@@ -291,7 +329,7 @@ registerComponent<GroundSurveyConfig>({
     "land.predictedLat",
     "land.predictedLon",
   ],
-  defaultConfig: { freezeBelowM: 1000 },
+  defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
   pushable: true,
 });

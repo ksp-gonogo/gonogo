@@ -18,7 +18,12 @@ export interface SurveySample {
 
 export interface SurveyResult {
   samples: readonly SurveySample[];
-  surveyState: "idle" | "active" | "frozen";
+  /**
+   * - `idle` — no telemetry yet, OR vessel above the survey ceiling.
+   * - `active` — sampling between ceiling and freeze threshold.
+   * - `frozen` — below the freeze threshold; verdict locked.
+   */
+  surveyState: "idle" | "active" | "frozen" | "above-ceiling";
   altitude: number | null;
   heightFromTerrain: number | null;
   surfaceSpeed: number | null;
@@ -33,6 +38,14 @@ export interface UseGroundSurveyOpts {
   windowMs?: number;
   /** Below this hft (m) the survey freezes. Default 1000. */
   freezeBelowM?: number;
+  /**
+   * Above this hft (m) the survey is idle — terrain elevation samples taken
+   * from orbit smear over hundreds of km of ground and the resulting
+   * smoothness verdict is meaningless for landing-site assessment. Default
+   * 10 000 (10 km AGL) — well below LKO, well above any useful
+   * reconnaissance pass.
+   */
+  surveyCeilingM?: number;
   /** alt + hft must arrive within this window to count as a pair. Default 200 ms. */
   pairWindowMs?: number;
 }
@@ -65,6 +78,7 @@ const DEFAULT_OPTS: Required<UseGroundSurveyOpts> = {
   sourceId: "data",
   windowMs: 120_000,
   freezeBelowM: 1000,
+  surveyCeilingM: 10_000,
   pairWindowMs: 200,
 };
 
@@ -109,6 +123,10 @@ export function useGroundSurveySamples(
       if (!a || !h) return;
       if (Math.abs(a.t - h.t) > cfg.pairWindowMs) return;
       if (s.splashed) return;
+      // Above the ceiling — terrain readings sweep across hundreds of km of
+      // ground per sample and the verdict goes haywire. Skip; the widget
+      // shows an "above ceiling" idle state instead.
+      if (h.v > cfg.surveyCeilingM) return;
       const t = a.t > h.t ? a.t : h.t;
       if (t <= s.lastPairedT) return;
 
@@ -213,15 +231,23 @@ export function useGroundSurveySamples(
       unsubBody();
       unsubSplashed();
     };
-  }, [cfg.sourceId, cfg.windowMs, cfg.freezeBelowM, cfg.pairWindowMs]);
+  }, [
+    cfg.sourceId,
+    cfg.windowMs,
+    cfg.freezeBelowM,
+    cfg.surveyCeilingM,
+    cfg.pairWindowMs,
+  ]);
 
   const s = stateRef.current;
   const surveyState: SurveyResult["surveyState"] =
     s.heightFromTerrain === null
       ? "idle"
-      : s.heightFromTerrain > cfg.freezeBelowM
-        ? "active"
-        : "frozen";
+      : s.heightFromTerrain > cfg.surveyCeilingM
+        ? "above-ceiling"
+        : s.heightFromTerrain > cfg.freezeBelowM
+          ? "active"
+          : "frozen";
   return {
     samples: s.samples,
     surveyState,
