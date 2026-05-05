@@ -4,7 +4,7 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { PerfBudget, registerDataSource } from "@gonogo/core";
+import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
 import { LocalStorageStore } from "@gonogo/data";
 
 // TelemaachusSchema lives in @gonogo/core and is pre-registered in DataSourceRegistry.
@@ -341,7 +341,22 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
     const url = `http://${this.cfg.host}:${this.cfg.port}/telemachus/datalink?a=${encodeURIComponent(action)}`;
     // no-cors: we don't need to read the response back, so skip CORS checking.
     // The request still reaches Telemachus and state changes stream back via WS.
-    await fetch(url, { mode: "no-cors" });
+    //
+    // Swallow transport errors (Telemachus crashed mid-request, network
+    // dropped, etc.) at this boundary — every caller does `void execute(...)`
+    // so a rejected promise just surfaces as an "Uncaught (in promise)" with
+    // no actionable handler. The WS readback is the source of truth for
+    // "did the action take effect"; if the server died, the WS reconnect
+    // logic + the data source's `error` status is where the user-facing
+    // signal belongs.
+    try {
+      await fetch(url, { mode: "no-cors" });
+    } catch (err) {
+      logger.tag("telemachus").warn("execute() transport failed", {
+        action,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
