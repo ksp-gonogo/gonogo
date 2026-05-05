@@ -261,18 +261,30 @@ function NavballComponent({
     },
   });
 
+  // Measure the dial's available box and pick a square size that fits both
+  // axes. The previous version capped at 220 px and read width only — that
+  // left the dial stuck small on tall/wide widgets, and on small widgets it
+  // never shrank enough to leave room for the throttle column. Cap at 600
+  // because the indicator's tick text becomes blurry beyond that on
+  // standard-DPI screens; below 80 the dial is illegible and we'd be better
+  // dropping to numeric readout, which the rows-based gate above handles.
   const [dialSize, setDialSize] = useState(180);
   const dialRef = useRef<HTMLDivElement>(null);
+  const showThrottleColumnRef = useRef(false);
   useEffect(() => {
     const el = dialRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       for (const e of entries) {
-        if (e.contentRect.width > 0 && e.contentRect.height > 0) {
-          // Use width as the primary; the indicator picks the smaller
-          // dimension internally if it ever doesn't fit.
-          setDialSize(Math.min(220, Math.floor(e.contentRect.width) - 10));
-        }
+        const w = e.contentRect.width;
+        const h = e.contentRect.height;
+        if (w <= 0 || h <= 0) continue;
+        // Reserve space for the throttle column when it's visible: ~32 px
+        // bar + 10 px gap.
+        const throttleReserve = showThrottleColumnRef.current ? 42 : 0;
+        const fit = Math.min(w - throttleReserve, h);
+        const next = Math.max(80, Math.min(600, Math.floor(fit)));
+        setDialSize(next);
       }
     });
     ro.observe(el);
@@ -288,6 +300,9 @@ function NavballComponent({
   const showThrottleColumn = showDial && cols >= 5;
   const showModeBadges = cols >= 5;
   const showControlSurface = controlMode && rows >= 10 && cols >= 5;
+  // Sync to the ResizeObserver — closure captures showThrottleColumn at
+  // mount, so changing widget size needs to propagate via ref.
+  showThrottleColumnRef.current = showThrottleColumn;
 
   return (
     <Panel>
@@ -631,9 +646,16 @@ const Body = styled.div`
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
+  flex: 1;
+  min-height: 0;
 `;
 
 const DialWrap = styled.div`
+  /* Fill the available column so the ResizeObserver sees real dimensions —
+     without flex:1 the wrap collapses to its content and the dial gets
+     stuck at whatever size it last resolved to. */
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   gap: 10px;
