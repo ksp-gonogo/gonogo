@@ -238,6 +238,146 @@ describe("BufferedDataSource", () => {
     expect(second?.id).not.toBe(firstId);
   });
 
+  it("setFlightStarred persists the flag and is idempotent", async () => {
+    source.emit("v.name", "KX");
+    source.emit("v.missionTime", 0);
+    source.emit("v.altitude", 1);
+    const id = buffered.getCurrentFlight()?.id ?? "";
+    expect(id).not.toBe("");
+
+    const upsertSpy = vi.spyOn(store, "upsertFlight");
+
+    await buffered.setFlightStarred(id, true);
+    expect((await buffered.getFlight(id))?.starred).toBe(true);
+    const calls = upsertSpy.mock.calls.length;
+
+    // No-op when already in the requested state.
+    await buffered.setFlightStarred(id, true);
+    expect(upsertSpy.mock.calls.length).toBe(calls);
+
+    await buffered.setFlightStarred(id, false);
+    expect((await buffered.getFlight(id))?.starred).toBe(false);
+  });
+
+  it("pruneFlightsKeepLatest keeps the N most recent unstarred flights and evicts the rest", async () => {
+    for (let i = 0; i < 5; i++) {
+      await store.upsertFlight({
+        id: `f-${i}`,
+        vesselName: `V${i}`,
+        launchedAt: i * 1000, // f-4 newest, f-0 oldest
+        lastSampleAt: i * 1000 + 100,
+        lastMissionTime: 0,
+        sampleCount: 1,
+      });
+    }
+
+    const deleted = await buffered.pruneFlightsKeepLatest({ keepCount: 2 });
+
+    // f-4 and f-3 are the two newest unstarred flights — keep them.
+    expect(deleted.sort()).toEqual(["f-0", "f-1", "f-2"]);
+    const remaining = (await buffered.listFlights()).map((f) => f.id).sort();
+    expect(remaining).toEqual(["f-3", "f-4"]);
+  });
+
+  it("pruneFlightsKeepLatest exempts starred flights from the cap and from eviction", async () => {
+    // Two starred and three unstarred. Cap of 1 should keep one starred-aside
+    // unstarred plus both starred, dropping the older two unstarred.
+    await store.upsertFlight({
+      id: "starred-old",
+      vesselName: "S1",
+      launchedAt: 100,
+      lastSampleAt: 200,
+      lastMissionTime: 0,
+      sampleCount: 1,
+      starred: true,
+    });
+    await store.upsertFlight({
+      id: "unstarred-old",
+      vesselName: "U1",
+      launchedAt: 300,
+      lastSampleAt: 400,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+    await store.upsertFlight({
+      id: "unstarred-mid",
+      vesselName: "U2",
+      launchedAt: 500,
+      lastSampleAt: 600,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+    await store.upsertFlight({
+      id: "starred-new",
+      vesselName: "S2",
+      launchedAt: 700,
+      lastSampleAt: 800,
+      lastMissionTime: 0,
+      sampleCount: 1,
+      starred: true,
+    });
+    await store.upsertFlight({
+      id: "unstarred-new",
+      vesselName: "U3",
+      launchedAt: 900,
+      lastSampleAt: 1000,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+
+    const deleted = await buffered.pruneFlightsKeepLatest({ keepCount: 1 });
+
+    expect(deleted.sort()).toEqual(["unstarred-mid", "unstarred-old"]);
+    const remaining = (await buffered.listFlights()).map((f) => f.id).sort();
+    expect(remaining).toEqual(["starred-new", "starred-old", "unstarred-new"]);
+  });
+
+  it("pruneFlightsKeepLatest never evicts the current flight", async () => {
+    // Mint a current flight via the detector.
+    source.emit("v.name", "KX");
+    source.emit("v.missionTime", 0);
+    source.emit("v.altitude", 1);
+    const currentId = buffered.getCurrentFlight()?.id ?? "";
+    expect(currentId).not.toBe("");
+
+    // Add older flights that would otherwise be victims.
+    await store.upsertFlight({
+      id: "old-1",
+      vesselName: "Old1",
+      launchedAt: -2000,
+      lastSampleAt: -1900,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+    await store.upsertFlight({
+      id: "old-2",
+      vesselName: "Old2",
+      launchedAt: -1000,
+      lastSampleAt: -900,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+
+    const deleted = await buffered.pruneFlightsKeepLatest({ keepCount: 1 });
+    // Current is exempt; among the two olds only the older is dropped.
+    expect(deleted).toEqual(["old-1"]);
+    expect(await buffered.getFlight(currentId)).not.toBeNull();
+  });
+
+  it("pruneFlightsKeepLatest is a no-op when keepCount <= 0", async () => {
+    await store.upsertFlight({
+      id: "any",
+      vesselName: "Any",
+      launchedAt: 0,
+      lastSampleAt: 0,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+    const deleted = await buffered.pruneFlightsKeepLatest({ keepCount: 0 });
+    expect(deleted).toEqual([]);
+    expect((await buffered.listFlights()).length).toBe(1);
+  });
+
   it("clearAllFlights wipes storage and in-memory buffer", async () => {
     source.emit("v.name", "KX");
     source.emit("v.missionTime", 0);

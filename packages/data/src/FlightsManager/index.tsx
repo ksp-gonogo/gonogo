@@ -2,6 +2,11 @@ import { getDataSource } from "@gonogo/core";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";
+import {
+  DEFAULT_KEEP_COUNT,
+  getKeepCount,
+  setKeepCount,
+} from "../flightAutoDelete";
 import { useFlight } from "../hooks/useFlight";
 import { getReplayController } from "../replay/ReplayController";
 import type { FlightRecord } from "../types";
@@ -59,13 +64,22 @@ export function FlightsManager() {
   const [flights, setFlights] = useState<FlightRecord[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [expandedFlightId, setExpandedFlightId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [keepCount, setKeepCountState] = useState<number>(() => getKeepCount());
 
   const reload = useCallback(async () => {
     const src = getSource();
     if (!src) return;
     const list = await src.listFlights();
     setFlights(list.sort((a, b) => b.launchedAt - a.launchedAt));
+    // Drop selections that no longer exist after a delete/clear.
+    setSelectedIds((prev) => {
+      const valid = new Set<string>();
+      for (const f of list) if (prev.has(f.id)) valid.add(f.id);
+      return valid.size === prev.size ? prev : valid;
+    });
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: currentFlight is a trigger, not a read inside the body — we refetch when the current flight changes
@@ -105,15 +119,107 @@ export function FlightsManager() {
     await reload();
   };
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === flights.length
+        ? new Set()
+        : new Set(flights.map((f) => f.id)),
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    const src = getSource();
+    if (!src) return;
+    // Snapshot the ids — `selectedIds` is cleared by `reload` partway through.
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await src.deleteFlight(id);
+    }
+    setConfirmBulkDelete(false);
+    await reload();
+  };
+
+  const handleToggleStar = async (flight: FlightRecord) => {
+    const src = getSource();
+    if (!src) return;
+    await src.setFlightStarred(flight.id, !flight.starred);
+    await reload();
+  };
+
+  const handleToggleAutoDelete = async (enabled: boolean) => {
+    const src = getSource();
+    const next = enabled ? DEFAULT_KEEP_COUNT : 0;
+    setKeepCount(next);
+    setKeepCountState(next);
+    if (enabled && src) {
+      await src.pruneFlightsKeepLatest({ keepCount: next });
+      await reload();
+    }
+  };
+
+  const handleBulkExport = async () => {
+    const src = getSource();
+    if (!src) return;
+    const ids = Array.from(selectedIds);
+    const byId = new Map(flights.map((f) => [f.id, f]));
+    for (const id of ids) {
+      const flight = byId.get(id);
+      if (!flight) continue;
+      const fixture = await src.exportFlight(id);
+      downloadJson(fixture, fixtureFilename(flight));
+    }
+  };
+
   if (flights.length === 0) {
     return <EmptyState>No flight history recorded yet.</EmptyState>;
   }
+
+  const allSelected = flights.length > 0 && selectedIds.size === flights.length;
+  const someSelected =
+    selectedIds.size > 0 && selectedIds.size < flights.length;
+
+  // How many flights would be pruned if the user enabled auto-delete right
+  // now? Mirrors `pruneFlightsKeepLatest` exactly: starred + current are
+  // exempt and don't count toward the cap, sort newest-first by launchedAt.
+  const autoDeleteEligibleCount = (() => {
+    const sorted = [...flights].sort((a, b) => b.launchedAt - a.launchedAt);
+    let kept = 0;
+    let victims = 0;
+    for (const f of sorted) {
+      if (f.starred || f.id === currentFlight?.id) continue;
+      kept += 1;
+      if (kept > DEFAULT_KEEP_COUNT) victims += 1;
+    }
+    return victims;
+  })();
 
   return (
     <Container>
       <Table>
         <thead>
           <tr>
+            <ThCheckbox>
+              <SelectCheckbox
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected;
+                }}
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                aria-label={
+                  allSelected ? "Clear selection" : "Select all flights"
+                }
+              />
+            </ThCheckbox>
+            <ThStar aria-label="Starred (exempt from auto-delete)">★</ThStar>
             <Th>Vessel</Th>
             <Th>Launched</Th>
             <Th>Duration</Th>
@@ -125,9 +231,37 @@ export function FlightsManager() {
           {flights.map((f) => {
             const isCurrent = f.id === currentFlight?.id;
             const isExpanded = expandedFlightId === f.id;
+            const isSelected = selectedIds.has(f.id);
             return (
               <Fragment key={f.id}>
                 <Tr $current={isCurrent}>
+                  <Td>
+                    <SelectCheckbox
+                      checked={isSelected}
+                      onChange={() => toggleSelected(f.id)}
+                      aria-label={`Select flight ${f.vesselName || f.id}`}
+                    />
+                  </Td>
+                  <Td>
+                    <StarButton
+                      type="button"
+                      $on={Boolean(f.starred)}
+                      onClick={() => void handleToggleStar(f)}
+                      aria-label={
+                        f.starred
+                          ? `Unstar ${f.vesselName || "flight"}`
+                          : `Star ${f.vesselName || "flight"} (keep from auto-delete)`
+                      }
+                      aria-pressed={Boolean(f.starred)}
+                      title={
+                        f.starred
+                          ? "Starred — kept from auto-delete"
+                          : "Star to keep from auto-delete"
+                      }
+                    >
+                      {f.starred ? "★" : "☆"}
+                    </StarButton>
+                  </Td>
                   <Td>
                     {f.vesselName || "—"}
                     {isCurrent && <CurrentBadge>current</CurrentBadge>}
@@ -187,7 +321,7 @@ export function FlightsManager() {
                 </Tr>
                 {isExpanded && (
                   <Tr $current={false}>
-                    <Td colSpan={5} style={{ padding: 0 }}>
+                    <Td colSpan={7} style={{ padding: 0 }}>
                       <ChaptersEditor
                         flight={f}
                         onChange={() => void reload()}
@@ -206,23 +340,78 @@ export function FlightsManager() {
         </tbody>
       </Table>
       <Footer>
-        {confirmClearAll ? (
-          <ConfirmRow>
-            <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-              Delete all flight history?
+        <BulkActions>
+          {selectedIds.size > 0 &&
+            (confirmBulkDelete ? (
+              <ConfirmRow>
+                <span
+                  style={{ fontSize: 12, color: "var(--color-text-muted)" }}
+                >
+                  Delete {selectedIds.size} selected flight
+                  {selectedIds.size === 1 ? "" : "s"}?
+                </span>
+                <DangerButton onClick={() => void handleBulkDelete()}>
+                  Delete
+                </DangerButton>
+                <CancelButton onClick={() => setConfirmBulkDelete(false)}>
+                  Cancel
+                </CancelButton>
+              </ConfirmRow>
+            ) : (
+              <>
+                <SelectionCount>{selectedIds.size} selected</SelectionCount>
+                <ExportButton
+                  type="button"
+                  onClick={() => void handleBulkExport()}
+                  title="Download fixtures for the selected flights"
+                >
+                  ↓ download
+                </ExportButton>
+                <DangerButton onClick={() => setConfirmBulkDelete(true)}>
+                  Delete
+                </DangerButton>
+                <CancelButton onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </CancelButton>
+              </>
+            ))}
+        </BulkActions>
+        <RightControls>
+          <AutoDeleteLabel
+            title={`Keep the ${DEFAULT_KEEP_COUNT} most recently launched flights and silently delete the rest. Starred flights and the current flight are exempt and don't count toward the cap. Runs at app startup and immediately when toggled on.`}
+          >
+            <SelectCheckbox
+              checked={keepCount > 0}
+              onChange={(e) => void handleToggleAutoDelete(e.target.checked)}
+            />
+            <span>
+              Keep latest {DEFAULT_KEEP_COUNT}
+              {keepCount === 0 && autoDeleteEligibleCount > 0 && (
+                <AutoDeleteHint>
+                  {" "}
+                  ({autoDeleteEligibleCount} would be deleted)
+                </AutoDeleteHint>
+              )}
             </span>
-            <DangerButton onClick={() => void handleClearAll()}>
+          </AutoDeleteLabel>
+          {confirmClearAll ? (
+            <ConfirmRow>
+              <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                Delete all flight history?
+              </span>
+              <DangerButton onClick={() => void handleClearAll()}>
+                Clear all
+              </DangerButton>
+              <CancelButton onClick={() => setConfirmClearAll(false)}>
+                Cancel
+              </CancelButton>
+            </ConfirmRow>
+          ) : (
+            <ClearAllButton onClick={() => setConfirmClearAll(true)}>
               Clear all
-            </DangerButton>
-            <CancelButton onClick={() => setConfirmClearAll(false)}>
-              Cancel
-            </CancelButton>
-          </ConfirmRow>
-        ) : (
-          <ClearAllButton onClick={() => setConfirmClearAll(true)}>
-            Clear all
-          </ClearAllButton>
-        )}
+            </ClearAllButton>
+          )}
+        </RightControls>
       </Footer>
     </Container>
   );
@@ -233,7 +422,8 @@ const Container = styled.div`
   flex-direction: column;
   min-width: 500px;
   /* Graph panels expand in-place, so let the whole thing scroll rather than
-     clipping the chart. */
+     clipping the chart. Horizontal scroll catches narrow viewports where the
+     row-action button cluster won't fit even in the wide flight modal. */
   max-height: 80vh;
   overflow: auto;
 `;
@@ -381,9 +571,82 @@ const CancelButton = styled.button`
 
 const Footer = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding: 10px 8px 4px;
   border-top: 1px solid var(--color-border-subtle);
+`;
+
+const BulkActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+`;
+
+const SelectionCount = styled.span`
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
+const ThCheckbox = styled.th`
+  width: 28px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+`;
+
+const SelectCheckbox = styled.input.attrs({ type: "checkbox" })`
+  cursor: pointer;
+  margin: 0;
+`;
+
+const ThStar = styled.th`
+  width: 24px;
+  padding: 6px 4px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-align: center;
+`;
+
+const StarButton = styled.button<{ $on: boolean }>`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: ${({ $on }) =>
+    $on ? "var(--color-tag-yellow-fg, gold)" : "var(--color-text-faint)"};
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-tag-yellow-fg, gold);
+    }
+  }
+`;
+
+const RightControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const AutoDeleteLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+`;
+
+const AutoDeleteHint = styled.span`
+  color: var(--color-status-alert-muted);
 `;
 
 const ClearAllButton = styled.button`

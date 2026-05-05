@@ -218,4 +218,87 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     };
     return real.onFlightChange?.(cb) ?? (() => {});
   }
+
+  listFlights(): Promise<unknown[]> {
+    const real = this.real as { listFlights?: () => Promise<unknown[]> };
+    return real.listFlights?.() ?? Promise.resolve([]);
+  }
+
+  getFlight(id: string): Promise<unknown> {
+    const real = this.real as {
+      getFlight?: (id: string) => Promise<unknown>;
+    };
+    return real.getFlight?.(id) ?? Promise.resolve(null);
+  }
+
+  exportFlight(id: string): Promise<unknown> {
+    const real = this.real as {
+      exportFlight?: (id: string) => Promise<unknown>;
+    };
+    if (!real.exportFlight) {
+      return Promise.reject(
+        new Error("exportFlight not supported by wrapped source"),
+      );
+    }
+    return real.exportFlight(id);
+  }
+
+  deleteFlight(id: string): Promise<void> {
+    const real = this.real as {
+      deleteFlight?: (id: string) => Promise<void>;
+    };
+    return real.deleteFlight?.(id) ?? Promise.resolve();
+  }
+
+  clearAllFlights(): Promise<void> {
+    const real = this.real as { clearAllFlights?: () => Promise<void> };
+    return real.clearAllFlights?.() ?? Promise.resolve();
+  }
+
+  setFlightStarred(id: string, starred: boolean): Promise<void> {
+    const real = this.real as {
+      setFlightStarred?: (id: string, starred: boolean) => Promise<void>;
+    };
+    return real.setFlightStarred?.(id, starred) ?? Promise.resolve();
+  }
+
+  pruneFlightsKeepLatest(opts: { keepCount: number }): Promise<string[]> {
+    const real = this.real as {
+      pruneFlightsKeepLatest?: (opts: {
+        keepCount: number;
+      }) => Promise<string[]>;
+    };
+    return real.pruneFlightsKeepLatest?.(opts) ?? Promise.resolve([]);
+  }
+
+  addChapter(flightId: string, chapter: unknown): Promise<unknown> {
+    const real = this.real as {
+      addChapter?: (flightId: string, chapter: unknown) => Promise<unknown>;
+    };
+    return real.addChapter?.(flightId, chapter) ?? Promise.resolve(null);
+  }
+
+  updateChapter(
+    flightId: string,
+    chapterId: string,
+    patch: unknown,
+  ): Promise<unknown> {
+    const real = this.real as {
+      updateChapter?: (
+        flightId: string,
+        chapterId: string,
+        patch: unknown,
+      ) => Promise<unknown>;
+    };
+    return (
+      real.updateChapter?.(flightId, chapterId, patch) ?? Promise.resolve(null)
+    );
+  }
+
+  removeChapter(flightId: string, chapterId: string): Promise<unknown> {
+    const real = this.real as {
+      removeChapter?: (flightId: string, chapterId: string) => Promise<unknown>;
+    };
+    return real.removeChapter?.(flightId, chapterId) ?? Promise.resolve(null);
+  }
 }

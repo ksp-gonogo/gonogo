@@ -2,6 +2,7 @@ import type { DataSource, DataSourceStatus } from "@gonogo/core";
 import { PerfBudget } from "@gonogo/core";
 import { DataSourceWrapper } from "./DataSourceWrapper";
 import { getDerivedKeys } from "./derive";
+import { getKeepCount } from "./flightAutoDelete";
 import { FlightDetector } from "./flightDetector";
 import {
   isScriptable,
@@ -175,6 +176,14 @@ export class BufferedDataSource extends DataSourceWrapper {
     // we resume rather than duplicate across reloads.
     const known = await this.store.listFlights();
     this.detector.hydrate(known);
+
+    // Honour the user's auto-delete preference at startup. Silent — the
+    // pref opts the user in to this behaviour; surfacing a toast each time
+    // would become noise.
+    const keepCount = getKeepCount();
+    if (keepCount > 0) {
+      await this.pruneFlightsKeepLatest({ keepCount });
+    }
 
     // Subscribe to every key the upstream exposes. We don't filter — the
     // graph widget may want any of them. Telemachus schema is static so
@@ -507,6 +516,44 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.detector.forget(id);
     await this.store.deleteFlight(id);
     if (wasCurrent) this.emitFlightChange();
+  }
+
+  /**
+   * Pin a flight so it's exempt from the auto-delete cleanup. Per-row delete
+   * and "Clear all" still remove starred flights — this only protects against
+   * the silent age-based prune.
+   */
+  async setFlightStarred(id: string, starred: boolean): Promise<void> {
+    const flight = await this.store.getFlight(id);
+    if (!flight) return;
+    if (Boolean(flight.starred) === starred) return;
+    const updated: FlightRecord = { ...flight, starred };
+    await this.store.upsertFlight(updated);
+    if (this.detector.getCurrent()?.id === id) this.emitFlightChange();
+  }
+
+  /**
+   * Keep the `keepCount` most recently launched flights (by `launchedAt`),
+   * deleting the rest. Starred flights and the current flight are exempt:
+   * they are never evicted and they don't count toward the cap. Returns the
+   * ids that were actually removed.
+   */
+  async pruneFlightsKeepLatest(opts: { keepCount: number }): Promise<string[]> {
+    if (opts.keepCount <= 0) return [];
+    const all = await this.store.listFlights();
+    const sorted = [...all].sort((a, b) => b.launchedAt - a.launchedAt);
+    const currentId = this.detector.getCurrent()?.id ?? null;
+    const victims: FlightRecord[] = [];
+    let kept = 0;
+    for (const f of sorted) {
+      if (f.starred || f.id === currentId) continue;
+      kept += 1;
+      if (kept > opts.keepCount) victims.push(f);
+    }
+    for (const f of victims) {
+      await this.deleteFlight(f.id);
+    }
+    return victims.map((f) => f.id);
   }
 
   async clearAllFlights(): Promise<void> {

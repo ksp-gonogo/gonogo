@@ -91,6 +91,11 @@ export interface FlightRecord {
    * Optional — flights start with none.
    */
   chapters?: FlightChapterRecord[];
+  /**
+   * User-pinned: starred flights are exempt from the "auto-delete after N
+   * days" cleanup. Per-row delete and "Clear all" still remove them.
+   */
+  starred?: boolean;
 }
 
 /**
