@@ -26,7 +26,7 @@ import {
   ScrollArea,
   Tabs,
 } from "@gonogo/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { SET_TARGET_SCRIPT, SET_TARGET_SCRIPT_NAME } from "./setTargetScript";
@@ -91,6 +91,27 @@ function TargetPickerComponent({
   const refreshVessels = useCallback(() => {
     void executeKos(DISPATCH_NOW_ACTION);
   }, [executeKos]);
+
+  // "✓ Updated" flash on each successful refresh — the Refreshing→Refresh
+  // button transition is too brief to read on a fast script and leaves the
+  // operator wondering whether anything happened. Tracks lastGoodAt's
+  // identity, sets a 2 s flash whenever it advances.
+  const lastGoodAt = status.lastGoodAt;
+  const prevLastGoodAtRef = useRef<number | null>(null);
+  const [flashConfirm, setFlashConfirm] = useState(false);
+  useEffect(() => {
+    if (lastGoodAt === null) return;
+    if (prevLastGoodAtRef.current === null) {
+      prevLastGoodAtRef.current = lastGoodAt;
+      return;
+    }
+    if (lastGoodAt > prevLastGoodAtRef.current) {
+      prevLastGoodAtRef.current = lastGoodAt;
+      setFlashConfirm(true);
+      const id = setTimeout(() => setFlashConfirm(false), 2000);
+      return () => clearTimeout(id);
+    }
+  }, [lastGoodAt]);
 
   // Set-target is a one-shot RPC — kept off the centralised feed because
   // it takes a per-call name argument. After the script resolves we kick
@@ -219,9 +240,12 @@ function TargetPickerComponent({
             {status.running ? "Refreshing…" : "Refresh"}
           </GhostButton>
           {status.lastGoodAt !== null && (
-            <VesselsMeta>
-              {sorted.length} target{sorted.length === 1 ? "" : "s"} · updated{" "}
-              {formatAge(Date.now() - status.lastGoodAt)} ago
+            <VesselsMeta $flash={flashConfirm} role="status" aria-live="polite">
+              {flashConfirm ? "✓ " : ""}
+              {sorted.length} target{sorted.length === 1 ? "" : "s"} ·{" "}
+              {flashConfirm
+                ? "updated just now"
+                : `updated ${formatAge(Date.now() - status.lastGoodAt)} ago`}
             </VesselsMeta>
           )}
         </VesselsHeader>
@@ -552,10 +576,12 @@ const VesselsHeader = styled.div`
   gap: 8px;
 `;
 
-const VesselsMeta = styled.span`
+const VesselsMeta = styled.span<{ $flash: boolean }>`
   font-size: 10px;
-  color: var(--color-text-faint);
+  color: ${({ $flash }) =>
+    $flash ? "var(--color-status-go-fg)" : "var(--color-text-faint)"};
   letter-spacing: 0.04em;
+  transition: color 200ms ease-out;
 `;
 
 const ErrorBanner = styled.div`

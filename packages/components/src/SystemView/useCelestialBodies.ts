@@ -143,7 +143,12 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
       ) {
         body[localField] = typeof raw === "boolean" ? raw : null;
       } else if (localField === "name" || localField === "referenceBody") {
-        body[localField] = typeof raw === "string" ? raw : null;
+        // Telemachus emits the star's referenceBody as the empty string,
+        // not as a missing field. Coerce to null so consumers can treat
+        // "no parent" as a single state — otherwise tree-walks that key
+        // off `referenceBody === null` skip the root and render nothing.
+        const s = typeof raw === "string" ? raw : null;
+        body[localField] = s === "" ? null : s;
       } else {
         body[localField] =
           typeof raw === "number" && Number.isFinite(raw) ? raw : null;
