@@ -43,14 +43,28 @@ function toneFor(twr: number): Tone {
   return "ok";
 }
 
-function TwrComponent(_props: Readonly<ComponentProps<TwrConfig>>) {
+function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   const twr = useDataValue<number>("data", "dv.currentTWR");
   const series = useDataSeries("data", "dv.currentTWR", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
 
-  // Measure the gauge slot so the SVG fills it responsively. Falling back
-  // to fixed defaults keeps the test renderer happy when the ResizeObserver
-  // shim doesn't fire.
+  // Three layouts driven by widget size:
+  //   tiny — single big numeric readout, no gauge, no sparkline.
+  //   small — gauge only.
+  //   normal — gauge + sparkline + subtitle.
+  // Switching by widget size (rows/cols) rather than by container pixels
+  // keeps the breakpoint deterministic and avoids the size-dependent
+  // ResizeObserver feedback we used to hit when the inner widgets fought
+  // each other for the leftover space.
+  const cols = w ?? 4;
+  const rows = h ?? 5;
+  const variant: "tiny" | "small" | "normal" =
+    rows < 3 || cols < 3 ? "tiny" : rows < 4 || cols < 4 ? "small" : "normal";
+  const showSparkline = variant === "normal";
+  const showSubtitle = variant === "normal";
+
+  // Measure the gauge slot so the SVG fills it responsively. Falls back to
+  // fixed defaults when ResizeObserver hasn't fired (initial render, tests).
   const gaugeRef = useRef<HTMLDivElement>(null);
   const [gaugeSize, setGaugeSize] = useState({ w: 200, h: 110 });
   useEffect(() => {
@@ -58,7 +72,23 @@ function TwrComponent(_props: Readonly<ComponentProps<TwrConfig>>) {
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
+      if (width <= 0 || height <= 0) return;
       setGaugeSize({ w: Math.floor(width), h: Math.floor(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Sparkline width follows its slot — fixed-pixel sparklines used to spill
+  // out of narrow widget columns and overlap the title row.
+  const sparkRef = useRef<HTMLDivElement>(null);
+  const [sparkWidth, setSparkWidth] = useState(120);
+  useEffect(() => {
+    const el = sparkRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width } = entries[0].contentRect;
+      if (width > 0) setSparkWidth(Math.max(40, Math.floor(width)));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -75,10 +105,24 @@ function TwrComponent(_props: Readonly<ComponentProps<TwrConfig>>) {
 
   const tone = toneFor(twr);
 
+  if (variant === "tiny") {
+    return (
+      <Panel>
+        <PanelTitle>TWR</PanelTitle>
+        <TinyBody>
+          <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(2)}</TinyValue>
+          <TinyUnit>g</TinyUnit>
+        </TinyBody>
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <PanelTitle>TWR</PanelTitle>
-      <PanelSubtitle>Current stage · last {SPARK_WINDOW_SEC}s</PanelSubtitle>
+      {showSubtitle && (
+        <PanelSubtitle>Current stage · last {SPARK_WINDOW_SEC}s</PanelSubtitle>
+      )}
       <Body>
         <GaugeSlot ref={gaugeRef}>
           <Gauge
@@ -93,15 +137,17 @@ function TwrComponent(_props: Readonly<ComponentProps<TwrConfig>>) {
             ariaLabel={`TWR ${twr.toFixed(2)}`}
           />
         </GaugeSlot>
-        <SparkSlot>
-          <Sparkline
-            values={sparkValues}
-            width={120}
-            height={20}
-            color={TONE_COLOR[tone]}
-            ariaLabel="TWR trend"
-          />
-        </SparkSlot>
+        {showSparkline && (
+          <SparkSlot ref={sparkRef}>
+            <Sparkline
+              values={sparkValues}
+              width={sparkWidth}
+              height={24}
+              color={TONE_COLOR[tone]}
+              ariaLabel="TWR trend"
+            />
+          </SparkSlot>
+        )}
       </Body>
     </Panel>
   );
@@ -111,7 +157,7 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 4px;
   min-height: 0;
@@ -127,9 +173,36 @@ const GaugeSlot = styled.div`
 `;
 
 const SparkSlot = styled.div`
-  width: 120px;
-  height: 20px;
+  /* Width follows the slot via ResizeObserver — fixed-pixel sparklines used
+     to spill out of narrow columns and paint over the title. */
+  width: 100%;
+  height: 24px;
   flex: 0 0 auto;
+`;
+
+const TinyBody = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+`;
+
+const TinyValue = styled.span<{ $color: string }>`
+  font-size: 32px;
+  font-weight: 700;
+  color: ${(p) => p.$color};
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  line-height: 1;
+`;
+
+const TinyUnit = styled.span`
+  font-size: 13px;
+  color: var(--color-text-faint);
+  align-self: flex-end;
+  padding-bottom: 4px;
 `;
 
 registerComponent<TwrConfig>({
@@ -139,7 +212,7 @@ registerComponent<TwrConfig>({
     "Thrust-to-weight ratio of the active stage as a dial. Red below 1 (can't lift off), amber 1–1.5, green above. Sparkline shows the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 2, h: 2 },
   component: TwrComponent,
   dataRequirements: ["dv.currentTWR"],
   defaultConfig: {},
