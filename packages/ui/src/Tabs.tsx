@@ -89,6 +89,11 @@ const TabsRoot = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Fill the panel and constrain children so an active tab whose content
+     uses flex:1 can actually scroll. No-op if the parent isn't a flex
+     column. */
+  flex: 1;
+  min-height: 0;
 `;
 
 const TabBar = styled.div`
@@ -131,4 +136,6 @@ const TabButton = styled.button<{ $active: boolean }>`
 const TabPanel = styled.div`
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 `;

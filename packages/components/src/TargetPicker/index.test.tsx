@@ -248,7 +248,10 @@ describe("TargetPickerComponent", () => {
       source.emit("tar.o.relativeVelocity", -2.5);
     });
     fireEvent.click(screen.getByRole("tab", { name: "Current" }));
-    expect(screen.getByText("Test Station")).toBeInTheDocument();
+    // The target name appears in both the always-visible header chip and
+    // the Current tab's detail row, so query the detail row specifically
+    // via its sibling label rather than relying on text uniqueness.
+    expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
     expect(screen.getByText("Vessel")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear target" }));

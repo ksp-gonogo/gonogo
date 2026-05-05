@@ -262,7 +262,12 @@ function TargetPickerComponent({
           <BodyList>
             {sorted.map((v) => (
               <BodyRow
-                key={v.name}
+                // Two vessels can share a name in KSP; the kerboscript feed
+                // doesn't carry a per-vessel UID, so disambiguate by distance
+                // (already on the entry, rounded to 1dp by the script — the
+                // probability of two same-named vessels at identical metres is
+                // effectively nil).
+                key={`${v.name}@${v.distance}`}
                 type="button"
                 $depth={0}
                 $current={v.name === tarName}
@@ -352,7 +357,20 @@ function TargetPickerComponent({
 
   return (
     <Panel>
-      <PanelTitle>TARGET PICKER</PanelTitle>
+      <PickerHeader>
+        <PanelTitle>TARGET PICKER</PanelTitle>
+        {tarName && (
+          <CurrentTargetChip
+            type="button"
+            onClick={() => setTab("current")}
+            aria-label={`Current target: ${tarName}. Open Current tab.`}
+            title={tarName}
+          >
+            <ChipLabel>TARGET</ChipLabel>
+            <ChipName>{tarName}</ChipName>
+          </CurrentTargetChip>
+        )}
+      </PickerHeader>
       <Tabs
         tabs={[
           { id: "bodies", label: "Bodies", content: bodiesContent },
@@ -429,6 +447,52 @@ function TargetPickerConfigComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const PickerHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 0;
+`;
+
+/** Read-out + click-to-open-Current chip. Visible on every tab so the
+ *  operator never loses sight of the active target while picking. */
+const CurrentTargetChip = styled.button`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--color-status-go-bg);
+  background: var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
+  cursor: pointer;
+  max-width: 60%;
+  &:hover {
+    filter: brightness(1.15);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const ChipLabel = styled.span`
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  flex-shrink: 0;
+`;
+
+const ChipName = styled.span`
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+`;
 
 const BodiesTab = styled.div`
   display: flex;
