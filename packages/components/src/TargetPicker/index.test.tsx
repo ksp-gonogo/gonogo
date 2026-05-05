@@ -163,6 +163,26 @@ describe("TargetPickerComponent", () => {
     });
   });
 
+  it("surfaces orphan bodies as roots when their parent name hasn't streamed", () => {
+    // Repro for the live bug where Telemachus delivers planets but withholds
+    // the star's `b.name[0]`. Without orphan-as-root, every planet references
+    // a parent that isn't in `namedBodies`, the tree-walk produces no roots,
+    // and the picker is blank until you search.
+    renderPicker();
+    act(() => {
+      source.emit("b.number", 3);
+      // No b.name[0] (Kerbol).
+      source.emit("b.name[1]", "Kerbin");
+      source.emit("b.name[2]", "Mun");
+      source.emit("b.referenceBody[1]", "Kerbol");
+      source.emit("b.referenceBody[2]", "Kerbin");
+    });
+    // Kerbin should still be visible even though its parent Kerbol is unnamed.
+    expect(screen.getByRole("button", { name: /Kerbin/ })).toBeInTheDocument();
+    // Mun's parent Kerbin IS in namedBodies, so Mun stays nested under Kerbin.
+    expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
+  });
+
   it("filters the list as the user types", () => {
     renderPicker();
     primeBodies();

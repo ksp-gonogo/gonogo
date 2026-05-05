@@ -155,22 +155,29 @@ function TargetPickerComponent({
 
   // Group bodies by their reference body for the tree-style rendering.
   // Anything without a reference body is treated as a top-level root (the
-  // star, in stock Kerbol). The tree is shallow — at most parent → children
-  // → grandchildren — so a sorted-children Map is enough. We always build
-  // the tree from the full body set so a filter that matches a child but
-  // not its parent still surfaces the child (we'll fall back to a flat list
-  // when filtering).
+  // star, in stock Kerbol). The tree is shallow — at most parent / children
+  // / grandchildren — so a sorted-children Map is enough.
+  //
+  // A body is also a root when its referenceBody points at a name that
+  // hasn't streamed yet (or never will). Without this, the whole tree
+  // disappears any time the parent's name is missing — e.g. Telemachus
+  // sometimes withholds `b.name[0]` for the star and leaves every planet
+  // referencing an unnamed parent, so a strict tree-walk drops everything.
+  // Treating "orphan" bodies as additional roots keeps the picker usable
+  // while data is still streaming in.
   const tree = useMemo(() => {
     const childrenOf = new Map<string, typeof namedBodies>();
     const roots: typeof namedBodies = [];
+    const knownNames = new Set(namedBodies.map((b) => b.name as string));
     for (const body of namedBodies) {
-      if (body.referenceBody === null) {
+      const ref = body.referenceBody;
+      if (ref === null || !knownNames.has(ref)) {
         roots.push(body);
         continue;
       }
-      const bucket = childrenOf.get(body.referenceBody) ?? [];
+      const bucket = childrenOf.get(ref) ?? [];
       bucket.push(body);
-      childrenOf.set(body.referenceBody, bucket);
+      childrenOf.set(ref, bucket);
     }
     return { roots, childrenOf };
   }, [namedBodies]);
@@ -184,7 +191,11 @@ function TargetPickerComponent({
         onChange={(e) => setFilter(e.target.value)}
         aria-label="Filter bodies"
       />
-      {bodies.length === 0 ? (
+      {namedBodies.length === 0 ? (
+        // `bodies.length` flips non-zero as soon as `b.number` arrives, but
+        // that just gives us 17 placeholder entries with no names yet —
+        // showing them as "(unnamed)" rows is worse than the waiting hint.
+        // Wait for at least one name to stream before rendering the list.
         <Hint>Waiting for body data…</Hint>
       ) : isFiltering ? (
         // Flat-list mode while filtering — a tree-walk would hide a matching
