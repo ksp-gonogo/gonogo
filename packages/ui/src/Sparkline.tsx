@@ -53,6 +53,12 @@ export function Sparkline({
     [values],
   );
 
+  // Stable instance-scoped ID for the gradient `<defs>`. React 18's useId
+  // emits ":r0:"-style strings that aren't valid in SVG `url(#id)`
+  // references; strip the colons. Has to be called unconditionally
+  // (rules-of-hooks) — gradient consumption is gated by `background` later.
+  const fillId = `sparkline-fill-${useId().replace(/:/g, "")}`;
+
   const domain = useMemo<[number, number]>(() => {
     if (yDomain) return yDomain;
     if (finite.length === 0) return [0, 1];
@@ -97,10 +103,6 @@ export function Sparkline({
 
   const showBaseline = showZeroBaseline && domain[0] <= 0 && domain[1] >= 0;
   const zeroY = showBaseline ? scaleY(0) : null;
-
-  // Stable, instance-scoped ID so the gradient doesn't collide when several
-  // sparklines render on the same page (React 18 useId is fine for SVG defs).
-  const fillId = `sparkline-fill-${useIdSafe()}`;
 
   return (
     <svg
@@ -150,10 +152,4 @@ export function Sparkline({
       />
     </svg>
   );
-}
-
-// React 18's useId emits ":r0:"-style strings that aren't valid in SVG
-// `url(#id)` references inside JSX. Strip the colons.
-function useIdSafe(): string {
-  return useId().replace(/:/g, "");
 }
