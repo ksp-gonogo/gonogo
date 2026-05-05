@@ -115,7 +115,8 @@ const Wrap = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  height: 100%;
+  width: 100%;
   min-height: 0;
 `;
 
