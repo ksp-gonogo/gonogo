@@ -104,12 +104,7 @@ export function buildKosWrapper(opts: BuildKosWrapperOptions): string {
  * `[/KOSDATA]` from the real script's PRINT then closes it and the lazy
  * parser regex captures the wrapper source as the payload.
  */
-const PARSER_SENTINELS = [
-  "[KOSDATA",
-  "[/KOSDATA",
-  "[KOSERROR",
-  "[/KOSERROR",
-];
+const PARSER_SENTINELS = ["[KOSDATA", "[/KOSDATA", "[KOSERROR", "[/KOSERROR"];
 
 function splitSentinels(s: string): string[] {
   let pieces: string[] = [s];

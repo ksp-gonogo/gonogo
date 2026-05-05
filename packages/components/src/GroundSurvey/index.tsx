@@ -183,9 +183,9 @@ function GroundSurveyConfigComponent({
         />
         <FieldHint>
           Above this height-above-terrain the strip stays idle — terrain
-          readings from orbit smear over hundreds of km of ground per sample
-          and the smoothness verdict becomes meaningless. Default 10 000 m,
-          well below LKO and well above any useful reconnaissance pass.
+          readings from orbit smear over hundreds of km of ground per sample and
+          the smoothness verdict becomes meaningless. Default 10 000 m, well
+          below LKO and well above any useful reconnaissance pass.
         </FieldHint>
       </Field>
       <Field>
@@ -212,8 +212,7 @@ function GroundSurveyConfigComponent({
           const freeze = Number.parseInt(freezeBelowM, 10);
           const ceiling = Number.parseInt(surveyCeilingM, 10);
           onSave({
-            freezeBelowM:
-              Number.isFinite(freeze) && freeze > 0 ? freeze : 1000,
+            freezeBelowM: Number.isFinite(freeze) && freeze > 0 ? freeze : 1000,
             surveyCeilingM:
               Number.isFinite(ceiling) && ceiling > 0 ? ceiling : 10_000,
           });

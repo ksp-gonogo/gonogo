@@ -65,10 +65,7 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
       // Telemachus's empty state is the literal name "No Sensors …" paired
       // with a single 0. Surface as "no sensors" so the UI shows a friendly
       // empty row instead of the raw shape.
-      if (
-        names.length === 1 &&
-        names[0] === NO_SENSORS_SENTINEL
-      ) {
+      if (names.length === 1 && names[0] === NO_SENSORS_SENTINEL) {
         return "no sensors";
       }
       const out: SensorReading[] = [];
@@ -329,8 +326,7 @@ function renderSensorValues(
   type: SensorType,
 ): React.ReactNode {
   if (parsed === null) return <SensorMuted>—</SensorMuted>;
-  if (parsed === "no sensors")
-    return <SensorMuted>None installed</SensorMuted>;
+  if (parsed === "no sensors") return <SensorMuted>None installed</SensorMuted>;
   if (parsed.length === 0) return <SensorMuted>None installed</SensorMuted>;
   // Two readings can share a partName (e.g. duplicate sensor parts). Pair
   // the name with the value to keep keys stable across renders without
