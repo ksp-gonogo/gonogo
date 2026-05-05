@@ -1,5 +1,7 @@
-import { getDataSource, useDataValue } from "@gonogo/core";
+import { getDataSource, logger, useDataValue } from "@gonogo/core";
 import { useEffect, useReducer, useRef } from "react";
+
+const log = logger.tag("bodies");
 
 /**
  * Fan-out subscription to Telemachus's indexed `b.*` bucket.
@@ -79,24 +81,51 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
   const countRaw = useDataValue(sourceId, "b.number");
   const count = typeof countRaw === "number" ? countRaw : 0;
   const valuesRef = useRef<Map<string, unknown>>(new Map());
+  const summaryRef = useRef<string>("");
   const [, bump] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    if (count <= 0) return;
+    if (count <= 0) {
+      log.info("count not yet positive; skipping subscribe", {
+        sourceId,
+        countRaw: count,
+      });
+      return;
+    }
     const source = getDataSource(sourceId);
-    if (!source) return;
+    if (!source) {
+      log.warn("data source not registered; cannot subscribe", { sourceId });
+      return;
+    }
 
     // Reset the cache when the count changes — stale entries from a
     // previous, larger N would otherwise linger.
     valuesRef.current = new Map();
     bump();
 
+    log.info("subscribing to body fields", {
+      sourceId,
+      bodyCount: count,
+      fieldsPerBody: BODY_FIELDS.length,
+      totalKeys: count * BODY_FIELDS.length,
+    });
+
+    const seen = new Set<string>();
     const unsubs: Array<() => void> = [];
     for (let i = 0; i < count; i++) {
       for (const [, telemKey] of BODY_FIELDS) {
         const key = telemachusKey(telemKey, i);
         unsubs.push(
           source.subscribe(key, (value) => {
+            if (!seen.has(key)) {
+              seen.add(key);
+              log.debug("first value for key", {
+                key,
+                value,
+                seenSoFar: seen.size,
+                expected: count * BODY_FIELDS.length,
+              });
+            }
             valuesRef.current.set(key, value);
             bump();
           }),
@@ -104,6 +133,11 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
       }
     }
     return () => {
+      log.info("unsubscribing body fields", {
+        sourceId,
+        bodyCount: count,
+        seenKeys: seen.size,
+      });
       for (const u of unsubs) u();
     };
   }, [count, sourceId]);
@@ -156,5 +190,24 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
     }
     bodies.push(body);
   }
+
+  // Summary log on meaningful changes only — render-frequency, but
+  // gated by a ref so we don't spam the console every tick.
+  const named = bodies.filter((b) => b.name !== null).length;
+  const withRef = bodies.filter((b) => b.referenceBody !== null).length;
+  const sig = `${bodies.length}|${named}|${withRef}`;
+  if (summaryRef.current !== sig) {
+    summaryRef.current = sig;
+    log.info("body data summary", {
+      bodyCount: bodies.length,
+      withName: named,
+      withReferenceBody: withRef,
+      names: bodies.map((b) => b.name).filter((n) => n !== null),
+      referenceBodies: bodies
+        .map((b) => b.referenceBody)
+        .filter((r) => r !== null),
+    });
+  }
+
   return bodies;
 }
