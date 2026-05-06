@@ -276,4 +276,10 @@ export type PeerMessage =
       result?: unknown;
       error?: string;
     }
-  | { type: "flight-change"; flight: FlightRecord | null };
+  | { type: "flight-change"; flight: FlightRecord | null }
+  // Host → stations whenever the persisted flight list could have changed
+  // shape (mutation by either side). Empty payload — recipients reload via
+  // their own `listFlights()`. Stations get this on their own mutations
+  // too so the modal stays consistent without the station having to
+  // optimistically reload after every RPC.
+  | { type: "flight-list-changed" };

@@ -168,6 +168,7 @@ export class PeerHostService {
   peerId: string | null = null;
 
   private flightChangeUnsub: (() => void) | null = null;
+  private flightListChangeUnsub: (() => void) | null = null;
   private currentFlightSnapshot: FlightRecord | null = null;
 
   start() {
@@ -643,6 +644,13 @@ export class PeerHostService {
       this.currentFlightSnapshot = flight;
       this.broadcast({ type: "flight-change", flight } satisfies PeerMessage);
     });
+    if (typeof source.onFlightListChange === "function") {
+      this.flightListChangeUnsub = source.onFlightListChange(() => {
+        this.broadcast({
+          type: "flight-list-changed",
+        } satisfies PeerMessage);
+      });
+    }
   }
 
   private async getBufferedDataSource(): Promise<BufferedDataSource | null> {
@@ -726,6 +734,8 @@ export class PeerHostService {
     this.kosSessions.closeAll();
     this.flightChangeUnsub?.();
     this.flightChangeUnsub = null;
+    this.flightListChangeUnsub?.();
+    this.flightListChangeUnsub = null;
     this.currentFlightSnapshot = null;
     this.peer?.destroy();
     this.peer = null;

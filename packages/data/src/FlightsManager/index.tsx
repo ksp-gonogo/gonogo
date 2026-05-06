@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource, useScreen } from "@gonogo/core";
 import { StarIcon } from "@gonogo/ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -61,6 +61,12 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 export function FlightsManager() {
+  const screen = useScreen();
+  // Replay swaps the registered "data" source for a FlightReplayDataSource.
+  // Stations register a PeerClientDataSource — replay would have nothing
+  // local to swap and the controller's BufferedDataSource type guard would
+  // fail. Hide the button rather than letting a click crash.
+  const isMain = screen === "main";
   const currentFlight = useFlight();
   const [flights, setFlights] = useState<FlightRecord[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -87,6 +93,19 @@ export function FlightsManager() {
   useEffect(() => {
     void reload();
   }, [currentFlight, reload]);
+
+  // List-shape changes (delete, star, prune, chapter ops, new-flight
+  // detection) re-emit on the source. On the main screen this fires
+  // synchronously from BufferedDataSource; on a station it arrives via
+  // the host's `flight-list-changed` push. Either way, refresh the table
+  // so the modal stays consistent without the user reopening it.
+  useEffect(() => {
+    const src = getSource();
+    if (typeof src?.onFlightListChange !== "function") return;
+    return src.onFlightListChange(() => {
+      void reload();
+    });
+  }, [reload]);
 
   const handleDelete = async (id: string) => {
     const src = getSource();
@@ -290,14 +309,16 @@ export function FlightsManager() {
                       >
                         {isExpanded ? "− graph" : "＋ graph"}
                       </GraphButton>
-                      <ReplayButton
-                        type="button"
-                        onClick={() => void handleReplay(f)}
-                        aria-label={`Replay flight ${f.vesselName || ""}`}
-                        title="Replay this flight in the dashboard"
-                      >
-                        ▶ replay
-                      </ReplayButton>
+                      {isMain && (
+                        <ReplayButton
+                          type="button"
+                          onClick={() => void handleReplay(f)}
+                          aria-label={`Replay flight ${f.vesselName || ""}`}
+                          title="Replay this flight in the dashboard"
+                        >
+                          ▶ replay
+                        </ReplayButton>
+                      )}
                       <ExportButton
                         type="button"
                         onClick={() => void handleExport(f)}

@@ -103,6 +103,11 @@ export class BufferedDataSource extends DataSourceWrapper {
   private readonly sampleSubscribers = new KeyedListenerSet<[Sample]>();
   private readonly statusSubscribers = new ListenerSet<[DataSourceStatus]>();
   private readonly flightSubscribers = new ListenerSet<[FlightRecord | null]>();
+  // Fires on every list-shape mutation (add via detection, delete, clear,
+  // star toggle, prune, chapter add/update/remove). FlightsManager subscribes
+  // to it to auto-refresh, and the peer host re-broadcasts so a mutation
+  // initiated on a station bubbles back to the main screen's open modal.
+  private readonly flightListSubscribers = new ListenerSet<[]>();
 
   private upstreamUnsubs: Array<() => void> = [];
   private upstreamStatusUnsub: (() => void) | null = null;
@@ -419,6 +424,16 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.flightSubscribers.add(cb);
   }
 
+  /**
+   * Fires whenever the persisted flight list could have changed shape —
+   * a flight is added, deleted, starred, pruned, or its chapters changed.
+   * Sample-driven updates to the *current* flight are not signalled here;
+   * those go through `onFlightChange`.
+   */
+  onFlightListChange(cb: () => void): () => void {
+    return this.flightListSubscribers.add(cb);
+  }
+
   listFlights(): Promise<FlightRecord[]> {
     return this.store.listFlights();
   }
@@ -475,6 +490,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     };
     await this.store.upsertFlight(updated);
     if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    this.flightListSubscribers.fire();
     return updated;
   }
 
@@ -491,6 +507,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     const updated: FlightRecord = { ...flight, chapters };
     await this.store.upsertFlight(updated);
     if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    this.flightListSubscribers.fire();
     return updated;
   }
 
@@ -504,6 +521,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     const updated: FlightRecord = { ...flight, chapters };
     await this.store.upsertFlight(updated);
     if (this.detector.getCurrent()?.id === flightId) this.emitFlightChange();
+    this.flightListSubscribers.fire();
     return updated;
   }
 
@@ -516,6 +534,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.detector.forget(id);
     await this.store.deleteFlight(id);
     if (wasCurrent) this.emitFlightChange();
+    this.flightListSubscribers.fire();
   }
 
   /**
@@ -530,6 +549,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     const updated: FlightRecord = { ...flight, starred };
     await this.store.upsertFlight(updated);
     if (this.detector.getCurrent()?.id === id) this.emitFlightChange();
+    this.flightListSubscribers.fire();
   }
 
   /**
@@ -564,6 +584,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.derivedPrevious.clear();
     this.lastEmittedValue.clear();
     this.emitFlightChange();
+    this.flightListSubscribers.fire();
   }
 
   // --- Internal ----------------------------------------------------------
@@ -626,6 +647,13 @@ export class BufferedDataSource extends DataSourceWrapper {
       void this.store.upsertFlight(decision.flight);
       if (!before || before.id !== decision.flight.id) {
         this.emitFlightChange();
+      }
+      // Newly minted flight grows the persisted list; let any open
+      // FlightsManager refresh without waiting for a manual reload.
+      // Resumes and appends don't change shape (the record was already
+      // there or was already current).
+      if (decision.kind === "new") {
+        this.flightListSubscribers.fire();
       }
     }
 

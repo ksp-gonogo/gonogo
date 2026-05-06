@@ -225,6 +225,13 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return real.onFlightChange?.(cb) ?? (() => {});
   }
 
+  onFlightListChange(cb: () => void): () => void {
+    const real = this.real as {
+      onFlightListChange?: (cb: () => void) => () => void;
+    };
+    return real.onFlightListChange?.(cb) ?? (() => {});
+  }
+
   listFlights(): Promise<unknown[]> {
     const real = this.real as { listFlights?: () => Promise<unknown[]> };
     return real.listFlights?.() ?? Promise.resolve([]);

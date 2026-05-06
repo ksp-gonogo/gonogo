@@ -94,6 +94,7 @@ export class PeerClientService {
   private flightChangeListeners = new ListenerSet<
     [flight: FlightRecord | null]
   >();
+  private flightListChangeListeners = new ListenerSet<[]>();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -424,6 +425,16 @@ export class PeerClientService {
   }
 
   /**
+   * Notified whenever the host's persisted flight list could have changed
+   * shape. Empty payload — subscribers re-query `listFlights()`. Mirrors
+   * the local `BufferedDataSource.onFlightListChange` so FlightsManager
+   * can subscribe identically on both screens.
+   */
+  onFlightListChange(cb: () => void): () => void {
+    return this.flightListChangeListeners.add(cb);
+  }
+
+  /**
    * Tunnel a kOS compute script execution through to the host. The host
    * invokes its local KosDataSource.executeScript and replies with
    * the parsed [KOSDATA] object (or an error). Timeout defaults to 35s —
@@ -561,6 +572,9 @@ export class PeerClientService {
     "flight-change": (msg) => {
       this.currentFlight = msg.flight;
       this.flightChangeListeners.fire(msg.flight);
+    },
+    "flight-list-changed": () => {
+      this.flightListChangeListeners.fire();
     },
     "kos-execute-response": (msg) => {
       if (msg.error || !msg.data) {

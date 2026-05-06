@@ -250,6 +250,10 @@ export class PeerClientDataSource implements ScriptableDataSource {
     return this.client.onFlightChange(cb);
   }
 
+  onFlightListChange(cb: () => void): () => void {
+    return this.client.onFlightListChange(cb);
+  }
+
   listFlights(): Promise<FlightRecord[]> {
     return this.client.sendFlightRpc<FlightRecord[]>({ op: "list" });
   }
