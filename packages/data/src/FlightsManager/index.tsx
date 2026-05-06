@@ -1,4 +1,4 @@
-import { getDataSource, useScreen } from "@gonogo/core";
+import { getDataSource, type Screen } from "@gonogo/core";
 import { StarIcon } from "@gonogo/ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -60,8 +60,17 @@ function downloadJson(payload: unknown, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function FlightsManager() {
-  const screen = useScreen();
+export interface FlightsManagerProps {
+  /**
+   * Which screen this modal is rendered on. Read from `useScreen()` by the
+   * FAB and passed in explicitly because the modal portal renders above
+   * the ScreenProvider — calling `useScreen()` from inside the modal body
+   * falls through to the default "main".
+   */
+  screen?: Screen;
+}
+
+export function FlightsManager({ screen = "main" }: FlightsManagerProps = {}) {
   // Replay swaps the registered "data" source for a FlightReplayDataSource.
   // Stations register a PeerClientDataSource — replay would have nothing
   // local to swap and the controller's BufferedDataSource type guard would
