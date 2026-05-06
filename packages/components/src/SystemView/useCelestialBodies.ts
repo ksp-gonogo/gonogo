@@ -1,7 +1,10 @@
 import { getDataSource, logger, useDataValue } from "@gonogo/core";
 import { useEffect, useReducer, useRef } from "react";
 
-const log = logger.tag("bodies");
+// Tagged under `targets` because the user-facing symptom of any breakage
+// here surfaces in the TargetPicker bodies tab; flip
+// `localStorage.LOG_LEVEL = 'debug'` to see the diagnostic stream.
+const log = logger.tag("targets");
 
 /**
  * Fan-out subscription to Telemachus's indexed `b.*` bucket.
@@ -86,7 +89,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
 
   useEffect(() => {
     if (count <= 0) {
-      log.info("count not yet positive; skipping subscribe", {
+      log.debug("count not yet positive; skipping subscribe", {
         sourceId,
         countRaw: count,
       });
@@ -94,6 +97,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
     }
     const source = getDataSource(sourceId);
     if (!source) {
+      // Real error — keep at warn so it surfaces without enabling debug.
       log.warn("data source not registered; cannot subscribe", { sourceId });
       return;
     }
@@ -103,7 +107,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
     valuesRef.current = new Map();
     bump();
 
-    log.info("subscribing to body fields", {
+    log.debug("subscribing to body fields", {
       sourceId,
       bodyCount: count,
       fieldsPerBody: BODY_FIELDS.length,
@@ -133,7 +137,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
       }
     }
     return () => {
-      log.info("unsubscribing body fields", {
+      log.debug("unsubscribing body fields", {
         sourceId,
         bodyCount: count,
         seenKeys: seen.size,
@@ -198,7 +202,7 @@ export function useCelestialBodies(sourceId = "data"): CelestialBody[] {
   const sig = `${bodies.length}|${named}|${withRef}`;
   if (summaryRef.current !== sig) {
     summaryRef.current = sig;
-    log.info("body data summary", {
+    log.debug("body data summary", {
       bodyCount: bodies.length,
       withName: named,
       withReferenceBody: withRef,
