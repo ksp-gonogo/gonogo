@@ -25,6 +25,7 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
+  Spinner,
   Tabs,
 } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -77,9 +78,47 @@ function TargetPickerComponent({
     },
   });
 
-  const targetBody = (index: number) =>
+  // Pending state — which row is awaiting the `tar.name` readback after a
+  // click. We render a spinner on that row until the readback confirms
+  // (or a 5 s safety net clears it). Body rows use the integer index;
+  // vessel rows use `name@distance` (same disambiguator as the React key).
+  const [pendingTarget, setPendingTarget] = useState<{
+    kind: "body" | "vessel";
+    id: string;
+    name: string;
+    distance?: number;
+    expectedName: string;
+    since: number;
+  } | null>(null);
+  useEffect(() => {
+    if (pendingTarget === null) return;
+    if (tarName === pendingTarget.expectedName) {
+      // Confirmed. Distance match (when applicable) is enforced via the
+      // currentVesselId computation below — here we just clear the pending
+      // marker so the spinner stops.
+      setPendingTarget(null);
+      return;
+    }
+    // Safety net so the spinner doesn't stick if the readback never lands
+    // (target out of range, kOS hiccup, action silently dropped).
+    const id = setTimeout(() => setPendingTarget(null), 5000);
+    return () => clearTimeout(id);
+  }, [pendingTarget, tarName]);
+
+  const targetBody = (index: number, name: string | null) => {
+    setPendingTarget({
+      kind: "body",
+      id: `body:${index}`,
+      name: name ?? `Body ${index}`,
+      expectedName: name ?? "",
+      since: Date.now(),
+    });
     void execute(`tar.setTargetBody[${index}]`);
-  const clearTarget = () => void execute("tar.clearTarget");
+  };
+  const clearTarget = () => {
+    setPendingTarget(null);
+    void execute("tar.clearTarget");
+  };
 
   // ── Centralised vessel listing ───────────────────────────────────────────
   // The Vessels tab subscribes to the `target-vessels` feed. One loop runs
@@ -118,7 +157,15 @@ function TargetPickerComponent({
   // it takes a per-call name argument. After the script resolves we kick
   // the central feed for a fresh sample so the new TARGET row updates.
   const targetVessel = useCallback(
-    (name: string) => {
+    (name: string, distance: number) => {
+      setPendingTarget({
+        kind: "vessel",
+        id: `vessel:${name}@${distance}`,
+        name,
+        distance,
+        expectedName: name,
+        since: Date.now(),
+      });
       const source = getDataSource("kos");
       if (!isScriptable(source)) return;
       void source
@@ -205,18 +252,24 @@ function TargetPickerComponent({
           {filteredBodies.length === 0 ? (
             <Hint>No bodies match.</Hint>
           ) : (
-            filteredBodies.map((body) => (
-              <BodyRow
-                key={body.index}
-                type="button"
-                $depth={0}
-                $current={body.name === tarName}
-                onClick={() => targetBody(body.index)}
-              >
-                <BodyName>{body.name ?? "(unnamed)"}</BodyName>
-                {body.name === tarName && <BodyTag>TARGET</BodyTag>}
-              </BodyRow>
-            ))
+            filteredBodies.map((body) => {
+              const isPending = pendingTarget?.id === `body:${body.index}`;
+              return (
+                <BodyRow
+                  key={body.index}
+                  type="button"
+                  $depth={0}
+                  $current={body.name === tarName}
+                  onClick={() => targetBody(body.index, body.name)}
+                >
+                  <BodyName>{body.name ?? "(unnamed)"}</BodyName>
+                  {isPending && <Spinner ariaLabel="Setting target" />}
+                  {!isPending && body.name === tarName && (
+                    <BodyTag>TARGET</BodyTag>
+                  )}
+                </BodyRow>
+              );
+            })
           )}
         </BodyList>
       ) : (
@@ -228,6 +281,7 @@ function TargetPickerComponent({
               childrenOf={tree.childrenOf}
               depth={0}
               currentTargetName={tarName}
+              pendingId={pendingTarget?.id ?? null}
               onTarget={targetBody}
             />
           ))}
@@ -242,6 +296,39 @@ function TargetPickerComponent({
       status.scriptError && !status.paused
         ? status.scriptError
         : status.parseError;
+
+    // Disambiguate same-name vessels for the TARGET badge. KSP allows
+    // multiple vessels to share a name, and Telemachus's `tar.name` only
+    // tells us "the target is named X" — so a naive `v.name === tarName`
+    // lights up every X. Pick the row whose listed distance is closest to
+    // live `tar.distance` instead.
+    let currentVesselKey: string | null = null;
+    if (typeof tarName === "string") {
+      const candidates = sorted.filter((v) => v.name === tarName);
+      if (candidates.length === 1) {
+        currentVesselKey = `${candidates[0].name}@${candidates[0].distance}`;
+      } else if (candidates.length > 1) {
+        const liveDist =
+          typeof tarDistance === "number" && Number.isFinite(tarDistance)
+            ? tarDistance
+            : null;
+        // Without a live distance we can't pick — leave nothing highlighted
+        // rather than light up all three rows incorrectly.
+        if (liveDist !== null) {
+          let best = candidates[0];
+          let bestDelta = Math.abs(best.distance - liveDist);
+          for (const c of candidates) {
+            const d = Math.abs(c.distance - liveDist);
+            if (d < bestDelta) {
+              best = c;
+              bestDelta = d;
+            }
+          }
+          currentVesselKey = `${best.name}@${best.distance}`;
+        }
+      }
+    }
+
     return (
       <VesselsTab>
         <VesselsHeader>
@@ -272,27 +359,32 @@ function TargetPickerComponent({
           <Hint>No targets in range.</Hint>
         ) : (
           <BodyList>
-            {sorted.map((v) => (
-              <BodyRow
-                // Two vessels can share a name in KSP; the kerboscript feed
-                // doesn't carry a per-vessel UID, so disambiguate by distance
-                // (already on the entry, rounded to 1dp by the script — the
-                // probability of two same-named vessels at identical metres is
-                // effectively nil).
-                key={`${v.name}@${v.distance}`}
-                type="button"
-                $depth={0}
-                $current={v.name === tarName}
-                onClick={() => targetVessel(v.name)}
-              >
-                <VesselName>
-                  <span>{v.name}</span>
-                  <VesselType>{v.type}</VesselType>
-                </VesselName>
-                <VesselDistance>{formatDistance(v.distance)}</VesselDistance>
-                {v.name === tarName && <BodyTag>TARGET</BodyTag>}
-              </BodyRow>
-            ))}
+            {sorted.map((v) => {
+              // Same disambiguator as the React key — and as the
+              // `currentVesselKey` / `pendingTarget.id` strings — so the
+              // current/pending row is identified consistently across all
+              // three places.
+              const rowKey = `${v.name}@${v.distance}`;
+              const isCurrent = currentVesselKey === rowKey;
+              const isPending = pendingTarget?.id === `vessel:${rowKey}`;
+              return (
+                <BodyRow
+                  key={rowKey}
+                  type="button"
+                  $depth={0}
+                  $current={isCurrent}
+                  onClick={() => targetVessel(v.name, v.distance)}
+                >
+                  <VesselName>
+                    <span>{v.name}</span>
+                    <VesselType>{v.type}</VesselType>
+                  </VesselName>
+                  <VesselDistance>{formatDistance(v.distance)}</VesselDistance>
+                  {isPending && <Spinner ariaLabel="Setting target" />}
+                  {!isPending && isCurrent && <BodyTag>TARGET</BodyTag>}
+                </BodyRow>
+              );
+            })}
           </BodyList>
         )}
       </VesselsTab>
@@ -401,7 +493,9 @@ interface BodyTreeNodeProps {
   childrenOf: Map<string, ReturnType<typeof useCelestialBodies>>;
   depth: number;
   currentTargetName: string | undefined;
-  onTarget: (index: number) => void;
+  /** Identifier of the row currently awaiting `tar.name` confirmation. */
+  pendingId: string | null;
+  onTarget: (index: number, name: string | null) => void;
 }
 
 function BodyTreeNode({
@@ -409,20 +503,23 @@ function BodyTreeNode({
   childrenOf,
   depth,
   currentTargetName,
+  pendingId,
   onTarget,
 }: BodyTreeNodeProps) {
   const children = body.name ? (childrenOf.get(body.name) ?? []) : [];
   const isCurrent = body.name && body.name === currentTargetName;
+  const isPending = pendingId === `body:${body.index}`;
   return (
     <>
       <BodyRow
         type="button"
         $depth={depth}
         $current={!!isCurrent}
-        onClick={() => onTarget(body.index)}
+        onClick={() => onTarget(body.index, body.name)}
       >
         <BodyName>{body.name ?? "(unnamed)"}</BodyName>
-        {isCurrent && <BodyTag>TARGET</BodyTag>}
+        {isPending && <Spinner ariaLabel="Setting target" />}
+        {!isPending && isCurrent && <BodyTag>TARGET</BodyTag>}
       </BodyRow>
       {children.map((child) => (
         <BodyTreeNode
@@ -431,6 +528,7 @@ function BodyTreeNode({
           childrenOf={childrenOf}
           depth={depth + 1}
           currentTargetName={currentTargetName}
+          pendingId={pendingId}
           onTarget={onTarget}
         />
       ))}

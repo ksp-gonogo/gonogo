@@ -35,6 +35,11 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
   { id: "camera", label: "camera", hint: "OCISLY stream source lifecycle" },
   { id: "serial", label: "serial", hint: "Serial device connect / parse" },
   {
+    id: "targets",
+    label: "targets",
+    hint: "Body / vessel data flow into the TargetPicker",
+  },
+  {
     id: "gonogo",
     label: "gonogo",
     hint: "Station registration & votes",

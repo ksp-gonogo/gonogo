@@ -16,6 +16,7 @@ export * from "./Panel";
 export * from "./Readout";
 export * from "./SignalLossBanner";
 export * from "./Sparkline";
+export * from "./Spinner";
 export * from "./Switch";
 export * from "./Tabs";
 export * from "./Tag";
