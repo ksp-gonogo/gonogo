@@ -389,10 +389,26 @@ export class PeerClientService {
    * The 15s budget is generous because `op: "export"` packs every sample
    * for a flight into the response and a 30-minute Mun mission can be
    * several MB on the wire.
+   *
+   * Unlike `sendQueryRange`, waits up to 5s for the broker handshake to
+   * complete before failing. FlightsManager often mounts a tick before
+   * the PeerJS connection opens; without the wait, the very first
+   * `listFlights()` after a station boot races the handshake and surfaces
+   * an uncaught "not connected" rejection in the console.
    */
-  sendFlightRpc<T = unknown>(op: FlightRpcOp, timeoutMs = 15_000): Promise<T> {
+  async sendFlightRpc<T = unknown>(
+    op: FlightRpcOp,
+    timeoutMs = 15_000,
+  ): Promise<T> {
     if (!this.conn) {
-      return Promise.reject(new Error("not connected"));
+      try {
+        await this.whenConnected(5_000);
+      } catch {
+        throw new Error("not connected");
+      }
+    }
+    if (!this.conn) {
+      throw new Error("not connected");
     }
     const requestId = crypto.randomUUID();
     const pending = this.pendingFlightRpc.track(
@@ -406,6 +422,29 @@ export class PeerClientService {
       op,
     } satisfies PeerMessage);
     return pending as Promise<T>;
+  }
+
+  /**
+   * Resolve when the next `connected` status fires, or reject after
+   * `timeoutMs`. Returns immediately if already connected. Internal — most
+   * callers should fail loudly rather than wait.
+   */
+  private whenConnected(timeoutMs: number): Promise<void> {
+    if (this.conn) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      let remove: (() => unknown) | null = null;
+      const timer = setTimeout(() => {
+        remove?.();
+        reject(new Error("connection timeout"));
+      }, timeoutMs);
+      remove = this.connStatusListeners.add((status) => {
+        if (status === "connected") {
+          clearTimeout(timer);
+          remove?.();
+          resolve();
+        }
+      });
+    });
   }
 
   /** Latest flight snapshot pushed by the host. Synchronous. */

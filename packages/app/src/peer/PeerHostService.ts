@@ -218,6 +218,12 @@ export class PeerHostService {
           type: "flight-change",
           flight: this.currentFlightSnapshot,
         } satisfies PeerMessage);
+        // Nudge the station to reload its flight list. flight-change above
+        // doesn't always trigger a re-render (when the cached snapshot ===
+        // the incoming snapshot, e.g. both `null`), so an open
+        // FlightsManager modal would otherwise stay on a "no flights" view
+        // until the next list mutation.
+        conn.send({ type: "flight-list-changed" } satisfies PeerMessage);
         // Lazy: wire the host's BufferedDataSource flight broadcaster on
         // the first peer connection. The buffered source isn't registered
         // synchronously — it imports kos + telemachus first — so doing

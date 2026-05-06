@@ -480,6 +480,45 @@ describe("PeerClientService.sendFlightRpc", () => {
     await expect(pending).rejects.toThrow(/closed|disconnected/);
   });
 
+  it("waits for connection if called before the conn is open, then sends", async () => {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+
+    // Kick off the RPC BEFORE peer.open / conn.open fire — this is the
+    // FlightsManager-on-mount race that previously surfaced "not connected"
+    // as an uncaught rejection.
+    const pending = svc.sendFlightRpc({ op: "list" });
+
+    // Flush any synchronous resolution paths.
+    await Promise.resolve();
+
+    // Now finish the handshake. sendFlightRpc should send + resolve.
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+
+    const sent: PeerMessage[] = [];
+    peer._lastConn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    // Wait for the queued send to flush, then locate the flight RPC.
+    await new Promise((r) => setTimeout(r, 0));
+    const req = sent.find((m) => m.type === "flight-rpc-request");
+    if (!req || req.type !== "flight-rpc-request") {
+      throw new Error("expected flight-rpc-request after connect");
+    }
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "flight-rpc-response",
+      requestId: req.requestId,
+      result: [],
+    });
+
+    await expect(pending).resolves.toEqual([]);
+  });
+
   it("flight-change pushes update getCurrentFlight + fire onFlightChange", () => {
     const { svc } = connectedSvc();
     const seen: Array<unknown> = [];

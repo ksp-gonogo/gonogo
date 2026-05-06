@@ -79,7 +79,19 @@ export function FlightsManager() {
   const reload = useCallback(async () => {
     const src = getSource();
     if (!src) return;
-    const list = await src.listFlights();
+    let list: FlightRecord[];
+    try {
+      list = await src.listFlights();
+    } catch (err) {
+      // On stations the data source is a PeerClientDataSource that proxies
+      // listFlights through PeerJS; if the link is mid-handshake or just
+      // dropped, the RPC rejects. Swallow + log rather than letting an
+      // uncaught promise rejection surface in the console — the modal
+      // stays on its previous list and recovers on the next reload trigger
+      // (flight-list-changed push, or the user reopening the modal).
+      console.warn("FlightsManager: failed to load flights", err);
+      return;
+    }
     setFlights(list.sort((a, b) => b.launchedAt - a.launchedAt));
     // Drop selections that no longer exist after a delete/clear.
     setSelectedIds((prev) => {
