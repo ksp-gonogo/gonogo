@@ -154,24 +154,25 @@ function TargetPickerComponent({
   }, [namedBodies, filterText, isFiltering]);
 
   // Group bodies by their reference body for the tree-style rendering.
-  // Anything without a reference body is treated as a top-level root (the
-  // star, in stock Kerbol). The tree is shallow — at most parent / children
-  // / grandchildren — so a sorted-children Map is enough.
+  // The tree is shallow — at most parent / children / grandchildren — so
+  // a sorted-children Map is enough.
   //
-  // A body is also a root when its referenceBody points at a name that
-  // hasn't streamed yet (or never will). Without this, the whole tree
-  // disappears any time the parent's name is missing — e.g. Telemachus
-  // sometimes withholds `b.name[0]` for the star and leaves every planet
-  // referencing an unnamed parent, so a strict tree-walk drops everything.
-  // Treating "orphan" bodies as additional roots keeps the picker usable
-  // while data is still streaming in.
+  // A body is treated as a top-level root when any of:
+  //   - referenceBody is null (no parent declared);
+  //   - referenceBody equals the body's own name (Telemachus reports the
+  //     star as its own parent — `b.referenceBody[0] === "Sun"`); or
+  //   - referenceBody points at a name that hasn't streamed yet, or never
+  //     will (orphan).
+  // Without these, a strict "ref === null" check drops the whole tree
+  // whenever the star's parent is anything other than null — which in
+  // stock Kerbol is always.
   const tree = useMemo(() => {
     const childrenOf = new Map<string, typeof namedBodies>();
     const roots: typeof namedBodies = [];
     const knownNames = new Set(namedBodies.map((b) => b.name as string));
     for (const body of namedBodies) {
       const ref = body.referenceBody;
-      if (ref === null || !knownNames.has(ref)) {
+      if (ref === null || ref === body.name || !knownNames.has(ref)) {
         roots.push(body);
         continue;
       }

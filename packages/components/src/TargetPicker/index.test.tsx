@@ -163,6 +163,28 @@ describe("TargetPickerComponent", () => {
     });
   });
 
+  it("treats a self-referencing star as a root (b.referenceBody[0] = its own name)", () => {
+    // Repro for the live diagnostic where Telemachus stock Kerbol reports
+    // `b.name[0] = "Sun"` AND `b.referenceBody[0] = "Sun"` -- Sun is its
+    // own parent. Strict `ref === null` and "ref must be a known name"
+    // checks both fail to identify Sun as a root, the tree-walk produces
+    // no roots, and the picker is blank.
+    renderPicker();
+    act(() => {
+      source.emit("b.number", 3);
+      source.emit("b.name[0]", "Sun");
+      source.emit("b.name[1]", "Kerbin");
+      source.emit("b.name[2]", "Mun");
+      source.emit("b.referenceBody[0]", "Sun"); // self-reference
+      source.emit("b.referenceBody[1]", "Sun");
+      source.emit("b.referenceBody[2]", "Kerbin");
+    });
+    // Sun is the root, Kerbin is its child, Mun is Kerbin's child.
+    expect(screen.getByRole("button", { name: /Sun/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Kerbin/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
+  });
+
   it("surfaces orphan bodies as roots when their parent name hasn't streamed", () => {
     // Repro for the live bug where Telemachus delivers planets but withholds
     // the star's `b.name[0]`. Without orphan-as-root, every planet references
