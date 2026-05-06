@@ -1,8 +1,43 @@
 import type { DataSourceStatus } from "@gonogo/core";
-import type { DataKeyMeta, KosData, KosScriptArg } from "@gonogo/data";
+import type {
+  DataKeyMeta,
+  FlightChapterRecord,
+  FlightRecord,
+  KosData,
+  KosScriptArg,
+} from "@gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
 
-export type { DataSourceStatus };
+/**
+ * Flight-history RPC ops. The host owns the canonical FlightRecord store
+ * (BufferedDataSource); stations call these via `flight-rpc-request` to
+ * read or mutate flights remotely. Result shapes match the corresponding
+ * BufferedDataSource methods so PeerClientDataSource can be a thin
+ * forwarder.
+ */
+export type FlightRpcOp =
+  | { op: "list" }
+  | { op: "get"; id: string }
+  | { op: "getCurrent" }
+  | { op: "export"; id: string }
+  | { op: "delete"; id: string }
+  | { op: "clearAll" }
+  | { op: "setStarred"; id: string; starred: boolean }
+  | { op: "pruneKeepLatest"; keepCount: number }
+  | {
+      op: "addChapter";
+      flightId: string;
+      chapter: Omit<FlightChapterRecord, "id"> & { id?: string };
+    }
+  | {
+      op: "updateChapter";
+      flightId: string;
+      chapterId: string;
+      patch: Partial<Omit<FlightChapterRecord, "id">>;
+    }
+  | { op: "removeChapter"; flightId: string; chapterId: string };
+
+export type { DataSourceStatus, FlightRecord };
 
 export interface PeerSchemaSource {
   id: string;
@@ -223,4 +258,22 @@ export type PeerMessage =
       type: "peer-data-unsubscribe";
       sourceId: string;
       keys: string[];
-    };
+    }
+  // ──────────────────────────────────────────────────────────────────────
+  // Flight history RPC. Stations call into the host's BufferedDataSource
+  // through `flight-rpc-request`; the host replies with `flight-rpc-response`
+  // keyed by `requestId`. `flight-change` is a host → station push so
+  // station-side `useFlight()` mirrors the main screen's current flight.
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "flight-rpc-request";
+      requestId: string;
+      op: FlightRpcOp;
+    }
+  | {
+      type: "flight-rpc-response";
+      requestId: string;
+      result?: unknown;
+      error?: string;
+    }
+  | { type: "flight-change"; flight: FlightRecord | null };

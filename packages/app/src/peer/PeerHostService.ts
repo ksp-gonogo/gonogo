@@ -1,5 +1,9 @@
 import { debugPeer, logger, PerfBudget } from "@gonogo/core";
-import type { DataKeyMeta } from "@gonogo/data";
+import type {
+  BufferedDataSource,
+  DataKeyMeta,
+  FlightRecord,
+} from "@gonogo/data";
 import { isScriptable, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
@@ -163,6 +167,9 @@ export class PeerHostService {
 
   peerId: string | null = null;
 
+  private flightChangeUnsub: (() => void) | null = null;
+  private currentFlightSnapshot: FlightRecord | null = null;
+
   start() {
     const peerId = getOrCreatePeerId();
     const iceServers = loadIceServers();
@@ -202,6 +209,20 @@ export class PeerHostService {
             peerId: this.ocislyProxyPeerId,
           } satisfies PeerMessage);
         }
+        // Latecomer's initial flight snapshot. The host's flight-change
+        // listener is set up lazily below; this send is independent so a
+        // station that connects mid-flight gets the current value
+        // immediately rather than waiting for the next transition.
+        conn.send({
+          type: "flight-change",
+          flight: this.currentFlightSnapshot,
+        } satisfies PeerMessage);
+        // Lazy: wire the host's BufferedDataSource flight broadcaster on
+        // the first peer connection. The buffered source isn't registered
+        // synchronously — it imports kos + telemachus first — so doing
+        // this in start() races. Per-connection is too eager (we'd subscribe
+        // every time), so we gate on a single attach.
+        void this.attachFlightChangeBroadcaster();
         this.peerConnectListeners.fire(conn.peer);
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
@@ -352,6 +373,9 @@ export class PeerHostService {
     },
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
+    },
+    "flight-rpc-request": (msg, conn) => {
+      void this.handleFlightRpcRequest(msg, conn);
     },
     "kos-execute-request": (msg, conn) => {
       void this.handleKosExecuteRequest(msg, conn);
@@ -605,8 +629,104 @@ export class PeerHostService {
     }
   }
 
+  /**
+   * Subscribe once to the buffered source's `onFlightChange` and broadcast
+   * each transition to every connected station. Idempotent — repeated
+   * calls after the first attach are no-ops.
+   */
+  private async attachFlightChangeBroadcaster(): Promise<void> {
+    if (this.flightChangeUnsub) return;
+    const source = await this.getBufferedDataSource();
+    if (!source) return;
+    this.currentFlightSnapshot = source.getCurrentFlight();
+    this.flightChangeUnsub = source.onFlightChange((flight) => {
+      this.currentFlightSnapshot = flight;
+      this.broadcast({ type: "flight-change", flight } satisfies PeerMessage);
+    });
+  }
+
+  private async getBufferedDataSource(): Promise<BufferedDataSource | null> {
+    const { getDataSource } = await import("@gonogo/core");
+    // Duck-type: BufferedDataSource isn't exported as a runtime symbol from
+    // PeerHostService's POV, and the registered "data" entry is wrapped in
+    // PeerBroadcastingDataSource on the main screen. The wrapper forwards
+    // every flight method we touch here, so the duck check covers both.
+    const candidate = getDataSource("data") as
+      | (BufferedDataSource & {
+          onFlightChange?: BufferedDataSource["onFlightChange"];
+        })
+      | undefined;
+    if (!candidate || typeof candidate.onFlightChange !== "function") {
+      return null;
+    }
+    return candidate;
+  }
+
+  private async handleFlightRpcRequest(
+    msg: Extract<PeerMessage, { type: "flight-rpc-request" }>,
+    conn: DataConnection,
+  ) {
+    const respond = (result?: unknown, error?: string) => {
+      conn.send({
+        type: "flight-rpc-response",
+        requestId: msg.requestId,
+        result,
+        error,
+      } satisfies PeerMessage);
+    };
+    const source = await this.getBufferedDataSource();
+    if (!source) {
+      respond(undefined, "buffered data source not registered");
+      return;
+    }
+    try {
+      const result = await this.dispatchFlightRpc(source, msg.op);
+      respond(result);
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      logger.warn(`[PeerHost] flight RPC failed (${msg.op.op}) — ${error}`);
+      respond(undefined, error);
+    }
+  }
+
+  private async dispatchFlightRpc(
+    source: BufferedDataSource,
+    op: Extract<PeerMessage, { type: "flight-rpc-request" }>["op"],
+  ): Promise<unknown> {
+    switch (op.op) {
+      case "list":
+        return source.listFlights();
+      case "get":
+        return source.getFlight(op.id);
+      case "getCurrent":
+        return source.getCurrentFlight();
+      case "export":
+        return source.exportFlight(op.id);
+      case "delete":
+        await source.deleteFlight(op.id);
+        return null;
+      case "clearAll":
+        await source.clearAllFlights();
+        return null;
+      case "setStarred":
+        await source.setFlightStarred(op.id, op.starred);
+        return null;
+      case "pruneKeepLatest":
+        return source.pruneFlightsKeepLatest({ keepCount: op.keepCount });
+      case "addChapter":
+        return source.addChapter(op.flightId, op.chapter);
+      case "updateChapter":
+        return source.updateChapter(op.flightId, op.chapterId, op.patch);
+      case "removeChapter":
+        return source.removeChapter(op.flightId, op.chapterId);
+    }
+  }
+
   stop() {
     this.kosSessions.closeAll();
+    this.flightChangeUnsub?.();
+    this.flightChangeUnsub = null;
+    this.currentFlightSnapshot = null;
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;

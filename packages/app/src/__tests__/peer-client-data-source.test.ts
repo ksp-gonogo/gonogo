@@ -1,10 +1,14 @@
+import type { FlightRecord } from "@gonogo/data";
 import { describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";
+import type { FlightRpcOp } from "../peer/protocol";
 
 interface FakeClient {
   emitData: (sourceId: string, key: string, value: unknown, t: number) => void;
   emitStatus: (sourceId: string, status: string) => void;
+  emitFlightChange: (flight: FlightRecord | null) => void;
+  setCurrentFlight: (flight: FlightRecord | null) => void;
   lastQuery: {
     sourceId: string;
     key: string;
@@ -12,16 +16,23 @@ interface FakeClient {
     tEnd: number;
     flightId?: string;
   } | null;
+  flightOps: FlightRpcOp[];
   service: PeerClientService;
 }
 
 function makeFakeClient(
   queryImpl?: () => Promise<{ t: number[]; v: unknown[] }>,
+  flightRpcImpl?: (op: FlightRpcOp) => Promise<unknown>,
 ): FakeClient {
   let dataCb:
     | ((sourceId: string, key: string, value: unknown, t: number) => void)
     | null = null;
   let statusCb: ((sourceId: string, status: string) => void) | null = null;
+  const flightChangeListeners = new Set<
+    (flight: FlightRecord | null) => void
+  >();
+  let currentFlight: FlightRecord | null = null;
+  const flightOps: FlightRpcOp[] = [];
   const fake: Partial<PeerClientService> & {
     lastQuery: FakeClient["lastQuery"];
   } = {
@@ -46,15 +57,38 @@ function makeFakeClient(
         ? queryImpl()
         : ({ t: [], v: [] } as { t: number[]; v: unknown[] });
     }),
+    sendFlightRpc: vi.fn(async (op: FlightRpcOp) => {
+      flightOps.push(op);
+      return (flightRpcImpl ? await flightRpcImpl(op) : null) as never;
+    }),
+    getCurrentFlight: () => currentFlight,
+    onFlightChange: (cb) => {
+      flightChangeListeners.add(cb);
+      cb(currentFlight);
+      return () => {
+        flightChangeListeners.delete(cb);
+        return true;
+      };
+    },
     lastQuery: null,
   };
   return {
     service: fake as unknown as PeerClientService,
     emitData: (sourceId, key, value, t) => dataCb?.(sourceId, key, value, t),
     emitStatus: (sourceId, status) => statusCb?.(sourceId, status),
+    emitFlightChange: (flight) => {
+      currentFlight = flight;
+      flightChangeListeners.forEach((cb) => {
+        cb(flight);
+      });
+    },
+    setCurrentFlight: (flight) => {
+      currentFlight = flight;
+    },
     get lastQuery() {
       return fake.lastQuery;
     },
+    flightOps,
   } as FakeClient;
 }
 
@@ -265,5 +299,88 @@ describe("PeerClientDataSource", () => {
       "data",
       ["v.altitude"],
     );
+  });
+
+  // ── Flight history surface (proxied to host BufferedDataSource) ───────────
+
+  it("getCurrentFlight + onFlightChange mirror the host's pushed snapshot", () => {
+    const fake = makeFakeClient();
+    const source = new PeerClientDataSource("data", "Data", fake.service);
+
+    expect(source.getCurrentFlight()).toBeNull();
+
+    const seen: Array<FlightRecord | null> = [];
+    source.onFlightChange((f) => seen.push(f));
+    // Subscribers fire immediately with the cached snapshot — null right now.
+    expect(seen).toEqual([null]);
+
+    const flight: FlightRecord = {
+      id: "f1",
+      vesselName: "Hopper",
+      launchedAt: 1000,
+      lastSampleAt: 1100,
+      lastMissionTime: 100,
+      sampleCount: 50,
+    };
+    fake.emitFlightChange(flight);
+
+    expect(seen).toEqual([null, flight]);
+    expect(source.getCurrentFlight()).toEqual(flight);
+
+    fake.emitFlightChange(null);
+    expect(seen[2]).toBeNull();
+    expect(source.getCurrentFlight()).toBeNull();
+  });
+
+  it("listFlights / deleteFlight / setFlightStarred forward as flight-rpc ops", async () => {
+    const flight: FlightRecord = {
+      id: "f1",
+      vesselName: "Hopper",
+      launchedAt: 0,
+      lastSampleAt: 1,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    };
+    const fake = makeFakeClient(undefined, async (op) => {
+      if (op.op === "list") return [flight];
+      if (op.op === "delete") return null;
+      if (op.op === "setStarred") return null;
+      return null;
+    });
+    const source = new PeerClientDataSource("data", "Data", fake.service);
+
+    await expect(source.listFlights()).resolves.toEqual([flight]);
+    await expect(source.deleteFlight("f1")).resolves.toBeUndefined();
+    await expect(source.setFlightStarred("f1", true)).resolves.toBeUndefined();
+
+    expect(fake.flightOps).toEqual([
+      { op: "list" },
+      { op: "delete", id: "f1" },
+      { op: "setStarred", id: "f1", starred: true },
+    ]);
+  });
+
+  it("addChapter / updateChapter / removeChapter round-trip through flight-rpc", async () => {
+    const flight: FlightRecord = {
+      id: "f1",
+      vesselName: "Hopper",
+      launchedAt: 0,
+      lastSampleAt: 1,
+      lastMissionTime: 0,
+      sampleCount: 1,
+      chapters: [{ id: "c1", label: "Burn", startMs: 100, endMs: 200 }],
+    };
+    const fake = makeFakeClient(undefined, async () => flight);
+    const source = new PeerClientDataSource("data", "Data", fake.service);
+
+    await source.addChapter("f1", { label: "Burn", startMs: 100, endMs: 200 });
+    await source.updateChapter("f1", "c1", { label: "Burn 2" });
+    await source.removeChapter("f1", "c1");
+
+    expect(fake.flightOps).toMatchObject([
+      { op: "addChapter", flightId: "f1" },
+      { op: "updateChapter", flightId: "f1", chapterId: "c1" },
+      { op: "removeChapter", flightId: "f1", chapterId: "c1" },
+    ]);
   });
 });

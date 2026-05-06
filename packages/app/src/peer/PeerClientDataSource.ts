@@ -2,6 +2,8 @@ import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
 import { debugPeer, PerfBudget } from "@gonogo/core";
 import type {
   DataKeyMeta,
+  FlightChapterRecord,
+  FlightRecord,
   KosData,
   KosManagedScript,
   KosScriptArg,
@@ -9,6 +11,14 @@ import type {
 } from "@gonogo/data";
 import { KeyedListenerSet, ListenerSet } from "@gonogo/data";
 import type { PeerClientService } from "./PeerClientService";
+
+interface FlightFixtureLike {
+  format: unknown;
+  flight: FlightRecord;
+  schema: unknown[];
+  samples: Record<string, [number, unknown][]>;
+  chapters?: FlightChapterRecord[];
+}
 
 interface Sample {
   t: number;
@@ -223,6 +233,96 @@ export class PeerClientDataSource implements ScriptableDataSource {
     flightId?: string,
   ): Promise<SeriesRange> {
     return this.client.sendQueryRange(this.id, key, tStart, tEnd, flightId);
+  }
+
+  // ── Flight history (proxied to host BufferedDataSource via PeerJS RPC) ──
+  //
+  // Mirrors BufferedDataSource's flight surface so FlightsManager renders
+  // identically on the station. `getCurrentFlight` + `onFlightChange` are
+  // the synchronous-snapshot pair `useFlight()` consumes; mutations and
+  // queries round-trip through `sendFlightRpc`.
+
+  getCurrentFlight(): FlightRecord | null {
+    return this.client.getCurrentFlight();
+  }
+
+  onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {
+    return this.client.onFlightChange(cb);
+  }
+
+  listFlights(): Promise<FlightRecord[]> {
+    return this.client.sendFlightRpc<FlightRecord[]>({ op: "list" });
+  }
+
+  getFlight(id: string): Promise<FlightRecord | null> {
+    return this.client.sendFlightRpc<FlightRecord | null>({ op: "get", id });
+  }
+
+  exportFlight(id: string): Promise<FlightFixtureLike> {
+    // Bigger timeout — fixtures of long flights run into a few MB which
+    // can take real time to traverse the IndexedDB cursor + serialise.
+    return this.client.sendFlightRpc<FlightFixtureLike>(
+      { op: "export", id },
+      60_000,
+    );
+  }
+
+  deleteFlight(id: string): Promise<void> {
+    return this.client
+      .sendFlightRpc({ op: "delete", id })
+      .then(() => undefined);
+  }
+
+  clearAllFlights(): Promise<void> {
+    return this.client.sendFlightRpc({ op: "clearAll" }).then(() => undefined);
+  }
+
+  setFlightStarred(id: string, starred: boolean): Promise<void> {
+    return this.client
+      .sendFlightRpc({ op: "setStarred", id, starred })
+      .then(() => undefined);
+  }
+
+  pruneFlightsKeepLatest(opts: { keepCount: number }): Promise<string[]> {
+    return this.client.sendFlightRpc<string[]>({
+      op: "pruneKeepLatest",
+      keepCount: opts.keepCount,
+    });
+  }
+
+  addChapter(
+    flightId: string,
+    chapter: Omit<FlightChapterRecord, "id"> & { id?: string },
+  ): Promise<FlightRecord | null> {
+    return this.client.sendFlightRpc<FlightRecord | null>({
+      op: "addChapter",
+      flightId,
+      chapter,
+    });
+  }
+
+  updateChapter(
+    flightId: string,
+    chapterId: string,
+    patch: Partial<Omit<FlightChapterRecord, "id">>,
+  ): Promise<FlightRecord | null> {
+    return this.client.sendFlightRpc<FlightRecord | null>({
+      op: "updateChapter",
+      flightId,
+      chapterId,
+      patch,
+    });
+  }
+
+  removeChapter(
+    flightId: string,
+    chapterId: string,
+  ): Promise<FlightRecord | null> {
+    return this.client.sendFlightRpc<FlightRecord | null>({
+      op: "removeChapter",
+      flightId,
+      chapterId,
+    });
   }
 
   /**

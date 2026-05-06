@@ -1,18 +1,40 @@
 import { getDataSource } from "@gonogo/core";
 import { useCallback, useSyncExternalStore } from "react";
-import type { BufferedDataSource } from "../BufferedDataSource";
 import type { FlightRecord } from "../types";
 
+interface FlightAware {
+  getCurrentFlight: () => FlightRecord | null;
+  onFlightChange: (cb: (flight: FlightRecord | null) => void) => () => void;
+}
+
+function asFlightAware(source: unknown): FlightAware | null {
+  if (!source) return null;
+  const c = source as Partial<FlightAware>;
+  if (
+    typeof c.getCurrentFlight !== "function" ||
+    typeof c.onFlightChange !== "function"
+  ) {
+    return null;
+  }
+  return c as FlightAware;
+}
+
 /**
- * Reactive view of the buffered source's current flight. Re-renders on
- * every transition (new, resume, revert). Returns `null` during warmup
- * before the first `v.name` + `v.missionTime` pair has landed.
+ * Reactive view of the current flight. Re-renders on every transition
+ * (new, resume, revert). Returns `null` during warmup or when the
+ * registered source doesn't support flight history (e.g. a bare data
+ * source mocked into tests).
+ *
+ * Works on both the main screen (BufferedDataSource) and stations
+ * (PeerClientDataSource), which both implement `getCurrentFlight` +
+ * `onFlightChange` — main reads its own detector, station reads the
+ * cached snapshot pushed by the host.
  */
 export function useFlight(sourceId = "data"): FlightRecord | null {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      const source = getDataSource(sourceId) as BufferedDataSource | undefined;
-      if (!source?.onFlightChange) return () => {};
+      const source = asFlightAware(getDataSource(sourceId));
+      if (!source) return () => {};
       return source.onFlightChange(() => {
         onStoreChange();
       });
@@ -21,8 +43,7 @@ export function useFlight(sourceId = "data"): FlightRecord | null {
   );
 
   const getSnapshot = useCallback(() => {
-    const source = getDataSource(sourceId) as BufferedDataSource | undefined;
-    return source?.getCurrentFlight() ?? null;
+    return asFlightAware(getDataSource(sourceId))?.getCurrentFlight() ?? null;
   }, [sourceId]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

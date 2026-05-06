@@ -406,6 +406,106 @@ describe("PeerClientService.sendQueryRange", () => {
   });
 });
 
+describe("PeerClientService.sendFlightRpc", () => {
+  beforeEach(() => {
+    FakePeer.instances = [];
+  });
+
+  function connectedSvc() {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    return { svc, peer };
+  }
+
+  it("resolves with the host's result on a matching response", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendFlightRpc({ op: "list" });
+    const first = sent[0];
+    if (!first || first.type !== "flight-rpc-request") {
+      throw new Error("expected flight-rpc-request");
+    }
+
+    const result = [{ id: "f1", vesselName: "Hopper" }];
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "flight-rpc-response",
+      requestId: first.requestId,
+      result,
+    });
+
+    await expect(pending).resolves.toEqual(result);
+  });
+
+  it("rejects when the host returns an error", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendFlightRpc({ op: "delete", id: "missing" });
+    const first = sent[0];
+    if (!first || first.type !== "flight-rpc-request") {
+      throw new Error("expected flight-rpc-request");
+    }
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "flight-rpc-response",
+      requestId: first.requestId,
+      error: "buffered data source not registered",
+    });
+
+    await expect(pending).rejects.toThrow(/buffered data source/);
+  });
+
+  it("rejects pending RPCs when the connection drops", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    peer._lastConn.send = () => {};
+
+    const pending = svc.sendFlightRpc({ op: "list" });
+    peer._lastConn.emit("close");
+
+    await expect(pending).rejects.toThrow(/closed|disconnected/);
+  });
+
+  it("flight-change pushes update getCurrentFlight + fire onFlightChange", () => {
+    const { svc } = connectedSvc();
+    const seen: Array<unknown> = [];
+    svc.onFlightChange((f) => seen.push(f));
+    expect(svc.getCurrentFlight()).toBeNull();
+
+    const flight = {
+      id: "f1",
+      vesselName: "Hopper",
+      launchedAt: 0,
+      lastSampleAt: 1,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    };
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "flight-change",
+      flight,
+    });
+
+    expect(svc.getCurrentFlight()).toEqual(flight);
+    // onFlightChange fires once on subscribe with the cached snapshot, then
+    // again on every push.
+    expect(seen).toEqual([null, flight]);
+  });
+});
+
 describe("PeerClientService.sendKosExecute", () => {
   beforeEach(() => {
     FakePeer.instances = [];

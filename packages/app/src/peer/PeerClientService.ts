@@ -1,10 +1,15 @@
 import { debugPeer, logger } from "@gonogo/core";
-import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
+import type {
+  FlightRecord,
+  KosData,
+  KosManagedScript,
+  KosScriptArg,
+} from "@gonogo/data";
 import { KosScriptError, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { loadIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
-import type { PeerMessage, PeerSchemaSource } from "./protocol";
+import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import { getStationPeerId } from "./stationPeerId";
@@ -79,6 +84,16 @@ export class PeerClientService {
     v: unknown[];
   }>();
   private pendingKosExecutes = new RequestTracker<KosData>();
+  private pendingFlightRpc = new RequestTracker<unknown>();
+
+  // Cached current flight pushed by the host. Updated on every `flight-change`
+  // message, including the initial snapshot the host sends on connect open.
+  // Stations read this synchronously through `getCurrentFlight()`; the modal
+  // useFlight hook subscribes via `onFlightChange`.
+  private currentFlight: FlightRecord | null = null;
+  private flightChangeListeners = new ListenerSet<
+    [flight: FlightRecord | null]
+  >();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -362,6 +377,50 @@ export class PeerClientService {
   private rejectPendingQueries(reason: string) {
     this.pendingQueries.rejectAll(reason);
     this.pendingKosExecutes.rejectAll(reason);
+    this.pendingFlightRpc.rejectAll(reason);
+  }
+
+  /**
+   * Send a flight-history RPC to the host. Resolves with the typed result
+   * the corresponding BufferedDataSource method returns; rejects with the
+   * host's error string on failure or `flight-rpc timeout` after 15s.
+   *
+   * The 15s budget is generous because `op: "export"` packs every sample
+   * for a flight into the response and a 30-minute Mun mission can be
+   * several MB on the wire.
+   */
+  sendFlightRpc<T = unknown>(op: FlightRpcOp, timeoutMs = 15_000): Promise<T> {
+    if (!this.conn) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const requestId = crypto.randomUUID();
+    const pending = this.pendingFlightRpc.track(
+      requestId,
+      timeoutMs,
+      "flight-rpc timeout",
+    );
+    this.conn.send({
+      type: "flight-rpc-request",
+      requestId,
+      op,
+    } satisfies PeerMessage);
+    return pending as Promise<T>;
+  }
+
+  /** Latest flight snapshot pushed by the host. Synchronous. */
+  getCurrentFlight(): FlightRecord | null {
+    return this.currentFlight;
+  }
+
+  /**
+   * Notified on every host-side `flight-change` push. Fires immediately
+   * after subscribe with the cached snapshot so subscribers don't have to
+   * wait for the next transition.
+   */
+  onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {
+    const remove = this.flightChangeListeners.add(cb);
+    cb(this.currentFlight);
+    return remove;
   }
 
   /**
@@ -491,6 +550,17 @@ export class PeerClientService {
       } else {
         this.pendingQueries.resolve(msg.requestId, { t: msg.t, v: msg.v });
       }
+    },
+    "flight-rpc-response": (msg) => {
+      if (msg.error) {
+        this.pendingFlightRpc.reject(msg.requestId, new Error(msg.error));
+      } else {
+        this.pendingFlightRpc.resolve(msg.requestId, msg.result);
+      }
+    },
+    "flight-change": (msg) => {
+      this.currentFlight = msg.flight;
+      this.flightChangeListeners.fire(msg.flight);
     },
     "kos-execute-response": (msg) => {
       if (msg.error || !msg.data) {
