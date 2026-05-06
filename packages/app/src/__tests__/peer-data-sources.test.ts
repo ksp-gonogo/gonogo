@@ -255,8 +255,24 @@ describe("PeerBroadcastingDataSource", () => {
     const wrapper = new PeerBroadcastingDataSource(real, host as never);
 
     const range = await wrapper.queryRange("v.altitude", 0, 100);
-    expect(real.queryRange).toHaveBeenCalledWith("v.altitude", 0, 100);
+    expect(real.queryRange).toHaveBeenCalledWith(
+      "v.altitude",
+      0,
+      100,
+      undefined,
+    );
     expect(range).toEqual({ t: [1, 2], v: [10, 20] });
+
+    // flightId must round-trip — without it, FlightGraph falls back to the
+    // detector's "current" flight and silently returns empty for any
+    // historical flight that isn't currently live.
+    await wrapper.queryRange("v.altitude", 0, 100, "flight-42");
+    expect(real.queryRange).toHaveBeenLastCalledWith(
+      "v.altitude",
+      0,
+      100,
+      "flight-42",
+    );
 
     const received: Array<{ t: number; v: unknown }> = [];
     wrapper.subscribeSamples("v.altitude", (s) => received.push(s));

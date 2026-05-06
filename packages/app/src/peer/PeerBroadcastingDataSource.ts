@@ -19,7 +19,12 @@ type SampleAware = {
 };
 
 type QueryRangeAware = {
-  queryRange: (key: string, from: number, to: number) => Promise<SeriesRange>;
+  queryRange: (
+    key: string,
+    from: number,
+    to: number,
+    flightId?: string,
+  ) => Promise<SeriesRange>;
 };
 
 type CollectionAware = {
@@ -143,9 +148,10 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     key: string,
     from: number,
     to: number,
+    flightId?: string,
   ): Promise<SeriesRange> {
     if (hasQueryRange(this.real)) {
-      return this.real.queryRange(key, from, to);
+      return this.real.queryRange(key, from, to, flightId);
     }
     return { t: [], v: [] };
   }
