@@ -50,6 +50,7 @@ import {
 } from "@gonogo/data";
 import { ModalProvider } from "@gonogo/ui";
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -58,6 +59,11 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Eager-imported so `renderApp` is fully synchronous: nesting an async
+// `await import(...)` inside an outer `act(async)` was causing the
+// surrounding act window to deadlock waiting on React's scheduler.
+import App from "../App";
+import { peerHostService } from "../peer/PeerHostService";
 
 // ---------------------------------------------------------------------------
 // Mocks — must be hoisted above any code that imports peerjs / xterm.
@@ -348,8 +354,7 @@ const T_HIGH = 600_000;
 // StationScreen on `/station`). Wrapping providers mirror `main.tsx`.
 // ---------------------------------------------------------------------------
 
-async function renderApp() {
-  const { default: App } = await import("../App");
+function renderApp() {
   return render(
     <ErrorBoundary>
       <ModalProvider>
@@ -413,7 +418,17 @@ describe("recorded launch — full mission control flow", () => {
     "main screen — DEMO_CONFIG widgets render fixture telemetry as user seeks the flight",
     async () => {
       const user = userEvent.setup();
-      await renderApp();
+      renderApp();
+      // PeerHostProvider mounts inside <App/> and immediately starts the
+      // broker handshake; the FakePeer fires its "open" event in a
+      // microtask, and the resulting setPeerId would land in the
+      // await-gap between renderApp and the next assertion if we didn't
+      // explicitly wait for the peer to settle here. `waitFor` wraps each
+      // polling iteration in act so the eventual setState lands inside a
+      // tracked window.
+      await waitFor(() => {
+        expect(peerHostService.peerId).not.toBeNull();
+      });
 
       // Dashboard mounts with DEMO_CONFIG — Current Orbit's "ORBIT" heading
       // is the cheapest "the orchestrator put the widget on screen" signal.
@@ -426,8 +441,14 @@ describe("recorded launch — full mission control flow", () => {
       await screen.findByText(/Waiting for telemetry/i);
 
       // Seek mid-ascent. valueAt() reads the same fixture row replay would
-      // emit, so the formatted expectation tracks the recording.
-      replay.seek(fixture.flight.launchedAt + T_MID);
+      // emit, so the formatted expectation tracks the recording. Wrap in
+      // act() because seek() synchronously fires DataSource subscribers,
+      // and the React state updates that follow happen outside any
+      // testing-library event handler — the documented pattern for
+      // "I'm changing state from outside React's normal event flow."
+      act(() => {
+        replay.seek(fixture.flight.launchedAt + T_MID);
+      });
 
       // Body name appears in MapView header (and CurrentOrbit reference body).
       expect(valueAt("v.body", T_MID)).toBe("Kerbin");
@@ -445,7 +466,9 @@ describe("recorded launch — full mission control flow", () => {
       await screen.findByText(/No Target Selected\./);
 
       // Seek near apoapsis — apoapsis text should change to the new value.
-      replay.seek(fixture.flight.launchedAt + T_HIGH);
+      act(() => {
+        replay.seek(fixture.flight.launchedAt + T_HIGH);
+      });
 
       const apaHigh = valueAt("o.ApA", T_HIGH) as number;
       expect(typeof apaHigh).toBe("number");
@@ -548,7 +571,7 @@ describe("recorded launch — full mission control flow", () => {
       //    auto-connect.
       globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
 
-      await renderApp();
+      renderApp();
 
       // 3) Real PeerClientService handshakes with the host through FakePeer.
       //    Once the host's schema arrives, StationScreen flips into the
@@ -582,7 +605,9 @@ describe("recorded launch — full mission control flow", () => {
       // PeerClientDataSource fans it out, and Current Orbit re-renders.
       await screen.findByRole("heading", { name: /^orbit$/i });
 
-      replay.seek(fixture.flight.launchedAt + T_HIGH);
+      act(() => {
+        replay.seek(fixture.flight.launchedAt + T_HIGH);
+      });
 
       const apaHigh = valueAt("o.ApA", T_HIGH) as number;
       expect(typeof apaHigh).toBe("number");
