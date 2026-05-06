@@ -50,7 +50,6 @@ import {
 } from "@gonogo/data";
 import { ModalProvider } from "@gonogo/ui";
 import {
-  act,
   cleanup,
   render,
   screen,
@@ -364,6 +363,12 @@ async function renderApp() {
 // Tests
 // ---------------------------------------------------------------------------
 
+// Each test renders the full app, walks the replay through several seek
+// points, and adds widgets through the real overlay flow — comfortably
+// past the 5s default. Lift the per-test budget so a normal run isn't
+// racing the clock under CPU contention from sibling test files.
+const TEST_TIMEOUT_MS = 20_000;
+
 describe("recorded launch — full mission control flow", () => {
   let replay: FlightReplayDataSource;
   let buffered: BufferedDataSource;
@@ -404,177 +409,187 @@ describe("recorded launch — full mission control flow", () => {
     for (const b of PerfBudget.getAll()) b.reset();
   });
 
-  it("main screen — DEMO_CONFIG widgets render fixture telemetry as user seeks the flight", async () => {
-    const user = userEvent.setup();
-    await renderApp();
+  it(
+    "main screen — DEMO_CONFIG widgets render fixture telemetry as user seeks the flight",
+    async () => {
+      const user = userEvent.setup();
+      await renderApp();
 
-    // Dashboard mounts with DEMO_CONFIG — Current Orbit's "ORBIT" heading
-    // is the cheapest "the orchestrator put the widget on screen" signal.
-    await screen.findByRole("heading", { name: /^orbit$/i });
-    await screen.findByText(/MAP VIEW/i);
+      // Dashboard mounts with DEMO_CONFIG — Current Orbit's "ORBIT" heading
+      // is the cheapest "the orchestrator put the widget on screen" signal.
+      await screen.findByRole("heading", { name: /^orbit$/i });
+      await screen.findByText(/MAP VIEW/i);
 
-    // Before any seek, replay hasn't emitted samples — Current Orbit shows
-    // dashes, MapView its waiting state. We don't assert that here; the
-    // payoff is what shows up after we walk the timeline.
-    await screen.findByText(/Waiting for telemetry/i);
+      // Before any seek, replay hasn't emitted samples — Current Orbit shows
+      // dashes, MapView its waiting state. We don't assert that here; the
+      // payoff is what shows up after we walk the timeline.
+      await screen.findByText(/Waiting for telemetry/i);
 
-    // Seek mid-ascent. valueAt() reads the same fixture row replay would
-    // emit, so the formatted expectation tracks the recording.
-    await act(() => {
+      // Seek mid-ascent. valueAt() reads the same fixture row replay would
+      // emit, so the formatted expectation tracks the recording.
       replay.seek(fixture.flight.launchedAt + T_MID);
-    });
 
-    // Body name appears in MapView header (and CurrentOrbit reference body).
-    expect(valueAt("v.body", T_MID)).toBe("Kerbin");
-    await waitFor(() => {
-      expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0);
-    });
+      // Body name appears in MapView header (and CurrentOrbit reference body).
+      expect(valueAt("v.body", T_MID)).toBe("Kerbin");
+      await waitFor(() => {
+        expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0);
+      });
 
-    // Apoapsis from o.ApA, formatted by the same util the widget uses.
-    const apaMid = valueAt("o.ApA", T_MID) as number;
-    expect(typeof apaMid).toBe("number");
-    await screen.findByText(formatDistance(apaMid));
+      // Apoapsis from o.ApA, formatted by the same util the widget uses.
+      const apaMid = valueAt("o.ApA", T_MID) as number;
+      expect(typeof apaMid).toBe("number");
+      await screen.findByText(formatDistance(apaMid));
 
-    // Distance-to-target shows the recorded "No Target Selected." string.
-    expect(valueAt("tar.name", T_MID)).toBe("No Target Selected.");
-    await screen.findByText(/No Target Selected\./);
+      // Distance-to-target shows the recorded "No Target Selected." string.
+      expect(valueAt("tar.name", T_MID)).toBe("No Target Selected.");
+      await screen.findByText(/No Target Selected\./);
 
-    // Seek near apoapsis — apoapsis text should change to the new value.
-    await act(() => {
+      // Seek near apoapsis — apoapsis text should change to the new value.
       replay.seek(fixture.flight.launchedAt + T_HIGH);
-    });
 
-    const apaHigh = valueAt("o.ApA", T_HIGH) as number;
-    expect(typeof apaHigh).toBe("number");
-    expect(apaHigh).not.toBe(apaMid); // sanity: the seek actually advanced
-    await screen.findByText(formatDistance(apaHigh));
+      const apaHigh = valueAt("o.ApA", T_HIGH) as number;
+      expect(typeof apaHigh).toBe("number");
+      expect(apaHigh).not.toBe(apaMid); // sanity: the seek actually advanced
+      await screen.findByText(formatDistance(apaHigh));
 
-    // The user adds three more telemetry widgets through the overlay so
-    // the assertions cover a richer slice of what the recording emits —
-    // fuel/ΔV, attitude, and thermals all come from different Telemachus
-    // buckets and would catch different breakage patterns.
-    async function addWidget(query: string, exactName: string) {
+      // The user adds three more telemetry widgets through the overlay so
+      // the assertions cover a richer slice of what the recording emits —
+      // fuel/ΔV, attitude, and thermals all come from different Telemachus
+      // buckets and would catch different breakage patterns.
+      async function addWidget(query: string, exactName: string) {
+        await user.click(
+          screen.getByRole("button", { name: /add component/i }),
+        );
+        const dialog = await screen.findByRole("dialog", {
+          name: /add a component/i,
+        });
+        await user.type(within(dialog).getByPlaceholderText(/search/i), query);
+        const heading = await within(dialog).findByText(exactName);
+        const card = heading.closest("button");
+        if (!card) throw new Error(`${exactName} card has no enclosing button`);
+        await user.click(card);
+      }
+
+      await addWidget("Fuel", "Fuel & ΔV");
+
+      // Total ΔV: dv.totalDVActual rounded to whole m/s. The widget renders
+      // `${value.toFixed(0)} m/s`.
+      const totalDvHigh = valueAt("dv.totalDVActual", T_HIGH) as number;
+      expect(typeof totalDvHigh).toBe("number");
+      await screen.findByText(`${totalDvHigh.toFixed(0)} m/s`);
+
+      // LiquidFuel readout: the widget reads the *stage* scope for LF
+      // (`r.resourceCurrent[LiquidFuel]`), not the vessel total. Format is
+      // `${formatAmount(value)} / ${formatAmount(max)}` with toFixed(1) for
+      // values ≥100.
+      const lfValue = valueAt(
+        "r.resourceCurrent[LiquidFuel]",
+        T_HIGH,
+      ) as number;
+      const lfMax = valueAt(
+        "r.resourceCurrentMax[LiquidFuel]",
+        T_HIGH,
+      ) as number;
+      expect(typeof lfValue).toBe("number");
+      expect(typeof lfMax).toBe("number");
+      // The readout interpolates value, " / ", and max into separate React
+      // text children, so a string matcher can't span them. Match against the
+      // element's combined textContent instead.
+      const lfReadout = `${lfValue.toFixed(1)} / ${lfMax.toFixed(1)}`;
+      await screen.findByText((_content, el) => el?.textContent === lfReadout);
+
+      // Navball: heading is rendered as `${heading.toFixed(0)}°`.
+      await addWidget("Navball", "Navball / Attitude Director");
+      const heading = valueAt("n.heading", T_HIGH) as number;
+      expect(typeof heading).toBe("number");
+      await screen.findByText(`${heading.toFixed(0)}°`);
+
+      // Thermal: hottestPartName is shown verbatim, temperature in °C is
+      // formatted with one decimal for values |c| < 1000.
+      await addWidget("Thermal", "Thermal");
+      const hotName = valueAt("therm.hottestPartName", T_HIGH) as string;
+      const hotTempC = valueAt("therm.hottestPartTemp", T_HIGH) as number;
+      expect(typeof hotName).toBe("string");
+      expect(typeof hotTempC).toBe("number");
+      await screen.findByText(hotName);
+      await screen.findByText(`${hotTempC.toFixed(1)}°C`);
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "station screen — receives fixture telemetry over the peer network and renders it in a user-added widget",
+    async () => {
+      const user = userEvent.setup();
+
+      // 1) Stand up the host harness. We do *not* render `<MainScreen/>` here
+      //    — what we care about is that the station's data crosses the peer
+      //    network. The host's PBDS bridges buffered samples to broadcasts.
+      const { peerHostService } = await import("../peer/PeerHostService");
+      const { PeerBroadcastingDataSource } = await import(
+        "../peer/PeerBroadcastingDataSource"
+      );
+
+      await buffered.connect();
+      peerHostService.start();
+      // Wait for the host's FakePeer to emit "open" with its assigned ID.
+      const hostId = await new Promise<string>((res) => {
+        const unsub = peerHostService.onPeerIdChange((id) => {
+          if (id) {
+            unsub();
+            res(id);
+          }
+        });
+      });
+      new PeerBroadcastingDataSource(buffered, peerHostService);
+
+      // 2) Route App to the station and feed the host id via the QR-code
+      //    URL param. StationScreen's mount-only effect will read it and
+      //    auto-connect.
+      globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
+
+      await renderApp();
+
+      // 3) Real PeerClientService handshakes with the host through FakePeer.
+      //    Once the host's schema arrives, StationScreen flips into the
+      //    connected branch and mounts the dashboard. The station's default
+      //    config only contains the data-source-status widget — proving the
+      //    dashboard rendered means the schema event made it across.
+      await screen.findByRole(
+        "button",
+        { name: /add component/i },
+        { timeout: 5000 },
+      );
+
+      // 4) User adds a Current Orbit widget through the real overlay flow.
+      //    No registry shortcut — same clicks a person would make. Search to
+      //    narrow the list to one card so the click target is unambiguous.
       await user.click(screen.getByRole("button", { name: /add component/i }));
       const dialog = await screen.findByRole("dialog", {
         name: /add a component/i,
       });
-      await user.type(within(dialog).getByPlaceholderText(/search/i), query);
-      const heading = await within(dialog).findByText(exactName);
-      const card = heading.closest("button");
-      if (!card) throw new Error(`${exactName} card has no enclosing button`);
+      const search = within(dialog).getByPlaceholderText(/search/i);
+      await user.type(search, "Current Orbit");
+      // After filtering, the panel renders one card whose visible heading is
+      // "Current Orbit". The card itself is a <button>; click it.
+      const cardHeading = await within(dialog).findByText("Current Orbit");
+      const card = cardHeading.closest("button");
+      if (!card) throw new Error("Current Orbit card has no enclosing button");
       await user.click(card);
-    }
 
-    await addWidget("Fuel", "Fuel & ΔV");
+      // The widget is now on the station's dashboard. Walk the replay; PBDS
+      // broadcasts each new sample over the FakePeer transport, the station's
+      // PeerClientDataSource fans it out, and Current Orbit re-renders.
+      await screen.findByRole("heading", { name: /^orbit$/i });
 
-    // Total ΔV: dv.totalDVActual rounded to whole m/s. The widget renders
-    // `${value.toFixed(0)} m/s`.
-    const totalDvHigh = valueAt("dv.totalDVActual", T_HIGH) as number;
-    expect(typeof totalDvHigh).toBe("number");
-    await screen.findByText(`${totalDvHigh.toFixed(0)} m/s`);
-
-    // LiquidFuel readout: the widget reads the *stage* scope for LF
-    // (`r.resourceCurrent[LiquidFuel]`), not the vessel total. Format is
-    // `${formatAmount(value)} / ${formatAmount(max)}` with toFixed(1) for
-    // values ≥100.
-    const lfValue = valueAt("r.resourceCurrent[LiquidFuel]", T_HIGH) as number;
-    const lfMax = valueAt("r.resourceCurrentMax[LiquidFuel]", T_HIGH) as number;
-    expect(typeof lfValue).toBe("number");
-    expect(typeof lfMax).toBe("number");
-    // The readout interpolates value, " / ", and max into separate React
-    // text children, so a string matcher can't span them. Match against the
-    // element's combined textContent instead.
-    const lfReadout = `${lfValue.toFixed(1)} / ${lfMax.toFixed(1)}`;
-    await screen.findByText((_content, el) => el?.textContent === lfReadout);
-
-    // Navball: heading is rendered as `${heading.toFixed(0)}°`.
-    await addWidget("Navball", "Navball / Attitude Director");
-    const heading = valueAt("n.heading", T_HIGH) as number;
-    expect(typeof heading).toBe("number");
-    await screen.findByText(`${heading.toFixed(0)}°`);
-
-    // Thermal: hottestPartName is shown verbatim, temperature in °C is
-    // formatted with one decimal for values |c| < 1000.
-    await addWidget("Thermal", "Thermal");
-    const hotName = valueAt("therm.hottestPartName", T_HIGH) as string;
-    const hotTempC = valueAt("therm.hottestPartTemp", T_HIGH) as number;
-    expect(typeof hotName).toBe("string");
-    expect(typeof hotTempC).toBe("number");
-    await screen.findByText(hotName);
-    await screen.findByText(`${hotTempC.toFixed(1)}°C`);
-  });
-
-  it("station screen — receives fixture telemetry over the peer network and renders it in a user-added widget", async () => {
-    const user = userEvent.setup();
-
-    // 1) Stand up the host harness. We do *not* render `<MainScreen/>` here
-    //    — what we care about is that the station's data crosses the peer
-    //    network. The host's PBDS bridges buffered samples to broadcasts.
-    const { peerHostService } = await import("../peer/PeerHostService");
-    const { PeerBroadcastingDataSource } = await import(
-      "../peer/PeerBroadcastingDataSource"
-    );
-
-    await buffered.connect();
-    peerHostService.start();
-    // Wait for the host's FakePeer to emit "open" with its assigned ID.
-    const hostId = await new Promise<string>((res) => {
-      const unsub = peerHostService.onPeerIdChange((id) => {
-        if (id) {
-          unsub();
-          res(id);
-        }
-      });
-    });
-    new PeerBroadcastingDataSource(buffered, peerHostService);
-
-    // 2) Route App to the station and feed the host id via the QR-code
-    //    URL param. StationScreen's mount-only effect will read it and
-    //    auto-connect.
-    globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
-
-    await renderApp();
-
-    // 3) Real PeerClientService handshakes with the host through FakePeer.
-    //    Once the host's schema arrives, StationScreen flips into the
-    //    connected branch and mounts the dashboard. The station's default
-    //    config only contains the data-source-status widget — proving the
-    //    dashboard rendered means the schema event made it across.
-    await screen.findByRole(
-      "button",
-      { name: /add component/i },
-      { timeout: 5000 },
-    );
-
-    // 4) User adds a Current Orbit widget through the real overlay flow.
-    //    No registry shortcut — same clicks a person would make. Search to
-    //    narrow the list to one card so the click target is unambiguous.
-    await user.click(screen.getByRole("button", { name: /add component/i }));
-    const dialog = await screen.findByRole("dialog", {
-      name: /add a component/i,
-    });
-    const search = within(dialog).getByPlaceholderText(/search/i);
-    await user.type(search, "Current Orbit");
-    // After filtering, the panel renders one card whose visible heading is
-    // "Current Orbit". The card itself is a <button>; click it.
-    const cardHeading = await within(dialog).findByText("Current Orbit");
-    const card = cardHeading.closest("button");
-    if (!card) throw new Error("Current Orbit card has no enclosing button");
-    await user.click(card);
-
-    // The widget is now on the station's dashboard. Walk the replay; PBDS
-    // broadcasts each new sample over the FakePeer transport, the station's
-    // PeerClientDataSource fans it out, and Current Orbit re-renders.
-    await screen.findByRole("heading", { name: /^orbit$/i });
-
-    await act(() => {
       replay.seek(fixture.flight.launchedAt + T_HIGH);
-    });
 
-    const apaHigh = valueAt("o.ApA", T_HIGH) as number;
-    expect(typeof apaHigh).toBe("number");
-    await screen.findByText(formatDistance(apaHigh), undefined, {
-      timeout: 5000,
-    });
-  });
+      const apaHigh = valueAt("o.ApA", T_HIGH) as number;
+      expect(typeof apaHigh).toBe("number");
+      await screen.findByText(formatDistance(apaHigh), undefined, {
+        timeout: 5000,
+      });
+    },
+    TEST_TIMEOUT_MS,
+  );
 });
