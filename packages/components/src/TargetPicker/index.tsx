@@ -782,7 +782,13 @@ const VesselName = styled.span`
 
 const VesselType = styled.span`
   font-size: 9px;
-  color: var(--color-text-faint);
+  /* Inherit from BodyRow so the highlighted (green) row gives the type
+     enough contrast. Opacity dims it relative to the primary label
+     while keeping the same hue, replacing the prior hardcoded
+     var(--color-text-faint) which read as grey-on-green when the row
+     was current. */
+  color: currentColor;
+  opacity: 0.7;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 `;
