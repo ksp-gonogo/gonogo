@@ -52,6 +52,7 @@ function Harness({
       onBreakpointChange={s.handleBreakpointChange}
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
+      updateItemMobileWidth={s.updateItemMobileWidth}
       removeItem={s.removeItem}
       moveItemUp={s.moveItemUp}
       moveItemDown={s.moveItemDown}
@@ -211,6 +212,73 @@ describe("Dashboard — mobile / touch path", () => {
       .closest("[data-mobile-width]");
     expect(cell).not.toBeNull();
     expect(cell?.getAttribute("data-mobile-width")).toBe("half");
+  });
+
+  it("toggle button flips a full widget to half (and back), persisting the override", async () => {
+    const user = userEvent.setup();
+    registerStubWidget("alpha", "Alpha");
+    const KEY = "test-mobile-width-toggle";
+
+    renderWithProviders(
+      <Harness
+        storageKey={KEY}
+        config={{
+          items: [{ i: "a", componentId: "alpha" }],
+          layouts: {},
+        }}
+      />,
+    );
+
+    // Default: full (no item override, no def override).
+    const cell = screen
+      .getByTestId("body-alpha")
+      .closest("[data-mobile-width]");
+    expect(cell?.getAttribute("data-mobile-width")).toBe("full");
+
+    await user.click(
+      screen.getByRole("button", { name: "Shrink to half width" }),
+    );
+    expect(cell?.getAttribute("data-mobile-width")).toBe("half");
+
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
+      items: Array<{ i: string; mobileWidth?: string }>;
+    };
+    expect(stored.items[0].mobileWidth).toBe("half");
+
+    // Round-trip: half → full label switches.
+    await user.click(
+      screen.getByRole("button", { name: "Expand to full width" }),
+    );
+    expect(cell?.getAttribute("data-mobile-width")).toBe("full");
+  });
+
+  it("per-instance mobileWidth on the item overrides the component default", () => {
+    // Component default is "half" — instance override forces it back to "full".
+    registerComponent({
+      id: "compact",
+      name: "Compact",
+      description: "compact",
+      tags: [],
+      component: () => <div data-testid="compact-body">compact</div>,
+      dataRequirements: [],
+      defaultSize: { w: 6, h: 6 },
+      mobileWidth: "half",
+    });
+
+    renderWithProviders(
+      <Harness
+        storageKey="test-mobile-width-override"
+        config={{
+          items: [{ i: "c1", componentId: "compact", mobileWidth: "full" }],
+          layouts: {},
+        }}
+      />,
+    );
+
+    const cell = screen
+      .getByTestId("compact-body")
+      .closest("[data-mobile-width]");
+    expect(cell?.getAttribute("data-mobile-width")).toBe("full");
   });
 
   it("plumbs mobileHeight override (and falls back to defaultSize.h * 25 when absent)", () => {

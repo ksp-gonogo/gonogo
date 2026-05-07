@@ -33,6 +33,7 @@ function Harness({
       onBreakpointChange={s.handleBreakpointChange}
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
+      updateItemMobileWidth={s.updateItemMobileWidth}
       removeItem={s.removeItem}
       moveItemUp={s.moveItemUp}
       moveItemDown={s.moveItemDown}

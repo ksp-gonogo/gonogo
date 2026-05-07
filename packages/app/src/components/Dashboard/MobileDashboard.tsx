@@ -4,7 +4,12 @@ import {
   getComponent,
 } from "@gonogo/core";
 import type { InputMappings } from "@gonogo/serial";
-import { ChevronDownIcon, ChevronUpIcon } from "@gonogo/ui";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FullWidthIcon,
+  HalfWidthIcon,
+} from "@gonogo/ui";
 import { memo, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import type { DashboardItem, DashboardProps } from "./index";
@@ -28,6 +33,7 @@ export function MobileDashboard({
   items,
   updateItemConfig,
   updateItemMappings,
+  updateItemMobileWidth,
   removeItem,
   moveItemUp,
   moveItemDown,
@@ -46,6 +52,7 @@ export function MobileDashboard({
           isLast={index === items.length - 1}
           updateItemConfig={updateItemConfig}
           updateItemMappings={updateItemMappings}
+          updateItemMobileWidth={updateItemMobileWidth}
           removeItem={removeItem}
           moveItemUp={moveItemUp}
           moveItemDown={moveItemDown}
@@ -63,6 +70,7 @@ interface MobileItemContentProps {
   isLast: boolean;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
+  updateItemMobileWidth: (id: string, width: "full" | "half") => void;
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;
@@ -76,6 +84,7 @@ const MobileItemContent = memo(function MobileItemContent({
   isLast,
   updateItemConfig,
   updateItemMappings,
+  updateItemMobileWidth,
   removeItem,
   moveItemUp,
   moveItemDown,
@@ -112,10 +121,16 @@ const MobileItemContent = memo(function MobileItemContent({
 
   if (!def) return null;
   const Comp = def.component;
-  const half = def.mobileWidth === "half";
+  // Per-instance override beats the component's default. Stored on the
+  // DashboardItem so it persists per screen (mobile and desktop layouts
+  // both live in the same localStorage entry).
+  const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "full";
+  const half = effectiveWidth === "half";
   const height = def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
+  const onToggleWidth = () =>
+    updateItemMobileWidth(item.i, half ? "full" : "half");
 
   return (
     <MobileCell
@@ -140,6 +155,7 @@ const MobileItemContent = memo(function MobileItemContent({
           <MobileCellName title={def.name}>{def.name}</MobileCellName>
         </MobileCellHeaderLeft>
         <MobileCellHeaderRight>
+          <WidthToggleButton half={half} onClick={onToggleWidth} />
           {(hasConfig || hasActions) && (
             <GearButton
               item={item}
@@ -193,6 +209,25 @@ function ReorderButton({
     >
       <Glyph size={16} />
     </ReorderBtn>
+  );
+}
+
+function WidthToggleButton({
+  half,
+  onClick,
+}: Readonly<{ half: boolean; onClick: () => void }>) {
+  const label = half ? "Expand to full width" : "Shrink to half width";
+  const Glyph = half ? FullWidthIcon : HalfWidthIcon;
+  return (
+    <WidthToggleBtn
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={half}
+    >
+      <Glyph size={14} />
+    </WidthToggleBtn>
   );
 }
 
@@ -250,6 +285,29 @@ const MobileCellName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+`;
+
+const WidthToggleBtn = styled.button`
+  pointer-events: all;
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 1px 4px;
+  margin-left: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &[aria-pressed="true"] {
+    color: var(--color-status-info-fg);
+  }
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
 `;
 
 const ReorderBtn = styled.button`
