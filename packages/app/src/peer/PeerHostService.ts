@@ -271,6 +271,22 @@ export class PeerHostService {
     this.peer.on("error", (err) => {
       logger.error("[PeerHost] peer error", err);
     });
+
+    // Tell the broker we're leaving on page unload. Without this, the WS
+    // close races the page teardown and may not flush before the page is
+    // gone — the broker then holds the slot for ~30–60s on its keepalive
+    // timer, and a quick refresh hits `unavailable-id` and rotates to a
+    // fresh share code (forcing every station to be re-shared the new
+    // code). `peer.destroy()` sends an explicit leave message before
+    // unload completes, so the slot is freed in time for the new page to
+    // reclaim the same id; stations' existing retry loop reconnects
+    // automatically. `pagehide` (not `beforeunload`) because it fires
+    // reliably on mobile + bfcache transitions.
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", () => {
+        this.peer?.destroy();
+      });
+    }
   }
 
   /**
