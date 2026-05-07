@@ -37,6 +37,11 @@ const versionMeta = (): PluginOption => ({
 export default defineConfig({
   plugins: [react(), versionMeta(), spaFallback()],
   base: process.env.VITE_BASE_PATH ?? "/",
+  // Bind to 0.0.0.0 so phones / second laptops on the same LAN can hit the
+  // dev server at http://<host-lan-ip>:5173. Vite prints both the local and
+  // network URLs at startup. Default is 127.0.0.1, which is why station
+  // devices couldn't reach the dev build over wifi.
+  server: { host: true },
   define: {
     __GONOGO_VERSION__: JSON.stringify(pkg.version),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
