@@ -31,4 +31,56 @@ export function installDomStubs(): void {
   if (typeof HTMLMediaElement !== "undefined") {
     HTMLMediaElement.prototype.play = () => Promise.resolve();
   }
+
+  // jsdom inherits Node's built-in `WebSocket` (undici-backed). Production
+  // code paths that auto-connect on mount (Telemachus, kOS) end up opening
+  // real sockets against localhost during tests, then crashing on a Node
+  // 24 × undici 7 incompatibility — undici fires events whose `Event` class
+  // doesn't satisfy Node's stricter `EventTarget.dispatchEvent` validator
+  // ("The 'event' argument must be an instance of Event. Received an
+  // instance of Event"). Replace with a no-op EventTarget so unintended
+  // network attempts simply hang quietly. Tests that need a controllable
+  // WebSocket inject their own fake.
+  installNoopWebSocket();
+}
+
+function installNoopWebSocket(): void {
+  if (typeof globalThis === "undefined") return;
+  // Some EventTarget-based runtimes (jsdom + Node) need at least these
+  // surface bits so consumer code doesn't crash on construction.
+  class NoopWebSocket extends EventTarget {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+
+    readonly CONNECTING = 0;
+    readonly OPEN = 1;
+    readonly CLOSING = 2;
+    readonly CLOSED = 3;
+
+    readyState = 0;
+    url: string;
+    binaryType: "blob" | "arraybuffer" = "blob";
+    bufferedAmount = 0;
+    extensions = "";
+    protocol = "";
+
+    onopen: ((ev: Event) => unknown) | null = null;
+    onclose: ((ev: Event) => unknown) | null = null;
+    onerror: ((ev: Event) => unknown) | null = null;
+    onmessage: ((ev: MessageEvent) => unknown) | null = null;
+
+    constructor(url: string | URL, _protocols?: string | string[]) {
+      super();
+      this.url = String(url);
+    }
+    send(_data: unknown): void {}
+    close(_code?: number, _reason?: string): void {
+      this.readyState = 3;
+    }
+  }
+  // Cast through unknown — the structural shape matches the WebSocket
+  // global closely enough for any consumer that reaches into it.
+  (globalThis as unknown as { WebSocket: unknown }).WebSocket = NoopWebSocket;
 }
