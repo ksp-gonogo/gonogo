@@ -1,8 +1,9 @@
-import { BroadcastIcon, Fab, useModal } from "@gonogo/ui";
+import { BroadcastIcon, Fab, StatusIndicator, useModal } from "@gonogo/ui";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { peerHostService } from "../peer/PeerHostService";
+import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 
 /**
  * Station-link FAB — shows the host's peer ID + a QR code so a station
@@ -74,12 +75,79 @@ function StationLinkPanel() {
       <QrRow>
         <QRCodeSVG value={url} size={160} />
       </QrRow>
+      <TurnStatus />
       <Hint>
         Scan to open <code>/station</code> on another device — it&apos;ll
         auto-connect to this host. Or copy the link above.
       </Hint>
     </Wrap>
   );
+}
+
+/**
+ * TURN reachability badge. Probes the relay's iceServers for a `relay`
+ * candidate; surfaces ✅ / 🟡 / ❌ so the operator can tell *before*
+ * trying to share the link with a friend whether their relay is
+ * actually reachable from outside their network.
+ *
+ * Re-runs every 30 s while the modal is open — picks up router or
+ * relay restarts without spam, and gives the user a fresh check after
+ * they fix a port-forward without having to close + reopen the modal.
+ */
+function TurnStatus() {
+  const [state, setState] = useState<
+    | { kind: "probing" }
+    | { kind: "ok"; result: Extract<TurnProbeResult, { ok: true }> }
+    | { kind: "fail"; result: Extract<TurnProbeResult, { ok: false }> }
+  >({ kind: "probing" });
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setState({ kind: "probing" });
+      const result = await probeTurn({
+        iceServers: peerHostService.iceServers,
+      });
+      if (cancelled) return;
+      setState(result.ok ? { kind: "ok", result } : { kind: "fail", result });
+    };
+    void run();
+    const interval = setInterval(run, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const tone =
+    state.kind === "ok" ? "go" : state.kind === "fail" ? "nogo" : "info";
+  return (
+    <StatusIndicator tone={tone} live>
+      {state.kind === "probing" && "Checking TURN reachability…"}
+      {state.kind === "ok" &&
+        `TURN reachable (${state.result.relayCandidates} relay candidate${
+          state.result.relayCandidates === 1 ? "" : "s"
+        })`}
+      {state.kind === "fail" && describeProbeFailure(state.result)}
+    </StatusIndicator>
+  );
+}
+
+function describeProbeFailure(
+  r: Extract<TurnProbeResult, { ok: false }>,
+): string {
+  if (r.reason === "no-ice-servers") {
+    return "No TURN configured — off-network stations won't be able to connect.";
+  }
+  if (r.reason === "errored") {
+    return "TURN probe errored — see logs (peer:turn-probe).";
+  }
+  // timeout — most likely cause is router port-forward missing.
+  if (r.errors.length > 0) {
+    const first = r.errors[0];
+    return `TURN unreachable (${first.url} → ${first.code}). Check router port-forward for UDP 3478 + 49160-49200.`;
+  }
+  return "TURN unreachable — relay never returned a relay candidate. Check router port-forward for UDP 3478 + 49160-49200.";
 }
 
 const Wrap = styled.div`

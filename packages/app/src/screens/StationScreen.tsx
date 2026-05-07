@@ -20,7 +20,7 @@ import {
   SerialDeviceService,
   SerialFab,
 } from "@gonogo/serial";
-import { FabClusterProvider } from "@gonogo/ui";
+import { FabClusterProvider, StatusIndicator } from "@gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -323,13 +323,12 @@ export function StationScreen() {
                           Connection lost. Check the host ID and try again.
                         </ErrorMsg>
                       )}
-                      <StatusLine
-                        role="status"
-                        aria-live="polite"
-                        data-status={connStatus}
+                      <StatusIndicator
+                        tone={statusTone(connStatus, hostNotFound)}
+                        live
                       >
                         {describeConnStatus(connStatus, hostNotFound)}
-                      </StatusLine>
+                      </StatusIndicator>
                       <DiagnosticsRow>
                         <DiagnosticsButton type="button" onClick={downloadLogs}>
                           Download logs
@@ -559,17 +558,6 @@ const ErrorMsg = styled.p`
   font-size: 12px !important;
 `;
 
-const StatusLine = styled.p`
-  margin-top: 12px !important;
-  font-size: 12px !important;
-  color: var(--color-text-muted) !important;
-
-  &[data-status="connecting"],
-  &[data-status="reconnecting"] {
-    color: var(--color-status-info-fg) !important;
-  }
-`;
-
 const DiagnosticsRow = styled.div`
   margin-top: 12px;
   display: flex;
@@ -606,6 +594,24 @@ function describeConnStatus(status: ConnStatus, hostNotFound: boolean): string {
       return "Reconnecting — the host or broker may be briefly unavailable.";
     case "disconnected":
       return "No connection. Use Download logs if this persists.";
+  }
+}
+
+function statusTone(
+  status: ConnStatus,
+  hostNotFound: boolean,
+): "neutral" | "info" | "go" | "nogo" {
+  if (hostNotFound) return "nogo";
+  switch (status) {
+    case "idle":
+      return "neutral";
+    case "connecting":
+    case "reconnecting":
+      return "info";
+    case "connected":
+      return "go";
+    case "disconnected":
+      return "nogo";
   }
 }
 

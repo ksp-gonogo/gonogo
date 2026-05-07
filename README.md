@@ -245,9 +245,25 @@ OCISLY_HOST=<host-ip> docker compose up -d --build
 
 The relay exposes a few diagnostic endpoints that are handy when something's off:
 
-- `GET http://localhost:3002/health` — status + current proxy peer id
+- `GET http://localhost:3002/health` — status + current proxy peer id + the public IP the bundled coturn is advertising
+- `GET http://localhost:3002/ice-config` — the iceServers config the main screen fetches on boot (TURN URL + per-restart-rotated credentials)
 - `GET http://localhost:3002/cameras/stats` — per-camera poll/push counters
 - `GET http://localhost:3002/cameras/:id/snapshot.jpg` — most recent raw JPEG from OCISLY, useful for isolating "is the issue upstream of our WebRTC pipeline?"
+
+### Letting friends connect from outside your LAN
+
+Stations on the same WiFi as the main screen connect peer-to-peer with no extra setup. For anyone *off* your network — cellular phones, friends at their own house, anything behind CGNAT or a strict firewall — WebRTC needs a TURN relay to bridge the two ends. The relay container hosts coturn for exactly this; you just need to make it reachable from the public internet.
+
+**One-time router setup:**
+
+1. Forward the following ports on your home router to the machine running the relay:
+   - **TCP 3478** — TURN signalling
+   - **UDP 3478** — TURN signalling
+   - **UDP 49160–49200** — TURN relay sessions (one port per active relay)
+2. The relay auto-discovers its public IP at startup and advertises it to clients. If your ISP gives you a stable IP this needs no further attention. If your IP rotates, restart the relay periodically or pin it explicitly with `TURN_EXTERNAL_IP=<ip>` in compose.
+3. Open the **Add Station** modal on the main screen — there's a TURN-reachability indicator at the bottom that probes coturn from the browser side. Green ✅ means a friend on cellular can connect; red ❌ usually means a port-forward is missing or the wrong IP is being advertised.
+
+**Security:** the coturn shared secret is regenerated on every relay restart and only ever lives in the relay process's memory. The main screen fetches it from `/ice-config`; stations don't need it (they pair against the host's relay candidates over the broker). Never commit a TURN credential to source.
 
 ---
 
