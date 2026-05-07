@@ -13,6 +13,7 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/websocket": "^11.2.0",
+    "@gonogo/logger": "workspace:*",
     "fastify": "^5.0.0",
     "node-pty": "^1.1.0"
   },

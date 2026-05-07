@@ -1,5 +1,12 @@
+import { logger } from "@gonogo/logger";
 import type { FastifyInstance } from "fastify";
 import * as pty from "node-pty";
+
+// Tagged logger for the kOS bridge surface — lets operators filter
+// "all kOS-bridge traffic" in Axiom independent of the proxy's other
+// log lines. Mirrors how the browser side tags peer:ice / camera /
+// peer:stream.
+const kosLog = logger.tag("kos-bridge");
 
 export interface BridgeOptions {
   kosHost?: string;
@@ -28,6 +35,7 @@ export function registerKosBridge(
       params.rows === undefined ? 24 : Number.parseInt(params.rows, 10);
 
     request.log.info({ host, port, id, cols, rows }, "spawning telnet session");
+    kosLog.info("spawning telnet session", { host, port, id, cols, rows });
 
     const term = pty.spawn("telnet", [host, String(port)], {
       name: "xterm-256color",
@@ -39,6 +47,7 @@ export function registerKosBridge(
 
     sessions.set(id, term);
     request.log.info({ id, pid: term.pid }, "telnet PTY spawned");
+    kosLog.info("telnet PTY spawned", { id, pid: term.pid });
 
     // PTY → browser
     term.onData((data) => {
@@ -53,6 +62,7 @@ export function registerKosBridge(
     term.onExit(({ exitCode }) => {
       sessions.delete(id);
       request.log.info({ id, exitCode }, "telnet PTY exited");
+      kosLog.info("telnet PTY exited", { id, exitCode });
       try {
         socket.close();
       } catch {
@@ -86,6 +96,7 @@ export function registerKosBridge(
       clearTimeout(holdTimer);
       sessions.delete(id);
       request.log.info({ id }, "WS closed — killing PTY");
+      kosLog.info("WS closed — killing PTY", { id });
       try {
         term.kill();
       } catch {

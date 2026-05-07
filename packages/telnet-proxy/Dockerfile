@@ -1,17 +1,43 @@
+# Build context for this Dockerfile is the REPO ROOT, not packages/telnet-proxy,
+# so pnpm can resolve workspace deps (currently @gonogo/logger). The
+# compose service points `context: .` + `dockerfile:
+# packages/telnet-proxy/Dockerfile`, and CI workflows do the same.
+
 # ── builder ──────────────────────────────────────────────────────────────────
 FROM node:24-alpine AS builder
-WORKDIR /app
+WORKDIR /repo
 
 # Build tools required to compile node-pty native bindings from source.
 # (Alpine uses musl libc so prebuilt binaries are often unavailable.)
 RUN apk add --no-cache python3 make g++
 
-COPY package.json ./
-RUN npm install
+# pnpm via corepack — workspace-aware install vs npm.
+RUN corepack enable
 
-COPY tsconfig.json ./
-COPY src/ ./src/
-RUN npm run build
+# Lockfile + workspace metadata first so the install layer caches
+# until any of those change. tsconfig.base is picked up by every
+# package's tsconfig via `extends`; .npmrc carries the
+# `inject-workspace-packages=true` setting that `pnpm deploy` needs.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
+COPY packages/logger/package.json packages/logger/
+COPY packages/telnet-proxy/package.json packages/telnet-proxy/
+
+# Frozen install limited to telnet-proxy + transitive workspace deps.
+# `--filter` follows workspace:* edges automatically.
+RUN pnpm install --frozen-lockfile --filter @gonogo/telnet-proxy...
+
+# Now bring in source. Build @gonogo/logger first so its `dist/` exists,
+# then build telnet-proxy against it. Both packages emit Node-loadable
+# ESM (logger uses NodeNext + explicit .js extensions).
+COPY packages/logger/ packages/logger/
+COPY packages/telnet-proxy/ packages/telnet-proxy/
+
+RUN pnpm --filter @gonogo/logger build
+RUN pnpm --filter @gonogo/telnet-proxy build
+
+# Deploy a self-contained app dir (workspace deps inlined into
+# node_modules) for the runtime stage.
+RUN pnpm --filter @gonogo/telnet-proxy deploy --prod --legacy /app
 
 # ── runtime ──────────────────────────────────────────────────────────────────
 FROM node:24-alpine
@@ -21,11 +47,7 @@ WORKDIR /app
 # busybox-extras ships a telnet binary on Alpine.
 RUN apk add --no-cache busybox-extras
 
-# Bring in the pre-compiled node_modules (including the node-pty .node binary)
-# and the compiled JS output.  No re-install needed in the runtime image.
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY package.json ./
+COPY --from=builder /app /app
 
 # Set at image build time by the release workflow. version.ts reads these
 # as ENV first, with the runtime package.json as fallback.

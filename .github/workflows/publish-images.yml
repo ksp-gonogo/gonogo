@@ -53,7 +53,10 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: ./packages/${{ matrix.package }}
+          # Repo-root context so pnpm can resolve workspace deps inside
+          # the build (services depend on @gonogo/logger).
+          context: .
+          file: ./packages/${{ matrix.package }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

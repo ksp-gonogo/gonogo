@@ -3,6 +3,7 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
+  injectWorkspacePackages: true
 
 overrides:
   '@types/react': ^18.3.28
@@ -281,6 +282,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@grpc/grpc-js':
         specifier: ^1.12.2
         version: 1.14.3
@@ -389,6 +393,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       fastify:
         specifier: ^5.0.0
         version: 5.8.4

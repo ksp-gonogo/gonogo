@@ -4,6 +4,7 @@ import "./peer/globals.js";
 
 import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
+import { AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
@@ -13,10 +14,48 @@ import { OcislyClient } from "./grpc/OcislyClient.js";
 import { PeerHost } from "./peer/PeerHost.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
-console.log(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
-
 const config = loadConfig();
+
+// Ship logs to Axiom when an ingest token is present. Mirrors the
+// browser wiring in packages/app/src/main.tsx — without AXIOM_TOKEN,
+// the transport is silently skipped, so dev/test never reach Axiom
+// unless an operator opts in via `.env`/`.env.local`.
+if (process.env.AXIOM_TOKEN) {
+  logger.addTransport(
+    new AxiomTransport({
+      token: process.env.AXIOM_TOKEN,
+      dataset: process.env.AXIOM_DATASET ?? "gonogo",
+      url: process.env.AXIOM_URL,
+      orgId: process.env.AXIOM_ORG_ID,
+      // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
+      // calls `logger.flushTransports()` instead.
+      flushOnPageHide: false,
+    }),
+  );
+}
+
+logger.info(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
+
 const fastify = Fastify({ logger: true });
+
+// Bridge fastify's pino output through @gonogo/logger so every line
+// hitting stderr/stdout also reaches Axiom (when configured). Pino
+// still writes to its own stream — this is purely additive.
+function bridgeInfo(msg: string, extra?: Record<string, unknown>): void {
+  fastify.log.info(extra ?? {}, msg);
+  logger.info(msg, extra);
+}
+function bridgeError(
+  msg: string,
+  err?: unknown,
+  extra?: Record<string, unknown>,
+): void {
+  fastify.log.error({ err, ...(extra ?? {}) }, msg);
+  const e = err instanceof Error ? err : undefined;
+  const ctx: Record<string, unknown> = { ...(extra ?? {}) };
+  if (err !== undefined && !(err instanceof Error)) ctx.err = err;
+  logger.error(msg, e, Object.keys(ctx).length > 0 ? ctx : undefined);
+}
 
 await fastify.register(cors, { origin: true });
 
@@ -41,7 +80,7 @@ const poller = new CameraPoller({
     lastMetadataSentAt.set(meta.cameraId, now);
     peerHost?.broadcastMetadata(meta);
   },
-  logger: { error: (msg, err) => fastify.log.error({ err }, msg) },
+  logger: { error: (msg, err) => bridgeError(msg, err) },
 });
 
 // ──────────────────────────────────────────────────────────────────────
@@ -57,22 +96,27 @@ try {
   const externalIp = await discoverPublicIp({
     override: config.turnExternalIp ?? undefined,
   });
-  fastify.log.info(`relay public IP for TURN: ${externalIp}`);
+  bridgeInfo(`relay public IP for TURN: ${externalIp}`);
   coturnHandle = startCoturn({
     externalIp,
     logger: {
-      info: (msg, ...args) => fastify.log.info({ args }, msg),
-      error: (msg, ...args) => fastify.log.error({ args }, msg),
+      info: (msg, ...args) => bridgeInfo(msg, { args }),
+      error: (msg, ...args) => bridgeError(msg, undefined, { args }),
     },
   });
 } catch (err) {
-  fastify.log.error(
-    { err },
+  bridgeError(
     "failed to discover public IP / start coturn — TURN unavailable until fixed",
+    err,
   );
 }
 
 const proxyPeerId = `ocisly-${randomUUID()}`;
+// Tag every log entry with this relay's identity. proxyPeerId is the
+// natural id — it's stable for this process's lifetime and is what
+// other peers see on the broker side.
+logger.setIdentity({ role: "relay", id: proxyPeerId, peerId: proxyPeerId });
+
 peerHost = new PeerHost({
   peerId: proxyPeerId,
   client: ocisly,
@@ -87,8 +131,8 @@ peerHost = new PeerHost({
       ]
     : [],
   logger: {
-    info: (msg, ...args) => fastify.log.info({ args }, msg),
-    error: (msg, ...args) => fastify.log.error({ args }, msg),
+    info: (msg, ...args) => bridgeInfo(msg, { args }),
+    error: (msg, ...args) => bridgeError(msg, undefined, { args }),
   },
 });
 
@@ -140,7 +184,7 @@ fastify.get("/cameras", async (_req, reply) => {
     const cameras = await ocisly.getActiveCameraIds();
     return { cameras };
   } catch (err) {
-    fastify.log.error({ err }, "GetActiveCameraIds failed");
+    bridgeError("GetActiveCameraIds failed", err);
     return reply.status(502).send({ error: "ocisly server unreachable" });
   }
 });
@@ -165,7 +209,7 @@ fastify.get<{ Params: { cameraId: string } }>(
       reply.type("image/jpeg");
       return reply.send(frame.texture);
     } catch (err) {
-      fastify.log.error({ err }, "GetCameraTexture failed");
+      bridgeError("GetCameraTexture failed", err);
       return reply.status(502).send({ error: "ocisly server unreachable" });
     }
   },
@@ -175,21 +219,23 @@ fastify.get<{ Params: { cameraId: string } }>(
 try {
   await peerHost.start();
 } catch (err) {
-  fastify.log.error({ err }, "peer host failed to open — broker unreachable?");
+  bridgeError("peer host failed to open — broker unreachable?", err);
 }
 
 await fastify.listen({ port: config.port, host: "0.0.0.0" });
-fastify.log.info(
+bridgeInfo(
   `relay listening on :${config.port}, bridging to ${config.ocislyHost}:${config.ocislyPort}, peerId=${proxyPeerId}`,
 );
 
 const shutdown = async () => {
-  fastify.log.info("shutting down");
+  bridgeInfo("shutting down");
   peerHost?.stop();
   poller.shutdown();
   ocisly.close();
   await coturnHandle?.stop();
   await fastify.close();
+  // Drain any buffered Axiom entries before the process exits.
+  await logger.flushTransports();
   process.exit(0);
 };
 process.on("SIGINT", shutdown);
