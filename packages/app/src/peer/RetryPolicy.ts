@@ -32,8 +32,11 @@ export interface RetryPolicyDeps {
   /** Open a fresh Peer (and DataConnection) — called when the retry timer fires. */
   reopen(): void;
 
-  /** Identifier used in the "id still held by broker" warning log. */
-  stationPeerId: string;
+  /** Identifier used in the "id still held by broker" warning log.
+   *  Function so callers can hand in a current value — `PeerClientService`
+   *  re-rolls the id every retry, and a captured snapshot would log
+   *  whichever id we started with. */
+  stationPeerId: () => string;
   /** Currently-targeted host id, used in "host unavailable" log. */
   hostPeerId(): string | null;
 }
@@ -84,7 +87,7 @@ export class RetryPolicy {
       if (type === "unavailable-id") {
         logger.warn(
           `[PeerClient] station peer id is still held by the broker — retrying slowly until it releases`,
-          { stationPeerId: this.deps.stationPeerId },
+          { stationPeerId: this.deps.stationPeerId() },
         );
       } else if (type === "peer-unavailable") {
         logger.info(
