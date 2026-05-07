@@ -128,10 +128,14 @@ export class SerialDeviceService {
     if (!serial?.addEventListener) return;
 
     const onConnect = (evt: SerialConnectionEvent) => {
-      void this.tryAdoptPort(evt.port);
+      const port = evt.target;
+      if (!port) return;
+      void this.tryAdoptPort(port);
     };
     const onDisconnect = (evt: SerialConnectionEvent) => {
-      this.handlePortDisconnect(evt.port);
+      const port = evt.target;
+      if (!port) return;
+      this.handlePortDisconnect(port);
     };
     serial.addEventListener("connect", onConnect);
     serial.addEventListener("disconnect", onDisconnect);
@@ -159,8 +163,8 @@ export class SerialDeviceService {
    * VID/PID. Quietly skips if nothing matches or the port is already in use.
    */
   private async tryAdoptPort(port: SerialPort): Promise<void> {
-    const info = port.getInfo();
-    if (!info.usbVendorId) {
+    const info = port?.getInfo?.();
+    if (!info?.usbVendorId) {
       logger.debug(
         "[SerialDeviceService] hot-plug ignored — port has no VID/PID",
       );
@@ -205,8 +209,8 @@ export class SerialDeviceService {
    * the FAB tint go green before the error surfaces.
    */
   private handlePortDisconnect(port: SerialPort): void {
-    const info = port.getInfo();
-    if (!info.usbVendorId) return;
+    const info = port?.getInfo?.();
+    if (!info?.usbVendorId) return;
     for (const managed of this.managed.values()) {
       if (managed.instance.transport !== "web-serial") continue;
       const saved = managed.instance.portInfo;

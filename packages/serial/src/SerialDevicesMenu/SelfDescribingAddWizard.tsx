@@ -47,7 +47,22 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
   // even while the active step has changed underneath us.
   const cleanupRef = useRef<(() => Promise<void>) | null>(null);
 
-  // While in awaiting, listen for the first sign of life: schema or input.
+  // If the user closes the menu (or otherwise unmounts the wizard) before
+  // committing the new device, roll back the auto-created type + instance
+  // so the next attempt doesn't hit "port already open" on the same VID/PID.
+  useEffect(() => {
+    return () => {
+      const cleanup = cleanupRef.current;
+      cleanupRef.current = null;
+      if (cleanup) void cleanup();
+    };
+  }, []);
+
+  // While in awaiting, listen for any sign of life: schema announcement,
+  // parsed input event, OR raw line. The first two only fire if the device
+  // already speaks json-state cleanly; raw lines catch the case where the
+  // device IS streaming but the parser hasn't recognised it yet — without
+  // that fallback the wizard hangs on devices the user knows are talking.
   useEffect(() => {
     if (step.kind !== "awaiting") return;
     const transport = svc.getTransport(step.deviceId);
@@ -64,9 +79,11 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     };
     const offSchema = transport.onSchema?.(finish);
     const offInput = transport.onInput(finish);
+    const offRaw = transport.onRawLine?.(finish);
     return () => {
       offSchema?.();
       offInput();
+      offRaw?.();
     };
   }, [svc, step]);
 
