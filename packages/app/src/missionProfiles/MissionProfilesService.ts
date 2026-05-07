@@ -1,4 +1,5 @@
 import type { Screen } from "@gonogo/core";
+import { safeRandomUuid } from "@gonogo/core";
 import { LocalStorageStore } from "@gonogo/data";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
@@ -33,7 +34,7 @@ function storageKeyFor(screen: Screen): string {
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return safeRandomUuid();
   }
   return `mp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }

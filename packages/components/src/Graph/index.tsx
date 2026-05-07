@@ -1,5 +1,5 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import { registerComponent, safeRandomUuid } from "@gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@gonogo/data";
 import { useDataSchema } from "@gonogo/data";
 import type { ChartSeries, ChartSeriesData, ThresholdRule } from "@gonogo/ui";
@@ -385,7 +385,7 @@ function GraphConfigComponent({
   const addSeries = () => {
     setSeriesList((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), key: "", type: "line", axis: "auto" },
+      { id: safeRandomUuid(), key: "", type: "line", axis: "auto" },
     ]);
   };
 
@@ -403,7 +403,7 @@ function GraphConfigComponent({
     setThresholds((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeRandomUuid(),
         value: 0,
         axis: "primary",
         label: "",

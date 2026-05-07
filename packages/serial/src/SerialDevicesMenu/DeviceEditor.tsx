@@ -1,3 +1,4 @@
+import { safeRandomUuid } from "@gonogo/core";
 import {
   Field,
   FieldHint,
@@ -35,7 +36,7 @@ export function DeviceEditor({
   const handleSave = () => {
     if (!name.trim() || !typeId) return;
     const device: DeviceInstance = {
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? safeRandomUuid(),
       name: name.trim(),
       typeId,
       transport,

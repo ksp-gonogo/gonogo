@@ -10,6 +10,7 @@
  * Large per-body state (fog masks) is kept in IndexedDB keyed by profile id.
  */
 
+import { safeRandomUuid } from "@gonogo/core";
 import { LocalStorageStore } from "@gonogo/data";
 
 const PROFILES_KEY = "gonogo.saveProfiles.list";
@@ -28,7 +29,7 @@ type ActiveListener = (profileId: string) => void;
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return safeRandomUuid();
   }
   return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
