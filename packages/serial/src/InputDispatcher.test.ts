@@ -172,4 +172,40 @@ describe("InputDispatcher", () => {
     dispatcher.dispose();
     await service.destroy();
   });
+
+  it("skips dispatch while the service is in capture mode but still notifies onInput listeners", async () => {
+    const { service, transport } = await makeServiceWithVirtualDevice();
+    const spy = vi.fn();
+    registerActionHandler("ag-1", "toggle", spy);
+
+    const dispatcher = new InputDispatcher({
+      service,
+      getItems: () => [
+        {
+          i: "ag-1",
+          componentId: "action-group",
+          inputMappings: { toggle: { deviceId: "d1", inputId: "a" } },
+        },
+      ],
+    });
+
+    // The mapping UI's "press to bind" listener uses onInput directly.
+    const captured: Array<{ deviceId: string; inputId: string }> = [];
+    const unsub = service.onInput((deviceId, event) => {
+      captured.push({ deviceId, inputId: event.inputId });
+    });
+
+    service.setCaptureMode(true);
+    transport.inject("a", true);
+    expect(spy).not.toHaveBeenCalled();
+    expect(captured).toEqual([{ deviceId: "d1", inputId: "a" }]);
+
+    service.setCaptureMode(false);
+    transport.inject("a", true);
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    unsub();
+    dispatcher.dispose();
+    await service.destroy();
+  });
 });

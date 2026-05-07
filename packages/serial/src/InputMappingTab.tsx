@@ -3,11 +3,12 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  FieldRow,
   GhostButton,
   PrimaryButton,
   Select,
 } from "@gonogo/ui";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { InputBinding, InputMappings } from "./bindings";
 import { useSerialDeviceService } from "./SerialDeviceContext";
@@ -55,6 +56,22 @@ function optionsForAction(
   return opts;
 }
 
+/**
+ * Heuristic for "the user actually meant to press this control" while in
+ * capture mode. Without it, idle stick noise around centre would auto-bind
+ * the wrong axis on a row that accepts analog. Buttons must be true (press,
+ * not release); analogs must clear half-deflection.
+ */
+function isCapturable(
+  accepts: readonly ActionDefinition["accepts"][number][],
+  value: boolean | number,
+): boolean {
+  if (typeof value === "boolean") {
+    return accepts.includes("button") && value === true;
+  }
+  return accepts.includes("analog") && Math.abs(value) >= 0.5;
+}
+
 export function InputMappingTab({
   actions,
   mappings,
@@ -73,6 +90,48 @@ export function InputMappingTab({
   }, [svc]);
 
   const [draft, setDraft] = useState<InputMappings>(() => ({ ...mappings }));
+  const [listeningFor, setListeningFor] = useState<string | null>(null);
+  // Track the action under capture in a ref so the onInput callback (registered
+  // once per listen session) can read the current value without re-subscribing.
+  const listeningRef = useRef<{
+    actionId: string;
+    accepts: readonly ActionDefinition["accepts"][number][];
+  } | null>(null);
+
+  // Drive the dispatcher pause + the input subscription off the listening
+  // state. Cleanup runs on Save/Cancel (component unmounts) so capture mode
+  // is always released, even if the user closes the modal mid-listen.
+  useEffect(() => {
+    if (!listeningFor) return;
+    svc.setCaptureMode(true);
+    const unsub = svc.onInput((deviceId, event) => {
+      const target = listeningRef.current;
+      if (!target) return;
+      if (!isCapturable(target.accepts, event.value)) return;
+      setDraft((prev) => ({
+        ...prev,
+        [target.actionId]: { deviceId, inputId: event.inputId },
+      }));
+      setListeningFor(null);
+    });
+    return () => {
+      unsub();
+      svc.setCaptureMode(false);
+    };
+  }, [svc, listeningFor]);
+
+  // Esc cancels capture without binding.
+  useEffect(() => {
+    if (!listeningFor) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setListeningFor(null);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [listeningFor]);
 
   if (actions.length === 0) {
     return (
@@ -84,6 +143,15 @@ export function InputMappingTab({
 
   const handleChange = (actionId: string, raw: string) => {
     setDraft((prev) => ({ ...prev, [actionId]: decode(raw) }));
+  };
+
+  const startListening = (action: ActionDefinition) => {
+    listeningRef.current = { actionId: action.id, accepts: action.accepts };
+    setListeningFor(action.id);
+  };
+
+  const cancelListening = () => {
+    setListeningFor(null);
   };
 
   return (
@@ -101,24 +169,59 @@ export function InputMappingTab({
             ? encode(current.deviceId, current.inputId)
             : "";
           const selectId = `input-mapping-${action.id}`;
+          const isListening = listeningFor === action.id;
+          const otherListening =
+            listeningFor !== null && listeningFor !== action.id;
+
           return (
-            <Row key={action.id}>
+            <Row key={action.id} $listening={isListening}>
               <Field>
                 <FieldLabel htmlFor={selectId}>{action.label}</FieldLabel>
                 {action.description && (
                   <FieldHint>{action.description}</FieldHint>
                 )}
-                <Select
-                  id={selectId}
-                  value={currentValue}
-                  onChange={(e) => handleChange(action.id, e.target.value)}
-                >
-                  {opts.map((opt) => (
-                    <option key={opt.value || "unbound"} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
+                <FieldRow>
+                  <Select
+                    id={selectId}
+                    value={currentValue}
+                    onChange={(e) => handleChange(action.id, e.target.value)}
+                    disabled={isListening}
+                    style={{ flex: 1 }}
+                  >
+                    {opts.map((opt) => (
+                      <option key={opt.value || "unbound"} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                  {isListening ? (
+                    <GhostButton
+                      type="button"
+                      onClick={cancelListening}
+                      aria-label={`Cancel binding for ${action.label}`}
+                    >
+                      Cancel
+                    </GhostButton>
+                  ) : (
+                    <GhostButton
+                      type="button"
+                      onClick={() => startListening(action)}
+                      disabled={otherListening || devices.length === 0}
+                      aria-label={`Capture an input for ${action.label}`}
+                    >
+                      Bind
+                    </GhostButton>
+                  )}
+                </FieldRow>
+                {isListening && (
+                  <ListenStatus role="status" aria-live="polite">
+                    <ListenDot />
+                    Press a {action.accepts.includes("button") ? "button" : ""}
+                    {action.accepts.length > 1 ? " or move an " : ""}
+                    {action.accepts.includes("analog") ? "axis" : ""}…
+                    <EscHint>Esc to cancel</EscHint>
+                  </ListenStatus>
+                )}
               </Field>
             </Row>
           );
@@ -150,11 +253,52 @@ const List = styled.div`
   gap: 12px;
 `;
 
-const Row = styled.div`
+const Row = styled.div<{ $listening: boolean }>`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid
+    ${({ $listening }) =>
+      $listening
+        ? "var(--color-status-info-fg)"
+        : "var(--color-border-subtle)"};
   border-radius: 4px;
   padding: 10px 12px;
+  transition: border-color 80ms linear;
+`;
+
+const ListenStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-status-info-fg);
+`;
+
+const EscHint = styled.span`
+  margin-left: auto;
+  color: var(--color-text-faint);
+`;
+
+const ListenDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-status-info-fg);
+  box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: input-mapping-pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes input-mapping-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
 `;
 
 const Actions = styled.div`

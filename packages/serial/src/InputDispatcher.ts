@@ -54,6 +54,7 @@ export class InputDispatcher {
   }
 
   private handleInput(deviceId: string, event: InputEvent): void {
+    if (this.service.isCaptureMode()) return;
     const items = this.getItems();
     for (const item of items) {
       const mappings = item.inputMappings;

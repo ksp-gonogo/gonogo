@@ -64,6 +64,14 @@ export class SerialDeviceService {
 
   private deviceTypes = new Map<string, DeviceType>();
   private managed = new Map<string, ManagedDevice>();
+  /**
+   * When true, the InputDispatcher skips dispatch on incoming events. Used
+   * by the input-mapping UI's "press to bind" mode so the OLD binding for
+   * a button doesn't fire while the user is trying to capture a NEW one.
+   * onInput listeners still receive events — only the dispatcher path is
+   * gated.
+   */
+  private captureMode = false;
 
   private deviceTypeListeners = new Set<() => void>();
   private devicesListeners = new Set<() => void>();
@@ -309,6 +317,14 @@ export class SerialDeviceService {
 
   getTransport(deviceId: string): DeviceTransport | undefined {
     return this.managed.get(deviceId)?.transport;
+  }
+
+  setCaptureMode(on: boolean): void {
+    this.captureMode = on;
+  }
+
+  isCaptureMode(): boolean {
+    return this.captureMode;
   }
 
   onInput(cb: (deviceId: string, event: InputEvent) => void): () => void {
