@@ -66,6 +66,16 @@ export class WebSerialTransport implements DeviceTransport {
     return { vendorId: info.usbVendorId, productId: info.usbProductId };
   }
 
+  /**
+   * Live SerialPort reference (or null when disconnected). The wizard's
+   * collision check uses this to compare port identity directly — way
+   * more reliable than VID/PID matching for boards that expose 0 or
+   * undefined for one of them.
+   */
+  getPort(): SerialPort | null {
+    return this.port;
+  }
+
   async connect(options?: { port?: SerialPort }): Promise<void> {
     try {
       const port =
