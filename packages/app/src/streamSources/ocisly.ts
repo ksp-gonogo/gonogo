@@ -1,5 +1,6 @@
 import type { DataSourceStatus, StreamInfo, StreamSource } from "@gonogo/core";
-import { logger, registerStreamSource } from "@gonogo/core";
+import { registerStreamSource } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import type { DataConnection, MediaConnection, Peer } from "peerjs";
 import { peerHostService } from "../peer/PeerHostService";
 

@@ -14,7 +14,8 @@
  */
 
 import type { DataSource } from "@gonogo/core";
-import { getDataSource, logger } from "@gonogo/core";
+import { getDataSource } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 export type Vote = "go" | "no-go" | null;

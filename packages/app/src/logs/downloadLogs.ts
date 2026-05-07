@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 
 /**
  * Download the in-memory log buffer as a JSON file. Shared between the

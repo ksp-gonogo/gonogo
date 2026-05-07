@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import { registerSerialRenderStyle } from "../registry";
 import type { DeviceRenderStyle } from "../types";
 

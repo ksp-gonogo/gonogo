@@ -1,6 +1,6 @@
-import { logger } from "@gonogo/core";
 import type { KosData, UseKosWidgetOptions } from "@gonogo/data";
 import { useKosWidget } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 import { useMemo } from "react";
 
 /**

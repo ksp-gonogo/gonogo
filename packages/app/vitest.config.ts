@@ -11,6 +11,10 @@ export default defineConfig({
         "../core/src/test/helpers.ts",
       ),
       "@gonogo/core": path.resolve(import.meta.dirname, "../core/src/index.ts"),
+      "@gonogo/logger": path.resolve(
+        import.meta.dirname,
+        "../logger/src/index.ts",
+      ),
       "@gonogo/components": path.resolve(
         import.meta.dirname,
         "../components/src/index.ts",

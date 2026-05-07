@@ -1,7 +1,7 @@
 import type { DataSource } from "@gonogo/core";
-import { debugPeer } from "@gonogo/core";
 import type { ScriptableDataSource } from "@gonogo/data";
 import { DataSourceWrapper, isScriptable } from "@gonogo/data";
+import { debugPeer } from "@gonogo/logger";
 import type { PeerHostService } from "./PeerHostService";
 
 interface Sample {

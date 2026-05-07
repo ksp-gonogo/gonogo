@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 
 // Cached on first call so the hot path (every sample) is a single boolean
 // check after the initial resolution. Matches the debugPeer pattern in

@@ -1,5 +1,5 @@
-import { LogRingBuffer, type PersistConfig } from "./ringBuffer";
-import { tagRegistry } from "./tags";
+import { LogRingBuffer, type PersistConfig } from "./ringBuffer.js";
+import { tagRegistry } from "./tags.js";
 
 const DEFAULT_PERSIST_KEY = "gonogo.logs.ringBuffer";
 
@@ -24,7 +24,7 @@ import type {
   LogLevel,
   LogTransport,
   TaggedLogger,
-} from "./types";
+} from "./types.js";
 
 function generateSessionId(): string {
   if (
@@ -270,19 +270,18 @@ export class ConsoleLogger implements Logger {
 }
 
 export const logger = new ConsoleLogger();
-export { AppError } from "./AppError";
-export type { AxiomTransportOptions } from "./AxiomTransport";
-export { AxiomTransport } from "./AxiomTransport";
-export { ErrorBoundary } from "./ErrorBoundary";
-export { LogRingBuffer } from "./ringBuffer";
-export { tagRegistry } from "./tags";
+export { AppError } from "./AppError.js";
+export type { AxiomTransportOptions } from "./AxiomTransport.js";
+export { AxiomTransport } from "./AxiomTransport.js";
+export { LogRingBuffer } from "./ringBuffer.js";
+export { tagRegistry } from "./tags.js";
 export type {
   DeviceIdentity,
   DeviceRole,
   LogEntry,
   LogTransport,
   TaggedLogger,
-} from "./types";
+} from "./types.js";
 
 /**
  * Back-compat wrapper around the new tag system. `debugPeer("foo", ctx)`
@@ -294,7 +293,7 @@ export function debugPeer(message: string, context?: LogContext) {
   peerLogger.debug(message, context);
 }
 
-import { handleError as genericHandleError } from "./error-handler";
+import { handleError as genericHandleError } from "./error-handler.js";
 export function handleError(error: unknown) {
   genericHandleError(error, logger);
 }

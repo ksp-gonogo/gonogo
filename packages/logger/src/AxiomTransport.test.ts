@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type AxiomIngestClient, AxiomTransport } from "./AxiomTransport";
-import type { LogEntry } from "./types";
+import { type AxiomIngestClient, AxiomTransport } from "./AxiomTransport.js";
+import type { LogEntry } from "./types.js";
 
 function makeClient(): AxiomIngestClient & {
   ingest: ReturnType<typeof vi.fn>;

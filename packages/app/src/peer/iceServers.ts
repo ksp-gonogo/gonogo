@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 
 /**
  * ICE server configuration for the host's PeerJS Peer.

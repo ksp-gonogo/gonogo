@@ -1,4 +1,5 @@
-import { getDataSource, logger, useDataValue } from "@gonogo/core";
+import { getDataSource, useDataValue } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import { useEffect, useReducer, useRef } from "react";
 
 // Tagged under `targets` because the user-facing symptom of any breakage

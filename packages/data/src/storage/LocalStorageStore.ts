@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 
 export interface LocalStorageStoreOptions<T> {
   /** localStorage key */

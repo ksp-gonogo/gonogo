@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import { getSerialRenderStyle } from "./registry";
 // Side-effect import: built-in render styles self-register on load so the
 // service can resolve `text-buffer-168` without the caller opting in.

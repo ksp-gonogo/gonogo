@@ -1,5 +1,5 @@
 import { Axiom } from "@axiomhq/js";
-import type { LogEntry, LogTransport } from "./types";
+import type { LogEntry, LogTransport } from "./types.js";
 
 /**
  * Minimal contract we depend on from the Axiom SDK. Lets tests inject a

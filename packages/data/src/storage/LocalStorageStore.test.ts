@@ -1,5 +1,5 @@
-import { logger } from "@gonogo/core";
 import { memoryStorage } from "@gonogo/core/test";
+import { logger } from "@gonogo/logger";
 import { describe, expect, it, vi } from "vitest";
 import { LocalStorageStore } from "./LocalStorageStore";
 

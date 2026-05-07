@@ -1,4 +1,4 @@
-import { logger } from "../logger";
+import { logger } from "@gonogo/logger";
 
 /**
  * Soft performance budget. Tracks an event-rate (or volume per second)

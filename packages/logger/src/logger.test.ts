@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConsoleLogger } from "./index";
-import { LogRingBuffer } from "./ringBuffer";
-import { tagRegistry } from "./tags";
-import type { LogEntry, LogTransport } from "./types";
+import { ConsoleLogger } from "./index.js";
+import { LogRingBuffer } from "./ringBuffer.js";
+import { tagRegistry } from "./tags.js";
+import type { LogEntry, LogTransport } from "./types.js";
 
 describe("ConsoleLogger tag gating", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;

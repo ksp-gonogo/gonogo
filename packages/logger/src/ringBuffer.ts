@@ -1,4 +1,4 @@
-import type { LogEntry } from "./types";
+import type { LogEntry } from "./types.js";
 
 /**
  * Fixed-size ring buffer for log entries. Captures every emitted entry

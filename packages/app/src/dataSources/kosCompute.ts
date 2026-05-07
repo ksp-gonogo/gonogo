@@ -20,7 +20,7 @@
  */
 
 import type { DataKey, KosScriptDefinition } from "@gonogo/core";
-import { getKosScript, getKosScripts, logger, PerfBudget } from "@gonogo/core";
+import { getKosScript, getKosScripts, PerfBudget } from "@gonogo/core";
 import {
   hashKosScript,
   isKosScriptError,
@@ -28,6 +28,7 @@ import {
   type KosManagedScript,
   type KosScriptArg,
 } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 
 /**
  * Soft cap on samples emitted from the centralised fanout. One sample per

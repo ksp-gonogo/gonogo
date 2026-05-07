@@ -1,4 +1,5 @@
-import { compareVersions, logger } from "@gonogo/core";
+import { compareVersions } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import { VersionMismatchBanner } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import { VERSION } from "../version";

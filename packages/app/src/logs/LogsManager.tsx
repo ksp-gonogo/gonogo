@@ -1,4 +1,4 @@
-import { logger, tagRegistry } from "@gonogo/core";
+import { logger, tagRegistry } from "@gonogo/logger";
 import { Button, Switch } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";

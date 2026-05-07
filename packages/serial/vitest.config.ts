@@ -8,6 +8,10 @@ export default defineConfig({
         import.meta.dirname,
         "../core/src/test/helpers.ts",
       ),
+      "@gonogo/logger": path.resolve(
+        import.meta.dirname,
+        "../logger/src/index.ts",
+      ),
     },
   },
   test: {

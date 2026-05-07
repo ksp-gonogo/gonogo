@@ -1,5 +1,5 @@
-import { AppError } from "./AppError";
-import type { Logger } from "./types";
+import { AppError } from "./AppError.js";
+import type { Logger } from "./types.js";
 
 function safeSerialize(value: unknown): unknown {
   try {
