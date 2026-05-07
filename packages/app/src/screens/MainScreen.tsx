@@ -113,6 +113,10 @@ export function MainScreen() {
   useEffect(() => {
     // Auto-reopen previously-authorised serial ports on load. Silent no-op
     // on browsers without Web Serial, or when there are no saved devices.
+    // Also re-attach the navigator.serial hot-plug listeners — destroy()
+    // detaches them, so a StrictMode cleanup→setup cycle would otherwise
+    // leave hot-plug silently dead for the rest of the page lifetime.
+    serialService.attachNavigatorListeners();
     void serialService.autoReconnect();
     return () => {
       // Detach navigator.serial listeners + tear down transports when the
