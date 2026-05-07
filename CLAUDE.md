@@ -245,6 +245,67 @@ Add the data key to the widget's `dataRequirements` so the orchestrator's debug 
 
 ---
 
+## Logs (Axiom)
+
+Production logs from the deployed app stream to Axiom. The project-scope MCP server (`.mcp.json`) gives Claude Code direct query access — first call in a new session triggers OAuth in the browser.
+
+- **Dataset:** `gonogo`
+- **Query language:** APL (Kusto-flavoured, run via the `axiom` MCP)
+- **Retention:** 30 days (free tier)
+- **Source:** every entry the in-app `ConsoleLogger` emits is fanned out to Axiom in addition to the browser console + ring buffer. See `packages/core/src/logger/`.
+- **Build wiring:** `VITE_AXIOM_TOKEN` is set as a GitHub Actions secret and passed through in `deploy.yml`. Without the secret, the transport silently doesn't install — local dev never hits Axiom.
+
+### Entry shape
+
+Top-level fields you can filter on:
+
+- `level` — `debug` | `info` | `warn` | `error`
+- `message` — human string (already prefixed with `[tag]` if tagged)
+- `tag` — optional verbose-tracing tag (`peer`, `peer:ice`, `peer:kos`, …)
+- `device.role` — `host` | `station` | `unknown`
+- `device.id` — host short id (e.g. `XK3F`) or station UUID (`stationKey`)
+- `device.peerId` — broker peer id (host: same as `id`; station: `station-<key>-<sessionToken>`, fresh each page-load)
+- `device.hostPeerId` — for stations: which host they're connected to
+- `sessionId` — fresh UUID per page load (groups everything from one tab)
+- `context` — free-form bag set at the call site
+- `error.{name,message,stack}` — when applicable
+
+### Starter queries
+
+```kusto
+// Last 50 errors, by who emitted them
+['gonogo']
+| where level == "error"
+| sort by _time desc
+| take 50
+| project _time, ['device.role'], ['device.id'], message, ['error.message']
+
+// Everyone in a session with host XK3F right now
+['gonogo']
+| where _time > ago(10m)
+| where ['device.role'] == "station" and ['device.hostPeerId'] == "XK3F"
+| summarize last_seen = max(_time) by ['device.id'], ['device.peerId']
+
+// Full trail of one tab session
+['gonogo']
+| where sessionId == "<paste sessionId>"
+| sort by _time asc
+```
+
+### Investigating an issue
+
+1. Get the `device.id` (or `sessionId`) from the user / log line.
+2. Pull all entries for that device in the relevant window.
+3. If it's a peer/connection bug, also pull the *other* side's log — the host's view of the same `peerId`, or the station's view of the same `hostPeerId`.
+4. Verbose tracing tags (`peer:ice`, `peer:kos`) are off in console output by default but always shipped to Axiom — check those first when chasing a peer/connection issue.
+
+### When NOT to use
+
+- For a live debugging session against your own browser, the in-page `localStorage` ring buffer + `logger.exportLogs()` is faster (no round-trip).
+- For long-tail post-mortems and "what did the other user see", Axiom.
+
+---
+
 ## UI Components
 
 Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in `@gonogo/ui`, not co-located with the feature that first needs them. If a primitive doesn't exist in `@gonogo/ui` yet and you need it, add it there rather than creating a local one-off. Duplication in files you're not actively editing is easy to miss — a consistent home in `@gonogo/ui` prevents that.
