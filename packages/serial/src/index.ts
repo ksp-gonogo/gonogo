@@ -14,6 +14,7 @@ export {
   useSerialDeviceStatus,
   useSerialDevices,
   useSerialDeviceTypes,
+  useSerialPendingChoices,
 } from "./SerialDeviceContext";
 export {
   SerialDeviceService,
