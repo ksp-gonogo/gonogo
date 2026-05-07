@@ -1,6 +1,9 @@
 services:
   telnet-proxy:
-    build: ./packages/telnet-proxy
+    build:
+      # Repo-root context so pnpm can resolve workspace deps (@gonogo/logger).
+      context: .
+      dockerfile: packages/telnet-proxy/Dockerfile
     ports:
       - "3001:3001"
     environment:
@@ -9,6 +12,9 @@ services:
       # host.containers.internal reaches the host from inside a Podman container.
       KOS_HOST: ${KOS_HOST:-host.containers.internal}
       KOS_PORT: ${KOS_PORT:-5410}
+      # Axiom log shipping. Empty default → no transport installed.
+      AXIOM_TOKEN: ${AXIOM_TOKEN:-}
+      AXIOM_DATASET: ${AXIOM_DATASET:-gonogo}
     restart: unless-stopped
 
   # The relay bundles three responsibilities: OCISLY camera bridging, the
@@ -18,7 +24,10 @@ services:
   # no shared volumes — just `podman compose up` and you have a working
   # relay. See packages/relay/src/coturnManager.ts.
   relay:
-    build: ./packages/relay
+    build:
+      # Repo-root context so pnpm can resolve workspace deps (@gonogo/logger).
+      context: .
+      dockerfile: packages/relay/Dockerfile
     ports:
       - "3002:3002"
       # TURN signalling. Both UDP and TCP for client compatibility.
@@ -40,6 +49,11 @@ services:
       # When unset (the typical case) the relay auto-discovers it via a
       # public lookup at startup.
       TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
+      # Axiom log shipping. Empty default → no transport installed
+      # (matches the browser pattern). Set in `.env` next to this file
+      # to opt in.
+      AXIOM_TOKEN: ${AXIOM_TOKEN:-}
+      AXIOM_DATASET: ${AXIOM_DATASET:-gonogo}
     depends_on:
       # Only enforced when the ocisly-local profile is active; compose skips
       # the dependency silently if ocisly-server isn't being started.
