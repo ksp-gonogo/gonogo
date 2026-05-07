@@ -11,10 +11,23 @@ services:
       KOS_PORT: ${KOS_PORT:-5410}
     restart: unless-stopped
 
-  ocisly-proxy:
-    build: ./packages/ocisly-proxy
+  # The relay bundles three responsibilities: OCISLY camera bridging, the
+  # `/ice-config` endpoint (read by the main screen on boot), and the
+  # coturn TURN/STUN server (spawned as a child process). Bundling means
+  # one container with one rotated-per-restart secret, no init scripts,
+  # no shared volumes — just `podman compose up` and you have a working
+  # relay. See packages/relay/src/coturnManager.ts.
+  relay:
+    build: ./packages/relay
     ports:
       - "3002:3002"
+      # TURN signalling. Both UDP and TCP for client compatibility.
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      # TURN relay port range. Every active relay session takes one port
+      # in this window, so the whole range must be mappable to the host.
+      # Matches min-port / max-port in coturnManager.ts.
+      - "49160-49200:49160-49200/udp"
     environment:
       PORT: 3002
       # OCISLY_HOST: IP or hostname of the machine running the OCISLY server.
@@ -23,13 +36,11 @@ services:
       # so the proxy reaches the sidecar via the compose network.
       OCISLY_HOST: ${OCISLY_HOST:-host.containers.internal}
       OCISLY_PORT: ${OCISLY_PORT:-5077}
-      # ICE relay — the proxy talks to coturn over the compose network name.
-      TURN_URL: ${TURN_URL_INTERNAL:-turn:coturn:3478}
-      TURN_USERNAME: ${TURN_USERNAME:-gonogo}
-      TURN_CREDENTIAL: ${TURN_SECRET:-gonogo-dev-secret}
+      # Optional pin for the public IP coturn advertises to clients.
+      # When unset (the typical case) the relay auto-discovers it via a
+      # public lookup at startup.
+      TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
     depends_on:
-      coturn:
-        condition: service_started
       # Only enforced when the ocisly-local profile is active; compose skips
       # the dependency silently if ocisly-server isn't being started.
       ocisly-server:
@@ -37,34 +48,7 @@ services:
         required: false
     restart: unless-stopped
 
-  # TURN/STUN relay. WebRTC peer-to-peer can't traverse podman's container NAT
-  # directly — ICE candidates from the container aren't reachable from the
-  # browser. coturn gives both peers a third address they can both reach, and
-  # forwards traffic between them. See packages/app/src/peer/iceServers.ts
-  # for how the browser-side Peer is configured to match.
-  coturn:
-    image: coturn/coturn:latest
-    ports:
-      - "3478:3478"
-      - "3478:3478/udp"
-      # Relay port range — coturn picks ports in this window for active
-      # sessions, so the whole range must be mappable to the host. Matches
-      # --min-port / --max-port below.
-      - "49160-49200:49160-49200/udp"
-    command:
-      - "-n"
-      - "--log-file=stdout"
-      - "--lt-cred-mech"
-      - "--realm=gonogo"
-      - "--user=${TURN_USERNAME:-gonogo}:${TURN_SECRET:-gonogo-dev-secret}"
-      - "--fingerprint"
-      - "--min-port=49160"
-      - "--max-port=49200"
-      - "--no-tls"
-      - "--no-dtls"
-    restart: unless-stopped
-
-  # Optional: run the OCISLY gRPC server next to the proxy instead of on the
+  # Optional: run the OCISLY gRPC server next to the relay instead of on the
   # game machine. Enable with `podman compose --profile ocisly-local up`.
   # Note: published image is linux/amd64 only — Apple Silicon will run it
   # under qemu emulation.

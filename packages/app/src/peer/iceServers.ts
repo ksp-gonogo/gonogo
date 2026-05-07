@@ -1,13 +1,12 @@
 /**
  * ICE server configuration for PeerJS Peer instances.
  *
- * The ocisly-proxy runs inside a podman container whose network isn't
+ * The gonogo relay runs inside a podman container whose network isn't
  * reachable from the browser directly — ICE peer-to-peer would hang and time
- * out after ~12s. A TURN relay gives both peers a third address they can
- * both reach. See docker-compose.yml `coturn` service for the server side.
- *
- * Defaults target the dev compose setup (coturn on localhost:3478, static
- * shared-secret auth). Override via Vite env for staging/prod.
+ * out after ~12s. The relay's bundled coturn gives both peers a third
+ * address they can both reach. The host's main screen fetches the
+ * relay's `/ice-config` on boot; stations don't need a config of their
+ * own (they pair against the host's relay candidates over the broker).
  */
 export function loadIceServers(): RTCIceServer[] {
   const env = import.meta.env as Record<string, string | undefined>;

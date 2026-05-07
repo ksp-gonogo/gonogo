@@ -280,7 +280,7 @@ export class PeerHostService {
    * Returns a Promise that resolves with the open Peer instance once the
    * broker handshake completes. Used by services that need to make outgoing
    * peer connections of their own (e.g. OcislyStreamSource calling the
-   * ocisly-proxy). Resolves immediately if already open.
+   * relay's OCISLY peer). Resolves immediately if already open.
    */
   waitForPeer(): Promise<Peer> {
     if (this.peer && this.peerId) return Promise.resolve(this.peer);

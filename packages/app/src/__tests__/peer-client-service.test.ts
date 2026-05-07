@@ -278,7 +278,7 @@ describe("PeerClientService reconnect loop", () => {
     // the shared Peer with the missing peer id in the message — must not
     // tear down the host conn.
     const err = Object.assign(
-      new Error("Could not connect to peer ocisly-proxy-xyz"),
+      new Error("Could not connect to peer ocisly-relay-xyz"),
       { type: "peer-unavailable" },
     );
     FakePeer.instances[0].emit("error", err);
