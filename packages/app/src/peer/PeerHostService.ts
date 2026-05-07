@@ -7,7 +7,7 @@ import type {
 import { isScriptable, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
-import { loadIceServers } from "./iceServers";
+import { fetchHostIceServers } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
 import type { PeerMessage } from "./protocol";
@@ -176,9 +176,14 @@ export class PeerHostService {
   private flightListChangeUnsub: (() => void) | null = null;
   private currentFlightSnapshot: FlightRecord | null = null;
 
-  start() {
+  async start() {
     const peerId = getOrCreatePeerId();
-    const iceServers = loadIceServers();
+    // Fetch the relay's TURN config before constructing Peer — ICE
+    // gathers candidates the moment the Peer exists, so a late config
+    // wouldn't make it into the offer. If the fetch fails we get an
+    // empty array and run direct/STUN-only; the readiness UI tells the
+    // operator about it.
+    const iceServers = await fetchHostIceServers();
     this.peer = new Peer(
       peerId,
       iceServers.length > 0 ? { config: { iceServers } } : undefined,
@@ -363,7 +368,19 @@ export class PeerHostService {
   }
 
   onPeerIdChange(cb: (id: string | null) => void) {
-    return this.idListeners.add(cb);
+    const unsub = this.idListeners.add(cb);
+    // Replay the current id so a late subscriber doesn't miss an
+    // already-fired "open" event. Necessary now that start() is async:
+    // the Peer's open microtask can fire before the caller's await
+    // continuation registers its listener, leaving it stuck waiting on
+    // an event that already happened. Defer to a microtask so the
+    // caller's `unsub = onPeerIdChange(...)` assignment lands before
+    // the cb runs (callers typically `unsub()` from inside the cb).
+    if (this.peerId !== null) {
+      const id = this.peerId;
+      queueMicrotask(() => cb(id));
+    }
+    return unsub;
   }
 
   // Schema is sent once per station connect. Stations cache what arrives here

@@ -6,6 +6,8 @@ import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
+import { type CoturnHandle, startCoturn } from "./coturnManager.js";
+import { discoverPublicIp } from "./discoverPublicIp.js";
 import { CameraPoller } from "./grpc/cameraPoller.js";
 import { OcislyClient } from "./grpc/OcislyClient.js";
 import { PeerHost } from "./peer/PeerHost.js";
@@ -42,16 +44,48 @@ const poller = new CameraPoller({
   logger: { error: (msg, err) => fastify.log.error({ err }, msg) },
 });
 
+// ──────────────────────────────────────────────────────────────────────
+// Discover the public IP coturn should advertise, then start coturn as a
+// child process with a fresh per-restart secret. Fail-soft: if discovery
+// or coturn spawn fails, the relay still serves cameras over LAN, but
+// the /ice-config endpoint will report an unreachable TURN. The browser
+// readiness probe surfaces that to operators.
+// ──────────────────────────────────────────────────────────────────────
+
+let coturnHandle: CoturnHandle | null = null;
+try {
+  const externalIp = await discoverPublicIp({
+    override: config.turnExternalIp ?? undefined,
+  });
+  fastify.log.info(`relay public IP for TURN: ${externalIp}`);
+  coturnHandle = startCoturn({
+    externalIp,
+    logger: {
+      info: (msg, ...args) => fastify.log.info({ args }, msg),
+      error: (msg, ...args) => fastify.log.error({ args }, msg),
+    },
+  });
+} catch (err) {
+  fastify.log.error(
+    { err },
+    "failed to discover public IP / start coturn — TURN unavailable until fixed",
+  );
+}
+
 const proxyPeerId = `ocisly-${randomUUID()}`;
 peerHost = new PeerHost({
   peerId: proxyPeerId,
   client: ocisly,
   poller,
-  iceServers: config.iceServers.map((s) => ({
-    urls: s.url,
-    username: s.username,
-    credential: s.credential,
-  })),
+  iceServers: coturnHandle
+    ? [
+        {
+          urls: `turn:${coturnHandle.externalIp}:${coturnHandle.port}`,
+          username: coturnHandle.username,
+          credential: coturnHandle.credential,
+        },
+      ]
+    : [],
   logger: {
     info: (msg, ...args) => fastify.log.info({ args }, msg),
     error: (msg, ...args) => fastify.log.error({ args }, msg),
@@ -62,6 +96,12 @@ fastify.get("/health", async () => ({
   status: "ok",
   ocislyTarget: `${config.ocislyHost}:${config.ocislyPort}`,
   peerId: proxyPeerId,
+  turn: coturnHandle
+    ? {
+        externalIp: coturnHandle.externalIp,
+        port: coturnHandle.port,
+      }
+    : null,
 }));
 
 fastify.get("/version", async () => ({
@@ -70,6 +110,30 @@ fastify.get("/version", async () => ({
 }));
 
 fastify.get("/peer-id", async () => ({ peerId: proxyPeerId }));
+
+/**
+ * ICE configuration the main screen should use when constructing its
+ * PeerJS Peer. The relay's TURN credentials live only in this process's
+ * memory and rotate on every restart, so any client with stale creds
+ * needs to re-fetch this endpoint to recover. Stations don't fetch
+ * this themselves — they pair against the host's relay candidates over
+ * the broker's signalling channel, which is sufficient for one-side
+ * TURN to work.
+ */
+fastify.get("/ice-config", async (_req, reply) => {
+  if (!coturnHandle) {
+    return reply.status(503).send({ error: "TURN not available" });
+  }
+  return {
+    iceServers: [
+      {
+        urls: `turn:${coturnHandle.externalIp}:${coturnHandle.port}`,
+        username: coturnHandle.username,
+        credential: coturnHandle.credential,
+      },
+    ],
+  };
+});
 
 fastify.get("/cameras", async (_req, reply) => {
   try {
@@ -124,6 +188,7 @@ const shutdown = async () => {
   peerHost?.stop();
   poller.shutdown();
   ocisly.close();
+  await coturnHandle?.stop();
   await fastify.close();
   process.exit(0);
 };

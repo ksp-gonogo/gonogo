@@ -90,7 +90,7 @@ describe("push-to-main round trip", () => {
 
   it("preserves array + boolean fields in config through the full peer pipeline", async () => {
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve(); // FakePeer.open microtask
     if (!FakePeer.lastPeer) throw new Error("FakePeer not instantiated");
 
@@ -130,7 +130,7 @@ describe("push-to-main round trip", () => {
 
   it("a second push for the same widget replaces the config, not merges it", async () => {
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve();
     if (!FakePeer.lastPeer) throw new Error("FakePeer not instantiated");
     const pushHost = new PushHostService(host);
