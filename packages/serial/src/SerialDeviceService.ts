@@ -565,6 +565,12 @@ export class SerialDeviceService {
   }
 
   private capturePortInfo(managed: ManagedDevice): void {
+    // The connect that triggered this could have started before the device
+    // was removed (or before destroy ran in a StrictMode cycle). If the
+    // managed entry isn't current any more, don't act — saveDevices()
+    // would otherwise persist a list that doesn't include the orphaned
+    // device, which can wipe a perfectly valid localStorage entry.
+    if (this.managed.get(managed.instance.id) !== managed) return;
     const transport = managed.transport as DeviceTransport & {
       getPortInfo?: () => { vendorId?: number; productId?: number } | null;
     };
@@ -649,12 +655,38 @@ export class SerialDeviceService {
   // Teardown
   // -------------------------------------------------------------------------
 
+  /**
+   * Release ports + detach navigator listeners. Used by the screen
+   * lifecycle effect cleanup.
+   *
+   * Deliberately preserves the `managed` map AND the input/status/schema
+   * forwards subscribed during register(). React StrictMode dev's
+   * cleanup→setup cycle would otherwise:
+   *   - clear managed (causing in-flight capturePortInfo callbacks to run
+   *     saveDevices() with an empty list, wiping localStorage), and
+   *   - tear down the transport→service forwards (so even after autoReconnect
+   *     re-opened the port, no events would surface to widgets).
+   *
+   * Only the transient transport state — open ports, render timers — is
+   * torn down. Calling autoReconnect afterwards reopens the same transports
+   * cleanly via the defensive force-close path in WebSerialTransport.connect.
+   */
   async destroy(): Promise<void> {
     this.detachNavigatorListeners();
     for (const managed of Array.from(this.managed.values())) {
-      await this.teardown(managed);
+      if (managed.renderTimer !== null) {
+        clearTimeout(managed.renderTimer);
+        managed.renderTimer = null;
+      }
+      try {
+        await managed.transport.disconnect();
+      } catch (err) {
+        logger.warn(
+          `[SerialDeviceService] transport.disconnect failed for ${managed.instance.id}`,
+          { err: String(err) },
+        );
+      }
     }
-    this.managed.clear();
   }
 
   // -------------------------------------------------------------------------
