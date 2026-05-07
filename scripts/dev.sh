@@ -1,6 +1,23 @@
 #!/bin/sh
 set -e
 
+# `pnpm dev:logs` sets LOGS=1 to opt into Axiom log shipping for this run.
+# We source .env.logs into the parent shell so:
+#   - podman compose interpolates ${AXIOM_TOKEN:-} for relay + telnet-proxy
+#   - Vite picks up VITE_* keys from process.env for the browser bundle
+# Without LOGS=1 (the default `pnpm dev`), the file is ignored and every
+# transport stays uninstalled — same behaviour as a fresh checkout.
+if [ "${LOGS:-0}" = "1" ]; then
+  if [ -f .env.logs ]; then
+    echo "[dev] LOGS=1 — sourcing .env.logs (Axiom transports will install)"
+    set -a
+    . ./.env.logs
+    set +a
+  else
+    echo "[dev] LOGS=1 set but .env.logs is missing — running without logs" >&2
+  fi
+fi
+
 watch_service() {
   service="$1"
   src_dir="packages/$service/src"
