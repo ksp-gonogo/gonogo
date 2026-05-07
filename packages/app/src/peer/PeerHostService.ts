@@ -187,6 +187,10 @@ export class PeerHostService {
     this.peer.on("open", (id) => {
       localStorage.setItem(PEER_ID_KEY, id);
       this.peerId = id;
+      // Tag every subsequent log entry with this device's identity so we
+      // can filter "all logs from host XK3F" in the remote sink. The host
+      // peer id is both the stable device id and the broker id.
+      logger.setIdentity({ role: "host", id, peerId: id });
       logger.info(`[PeerHost] open — id=${id}`);
       this.idListeners.fire(id);
     });
