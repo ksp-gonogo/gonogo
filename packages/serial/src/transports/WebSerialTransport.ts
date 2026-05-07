@@ -9,6 +9,9 @@ import type {
   TransportStatus,
 } from "./DeviceTransport";
 
+const trace = logger.tag("serial:transport");
+const parserTrace = logger.tag("serial:parser");
+
 interface WebSerialTransportOptions {
   id: string;
   deviceType: DeviceType;
@@ -91,6 +94,12 @@ export class WebSerialTransport implements DeviceTransport {
       this.writer = encoder.writable.getWriter();
 
       this.setStatus("connected");
+      trace.debug("connected", {
+        deviceId: this.id,
+        baudRate: this.baudRate,
+        parser: this.deviceType.parser,
+        adoptedPort: !!options?.port,
+      });
       void this.readLoop();
     } catch (err) {
       logger.error(
@@ -172,6 +181,11 @@ export class WebSerialTransport implements DeviceTransport {
         const { value, done } = await reader.read();
         if (done) break;
         if (!value) continue;
+        trace.debug("chunk read", {
+          deviceId: this.id,
+          length: value.length,
+          preview: value.slice(0, 80),
+        });
         this.buffer += value;
         const lines = this.buffer.split("\n");
         this.buffer = lines.pop() ?? "";
@@ -192,12 +206,23 @@ export class WebSerialTransport implements DeviceTransport {
     // the line. Skip empty lines so the wizard's "latest" view doesn't
     // flicker through blanks at startup.
     if (line !== "") {
+      trace.debug("line", {
+        deviceId: this.id,
+        line,
+        rawListeners: this.rawLineListeners.size,
+        inputListeners: this.inputListeners.size,
+      });
       this.rawLineListeners.forEach((cb) => {
         cb(line);
       });
     }
     if (this.deviceType.parser === "char-position") {
       const events = parseCharPosition(line, this.deviceType.inputs);
+      parserTrace.debug("char-position parsed", {
+        deviceId: this.id,
+        eventCount: events.length,
+        inputCount: this.deviceType.inputs.length,
+      });
       for (const event of events) {
         this.inputListeners.forEach((cb) => {
           cb(event);
@@ -207,6 +232,12 @@ export class WebSerialTransport implements DeviceTransport {
     }
     if (this.deviceType.parser === "json-state") {
       const result = parseJsonState(line, this.deviceType.inputs);
+      parserTrace.debug("json-state parsed", {
+        deviceId: this.id,
+        eventCount: result.events.length,
+        inputsUpdate: result.inputsUpdate?.length ?? null,
+        screenUpdate: result.screenUpdate ? "yes" : "no",
+      });
       if (result.inputsUpdate || result.screenUpdate) {
         const update: SchemaUpdate = {
           inputs: result.inputsUpdate,
