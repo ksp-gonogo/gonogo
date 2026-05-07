@@ -1,4 +1,5 @@
-import { debugPeer, getDataSources, registerDataSource } from "@gonogo/core";
+import { getDataSources, registerDataSource } from "@gonogo/core";
+import { debugPeer } from "@gonogo/logger";
 import {
   createContext,
   type ReactNode,

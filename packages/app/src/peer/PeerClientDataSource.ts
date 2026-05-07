@@ -1,5 +1,5 @@
 import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
-import { debugPeer, PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@gonogo/core";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
@@ -10,6 +10,7 @@ import type {
   ScriptableDataSource,
 } from "@gonogo/data";
 import { KeyedListenerSet, ListenerSet } from "@gonogo/data";
+import { debugPeer } from "@gonogo/logger";
 import type { PeerClientService } from "./PeerClientService";
 
 interface FlightFixtureLike {

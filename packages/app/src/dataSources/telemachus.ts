@@ -4,8 +4,9 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
+import { PerfBudget, registerDataSource } from "@gonogo/core";
 import { LocalStorageStore } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 
 // TelemaachusSchema lives in @gonogo/core and is pre-registered in DataSourceRegistry.
 // Re-export it here so callers that import from this module path keep working.

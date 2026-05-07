@@ -1,6 +1,5 @@
+import { handleError } from "@gonogo/logger";
 import { Component, type ReactNode } from "react";
-import { logger } from ".";
-import { handleError } from "./error-handler";
 
 interface Props {
   children: ReactNode;
@@ -24,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    handleError(error, logger);
+    handleError(error);
   }
 
   reset = () => {

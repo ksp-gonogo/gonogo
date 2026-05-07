@@ -1,10 +1,11 @@
-import { debugPeer, logger, PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@gonogo/core";
 import type {
   BufferedDataSource,
   DataKeyMeta,
   FlightRecord,
 } from "@gonogo/data";
 import { isScriptable, ListenerSet } from "@gonogo/data";
+import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { fetchHostIceServers } from "./iceServers";

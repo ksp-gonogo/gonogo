@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import { parseCharPosition } from "../parsers/charPosition";
 import { parseJsonState } from "../parsers/jsonState";
 import type { DeviceType } from "../types";

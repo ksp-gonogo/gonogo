@@ -1,10 +1,6 @@
-import {
-  type AnyDef,
-  AppError,
-  ErrorBoundary,
-  handleError,
-} from "@gonogo/core";
+import { type AnyDef, ErrorBoundary } from "@gonogo/core";
 import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
+import { AppError, handleError } from "@gonogo/logger";
 import {
   type InputMappings,
   InputMappingTab,

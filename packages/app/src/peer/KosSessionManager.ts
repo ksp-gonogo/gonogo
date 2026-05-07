@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import type { DataConnection } from "peerjs";
 import type { PeerMessage } from "./protocol";
 

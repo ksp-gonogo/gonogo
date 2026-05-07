@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@gonogo/core": "workspace:*",
+    "@gonogo/logger": "workspace:*",
     "@gonogo/ui": "workspace:*",
     "styled-components": "^6.0.0"
   },

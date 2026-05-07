@@ -66,6 +66,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@gonogo/serial':
         specifier: workspace:*
         version: link:../serial
@@ -145,6 +148,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
@@ -188,9 +194,9 @@ importers:
 
   packages/core:
     dependencies:
-      '@axiomhq/js':
-        specifier: ^1.6.1
-        version: 1.6.1
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -222,6 +228,9 @@ importers:
       '@gonogo/core':
         specifier: workspace:*
         version: link:../core
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
@@ -247,6 +256,19 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
+  packages/logger:
+    dependencies:
+      '@axiomhq/js':
+        specifier: ^1.6.1
+        version: 1.6.1
+    devDependencies:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -327,6 +349,9 @@ importers:
       '@gonogo/core':
         specifier: workspace:*
         version: link:../core
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui

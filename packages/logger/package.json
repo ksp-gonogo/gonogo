@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/core",
+  "name": "@gonogo/logger",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,33 +9,20 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./test": {
-      "types": "./dist/test/helpers.d.ts",
-      "default": "./dist/test/helpers.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "lint": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/logger": "workspace:*"
+    "@axiomhq/js": "^1.6.1"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.3.2",
-    "@types/react": "^18.3.28",
-    "@vitest/coverage-v8": "^4.1.4",
-    "jsdom": "^29.0.2",
-    "styled-components": "^6.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
-  },
-  "peerDependencies": {
-    "react": "^18.0.0",
-    "styled-components": "^6.0.0"
   }
 }

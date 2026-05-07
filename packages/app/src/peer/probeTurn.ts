@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 
 /**
  * STUN/TURN reachability probe for the main screen.

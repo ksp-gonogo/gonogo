@@ -1,5 +1,5 @@
 import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
-import { logger, PerfBudget, registerDataSource } from "@gonogo/core";
+import { PerfBudget, registerDataSource } from "@gonogo/core";
 import type {
   KosData,
   KosManagedScript,
@@ -12,6 +12,7 @@ import {
   parseKosData,
   stripAnsi,
 } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 import { KosComputeManager, type KosTopicStatus } from "./kosCompute";

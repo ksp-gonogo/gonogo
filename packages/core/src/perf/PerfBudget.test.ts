@@ -1,5 +1,5 @@
+import { logger } from "@gonogo/logger";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { logger } from "../logger";
 import { PerfBudget } from "./PerfBudget";
 
 describe("PerfBudget", () => {

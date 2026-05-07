@@ -1,12 +1,12 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import {
   formatAge,
-  logger,
   registerComponent,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
 import { useKosScriptStatus } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 import {
   ConfigForm,
   Field,

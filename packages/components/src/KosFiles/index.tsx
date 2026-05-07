@@ -1,6 +1,7 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { logger, registerComponent } from "@gonogo/core";
+import { registerComponent } from "@gonogo/core";
 import { hashKosScript, useKosWidget } from "@gonogo/data";
+import { logger } from "@gonogo/logger";
 import {
   ArrowLeftIcon,
   ArrowUpIcon,

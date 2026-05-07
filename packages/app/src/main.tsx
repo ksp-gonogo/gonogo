@@ -1,11 +1,10 @@
 import {
-  AxiomTransport,
   ErrorBoundary,
   getTheme,
-  logger,
   registerStockBodies,
   setAppVersion,
 } from "@gonogo/core";
+import { AxiomTransport, logger } from "@gonogo/logger";
 import { ModalProvider } from "@gonogo/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";

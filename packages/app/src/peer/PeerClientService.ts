@@ -1,4 +1,3 @@
-import { debugPeer, logger } from "@gonogo/core";
 import type {
   FlightRecord,
   KosData,
@@ -6,6 +5,7 @@ import type {
   KosScriptArg,
 } from "@gonogo/data";
 import { KosScriptError, ListenerSet } from "@gonogo/data";
+import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { MessageDispatcher } from "./MessageDispatcher";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";

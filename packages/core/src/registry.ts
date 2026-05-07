@@ -1,5 +1,5 @@
+import { logger } from "@gonogo/logger";
 import { clearKosScripts } from "./kos/scriptRegistry";
-import { logger } from "./logger";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
 // ComponentType is contravariant in props, so neither unknown nor never would work.

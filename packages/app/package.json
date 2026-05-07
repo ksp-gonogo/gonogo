@@ -15,6 +15,7 @@
     "@gonogo/components": "workspace:*",
     "@gonogo/core": "workspace:*",
     "@gonogo/data": "workspace:*",
+    "@gonogo/logger": "workspace:*",
     "@gonogo/serial": "workspace:*",
     "@gonogo/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",

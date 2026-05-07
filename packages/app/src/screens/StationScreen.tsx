@@ -1,6 +1,5 @@
 import { ManeuverTriggerProvider } from "@gonogo/components";
 import {
-  debugPeer,
   getStreamSources,
   KosProxyContext,
   registerDataSource,
@@ -14,6 +13,7 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@gonogo/data";
+import { debugPeer } from "@gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
