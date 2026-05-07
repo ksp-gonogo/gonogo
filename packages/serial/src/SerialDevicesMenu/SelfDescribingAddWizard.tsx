@@ -49,23 +49,47 @@ function randomSuffix(): string {
     .slice(2, 2 + RANDOM_SUFFIX_LEN);
 }
 
+type DeviceServiceShape = ReturnType<typeof useSerialDeviceService>;
+
 /**
- * Find a saved web-serial device that matches the picked port. We only
- * trust the match when both sides have a real `vendorId` — otherwise
- * `undefined === undefined` would treat every VID-less device as a
- * conflict, which is worse than the false negative.
+ * Find a saved web-serial device that already claims the picked port.
+ *
+ * Two strategies, in order:
+ *   1. Port identity. If any existing managed transport's live SerialPort
+ *      is the same JS object the browser just handed us, that's a
+ *      collision — reliable even when VID/PID is 0 or undefined.
+ *   2. VID/PID match, but ONLY when the picked port has a real
+ *      `usbVendorId`. Otherwise `undefined === undefined` would falsely
+ *      collapse every VID-less device into a single match.
+ *
+ * Strategy 1 misses across screen reloads (port references aren't
+ * persisted), which is fine — autoReconnect repopulates the live port
+ * before the user can hit the wizard again.
  */
 function findConflict(
-  devices: ReturnType<ReturnType<typeof useSerialDeviceService>["getDevices"]>,
+  svc: DeviceServiceShape,
+  port: SerialPort,
   portInfo: { usbVendorId?: number; usbProductId?: number },
 ) {
+  // Identity match first — most reliable.
+  for (const d of svc.getDevices()) {
+    if (d.transport !== "web-serial") continue;
+    const transport = svc.getTransport(d.id) as
+      | { getPort?: () => SerialPort | null }
+      | undefined;
+    if (transport?.getPort?.() === port) return d;
+  }
+  // VID/PID fallback for the case where the existing device's transport
+  // hasn't been opened yet (e.g. autoReconnect hadn't fired).
   if (portInfo.usbVendorId === undefined) return undefined;
-  return devices.find(
-    (d) =>
-      d.transport === "web-serial" &&
-      d.portInfo?.vendorId === portInfo.usbVendorId &&
-      d.portInfo?.productId === portInfo.usbProductId,
-  );
+  return svc
+    .getDevices()
+    .find(
+      (d) =>
+        d.transport === "web-serial" &&
+        d.portInfo?.vendorId === portInfo.usbVendorId &&
+        d.portInfo?.productId === portInfo.usbProductId,
+    );
 }
 
 /**
@@ -167,7 +191,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     // port.open() will throw InvalidStateError. Catch it up front so the
     // user gets a path forward instead of a generic "port already open"
     // dump in the console.
-    const conflict = findConflict(svc.getDevices(), portInfo);
+    const conflict = findConflict(svc, port, portInfo);
     if (conflict) {
       setStep({
         kind: "conflict",
@@ -221,7 +245,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
       if (isPortOpen) {
         await svc.removeDevice(deviceId).catch(() => {});
         cleanupRef.current = null;
-        const after = findConflict(svc.getDevices(), portInfo);
+        const after = findConflict(svc, port, portInfo);
         trace.debug("wizard: port-open recovery", {
           foundExisting: !!after,
           existingId: after?.id,
