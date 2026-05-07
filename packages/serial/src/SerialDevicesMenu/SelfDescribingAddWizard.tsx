@@ -6,11 +6,19 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  Select,
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useSerialDeviceService } from "../SerialDeviceContext";
 import type { DeviceType } from "../types";
+
+// 115200 is the modern Arduino-class default; 9600 is legacy. The other
+// rates are uncommon but not unheard of — surface them rather than make
+// users edit JSON. Wrong baud → garbled bytes → no newlines surface →
+// wizard hangs at "press a button" indefinitely.
+const COMMON_BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 230400] as const;
+const DEFAULT_BAUD_RATE = 115200;
 
 interface Props {
   onClose: () => void;
@@ -43,6 +51,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
   const svc = useSerialDeviceService();
   const [step, setStep] = useState<Step>({ kind: "picking" });
   const [name, setName] = useState("Self-describing controller");
+  const [baudRate, setBaudRate] = useState<number>(DEFAULT_BAUD_RATE);
   // Keep teardown closures pinned across renders so cancel paths can run
   // even while the active step has changed underneath us.
   const cleanupRef = useRef<(() => Promise<void>) | null>(null);
@@ -128,6 +137,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
       name,
       typeId,
       transport: "web-serial",
+      baudRate,
       portInfo: {
         vendorId: portInfo.usbVendorId,
         productId: portInfo.usbProductId,
@@ -172,6 +182,25 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
             (json-state parser). The browser will prompt you to pick the USB
             port; we handle the type registration automatically.
           </FieldHint>
+          <Field>
+            <FieldLabel htmlFor="sd-baud">Baud rate</FieldLabel>
+            <Select
+              id="sd-baud"
+              value={String(baudRate)}
+              onChange={(e) => setBaudRate(Number(e.target.value))}
+            >
+              {COMMON_BAUD_RATES.map((rate) => (
+                <option key={rate} value={rate}>
+                  {rate}
+                  {rate === DEFAULT_BAUD_RATE ? " (Arduino default)" : ""}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              Has to match the rate the controller is sending at. Wrong rate →
+              garbled bytes → wizard never progresses past "press a button".
+            </FieldHint>
+          </Field>
           <Actions>
             <GhostButton onClick={onClose}>Cancel</GhostButton>
             <PrimaryButton onClick={() => void startPick()}>
