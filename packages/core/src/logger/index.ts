@@ -1,5 +1,21 @@
-import { LogRingBuffer } from "./ringBuffer";
+import { LogRingBuffer, type PersistConfig } from "./ringBuffer";
 import { tagRegistry } from "./tags";
+
+const DEFAULT_PERSIST_KEY = "gonogo.logs.ringBuffer";
+
+function defaultPersist(): PersistConfig | undefined {
+  // Opt out under tests so the buffer doesn't bleed across cases.
+  try {
+    const env = (globalThis as { process?: { env?: Record<string, string> } })
+      .process?.env;
+    if (env?.NODE_ENV === "test") return undefined;
+  } catch {
+    // ignore env access failures
+  }
+  if (typeof globalThis.sessionStorage === "undefined") return undefined;
+  return { key: DEFAULT_PERSIST_KEY };
+}
+
 import type {
   LogContext,
   LogEntry,
@@ -64,10 +80,14 @@ export class ConsoleLogger implements Logger {
     enabled?: boolean;
     level?: LogLevel;
     bufferCapacity?: number;
+    /** Optional persistence config. Pass `null` to opt out of the default. */
+    persist?: PersistConfig | null;
   }) {
     this.enabled = opts?.enabled ?? defaultEnabled();
     this.level = opts?.level ?? defaultLevel();
-    this.buffer = new LogRingBuffer(opts?.bufferCapacity);
+    const persist =
+      opts?.persist === null ? undefined : (opts?.persist ?? defaultPersist());
+    this.buffer = new LogRingBuffer(opts?.bufferCapacity, persist);
   }
 
   setEnabled(value: boolean): void {
@@ -138,16 +158,6 @@ export class ConsoleLogger implements Logger {
   ) {
     if (!this.enabled) return;
 
-    // Tag gating: debug on a tagged logger only prints if the tag is
-    // enabled. info/warn/error always pass — a tag is for opt-in verbose
-    // tracing, not for hiding operational messages.
-    if (tag && level === "debug") {
-      if (!tagRegistry.isEnabled(tag)) return;
-    }
-
-    // Level floor still applies to everything.
-    if (LEVEL_ORDER[level] < LEVEL_ORDER[this.level]) return;
-
     const entry: LogEntry = {
       level,
       message: tag ? `[${tag}] ${message}` : message,
@@ -159,9 +169,18 @@ export class ConsoleLogger implements Logger {
         : undefined,
     };
 
-    // Always buffer — the export is richer than the console stream so
-    // operators can retroactively inspect tag-gated entries.
+    // Buffer first — the export is intentionally richer than the console
+    // stream so an operator can download the full trail after-the-fact
+    // and inspect tag-gated / level-floored entries they didn't pre-enable.
     this.buffer.push(entry);
+
+    // Console gating starts here. Tag-gated debug only prints if the tag
+    // is enabled; info/warn/error from a tagged logger always print
+    // (tags are opt-in verbose tracing, not a way to hide ops messages).
+    if (tag && level === "debug" && !tagRegistry.isEnabled(tag)) return;
+
+    // Level floor — same idea, console-only. Buffer keeps everything.
+    if (LEVEL_ORDER[level] < LEVEL_ORDER[this.level]) return;
 
     const output = JSON.stringify(entry);
     switch (level) {

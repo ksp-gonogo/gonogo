@@ -107,6 +107,13 @@ export type PeerMessage =
       name: string;
       version?: string;
       buildTime?: string;
+      // Stable per-device identity. Survives refreshes; the per-session
+      // peer id (which the broker sees) is fresh on every load. The host
+      // uses this to evict the previous peerId for the same device when a
+      // refreshed station rejoins, so the GO/NO-GO list doesn't show the
+      // station twice while waiting for the broker to reap the old conn.
+      // Optional for back-compat: pre-stationKey clients still work.
+      stationKey?: string;
     }
   // Station → host whenever the local GO/NO-GO vote changes. `null` means
   // "no widget mounted" so the station-info is still registered but the

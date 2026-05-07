@@ -40,6 +40,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { downloadLogs } from "../logs/downloadLogs";
 import { LogsFab } from "../logs/LogsFab";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
 import {
@@ -300,6 +301,18 @@ export function StationScreen() {
                           Connection lost. Check the host ID and try again.
                         </ErrorMsg>
                       )}
+                      <StatusLine
+                        role="status"
+                        aria-live="polite"
+                        data-status={connStatus}
+                      >
+                        {describeConnStatus(connStatus)}
+                      </StatusLine>
+                      <DiagnosticsRow>
+                        <DiagnosticsButton type="button" onClick={downloadLogs}>
+                          Download logs
+                        </DiagnosticsButton>
+                      </DiagnosticsRow>
                     </ConnectBox>
                   </ConnectLayout>
                 </ScopedStationIdentity>
@@ -520,6 +533,53 @@ const ErrorMsg = styled.p`
   color: var(--color-status-nogo-fg) !important;
   font-size: 12px !important;
 `;
+
+const StatusLine = styled.p`
+  margin-top: 12px !important;
+  font-size: 12px !important;
+  color: var(--color-text-muted) !important;
+
+  &[data-status="connecting"],
+  &[data-status="reconnecting"] {
+    color: var(--color-status-info-fg) !important;
+  }
+`;
+
+const DiagnosticsRow = styled.div`
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const DiagnosticsButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--color-text-faint);
+  border-radius: 4px;
+  padding: 4px 10px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-text-muted);
+  }
+`;
+
+function describeConnStatus(status: ConnStatus): string {
+  switch (status) {
+    case "idle":
+      return "Waiting for a host ID.";
+    case "connecting":
+      return "Reaching the broker and opening a peer channel…";
+    case "connected":
+      return "Connected.";
+    case "reconnecting":
+      return "Reconnecting — the host or broker may be briefly unavailable.";
+    case "disconnected":
+      return "No connection. Use Download logs if this persists.";
+  }
+}
 
 const Layout = styled.div`
   padding: 24px;

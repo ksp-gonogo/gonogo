@@ -262,6 +262,72 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toContain("disconnected");
   });
 
+  it("ignores peer-unavailable for an auxiliary peer (e.g. OCISLY) without tearing down host conn", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+
+    svc.connect("Z6HK");
+    driveOpen(FakePeer.instances[0]);
+    expect(statuses).toContain("connected");
+
+    // Auxiliary peer.connect() to a missing peer fires peer-unavailable on
+    // the shared Peer with the missing peer id in the message — must not
+    // tear down the host conn.
+    const err = Object.assign(
+      new Error("Could not connect to peer ocisly-proxy-xyz"),
+      { type: "peer-unavailable" },
+    );
+    FakePeer.instances[0].emit("error", err);
+
+    expect(statuses).not.toContain("reconnecting");
+    expect(FakePeer.instances).toHaveLength(1);
+  });
+
+  it("does not false-positive when the host id is a substring of the missing peer id", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+
+    svc.connect("Z6HK");
+    driveOpen(FakePeer.instances[0]);
+
+    const err = Object.assign(
+      new Error("Could not connect to peer station-Z6HK-foo"),
+      { type: "peer-unavailable" },
+    );
+    FakePeer.instances[0].emit("error", err);
+
+    expect(statuses).not.toContain("reconnecting");
+    expect(FakePeer.instances).toHaveLength(1);
+  });
+
+  it("treats peer-unavailable for the exact host id as a real outage and retries", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+
+    svc.connect("Z6HK");
+    // Don't open — simulate a fresh attempt where the host id isn't on the broker.
+    const err = Object.assign(new Error("Could not connect to peer Z6HK"), {
+      type: "peer-unavailable",
+    });
+    FakePeer.instances[0].emit("error", err);
+
+    expect(statuses).toContain("reconnecting");
+    vi.advanceTimersByTime(50);
+    expect(FakePeer.instances).toHaveLength(2);
+  });
+
   it("disconnect() stops any pending retry", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,

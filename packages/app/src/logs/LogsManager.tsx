@@ -2,6 +2,7 @@ import { logger, tagRegistry } from "@gonogo/core";
 import { Button, Switch } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
+import { downloadLogs } from "./downloadLogs";
 
 const LOG_TAGS_KEY = "LOG_TAGS";
 
@@ -75,19 +76,6 @@ function writeTags(mode: Mode, tags: Set<string>): void {
   else localStorage.setItem(LOG_TAGS_KEY, Array.from(tags).sort().join(","));
   if (mode === "all") tagRegistry.setTags("all");
   else tagRegistry.setTags(Array.from(tags));
-}
-
-function downloadLogs(): void {
-  const payload = logger.exportLogs();
-  const blob = new Blob([payload], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `gonogo-logs-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
 }
 
 export function LogsManager() {

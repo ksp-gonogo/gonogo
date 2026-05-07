@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsoleLogger } from "./index";
+import { LogRingBuffer } from "./ringBuffer";
 import { tagRegistry } from "./tags";
 
 describe("ConsoleLogger tag gating", () => {
@@ -56,12 +57,24 @@ describe("ConsoleLogger tag gating", () => {
     errorSpy.mockRestore();
   });
 
-  it("does not buffer tag-gated debug entries that were suppressed", () => {
+  it("buffers tag-gated debug even when the console suppresses it", () => {
+    // The export is deliberately richer than the console stream — an
+    // operator who downloads logs should see every entry the logger ever
+    // emitted, not just the ones that passed the current tag/level filter.
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
     tagRegistry.setTags([]);
     logger.tag("peer").debug("hidden");
     expect(consoleSpy).not.toHaveBeenCalled();
-    expect(logger.getBuffer().length).toBe(0);
+    expect(logger.getBuffer().length).toBe(1);
+    expect(logger.getBuffer()[0].message).toBe("[peer] hidden");
+  });
+
+  it("buffers level-floored entries even when the console suppresses them", () => {
+    const logger = new ConsoleLogger({ enabled: true, level: "warn" });
+    logger.info("below floor");
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(logger.getBuffer().length).toBe(1);
+    expect(logger.getBuffer()[0].message).toBe("below floor");
   });
 
   it("ring buffer retains emitted entries for export", () => {
@@ -78,5 +91,88 @@ describe("ConsoleLogger tag gating", () => {
     expect(dump).toHaveLength(3);
     expect(dump[0].message).toBe("two");
     expect(dump[2].message).toBe("four");
+  });
+});
+
+describe("LogRingBuffer persistence", () => {
+  function makeStorage(): Storage {
+    const map = new Map<string, string>();
+    return {
+      get length() {
+        return map.size;
+      },
+      clear: () => map.clear(),
+      getItem: (k) => map.get(k) ?? null,
+      key: (i) => Array.from(map.keys())[i] ?? null,
+      removeItem: (k) => {
+        map.delete(k);
+      },
+      setItem: (k, v) => {
+        map.set(k, v);
+      },
+    };
+  }
+
+  it("flushes the buffer to storage and restores on a fresh instance", () => {
+    const storage = makeStorage();
+    const first = new LogRingBuffer(10, { key: "test", storage });
+    first.push({
+      level: "info",
+      message: "alpha",
+      timestamp: "2026-05-07T00:00:00.000Z",
+    });
+    first.flush();
+    expect(storage.getItem("test")).toContain("alpha");
+
+    const restored = new LogRingBuffer(10, { key: "test", storage });
+    expect(restored.snapshot()).toHaveLength(1);
+    expect(restored.snapshot()[0].message).toBe("alpha");
+  });
+
+  it("clear() wipes both memory and storage", () => {
+    const storage = makeStorage();
+    const buffer = new LogRingBuffer(10, { key: "test", storage });
+    buffer.push({
+      level: "info",
+      message: "alpha",
+      timestamp: "2026-05-07T00:00:00.000Z",
+    });
+    buffer.flush();
+    buffer.clear();
+    expect(storage.getItem("test")).toBeNull();
+    const restored = new LogRingBuffer(10, { key: "test", storage });
+    expect(restored.snapshot()).toHaveLength(0);
+  });
+
+  it("drops the older half on quota errors and retries once", () => {
+    const storage = makeStorage();
+    let throwCount = 0;
+    const wrapped: Storage = {
+      ...storage,
+      setItem: (k, v) => {
+        throwCount += 1;
+        if (throwCount === 1) throw new Error("QuotaExceeded");
+        storage.setItem(k, v);
+      },
+    };
+    const buffer = new LogRingBuffer(4, { key: "test", storage: wrapped });
+    for (let i = 0; i < 4; i++) {
+      buffer.push({
+        level: "info",
+        message: `m${i}`,
+        timestamp: "2026-05-07T00:00:00.000Z",
+      });
+    }
+    buffer.flush();
+    expect(buffer.size()).toBe(2);
+    expect(JSON.parse(storage.getItem("test") ?? "[]")).toHaveLength(2);
+  });
+
+  it("survives a corrupt cache by dropping it", () => {
+    const storage = makeStorage();
+    storage.setItem("test", "{not json");
+    const buffer = new LogRingBuffer(10, { key: "test", storage });
+    expect(buffer.snapshot()).toHaveLength(0);
+    expect(storage.getItem("test")).toBeNull();
   });
 });

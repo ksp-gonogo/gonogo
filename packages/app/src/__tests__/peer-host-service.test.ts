@@ -35,6 +35,7 @@ class FakeDataConnection {
   private listeners = new Map<string, Listener[]>();
   peer = "remote-peer";
   sent: unknown[] = [];
+  closed = false;
 
   on(event: string, cb: Listener) {
     const bucket = this.listeners.get(event) ?? [];
@@ -50,6 +51,12 @@ class FakeDataConnection {
 
   send(msg: unknown) {
     this.sent.push(msg);
+  }
+
+  close() {
+    this.closed = true;
+    // Mirror peerjs: closing a conn synchronously fires its "close" event.
+    this.emit("close");
   }
 }
 
@@ -257,6 +264,77 @@ describe("PeerHostService — hello", () => {
         (m as { type: string }).type === "schema",
     );
     expect(helloIdx).toBeLessThan(schemaIdx);
+
+    clearRegistry();
+  });
+});
+
+describe("PeerHostService — stationKey ghost eviction", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  it("closes the previous peerId when a new station-info arrives with the same stationKey", async () => {
+    const { clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    clearRegistry();
+
+    const service = new PeerHostService();
+    service.start();
+    await Promise.resolve();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    // Original session.
+    const ghost = new FakeDataConnection();
+    ghost.peer = "station-KEY-old-session";
+    FakePeer.last.emit("connection", ghost);
+    ghost.emit("open");
+    ghost.emit("data", {
+      type: "station-info",
+      name: "Joe",
+      stationKey: "KEY",
+    });
+    expect(ghost.closed).toBe(false);
+
+    // Refreshed session — same stationKey, different peerId.
+    const fresh = new FakeDataConnection();
+    fresh.peer = "station-KEY-new-session";
+    FakePeer.last.emit("connection", fresh);
+    fresh.emit("open");
+    fresh.emit("data", {
+      type: "station-info",
+      name: "Joe",
+      stationKey: "KEY",
+    });
+
+    expect(ghost.closed).toBe(true);
+    expect(fresh.closed).toBe(false);
+
+    clearRegistry();
+  });
+
+  it("does not evict on station-info from the same peerId (rename case)", async () => {
+    const { clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    clearRegistry();
+
+    const service = new PeerHostService();
+    service.start();
+    await Promise.resolve();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    const conn = new FakeDataConnection();
+    conn.peer = "station-KEY-session";
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    conn.emit("data", { type: "station-info", name: "Joe", stationKey: "KEY" });
+    conn.emit("data", {
+      type: "station-info",
+      name: "Joe Renamed",
+      stationKey: "KEY",
+    });
+
+    expect(conn.closed).toBe(false);
 
     clearRegistry();
   });

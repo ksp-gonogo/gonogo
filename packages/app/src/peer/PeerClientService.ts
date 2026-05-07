@@ -12,7 +12,7 @@ import { MessageDispatcher } from "./MessageDispatcher";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
-import { getStationPeerId } from "./stationPeerId";
+import { getStationKey, getStationPeerId } from "./stationPeerId";
 
 export type ConnStatus =
   | "idle"
@@ -23,6 +23,31 @@ export type ConnStatus =
 
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+
+/** PeerJS error shape — `.type` is the discriminator. */
+interface PeerJsError extends Error {
+  type?: string;
+}
+
+function isPeerJsError(e: unknown): e is PeerJsError {
+  return e instanceof Error && typeof (e as PeerJsError).type === "string";
+}
+
+/**
+ * peer-unavailable carries the missing peer id in the message
+ * (`Could not connect to peer XYZ` — see peerjs `bundler.mjs:1575`).
+ * Match exactly so auxiliary connects (OCISLY proxy etc.) don't
+ * masquerade as a host outage, and so a host id that's a substring of
+ * some other peer id can't false-positive either.
+ */
+const PEER_UNAVAILABLE_PREFIX = "Could not connect to peer ";
+
+function isMissingHost(err: PeerJsError, hostPeerId: string | null): boolean {
+  if (!hostPeerId) return true;
+  if (!err.message.startsWith(PEER_UNAVAILABLE_PREFIX)) return false;
+  const target = err.message.slice(PEER_UNAVAILABLE_PREFIX.length);
+  return target === hostPeerId;
+}
 
 export interface PeerClientOptions {
   retryIntervalMs?: number;
@@ -39,6 +64,7 @@ export class PeerClientService {
   private conn: DataConnection | null = null;
   private hostPeerId: string | null = null;
   private readonly stationPeerId: string;
+  private readonly stationKey: string;
   private readonly retryPolicy: RetryPolicy;
 
   private dataListeners = new ListenerSet<
@@ -102,6 +128,7 @@ export class PeerClientService {
     peerId,
   }: PeerClientOptions = {}) {
     this.stationPeerId = peerId ?? getStationPeerId();
+    this.stationKey = getStationKey();
     this.retryPolicy = new RetryPolicy({
       retryIntervalMs,
       retryTimeoutMs,
@@ -151,7 +178,24 @@ export class PeerClientService {
         logger.error("[PeerClient] connection error", err);
       });
     });
-    this.peer.on("error", (err) => this.retryPolicy.handlePeerError(err));
+    this.peer.on("error", (err) => {
+      // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
+      // any outgoing peer.connect() targets a missing id. The station's
+      // OCISLY stream source shares this Peer, so its failed connect to a
+      // missing proxy would otherwise tear down our live host conn here.
+      // Only treat it as a host failure when the host is the missing peer.
+      if (
+        isPeerJsError(err) &&
+        err.type === "peer-unavailable" &&
+        !isMissingHost(err, this.hostPeerId)
+      ) {
+        debugPeer("ignoring auxiliary peer-unavailable", {
+          message: err.message,
+        });
+        return;
+      }
+      this.retryPolicy.handlePeerError(err);
+    });
   }
 
   private tearDownPeer() {
@@ -224,6 +268,7 @@ export class PeerClientService {
     this.conn?.send({
       type: "station-info",
       name,
+      stationKey: this.stationKey,
       ...(info?.version ? { version: info.version } : {}),
       ...(info?.buildTime ? { buildTime: info.buildTime } : {}),
     } satisfies PeerMessage);

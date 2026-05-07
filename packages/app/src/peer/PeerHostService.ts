@@ -110,6 +110,11 @@ export class PeerHostService {
     },
   });
   private ocislyProxyPeerId: string | null = null;
+  // peerId → stationKey, populated from incoming station-info. Used to
+  // evict the ghost connection when a refreshed station rejoins with a
+  // fresh peerId — without this the GO/NO-GO list shows the same station
+  // twice for ~60 s while the broker times out the old conn.
+  private peerIdToStationKey = new Map<string, string>();
   private stationInfoListeners = new ListenerSet<
     Parameters<StationInfoListener>
   >();
@@ -235,6 +240,7 @@ export class PeerHostService {
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
       conn.on("close", () => {
         this.connections.delete(conn);
+        this.peerIdToStationKey.delete(conn.peer);
         this.kosSessions.closeAllForConn(conn);
         logger.info(
           `[PeerHost] connection closed — peer=${conn.peer}, total=${this.connections.size}`,
@@ -256,6 +262,11 @@ export class PeerHostService {
    * host-side OcislyStreamSource once it resolves the id over HTTP. Passing
    * null tears it back down for all stations.
    */
+  private findConnByPeerId(peerId: string): DataConnection | null {
+    for (const c of this.connections) if (c.peer === peerId) return c;
+    return null;
+  }
+
   setOcislyProxyPeerId(peerId: string | null) {
     this.ocislyProxyPeerId = peerId;
     this.broadcast({ type: "ocisly-proxy-peer-id", peerId });
@@ -280,12 +291,17 @@ export class PeerHostService {
   }
 
   broadcast(msg: PeerMessage) {
-    debugPeer("host broadcast", {
-      type: msg.type,
-      sourceId: "sourceId" in msg ? msg.sourceId : undefined,
-      key: "key" in msg ? msg.key : undefined,
-      connections: this.connections.size,
-    });
+    // Skip the trace when no station is listening — at telemetry rates
+    // (~700 broadcasts/sec) this fills the persistent log buffer in
+    // seconds, drowning out any signal from an actual incident.
+    if (this.connections.size > 0) {
+      debugPeer("host broadcast", {
+        type: msg.type,
+        sourceId: "sourceId" in msg ? msg.sourceId : undefined,
+        key: "key" in msg ? msg.key : undefined,
+        connections: this.connections.size,
+      });
+    }
 
     // Data messages run through `broadcastData` so they can be filtered
     // per peer. Everything else (status, alarm, gonogo, etc.) goes to
@@ -400,6 +416,21 @@ export class PeerHostService {
       this.kosSessions.handleClose(msg);
     },
     "station-info": (msg, conn) => {
+      if (msg.stationKey) {
+        // If another live connection claims the same stationKey, it's a
+        // ghost from a previous session for the same device — close it
+        // so the GO/NO-GO list collapses back to one entry. Skip the
+        // current conn so we don't kill the legitimate one when the
+        // station re-sends station-info on a rename.
+        for (const [peerId, key] of this.peerIdToStationKey) {
+          if (key === msg.stationKey && peerId !== conn.peer) {
+            const ghost = this.findConnByPeerId(peerId);
+            ghost?.close();
+            this.peerIdToStationKey.delete(peerId);
+          }
+        }
+        this.peerIdToStationKey.set(conn.peer, msg.stationKey);
+      }
       this.stationInfoListeners.fire(conn.peer, {
         name: msg.name,
         version: msg.version,
