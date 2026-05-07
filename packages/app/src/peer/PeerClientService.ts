@@ -161,10 +161,8 @@ export class PeerClientService {
   >();
   private kosOpenedListeners = new ListenerSet<[sessionId: string]>();
   private kosCloseListeners = new ListenerSet<[sessionId: string]>();
-  private ocislyProxyPeerIdListeners = new ListenerSet<
-    [peerId: string | null]
-  >();
-  private ocislyProxyPeerId: string | null = null;
+  private relayPeerIdListeners = new ListenerSet<[peerId: string | null]>();
+  private relayPeerId: string | null = null;
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostHelloListeners = new ListenerSet<
     [info: { version: string; buildTime: string }]
@@ -824,9 +822,9 @@ export class PeerClientService {
     "kos-close": (msg) => {
       this.kosCloseListeners.fire(msg.sessionId);
     },
-    "ocisly-proxy-peer-id": (msg) => {
-      this.ocislyProxyPeerId = msg.peerId;
-      this.ocislyProxyPeerIdListeners.fire(msg.peerId);
+    "relay-peer-id": (msg) => {
+      this.relayPeerId = msg.peerId;
+      this.relayPeerIdListeners.fire(msg.peerId);
     },
     "gonogo-countdown-start": (msg) => {
       this.gonogoCountdownStartListeners.fire(msg.t0Ms);
@@ -856,9 +854,9 @@ export class PeerClientService {
     this.dispatcher.dispatch(msg, undefined);
   }
 
-  /** Latest OCISLY proxy peer id the host has announced, or null if none. */
-  getOcislyProxyPeerId(): string | null {
-    return this.ocislyProxyPeerId;
+  /** Latest relay peer id the host has announced, or null if none. */
+  getRelayPeerId(): string | null {
+    return this.relayPeerId;
   }
 
   /**
@@ -877,11 +875,11 @@ export class PeerClientService {
   }
 
   /**
-   * Notified every time the host announces a new OCISLY proxy peer id
-   * (including null → proxy is down).
+   * Notified every time the host announces a new relay peer id (including
+   * null → relay is down).
    */
-  onOcislyProxyPeerIdChange(cb: (peerId: string | null) => void): () => void {
-    return this.ocislyProxyPeerIdListeners.add(cb);
+  onRelayPeerIdChange(cb: (peerId: string | null) => void): () => void {
+    return this.relayPeerIdListeners.add(cb);
   }
 
   /**

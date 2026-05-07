@@ -453,7 +453,7 @@ export const ocislyStreamSource = new OcislyStreamSource({
   peerProvider: () => peerHostService.waitForPeer(),
   proxyPeerIdProvider: () => fetchProxyPeerId(DEFAULT_PROXY_URL),
   onProxyPeerIdResolved: (peerId) => {
-    peerHostService.setOcislyProxyPeerId(peerId);
+    peerHostService.setRelayPeerId(peerId);
   },
 });
 
