@@ -29,6 +29,11 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     hint: "WebRTC media calls (cameras)",
   },
   {
+    id: "peer:ice",
+    label: "peer:ice",
+    hint: "Per-data-conn ICE state + candidate gathering (verbose)",
+  },
+  {
     id: "kos",
     label: "kos",
     hint: "kOS script dispatch + raw WS buffer on timeout",

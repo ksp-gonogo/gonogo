@@ -90,6 +90,7 @@ export function StationScreen() {
   }, []);
   const [connected, setConnected] = useState(false);
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
+  const [hostNotFound, setHostNotFound] = useState(false);
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
@@ -168,7 +169,20 @@ export function StationScreen() {
     unsubsRef.current = [];
     schemaHandledRef.current = false;
 
-    unsubsRef.current.push(client.onConnectionStatus(setConnStatus));
+    setHostNotFound(false);
+    unsubsRef.current.push(
+      client.onConnectionStatus((s) => {
+        setConnStatus(s);
+        // A live connection clears the "not found" badge — the most
+        // recent attempt for this host succeeded.
+        if (s === "connected") setHostNotFound(false);
+      }),
+    );
+    unsubsRef.current.push(
+      client.onHostUnavailable(() => {
+        setHostNotFound(true);
+      }),
+    );
     unsubsRef.current.push(
       client.onSchema((sources) => {
         if (schemaHandledRef.current) return;
@@ -296,7 +310,15 @@ export function StationScreen() {
                       <NameRow>
                         <StationNameEditor />
                       </NameRow>
-                      {connStatus === "disconnected" && (
+                      {hostNotFound && (
+                        <ErrorMsg>
+                          Couldn't find code &ldquo;
+                          {hostInput.trim().toUpperCase()}&rdquo;. Check the
+                          main screen — the code may have changed, or the
+                          main-screen tab may be closed/asleep.
+                        </ErrorMsg>
+                      )}
+                      {!hostNotFound && connStatus === "disconnected" && (
                         <ErrorMsg>
                           Connection lost. Check the host ID and try again.
                         </ErrorMsg>
@@ -306,7 +328,7 @@ export function StationScreen() {
                         aria-live="polite"
                         data-status={connStatus}
                       >
-                        {describeConnStatus(connStatus)}
+                        {describeConnStatus(connStatus, hostNotFound)}
                       </StatusLine>
                       <DiagnosticsRow>
                         <DiagnosticsButton type="button" onClick={downloadLogs}>
@@ -566,7 +588,10 @@ const DiagnosticsButton = styled.button`
   }
 `;
 
-function describeConnStatus(status: ConnStatus): string {
+function describeConnStatus(status: ConnStatus, hostNotFound: boolean): string {
+  if (hostNotFound) {
+    return "Broker doesn't know that code. Retrying in case it comes back…";
+  }
   switch (status) {
     case "idle":
       return "Waiting for a host ID.";

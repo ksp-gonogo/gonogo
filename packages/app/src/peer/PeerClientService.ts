@@ -49,6 +49,81 @@ function isMissingHost(err: PeerJsError, hostPeerId: string | null): boolean {
   return target === hostPeerId;
 }
 
+const iceLog = logger.tag("peer:ice");
+
+/**
+ * Wire ICE diagnostics on a data connection. peerjs surfaces only opaque
+ * `open` / `close` / `error` events; without these we can't tell if a
+ * connection that "never opens" is failing at candidate gathering, ICE
+ * checking, DTLS, or something later. Each transition is one log line so
+ * the export is searchable per data conn.
+ *
+ * The underlying RTCPeerConnection is a non-public peerjs internal — we
+ * cast through unknown to read it. Best-effort: if peerjs ever changes
+ * shape we just lose the diagnostics rather than crashing.
+ */
+function attachIceDiagnostics(conn: DataConnection): void {
+  const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
+    .peerConnection;
+  if (!pc) {
+    iceLog.debug("no underlying peerConnection — skipping ICE diagnostics", {
+      peerId: conn.peer,
+    });
+    return;
+  }
+  const ctx = { peerId: conn.peer };
+  iceLog.debug("attached", {
+    ...ctx,
+    initial: {
+      iceConnectionState: pc.iceConnectionState,
+      iceGatheringState: pc.iceGatheringState,
+      connectionState: pc.connectionState,
+      signalingState: pc.signalingState,
+    },
+  });
+  pc.addEventListener("iceconnectionstatechange", () => {
+    iceLog.debug(`iceConnectionState=${pc.iceConnectionState}`, ctx);
+  });
+  pc.addEventListener("icegatheringstatechange", () => {
+    iceLog.debug(`iceGatheringState=${pc.iceGatheringState}`, ctx);
+  });
+  pc.addEventListener("connectionstatechange", () => {
+    iceLog.debug(`connectionState=${pc.connectionState}`, ctx);
+  });
+  pc.addEventListener("signalingstatechange", () => {
+    iceLog.debug(`signalingState=${pc.signalingState}`, ctx);
+  });
+  pc.addEventListener("icecandidate", (ev) => {
+    const c = ev.candidate;
+    if (!c) {
+      iceLog.debug("icecandidate: end-of-candidates", ctx);
+      return;
+    }
+    // Strip the raw `candidate` SDP string to keep the entry compact —
+    // type, protocol, and address class are the diagnostic-grade fields.
+    iceLog.debug("icecandidate", {
+      ...ctx,
+      type: c.type,
+      protocol: c.protocol,
+      // address may be a .local mDNS hostname (Chrome / iOS Safari
+      // privacy default) or a real IP. The shape tells us whether the
+      // browser is publishing host candidates the other side can use.
+      address: c.address,
+      port: c.port,
+      relatedAddress: c.relatedAddress,
+    });
+  });
+  pc.addEventListener("icecandidateerror", (ev) => {
+    const e = ev as RTCPeerConnectionIceErrorEvent;
+    iceLog.warn("icecandidateerror", {
+      ...ctx,
+      url: e.url,
+      errorCode: e.errorCode,
+      errorText: e.errorText,
+    });
+  });
+}
+
 export interface PeerClientOptions {
   retryIntervalMs?: number;
   retryTimeoutMs?: number;
@@ -63,8 +138,15 @@ export class PeerClientService {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private hostPeerId: string | null = null;
-  private readonly stationPeerId: string;
+  /** Fresh per `openPeer()` call. Reusing the same id across retries
+   *  collides with the broker's id-hold (~30–60 s) when a previous
+   *  connection didn't shut down gracefully — e.g. a mid-session WS
+   *  drop. Regenerating dodges that entirely. */
+  private stationPeerId: string;
   private readonly stationKey: string;
+  /** Override id supplied via constructor opts, used by tests. When set,
+   *  every `openPeer()` reuses it; when null we re-roll on each call. */
+  private readonly fixedPeerIdOverride: string | null;
   private readonly retryPolicy: RetryPolicy;
 
   private dataListeners = new ListenerSet<
@@ -121,12 +203,14 @@ export class PeerClientService {
     [flight: FlightRecord | null]
   >();
   private flightListChangeListeners = new ListenerSet<[]>();
+  private hostUnavailableListeners = new ListenerSet<[hostPeerId: string]>();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
     peerId,
   }: PeerClientOptions = {}) {
+    this.fixedPeerIdOverride = peerId ?? null;
     this.stationPeerId = peerId ?? getStationPeerId();
     this.stationKey = getStationKey();
     // Tag every log entry on this station with the persistent stationKey
@@ -140,7 +224,9 @@ export class PeerClientService {
     this.retryPolicy = new RetryPolicy({
       retryIntervalMs,
       retryTimeoutMs,
-      stationPeerId: this.stationPeerId,
+      // Always read the *current* peer id — a closure capture of the
+      // initial value would log a stale id after the first regeneration.
+      stationPeerId: () => this.stationPeerId,
       hostPeerId: () => this.hostPeerId,
       tearDown: () => this.tearDownPeer(),
       rejectPending: (reason) => this.rejectPendingQueries(reason),
@@ -161,7 +247,15 @@ export class PeerClientService {
 
   private openPeer() {
     if (!this.hostPeerId) return;
-    logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
+    // Re-roll the per-session id so retries can't collide with a broker
+    // hold from a previous attempt that dropped without sending a
+    // graceful leave (mid-session WS drop, screen lock, tab background).
+    if (!this.fixedPeerIdOverride) {
+      this.stationPeerId = getStationPeerId();
+    }
+    logger.info(
+      `[PeerClient] connecting to host=${this.hostPeerId} as ${this.stationPeerId}`,
+    );
     this.emitConnStatus("connecting");
     const iceServers = loadIceServers();
     this.peer = new Peer(
@@ -171,6 +265,7 @@ export class PeerClientService {
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
       this.conn = this.peer.connect(this.hostPeerId);
+      attachIceDiagnostics(this.conn);
       this.conn.on("open", () => {
         logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
         this.retryPolicy.onConnected();
@@ -205,6 +300,17 @@ export class PeerClientService {
           message: err.message,
         });
         return;
+      }
+      // Surface the "host not on broker" case explicitly so the connect
+      // screen can show a specific "couldn't find that code" message
+      // instead of the generic reconnecting spinner. Fires every retry
+      // while the host stays missing — listeners debounce as they like.
+      if (
+        isPeerJsError(err) &&
+        err.type === "peer-unavailable" &&
+        this.hostPeerId
+      ) {
+        this.hostUnavailableListeners.fire(this.hostPeerId);
       }
       this.retryPolicy.handlePeerError(err);
     });
@@ -581,6 +687,18 @@ export class PeerClientService {
 
   onSchema(cb: (sources: PeerSchemaSource[]) => void) {
     return this.schemaListeners.add(cb);
+  }
+
+  /**
+   * Fires when the broker reports the configured host id as
+   * `peer-unavailable` (i.e. nobody on the broker is registered with
+   * that id right now). The connect screen uses this to swap the
+   * generic "reconnecting…" copy for a specific "couldn't find that
+   * code" message — the operator's most likely problem is a typo or a
+   * stale main-screen tab.
+   */
+  onHostUnavailable(cb: (hostPeerId: string) => void) {
+    return this.hostUnavailableListeners.add(cb);
   }
 
   onKosOpened(cb: (sessionId: string) => void) {
