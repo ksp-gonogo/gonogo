@@ -47,6 +47,13 @@ export interface DeviceTransport {
    */
   onSchema?(cb: (update: SchemaUpdate) => void): () => void;
   /**
+   * Subscribe to raw lines arriving from the device, BEFORE parsing. Used
+   * by the calibration wizard to display what the device is actually
+   * sending so the user can drag-select offset/length. Optional: virtual
+   * transports may not fire it.
+   */
+  onRawLine?(cb: (line: string) => void): () => void;
+  /**
    * Swap the cached DeviceType — called by the service when an incoming
    * schema update changes the type's inputs or renderStyleConfig, so the
    * next tick's parser sees the new shape.

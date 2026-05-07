@@ -19,6 +19,7 @@ import type {
   DeviceParserId,
   DeviceType,
 } from "../types";
+import { CalibrateWizard } from "./CalibrateWizard";
 import { ProtocolReferenceButton } from "./ProtocolReferenceModal";
 
 interface Props {
@@ -64,6 +65,7 @@ export function DeviceTypeEditor({
   );
 
   const isDeviceAuthored = parser === "json-state";
+  const [showCalibrate, setShowCalibrate] = useState(false);
 
   const updateInput = (idx: number, patch: Partial<DraftInput>) => {
     setInputs((prev) =>
@@ -169,11 +171,29 @@ export function DeviceTypeEditor({
       <InputsHeader>
         <FieldLabel>Inputs</FieldLabel>
         {!isDeviceAuthored && (
-          <Button type="button" onClick={addInput}>
-            + add input
-          </Button>
+          <>
+            <Button
+              type="button"
+              onClick={() => setShowCalibrate((prev) => !prev)}
+            >
+              {showCalibrate ? "Hide calibrate" : "Calibrate from sample…"}
+            </Button>
+            <Button type="button" onClick={addInput}>
+              + add input
+            </Button>
+          </>
         )}
       </InputsHeader>
+      {!isDeviceAuthored && showCalibrate && (
+        <CalibrateWizard
+          inputs={inputs as DeviceInput[]}
+          onApply={(next) => {
+            setInputs(next as DraftInput[]);
+            setShowCalibrate(false);
+          }}
+          onClose={() => setShowCalibrate(false)}
+        />
+      )}
       {isDeviceAuthored ? (
         <DiscoveredInputs inputs={initial?.inputs ?? []} />
       ) : null}
