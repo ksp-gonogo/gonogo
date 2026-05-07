@@ -209,6 +209,21 @@ export class SerialDeviceService {
         });
         continue;
       }
+      // USB hubs sometimes emit a phantom 'connect' event during the
+      // first moments of an unplug, before the disconnect propagates.
+      // Skip if a connect is already in flight on this transport — the
+      // existing one wins (or fails on its own terms).
+      const inflight = (
+        managed.transport as DeviceTransport & {
+          isConnecting?: () => boolean;
+        }
+      ).isConnecting?.();
+      if (inflight) {
+        trace.debug("hot-plug skip — connect in flight", {
+          deviceId: managed.instance.id,
+        });
+        continue;
+      }
       const saved = managed.instance.portInfo;
       if (!saved?.vendorId) {
         trace.debug("hot-plug skip — no saved VID/PID", {

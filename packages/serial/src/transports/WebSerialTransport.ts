@@ -86,6 +86,15 @@ export class WebSerialTransport implements DeviceTransport {
     return this.port;
   }
 
+  /**
+   * True while a connect() is in flight. The hot-plug listener uses
+   * this to skip phantom 'connect' events that USB hubs sometimes
+   * emit during an unplug.
+   */
+  isConnecting(): boolean {
+    return this.connectingPromise !== null;
+  }
+
   async connect(options?: { port?: SerialPort }): Promise<void> {
     if (this.connectingPromise) return this.connectingPromise;
     this.connectingPromise = this.doConnect(options).finally(() => {
@@ -165,11 +174,28 @@ export class WebSerialTransport implements DeviceTransport {
       });
       void this.readLoop();
     } catch (err) {
-      logger.error(
-        `[WebSerialTransport ${this.id}] connect failed`,
-        err instanceof Error ? err : new Error(String(err)),
-      );
-      this.setStatus("error", err);
+      // InvalidStateError on open() is almost always a transient USB
+      // condition: a phantom 'connect' event fired during an unplug,
+      // an autoReconnect raced a still-resolving teardown, or the OS
+      // has the port in an "open in progress" state we couldn't clear.
+      // None of these are app bugs — log them quietly at warn, mark
+      // the device as disconnected (not error) so the next legitimate
+      // 'connect' event triggers a fresh adopt rather than skipping
+      // this transport, and rethrow for the caller's own handling.
+      const isTransient =
+        err instanceof Error && err.name === "InvalidStateError";
+      if (isTransient) {
+        logger.warn(`[WebSerialTransport ${this.id}] open transient failure`, {
+          err: err.message,
+        });
+        this.setStatus("disconnected", err);
+      } else {
+        logger.error(
+          `[WebSerialTransport ${this.id}] connect failed`,
+          err instanceof Error ? err : new Error(String(err)),
+        );
+        this.setStatus("error", err);
+      }
       throw err;
     }
   }
