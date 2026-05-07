@@ -17,12 +17,24 @@ function defaultPersist(): PersistConfig | undefined {
 }
 
 import type {
+  DeviceIdentity,
   LogContext,
   LogEntry,
   Logger,
   LogLevel,
+  LogTransport,
   TaggedLogger,
 } from "./types";
+
+function generateSessionId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 function defaultEnabled(): boolean {
   // Suppress output in test runs so unit + integration suites stay quiet.
@@ -75,6 +87,9 @@ export class ConsoleLogger implements Logger {
   private enabled: boolean;
   private level: LogLevel;
   private readonly buffer: LogRingBuffer;
+  private readonly transports: LogTransport[] = [];
+  private identity: DeviceIdentity = { role: "unknown" };
+  private readonly sessionId: string;
 
   constructor(opts?: {
     enabled?: boolean;
@@ -82,12 +97,54 @@ export class ConsoleLogger implements Logger {
     bufferCapacity?: number;
     /** Optional persistence config. Pass `null` to opt out of the default. */
     persist?: PersistConfig | null;
+    /** Override the auto-generated per-page-load session id (tests). */
+    sessionId?: string;
   }) {
     this.enabled = opts?.enabled ?? defaultEnabled();
     this.level = opts?.level ?? defaultLevel();
     const persist =
       opts?.persist === null ? undefined : (opts?.persist ?? defaultPersist());
     this.buffer = new LogRingBuffer(opts?.bufferCapacity, persist);
+    this.sessionId = opts?.sessionId ?? generateSessionId();
+  }
+
+  /**
+   * Register an additional sink (e.g. Axiom). Every emitted entry is fanned
+   * out to every registered transport — the same set the ring buffer sees,
+   * before tag-gate / level-floor filtering. Console output is unchanged.
+   */
+  addTransport(transport: LogTransport): void {
+    this.transports.push(transport);
+  }
+
+  /**
+   * Merge identity fields into the device context attached to every
+   * subsequent log entry. Call once at app start with `{role, id}` and
+   * again as more becomes known (e.g. station learns its hostPeerId on
+   * connect). Does NOT replay past entries.
+   */
+  setIdentity(identity: Partial<DeviceIdentity>): void {
+    this.identity = { ...this.identity, ...identity };
+  }
+
+  getIdentity(): DeviceIdentity {
+    return this.identity;
+  }
+
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
+  async flushTransports(): Promise<void> {
+    await Promise.all(
+      this.transports.map(async (t) => {
+        try {
+          await t.flush?.();
+        } catch {
+          // ignore — log delivery failures are never fatal
+        }
+      }),
+    );
   }
 
   setEnabled(value: boolean): void {
@@ -167,12 +224,26 @@ export class ConsoleLogger implements Logger {
       error: error
         ? { name: error.name, message: error.message, stack: error.stack }
         : undefined,
+      device: this.identity,
+      sessionId: this.sessionId,
     };
 
     // Buffer first — the export is intentionally richer than the console
     // stream so an operator can download the full trail after-the-fact
     // and inspect tag-gated / level-floored entries they didn't pre-enable.
     this.buffer.push(entry);
+
+    // Transports get the same firehose as the buffer — pre-tag-gate,
+    // pre-level-floor. Remote sinks are most useful when they catch the
+    // long tail nobody pre-enabled locally; with 3–4 users the volume
+    // is trivial.
+    for (const transport of this.transports) {
+      try {
+        transport.send([entry]);
+      } catch {
+        // ignore — log delivery failures are never fatal
+      }
+    }
 
     // Console gating starts here. Tag-gated debug only prints if the tag
     // is enabled; info/warn/error from a tagged logger always print
@@ -200,10 +271,18 @@ export class ConsoleLogger implements Logger {
 
 export const logger = new ConsoleLogger();
 export { AppError } from "./AppError";
+export type { AxiomTransportOptions } from "./AxiomTransport";
+export { AxiomTransport } from "./AxiomTransport";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { LogRingBuffer } from "./ringBuffer";
 export { tagRegistry } from "./tags";
-export type { LogEntry, TaggedLogger } from "./types";
+export type {
+  DeviceIdentity,
+  DeviceRole,
+  LogEntry,
+  LogTransport,
+  TaggedLogger,
+} from "./types";
 
 /**
  * Back-compat wrapper around the new tag system. `debugPeer("foo", ctx)`

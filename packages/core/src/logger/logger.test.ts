@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsoleLogger } from "./index";
 import { LogRingBuffer } from "./ringBuffer";
 import { tagRegistry } from "./tags";
+import type { LogEntry, LogTransport } from "./types";
 
 describe("ConsoleLogger tag gating", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -91,6 +92,141 @@ describe("ConsoleLogger tag gating", () => {
     expect(dump).toHaveLength(3);
     expect(dump[0].message).toBe("two");
     expect(dump[2].message).toBe("four");
+  });
+});
+
+describe("ConsoleLogger transports and identity", () => {
+  function makeTransport() {
+    const sent: LogEntry[][] = [];
+    const transport: LogTransport = {
+      send: (entries) => {
+        sent.push(entries.slice());
+      },
+    };
+    return { sent, transport };
+  }
+
+  it("fans every emitted entry out to every registered transport", () => {
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "session-A",
+    });
+    const a = makeTransport();
+    const b = makeTransport();
+    logger.addTransport(a.transport);
+    logger.addTransport(b.transport);
+    logger.info("alpha");
+    logger.warn("bravo");
+    expect(a.sent).toHaveLength(2);
+    expect(b.sent).toHaveLength(2);
+    expect(a.sent[0][0].message).toBe("alpha");
+    expect(a.sent[1][0].message).toBe("bravo");
+  });
+
+  it("transports receive tag-gated entries the console suppresses", () => {
+    // Remote sinks see the firehose — that's the value of having one.
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "session-A",
+    });
+    const { sent, transport } = makeTransport();
+    logger.addTransport(transport);
+    tagRegistry.setTags([]);
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    logger.tag("peer").debug("hidden from console");
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(sent).toHaveLength(1);
+    expect(sent[0][0].message).toBe("[peer] hidden from console");
+    consoleSpy.mockRestore();
+  });
+
+  it("a throwing transport does not break the logger or the other transports", () => {
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "s",
+    });
+    const breaking: LogTransport = {
+      send: () => {
+        throw new Error("offline");
+      },
+    };
+    const ok = makeTransport();
+    logger.addTransport(breaking);
+    logger.addTransport(ok.transport);
+    expect(() => logger.info("survives")).not.toThrow();
+    expect(ok.sent).toHaveLength(1);
+  });
+
+  it("attaches the configured sessionId and merged identity to each entry", () => {
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "session-XYZ",
+    });
+    const { sent, transport } = makeTransport();
+    logger.addTransport(transport);
+
+    logger.setIdentity({ role: "station", id: "station-key-1" });
+    logger.info("first");
+    logger.setIdentity({ peerId: "station-key-1-abcd1234" });
+    logger.info("second");
+    logger.setIdentity({ hostPeerId: "XK3F" });
+    logger.info("third");
+
+    expect(sent[0][0]).toMatchObject({
+      sessionId: "session-XYZ",
+      device: { role: "station", id: "station-key-1" },
+    });
+    // setIdentity must merge, not replace.
+    expect(sent[1][0].device).toEqual({
+      role: "station",
+      id: "station-key-1",
+      peerId: "station-key-1-abcd1234",
+    });
+    expect(sent[2][0].device).toEqual({
+      role: "station",
+      id: "station-key-1",
+      peerId: "station-key-1-abcd1234",
+      hostPeerId: "XK3F",
+    });
+  });
+
+  it("starts with role 'unknown' so pre-identity entries are still tagged", () => {
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "s",
+    });
+    const { sent, transport } = makeTransport();
+    logger.addTransport(transport);
+    logger.info("before identity");
+    expect(sent[0][0].device).toEqual({ role: "unknown" });
+  });
+
+  it("flushTransports awaits each transport's flush hook", async () => {
+    const logger = new ConsoleLogger({
+      enabled: true,
+      level: "debug",
+      sessionId: "s",
+    });
+    const flushed: string[] = [];
+    logger.addTransport({
+      send: () => {},
+      flush: async () => {
+        flushed.push("a");
+      },
+    });
+    logger.addTransport({
+      send: () => {},
+      flush: async () => {
+        flushed.push("b");
+      },
+    });
+    await logger.flushTransports();
+    expect(flushed.sort()).toEqual(["a", "b"]);
   });
 });
 

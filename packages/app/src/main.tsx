@@ -1,4 +1,5 @@
 import {
+  AxiomTransport,
   ErrorBoundary,
   getTheme,
   logger,
@@ -21,6 +22,23 @@ import App from "./App";
 import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
+
+// Ship logs to Axiom when the build was given an ingest token. Console
+// output is unchanged — this is purely additive. Without env vars, no
+// transport is installed, so dev/test/CI never hit Axiom.
+const axiomToken = import.meta.env.VITE_AXIOM_TOKEN;
+const axiomDataset = import.meta.env.VITE_AXIOM_DATASET ?? "gonogo";
+if (axiomToken) {
+  logger.addTransport(
+    new AxiomTransport({
+      token: axiomToken,
+      dataset: axiomDataset,
+      url: import.meta.env.VITE_AXIOM_URL,
+      orgId: import.meta.env.VITE_AXIOM_ORG_ID,
+    }),
+  );
+}
+
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 
 // Pass the Vite base URL so texture paths resolve correctly under sub-path

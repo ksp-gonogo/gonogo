@@ -129,6 +129,14 @@ export class PeerClientService {
   }: PeerClientOptions = {}) {
     this.stationPeerId = peerId ?? getStationPeerId();
     this.stationKey = getStationKey();
+    // Tag every log entry on this station with the persistent stationKey
+    // and the per-session broker id so a remote query can filter all
+    // logs from a single device or a single tab session.
+    logger.setIdentity({
+      role: "station",
+      id: this.stationKey,
+      peerId: this.stationPeerId,
+    });
     this.retryPolicy = new RetryPolicy({
       retryIntervalMs,
       retryTimeoutMs,
@@ -143,6 +151,10 @@ export class PeerClientService {
 
   connect(hostPeerId: string) {
     this.hostPeerId = hostPeerId;
+    // Now we know which host this station is in a session with — fold it
+    // into the device identity so subsequent logs say which host they
+    // belong to.
+    logger.setIdentity({ hostPeerId });
     this.retryPolicy.beginConnect();
     this.openPeer();
   }
