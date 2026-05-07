@@ -4,7 +4,6 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
-.env.logs
 coverage/
 .DS_Store
 memory/
