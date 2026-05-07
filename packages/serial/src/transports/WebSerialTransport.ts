@@ -114,18 +114,26 @@ export class WebSerialTransport implements DeviceTransport {
           filters: this.filters,
         }));
 
-      // The picked port may already be in an open state — happens when a
-      // previous connect() failed mid-flight (open() at the OS level
-      // succeeded but our promise rejected, e.g. on stream-setup error)
-      // and the port stayed open without our `this.port` being updated.
-      // `port.readable` / `port.writable` are non-null exactly when the
-      // port is open at the OS level, so we close it before reopening.
-      if (port.readable !== null || port.writable !== null) {
-        try {
-          await port.close();
-        } catch {
-          // Best effort.
-        }
+      // Always try-close the port before opening, even when readable/
+      // writable look null. Two cases this rescues:
+      //
+      //   - Open-but-not-streaming: a prior connect() failed mid-flight
+      //     after port.open() succeeded at the OS level. readable/
+      //     writable would be non-null and close() succeeds.
+      //   - "Open in progress": the OS is stuck on a half-completed open
+      //     from a previous session that didn't unwind cleanly — typical
+      //     after unplug → refresh, where session 1's read-loop error
+      //     left state the new session inherits via getPorts(). In this
+      //     case readable/writable are null but port.open() still throws
+      //     "A call to open() is already in progress." close() resolves
+      //     the in-progress state.
+      //
+      // close() on a genuinely-closed port throws InvalidStateError, which
+      // we ignore — the open() that follows is the real attempt.
+      try {
+        await port.close();
+      } catch {
+        // Port wasn't open in any meaningful sense — fine.
       }
 
       await port.open({
