@@ -124,7 +124,14 @@ export class SerialDeviceService {
    * No-op if `navigator.serial` is unavailable (Safari, tests without the
    * mock installed).
    */
-  private attachNavigatorListeners(): void {
+  /**
+   * Idempotent — calling twice doesn't double-attach. Public so the screen
+   * lifecycle effect can re-attach after a StrictMode cleanup→setup cycle
+   * (destroy detaches; without re-attach the navigator.serial 'connect'
+   * event has no listener for the rest of the page lifetime).
+   */
+  attachNavigatorListeners(): void {
+    if (this.hotPlugConnectListener) return;
     const serial = (globalThis as { navigator?: { serial?: Serial } }).navigator
       ?.serial;
     if (!serial?.addEventListener) {
@@ -161,7 +168,8 @@ export class SerialDeviceService {
     trace.debug("hot-plug listeners installed");
   }
 
-  private detachNavigatorListeners(): void {
+  /** Counterpart to attachNavigatorListeners. Idempotent. */
+  detachNavigatorListeners(): void {
     const serial = (globalThis as { navigator?: { serial?: Serial } }).navigator
       ?.serial;
     if (!serial?.removeEventListener) return;
@@ -805,16 +813,22 @@ export class SerialDeviceService {
       const raw = this.storage.getItem(this.devicesKey());
       if (!raw) return;
       const list = JSON.parse(raw) as DeviceInstance[];
+      let droppedAny = false;
       for (const inst of list) {
         const type = this.deviceTypes.get(inst.typeId);
         if (!type) {
           logger.warn(
             `[SerialDeviceService] dropping device ${inst.id} — unknown type ${inst.typeId}`,
           );
+          droppedAny = true;
           continue;
         }
         this.register(inst, type);
       }
+      // Self-heal: rewrite localStorage without the orphans so we don't
+      // log the same warning every refresh. Persisting the in-memory list
+      // is enough — the dropped entries are gone from memory already.
+      if (droppedAny) this.saveDevices();
     } catch (err) {
       logger.warn("[SerialDeviceService] failed to load devices", {
         err: String(err),

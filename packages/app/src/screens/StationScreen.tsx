@@ -147,7 +147,11 @@ export function StationScreen() {
 
   useEffect(() => {
     // Reopen previously-authorised serial ports (no user prompt). Covers the
-    // "auto-reconnect on station refresh" live-test bug.
+    // "auto-reconnect on station refresh" live-test bug. Also re-attach the
+    // hot-plug listeners — destroy() detaches them, so a StrictMode
+    // cleanup→setup cycle would otherwise silently kill hot-plug for the
+    // rest of the page lifetime.
+    serialService.attachNavigatorListeners();
     void serialService.autoReconnect();
     return () => {
       // Detach navigator.serial listeners + tear down transports on unmount.
