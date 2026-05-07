@@ -47,6 +47,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Confirm Axiom token presence
+        env:
+          VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
+        # Length only — never the value. GitHub masks the secret in logs
+        # but the workflow run UI doesn't tell you whether a referenced
+        # secret actually had a value, so this gives us an explicit
+        # success/skip signal per deploy.
+        run: |
+          if [ -n "$VITE_AXIOM_TOKEN" ]; then
+            echo "Axiom token present (len=${#VITE_AXIOM_TOKEN}) — remote logging enabled."
+          else
+            echo "Axiom token MISSING — remote logging disabled for this deploy."
+          fi
+
       - name: Build app
         run: pnpm turbo build --filter=@gonogo/app...
         env:
