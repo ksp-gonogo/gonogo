@@ -29,7 +29,7 @@ podman compose up -d --build
 WATCH_PIDS=""
 watch_service telnet-proxy &
 WATCH_PIDS="$WATCH_PIDS $!"
-watch_service ocisly-proxy &
+watch_service relay &
 WATCH_PIDS="$WATCH_PIDS $!"
 
-turbo dev --filter='!@gonogo/telnet-proxy' --filter='!@gonogo/ocisly-proxy'
+turbo dev --filter='!@gonogo/telnet-proxy' --filter='!@gonogo/relay'

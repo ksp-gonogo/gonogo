@@ -92,9 +92,9 @@ export type PeerMessage =
   | { type: "kos-close"; sessionId: string }
   // Broadcast from host → stations so stations know which peer to connect to
   // for camera streams. Sent on initial station connect (if known) and again
-  // whenever the proxy is re-resolved. null means the main screen no longer
-  // has a live proxy connection.
-  | { type: "ocisly-proxy-peer-id"; peerId: string | null }
+  // whenever the relay is re-resolved. null means the main screen no longer
+  // has a live relay connection.
+  | { type: "relay-peer-id"; peerId: string | null }
   // ──────────────────────────────────────────────────────────────────────
   // GO/NO-GO and launch coordination
   // ──────────────────────────────────────────────────────────────────────

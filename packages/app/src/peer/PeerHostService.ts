@@ -110,7 +110,7 @@ export class PeerHostService {
         | undefined;
     },
   });
-  private ocislyProxyPeerId: string | null = null;
+  private relayPeerId: string | null = null;
   // peerId → stationKey, populated from incoming station-info. Used to
   // evict the ghost connection when a refreshed station rejoins with a
   // fresh peerId — without this the GO/NO-GO list shows the same station
@@ -223,13 +223,12 @@ export class PeerHostService {
           buildTime: BUILD_TIME,
         } satisfies PeerMessage);
         this.sendSchema(conn);
-        // Station needs this to reach the OCISLY proxy directly — resend
-        // whenever a new station connects so latecomers aren't stuck in
-        // "disconnected".
-        if (this.ocislyProxyPeerId !== null) {
+        // Station needs this to reach the relay directly — resend whenever
+        // a new station connects so latecomers aren't stuck in "disconnected".
+        if (this.relayPeerId !== null) {
           conn.send({
-            type: "ocisly-proxy-peer-id",
-            peerId: this.ocislyProxyPeerId,
+            type: "relay-peer-id",
+            peerId: this.relayPeerId,
           } satisfies PeerMessage);
         }
         // Latecomer's initial flight snapshot. The host's flight-change
@@ -275,18 +274,18 @@ export class PeerHostService {
   }
 
   /**
-   * Set (and broadcast) the current OCISLY proxy peer id. Called by the
-   * host-side OcislyStreamSource once it resolves the id over HTTP. Passing
-   * null tears it back down for all stations.
+   * Set (and broadcast) the current relay peer id. Called by the host-side
+   * OcislyStreamSource once it resolves the id over HTTP. Passing null tears
+   * it back down for all stations.
    */
   private findConnByPeerId(peerId: string): DataConnection | null {
     for (const c of this.connections) if (c.peer === peerId) return c;
     return null;
   }
 
-  setOcislyProxyPeerId(peerId: string | null) {
-    this.ocislyProxyPeerId = peerId;
-    this.broadcast({ type: "ocisly-proxy-peer-id", peerId });
+  setRelayPeerId(peerId: string | null) {
+    this.relayPeerId = peerId;
+    this.broadcast({ type: "relay-peer-id", peerId });
   }
 
   /**

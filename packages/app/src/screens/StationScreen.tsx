@@ -200,19 +200,19 @@ export function StationScreen() {
 
         // Station-side OCISLY stream source: overrides the default host
         // registration (same id) with a variant that uses the station's own
-        // Peer and receives the proxy peer id from the host via the existing
+        // Peer and receives the relay peer id from the host via the existing
         // data channel. Registration happens after schema so the connect()
         // below reliably sees all sources, including this one.
         const ocislySource = new OcislyStreamSource({
           peerProvider: () => client.waitForPeer(),
           proxyPeerIdProvider: () =>
             new Promise<string>((resolve) => {
-              const cached = client.getOcislyProxyPeerId();
+              const cached = client.getRelayPeerId();
               if (cached) {
                 resolve(cached);
                 return;
               }
-              const remove = client.onOcislyProxyPeerIdChange((peerId) => {
+              const remove = client.onRelayPeerIdChange((peerId) => {
                 if (peerId) {
                   remove();
                   resolve(peerId);
