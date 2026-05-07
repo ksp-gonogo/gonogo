@@ -8,3 +8,4 @@ coverage/
 .DS_Store
 memory/
 local_docs/
+.claude/
