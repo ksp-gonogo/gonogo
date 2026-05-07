@@ -20,6 +20,13 @@ export interface DashboardItem {
    * in Phase 4. Missing = unbound; persisted alongside `config`.
    */
   inputMappings?: InputMappings;
+  /**
+   * Per-instance override for the mobile-layout width. When set, the
+   * MobileDashboard ignores the component definition's `mobileWidth`
+   * default and uses this value instead. Toggled by the half/full button
+   * in the mobile cell header.
+   */
+  mobileWidth?: "full" | "half";
 }
 
 export interface DashboardConfig {
@@ -46,6 +53,7 @@ export interface DashboardProps {
   onBreakpointChange: (bp: string) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
+  updateItemMobileWidth: (id: string, width: "full" | "half") => void;
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;

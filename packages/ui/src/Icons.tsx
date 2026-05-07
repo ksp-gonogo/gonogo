@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Columns2,
   FileText,
   History,
   Joystick,
@@ -18,6 +19,7 @@ import {
   Play,
   Plus,
   Radio,
+  RectangleHorizontal,
   Satellite,
   Settings,
   Square,
@@ -74,3 +76,5 @@ export const ArrowUpIcon = makeIcon(ArrowUp);
 export const ArrowRightIcon = makeIcon(ArrowRight);
 export const PushUpIcon = makeIcon(ArrowUpToLine);
 export const RecallIcon = makeIcon(Undo2);
+export const HalfWidthIcon = makeIcon(Columns2);
+export const FullWidthIcon = makeIcon(RectangleHorizontal);

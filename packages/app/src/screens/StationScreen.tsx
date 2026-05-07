@@ -379,6 +379,9 @@ export function StationScreen() {
                                   updateItemMappings={
                                     dashboard.updateItemMappings
                                   }
+                                  updateItemMobileWidth={
+                                    dashboard.updateItemMobileWidth
+                                  }
                                   removeItem={dashboard.removeItem}
                                   moveItemUp={dashboard.moveItemUp}
                                   moveItemDown={dashboard.moveItemDown}
