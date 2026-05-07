@@ -103,6 +103,56 @@ export class WebSerialTransport implements DeviceTransport {
     return this.connectingPromise;
   }
 
+  /**
+   * Try-close-then-open a port with backoff for "open in progress" /
+   * "port already open" errors.
+   *
+   * After a hot-unplug Chrome can hold the same SerialPort instance in a
+   * stuck "open in progress" state that survives even our explicit
+   * close() — only a few hundred ms of dwell, or a page refresh, lets it
+   * drain. A page refresh worked because the OS had ~time to settle by
+   * the time autoReconnect fired; in-session replug had no such gap.
+   *
+   * Each attempt does close() (best-effort) then open(). InvalidStateError
+   * triggers backoff and retry. Anything else throws immediately.
+   */
+  private async openWithRetry(port: SerialPort): Promise<void> {
+    const delays = [0, 200, 500, 1000]; // ~1.7s total dwell budget
+    let lastError: unknown;
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i] > 0) {
+        trace.debug("open retry waiting", {
+          deviceId: this.id,
+          attempt: i + 1,
+          delayMs: delays[i],
+        });
+        await new Promise((r) => setTimeout(r, delays[i]));
+      }
+      try {
+        await port.close();
+      } catch {
+        // Port wasn't open in any meaningful sense — fine.
+      }
+      try {
+        await port.open({
+          baudRate: this.baudRate,
+          dataBits: 8,
+          stopBits: 1,
+          parity: "none",
+          flowControl: "none",
+        });
+        return;
+      } catch (err) {
+        lastError = err;
+        const transient =
+          err instanceof Error && err.name === "InvalidStateError";
+        if (!transient) throw err;
+        // else: loop and retry after backoff
+      }
+    }
+    throw lastError;
+  }
+
   private async doConnect(options?: { port?: SerialPort }): Promise<void> {
     try {
       // Defensive cleanup: a previous read-loop error or hot-unplug could
@@ -123,35 +173,7 @@ export class WebSerialTransport implements DeviceTransport {
           filters: this.filters,
         }));
 
-      // Always try-close the port before opening, even when readable/
-      // writable look null. Two cases this rescues:
-      //
-      //   - Open-but-not-streaming: a prior connect() failed mid-flight
-      //     after port.open() succeeded at the OS level. readable/
-      //     writable would be non-null and close() succeeds.
-      //   - "Open in progress": the OS is stuck on a half-completed open
-      //     from a previous session that didn't unwind cleanly — typical
-      //     after unplug → refresh, where session 1's read-loop error
-      //     left state the new session inherits via getPorts(). In this
-      //     case readable/writable are null but port.open() still throws
-      //     "A call to open() is already in progress." close() resolves
-      //     the in-progress state.
-      //
-      // close() on a genuinely-closed port throws InvalidStateError, which
-      // we ignore — the open() that follows is the real attempt.
-      try {
-        await port.close();
-      } catch {
-        // Port wasn't open in any meaningful sense — fine.
-      }
-
-      await port.open({
-        baudRate: this.baudRate,
-        dataBits: 8,
-        stopBits: 1,
-        parity: "none",
-        flowControl: "none",
-      });
+      await this.openWithRetry(port);
       this.port = port;
 
       const decoder = new TextDecoderStream();
