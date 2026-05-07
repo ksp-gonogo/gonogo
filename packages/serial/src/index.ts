@@ -1,6 +1,7 @@
 export * from "./bindings";
 export * from "./InputDispatcher";
 export { InputMappingTab } from "./InputMappingTab";
+export { InputTesterComponent } from "./InputTester";
 export { MockSerialPort, MockWebSerial } from "./mocks/mockWebSerial";
 export * from "./parsers/jsonState";
 export * from "./registry";
