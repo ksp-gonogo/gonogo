@@ -1,5 +1,6 @@
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
+import { applyAnalogShaping } from "./analogShaping";
 
 /**
  * Parse one incoming line using fixed character offsets defined on each
@@ -44,7 +45,7 @@ function parseOne(line: string, input: DeviceInput): InputEvent | null {
       -1,
       Math.min(1, (2 * (raw - min)) / (max - min) - 1),
     );
-    return { inputId: input.id, value: normalised };
+    return { inputId: input.id, value: applyAnalogShaping(input, normalised) };
   }
 
   return null;

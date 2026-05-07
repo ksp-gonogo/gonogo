@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { getSerialRenderStyles } from "../registry";
 import type {
+  AnalogCurve,
   DeviceInput,
   DeviceInputKind,
   DeviceParserId,
@@ -107,6 +108,8 @@ export function DeviceTypeEditor({
             length: i.length,
             min: i.min,
             max: i.max,
+            deadzone: i.deadzone,
+            curve: i.curve,
           })),
       renderStyleConfig: initial?.renderStyleConfig,
       authoredBy: initial?.authoredBy,
@@ -253,6 +256,42 @@ export function DeviceTypeEditor({
                       updateInput(idx, { max: Number(e.target.value) })
                     }
                   />
+                </TinyField>
+                <TinyField>
+                  <FieldLabel htmlFor={`input-deadzone-${idx}`}>
+                    Deadzone
+                  </FieldLabel>
+                  <Input
+                    id={`input-deadzone-${idx}`}
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    max="0.95"
+                    value={input.deadzone ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      updateInput(idx, {
+                        deadzone: v === "" ? undefined : Number(v),
+                      });
+                    }}
+                    placeholder="0"
+                  />
+                </TinyField>
+                <TinyField>
+                  <FieldLabel htmlFor={`input-curve-${idx}`}>Curve</FieldLabel>
+                  <Select
+                    id={`input-curve-${idx}`}
+                    value={input.curve ?? "linear"}
+                    onChange={(e) =>
+                      updateInput(idx, {
+                        curve: e.target.value as AnalogCurve,
+                      })
+                    }
+                  >
+                    <option value="linear">linear</option>
+                    <option value="squared">squared</option>
+                    <option value="cubic">cubic</option>
+                  </Select>
                 </TinyField>
               </>
             )}

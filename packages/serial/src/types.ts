@@ -7,10 +7,23 @@
 export type DeviceInputKind = "button" | "analog";
 
 /**
+ * Shape applied to an analog input AFTER it's been normalised to -1..1 using
+ * `{ min, max }`. `linear` is pass-through; `squared` (sign-preserving) and
+ * `cubic` give finer control near centre — handy for translation/rotation
+ * sticks where small flying corrections need precision but the full range
+ * still has to saturate.
+ */
+export type AnalogCurve = "linear" | "squared" | "cubic";
+
+/**
  * One named input on a DeviceType. For the built-in `char-position` parser,
  * `offset` + `length` describe where in the incoming line this input's value
  * lives. Analog inputs additionally declare `{ min, max }` so raw integers
  * can be normalised to `-1..1`.
+ *
+ * `deadzone` and `curve` are post-normalisation shaping for analog inputs.
+ * Both default to no-op (deadzone 0, curve linear) so existing types are
+ * unchanged.
  */
 export interface DeviceInput {
   id: string;
@@ -20,6 +33,15 @@ export interface DeviceInput {
   length?: number;
   min?: number;
   max?: number;
+  /**
+   * Magnitude (0..1) below which the analog value is snapped to zero. Values
+   * outside the deadzone are rescaled so the response curve still reaches
+   * ±1 — without rescaling, a deadzone of 0.1 would cap usable travel at
+   * 0.9. Ignored for buttons.
+   */
+  deadzone?: number;
+  /** Response curve applied after deadzone. Default `linear`. */
+  curve?: AnalogCurve;
 }
 
 export type DeviceParserId = "char-position" | "json-state";

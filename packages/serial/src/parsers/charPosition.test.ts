@@ -77,4 +77,40 @@ describe("parseCharPosition", () => {
     const inputs: DeviceInput[] = [{ id: "a", name: "A", kind: "button" }];
     expect(parseCharPosition(" 1 ", inputs)).toEqual([]);
   });
+
+  it("applies deadzone to analog inputs (snaps small values to zero)", () => {
+    const inputs: DeviceInput[] = [
+      {
+        id: "x",
+        name: "X",
+        kind: "analog",
+        offset: 0,
+        length: 3,
+        min: 0,
+        max: 100,
+        deadzone: 0.1,
+      },
+    ];
+    // Raw 50 → normalised 0 → already inside the deadzone, should snap to 0.
+    expect(parseCharPosition("050", inputs)[0]?.value).toBe(0);
+    // Raw 53 → normalised 0.06 — still inside the deadzone.
+    expect(parseCharPosition("053", inputs)[0]?.value).toBe(0);
+  });
+
+  it("applies a squared curve after the deadzone", () => {
+    const inputs: DeviceInput[] = [
+      {
+        id: "x",
+        name: "X",
+        kind: "analog",
+        offset: 0,
+        length: 3,
+        min: 0,
+        max: 100,
+        curve: "squared",
+      },
+    ];
+    // Raw 75 → normalised 0.5 → squared 0.25.
+    expect(parseCharPosition("075", inputs)[0]?.value).toBeCloseTo(0.25, 2);
+  });
 });

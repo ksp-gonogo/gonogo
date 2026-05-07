@@ -1,6 +1,7 @@
 import { clamp } from "@gonogo/core";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
+import { applyAnalogShaping } from "./analogShaping";
 
 /**
  * Screen declaration as it arrives inside the device's state message.
@@ -184,8 +185,12 @@ function parseAnalog(
     -1,
     1,
   );
+  // Apply user-set shaping (if any) using the cached `known` input — device
+  // schema announcements clobber inputs wholesale via handleSchemaUpdate, so
+  // deadzone/curve survive only as long as the device doesn't re-announce.
+  const shaped = known ? applyAnalogShaping(known, normalised) : normalised;
   return {
-    event: { inputId: id, value: normalised },
+    event: { inputId: id, value: shaped },
     updatedInput,
   };
 }
