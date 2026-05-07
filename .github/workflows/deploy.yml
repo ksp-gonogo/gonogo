@@ -51,6 +51,10 @@ jobs:
         run: pnpm turbo build --filter=@gonogo/app...
         env:
           VITE_BASE_PATH: /gonogo/
+          # Axiom ingest. If the secret isn't set the logger silently
+          # skips installing the Axiom transport, so dropping the secret
+          # is a clean way to disable remote logging.
+          VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
 
       - uses: actions/configure-pages@v5
 
