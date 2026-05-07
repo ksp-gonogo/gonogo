@@ -7,7 +7,6 @@ import type {
 } from "@gonogo/data";
 import { KosScriptError, ListenerSet } from "@gonogo/data";
 import Peer, { type DataConnection } from "peerjs";
-import { loadIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
@@ -257,11 +256,14 @@ export class PeerClientService {
       `[PeerClient] connecting to host=${this.hostPeerId} as ${this.stationPeerId}`,
     );
     this.emitConnStatus("connecting");
-    const iceServers = loadIceServers();
-    this.peer = new Peer(
-      this.stationPeerId,
-      iceServers.length > 0 ? { config: { iceServers } } : undefined,
-    );
+    // Stations construct their Peer with no ICE config. The host's
+    // relay candidates flow in via the broker as part of the offer's
+    // ICE-candidate exchange — that's enough for one-side TURN to
+    // bridge difficult networks. Configuring local TURN here would
+    // require the station to know the relay's URL, which it doesn't —
+    // and previous defaults (`turn:localhost:3478`) actively broke
+    // mobile clients.
+    this.peer = new Peer(this.stationPeerId);
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
       this.conn = this.peer.connect(this.hostPeerId);

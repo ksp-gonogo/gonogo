@@ -122,7 +122,7 @@ describe("PeerHostService — kOS session handling", () => {
   it("does not fire kos-close when a replaced ws later emits close", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
-    service.start();
+    await service.start();
 
     // Wait for FakePeer "open" microtask
     await Promise.resolve();
@@ -186,7 +186,7 @@ describe("PeerHostService — kOS session handling", () => {
   it("does fire kos-close when the current (non-replaced) ws emits close", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
-    service.start();
+    await service.start();
 
     await Promise.resolve();
 
@@ -236,7 +236,7 @@ describe("PeerHostService — hello", () => {
     clearRegistry();
 
     const service = new PeerHostService();
-    service.start();
+    await service.start();
     await Promise.resolve();
 
     const conn = new FakeDataConnection();
@@ -280,7 +280,7 @@ describe("PeerHostService — stationKey ghost eviction", () => {
     clearRegistry();
 
     const service = new PeerHostService();
-    service.start();
+    await service.start();
     await Promise.resolve();
     if (!FakePeer.last) throw new Error("FakePeer not instantiated");
 
@@ -319,7 +319,7 @@ describe("PeerHostService — stationKey ghost eviction", () => {
     clearRegistry();
 
     const service = new PeerHostService();
-    service.start();
+    await service.start();
     await Promise.resolve();
     if (!FakePeer.last) throw new Error("FakePeer not instantiated");
 
@@ -356,7 +356,7 @@ describe("PeerHostService — selective subscription", () => {
     clearRegistry();
 
     const service = new PeerHostService();
-    service.start();
+    await service.start();
     await Promise.resolve();
     if (!FakePeer.last) throw new Error("FakePeer not instantiated");
 
@@ -476,7 +476,7 @@ describe("PeerHostService — schema broadcast", () => {
     } as unknown as Parameters<typeof registerDataSource>[0]);
 
     const service = new PeerHostService();
-    service.start();
+    await service.start();
     await Promise.resolve();
 
     const conn = new FakeDataConnection();

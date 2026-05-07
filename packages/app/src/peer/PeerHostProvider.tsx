@@ -46,7 +46,7 @@ export function PeerHostProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    peerHostService.start();
+    void peerHostService.start();
     const unsub = peerHostService.onPeerIdChange(setPeerId);
     return () => {
       unsub();

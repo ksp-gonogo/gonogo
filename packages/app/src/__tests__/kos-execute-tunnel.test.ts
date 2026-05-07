@@ -159,7 +159,7 @@ describe("kOS execute tunnel (station → host → kos)", () => {
     } as unknown as DataSource);
 
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve(); // let FakePeer "open" fire and register host id
 
     const client = new PeerClientService();
@@ -200,7 +200,7 @@ describe("kOS execute tunnel (station → host → kos)", () => {
     } as unknown as DataSource);
 
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve();
 
     const client = new PeerClientService();
@@ -237,7 +237,7 @@ describe("kOS execute tunnel (station → host → kos)", () => {
     } as unknown as DataSource;
 
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve();
 
     // Wrap exactly the way PeerHostProvider does on the main screen.
@@ -262,7 +262,7 @@ describe("kOS execute tunnel (station → host → kos)", () => {
   it("errors if the host has no kos registered", async () => {
     // No registerDataSource call — host has nothing.
     const host = new PeerHostService();
-    host.start();
+    await host.start();
     await Promise.resolve();
 
     const client = new PeerClientService();

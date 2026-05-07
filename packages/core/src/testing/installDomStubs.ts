@@ -42,6 +42,39 @@ export function installDomStubs(): void {
   // network attempts simply hang quietly. Tests that need a controllable
   // WebSocket inject their own fake.
   installNoopWebSocket();
+
+  // Same problem with `fetch`: PeerHostService now fetches /ice-config
+  // from the relay on start(). Tests run with no relay listening, so an
+  // un-mocked fetch hangs until the abort timeout, slowing every host
+  // test by 4 seconds. A 503-returning stub closes the loop instantly
+  // and gives the host the same "no TURN, run direct/STUN-only"
+  // fallback it'd take if the relay were genuinely unreachable.
+  installRelayFetchStub();
+}
+
+function installRelayFetchStub(): void {
+  if (typeof globalThis === "undefined") return;
+  const original = (globalThis as { fetch?: typeof fetch }).fetch;
+  // Wrap whatever's there; install a stand-in that returns 503 if no
+  // `fetch` exists at all. Either way `/ice-config` resolves
+  // synchronously-fast so PeerHostService.start() doesn't hang under
+  // tests on the abort-timeout path.
+  (globalThis as { fetch: typeof fetch }).fetch = (async (
+    input: Parameters<typeof fetch>[0],
+    init: Parameters<typeof fetch>[1],
+  ) => {
+    const url = typeof input === "string" ? input : (input as Request).url;
+    if (url.endsWith("/ice-config")) {
+      return new Response(JSON.stringify({ error: "test stub" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (!original) {
+      throw new Error(`no fetch available for ${url}`);
+    }
+    return original(input as RequestInfo, init);
+  }) as typeof fetch;
 }
 
 function installNoopWebSocket(): void {

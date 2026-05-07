@@ -554,7 +554,7 @@ describe("recorded launch — full mission control flow", () => {
       );
 
       await buffered.connect();
-      peerHostService.start();
+      await peerHostService.start();
       // Wait for the host's FakePeer to emit "open" with its assigned ID.
       const hostId = await new Promise<string>((res) => {
         const unsub = peerHostService.onPeerIdChange((id) => {
