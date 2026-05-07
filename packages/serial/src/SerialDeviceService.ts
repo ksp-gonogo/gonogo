@@ -331,10 +331,26 @@ export class SerialDeviceService {
   async removeDevice(id: string): Promise<void> {
     const managed = this.managed.get(id);
     if (!managed) return;
+    const orphanedTypeId = managed.deviceType.id;
+    const isDeviceAuthored = managed.deviceType.authoredBy === "device";
     await this.teardown(managed);
     this.managed.delete(id);
     this.saveDevices();
     this.emitDevicesChange();
+    // Self-describing device types belong to a single instance — when that
+    // instance goes, the type would otherwise dangle in the type editor with
+    // no way to manage it. Drop it once the last referring device is gone.
+    if (
+      isDeviceAuthored &&
+      this.deviceTypes.has(orphanedTypeId) &&
+      !Array.from(this.managed.values()).some(
+        (m) => m.instance.typeId === orphanedTypeId,
+      )
+    ) {
+      this.deviceTypes.delete(orphanedTypeId);
+      this.saveDeviceTypes();
+      this.emitDeviceTypesChange();
+    }
   }
 
   onDevicesChange(cb: () => void): () => void {
@@ -348,10 +364,22 @@ export class SerialDeviceService {
   // Transport control
   // -------------------------------------------------------------------------
 
-  async connect(deviceId: string): Promise<void> {
+  /**
+   * Connect a device. If a port is supplied (e.g. from a wizard that already
+   * called navigator.serial.requestPort), it's passed straight to the
+   * transport's connect — useful for one-shot pairing flows that want to
+   * avoid prompting the user a second time.
+   */
+  async connect(deviceId: string, opts?: { port?: SerialPort }): Promise<void> {
     const managed = this.managed.get(deviceId);
     if (!managed) return;
-    await managed.transport.connect();
+    const connect = (
+      managed.transport as DeviceTransport & {
+        connect?: (opts?: { port?: SerialPort }) => Promise<void>;
+      }
+    ).connect;
+    if (typeof connect !== "function") return;
+    await connect.call(managed.transport, opts);
     this.capturePortInfo(managed);
   }
 

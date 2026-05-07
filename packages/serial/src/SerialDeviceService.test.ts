@@ -516,6 +516,43 @@ describe("SerialDeviceService autoReconnect", () => {
   });
 });
 
+describe("SerialDeviceService device-authored type cleanup", () => {
+  it("removes a device-authored type when its last referring device is removed", async () => {
+    const svc = await makeService();
+    svc.upsertDeviceType({
+      id: "auto-x",
+      name: "(self-describing)",
+      parser: "json-state",
+      authoredBy: "device",
+      inputs: [],
+    });
+    svc.addDevice({
+      id: "sd-1",
+      name: "SD",
+      typeId: "auto-x",
+      transport: "virtual",
+    });
+    expect(svc.getDeviceType("auto-x")).toBeDefined();
+    await svc.removeDevice("sd-1");
+    expect(svc.getDeviceType("auto-x")).toBeUndefined();
+    await svc.destroy();
+  });
+
+  it("keeps a user-authored type even after its last device is removed", async () => {
+    const svc = await makeService();
+    svc.upsertDeviceType(TYPE);
+    svc.addDevice({
+      id: "v1",
+      name: "V",
+      typeId: TYPE.id,
+      transport: "virtual",
+    });
+    await svc.removeDevice("v1");
+    expect(svc.getDeviceType(TYPE.id)).toBeDefined();
+    await svc.destroy();
+  });
+});
+
 describe("SerialDeviceService hot-plug", () => {
   beforeEach(() => {
     vi.useRealTimers();

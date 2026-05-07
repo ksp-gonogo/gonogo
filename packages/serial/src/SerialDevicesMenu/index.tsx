@@ -12,6 +12,7 @@ import type { DeviceInstance, DeviceType } from "../types";
 import { isWebSerialSupported } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
+import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
 
 export function SerialDevicesMenu() {
   const [tab, setTab] = useState<"devices" | "types">("devices");
@@ -39,6 +40,11 @@ function DevicesTab() {
   const types = useSerialDeviceTypes();
   const pendingChoices = useSerialPendingChoices();
   const [editing, setEditing] = useState<DeviceInstance | "new" | null>(null);
+  const [adding, setAdding] = useState<"self-describing" | null>(null);
+
+  if (adding === "self-describing") {
+    return <SelfDescribingAddWizard onClose={() => setAdding(null)} />;
+  }
 
   if (editing !== null) {
     const initial = editing === "new" ? undefined : editing;
@@ -67,13 +73,24 @@ function DevicesTab() {
       )}
       <Toolbar>
         <Heading>Registered devices ({devices.length})</Heading>
-        <Button
-          type="button"
-          onClick={() => setEditing("new")}
-          disabled={types.length === 0}
-        >
-          + add device
-        </Button>
+        <ToolbarButtons>
+          {isWebSerialSupported() && (
+            <Button
+              type="button"
+              onClick={() => setAdding("self-describing")}
+              title="Pair a json-state controller without manually creating a device type"
+            >
+              + add self-describing
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={() => setEditing("new")}
+            disabled={types.length === 0}
+          >
+            + add device
+          </Button>
+        </ToolbarButtons>
       </Toolbar>
       {devices.length === 0 && <Empty>No devices yet.</Empty>}
       {devices.map((device) => (
@@ -191,16 +208,22 @@ function TypesTab() {
     );
   }
 
+  // Hide device-authored types — they're created and torn down with their
+  // owning self-describing device, so showing them in the editor would
+  // invite the user to "remove" something that's just going to come back
+  // (or worse, leave the device dangling).
+  const editableTypes = types.filter((t) => t.authoredBy !== "device");
+
   return (
     <List>
       <Toolbar>
-        <Heading>Registered types ({types.length})</Heading>
+        <Heading>Registered types ({editableTypes.length})</Heading>
         <Button type="button" onClick={() => setEditing("new")}>
           + add type
         </Button>
       </Toolbar>
-      {types.length === 0 && <Empty>No device types yet.</Empty>}
-      {types.map((type) => (
+      {editableTypes.length === 0 && <Empty>No device types yet.</Empty>}
+      {editableTypes.map((type) => (
         <Row key={type.id}>
           <RowHead>
             <RowName>{type.name}</RowName>
@@ -245,6 +268,12 @@ const Toolbar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 8px;
+`;
+
+const ToolbarButtons = styled.div`
+  display: flex;
+  gap: 6px;
 `;
 
 const Heading = styled.h3`
