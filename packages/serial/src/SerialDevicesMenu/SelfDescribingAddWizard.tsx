@@ -29,7 +29,15 @@ type Step =
   | { kind: "connecting"; deviceId: string; typeId: string }
   | { kind: "awaiting"; deviceId: string; typeId: string }
   | { kind: "naming"; deviceId: string; typeId: string }
-  | { kind: "error"; message: string; cleanup?: () => Promise<void> };
+  | { kind: "error"; message: string; cleanup?: () => Promise<void> }
+  /**
+   * The picked port matches the VID/PID of a device already registered
+   * on this screen — almost always because it was paired the manual way
+   * and autoReconnect grabbed it on screen mount, holding the port open.
+   * Offering "remove & retry" lets the user migrate to self-describing
+   * without going through the type editor first.
+   */
+  | { kind: "conflict"; existingId: string; existingName: string };
 
 const RANDOM_SUFFIX_LEN = 6;
 
@@ -122,6 +130,29 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     }
 
     const portInfo = port.getInfo();
+
+    // If this VID/PID is already registered on this screen, the manual
+    // device's transport almost certainly has the port open — the next
+    // port.open() will throw InvalidStateError. Catch it up front so the
+    // user gets a path forward instead of a generic "port already open"
+    // dump in the console.
+    const conflict = svc
+      .getDevices()
+      .find(
+        (d) =>
+          d.transport === "web-serial" &&
+          d.portInfo?.vendorId === portInfo.usbVendorId &&
+          d.portInfo?.productId === portInfo.usbProductId,
+      );
+    if (conflict) {
+      setStep({
+        kind: "conflict",
+        existingId: conflict.id,
+        existingName: conflict.name,
+      });
+      return;
+    }
+
     const typeId = `auto-${randomSuffix()}`;
     const deviceId = `sd-${randomSuffix()}`;
     const autoType: DeviceType = {
@@ -267,6 +298,32 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
           </Actions>
         </>
       )}
+
+      {step.kind === "conflict" && (
+        <>
+          <ConflictBox role="alert">
+            That USB port is already paired on this screen as{" "}
+            <strong>{step.existingName}</strong>. The existing device's
+            connection is holding the port open, which is why a fresh pair
+            attempt would fail with "port already open".
+          </ConflictBox>
+          <FieldHint>
+            Remove the existing pairing to migrate it to a self-describing
+            device, or cancel and use the existing one as-is.
+          </FieldHint>
+          <Actions>
+            <GhostButton onClick={onClose}>Cancel</GhostButton>
+            <PrimaryButton
+              onClick={async () => {
+                await svc.removeDevice(step.existingId);
+                setStep({ kind: "picking" });
+              }}
+            >
+              Remove existing & retry
+            </PrimaryButton>
+          </Actions>
+        </>
+      )}
     </Wrap>
   );
 }
@@ -326,6 +383,14 @@ const ErrorBox = styled.div`
   padding: 8px;
   font-size: var(--font-size-xs);
   color: var(--color-status-nogo-bg);
+`;
+
+const ConflictBox = styled.div`
+  background: var(--color-status-warning-bg);
+  border-radius: 3px;
+  padding: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
 `;
 
 const Actions = styled.div`
