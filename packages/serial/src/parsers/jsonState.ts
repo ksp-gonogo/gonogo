@@ -1,7 +1,10 @@
 import { clamp } from "@gonogo/core";
+import { logger } from "@gonogo/logger";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
 import { applyAnalogShaping } from "./analogShaping";
+
+const trace = logger.tag("serial:parser");
 
 /**
  * Screen declaration as it arrives inside the device's state message.
@@ -175,6 +178,20 @@ function parseAnalog(
   }
 
   if (val === undefined || !haveRange || max === min) {
+    // Spell out why this analog produced no event so the user can tell
+    // "device sent nothing" from "device sent something but I dropped it".
+    const reason =
+      val === undefined
+        ? "no-value"
+        : !haveRange
+          ? "no-range-cached" // typical: short-form `"X": 100` with no prior `{min,max}` declaration
+          : "min-equals-max"; // device misconfigured — range collapsed
+    trace.debug("analog skipped", {
+      id,
+      reason,
+      rawType: typeof raw,
+      hasKnown: !!known,
+    });
     return { event: null, updatedInput };
   }
 
