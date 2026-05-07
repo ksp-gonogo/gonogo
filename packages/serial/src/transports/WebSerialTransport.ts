@@ -48,6 +48,16 @@ export class WebSerialTransport implements DeviceTransport {
     (status: TransportStatus, err?: unknown) => void
   >();
 
+  /**
+   * In-flight connect promise. Coalesces concurrent calls — autoReconnect
+   * (StrictMode setup) and tryAdoptPort (hot-plug) can both fire connect()
+   * for the same transport in quick succession, and Web Serial rejects the
+   * second port.open() with "A call to open() is already in progress".
+   * Coalescing means the second caller awaits the first's result instead of
+   * starting a parallel open.
+   */
+  private connectingPromise: Promise<void> | null = null;
+
   constructor(opts: WebSerialTransportOptions) {
     this.id = opts.id;
     this.deviceType = opts.deviceType;
@@ -77,6 +87,14 @@ export class WebSerialTransport implements DeviceTransport {
   }
 
   async connect(options?: { port?: SerialPort }): Promise<void> {
+    if (this.connectingPromise) return this.connectingPromise;
+    this.connectingPromise = this.doConnect(options).finally(() => {
+      this.connectingPromise = null;
+    });
+    return this.connectingPromise;
+  }
+
+  private async doConnect(options?: { port?: SerialPort }): Promise<void> {
     try {
       // Defensive cleanup: a previous read-loop error or hot-unplug could
       // have left a stale port reference behind. Drop it before opening
@@ -95,6 +113,21 @@ export class WebSerialTransport implements DeviceTransport {
         (await navigator.serial.requestPort({
           filters: this.filters,
         }));
+
+      // The picked port may already be in an open state — happens when a
+      // previous connect() failed mid-flight (open() at the OS level
+      // succeeded but our promise rejected, e.g. on stream-setup error)
+      // and the port stayed open without our `this.port` being updated.
+      // `port.readable` / `port.writable` are non-null exactly when the
+      // port is open at the OS level, so we close it before reopening.
+      if (port.readable !== null || port.writable !== null) {
+        try {
+          await port.close();
+        } catch {
+          // Best effort.
+        }
+      }
+
       await port.open({
         baudRate: this.baudRate,
         dataBits: 8,
@@ -134,26 +167,46 @@ export class WebSerialTransport implements DeviceTransport {
   }
 
   async disconnect(): Promise<void> {
+    // Run every cleanup step independently. The original `try { … all
+    // steps … }` pattern aborted the rest of the teardown if any single
+    // step threw — typical when the device was pulled mid-read, where
+    // reader.cancel() rejects with "device lost" and we'd then never
+    // null `this.port`, leaving the JS state corrupt for the next
+    // connect() attempt.
     try {
       await this.reader?.cancel();
-      this.reader?.releaseLock();
-      this.reader = null;
-      // Do NOT await readableClosed / writableClosed — their pipeTo promises
-      // only resolve once the source/destination fully close, which for a
-      // mock or a hard-pulled USB device may never happen. Drop the refs.
-      this.readableClosed?.catch(() => {});
-      this.readableClosed = null;
-
-      this.writer?.releaseLock();
-      this.writer = null;
-      this.writableClosed?.catch(() => {});
-      this.writableClosed = null;
-
-      await this.port?.close();
-      this.port = null;
-    } finally {
-      this.setStatus("disconnected");
+    } catch {
+      // expected on lost devices
     }
+    try {
+      this.reader?.releaseLock();
+    } catch {
+      // releaseLock throws if already released
+    }
+    this.reader = null;
+    // Do NOT await readableClosed / writableClosed — their pipeTo promises
+    // only resolve once the source/destination fully close, which for a
+    // mock or a hard-pulled USB device may never happen. Drop the refs.
+    this.readableClosed?.catch(() => {});
+    this.readableClosed = null;
+
+    try {
+      this.writer?.releaseLock();
+    } catch {
+      // ditto
+    }
+    this.writer = null;
+    this.writableClosed?.catch(() => {});
+    this.writableClosed = null;
+
+    const port = this.port;
+    this.port = null;
+    try {
+      await port?.close();
+    } catch {
+      // Closing a lost port often throws; fine.
+    }
+    this.setStatus("disconnected");
   }
 
   async write(data: string | Uint8Array): Promise<void> {
