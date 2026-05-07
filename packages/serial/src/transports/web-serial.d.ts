@@ -27,8 +27,21 @@ interface SerialPortInfo {
   usbProductId?: number;
 }
 
+interface SerialConnectionEvent extends Event {
+  readonly port: SerialPort;
+}
+
 interface Serial {
   requestPort(options?: { filters?: SerialPortFilter[] }): Promise<SerialPort>;
+  getPorts?(): Promise<SerialPort[]>;
+  addEventListener?(
+    type: "connect" | "disconnect",
+    listener: (event: SerialConnectionEvent) => void,
+  ): void;
+  removeEventListener?(
+    type: "connect" | "disconnect",
+    listener: (event: SerialConnectionEvent) => void,
+  ): void;
 }
 
 interface Navigator {

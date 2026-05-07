@@ -149,6 +149,10 @@ export function StationScreen() {
     // Reopen previously-authorised serial ports (no user prompt). Covers the
     // "auto-reconnect on station refresh" live-test bug.
     void serialService.autoReconnect();
+    return () => {
+      // Detach navigator.serial listeners + tear down transports on unmount.
+      void serialService.destroy();
+    };
   }, [serialService]);
 
   function attemptConnect(hostId: string) {

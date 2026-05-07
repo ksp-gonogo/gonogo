@@ -7,7 +7,9 @@ export * from "./parsers/jsonState";
 export * from "./registry";
 export * from "./renderStyles/textBuffer";
 export {
+  type SerialAggregateStatus,
   SerialDeviceProvider,
+  useSerialAggregateStatus,
   useSerialDeviceService,
   useSerialDeviceStatus,
   useSerialDevices,

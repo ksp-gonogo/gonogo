@@ -114,6 +114,12 @@ export function MainScreen() {
     // Auto-reopen previously-authorised serial ports on load. Silent no-op
     // on browsers without Web Serial, or when there are no saved devices.
     void serialService.autoReconnect();
+    return () => {
+      // Detach navigator.serial listeners + tear down transports when the
+      // screen unmounts (e.g. route change). Without this the next screen's
+      // service would race with the old one to adopt hot-plug events.
+      void serialService.destroy();
+    };
   }, [serialService]);
 
   useEffect(() => {

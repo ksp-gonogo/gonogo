@@ -100,9 +100,19 @@ interface InstallOptions {
   force?: boolean;
 }
 
+type SerialEventListener = (event: SerialConnectionEvent) => void;
+
 interface SerialLike {
   requestPort(options?: { filters?: SerialPortFilter[] }): Promise<SerialPort>;
   getPorts(): Promise<SerialPort[]>;
+  addEventListener(
+    type: "connect" | "disconnect",
+    listener: SerialEventListener,
+  ): void;
+  removeEventListener(
+    type: "connect" | "disconnect",
+    listener: SerialEventListener,
+  ): void;
 }
 
 export class MockWebSerial {
@@ -110,6 +120,8 @@ export class MockWebSerial {
   private queue: MockSerialPort[] = [];
   private previous: unknown = undefined;
   private installed = false;
+  private connectListeners = new Set<SerialEventListener>();
+  private disconnectListeners = new Set<SerialEventListener>();
 
   /** Install a mock `navigator.serial`. */
   install(opts: InstallOptions = {}): void {
@@ -126,8 +138,28 @@ export class MockWebSerial {
         return next;
       },
       getPorts: async () => this.ports.slice(),
+      addEventListener: (type, listener) => {
+        if (type === "connect") this.connectListeners.add(listener);
+        else this.disconnectListeners.add(listener);
+      },
+      removeEventListener: (type, listener) => {
+        if (type === "connect") this.connectListeners.delete(listener);
+        else this.disconnectListeners.delete(listener);
+      },
     };
     this.installed = true;
+  }
+
+  /** Fire a synthetic 'connect' event for a previously-created port. */
+  fireConnect(port: MockSerialPort): void {
+    const evt = { port } as unknown as SerialConnectionEvent;
+    for (const cb of Array.from(this.connectListeners)) cb(evt);
+  }
+
+  /** Fire a synthetic 'disconnect' event for a previously-created port. */
+  fireDisconnect(port: MockSerialPort): void {
+    const evt = { port } as unknown as SerialConnectionEvent;
+    for (const cb of Array.from(this.disconnectListeners)) cb(evt);
   }
 
   /** Restore the original `navigator.serial` (or delete it). */
@@ -141,6 +173,8 @@ export class MockWebSerial {
     this.installed = false;
     this.ports = [];
     this.queue = [];
+    this.connectListeners.clear();
+    this.disconnectListeners.clear();
   }
 
   /**
