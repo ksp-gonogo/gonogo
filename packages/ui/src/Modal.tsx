@@ -1,3 +1,4 @@
+import { safeRandomUuid } from "@gonogo/core";
 import type { ReactNode } from "react";
 import {
   createContext,
@@ -50,7 +51,7 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const open = useCallback(
     (content: ReactNode, options?: ModalOpenOptions): string => {
-      const id = crypto.randomUUID();
+      const id = safeRandomUuid();
       setModals((prev) => [
         ...prev,
         { id, title: options?.title, width: options?.width, content },

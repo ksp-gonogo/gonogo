@@ -1,3 +1,4 @@
+import { safeRandomUuid } from "@gonogo/core";
 import type {
   FlightRecord,
   KosData,
@@ -520,7 +521,7 @@ export class PeerClientService {
     if (!this.conn) {
       return Promise.reject(new Error("not connected"));
     }
-    const requestId = crypto.randomUUID();
+    const requestId = safeRandomUuid();
     const pending = this.pendingQueries.track(
       requestId,
       timeoutMs,
@@ -573,7 +574,7 @@ export class PeerClientService {
     if (!this.conn) {
       throw new Error("not connected");
     }
-    const requestId = crypto.randomUUID();
+    const requestId = safeRandomUuid();
     const pending = this.pendingFlightRpc.track(
       requestId,
       timeoutMs,
@@ -654,7 +655,7 @@ export class PeerClientService {
     if (!this.conn || this.conn.open === false) {
       return Promise.reject(new Error("not connected to host"));
     }
-    const requestId = crypto.randomUUID();
+    const requestId = safeRandomUuid();
     const pending = this.pendingKosExecutes.track(
       requestId,
       timeoutMs,

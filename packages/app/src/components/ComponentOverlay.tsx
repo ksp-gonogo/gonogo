@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "@gonogo/core";
-import { getComponents } from "@gonogo/core";
+import { getComponents, safeRandomUuid } from "@gonogo/core";
 import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
 import { SerialDeviceProvider, useSerialDeviceService } from "@gonogo/serial";
 import {
@@ -149,7 +149,7 @@ export function ComponentOverlay({
   const handleSelect = useCallback(
     (def: ComponentDefinition) => {
       const item: DashboardItem = {
-        i: crypto.randomUUID(),
+        i: safeRandomUuid(),
         componentId: def.id,
         config: def.defaultConfig ? { ...def.defaultConfig } : undefined,
       };

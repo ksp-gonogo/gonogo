@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@gonogo/core";
-import { getDataSource, registerComponent, useKosProxy } from "@gonogo/core";
+import {
+  getDataSource,
+  registerComponent,
+  safeRandomUuid,
+  useKosProxy,
+} from "@gonogo/core";
 import { useReplayActive } from "@gonogo/data";
 import { Panel, PanelTitle } from "@gonogo/ui";
 import { FitAddon } from "@xterm/addon-fit";
@@ -197,7 +202,7 @@ function KosTerminalLive({
     // Fresh session id every time the effect runs — including reconnects
     // triggered by a kos config change, so the proxy treats this as a
     // brand-new pty rather than trying to resize a stale one.
-    const sessionId = crypto.randomUUID();
+    const sessionId = safeRandomUuid();
     let teardown: (() => void) | null = null;
     let cancelled = false;
     let sizeWaiter: ResizeObserver | null = null;

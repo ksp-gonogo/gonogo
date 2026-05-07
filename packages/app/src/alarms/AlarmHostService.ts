@@ -1,3 +1,4 @@
+import { safeRandomUuid } from "@gonogo/core";
 import type { BufferedDataSource } from "@gonogo/data";
 import { LocalStorageStore } from "@gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -387,7 +388,7 @@ export function createAlarmHost(
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return safeRandomUuid();
   }
   return `alarm_${Date.now().toString(36)}_${Math.random()
     .toString(36)

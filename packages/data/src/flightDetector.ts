@@ -1,3 +1,4 @@
+import { safeRandomUuid } from "@gonogo/core";
 import { debugFlight } from "./logger";
 import type { FlightRecord } from "./types";
 
@@ -170,7 +171,7 @@ export class FlightDetector {
 
   private mintNew(input: DetectorInput): DetectorDecision {
     const record: FlightRecord = {
-      id: crypto.randomUUID(),
+      id: safeRandomUuid(),
       vesselName: input.vesselName,
       vesselUid: input.vesselUid ?? null,
       launchedAt: input.now,

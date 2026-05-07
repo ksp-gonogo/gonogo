@@ -1,4 +1,4 @@
-import { getBody, getDataSource } from "@gonogo/core";
+import { getBody, getDataSource, safeRandomUuid } from "@gonogo/core";
 import {
   buildCurrentOrbit,
   computeMu,
@@ -209,7 +209,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return safeRandomUuid();
   }
   return `trigger_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }

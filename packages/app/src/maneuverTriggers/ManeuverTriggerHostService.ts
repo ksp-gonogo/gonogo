@@ -12,7 +12,7 @@ import {
   type ThresholdOp,
   type TriggerSnapshot,
 } from "@gonogo/components";
-import { getBody } from "@gonogo/core";
+import { getBody, safeRandomUuid } from "@gonogo/core";
 import { LocalStorageStore } from "@gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 
@@ -336,7 +336,7 @@ function migrateTrigger(raw: unknown): ArmedTrigger | null {
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return safeRandomUuid();
   }
   return `trigger_${Date.now().toString(36)}_${Math.random()
     .toString(36)

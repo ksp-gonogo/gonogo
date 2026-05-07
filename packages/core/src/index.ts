@@ -25,6 +25,7 @@ export { ErrorBoundary } from "./logger/ErrorBoundary";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
 export * from "./registry";
+export * from "./safeRandomUuid";
 export * from "./schemas/telemachus";
 export * from "./stock-bodies";
 export * from "./streamRegistry";
