@@ -150,15 +150,19 @@ export class MockWebSerial {
     this.installed = true;
   }
 
-  /** Fire a synthetic 'connect' event for a previously-created port. */
+  /**
+   * Fire a synthetic 'connect' event. Mirrors the Web Serial spec — the
+   * port lives at `event.target`, not `event.port`. (An earlier mock used
+   * `event.port`; tests passed but real browsers were silently broken.)
+   */
   fireConnect(port: MockSerialPort): void {
-    const evt = { port } as unknown as SerialConnectionEvent;
+    const evt = { target: port } as unknown as SerialConnectionEvent;
     for (const cb of Array.from(this.connectListeners)) cb(evt);
   }
 
-  /** Fire a synthetic 'disconnect' event for a previously-created port. */
+  /** Fire a synthetic 'disconnect' event. See fireConnect for the shape. */
   fireDisconnect(port: MockSerialPort): void {
-    const evt = { port } as unknown as SerialConnectionEvent;
+    const evt = { target: port } as unknown as SerialConnectionEvent;
     for (const cb of Array.from(this.disconnectListeners)) cb(evt);
   }
 

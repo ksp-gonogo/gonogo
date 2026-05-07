@@ -27,8 +27,15 @@ interface SerialPortInfo {
   usbProductId?: number;
 }
 
+/**
+ * Per the Web Serial spec, `connect` and `disconnect` are plain Events
+ * whose `target` is the SerialPort — there is NO `port` field on the
+ * event itself. Earlier code in this repo read `evt.port`, which silently
+ * worked in tests (the mock matched) but produced `undefined` from a real
+ * browser, breaking hot-plug and crashing on disconnect.
+ */
 interface SerialConnectionEvent extends Event {
-  readonly port: SerialPort;
+  readonly target: SerialPort;
 }
 
 interface Serial {
