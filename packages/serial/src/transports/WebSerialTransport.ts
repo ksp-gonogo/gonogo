@@ -147,6 +147,19 @@ export class WebSerialTransport implements DeviceTransport {
         const transient =
           err instanceof Error && err.name === "InvalidStateError";
         if (!transient) throw err;
+        // The port can be open at OS level even though our await for
+        // open() rejected — a previous in-progress open quietly resolved
+        // and our explicit close() didn't tear it down. `port.readable`
+        // and `port.writable` are non-null exactly when the port is
+        // currently open. Treat that as success: doConnect will hook
+        // streams off the existing open state instead of fighting it.
+        if (port.readable !== null && port.writable !== null) {
+          trace.debug("open recovered — port already open at OS level", {
+            deviceId: this.id,
+            attempt: i + 1,
+          });
+          return;
+        }
         // else: loop and retry after backoff
       }
     }
