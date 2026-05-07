@@ -13,6 +13,8 @@ import styled from "styled-components";
 import { useSerialDeviceService } from "../SerialDeviceContext";
 import type { DeviceType } from "../types";
 
+const trace = logger.tag("serial:wizard");
+
 // 115200 is the modern Arduino-class default; 9600 is legacy. The other
 // rates are uncommon but not unheard of — surface them rather than make
 // users edit JSON. Wrong baud → garbled bytes → no newlines surface →
@@ -45,6 +47,25 @@ function randomSuffix(): string {
   return Math.random()
     .toString(36)
     .slice(2, 2 + RANDOM_SUFFIX_LEN);
+}
+
+/**
+ * Find a saved web-serial device that matches the picked port. We only
+ * trust the match when both sides have a real `vendorId` — otherwise
+ * `undefined === undefined` would treat every VID-less device as a
+ * conflict, which is worse than the false negative.
+ */
+function findConflict(
+  devices: ReturnType<ReturnType<typeof useSerialDeviceService>["getDevices"]>,
+  portInfo: { usbVendorId?: number; usbProductId?: number },
+) {
+  if (portInfo.usbVendorId === undefined) return undefined;
+  return devices.find(
+    (d) =>
+      d.transport === "web-serial" &&
+      d.portInfo?.vendorId === portInfo.usbVendorId &&
+      d.portInfo?.productId === portInfo.usbProductId,
+  );
 }
 
 /**
@@ -130,20 +151,23 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     }
 
     const portInfo = port.getInfo();
+    trace.debug("wizard: pre-connect conflict check", {
+      portVid: portInfo.usbVendorId,
+      portPid: portInfo.usbProductId,
+      existingDevices: svc.getDevices().map((d) => ({
+        id: d.id,
+        name: d.name,
+        transport: d.transport,
+        portInfo: d.portInfo,
+      })),
+    });
 
     // If this VID/PID is already registered on this screen, the manual
     // device's transport almost certainly has the port open — the next
     // port.open() will throw InvalidStateError. Catch it up front so the
     // user gets a path forward instead of a generic "port already open"
     // dump in the console.
-    const conflict = svc
-      .getDevices()
-      .find(
-        (d) =>
-          d.transport === "web-serial" &&
-          d.portInfo?.vendorId === portInfo.usbVendorId &&
-          d.portInfo?.productId === portInfo.usbProductId,
-      );
+    const conflict = findConflict(svc.getDevices(), portInfo);
     if (conflict) {
       setStep({
         kind: "conflict",
@@ -185,6 +209,38 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
     try {
       await svc.connect(deviceId, { port });
     } catch (err) {
+      // Recovery for the specific "port already open" failure: roll back
+      // the device we just added (so we don't leave a half-paired ghost
+      // referring to a port we don't actually own) and try once more to
+      // route to the conflict step. Reaching here means the upfront
+      // findConflict missed something — most often a VID-less port that
+      // matches an existing VID-less device, or a race where the existing
+      // device opened the port between getDevices() and connect().
+      const isPortOpen =
+        err instanceof Error && err.name === "InvalidStateError";
+      if (isPortOpen) {
+        await svc.removeDevice(deviceId).catch(() => {});
+        cleanupRef.current = null;
+        const after = findConflict(svc.getDevices(), portInfo);
+        trace.debug("wizard: port-open recovery", {
+          foundExisting: !!after,
+          existingId: after?.id,
+        });
+        if (after) {
+          setStep({
+            kind: "conflict",
+            existingId: after.id,
+            existingName: after.name,
+          });
+          return;
+        }
+        setStep({
+          kind: "error",
+          message:
+            "This USB port is already open, but no existing pairing on this screen claims it. Another tab or app may have it — close other consumers or unplug + replug the controller, then retry.",
+        });
+        return;
+      }
       setStep({
         kind: "error",
         message: `Connect failed: ${String(err)}`,
