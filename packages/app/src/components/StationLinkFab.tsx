@@ -1,4 +1,10 @@
-import { BroadcastIcon, Fab, StatusIndicator, useModal } from "@gonogo/ui";
+import {
+  BroadcastIcon,
+  Fab,
+  GhostButton,
+  StatusIndicator,
+  useModal,
+} from "@gonogo/ui";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -80,7 +86,59 @@ function StationLinkPanel() {
         Scan to open <code>/station</code> on another device — it&apos;ll
         auto-connect to this host. Or copy the link above.
       </Hint>
+      <RegenerateRow />
     </Wrap>
+  );
+}
+
+/**
+ * Two-step button: idle → "Regenerate" → "Confirm" → kicks the host's
+ * peer service. Stations connected with the previous code will lose
+ * their data channel and need to be re-shared via QR / link. Useful
+ * when the broker is still holding a ghost session for the persisted
+ * id (the "ID is taken" recovery path) and when the operator wants
+ * to rotate the share code for any other reason.
+ */
+function RegenerateRow() {
+  const [phase, setPhase] = useState<"idle" | "confirming" | "running">("idle");
+
+  useEffect(() => {
+    if (phase !== "confirming") return;
+    const reset = setTimeout(() => setPhase("idle"), 4000);
+    return () => clearTimeout(reset);
+  }, [phase]);
+
+  async function run() {
+    setPhase("running");
+    try {
+      await peerHostService.regeneratePeerId();
+    } finally {
+      setPhase("idle");
+    }
+  }
+
+  return (
+    <RegenerateWrap>
+      {phase === "idle" && (
+        <GhostButton type="button" onClick={() => setPhase("confirming")}>
+          Regenerate code
+        </GhostButton>
+      )}
+      {phase === "confirming" && (
+        <GhostButton type="button" onClick={run}>
+          Confirm — disconnects every station
+        </GhostButton>
+      )}
+      {phase === "running" && (
+        <GhostButton type="button" disabled>
+          Regenerating…
+        </GhostButton>
+      )}
+      <RegenerateHint>
+        Use this if the host is stuck on &ldquo;ID is taken&rdquo; or you want a
+        fresh share code. Connected stations will need the new code.
+      </RegenerateHint>
+    </RegenerateWrap>
   );
 }
 
@@ -223,4 +281,19 @@ const Empty = styled.div`
   font-size: 12px;
   color: var(--color-text-dim);
   text-align: center;
+`;
+
+const RegenerateWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 12px;
+`;
+
+const RegenerateHint = styled.p`
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 `;

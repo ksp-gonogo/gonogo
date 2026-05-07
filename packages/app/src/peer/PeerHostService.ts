@@ -821,8 +821,25 @@ export class PeerHostService {
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;
+    this.connections.clear();
     this.idListeners.fire(null);
     logger.info("[PeerHost] stopped");
+  }
+
+  /**
+   * Drop the persisted host id and bring up a fresh Peer with a new
+   * four-character share code. Used by the operator-facing regenerate
+   * button in the Add Station modal — primarily as a recovery from the
+   * "ID is taken" rejection (a previous tab/process left a ghost session
+   * the broker is still holding) but also as a generic "rotate the
+   * code" action. Tears down every active station data channel; the
+   * operator is expected to re-share via QR or copied link.
+   */
+  async regeneratePeerId(): Promise<void> {
+    logger.info("[PeerHost] regenerating peer id");
+    this.stop();
+    localStorage.removeItem(PEER_ID_KEY);
+    await this.start();
   }
 }
 
