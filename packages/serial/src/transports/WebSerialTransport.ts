@@ -40,6 +40,7 @@ export class WebSerialTransport implements DeviceTransport {
 
   private inputListeners = new Set<(event: InputEvent) => void>();
   private schemaListeners = new Set<(update: SchemaUpdate) => void>();
+  private rawLineListeners = new Set<(line: string) => void>();
   private statusListeners = new Set<
     (status: TransportStatus, err?: unknown) => void
   >();
@@ -152,6 +153,13 @@ export class WebSerialTransport implements DeviceTransport {
     };
   }
 
+  onRawLine(cb: (line: string) => void): () => void {
+    this.rawLineListeners.add(cb);
+    return () => {
+      this.rawLineListeners.delete(cb);
+    };
+  }
+
   updateDeviceType(type: DeviceType): void {
     this.deviceType = type;
   }
@@ -179,6 +187,15 @@ export class WebSerialTransport implements DeviceTransport {
   }
 
   private handleLine(line: string): void {
+    // Notify raw-line subscribers first so the calibration wizard can show
+    // exactly what the device is sending, even if the parser would discard
+    // the line. Skip empty lines so the wizard's "latest" view doesn't
+    // flicker through blanks at startup.
+    if (line !== "") {
+      this.rawLineListeners.forEach((cb) => {
+        cb(line);
+      });
+    }
     if (this.deviceType.parser === "char-position") {
       const events = parseCharPosition(line, this.deviceType.inputs);
       for (const event of events) {

@@ -19,6 +19,7 @@ export class VirtualTransport implements DeviceTransport {
     (status: TransportStatus, err?: unknown) => void
   >();
   private frameListeners = new Set<(frame: string | Uint8Array) => void>();
+  private rawLineListeners = new Set<(line: string) => void>();
 
   constructor(id: string) {
     this.id = id;
@@ -68,6 +69,24 @@ export class VirtualTransport implements DeviceTransport {
   inject(inputId: string, value: boolean | number): void {
     this.inputListeners.forEach((cb) => {
       cb({ inputId, value });
+    });
+  }
+
+  /** Subscribe to raw lines fed via `injectRawLine`. */
+  onRawLine(cb: (line: string) => void): () => void {
+    this.rawLineListeners.add(cb);
+    return () => {
+      this.rawLineListeners.delete(cb);
+    };
+  }
+
+  /**
+   * Fire a synthetic raw line so calibration-wizard tests can drive the
+   * "live device" branch without touching navigator.serial.
+   */
+  injectRawLine(line: string): void {
+    this.rawLineListeners.forEach((cb) => {
+      cb(line);
     });
   }
 
