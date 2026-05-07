@@ -171,6 +171,11 @@ export class PeerHostService {
   private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
 
   peerId: string | null = null;
+  /** ICE servers fetched from the relay on start(). Exposed so the
+   *  TURN reachability probe can re-use exactly what the host's Peer
+   *  was constructed with. Empty `[]` means the fetch failed or no
+   *  relay is configured. */
+  iceServers: RTCIceServer[] = [];
 
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
@@ -183,10 +188,12 @@ export class PeerHostService {
     // wouldn't make it into the offer. If the fetch fails we get an
     // empty array and run direct/STUN-only; the readiness UI tells the
     // operator about it.
-    const iceServers = await fetchHostIceServers();
+    this.iceServers = await fetchHostIceServers();
     this.peer = new Peer(
       peerId,
-      iceServers.length > 0 ? { config: { iceServers } } : undefined,
+      this.iceServers.length > 0
+        ? { config: { iceServers: this.iceServers } }
+        : undefined,
     );
 
     this.peer.on("open", (id) => {

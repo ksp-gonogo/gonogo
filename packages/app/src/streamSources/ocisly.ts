@@ -366,6 +366,37 @@ export class OcislyStreamSource implements StreamSource {
       pc.addEventListener("icegatheringstatechange", () => {
         logState("iceGatheringState", pc.iceGatheringState);
       });
+      // Candidate-level logging mirrors peer:ice on the data conn —
+      // when a camera "never opens" the candidate types tell us
+      // immediately whether host pairs failed (different LAN), srflx
+      // wasn't gathered (no STUN reachable), or relay was gathered but
+      // pair-checking failed (TURN credentials wrong, port-forward
+      // missing). Without this we can't distinguish those failure
+      // shapes from each other.
+      pc.addEventListener("icecandidate", (ev) => {
+        const c = ev.candidate;
+        if (!c) {
+          streamLog.debug("icecandidate: end-of-candidates", { cameraId });
+          return;
+        }
+        streamLog.debug("icecandidate", {
+          cameraId,
+          type: c.type,
+          protocol: c.protocol,
+          address: c.address,
+          port: c.port,
+          relatedAddress: c.relatedAddress,
+        });
+      });
+      pc.addEventListener("icecandidateerror", (ev) => {
+        const e = ev as RTCPeerConnectionIceErrorEvent;
+        streamLog.warn("icecandidateerror", {
+          cameraId,
+          url: e.url,
+          errorCode: e.errorCode,
+          errorText: e.errorText,
+        });
+      });
     }
 
     call.on("stream", (stream: MediaStream) => {
