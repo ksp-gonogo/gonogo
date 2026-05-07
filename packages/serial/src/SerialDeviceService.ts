@@ -1,5 +1,7 @@
 import { logger } from "@gonogo/logger";
 import { getSerialRenderStyle } from "./registry";
+
+const trace = logger.tag("serial:transport");
 // Side-effect import: built-in render styles self-register on load so the
 // service can resolve `text-buffer-168` without the caller opting in.
 // Do not remove without first moving registration elsewhere.
@@ -125,15 +127,30 @@ export class SerialDeviceService {
   private attachNavigatorListeners(): void {
     const serial = (globalThis as { navigator?: { serial?: Serial } }).navigator
       ?.serial;
-    if (!serial?.addEventListener) return;
+    if (!serial?.addEventListener) {
+      trace.debug("hot-plug listeners NOT installed (no navigator.serial)");
+      return;
+    }
 
     const onConnect = (evt: SerialConnectionEvent) => {
       const port = evt.target;
+      const info = port?.getInfo?.();
+      trace.debug("navigator.serial 'connect' fired", {
+        hasTarget: !!port,
+        vendorId: info?.usbVendorId,
+        productId: info?.usbProductId,
+      });
       if (!port) return;
       void this.tryAdoptPort(port);
     };
     const onDisconnect = (evt: SerialConnectionEvent) => {
       const port = evt.target;
+      const info = port?.getInfo?.();
+      trace.debug("navigator.serial 'disconnect' fired", {
+        hasTarget: !!port,
+        vendorId: info?.usbVendorId,
+        productId: info?.usbProductId,
+      });
       if (!port) return;
       this.handlePortDisconnect(port);
     };
@@ -141,6 +158,7 @@ export class SerialDeviceService {
     serial.addEventListener("disconnect", onDisconnect);
     this.hotPlugConnectListener = onConnect;
     this.hotPlugDisconnectListener = onDisconnect;
+    trace.debug("hot-plug listeners installed");
   }
 
   private detachNavigatorListeners(): void {
@@ -165,21 +183,37 @@ export class SerialDeviceService {
   private async tryAdoptPort(port: SerialPort): Promise<void> {
     const info = port?.getInfo?.();
     if (!info?.usbVendorId) {
-      logger.debug(
-        "[SerialDeviceService] hot-plug ignored — port has no VID/PID",
-      );
+      trace.debug("hot-plug skip — port has no VID/PID");
       return;
     }
-    for (const managed of this.managed.values()) {
-      if (managed.instance.transport !== "web-serial") continue;
-      if (managed.transport.status === "connected") continue;
+    const candidates = Array.from(this.managed.values()).filter(
+      (m) => m.instance.transport === "web-serial",
+    );
+    trace.debug("hot-plug evaluating candidates", {
+      candidateCount: candidates.length,
+      portVid: info.usbVendorId,
+      portPid: info.usbProductId,
+    });
+    for (const managed of candidates) {
+      if (managed.transport.status === "connected") {
+        trace.debug("hot-plug skip — already connected", {
+          deviceId: managed.instance.id,
+        });
+        continue;
+      }
       const saved = managed.instance.portInfo;
-      if (!saved?.vendorId) continue;
+      if (!saved?.vendorId) {
+        trace.debug("hot-plug skip — no saved VID/PID", {
+          deviceId: managed.instance.id,
+        });
+        continue;
+      }
       if (
         saved.vendorId !== info.usbVendorId ||
         saved.productId !== info.usbProductId
-      )
+      ) {
         continue;
+      }
 
       const adopt = (
         managed.transport as DeviceTransport & {
@@ -188,8 +222,12 @@ export class SerialDeviceService {
       ).connect;
       if (typeof adopt !== "function") continue;
       try {
+        trace.debug("hot-plug adopting", { deviceId: managed.instance.id });
         await adopt.call(managed.transport, { port });
         this.capturePortInfo(managed);
+        trace.debug("hot-plug adopt succeeded", {
+          deviceId: managed.instance.id,
+        });
       } catch (err) {
         logger.warn(
           `[SerialDeviceService] hot-plug adopt failed for ${managed.instance.id}`,
@@ -200,6 +238,10 @@ export class SerialDeviceService {
       // from racing to claim the same physical port.
       return;
     }
+    trace.debug("hot-plug no matching candidate", {
+      portVid: info.usbVendorId,
+      portPid: info.usbProductId,
+    });
   }
 
   /**
