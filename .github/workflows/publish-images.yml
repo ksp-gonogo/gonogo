@@ -26,8 +26,8 @@ jobs:
         include:
           - package: telnet-proxy
             image: gonogo-telnet-proxy
-          - package: ocisly-proxy
-            image: gonogo-ocisly-proxy
+          - package: relay
+            image: gonogo-relay
     steps:
       - uses: actions/checkout@v5
         with:

@@ -11,7 +11,7 @@ import { OcislyClient } from "./grpc/OcislyClient.js";
 import { PeerHost } from "./peer/PeerHost.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
-console.log(`gonogo ocisly-proxy v${VERSION} (build ${BUILD_TIME})`);
+console.log(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
 
 const config = loadConfig();
 const fastify = Fastify({ logger: true });
@@ -116,7 +116,7 @@ try {
 
 await fastify.listen({ port: config.port, host: "0.0.0.0" });
 fastify.log.info(
-  `ocisly-proxy listening on :${config.port}, bridging to ${config.ocislyHost}:${config.ocislyPort}, peerId=${proxyPeerId}`,
+  `relay listening on :${config.port}, bridging to ${config.ocislyHost}:${config.ocislyPort}, peerId=${proxyPeerId}`,
 );
 
 const shutdown = async () => {

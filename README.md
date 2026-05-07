@@ -118,7 +118,7 @@ Launch a vessel in KSP, then on the main dashboard:
 Repeat for other sources if you installed them:
 
 - **kos** data source — host is `localhost` (the telnet proxy, which runs on the mission control machine), `kosHost` is `KSP_MACHINE_IP`, `kosPort` is `5410`.
-- **ocisly** (under Stream Sources) — no configuration needed, it uses the ocisly-proxy at `localhost:3002` automatically.
+- **ocisly** (under Stream Sources) — no configuration needed, it uses the gonogo relay at `localhost:3002` automatically.
 
 ### Step 8 — Enable Camera Feeds (if installed)
 
@@ -140,7 +140,7 @@ A station screen is any other browser on any network — phone, tablet, a laptop
 ### If anything doesn't work
 
 - **Data Source Status widget** shows coloured indicators next to each source — green = connected, anything else means the mission-control machine can't reach that host/port.
-- The **telnet proxy** is on port `3001`; **ocisly-proxy** is on `3002`. `curl http://localhost:3001/status` and `curl http://localhost:3002/health` confirm they're running.
+- The **telnet proxy** is on port `3001`; the **relay** is on `3002`. `curl http://localhost:3001/status` and `curl http://localhost:3002/health` confirm they're running.
 - For Camera Feed issues specifically, the [Camera Feeds](#camera-feeds-ofcourseistilloveyou-optional) section below has a fuller diagnostic walkthrough.
 - Firewalls on Windows / macOS can block LAN traffic by default. If a station on the LAN can't reach the main machine, that's usually it.
 
@@ -226,10 +226,9 @@ The Camera Feed component streams live video from Hullcam parts via WebRTC. It r
 - **OfCourseIStillLoveYou (OCISLY)** mod — a gRPC camera-capture plugin for KSP.
   - **On Linux KSP installs** (including Steam Deck), replace the main `OfCourseIStillLoveYou.dll` with the build from [jonpepler/OfCourseIStillLoveYou](https://github.com/jonpepler/OfCourseIStillLoveYou/releases/latest). Upstream has a bug in the Hullcam readback path that produces all-white frames on Mesa/OpenGL.
 - **OCISLY gRPC server** — the `.NET 7` server from the mod that accepts frames from KSP. Bundled in the compose stack.
-- **ocisly-proxy** — gonogo's fan-out service. Polls the OCISLY server, re-encodes frames into WebRTC video streams, and distributes them to main + station screens over PeerJS.
-- **coturn** — a TURN relay. Required because PeerJS WebRTC from the containerised proxy can't traverse container NAT without one, and stations joining from outside the LAN need relay candidates regardless. Included in the compose stack.
+- **gonogo relay** (`packages/relay`) — gonogo's fan-out service. Polls the OCISLY server, re-encodes frames into WebRTC video streams, and distributes them to main + station screens over PeerJS. The same container also bundles a coturn TURN/STUN server (spawned as a child process) — required because WebRTC from the containerised relay can't traverse container NAT without one, and stations joining from outside the LAN need relay candidates regardless.
 
-All four containerised services come up together — one command:
+All three containerised services come up together — one command:
 
 ```bash
 docker compose up -d --build     # or: podman compose up -d --build
@@ -238,13 +237,13 @@ pnpm dev
 
 Then in KSP: launch a vessel with one or more Hullcams attached, click the OCISLY toolbar icon to open the camera list, and click **Enable streaming** next to each camera you want to share. Add a **Camera Feed** widget in gonogo and it'll pick them up.
 
-If the OCISLY gRPC server is running somewhere other than the compose stack (e.g. directly on the KSP machine), point the proxy at it:
+If the OCISLY gRPC server is running somewhere other than the compose stack (e.g. directly on the KSP machine), point the relay at it:
 
 ```bash
 OCISLY_HOST=<host-ip> docker compose up -d --build
 ```
 
-The ocisly-proxy exposes a few diagnostic endpoints that are handy when something's off:
+The relay exposes a few diagnostic endpoints that are handy when something's off:
 
 - `GET http://localhost:3002/health` — status + current proxy peer id
 - `GET http://localhost:3002/cameras/stats` — per-camera poll/push counters
@@ -263,7 +262,7 @@ packages/
   data/           — Flight history + data hooks (useDataSeries, useFlight, etc.)
   app/            — Vite + React SPA (main + station screens)
   telnet-proxy/   — Fastify WebSocket-to-telnet bridge for kOS
-  ocisly-proxy/   — gRPC→WebRTC camera relay for OCISLY feeds
+  relay/          — gRPC→WebRTC camera fan-out for OCISLY feeds + bundled coturn (TURN/STUN) + /ice-config endpoint
 ```
 
 Components self-register via `registerComponent()`. The dashboard renders whatever is registered — there is no hardcoded component list. External packages can add components using the same API.
@@ -322,7 +321,7 @@ Output lands in `packages/app/dist/`.
 Both proxies are published as multi-arch (`linux/amd64`, `linux/arm64`) container images to GitHub Container Registry on every merge to `main`:
 
 - `ghcr.io/jonpepler/gonogo-telnet-proxy:latest`
-- `ghcr.io/jonpepler/gonogo-ocisly-proxy:latest`
+- `ghcr.io/jonpepler/gonogo-relay:latest`
 
 Tagged by commit SHA as well (`sha-<short>`). Useful for running the proxies on a dedicated mission-control box without installing a Node toolchain (swap `docker` for `podman` if you prefer):
 
@@ -331,11 +330,10 @@ docker run -d --name gonogo-telnet-proxy -p 3001:3001 \
   -e KOS_HOST=<ksp-host> -e KOS_PORT=5410 \
   ghcr.io/jonpepler/gonogo-telnet-proxy:latest
 
-docker run -d --name gonogo-ocisly-proxy -p 3002:3002 \
+docker run -d --name gonogo-relay \
+  -p 3002:3002 -p 3478:3478/udp -p 3478:3478/tcp -p 49160-49200:49160-49200/udp \
   -e OCISLY_HOST=<ksp-host> -e OCISLY_PORT=5077 \
-  -e TURN_URL=turn:<turn-host>:3478 \
-  -e TURN_USERNAME=gonogo -e TURN_CREDENTIAL=<secret> \
-  ghcr.io/jonpepler/gonogo-ocisly-proxy:latest
+  ghcr.io/jonpepler/gonogo-relay:latest
 ```
 
 The bundled `docker-compose.yml` builds from local source (useful during dev so `pnpm dev`'s watcher can rebuild on code changes). For a clean deployment, write a minimal compose file that references the `ghcr.io` images directly.

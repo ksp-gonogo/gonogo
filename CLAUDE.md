@@ -24,6 +24,9 @@ packages/
   ui/         — Reusable UI primitives (buttons, inputs, tabs, modal, icons, etc.)
   app/        — Vite + React SPA (main screen + station mode)
   telnet-proxy/ — Fastify server: spawns system telnet via node-pty, bridges to WebSocket
+  relay/      — Fastify server bundling the OCISLY camera fan-out, the
+                /ice-config endpoint, and a coturn TURN/STUN child process
+                with a per-restart-rotated shared secret
 ```
 
 **Tooling:** pnpm workspaces + Turborepo. Package names use the `@gonogo/` scope.

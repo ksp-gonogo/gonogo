@@ -31,8 +31,8 @@ const ALLOWED_PATHS = [
   "packages/core/src/stock-bodies.ts",
 ];
 
-// Source roots to scan. Excludes telnet-proxy / ocisly-proxy because
-// they're servers, not UI.
+// Source roots to scan. Excludes telnet-proxy / relay because they're
+// servers, not UI.
 const SCAN_ROOTS = [
   "packages/app/src",
   "packages/components/src",
