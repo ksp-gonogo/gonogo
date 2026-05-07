@@ -453,3 +453,107 @@ describe("SerialDeviceService autoReconnect", () => {
     await svc.destroy();
   });
 });
+
+describe("SerialDeviceService hot-plug", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("adopts a port that fires a 'connect' event after the service is constructed", async () => {
+    const { MockWebSerial } = await import("./mocks/mockWebSerial");
+    const { WebSerialTransport } = await import(
+      "./transports/WebSerialTransport"
+    );
+
+    const mock = new MockWebSerial();
+    mock.install({ force: true });
+    try {
+      const storage = memoryStorage();
+      const svc = new SerialDeviceService({
+        screenKey: "test",
+        storage,
+        transportFactory: (instance, deviceType) =>
+          new WebSerialTransport({
+            id: instance.id,
+            deviceType,
+            baudRate: instance.baudRate,
+            filters: instance.filters,
+          }),
+      });
+      for (const d of svc.getDevices()) await svc.removeDevice(d.id);
+      for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
+
+      svc.upsertDeviceType(TYPE);
+      svc.addDevice({
+        id: "hw1",
+        name: "Hardware",
+        typeId: TYPE.id,
+        transport: "web-serial",
+        portInfo: { vendorId: 0x1234, productId: 0x5678 },
+      });
+
+      expect(svc.getStatus("hw1")).toBe("disconnected");
+
+      // Simulate the user plugging the controller in.
+      const port = mock.createPort({
+        info: { usbVendorId: 0x1234, usbProductId: 0x5678 },
+      });
+      mock.fireConnect(port);
+
+      // tryAdoptPort awaits transport.connect; vi.waitFor polls past the
+      // microtask chain so this stays robust if the chain length changes.
+      await vi.waitFor(() => expect(svc.getStatus("hw1")).toBe("connected"));
+
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it("ignores 'connect' for a port whose VID/PID matches no saved device", async () => {
+    const { MockWebSerial } = await import("./mocks/mockWebSerial");
+    const { WebSerialTransport } = await import(
+      "./transports/WebSerialTransport"
+    );
+
+    const mock = new MockWebSerial();
+    mock.install({ force: true });
+    try {
+      const svc = new SerialDeviceService({
+        screenKey: "test",
+        storage: memoryStorage(),
+        transportFactory: (instance, deviceType) =>
+          new WebSerialTransport({
+            id: instance.id,
+            deviceType,
+            baudRate: instance.baudRate,
+            filters: instance.filters,
+          }),
+      });
+      for (const d of svc.getDevices()) await svc.removeDevice(d.id);
+      for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
+
+      svc.upsertDeviceType(TYPE);
+      svc.addDevice({
+        id: "hw1",
+        name: "Hardware",
+        typeId: TYPE.id,
+        transport: "web-serial",
+        portInfo: { vendorId: 0x1234, productId: 0x5678 },
+      });
+
+      // Different VID — should be ignored.
+      const port = mock.createPort({
+        info: { usbVendorId: 0xdead, usbProductId: 0xbeef },
+      });
+      mock.fireConnect(port);
+      // Give tryAdoptPort one event-loop turn to early-return.
+      await new Promise((r) => setTimeout(r, 0));
+      expect(svc.getStatus("hw1")).toBe("disconnected");
+
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+});

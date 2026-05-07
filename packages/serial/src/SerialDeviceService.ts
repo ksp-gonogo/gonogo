@@ -72,6 +72,17 @@ export class SerialDeviceService {
    * gated.
    */
   private captureMode = false;
+  /**
+   * `navigator.serial` event listeners installed for hot-plug awareness.
+   * Stored so destroy() can detach them — important for tests that spin
+   * up many services against a shared mock navigator.
+   */
+  private hotPlugConnectListener:
+    | ((evt: SerialConnectionEvent) => void)
+    | null = null;
+  private hotPlugDisconnectListener:
+    | ((evt: SerialConnectionEvent) => void)
+    | null = null;
 
   private deviceTypeListeners = new Set<() => void>();
   private devicesListeners = new Set<() => void>();
@@ -91,6 +102,115 @@ export class SerialDeviceService {
     this.loadDeviceTypes();
     this.loadDevices();
     this.seedDefaultsIfEmpty();
+    this.attachNavigatorListeners();
+  }
+
+  /**
+   * Subscribe to `navigator.serial` connect/disconnect events so a controller
+   * plugged in mid-session is auto-adopted (matching saved instances by
+   * VID/PID), and so disconnect propagates to status listeners even if the
+   * read-loop hasn't errored yet.
+   *
+   * No-op if `navigator.serial` is unavailable (Safari, tests without the
+   * mock installed).
+   */
+  private attachNavigatorListeners(): void {
+    const serial = (globalThis as { navigator?: { serial?: Serial } }).navigator
+      ?.serial;
+    if (!serial?.addEventListener) return;
+
+    const onConnect = (evt: SerialConnectionEvent) => {
+      void this.tryAdoptPort(evt.port);
+    };
+    const onDisconnect = (evt: SerialConnectionEvent) => {
+      this.handlePortDisconnect(evt.port);
+    };
+    serial.addEventListener("connect", onConnect);
+    serial.addEventListener("disconnect", onDisconnect);
+    this.hotPlugConnectListener = onConnect;
+    this.hotPlugDisconnectListener = onDisconnect;
+  }
+
+  private detachNavigatorListeners(): void {
+    const serial = (globalThis as { navigator?: { serial?: Serial } }).navigator
+      ?.serial;
+    if (!serial?.removeEventListener) return;
+    if (this.hotPlugConnectListener) {
+      serial.removeEventListener("connect", this.hotPlugConnectListener);
+      this.hotPlugConnectListener = null;
+    }
+    if (this.hotPlugDisconnectListener) {
+      serial.removeEventListener("disconnect", this.hotPlugDisconnectListener);
+      this.hotPlugDisconnectListener = null;
+    }
+  }
+
+  /**
+   * Try to adopt a single freshly-connected port. Picks the first managed
+   * web-serial device that's currently disconnected and matches the port's
+   * VID/PID. Quietly skips if nothing matches or the port is already in use.
+   */
+  private async tryAdoptPort(port: SerialPort): Promise<void> {
+    const info = port.getInfo();
+    if (!info.usbVendorId) {
+      logger.debug(
+        "[SerialDeviceService] hot-plug ignored — port has no VID/PID",
+      );
+      return;
+    }
+    for (const managed of this.managed.values()) {
+      if (managed.instance.transport !== "web-serial") continue;
+      if (managed.transport.status === "connected") continue;
+      const saved = managed.instance.portInfo;
+      if (!saved?.vendorId) continue;
+      if (
+        saved.vendorId !== info.usbVendorId ||
+        saved.productId !== info.usbProductId
+      )
+        continue;
+
+      const adopt = (
+        managed.transport as DeviceTransport & {
+          connect?: (opts?: { port?: SerialPort }) => Promise<void>;
+        }
+      ).connect;
+      if (typeof adopt !== "function") continue;
+      try {
+        await adopt.call(managed.transport, { port });
+        this.capturePortInfo(managed);
+      } catch (err) {
+        logger.warn(
+          `[SerialDeviceService] hot-plug adopt failed for ${managed.instance.id}`,
+          { err: String(err) },
+        );
+      }
+      // First match wins — refusing fan-out keeps two identical controllers
+      // from racing to claim the same physical port.
+      return;
+    }
+  }
+
+  /**
+   * Mark any device whose port is the one being unplugged as disconnected.
+   * The read-loop usually catches this via a stream error, but emitting the
+   * status change deterministically here avoids a race where consumers see
+   * the FAB tint go green before the error surfaces.
+   */
+  private handlePortDisconnect(port: SerialPort): void {
+    const info = port.getInfo();
+    if (!info.usbVendorId) return;
+    for (const managed of this.managed.values()) {
+      if (managed.instance.transport !== "web-serial") continue;
+      const saved = managed.instance.portInfo;
+      if (!saved?.vendorId) continue;
+      if (
+        saved.vendorId !== info.usbVendorId ||
+        saved.productId !== info.usbProductId
+      )
+        continue;
+      if (managed.transport.status === "disconnected") continue;
+      void managed.transport.disconnect().catch(() => {});
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -377,6 +497,7 @@ export class SerialDeviceService {
   // -------------------------------------------------------------------------
 
   async destroy(): Promise<void> {
+    this.detachNavigatorListeners();
     for (const managed of Array.from(this.managed.values())) {
       await this.teardown(managed);
     }

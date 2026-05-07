@@ -66,3 +66,49 @@ export function useSerialDeviceStatus(deviceId: string) {
   );
   return status;
 }
+
+export type SerialAggregateStatus =
+  | "idle" // no web-serial devices registered
+  | "connected" // every web-serial device connected
+  | "partial" // some web-serial devices disconnected
+  | "error"; // at least one web-serial device errored
+
+/**
+ * Aggregate connectivity across every registered web-serial device on this
+ * screen. Virtual devices are excluded — they don't represent physical
+ * connections, so they'd skew the headline. Used by the joystick FAB to
+ * surface a "controller dropped" hint without the user having to open the
+ * Devices menu.
+ */
+export function useSerialAggregateStatus(): SerialAggregateStatus {
+  const svc = useSerialDeviceService();
+  const [status, setStatus] = useState<SerialAggregateStatus>(() =>
+    computeAggregate(svc),
+  );
+  useEffect(() => {
+    const recompute = () => setStatus(computeAggregate(svc));
+    const offStatus = svc.onStatusChange(recompute);
+    const offDevices = svc.onDevicesChange(recompute);
+    recompute();
+    return () => {
+      offStatus();
+      offDevices();
+    };
+  }, [svc]);
+  return status;
+}
+
+function computeAggregate(svc: SerialDeviceService): SerialAggregateStatus {
+  const devices = svc.getDevices().filter((d) => d.transport === "web-serial");
+  if (devices.length === 0) return "idle";
+  let anyError = false;
+  let anyDisconnected = false;
+  for (const d of devices) {
+    const s = svc.getStatus(d.id);
+    if (s === "error") anyError = true;
+    else if (s !== "connected") anyDisconnected = true;
+  }
+  if (anyError) return "error";
+  if (anyDisconnected) return "partial";
+  return "connected";
+}
