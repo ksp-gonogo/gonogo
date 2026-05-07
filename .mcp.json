@@ -2,7 +2,10 @@
   "mcpServers": {
     "axiom": {
       "type": "http",
-      "url": "https://mcp.axiom.co/mcp"
+      "url": "https://mcp.axiom.co/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AXIOM_TOKEN}"
+      }
     }
   }
 }
