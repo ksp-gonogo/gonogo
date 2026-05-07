@@ -83,6 +83,14 @@ export class SerialDeviceService {
   private hotPlugDisconnectListener:
     | ((evt: SerialConnectionEvent) => void)
     | null = null;
+  /**
+   * Saved web-serial devices for which autoReconnect found 2+ candidate
+   * ports (same VID/PID, e.g. two identical foot-pedals plugged in). The
+   * Devices menu surfaces these so the user picks the right one — without
+   * the picker the device would silently stay disconnected.
+   */
+  private pendingChoices = new Map<string, SerialPort[]>();
+  private pendingChoicesListeners = new Set<() => void>();
 
   private deviceTypeListeners = new Set<() => void>();
   private devicesListeners = new Set<() => void>();
@@ -391,7 +399,14 @@ export class SerialDeviceService {
           pInfo.usbProductId === info.productId
         );
       });
-      if (candidates.length !== 1) continue;
+      if (candidates.length === 0) continue;
+      if (candidates.length > 1) {
+        // Same VID/PID on two ports — can't pick automatically. Park them
+        // for the UI to resolve via resolvePendingChoice().
+        this.pendingChoices.set(managed.instance.id, candidates);
+        this.emitPendingChoicesChange();
+        continue;
+      }
 
       const adopt = (
         managed.transport as DeviceTransport & {
@@ -409,6 +424,62 @@ export class SerialDeviceService {
         );
       }
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Pending-choice resolution (ambiguous autoReconnect matches)
+  // -------------------------------------------------------------------------
+
+  /** Snapshot of saved devices that need the user to disambiguate ports. */
+  getPendingChoices(): ReadonlyMap<string, readonly SerialPort[]> {
+    return this.pendingChoices;
+  }
+
+  onPendingChoicesChange(cb: () => void): () => void {
+    this.pendingChoicesListeners.add(cb);
+    return () => {
+      this.pendingChoicesListeners.delete(cb);
+    };
+  }
+
+  /**
+   * Adopt a specific port from the pending-choice list for a device.
+   * No-op if the device or index is out of range. On success the entry is
+   * cleared and listeners are notified.
+   */
+  async resolvePendingChoice(
+    deviceId: string,
+    portIndex: number,
+  ): Promise<void> {
+    const choices = this.pendingChoices.get(deviceId);
+    if (!choices) return;
+    const port = choices[portIndex];
+    if (!port) return;
+    const managed = this.managed.get(deviceId);
+    if (!managed) return;
+    const adopt = (
+      managed.transport as DeviceTransport & {
+        connect?: (opts?: { port?: SerialPort }) => Promise<void>;
+      }
+    ).connect;
+    if (typeof adopt !== "function") return;
+    try {
+      await adopt.call(managed.transport, { port });
+      this.capturePortInfo(managed);
+      this.pendingChoices.delete(deviceId);
+      this.emitPendingChoicesChange();
+    } catch (err) {
+      logger.warn(
+        `[SerialDeviceService] resolvePendingChoice failed for ${deviceId}`,
+        { err: String(err) },
+      );
+    }
+  }
+
+  private emitPendingChoicesChange(): void {
+    this.pendingChoicesListeners.forEach((cb) => {
+      cb();
+    });
   }
 
   private capturePortInfo(managed: ManagedDevice): void {

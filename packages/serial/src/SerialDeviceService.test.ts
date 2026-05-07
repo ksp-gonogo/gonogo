@@ -431,9 +431,71 @@ describe("SerialDeviceService autoReconnect", () => {
       });
 
       await svc.autoReconnect();
-      // Ambiguous match — current-functionality fallback of leaving the
-      // device disconnected so the user picks explicitly.
+      // Ambiguous match — device stays disconnected and the candidate ports
+      // are parked for the UI to resolve.
       expect(svc.getStatus("hw2")).toBe("disconnected");
+      const choices = svc.getPendingChoices().get("hw2");
+      expect(choices?.length).toBe(2);
+
+      // Picking the first one connects the device and clears the entry.
+      await svc.resolvePendingChoice("hw2", 0);
+      expect(svc.getStatus("hw2")).toBe("connected");
+      expect(svc.getPendingChoices().has("hw2")).toBe(false);
+
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it("notifies onPendingChoicesChange when ambiguous matches are parked and resolved", async () => {
+    const { MockWebSerial } = await import("./mocks/mockWebSerial");
+    const { WebSerialTransport } = await import(
+      "./transports/WebSerialTransport"
+    );
+
+    const mock = new MockWebSerial();
+    mock.install({ force: true });
+    try {
+      mock.createPort({
+        info: { usbVendorId: 0xcafe, usbProductId: 0xbeef },
+      });
+      mock.createPort({
+        info: { usbVendorId: 0xcafe, usbProductId: 0xbeef },
+      });
+
+      const svc = new SerialDeviceService({
+        screenKey: "test",
+        storage: memoryStorage(),
+        transportFactory: (instance, deviceType) =>
+          new WebSerialTransport({
+            id: instance.id,
+            deviceType,
+            baudRate: instance.baudRate,
+            filters: instance.filters,
+          }),
+      });
+      for (const d of svc.getDevices()) await svc.removeDevice(d.id);
+      for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
+
+      svc.upsertDeviceType(TYPE);
+      svc.addDevice({
+        id: "hw3",
+        name: "Hardware",
+        typeId: TYPE.id,
+        transport: "web-serial",
+        portInfo: { vendorId: 0xcafe, productId: 0xbeef },
+      });
+
+      const events: number[] = [];
+      svc.onPendingChoicesChange(() => {
+        events.push(svc.getPendingChoices().size);
+      });
+
+      await svc.autoReconnect();
+      await svc.resolvePendingChoice("hw3", 1);
+      expect(events).toEqual([1, 0]);
+
       await svc.destroy();
     } finally {
       mock.restore();

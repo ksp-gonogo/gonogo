@@ -98,6 +98,27 @@ export function useSerialAggregateStatus(): SerialAggregateStatus {
   return status;
 }
 
+/**
+ * Reactive view of the pending-port-choice list — saved devices that need
+ * the user to pick between two or more matching ports. Empty almost all
+ * the time; only fills when autoReconnect found ambiguous candidates.
+ */
+export function useSerialPendingChoices(): ReadonlyMap<
+  string,
+  readonly SerialPort[]
+> {
+  const svc = useSerialDeviceService();
+  const [snap, setSnap] = useState<ReadonlyMap<string, readonly SerialPort[]>>(
+    () => new Map(svc.getPendingChoices()),
+  );
+  useEffect(() => {
+    return svc.onPendingChoicesChange(() => {
+      setSnap(new Map(svc.getPendingChoices()));
+    });
+  }, [svc]);
+  return snap;
+}
+
 function computeAggregate(svc: SerialDeviceService): SerialAggregateStatus {
   const devices = svc.getDevices().filter((d) => d.transport === "web-serial");
   if (devices.length === 0) return "idle";

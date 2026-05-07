@@ -6,6 +6,7 @@ import {
   useSerialDeviceStatus,
   useSerialDevices,
   useSerialDeviceTypes,
+  useSerialPendingChoices,
 } from "../SerialDeviceContext";
 import type { DeviceInstance, DeviceType } from "../types";
 import { isWebSerialSupported } from "../webSerialSupport";
@@ -36,6 +37,7 @@ function DevicesTab() {
   const svc = useSerialDeviceService();
   const devices = useSerialDevices();
   const types = useSerialDeviceTypes();
+  const pendingChoices = useSerialPendingChoices();
   const [editing, setEditing] = useState<DeviceInstance | "new" | null>(null);
 
   if (editing !== null) {
@@ -79,6 +81,7 @@ function DevicesTab() {
           key={device.id}
           device={device}
           typeName={types.find((t) => t.id === device.typeId)?.name ?? "?"}
+          pendingChoices={pendingChoices.get(device.id)}
           onEdit={() => setEditing(device)}
         />
       ))}
@@ -89,10 +92,12 @@ function DevicesTab() {
 function DeviceRow({
   device,
   typeName,
+  pendingChoices,
   onEdit,
 }: Readonly<{
   device: DeviceInstance;
   typeName: string;
+  pendingChoices?: readonly SerialPort[];
   onEdit: () => void;
 }>) {
   const svc = useSerialDeviceService();
@@ -107,6 +112,29 @@ function DeviceRow({
       <RowMeta>
         {typeName} · {device.transport}
       </RowMeta>
+      {pendingChoices && pendingChoices.length > 1 && (
+        <PendingPicker role="status" aria-live="polite">
+          <PendingHint>
+            {pendingChoices.length} ports match this device. Pick one — the
+            others can stay disconnected, or be assigned to a separate saved
+            device.
+          </PendingHint>
+          <PendingActions>
+            {pendingChoices.map((_, idx) => (
+              <Button
+                // biome-ignore lint/suspicious/noArrayIndexKey: ports have no stable id; index labels them in this UI
+                key={idx}
+                type="button"
+                onClick={() => {
+                  void svc.resolvePendingChoice(device.id, idx);
+                }}
+              >
+                Use port {String.fromCharCode(65 + idx)}
+              </Button>
+            ))}
+          </PendingActions>
+        </PendingPicker>
+      )}
       <RowActions>
         {device.transport === "web-serial" && status !== "connected" && (
           <Button
@@ -276,6 +304,26 @@ const RowActions = styled.div`
   display: flex;
   gap: 6px;
   margin-top: 6px;
+`;
+
+const PendingPicker = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--color-status-warning-bg);
+  border-radius: 3px;
+  color: var(--color-text-primary);
+`;
+
+const PendingHint = styled.span`
+  font-size: var(--font-size-xs);
+`;
+
+const PendingActions = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 `;
 
 const Status = styled.span<{ $status: string }>`
