@@ -78,6 +78,18 @@ export class WebSerialTransport implements DeviceTransport {
 
   async connect(options?: { port?: SerialPort }): Promise<void> {
     try {
+      // Defensive cleanup: a previous read-loop error or hot-unplug could
+      // have left a stale port reference behind. Drop it before opening
+      // anything new so we don't immediately hit "port already open".
+      if (this.port) {
+        const stale = this.port;
+        this.port = null;
+        try {
+          await stale.close();
+        } catch {
+          // Stale port; closing failures are expected.
+        }
+      }
       const port =
         options?.port ??
         (await navigator.serial.requestPort({
@@ -207,6 +219,25 @@ export class WebSerialTransport implements DeviceTransport {
         err instanceof Error ? err : new Error(String(err)),
       );
       this.setStatus("error", err);
+      // The device is gone (NetworkError: "The device has been lost.") or
+      // the read pipe errored some other way. Either way the JS-side port
+      // is still in the "open" state from the original port.open() call —
+      // a future connect() against the same physical port would hit
+      // InvalidStateError. Drop the references and best-effort close so
+      // the next attempt starts clean.
+      this.reader = null;
+      this.writer = null;
+      this.readableClosed?.catch(() => {});
+      this.readableClosed = null;
+      this.writableClosed?.catch(() => {});
+      this.writableClosed = null;
+      const lostPort = this.port;
+      this.port = null;
+      try {
+        await lostPort?.close();
+      } catch {
+        // Closing a lost port often throws; not interesting.
+      }
     }
   }
 
