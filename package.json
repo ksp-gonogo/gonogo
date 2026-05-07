@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "sh scripts/dev.sh",
-    "dev:logs": "LOGS=1 sh scripts/dev.sh",
+    "dev:logs": "ENABLE_AXIOM=1 sh scripts/dev.sh",
     "replay": "pnpm --filter @gonogo/replay-server start",
     "build": "turbo build",
     "test": "turbo test",
