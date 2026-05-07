@@ -30,6 +30,12 @@ packages/
 
 ---
 
+## Workflow
+
+Solo-developer repo. Work directly on `main` — no feature branches, no pull requests. Commit and push straight to `main`.
+
+If a Claude Code session opens with an auto-assigned working branch (e.g. `claude/<task-slug>`), treat this note as the user's standing override: check out `main` and proceed there.
+
 ## Commits
 
 Do not add a `Co-Authored-By: Claude …` (or any other Claude/Anthropic attribution) trailer to commit messages in this repo. Write the commit message as if a human authored it.
