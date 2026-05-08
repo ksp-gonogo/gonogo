@@ -14,6 +14,19 @@ const streamLog = logger.tag("peer:stream");
  */
 const CONNECT_TIMEOUT_MS = 15_000;
 
+/**
+ * Backoff schedule for connect-failure retries: 2s, 4s, 8s, 16s, then a
+ * 30s cap. The host's first connect can happen during a broker race
+ * (`unavailable-id` window after a refresh), grab a Peer reference that
+ * gets destroyed by the auto-rotate path, and then go silent forever
+ * because nothing re-pumps `connect()`. The per-attempt cap is high so
+ * a long-lived recovery (e.g., relay container rebuild) eventually
+ * succeeds without hammering the broker.
+ */
+function backoffMs(attempt: number): number {
+  return Math.min(2000 * 2 ** attempt, 30_000);
+}
+
 type ProxyOut =
   | { type: "hello"; version: string; buildTime: string }
   | { type: "cameras"; cameras: string[] }
@@ -55,6 +68,17 @@ export interface OcislyStreamSourceOptions {
   onProxyPeerIdResolved?: (peerId: string | null) => void;
   /** Poll interval for re-fetching the camera list from the proxy. Default: 2000ms. */
   listPollMs?: number;
+  /**
+   * Subscribe to "the underlying Peer changed" events. When the
+   * subscription fires, the source resets its retry counter and
+   * triggers a fresh `connect()` attempt — this is how the host-side
+   * registration (which calls `peerHostService.waitForPeer()`)
+   * recovers from `regeneratePeerId()` invalidating its captured
+   * peer reference. Optional — stations don't need it because their
+   * PeerClientService doesn't rotate peer instances mid-session.
+   * Returns an unsubscribe function.
+   */
+  onPeerChange?: (cb: () => void) => () => void;
 }
 
 export class OcislyStreamSource implements StreamSource {
@@ -73,6 +97,9 @@ export class OcislyStreamSource implements StreamSource {
   private subscriptions = new Map<string, Subscription>();
   private streams: StreamInfo[] = [];
   private listPollTimer: ReturnType<typeof setInterval> | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryAttempt = 0;
+  private peerChangeUnsub: (() => void) | null = null;
 
   private statusListeners = new Set<(s: DataSourceStatus) => void>();
   private streamsListeners = new Set<(s: StreamInfo[]) => void>();
@@ -87,6 +114,34 @@ export class OcislyStreamSource implements StreamSource {
 
   constructor(opts: OcislyStreamSourceOptions) {
     this.opts = { listPollMs: 2000, ...opts };
+    if (this.opts.onPeerChange) {
+      this.peerChangeUnsub = this.opts.onPeerChange(() => {
+        cameraLog.info(
+          "peer changed — resetting retry counter and reconnecting",
+        );
+        // A peer rotation invalidates any captured Peer reference inside
+        // an in-flight or already-failed connect. Cancel pending retries,
+        // reset attempt counter, force a fresh connect.
+        this.cancelRetry();
+        this.retryAttempt = 0;
+        // Bump generation so any in-flight connect bails before its
+        // post-await work touches the new peer.
+        this.connectGeneration += 1;
+        // Disconnect any state from the old peer before trying again.
+        if (this.dataConnection) {
+          try {
+            this.dataConnection.close();
+          } catch {
+            // already closed
+          }
+          this.dataConnection = null;
+        }
+        this.peer = null;
+        this.callListenerAttached = false;
+        this.setStatus("disconnected");
+        void this.connect();
+      });
+    }
   }
 
   async connect(): Promise<void> {
@@ -95,7 +150,10 @@ export class OcislyStreamSource implements StreamSource {
     const gen = ++this.connectGeneration;
     const isStale = () => gen !== this.connectGeneration;
     const startedAt = Date.now();
-    cameraLog.debug("connect: begin", { generation: gen });
+    cameraLog.info("connect: begin", {
+      generation: gen,
+      attempt: this.retryAttempt,
+    });
 
     try {
       const peerId = await this.opts.proxyPeerIdProvider();
@@ -159,6 +217,10 @@ export class OcislyStreamSource implements StreamSource {
 
       this.setStatus("connected");
       this.send({ type: "listCameras" });
+      // Successful connect: reset backoff and ditch any pending retry
+      // (defensive — there shouldn't be one if status reached connected).
+      this.retryAttempt = 0;
+      this.cancelRetry();
 
       this.listPollTimer = setInterval(() => {
         if (this.status === "connected") this.send({ type: "listCameras" });
@@ -166,18 +228,40 @@ export class OcislyStreamSource implements StreamSource {
     } catch (err) {
       if (isStale()) return;
       const elapsedMs = Date.now() - startedAt;
+      const attempt = this.retryAttempt;
+      const next = backoffMs(attempt);
       logger.error(
-        "[ocisly] connect failed",
+        `[ocisly] connect failed (attempt ${attempt}) — retrying in ${next}ms`,
         err instanceof Error ? err : new Error(String(err)),
-        { elapsedMs },
+        { elapsedMs, attempt },
       );
       this.setStatus("error");
+      this.scheduleRetry(next);
     }
+  }
+
+  private scheduleRetry(delayMs: number): void {
+    this.cancelRetry();
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.retryAttempt += 1;
+      cameraLog.info(`retry firing — attempt ${this.retryAttempt}`);
+      void this.connect();
+    }, delayMs);
+  }
+
+  private cancelRetry(): void {
+    if (this.retryTimer === null) return;
+    clearTimeout(this.retryTimer);
+    this.retryTimer = null;
   }
 
   disconnect(): void {
     // Invalidate any in-flight connect() so its post-await work bails out.
     this.connectGeneration += 1;
+    this.cancelRetry();
+    this.peerChangeUnsub?.();
+    this.peerChangeUnsub = null;
     if (this.listPollTimer) {
       clearInterval(this.listPollTimer);
       this.listPollTimer = null;
@@ -455,6 +539,16 @@ export const ocislyStreamSource = new OcislyStreamSource({
   onProxyPeerIdResolved: (peerId) => {
     peerHostService.setRelayPeerId(peerId);
   },
+  // Re-attempt the relay handshake whenever the host's underlying Peer
+  // is replaced — most notably after a `regeneratePeerId()` (manual or
+  // auto-rotate) destroys the original peer reference. Without this the
+  // OcislyStreamSource holds a dead Peer and silently never recovers,
+  // even though the host is otherwise healthy. Stations don't take
+  // this path because they don't rotate peer instances mid-session.
+  onPeerChange: (cb) =>
+    peerHostService.onPeerIdChange((id) => {
+      if (id) cb();
+    }),
 });
 
 registerStreamSource(ocislyStreamSource);
