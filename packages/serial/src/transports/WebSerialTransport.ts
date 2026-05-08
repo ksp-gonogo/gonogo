@@ -187,6 +187,37 @@ export class WebSerialTransport implements DeviceTransport {
         }));
 
       await this.openWithRetry(port);
+
+      // Defensive against the recovery path: if openWithRetry returned
+      // because the port was already open at OS level, port.readable /
+      // port.writable may still be locked by a prior session's pipeTo
+      // that hasn't fully released. pipeTo on a locked stream throws
+      // "Cannot pipe a locked stream". Force one fresh close → open
+      // cycle to get clean streams. If that also fails to clear the
+      // lock, error out with a useful message.
+      if (port.readable?.locked || port.writable?.locked) {
+        trace.debug("recovered port has locked streams; forcing reopen", {
+          deviceId: this.id,
+        });
+        try {
+          await port.close();
+        } catch {
+          // best effort
+        }
+        await port.open({
+          baudRate: this.baudRate,
+          dataBits: 8,
+          stopBits: 1,
+          parity: "none",
+          flowControl: "none",
+        });
+        if (port.readable?.locked || port.writable?.locked) {
+          throw new Error(
+            "Serial port streams remain locked after reopen — refresh the page to clear.",
+          );
+        }
+      }
+
       this.port = port;
 
       const decoder = new TextDecoderStream();
@@ -236,12 +267,22 @@ export class WebSerialTransport implements DeviceTransport {
   }
 
   async disconnect(): Promise<void> {
-    // Run every cleanup step independently. The original `try { … all
-    // steps … }` pattern aborted the rest of the teardown if any single
-    // step threw — typical when the device was pulled mid-read, where
-    // reader.cancel() rejects with "device lost" and we'd then never
-    // null `this.port`, leaving the JS state corrupt for the next
-    // connect() attempt.
+    await this.cleanupTransport("disconnected");
+  }
+
+  /**
+   * Shared cleanup path used by `disconnect()` and the read-loop's
+   * error path. Each step runs independently so a single failure (e.g.
+   * `reader.cancel()` rejecting on a hot-pulled device) doesn't abort
+   * the rest of the teardown — without this, locks on `port.readable`
+   * / `port.writable` from a now-dead session linger and a subsequent
+   * doConnect (after openWithRetry recovers a still-OS-open port) hits
+   * "Cannot pipe a locked stream" when it tries to set up new streams.
+   */
+  private async cleanupTransport(
+    finalStatus: TransportStatus,
+    err?: unknown,
+  ): Promise<void> {
     try {
       await this.reader?.cancel();
     } catch {
@@ -275,7 +316,7 @@ export class WebSerialTransport implements DeviceTransport {
     } catch {
       // Closing a lost port often throws; fine.
     }
-    this.setStatus("disconnected");
+    this.setStatus(finalStatus, err);
   }
 
   async write(data: string | Uint8Array): Promise<void> {
@@ -340,26 +381,14 @@ export class WebSerialTransport implements DeviceTransport {
         `[WebSerialTransport ${this.id}] read loop error`,
         err instanceof Error ? err : new Error(String(err)),
       );
-      this.setStatus("error", err);
-      // The device is gone (NetworkError: "The device has been lost.") or
-      // the read pipe errored some other way. Either way the JS-side port
-      // is still in the "open" state from the original port.open() call —
-      // a future connect() against the same physical port would hit
-      // InvalidStateError. Drop the references and best-effort close so
-      // the next attempt starts clean.
-      this.reader = null;
-      this.writer = null;
-      this.readableClosed?.catch(() => {});
-      this.readableClosed = null;
-      this.writableClosed?.catch(() => {});
-      this.writableClosed = null;
-      const lostPort = this.port;
-      this.port = null;
-      try {
-        await lostPort?.close();
-      } catch {
-        // Closing a lost port often throws; not interesting.
-      }
+      // Run the same cleanup disconnect() does — crucially, this
+      // includes reader.cancel() + releaseLock() so port.readable's
+      // lock is freed. Without that, the port can stay OS-open after
+      // unplug (close() throws on a lost device) and the next session's
+      // openWithRetry → "port already open" recovery path picks it up
+      // with locks still held, surfacing as "Cannot pipe a locked
+      // stream" inside doConnect's stream setup.
+      await this.cleanupTransport("error", err);
     }
   }
 
