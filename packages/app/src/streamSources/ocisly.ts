@@ -114,38 +114,50 @@ export class OcislyStreamSource implements StreamSource {
 
   constructor(opts: OcislyStreamSourceOptions) {
     this.opts = { listPollMs: 2000, ...opts };
-    if (this.opts.onPeerChange) {
-      this.peerChangeUnsub = this.opts.onPeerChange(() => {
-        cameraLog.info(
-          "peer changed — resetting retry counter and reconnecting",
-        );
-        // A peer rotation invalidates any captured Peer reference inside
-        // an in-flight or already-failed connect. Cancel pending retries,
-        // reset attempt counter, force a fresh connect.
-        this.cancelRetry();
-        this.retryAttempt = 0;
-        // Bump generation so any in-flight connect bails before its
-        // post-await work touches the new peer.
-        this.connectGeneration += 1;
-        // Disconnect any state from the old peer before trying again.
-        if (this.dataConnection) {
-          try {
-            this.dataConnection.close();
-          } catch {
-            // already closed
-          }
-          this.dataConnection = null;
-        }
-        this.peer = null;
-        this.callListenerAttached = false;
-        this.setStatus("disconnected");
-        void this.connect();
-      });
+    this.ensurePeerChangeSubscription();
+  }
+
+  private readonly handlePeerChange = (): void => {
+    cameraLog.info("peer changed — resetting retry counter and reconnecting");
+    // A peer rotation invalidates any captured Peer reference inside
+    // an in-flight or already-failed connect. Cancel pending retries,
+    // reset attempt counter, force a fresh connect.
+    this.cancelRetry();
+    this.retryAttempt = 0;
+    // Bump generation so any in-flight connect bails before its
+    // post-await work touches the new peer.
+    this.connectGeneration += 1;
+    // Disconnect any state from the old peer before trying again.
+    if (this.dataConnection) {
+      try {
+        this.dataConnection.close();
+      } catch {
+        // already closed
+      }
+      this.dataConnection = null;
     }
+    this.peer = null;
+    this.callListenerAttached = false;
+    this.setStatus("disconnected");
+    void this.connect();
+  };
+
+  private ensurePeerChangeSubscription(): void {
+    if (this.peerChangeUnsub) return;
+    if (!this.opts.onPeerChange) return;
+    this.peerChangeUnsub = this.opts.onPeerChange(this.handlePeerChange);
   }
 
   async connect(): Promise<void> {
     if (this.status === "connected" || this.status === "reconnecting") return;
+    // Reattach the peer-change subscription if a previous `disconnect()`
+    // tore it down (StrictMode unmount, HMR cleanup, explicit nav). Once
+    // dropped, the host-side regenerate flow stops triggering reconnect
+    // attempts here — and because the call listener stays bound to the
+    // destroyed peer, peer.call from the relay arrives at no one. Hosts
+    // would silently sit in "Waiting for camera…" forever. Idempotent:
+    // already-subscribed sources skip the rewire.
+    this.ensurePeerChangeSubscription();
     this.setStatus("reconnecting");
     const gen = ++this.connectGeneration;
     const isStale = () => gen !== this.connectGeneration;
