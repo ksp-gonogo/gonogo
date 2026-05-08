@@ -88,6 +88,36 @@ export class FogMaskStore {
     });
   }
 
+  /**
+   * Load every mask for a profile in one transaction. Used by the host
+   * peer service to send a fog snapshot to a newly-connected station so
+   * the station's map mirrors the host's exploration state. The list is
+   * unordered; callers shouldn't depend on insertion order.
+   */
+  async loadAllForProfile(profileId: string): Promise<StoredMask[]> {
+    const db = await this.open();
+    return new Promise<StoredMask[]>((resolve, reject) => {
+      const lower = `${profileId}:`;
+      const upper = `${profileId}:￿`;
+      const out: StoredMask[] = [];
+      const tx = db.transaction(STORE);
+      const cursorReq = tx
+        .objectStore(STORE)
+        .openCursor(IDBKeyRange.bound(lower, upper));
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (!cursor) return;
+        const value = cursor.value as StoredMask;
+        if (value.version === MASK_SCHEMA_VERSION) out.push(value);
+        cursor.continue();
+      };
+      cursorReq.onerror = () => reject(cursorReq.error);
+      tx.oncomplete = () => resolve(out);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
   async clear(profileId: string, bodyId: string): Promise<void> {
     const db = await this.open();
     await new Promise<void>((resolve, reject) => {

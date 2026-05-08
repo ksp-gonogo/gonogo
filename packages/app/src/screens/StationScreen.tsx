@@ -192,6 +192,24 @@ export function StationScreen() {
         setHostNotFound(true);
       }),
     );
+    // One-shot fog snapshot from the host. Persist each mask to the
+    // station's local FogMaskStore — the map widget reads through the
+    // same store so a refresh shows the host's exploration state. We
+    // don't track sync errors here; a corrupt persist would surface
+    // when the map next tries to read it.
+    unsubsRef.current.push(
+      client.onFogSnapshot((msg) => {
+        for (const m of msg.masks) {
+          void fogMaskStore.save(
+            msg.profileId,
+            m.bodyId,
+            m.data,
+            m.width,
+            m.height,
+          );
+        }
+      }),
+    );
     unsubsRef.current.push(
       client.onSchema((sources) => {
         if (schemaHandledRef.current) return;

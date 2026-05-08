@@ -305,6 +305,19 @@ export class PeerHostService {
   }
 
   /**
+   * Send a message to a single connected peer. Used by services that
+   * fire on `onPeerConnect` and need to target the new peer specifically
+   * (e.g. fog snapshot, where broadcasting would re-deliver large mask
+   * payloads to every existing station). Silently no-ops if the peer
+   * isn't connected.
+   */
+  sendToPeer(peerId: string, msg: PeerMessage): void {
+    const conn = this.findConnByPeerId(peerId);
+    if (!conn) return;
+    conn.send(msg);
+  }
+
+  /**
    * Returns a Promise that resolves with the open Peer instance once the
    * broker handshake completes. Used by services that need to make outgoing
    * peer connections of their own (e.g. OcislyStreamSource calling the
