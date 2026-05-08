@@ -36,10 +36,25 @@ export interface GraphThresholdConfig {
   dashed?: boolean;
 }
 
+/**
+ * Display variant.
+ *
+ * - `"chart"`   — always render the line chart.
+ * - `"readout"` — render the literal latest number + a sparkline. Requires
+ *                exactly one series; falls back to `"chart"` otherwise.
+ * - `"auto"`    — chart at normal/small sizes, readout when the widget is in
+ *                the tiny size bucket *and* exactly one series is configured.
+ *
+ * Default is `"auto"`.
+ */
+export type GraphVariant = "auto" | "chart" | "readout";
+
 export interface GraphConfig {
   series: GraphSeriesConfig[];
   /** Seconds of history to display. Default 300. */
   windowSec: number;
+  /** Display variant — see {@link GraphVariant}. */
+  variant?: GraphVariant;
   /**
    * Data key plotted on the X axis, or `TIME_AXIS` (`"$time"`) for wall-clock
    * time. Legacy configs without this field default to time.

@@ -181,4 +181,83 @@ describe("GraphComponent", () => {
       expect(texts.some((t) => t === "500.0k")).toBe(false);
     });
   });
+
+  it("renders the readout variant with the latest value when explicitly selected and a single series is configured", async () => {
+    const config = {
+      variant: "readout" as const,
+      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      windowSec: 300,
+    };
+
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" w={10} h={8} />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 12_345);
+    });
+
+    await waitFor(() => {
+      // Big readout shows the formatted latest value (12.3k for 12_345).
+      expect(container.textContent ?? "").toMatch(/12\.3k/);
+      // No <LineChart> rect / axis text — the readout doesn't render the chart.
+      const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
+      expect(axisTicks.length).toBe(0);
+    });
+  });
+
+  it("auto variant downgrades to readout when widget is tiny and one series is configured", async () => {
+    const config = {
+      // variant omitted → defaults to "auto"
+      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      windowSec: 300,
+    };
+
+    // tiny size bucket: w < 5 OR h < 4
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" w={3} h={3} />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 250);
+    });
+
+    await waitFor(() => {
+      expect(container.textContent ?? "").toMatch(/250/);
+      const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
+      expect(axisTicks.length).toBe(0);
+    });
+  });
+
+  it("readout variant falls back to chart when more than one series is configured", async () => {
+    const config = {
+      variant: "readout" as const,
+      series: [
+        { id: "alt", key: "v.altitude", axis: "auto" as const },
+        { id: "vs", key: "v.verticalSpeed", axis: "auto" as const },
+      ],
+      windowSec: 300,
+    };
+
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" w={3} h={3} />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 12_345);
+      source.emit("v.verticalSpeed", 42);
+    });
+
+    await waitFor(() => {
+      // Chart renders axis tick labels.
+      const ticks = container.querySelectorAll("text");
+      expect(ticks.length).toBeGreaterThan(0);
+    });
+  });
 });
