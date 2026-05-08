@@ -88,8 +88,10 @@ describe("ScienceBenchComponent", () => {
   it("renders one sensor row per unique part, collapsing duplicates", () => {
     render(<ScienceBenchComponent config={{}} id="sci" />);
     act(() => {
-      // Three thermometers stacked on the same booster — collapse to one row
-      // with a ×3 count badge. A separate part stays on its own row.
+      // Telemachus emits the same physical sensor multiple times (a vessel
+      // with 3 thermometers can come through as ~10 entries). Collapse
+      // entries that share a partName, but leave physically distinct parts
+      // on separate rows.
       source.emit("s.sensor.temp", [
         [
           "solidBooster.sm.v2",
@@ -103,7 +105,6 @@ describe("ScienceBenchComponent", () => {
     const boosterRows = screen.getAllByText("solidBooster.sm.v2");
     expect(boosterRows).toHaveLength(1);
     expect(screen.getByText(/313\.43 K/)).toBeInTheDocument();
-    expect(screen.getByText("×3")).toBeInTheDocument();
     expect(screen.getByText("noseConeBasic")).toBeInTheDocument();
     expect(screen.getByText(/290\.00 K/)).toBeInTheDocument();
   });
