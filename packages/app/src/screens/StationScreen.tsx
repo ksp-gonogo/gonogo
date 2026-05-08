@@ -13,7 +13,7 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@gonogo/data";
-import { debugPeer } from "@gonogo/logger";
+import { debugPeer, logger } from "@gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -194,19 +194,24 @@ export function StationScreen() {
     );
     // One-shot fog snapshot from the host. Persist each mask to the
     // station's local FogMaskStore — the map widget reads through the
-    // same store so a refresh shows the host's exploration state. We
-    // don't track sync errors here; a corrupt persist would surface
-    // when the map next tries to read it.
+    // same store so a refresh shows the host's exploration state.
+    // Log on receive + on each failed persist so a future "snapshot
+    // didn't apply" debug session can tell whether the message
+    // arrived at all and which body's save failed.
     unsubsRef.current.push(
       client.onFogSnapshot((msg) => {
+        logger.info(
+          `[fog-sync] snapshot received — bodies=${msg.masks.length}`,
+        );
         for (const m of msg.masks) {
-          void fogMaskStore.save(
-            msg.profileId,
-            m.bodyId,
-            m.data,
-            m.width,
-            m.height,
-          );
+          fogMaskStore
+            .save(msg.profileId, m.bodyId, m.data, m.width, m.height)
+            .catch((err) => {
+              logger.error(
+                `[fog-sync] failed to persist mask — body=${m.bodyId}`,
+                err instanceof Error ? err : undefined,
+              );
+            });
         }
       }),
     );
