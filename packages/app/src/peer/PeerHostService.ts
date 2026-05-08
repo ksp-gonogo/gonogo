@@ -181,6 +181,12 @@ export class PeerHostService {
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
   private currentFlightSnapshot: FlightRecord | null = null;
+  // Latches true the first time the broker confirms the host's id with
+  // an `open` event. Used by the auto-rotate guard in `peer.on("error")`
+  // to avoid rotating mid-session when PeerJS internally reconnects to
+  // the broker and trips an `unavailable-id` race. `regeneratePeerId()`
+  // resets it via stop() so the fresh Peer earns its own first-open.
+  private peerHasOpened = false;
 
   async start() {
     const peerId = getOrCreatePeerId();
@@ -200,6 +206,9 @@ export class PeerHostService {
     this.peer.on("open", (id) => {
       localStorage.setItem(PEER_ID_KEY, id);
       this.peerId = id;
+      // Latches once per session — see the auto-rotate guard in the
+      // error handler below for why.
+      this.peerHasOpened = true;
       // Tag every subsequent log entry with this device's identity so we
       // can filter "all logs from host XK3F" in the remote sink. The host
       // peer id is both the stable device id and the broker id.
@@ -270,20 +279,24 @@ export class PeerHostService {
 
     this.peer.on("error", (err) => {
       logger.error("[PeerHost] peer error", err);
-      // Auto-recover from `unavailable-id` only when no station is
-      // currently relying on the existing host code. The broker holds
-      // the previous tab's slot for ~30–60s; when there are no live
-      // peers, rotating to a fresh code is invisible to operators —
-      // anyone who connects after sees the new code. With stations
-      // attached, an unsolicited rotation would tear down their data
-      // channels and force a re-share of the new code, which is a
-      // worse failure mode than leaving the operator to hit Regenerate
-      // manually. We log the skip so the choice is visible.
+      // Auto-recover from `unavailable-id` only when this Peer has not
+      // yet successfully opened. That's the genuine "broker still
+      // holds the previous tab's slot from a dirty unload" case where
+      // rotating is invisible (no station has been told about this
+      // code yet). A `connections.size === 0` gate looks similar but
+      // is wrong — `unavailable-id` can fire MID-SESSION when PeerJS
+      // internally reconnects to the broker, and a brief
+      // station-disconnect window in that moment would let the gate
+      // pass. The result was a real regression: the station's
+      // localStorage still had the old code, the broker had nothing,
+      // and the station retried forever. The "first open" latch
+      // can't fire spuriously — once opened, every subsequent error
+      // skips the rotation and waits for manual Regenerate.
       const peerErr = err as { type?: string };
       if (peerErr.type !== "unavailable-id") return;
-      if (this.connections.size > 0) {
+      if (this.peerHasOpened) {
         logger.warn(
-          `[PeerHost] unavailable-id with ${this.connections.size} station(s) connected — keeping existing code, manual Regenerate available`,
+          "[PeerHost] unavailable-id after a successful open — keeping existing code, manual Regenerate available",
         );
         return;
       }
@@ -852,6 +865,7 @@ export class PeerHostService {
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;
+    this.peerHasOpened = false;
     this.connections.clear();
     this.idListeners.fire(null);
     logger.info("[PeerHost] stopped");
