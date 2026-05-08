@@ -295,6 +295,28 @@ export class PeerHostService {
       });
     });
 
+    // PeerJS quirk: when the broker WebSocket drops, PeerJS sets
+    // `peer.disconnected = true` and emits "disconnected", but it does
+    // NOT reset that flag automatically when the WS comes back. As a
+    // result `peer.connect()` keeps returning undefined forever even
+    // though incoming connections still flow through (separate path).
+    // The OcislyStreamSource was burning retries against this stuck
+    // flag. Calling `peer.reconnect()` here resets the flag and
+    // re-handshakes with the broker.
+    this.peer.on("disconnected", () => {
+      logger.warn(
+        "[PeerHost] broker disconnected — calling peer.reconnect() to clear stuck flag",
+      );
+      try {
+        this.peer?.reconnect();
+      } catch (err) {
+        logger.error(
+          "[PeerHost] peer.reconnect() threw",
+          err instanceof Error ? err : undefined,
+        );
+      }
+    });
+
     this.peer.on("error", (err) => {
       logger.error("[PeerHost] peer error", err);
       // Auto-recover from `unavailable-id` only when this Peer has not
