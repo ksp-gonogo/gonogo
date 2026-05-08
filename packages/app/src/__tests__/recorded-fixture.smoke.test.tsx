@@ -621,21 +621,41 @@ describe("recorded launch — full mission control flow", () => {
         });
       });
 
-      // Pre-populate a host-side fog store with one body's mask. We use a
-      // unique dbName so the host's pre-population can't be confused with
-      // anything the station writes — the assertion below reads from the
-      // *default* dbName (what `StationScreen` creates internally), so a
-      // hit there proves the snapshot crossed the wire.
-      const PROFILE = "fog-test-profile";
+      // Pre-populate a host-side fog store with one body's mask, scoped
+      // to a *host* profile id. The station has its own SaveProfileService
+      // that picks an unrelated id, and the contract is that the
+      // station persists under its own profile (host + station profile
+      // ids are independent — fog can only line up if the station
+      // translates). Seed the station's localStorage so we know its
+      // active profile id ahead of time, then assert the snapshot
+      // landed under THAT id, not the host's.
+      const HOST_PROFILE = "fog-test-host-profile";
+      const STATION_PROFILE = "fog-test-station-profile";
       const BODY = "kerbin";
       const data = new Uint8Array([0, 255, 0, 0, 255, 0, 0, 0]);
+
       const hostFog = new FogMaskStore({ dbName: "fog-test-host" });
-      await hostFog.save(PROFILE, BODY, data, 4, 2);
+      await hostFog.save(HOST_PROFILE, BODY, data, 4, 2);
+
+      // Seed the station's SaveProfileService — it boots from
+      // localStorage and reads "active" + the matching list entry.
+      localStorage.setItem(
+        "gonogo.saveProfiles.list",
+        JSON.stringify([
+          {
+            id: STATION_PROFILE,
+            name: "Station test profile",
+            createdAt: 0,
+            lastPlayed: 0,
+          },
+        ]),
+      );
+      localStorage.setItem("gonogo.saveProfiles.active", STATION_PROFILE);
 
       const fogSync = new FogSyncHostService({
         peerHost: peerHostService,
         fogStore: hostFog,
-        getActiveProfileId: () => PROFILE,
+        getActiveProfileId: () => HOST_PROFILE,
       });
       fogSync.start();
 
@@ -650,13 +670,17 @@ describe("recorded launch — full mission control flow", () => {
         { timeout: 5000 },
       );
 
-      // Read back from a fresh FogMaskStore using the default dbName the
-      // StationScreen's internal store uses. The snapshot save() is
-      // fire-and-forget on the receive side, so wait for it to land.
+      // The snapshot save() is fire-and-forget on the receive side, so
+      // wait for it to land. Assert specifically that:
+      //   1. The bytes appear under the *station's* profile id (proves
+      //      translation; the actual contract for the map widget).
+      //   2. They DON'T appear under the host's profile id on the
+      //      station's store (the previous bug — bytes landing in the
+      //      wrong key, invisible to FogMaskCacheProvider).
       const stationFog = new FogMaskStore();
       await waitFor(
         async () => {
-          const mask = await stationFog.load(PROFILE, BODY);
+          const mask = await stationFog.load(STATION_PROFILE, BODY);
           expect(mask).not.toBeNull();
           expect(Array.from(mask?.data ?? [])).toEqual(Array.from(data));
           expect(mask?.width).toBe(4);
@@ -664,6 +688,8 @@ describe("recorded launch — full mission control flow", () => {
         },
         { timeout: 5000 },
       );
+      const hostKeyOnStation = await stationFog.load(HOST_PROFILE, BODY);
+      expect(hostKeyOnStation).toBeNull();
 
       fogSync.stop();
     },
