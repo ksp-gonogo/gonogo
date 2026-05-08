@@ -7,38 +7,25 @@ set -e
 # playing rather than coding. The browser hits `http://localhost:4173`
 # (Vite preview's default port).
 #
-# `pnpm play:logs` adds Axiom log shipping for the run, same toggle as
-# `dev:logs`. The build picks up `VITE_AXIOM_*` from process.env at
-# build time (Vite embeds them statically), so the toggle has to gate
-# *both* the build inputs and the runtime container env. The
-# fingerprint below already includes the AXIOM env keys for that
-# reason.
-
-# ──────────────────────────────────────────────────────────────────────
-# Axiom toggle — same shape as scripts/dev.sh
-# ──────────────────────────────────────────────────────────────────────
-if [ "${ENABLE_AXIOM:-0}" = "1" ]; then
-  if [ -f .env ]; then
-    echo "[play] ENABLE_AXIOM=1 — Axiom transports will install if tokens are set in .env"
-    set -a
-    . ./.env
-    set +a
-  else
-    echo "[play] ENABLE_AXIOM=1 set but .env is missing — running without logs" >&2
-  fi
-else
-  export AXIOM_TOKEN=
-  export AXIOM_DATASET=
-  export VITE_AXIOM_TOKEN=
-  export VITE_AXIOM_DATASET=
+# Axiom logs are always-on in play mode: production runs are exactly
+# when remote visibility matters most, and there's no edit/HMR churn
+# to noise up the dataset. We source `.env` so VITE_AXIOM_* keys reach
+# Vite at build time (it embeds them statically into the bundle); the
+# transport silently no-ops if the file has no token, so this is safe
+# even when AXIOM isn't configured.
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
 fi
 
 # ──────────────────────────────────────────────────────────────────────
 # Fingerprint cache — same convention as scripts/dev.sh, plus an `app`
-# entry so a stale dist/ doesn't get reused after a code change. Vite
-# embeds VITE_* env vars at build time, so the fingerprint also folds
-# in the AXIOM tokens — toggling the logs flag triggers a fresh build
-# even if no source changed.
+# entry so a stale `packages/app/dist` doesn't get reused after a
+# code change. Vite embeds VITE_* env vars at build time, so the
+# fingerprint also folds in the AXIOM tokens — rotating the token (or
+# clearing it from .env) triggers a fresh build even when no source
+# changed.
 # ──────────────────────────────────────────────────────────────────────
 CACHE_DIR=".dev-build-cache"
 mkdir -p "$CACHE_DIR"
