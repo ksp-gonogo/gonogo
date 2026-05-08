@@ -193,10 +193,23 @@ fastify.get("/ice-config", async (_req, reply) => {
   if (!coturnHandle) {
     return reply.status(503).send({ error: "TURN not available" });
   }
+  // Advertise BOTH UDP and TCP transports for the same TURN server.
+  // Without an explicit `?transport=` hint, browsers only gather a
+  // UDP TURN candidate, which silently strands clients on
+  // UDP-restrictive networks (corporate firewalls, some cellular
+  // carriers — exactly the case our self-hosted TURN exists to help).
+  // coturn listens on both UDP/3478 and TCP/3478 by default, so this
+  // is purely a hint to the browser; no relay-side change needed.
+  // The router port-forward needs both protocols (the Add Station
+  // modal's Port management table already lists "TCP & UDP" for 3478).
+  const turnHost = `${coturnHandle.externalIp}:${coturnHandle.port}`;
   return {
     iceServers: [
       {
-        urls: `turn:${coturnHandle.externalIp}:${coturnHandle.port}`,
+        urls: [
+          `turn:${turnHost}?transport=udp`,
+          `turn:${turnHost}?transport=tcp`,
+        ],
         username: coturnHandle.username,
         credential: coturnHandle.credential,
       },
