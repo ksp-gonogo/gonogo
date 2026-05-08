@@ -36,15 +36,47 @@ export function StationLinkFab() {
 }
 
 /**
- * Build the absolute station URL for this host. `BASE_URL` is "/" in dev
- * and "/gonogo/" on GitHub Pages — using it (vs. hardcoding "/station")
- * keeps the QR working on both. The host id rides as `?host=` so the
- * station screen can auto-connect on landing without the user typing
- * anything.
+ * Canonical deployed station URL — used when the host is running on a
+ * local-dev origin (localhost / LAN IP) so the QR a phone scans points
+ * at the HTTPS GitHub Pages build instead of an unreachable
+ * `http://192.168.x.x:5173`. Forks can override via VITE_STATION_URL.
+ */
+const PROJECT_STATION_URL = "https://jonpepler.github.io/gonogo/station";
+
+function isLocalDevOrigin(origin: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)(?::\d+)?$/.test(
+    origin,
+  );
+}
+
+/**
+ * Build the absolute station URL for this host.
+ *
+ * Priority:
+ *  1. `VITE_STATION_URL` if set — explicit override for forks pointing at
+ *     their own deploy.
+ *  2. Page origin — when the host page itself is loaded from an HTTPS
+ *     deploy, that's the right base for stations too.
+ *  3. `PROJECT_STATION_URL` — fallback when the host is on a local-dev
+ *     origin (localhost / LAN IP). Stations on phones / friends'
+ *     machines can't reach those, so the QR points at the canonical
+ *     deploy instead.
+ *
+ * The host id rides as `?host=` so the station screen can auto-connect
+ * on landing without the user typing anything. The PeerJS broker
+ * resolves `?host=` regardless of where the station SPA is hosted.
  */
 function buildStationUrl(peerId: string): string {
+  const override = import.meta.env.VITE_STATION_URL;
+  if (override) {
+    return `${override.replace(/\/$/, "")}?host=${encodeURIComponent(peerId)}`;
+  }
+  const origin = globalThis.location.origin;
+  if (isLocalDevOrigin(origin)) {
+    return `${PROJECT_STATION_URL}?host=${encodeURIComponent(peerId)}`;
+  }
   const base = import.meta.env.BASE_URL;
-  return `${globalThis.location.origin}${base}station?host=${encodeURIComponent(peerId)}`;
+  return `${origin}${base}station?host=${encodeURIComponent(peerId)}`;
 }
 
 function StationLinkPanel() {
