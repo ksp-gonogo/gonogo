@@ -9,6 +9,7 @@
  * is debounced so rapid consecutive paints coalesce into a single IDB write.
  */
 
+import { safeRandomUuid } from "@gonogo/core";
 import type { FogMaskStore } from "./FogMaskStore";
 
 export interface BodyMask {
@@ -43,6 +44,13 @@ export class FogMaskCache {
   private inflight = new Map<string, Promise<BodyMask>>();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  private storeUnsub: (() => void) | null = null;
+  // Origin tag this cache stamps onto its own writes, so the change
+  // listener below can short-circuit when the change came from us.
+  // Without it the cache would race-reload its own bytes over a fresh
+  // in-memory mutation and clear() would lose to a flush still in
+  // flight from earlier markDirty.
+  private readonly originTag = `cache-${safeRandomUuid()}`;
 
   private readonly width: number;
   private readonly height: number;
@@ -56,6 +64,16 @@ export class FogMaskCache {
     this.width = opts.width ?? DEFAULT_MASK_WIDTH;
     this.height = opts.height ?? DEFAULT_MASK_HEIGHT;
     this.debounceMs = opts.flushDebounceMs ?? DEFAULT_DEBOUNCE_MS;
+    // Watch for external writes to the store (e.g. fog-snapshot from
+    // the host arriving via PeerJS, written straight to the store and
+    // bypassing this cache's own mutate/flush path). Without this hook
+    // the in-memory mask stays empty after the snapshot lands and
+    // every UI subscriber misses it until a refresh.
+    this.storeUnsub = store.onChange((pid, bodyId, origin) => {
+      if (origin === this.originTag) return;
+      if (pid !== this.profileId) return;
+      void this.reloadFromStore(bodyId);
+    });
   }
 
   /**
@@ -123,6 +141,7 @@ export class FogMaskCache {
           entry.mask.data,
           entry.mask.width,
           entry.mask.height,
+          this.originTag,
         ),
       );
     }
@@ -137,13 +156,55 @@ export class FogMaskCache {
       entry.dirty = false;
       for (const listener of entry.listeners) listener(entry.mask);
     }
-    await this.store.clear(this.profileId, bodyId);
+    await this.store.clear(this.profileId, bodyId, this.originTag);
   }
 
   async dispose(): Promise<void> {
     if (this.disposed) return;
     this.disposed = true;
+    this.storeUnsub?.();
+    this.storeUnsub = null;
     await this.flush();
+  }
+
+  /**
+   * Re-read a body's mask from the store and notify subscribers. Called
+   * automatically on `store.onChange` for external writes (snapshots,
+   * direct saves from peer protocols) — not part of the public API.
+   *
+   * Skips when no entry exists yet (no UI subscribers, so nothing to
+   * notify) and when the entry's flush is mid-flight (the cache is
+   * about to write the same data back, so a re-load would race).
+   */
+  private async reloadFromStore(bodyId: string): Promise<void> {
+    const entry = this.entries.get(bodyId);
+    if (!entry) return;
+    // Avoid clobbering local mutations that haven't hit the store yet.
+    // The local writer already owns the canonical bytes; an external
+    // write is presumed older.
+    if (entry.dirty) return;
+    const stored = await this.store.load(this.profileId, bodyId);
+    if (!stored) return;
+    if (
+      stored.width === entry.mask.width &&
+      stored.height === entry.mask.height
+    ) {
+      // Preserve the existing mask reference so any caller holding it
+      // (canvas paint loops, refs) sees the new bytes in place.
+      entry.mask.data.set(stored.data);
+    } else {
+      // Dimension mismatch is rare in practice (host + station default
+      // to the same constants), but if it happens we have to swap the
+      // mask object. Subscribers re-key off the new reference.
+      entry.mask = {
+        bodyId,
+        width: stored.width,
+        height: stored.height,
+        data: new Uint8Array(stored.data),
+      };
+    }
+    entry.loading = false;
+    for (const listener of entry.listeners) listener(entry.mask);
   }
 
   // -------------------------------------------------------------------------

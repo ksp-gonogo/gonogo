@@ -30,12 +30,45 @@ function makeKey(profileId: string, bodyId: string): string {
   return `${profileId}:${bodyId}`;
 }
 
+/**
+ * Fires whenever the store's contents change for a specific
+ * `(profileId, bodyId)`. The listener is *not* given the new bytes —
+ * it should `load(...)` if it needs them. Used by `FogMaskCache` to
+ * detect external writes (e.g. a fog snapshot from the host arriving
+ * via PeerJS, written straight to the store, bypassing the cache's
+ * own mutate-then-flush path).
+ *
+ * `origin` lets the cache skip its own writes — if the cache itself
+ * called `save(..., origin: this.tag)`, the listener fires with that
+ * tag and the cache short-circuits. Without this, the cache would
+ * race-reload its own data over a fresh in-memory mutation.
+ */
+export type FogMaskChangeListener = (
+  profileId: string,
+  bodyId: string,
+  origin: string | undefined,
+) => void;
+
 export class FogMaskStore {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private readonly dbName: string;
+  private readonly changeListeners = new Set<FogMaskChangeListener>();
 
   constructor(opts: { dbName?: string } = {}) {
     this.dbName = opts.dbName ?? DB_NAME;
+  }
+
+  onChange(listener: FogMaskChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
+  }
+
+  private fireChange(
+    profileId: string,
+    bodyId: string,
+    origin: string | undefined,
+  ): void {
+    for (const l of this.changeListeners) l(profileId, bodyId, origin);
   }
 
   async load(profileId: string, bodyId: string): Promise<StoredMask | null> {
@@ -69,6 +102,7 @@ export class FogMaskStore {
     data: Uint8Array,
     width: number,
     height: number,
+    origin?: string,
   ): Promise<void> {
     const db = await this.open();
     const record: StoredMask = {
@@ -86,6 +120,7 @@ export class FogMaskStore {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
+    this.fireChange(profileId, bodyId, origin);
   }
 
   /**
@@ -118,7 +153,11 @@ export class FogMaskStore {
     });
   }
 
-  async clear(profileId: string, bodyId: string): Promise<void> {
+  async clear(
+    profileId: string,
+    bodyId: string,
+    origin?: string,
+  ): Promise<void> {
     const db = await this.open();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
@@ -127,6 +166,7 @@ export class FogMaskStore {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
+    this.fireChange(profileId, bodyId, origin);
   }
 
   async clearProfile(profileId: string): Promise<void> {
