@@ -58,6 +58,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Eager-imported so `renderApp` is fully synchronous: nesting an async
 // `await import(...)` inside an outer `act(async)` was causing the
@@ -132,9 +133,12 @@ vi.mock("peerjs", () => {
 
     send(data: unknown) {
       if (!this.remote) return;
-      // Deep-copy so the receiver can't mutate the sender's object — same
-      // semantics as a real PeerJS data channel which serialises.
-      const copy = JSON.parse(JSON.stringify(data));
+      // Deep-copy so the receiver can't mutate the sender's object. Use
+      // `structuredClone` rather than JSON round-trip: real PeerJS uses
+      // BinaryPack and preserves typed arrays, dates, Maps, etc.; JSON
+      // would silently drop a `Uint8Array` to `{}`, which broke the
+      // fog-snapshot path before this fix.
+      const copy = structuredClone(data);
       queueMicrotask(() => this.remote?.emit("data", copy));
     }
 
@@ -258,30 +262,12 @@ vi.mock("@xterm/addon-fit", () => ({
 
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
-// jsdom omits `indexedDB` and `window.matchMedia`; without these, the fog
-// mask cache in MainScreen and any media-query consumer throw unhandled
-// rejections that vitest treats as test failures. Production code paths
-// gate on availability, so a stub that always rejects (indexedDB) or
-// returns the "no-match" defaults (matchMedia) keeps the surface quiet.
-if (typeof globalThis.indexedDB === "undefined") {
-  // The FogMaskStore opens a database in a mount effect. We don't care
-  // about persistence under test, so we hand back a request that never
-  // fires `onsuccess` *or* `onerror`. The promise stays pending; React
-  // unmount drops the orphan reference. Resolving with a fake error
-  // surfaces as an unhandled rejection (vitest fails the run); resolving
-  // with a fake success would require a working transaction shim.
-  Object.defineProperty(globalThis, "indexedDB", {
-    configurable: true,
-    value: {
-      open: () => ({
-        onerror: null,
-        onsuccess: null,
-        onupgradeneeded: null,
-      }),
-      deleteDatabase: () => ({}),
-    },
-  });
-}
+// jsdom omits `indexedDB` and `window.matchMedia`. The fog-snapshot test
+// below needs a working IndexedDB so it can read the station's
+// FogMaskStore back, so fake-indexeddb is imported (via `auto` at the
+// top of the file) instead of the no-op `open()` stub this file used to
+// carry — that stub kept the orphan promise pending, which was fine
+// when nothing queried the store but blocked observing fog persistence.
 // react-grid-layout's "scroll newly added widget into view" effect calls
 // `element.scrollIntoView(...)`. jsdom doesn't implement it; stub a no-op
 // on the prototype so the dashboard's add-and-scroll flow stays quiet.
@@ -614,6 +600,72 @@ describe("recorded launch — full mission control flow", () => {
       await screen.findByText(formatDistance(apaHigh), undefined, {
         timeout: 5000,
       });
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "station screen — receives the host's fog snapshot on connect",
+    async () => {
+      const { peerHostService } = await import("../peer/PeerHostService");
+      const { FogMaskStore } = await import("@gonogo/data");
+      const { FogSyncHostService } = await import("../fog/FogSyncHostService");
+
+      await peerHostService.start();
+      const hostId = await new Promise<string>((res) => {
+        const unsub = peerHostService.onPeerIdChange((id) => {
+          if (id) {
+            unsub();
+            res(id);
+          }
+        });
+      });
+
+      // Pre-populate a host-side fog store with one body's mask. We use a
+      // unique dbName so the host's pre-population can't be confused with
+      // anything the station writes — the assertion below reads from the
+      // *default* dbName (what `StationScreen` creates internally), so a
+      // hit there proves the snapshot crossed the wire.
+      const PROFILE = "fog-test-profile";
+      const BODY = "kerbin";
+      const data = new Uint8Array([0, 255, 0, 0, 255, 0, 0, 0]);
+      const hostFog = new FogMaskStore({ dbName: "fog-test-host" });
+      await hostFog.save(PROFILE, BODY, data, 4, 2);
+
+      const fogSync = new FogSyncHostService({
+        peerHost: peerHostService,
+        fogStore: hostFog,
+        getActiveProfileId: () => PROFILE,
+      });
+      fogSync.start();
+
+      globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
+      renderApp();
+
+      // Same gate the previous station test uses — schema arrival flips
+      // the connection screen into the dashboard, which mounts the FAB.
+      await screen.findByRole(
+        "button",
+        { name: /add component/i },
+        { timeout: 5000 },
+      );
+
+      // Read back from a fresh FogMaskStore using the default dbName the
+      // StationScreen's internal store uses. The snapshot save() is
+      // fire-and-forget on the receive side, so wait for it to land.
+      const stationFog = new FogMaskStore();
+      await waitFor(
+        async () => {
+          const mask = await stationFog.load(PROFILE, BODY);
+          expect(mask).not.toBeNull();
+          expect(Array.from(mask?.data ?? [])).toEqual(Array.from(data));
+          expect(mask?.width).toBe(4);
+          expect(mask?.height).toBe(2);
+        },
+        { timeout: 5000 },
+      );
+
+      fogSync.stop();
     },
     TEST_TIMEOUT_MS,
   );
