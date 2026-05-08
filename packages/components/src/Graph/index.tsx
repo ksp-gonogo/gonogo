@@ -1,19 +1,24 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent, safeRandomUuid } from "@gonogo/core";
+import { getSizeBucket, registerComponent, safeRandomUuid } from "@gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@gonogo/data";
 import { useDataSchema } from "@gonogo/data";
 import type { ChartSeries, ChartSeriesData, ThresholdRule } from "@gonogo/ui";
 import {
+  BigReadout,
   ConfigForm,
   DataKeyPicker,
   Field,
+  FieldHint,
   FieldLabel,
   Input,
   LineChart,
   Panel,
+  PanelSubtitle,
   PanelTitle,
   PrimaryButton,
+  ReadoutCaption,
   Select,
+  Sparkline,
   WidgetHeader,
 } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +30,7 @@ import type {
   GraphConfig,
   GraphSeriesConfig,
   GraphThresholdConfig,
+  GraphVariant,
 } from "./types";
 import { TIME_AXIS } from "./types";
 
@@ -57,6 +63,17 @@ function computeXDomain(
   const all = [...liveXs];
   for (const o of overlays) all.push(...o.data.x);
   return computeValueDomain(all);
+}
+
+function formatReadoutValue(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (abs >= 10_000) return `${(value / 1_000).toFixed(1)}k`;
+  if (abs >= 100) return value.toFixed(0);
+  if (abs >= 10) return value.toFixed(1);
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2);
 }
 
 function formatNumericTick(value: number, unit?: string): string {
@@ -125,6 +142,9 @@ interface GraphViewProps {
   title?: string;
   /** Replaces the empty-state copy when no series are configured. */
   emptyState?: string;
+  /** Current widget grid size — used to resolve the `"auto"` display variant. */
+  w?: number;
+  h?: number;
 }
 
 export function GraphView({
@@ -132,6 +152,8 @@ export function GraphView({
   referenceCurves,
   title = "GRAPH",
   emptyState = "Configure series to begin graphing.",
+  w,
+  h,
 }: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
@@ -152,9 +174,25 @@ export function GraphView({
   );
   const xMeta = xIsTime ? null : (metaMap.get(xKey) ?? null);
 
+  // Resolve variant up-front so the ResizeObserver below knows which element
+  // to observe — chart and readout render different children behind the same
+  // ref, so we re-bind the observer when the variant flips.
+  const requestedVariant: GraphVariant = config?.variant ?? "auto";
+  const hasReferenceCurves = !!referenceCurves && referenceCurves.length > 0;
+  const sizeBucket = getSizeBucket(w, h);
+  const canReadout = series.length === 1 && !hasReferenceCurves;
+  const resolvedVariant: "chart" | "readout" = canReadout
+    ? requestedVariant === "readout"
+      ? "readout"
+      : requestedVariant === "auto" && sizeBucket === "tiny"
+        ? "readout"
+        : "chart"
+    : "chart";
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind the observer when the variant flips — chart and readout share `containerRef` but render different elements, so the ref points to a fresh node.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -164,7 +202,7 @@ export function GraphView({
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [resolvedVariant]);
 
   // Collected numeric series data from child GraphSeries components.
   // Contains Y-series data keyed by their data-key. When xKey is a data key
@@ -269,6 +307,52 @@ export function GraphView({
     ? undefined
     : (value: number) => formatNumericTick(value, xMeta?.unit);
 
+  if (resolvedVariant === "readout") {
+    const cfg = series[0];
+    const meta = metaMap.get(cfg.key);
+    const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
+    const sparkValues = raw.v as number[];
+    const latest =
+      sparkValues.length > 0 ? sparkValues[sparkValues.length - 1] : undefined;
+    const color = cfg.color ?? paletteColor(0);
+    const seriesLabel = cfg.label ?? meta?.label ?? cfg.key;
+    const unit = meta?.unit;
+
+    return (
+      <Panel>
+        <WidgetHeader>
+          <PanelTitle>{title}</PanelTitle>
+        </WidgetHeader>
+        <PanelSubtitle>{seriesLabel}</PanelSubtitle>
+        <ReadoutBody ref={containerRef}>
+          <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
+            {latest !== undefined ? formatReadoutValue(latest) : "—"}
+            {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
+          </BigReadout>
+          <SparkSlot>
+            {size && (
+              <Sparkline
+                values={sparkValues}
+                width={size.w}
+                height={Math.min(80, Math.max(24, Math.floor(size.h * 0.35)))}
+                color={color}
+                ariaLabel={`${seriesLabel} trend`}
+              />
+            )}
+          </SparkSlot>
+        </ReadoutBody>
+        {/* Reuse the standard fetcher so live samples and queryRange backfill
+            stay consistent with the chart variant. */}
+        <GraphSeries
+          key={cfg.id}
+          dataKey={cfg.key}
+          windowSec={windowSec}
+          onData={handleData}
+        />
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <WidgetHeader>
@@ -331,8 +415,12 @@ export function GraphView({
 
 // ── Registered widget ────────────────────────────────────────────────────────
 
-function GraphComponent({ config }: Readonly<ComponentProps<GraphConfig>>) {
-  return <GraphView config={config} />;
+function GraphComponent({
+  config,
+  w,
+  h,
+}: Readonly<ComponentProps<GraphConfig>>) {
+  return <GraphView config={config} w={w} h={h} />;
 }
 
 // ── Config component ──────────────────────────────────────────────────────────
@@ -366,6 +454,9 @@ function GraphConfigComponent({
   );
   const [thresholds, setThresholds] = useState<GraphThresholdConfig[]>(
     config?.thresholds ?? [],
+  );
+  const [variant, setVariant] = useState<GraphVariant>(
+    config?.variant ?? "auto",
   );
 
   const schema = useDataSchema("data");
@@ -438,11 +529,33 @@ function GraphConfigComponent({
       yScalePrimary,
       yScaleSecondary,
       thresholds: thresholds.filter((t) => Number.isFinite(t.value)),
+      variant,
     });
   };
 
+  const seriesCount = seriesList.filter((s) => s.key !== "").length;
+  const variantHint =
+    variant === "readout" && seriesCount !== 1
+      ? "Readout requires exactly one series — falls back to chart until configured."
+      : variant === "auto"
+        ? "Shows the latest number + sparkline when the widget is tiny and a single series is configured. Otherwise renders the chart."
+        : undefined;
+
   return (
     <ConfigForm>
+      <Field>
+        <FieldLabel htmlFor="graph-variant">Display</FieldLabel>
+        <Select
+          id="graph-variant"
+          value={variant}
+          onChange={(e) => setVariant(e.target.value as GraphVariant)}
+        >
+          <option value="auto">Auto (chart, readout when tiny)</option>
+          <option value="chart">Chart</option>
+          <option value="readout">Readout (number + sparkline)</option>
+        </Select>
+        {variantHint && <FieldHint>{variantHint}</FieldHint>}
+      </Field>
       <Field>
         <FieldLabel>X axis</FieldLabel>
         <DataKeyPicker
@@ -637,6 +750,19 @@ const ChartArea = styled.div`
   flex: 1;
   position: relative;
   min-height: 0;
+`;
+
+const ReadoutBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+`;
+
+const SparkSlot = styled.div`
+  width: 100%;
+  flex: 0 0 auto;
 `;
 
 const EmptyStateOverlay = styled.div`
