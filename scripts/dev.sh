@@ -24,6 +24,52 @@ else
   export VITE_AXIOM_DATASET=
 fi
 
+# ──────────────────────────────────────────────────────────────────────
+# Build-input fingerprinting
+# ──────────────────────────────────────────────────────────────────────
+# Hashes everything that gets baked into a container image: the
+# service's source + Dockerfile, the workspace dep we COPY in
+# (@gonogo/logger), the root manifests + lockfile + tsconfig base, and
+# .npmrc. Stored in `.dev-build-cache/<service>.hash`; if the current
+# fingerprint differs from the cached one we trigger `--build`,
+# otherwise the existing image is reused.
+#
+# This closes the "I forgot to pass BUILD=1 after editing the
+# Dockerfile / lockfile / logger package" gap. The runtime watcher
+# below covers source edits during a live session; fingerprinting
+# covers the between-sessions gap and the inputs the watcher doesn't
+# look at. `BUILD=1` is kept as an explicit override for "I don't
+# trust the cache, rebuild from scratch".
+CACHE_DIR=".dev-build-cache"
+mkdir -p "$CACHE_DIR"
+
+compute_fingerprint() {
+  service="$1"
+  {
+    find "packages/$service" "packages/logger" -type f \
+      -not -path '*/node_modules/*' \
+      -not -path '*/dist/*' \
+      -not -path '*/.turbo/*' \
+      -not -name '*.tsbuildinfo' \
+      -exec sh -c 'printf "%s\n" "$1"; cat "$1"' _ {} \; 2>/dev/null
+    for f in package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc; do
+      if [ -f "$f" ]; then
+        printf "%s\n" "$f"
+        cat "$f"
+      fi
+    done
+  } | sha256sum | awk '{print $1}'
+}
+
+needs_rebuild() {
+  service="$1"
+  fingerprint="$2"
+  cache_file="$CACHE_DIR/$service.hash"
+  [ -f "$cache_file" ] || return 0
+  [ "$(cat "$cache_file")" = "$fingerprint" ] && return 1
+  return 0
+}
+
 watch_service() {
   service="$1"
   src_dir="packages/$service/src"
@@ -35,6 +81,7 @@ watch_service() {
       last="$current"
       echo "[$service] source changed — rebuilding container…"
       podman compose up -d --build "$service"
+      compute_fingerprint "$service" > "$CACHE_DIR/$service.hash"
     fi
   done
 }
@@ -53,15 +100,33 @@ trap cleanup EXIT
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# `--build` only when explicitly requested (BUILD=1 pnpm dev). The
-# watcher rebuilds on source changes anyway, and the unconditional
-# build was paying a multi-second context-upload tax on every startup.
-# First-time / Dockerfile / lockfile changes still need a manual rebuild.
+# Compute fingerprints up front so we can both decide what to rebuild
+# *and* persist the post-build state without recomputing.
+TELNET_FP=$(compute_fingerprint telnet-proxy)
+RELAY_FP=$(compute_fingerprint relay)
+
+REBUILD=""
 if [ "${BUILD:-0}" = "1" ]; then
-  podman compose up -d --build
+  echo "[dev] BUILD=1 — forcing rebuild of telnet-proxy + relay"
+  REBUILD="telnet-proxy relay"
 else
-  podman compose up -d
+  needs_rebuild telnet-proxy "$TELNET_FP" && REBUILD="$REBUILD telnet-proxy"
+  needs_rebuild relay "$RELAY_FP" && REBUILD="$REBUILD relay"
 fi
+
+if [ -n "$REBUILD" ]; then
+  echo "[dev] inputs changed since last build — rebuilding:$REBUILD"
+  # shellcheck disable=SC2086 # intentional word-split: $REBUILD is a space-list
+  podman compose up -d --build $REBUILD
+fi
+# Bring up anything else (and any service that didn't need a rebuild)
+# without forcing a build context upload.
+podman compose up -d
+
+# Persist the just-built fingerprints so the *next* `pnpm dev` can
+# detect what's changed since now.
+printf "%s\n" "$TELNET_FP" > "$CACHE_DIR/telnet-proxy.hash"
+printf "%s\n" "$RELAY_FP" > "$CACHE_DIR/relay.hash"
 
 WATCH_PIDS=""
 watch_service telnet-proxy &
