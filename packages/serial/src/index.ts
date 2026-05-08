@@ -22,6 +22,7 @@ export {
 } from "./SerialDeviceService";
 export { SerialDevicesMenu } from "./SerialDevicesMenu";
 export { SerialFab } from "./SerialFab";
+export { SerialPortRecoveryWatcher } from "./SerialPortRecoveryWatcher";
 export * from "./seeds";
 export type {
   DeviceTransport,

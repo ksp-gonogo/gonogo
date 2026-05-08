@@ -19,6 +19,7 @@ import {
   SerialDeviceProvider,
   SerialDeviceService,
   SerialFab,
+  SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
 import { FabClusterProvider, StatusIndicator } from "@gonogo/ui";
 import type { ReactNode } from "react";
@@ -401,6 +402,7 @@ export function StationScreen() {
                                   />
                                   <FlightsFab />
                                   <SerialFab />
+                                  <SerialPortRecoveryWatcher />
                                   <SaveProfilesFab bottom={204} />
                                   <LogsFab bottom={264} />
                                   <FullscreenFab bottom={324} />
