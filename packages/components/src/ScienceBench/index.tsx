@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -118,56 +118,40 @@ function readingFromObject(entry: unknown): SensorReading | null {
   return { partName, value };
 }
 
-interface ParsedExperiment {
-  subject: string;
-  data: number | null;
+export interface ParsedExperiment {
+  /** Human-readable experiment + biome label (e.g. "Crew report from KSC"). */
+  title: string;
+  /** Host part title (e.g. "Mystery Goo Container"). */
+  part: string | null;
+  /** Mits of data already collected. */
+  dataAmount: number | null;
+  /** Stable id we can key React lists on. */
+  subjectId: string;
 }
 
 /**
- * `sci.experiments` is "Experiments with data (object)". Try a few common
- * shapes — array of `{ subject, data }`, object keyed by subject — and fall
- * back to count-only display if the shape is unfamiliar.
+ * Parses Telemachus Reborn's `sci.experiments` payload — an array of
+ * `{ part, title, dataAmount, scienceValueBase, transmitBoost, subjectId }`
+ * objects (see ScienceCareerDataLinkHandler in the Telemachus fork).
  */
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
-  if (Array.isArray(raw)) {
-    const out: ParsedExperiment[] = [];
-    for (const entry of raw) {
-      if (entry && typeof entry === "object") {
-        const e = entry as Record<string, unknown>;
-        const subject =
-          typeof e.subject === "string"
-            ? e.subject
-            : typeof e.title === "string"
-              ? e.title
-              : typeof e.id === "string"
-                ? e.id
-                : "(unnamed)";
-        const data = typeof e.data === "number" ? e.data : null;
-        out.push({ subject, data });
-      }
-    }
-    return out;
+  if (!Array.isArray(raw)) return null;
+  const out: ParsedExperiment[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const entry = raw[i];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    const subjectId =
+      typeof e.subjectId === "string" ? e.subjectId : `experiment-${i}`;
+    out.push({
+      title: typeof e.title === "string" ? e.title : "(unnamed)",
+      part: typeof e.part === "string" ? e.part : null,
+      dataAmount: typeof e.dataAmount === "number" ? e.dataAmount : null,
+      subjectId,
+    });
   }
-  if (typeof raw === "object") {
-    const out: ParsedExperiment[] = [];
-    for (const [subject, value] of Object.entries(
-      raw as Record<string, unknown>,
-    )) {
-      const data =
-        typeof value === "number"
-          ? value
-          : value &&
-              typeof value === "object" &&
-              "data" in (value as object) &&
-              typeof (value as { data: unknown }).data === "number"
-            ? (value as { data: number }).data
-            : null;
-      out.push({ subject, data });
-    }
-    return out;
-  }
-  return null;
+  return out;
 }
 
 const SITUATION_BADGE_MS = 10_000;
@@ -262,32 +246,34 @@ function ScienceBenchComponent({
         {showNew && <NewBadge>NEW</NewBadge>}
       </SituationLine>
 
-      {showSensors && (
-        <Section>
-          <SectionTitle>Sensors</SectionTitle>
-          <SensorList>
-            {sensors.map(([type, raw]) => (
-              <SensorRow key={type} type={type} raw={raw} />
-            ))}
-          </SensorList>
-        </Section>
-      )}
+      <Body>
+        {showSensors && (
+          <Section>
+            <SectionTitle>Sensors</SectionTitle>
+            <SensorList>
+              {sensors.map(([type, raw]) => (
+                <SensorRow key={type} type={type} raw={raw} />
+              ))}
+            </SensorList>
+          </Section>
+        )}
 
-      {showAboard && (
-        <Section>
-          <SectionTitle>
-            Aboard
-            {typeof sciCount === "number" && (
-              <SectionMeta>
-                · {sciCount} record{sciCount === 1 ? "" : "s"}
-                {typeof sciDataAmount === "number" &&
-                  ` · ${sciDataAmount.toFixed(1)} mits`}
-              </SectionMeta>
-            )}
-          </SectionTitle>
-          <ExperimentList experiments={experiments} sciCount={sciCount} />
-        </Section>
-      )}
+        {showAboard && (
+          <Section>
+            <SectionTitle>
+              Aboard
+              {typeof sciCount === "number" && (
+                <SectionMeta>
+                  · {sciCount} record{sciCount === 1 ? "" : "s"}
+                  {typeof sciDataAmount === "number" &&
+                    ` · ${sciDataAmount.toFixed(1)} mits`}
+                </SectionMeta>
+              )}
+            </SectionTitle>
+            <ExperimentList experiments={experiments} sciCount={sciCount} />
+          </Section>
+        )}
+      </Body>
 
       {showCareerStrip && (
         <CareerStrip>
@@ -321,6 +307,39 @@ function SensorRow({ type, raw }: { type: SensorType; raw: unknown }) {
   );
 }
 
+interface AggregatedReading {
+  partName: string;
+  value: number;
+  count: number;
+}
+
+/**
+ * Multiple sensors of the same type stuck on the same part (a stack of 30
+ * thermometers on a booster) collapse into one row — averaging across
+ * physically distinct parts would hide real differences, but multiple
+ * sensors at the same location are reading the same physical quantity, so
+ * we surface a single value with a `×N` count badge.
+ */
+function aggregateByPart(readings: SensorReading[]): AggregatedReading[] {
+  const groups = new Map<string, number[]>();
+  for (const r of readings) {
+    const list = groups.get(r.partName);
+    if (list) list.push(r.value);
+    else groups.set(r.partName, [r.value]);
+  }
+  const out: AggregatedReading[] = [];
+  for (const [partName, values] of groups) {
+    // Telemachus emits 0 for disabled sensors; drop those so a half-dead
+    // bench doesn't pull the average to zero. Fall back to the raw values
+    // if every sensor in the group is disabled.
+    const live = values.filter((v) => v !== 0);
+    const samples = live.length > 0 ? live : values;
+    const avg = samples.reduce((a, v) => a + v, 0) / samples.length;
+    out.push({ partName, value: avg, count: values.length });
+  }
+  return out;
+}
+
 function renderSensorValues(
   parsed: SensorParseResult,
   type: SensorType,
@@ -328,15 +347,13 @@ function renderSensorValues(
   if (parsed === null) return <SensorMuted>—</SensorMuted>;
   if (parsed === "no sensors") return <SensorMuted>None installed</SensorMuted>;
   if (parsed.length === 0) return <SensorMuted>None installed</SensorMuted>;
-  // Two readings can share a partName (e.g. duplicate sensor parts). Pair
-  // the name with the value to keep keys stable across renders without
-  // resorting to the array index.
-  return parsed.map((reading) => (
-    <SensorReadingChip key={`${reading.partName}:${reading.value}`}>
-      <ChipPart>{reading.partName}</ChipPart>
+  return aggregateByPart(parsed).map((agg) => (
+    <SensorReadingChip key={agg.partName}>
+      <ChipPart>{agg.partName}</ChipPart>
       <ChipValue>
-        {reading.value.toFixed(2)} {SENSOR_UNITS[type]}
+        {agg.value.toFixed(2)} {SENSOR_UNITS[type]}
       </ChipValue>
+      {agg.count > 1 && <ChipCount>×{agg.count}</ChipCount>}
     </SensorReadingChip>
   ));
 }
@@ -364,10 +381,10 @@ function ExperimentList({
   return (
     <ExperimentListWrap>
       {experiments.map((e) => (
-        <ExperimentRow key={e.subject}>
-          <ExpSubject>{e.subject}</ExpSubject>
+        <ExperimentRow key={e.subjectId}>
+          <ExpSubject>{e.title}</ExpSubject>
           <ExpData>
-            {e.data === null ? "—" : `${e.data.toFixed(1)} mits`}
+            {e.dataAmount === null ? "—" : `${e.dataAmount.toFixed(1)} mits`}
           </ExpData>
         </ExperimentRow>
       ))}
@@ -417,8 +434,21 @@ const NewBadge = styled.span`
   color: var(--color-status-go-fg);
 `;
 
+const Body = styled(ScrollArea)`
+  flex: 1;
+  min-height: 0;
+
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+`;
+
 const Section = styled.div`
-  margin-top: 10px;
+  &:first-child {
+    margin-top: 4px;
+  }
 `;
 
 const SectionTitle = styled.div`
@@ -482,6 +512,12 @@ const ChipPart = styled.span`
 const ChipValue = styled.span`
   color: var(--color-text-primary);
   font-weight: 600;
+`;
+
+const ChipCount = styled.span`
+  color: var(--color-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.04em;
 `;
 
 const ExperimentListWrap = styled.ul`

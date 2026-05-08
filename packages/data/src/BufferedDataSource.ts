@@ -613,11 +613,17 @@ export class BufferedDataSource extends DataSourceWrapper {
     // the store, not fanned out to live or sample subscribers, doesn't
     // update lastEmittedValue. Widgets freeze at their pre-blackout value;
     // historical queries show a clean gap.
+    //
+    // `career.*` is KSP-global (funds / rep / science points come from KSC,
+    // not the vessel) so it must always flow through — otherwise the
+    // ScienceBench freezes the moment the player opens R&D from KSC and
+    // never sees their science points decrement after spending.
     if (
       this.source.affectedBySignalLoss &&
       this.hasConfirmedConnection &&
       !this.signalConnected &&
-      !key.startsWith("comm.")
+      !key.startsWith("comm.") &&
+      !key.startsWith("career.")
     ) {
       return;
     }
