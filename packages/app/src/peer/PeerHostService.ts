@@ -270,6 +270,24 @@ export class PeerHostService {
 
     this.peer.on("error", (err) => {
       logger.error("[PeerHost] peer error", err);
+      // Auto-recover from `unavailable-id` only when no station is
+      // currently relying on the existing host code. The broker holds
+      // the previous tab's slot for ~30–60s; when there are no live
+      // peers, rotating to a fresh code is invisible to operators —
+      // anyone who connects after sees the new code. With stations
+      // attached, an unsolicited rotation would tear down their data
+      // channels and force a re-share of the new code, which is a
+      // worse failure mode than leaving the operator to hit Regenerate
+      // manually. We log the skip so the choice is visible.
+      const peerErr = err as { type?: string };
+      if (peerErr.type !== "unavailable-id") return;
+      if (this.connections.size > 0) {
+        logger.warn(
+          `[PeerHost] unavailable-id with ${this.connections.size} station(s) connected — keeping existing code, manual Regenerate available`,
+        );
+        return;
+      }
+      void this.regeneratePeerId();
     });
 
     // Tell the broker we're leaving on page unload. Without this, the WS
