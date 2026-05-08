@@ -39,6 +39,17 @@ export class WebSerialTransport implements DeviceTransport {
   private writer: WritableStreamDefaultWriter<string> | null = null;
   private readableClosed: Promise<void> | null = null;
   private writableClosed: Promise<void> | null = null;
+  /**
+   * AbortControllers passed to pipeTo so we can forcibly release the
+   * locks pipeTo holds on `port.readable` / `port.writable`. Without
+   * these, an unplugged device can leave session 1's pipeTo holding
+   * those locks indefinitely (port.close() throws on a lost device,
+   * so spec-driven release-on-close doesn't fire), and a session 2
+   * doConnect on the recovered OS-open port then hits "Cannot pipe a
+   * locked stream".
+   */
+  private readableAbort: AbortController | null = null;
+  private writableAbort: AbortController | null = null;
   private buffer = "";
 
   private inputListeners = new Set<(event: InputEvent) => void>();
@@ -188,34 +199,18 @@ export class WebSerialTransport implements DeviceTransport {
 
       await this.openWithRetry(port);
 
-      // Defensive against the recovery path: if openWithRetry returned
-      // because the port was already open at OS level, port.readable /
-      // port.writable may still be locked by a prior session's pipeTo
-      // that hasn't fully released. pipeTo on a locked stream throws
-      // "Cannot pipe a locked stream". Force one fresh close → open
-      // cycle to get clean streams. If that also fails to clear the
-      // lock, error out with a useful message.
+      // openWithRetry's recovery branch returns success when the port is
+      // already open at OS level — we trust that, but the streams may
+      // still be locked by a prior session's pipeTo that the OS-level
+      // close() didn't manage to drain. We can't usefully retry close
+      // here (it doesn't actually close the OS port in this state, and
+      // a follow-up open() then throws "port already open"). Surface
+      // a clear error so the user knows refresh is the recovery path
+      // rather than letting pipeTo fail with a confusing TypeError.
       if (port.readable?.locked || port.writable?.locked) {
-        trace.debug("recovered port has locked streams; forcing reopen", {
-          deviceId: this.id,
-        });
-        try {
-          await port.close();
-        } catch {
-          // best effort
-        }
-        await port.open({
-          baudRate: this.baudRate,
-          dataBits: 8,
-          stopBits: 1,
-          parity: "none",
-          flowControl: "none",
-        });
-        if (port.readable?.locked || port.writable?.locked) {
-          throw new Error(
-            "Serial port streams remain locked after reopen — refresh the page to clear.",
-          );
-        }
+        throw new Error(
+          "Serial port streams are still locked from a prior session. Refresh the page to recover.",
+        );
       }
 
       this.port = port;
@@ -224,11 +219,17 @@ export class WebSerialTransport implements DeviceTransport {
       if (!port.readable || !port.writable) {
         throw new Error("Serial port missing readable/writable streams");
       }
-      this.readableClosed = port.readable.pipeTo(decoder.writable);
+      this.readableAbort = new AbortController();
+      this.readableClosed = port.readable.pipeTo(decoder.writable, {
+        signal: this.readableAbort.signal,
+      });
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
-      this.writableClosed = encoder.readable.pipeTo(port.writable);
+      this.writableAbort = new AbortController();
+      this.writableClosed = encoder.readable.pipeTo(port.writable, {
+        signal: this.writableAbort.signal,
+      });
       this.writer = encoder.writable.getWriter();
 
       this.setStatus("connected");
@@ -283,6 +284,16 @@ export class WebSerialTransport implements DeviceTransport {
     finalStatus: TransportStatus,
     err?: unknown,
   ): Promise<void> {
+    // Abort the pipeTos first — that's what releases the locks on
+    // port.readable / port.writable. reader.cancel + releaseLock alone
+    // only release the decoder/encoder side; the locks pipeTo holds on
+    // the SerialPort streams themselves only drop when pipeTo settles,
+    // and on a lost device pipeTo can hang indefinitely if not aborted.
+    this.readableAbort?.abort();
+    this.readableAbort = null;
+    this.writableAbort?.abort();
+    this.writableAbort = null;
+
     try {
       await this.reader?.cancel();
     } catch {
