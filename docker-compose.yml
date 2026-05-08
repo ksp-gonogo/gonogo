@@ -77,8 +77,10 @@ services:
     command: [ "--port", "5077", "--endpoint", "0.0.0.0" ]
     # Base image (dotnet:6.0 runtime) lacks curl / nc, so we use bash's
     # built-in /dev/tcp to check the gRPC port is accepting connections.
+    # Must invoke bash explicitly: the image's /bin/sh is dash, which
+    # doesn't understand /dev/tcp and would fail every probe.
     healthcheck:
-      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/5077" ]
+      test: [ "CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/5077" ]
       interval: 3s
       timeout: 2s
       retries: 40
