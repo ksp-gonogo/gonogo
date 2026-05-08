@@ -39,6 +39,30 @@ const fastify = Fastify({ logger: true });
 await fastify.register(cors, { origin: true });
 await fastify.register(websocket);
 
+// Bridge Fastify's per-request log line through @gonogo/logger so HTTP
+// traffic shows up in Axiom alongside the existing `[kos-bridge]`
+// lifecycle events. Without this, only kOS-terminal sessions are
+// visible remotely — `/version` probes from the main screen and any
+// future routes stay invisible past the local pino output.
+//
+// Successful responses (<400) at info; >=400 promoted to warn so a
+// blip is filterable without scraping every line. WebSocket upgrades
+// don't fire onResponse — those keep their own lifecycle logs in the
+// kOS bridge. Body / headers excluded on purpose to avoid log volume
+// blow-up and keep the leak surface narrow.
+fastify.addHook("onResponse", async (req, reply) => {
+  const status = reply.statusCode;
+  const ctx = {
+    method: req.method,
+    url: req.url,
+    statusCode: status,
+    responseTimeMs: Math.round(reply.elapsedTime * 100) / 100,
+  };
+  const msg = `${req.method} ${req.url} → ${status} (${ctx.responseTimeMs}ms)`;
+  if (status >= 400) logger.warn(msg, ctx);
+  else logger.info(msg, ctx);
+});
+
 registerKosBridge(fastify, {
   kosHost: process.env.KOS_HOST ?? "localhost",
   kosPort: Number(process.env.KOS_PORT ?? 5410),
