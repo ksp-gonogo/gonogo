@@ -174,7 +174,25 @@ export class OcislyStreamSource implements StreamSource {
         this.callListenerAttached = true;
       }
 
+      // PeerJS returns `undefined` from `peer.connect()` when the Peer's
+      // broker WebSocket is in the `disconnected` state (transient
+      // re-connect window). Without this guard, the next line's
+      // `conn.on(...)` throws "Cannot read properties of undefined" and
+      // poisons the retry until something else nudges a fresh attempt.
+      // Treat it as a regular failure and let scheduleRetry try again
+      // once the broker WS is back.
+      const peerWithState = peer as Peer & { disconnected?: boolean };
+      if (peerWithState.disconnected) {
+        throw new Error(
+          "Peer is in disconnected state — broker WS isn't ready for outgoing connect()",
+        );
+      }
       const conn = peer.connect(peerId, { reliable: true });
+      if (!conn) {
+        throw new Error(
+          "peer.connect() returned undefined — Peer is mid-reconnect or destroyed",
+        );
+      }
       this.dataConnection = conn;
 
       await new Promise<void>((resolve, reject) => {
