@@ -24,7 +24,16 @@ export interface CoturnOptions {
   port?: number;
   /** Min relay port. Defaults to 49160. */
   minPort?: number;
-  /** Max relay port. Defaults to 49200. */
+  /**
+   * Max relay port. Defaults to 49170 — coturn allocates one relay port
+   * per active TURN session, so 11 ports comfortably covers ≤10
+   * simultaneous TURN-using clients. Bumped down from the original
+   * 49200 because Google Wi-Fi (and most consumer routers) require
+   * one port-forward entry per port; the old range demanded 41
+   * clicks. If your sessions routinely exceed ~10 concurrent
+   * TURN-relayed clients, widen this and the matching docker-compose
+   * mapping + Dockerfile EXPOSE.
+   */
   maxPort?: number;
   /** Username for static credentials. Defaults to `gonogo`. */
   username?: string;
@@ -53,7 +62,7 @@ export interface CoturnHandle {
 
 const DEFAULT_PORT = 3478;
 const DEFAULT_MIN_PORT = 49160;
-const DEFAULT_MAX_PORT = 49200;
+const DEFAULT_MAX_PORT = 49170;
 
 /**
  * Spawn coturn with a fresh random secret. Resolves once the binary has
