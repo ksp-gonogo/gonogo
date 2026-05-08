@@ -55,17 +55,26 @@ function renderWithProviders(tree: React.ReactNode) {
 
 describe("Dashboard widget error boundary", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  // React 18 surfaces caught errors two ways: a `console.error(...)` call
+  // *and* an `error` event dispatched on the jsdom window. The console
+  // spy silences the first; jsdom's default "error" handler logs the
+  // second to stderr (that's the bare stack trace that keeps showing
+  // up in passing-test output). preventDefault on the event tells jsdom
+  // to skip its default handler. We're testing that the boundary catches
+  // and renders a fallback — the fact that React also fires an event
+  // about it is incidental noise, not a real failure.
+  const suppressErrorEvent = (e: ErrorEvent) => e.preventDefault();
 
   beforeEach(() => {
     clearRegistry();
     localStorage.clear();
-    // React logs the caught error to console.error; silence to keep the
-    // test output clean.
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    window.addEventListener("error", suppressErrorEvent);
   });
   afterEach(() => {
     cleanup();
     consoleErrorSpy.mockRestore();
+    window.removeEventListener("error", suppressErrorEvent);
   });
 
   it("renders the WidgetError fallback when a widget throws", () => {
