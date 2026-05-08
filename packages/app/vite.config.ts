@@ -42,6 +42,11 @@ export default defineConfig({
   // network URLs at startup. Default is 127.0.0.1, which is why station
   // devices couldn't reach the dev build over wifi.
   server: { host: true },
+  // Same LAN-binding rationale as `server` — `pnpm play` serves the
+  // production build via `vite preview`, and a phone on the wifi
+  // needs to reach `http://<host-lan-ip>:4173/station?host=...`
+  // when not using the deployed github.io page directly.
+  preview: { host: true },
   define: {
     __GONOGO_VERSION__: JSON.stringify(pkg.version),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
