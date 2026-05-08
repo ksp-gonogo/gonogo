@@ -175,22 +175,36 @@ export class OcislyStreamSource implements StreamSource {
       }
 
       // PeerJS returns `undefined` from `peer.connect()` when the Peer's
-      // broker WebSocket is in the `disconnected` state (transient
-      // re-connect window). Without this guard, the next line's
-      // `conn.on(...)` throws "Cannot read properties of undefined" and
-      // poisons the retry until something else nudges a fresh attempt.
-      // Treat it as a regular failure and let scheduleRetry try again
-      // once the broker WS is back.
-      const peerWithState = peer as Peer & { disconnected?: boolean };
+      // broker WebSocket is in the `disconnected` state. The flag is
+      // sticky — PeerJS doesn't auto-clear it after a broker reconnect,
+      // so the next attempt would just fail again. Force a reconnect
+      // ourselves before retrying (PeerHostService also wires the
+      // peer's `disconnected` event to `reconnect()`, but doing it here
+      // covers the race where the flag is still set when we look).
+      const peerWithState = peer as Peer & {
+        disconnected?: boolean;
+        reconnect?: () => void;
+      };
       if (peerWithState.disconnected) {
+        try {
+          peerWithState.reconnect?.();
+        } catch {
+          // reconnect() can throw if the peer is destroyed; that just
+          // becomes the same retry path.
+        }
         throw new Error(
-          "Peer is in disconnected state — broker WS isn't ready for outgoing connect()",
+          "Peer is in disconnected state — kicked reconnect, will retry",
         );
       }
       const conn = peer.connect(peerId, { reliable: true });
       if (!conn) {
+        try {
+          peerWithState.reconnect?.();
+        } catch {
+          // ignore
+        }
         throw new Error(
-          "peer.connect() returned undefined — Peer is mid-reconnect or destroyed",
+          "peer.connect() returned undefined — kicked reconnect, will retry",
         );
       }
       this.dataConnection = conn;
