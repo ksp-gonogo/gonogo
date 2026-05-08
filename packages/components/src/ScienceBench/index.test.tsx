@@ -85,17 +85,48 @@ describe("ScienceBenchComponent", () => {
     expect(screen.getByText("REP")).toBeInTheDocument();
   });
 
-  it("renders sensor readings parsed from an array shape", () => {
+  it("renders one sensor row per unique part, collapsing duplicates", () => {
     render(<ScienceBenchComponent config={{}} id="sci" />);
     act(() => {
+      // Three thermometers stacked on the same booster — collapse to one row
+      // with a ×3 count badge. A separate part stays on its own row.
       source.emit("s.sensor.temp", [
-        { partName: "Thermometer A", value: 312.4 },
-        { partName: "Thermometer B", value: 295.1 },
+        [
+          "solidBooster.sm.v2",
+          "solidBooster.sm.v2",
+          "solidBooster.sm.v2",
+          "noseConeBasic",
+        ],
+        [313.43, 313.43, 313.43, 290.0],
       ]);
     });
-    expect(screen.getByText("Thermometer A")).toBeInTheDocument();
-    expect(screen.getByText(/312\.40 K/)).toBeInTheDocument();
-    expect(screen.getByText("Thermometer B")).toBeInTheDocument();
+    const boosterRows = screen.getAllByText("solidBooster.sm.v2");
+    expect(boosterRows).toHaveLength(1);
+    expect(screen.getByText(/313\.43 K/)).toBeInTheDocument();
+    expect(screen.getByText("×3")).toBeInTheDocument();
+    expect(screen.getByText("noseConeBasic")).toBeInTheDocument();
+    expect(screen.getByText(/290\.00 K/)).toBeInTheDocument();
+  });
+
+  it("shows experiment title and data amount from sci.experiments", () => {
+    render(<ScienceBenchComponent config={{}} id="sci" />);
+    act(() => {
+      source.emit("sci.experiments", [
+        {
+          part: "Mystery Goo Container",
+          title:
+            "Mystery Goo Observation while flying low over Kerbin's grasslands",
+          dataAmount: 5.5,
+          scienceValueBase: 5.0,
+          transmitBoost: 0,
+          subjectId: "mysteryGoo@KerbinFlyingLowGrasslands",
+        },
+      ]);
+      source.emit("sci.count", 1);
+      source.emit("sci.dataAmount", 5.5);
+    });
+    expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument();
+    expect(screen.getByText("5.5 mits")).toBeInTheDocument();
   });
 });
 
@@ -159,26 +190,41 @@ describe("parseExperiments", () => {
     expect(parseExperiments(undefined)).toBeNull();
   });
 
-  it("parses arrays of {subject, data}", () => {
+  it("returns null for non-array input (Telemachus only emits arrays)", () => {
+    expect(parseExperiments({ foo: "bar" })).toBeNull();
+    expect(parseExperiments(42)).toBeNull();
+  });
+
+  it("parses Telemachus's sci.experiments wire format", () => {
     expect(
       parseExperiments([
-        { subject: "Crew Report from Kerbin", data: 1.0 },
-        { subject: "Mystery Goo from Mun", data: 4.5 },
+        {
+          part: "Mystery Goo Container",
+          title: "Mystery Goo from Kerbin",
+          dataAmount: 1.5,
+          scienceValueBase: 5.0,
+          transmitBoost: 0,
+          subjectId: "mysteryGoo@KerbinSrfLandedGrasslands",
+        },
       ]),
     ).toEqual([
-      { subject: "Crew Report from Kerbin", data: 1.0 },
-      { subject: "Mystery Goo from Mun", data: 4.5 },
+      {
+        part: "Mystery Goo Container",
+        title: "Mystery Goo from Kerbin",
+        dataAmount: 1.5,
+        subjectId: "mysteryGoo@KerbinSrfLandedGrasslands",
+      },
     ]);
   });
 
-  it("parses object maps keyed by subject", () => {
-    expect(parseExperiments({ "Crew Report from Mun": { data: 5 } })).toEqual([
-      { subject: "Crew Report from Mun", data: 5 },
-    ]);
+  it("falls back to (unnamed) when title is missing", () => {
+    const result = parseExperiments([{ subjectId: "x", dataAmount: 3 }]);
+    expect(result?.[0]?.title).toBe("(unnamed)");
   });
 
-  it("falls back to (unnamed) when subject is missing", () => {
-    const result = parseExperiments([{ data: 3 }]);
-    expect(result?.[0]?.subject).toBe("(unnamed)");
+  it("synthesises a stable subjectId when missing", () => {
+    const result = parseExperiments([{ title: "A" }, { title: "B" }]);
+    expect(result?.[0]?.subjectId).toBe("experiment-0");
+    expect(result?.[1]?.subjectId).toBe("experiment-1");
   });
 });

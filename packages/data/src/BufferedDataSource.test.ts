@@ -719,6 +719,22 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     expect(spy).toHaveBeenCalledWith(true);
   });
 
+  it("always lets career.* keys through during blackout (KSC-global state)", () => {
+    // career.science / career.funds / career.reputation come from KSC, not
+    // the active vessel — they must update while the player is at R&D
+    // (signal-loss gate active, no vessel selected) so the ScienceBench
+    // reflects spent science.
+    const spy = vi.fn();
+    buffered.subscribe("career.science", spy);
+
+    source.emit("comm.connected", false); // gate is active
+    source.emit("career.science", 100);
+    source.emit("career.science", 60); // simulating a science purchase
+
+    expect(spy).toHaveBeenCalledWith(100);
+    expect(spy).toHaveBeenCalledWith(60);
+  });
+
   it("does NOT gate on a cold-start comm.connected=false (no confirmed link yet)", async () => {
     // Tear down and rebuild without the priming `comm.connected: true` — this
     // replicates the real-world scenario where Telemachus reports false
