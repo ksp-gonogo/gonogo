@@ -172,6 +172,22 @@ function DeviceRow({
             Disconnect
           </GhostButton>
         )}
+        {device.transport === "web-serial" && status === "error" && (
+          <GhostButton
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Reset will refresh the page. Use this when a device is stuck after an unplug → replug cycle. Other unsaved app state will be lost.",
+                )
+              ) {
+                window.location.reload();
+              }
+            }}
+            title="Refreshes the page — only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it"
+          >
+            Reset connection
+          </GhostButton>
+        )}
         <GhostButton onClick={onEdit}>Edit</GhostButton>
         <GhostButton
           onClick={() => {

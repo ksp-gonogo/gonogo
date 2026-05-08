@@ -199,17 +199,29 @@ export class WebSerialTransport implements DeviceTransport {
 
       await this.openWithRetry(port);
 
-      // openWithRetry's recovery branch returns success when the port is
-      // already open at OS level — we trust that, but the streams may
-      // still be locked by a prior session's pipeTo that the OS-level
-      // close() didn't manage to drain. We can't usefully retry close
-      // here (it doesn't actually close the OS port in this state, and
-      // a follow-up open() then throws "port already open"). Surface
-      // a clear error so the user knows refresh is the recovery path
-      // rather than letting pipeTo fail with a confusing TypeError.
+      // pipeTo's lock release after AbortController.abort() is async —
+      // poll briefly before declaring the streams unrecoverable.
+      // Cleanup ran moments ago in tryAdoptPort's stale-connected
+      // branch; the abort signal may still be propagating through
+      // pipeTo's settle path here.
+      const lockPollDelays = [0, 100, 250, 500, 1000];
+      for (const delay of lockPollDelays) {
+        if (delay > 0) {
+          await new Promise((r) => setTimeout(r, delay));
+        }
+        if (!port.readable?.locked && !port.writable?.locked) break;
+        trace.debug("waiting for stream locks to release", {
+          deviceId: this.id,
+          delayMs: delay,
+        });
+      }
       if (port.readable?.locked || port.writable?.locked) {
+        // Still locked after ~1.85s. The OS port is in a state that
+        // only a fresh JS context (page refresh) clears. The menu's
+        // "Reset connection" button on the device row is the recovery
+        // path; the message here makes that explicit.
         throw new Error(
-          "Serial port streams are still locked from a prior session. Refresh the page to recover.",
+          "Serial port streams are still locked from a prior session. Use Reset connection on the device row to refresh and recover.",
         );
       }
 
