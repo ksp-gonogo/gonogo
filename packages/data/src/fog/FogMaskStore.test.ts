@@ -62,4 +62,35 @@ describe("FogMaskStore", () => {
     expect(await store.load("p1", "Mun")).toBeNull();
     expect(await store.load("p2", "Kerbin")).not.toBeNull();
   });
+
+  it("loadAllForProfile returns every body for a profile and only that profile", async () => {
+    await store.save("p1", "Kerbin", new Uint8Array([1, 2]), 2, 1);
+    await store.save("p1", "Mun", new Uint8Array([3, 4]), 2, 1);
+    // Different profile — must NOT be returned.
+    await store.save("p2", "Kerbin", new Uint8Array([9]), 1, 1);
+
+    const masks = await store.loadAllForProfile("p1");
+    expect(masks).toHaveLength(2);
+    const byBody = new Map(
+      masks.map((m) => [m.key.split(":")[1], Array.from(m.data)]),
+    );
+    expect(byBody.get("Kerbin")).toEqual([1, 2]);
+    expect(byBody.get("Mun")).toEqual([3, 4]);
+  });
+
+  it("loadAllForProfile returns an empty array for a profile with no masks", async () => {
+    expect(await store.loadAllForProfile("never-saved")).toEqual([]);
+  });
+
+  it("loadAllForProfile doesn't bleed across prefix-similar profile ids", async () => {
+    // Bug class: a profile id that's a prefix of another (e.g. "p1" vs
+    // "p1-extra") could be over-greedy if the cursor range bound is
+    // mis-set. Lock the boundary down with an explicit case.
+    await store.save("p1", "Kerbin", new Uint8Array([1]), 1, 1);
+    await store.save("p1-extra", "Kerbin", new Uint8Array([2]), 1, 1);
+
+    const masks = await store.loadAllForProfile("p1");
+    expect(masks).toHaveLength(1);
+    expect(Array.from(masks[0].data)).toEqual([1]);
+  });
 });
