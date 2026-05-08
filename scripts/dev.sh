@@ -47,7 +47,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
-podman compose up -d --build
+# BuildKit + classic-builder bypass. No-op when the underlying daemon is
+# podman (which uses buildah), but on a Docker daemon this skips the
+# full-context upload on cache hits. Harmless either way.
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+# `--build` only when explicitly requested (BUILD=1 pnpm dev). The
+# watcher rebuilds on source changes anyway, and the unconditional
+# build was paying a multi-second context-upload tax on every startup.
+# First-time / Dockerfile / lockfile changes still need a manual rebuild.
+if [ "${BUILD:-0}" = "1" ]; then
+  podman compose up -d --build
+else
+  podman compose up -d
+fi
 
 WATCH_PIDS=""
 watch_service telnet-proxy &

@@ -1,0 +1,43 @@
+# Build context for the relay + telnet-proxy images is the repo root
+# (see docker-compose.yml). Without these excludes the daemon receives
+# ~2GB of context per build, even for a fully-cached layer hit.
+
+# Workspace dependency trees — the Dockerfiles run their own pnpm install.
+node_modules
+**/node_modules
+
+# Build outputs — Dockerfiles rebuild from source.
+dist
+**/dist
+.turbo
+**/.turbo
+coverage
+**/coverage
+
+# Git + editor + OS noise.
+.git
+.gitignore
+.github
+.vscode
+.idea
+**/.DS_Store
+
+# Logs and local env.
+*.log
+**/*.log
+.env
+.env.*
+!.env.example
+
+# Tests + fixtures aren't needed at image build time.
+**/*.test.ts
+**/*.test.tsx
+**/__tests__
+**/__fixtures__
+
+# Docs + scripts the images don't need. We deliberately leave other
+# packages' sources in the context so pnpm's frozen-lockfile workspace
+# resolution stays consistent — the heavy parts (node_modules, dist) are
+# already excluded above, so the residual upload is tiny.
+local_docs
+scripts
