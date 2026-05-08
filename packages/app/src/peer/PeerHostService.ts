@@ -16,6 +16,18 @@ import type { PeerMessage } from "./protocol";
 const PEER_ID_KEY = "gonogo-host-peer-id";
 
 /**
+ * Cheap structural compare for two iceServers configs. Good enough
+ * because the relay only ever emits one TURN entry with a known shape;
+ * order changes between fetches are not expected. Used by the host's
+ * periodic config refresh to skip the no-op case (relay still serving
+ * the same creds) without touching the Peer.
+ */
+function areIceServersEqual(a: RTCIceServer[], b: RTCIceServer[]): boolean {
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
  * Soft cap on the bandwidth a single host pours into the PeerJS data
  * channel each second (summed across all connected peers). At ~150
  * Telemachus keys × 4 Hz × 2 peers, the wire format averages ~50 bytes
@@ -187,6 +199,12 @@ export class PeerHostService {
   // the broker and trips an `unavailable-id` race. `regeneratePeerId()`
   // resets it via stop() so the fresh Peer earns its own first-open.
   private peerHasOpened = false;
+  // Polls the relay's `/ice-config` so a relay restart (which mints a
+  // fresh coturn shared secret on every boot) doesn't leave the host's
+  // Peer pinned to stale TURN credentials. Without this, a `pnpm dev`
+  // rebuild of the relay container silently breaks new TURN allocations
+  // until the operator hard-refreshes the host page.
+  private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   async start() {
     const peerId = getOrCreatePeerId();
@@ -302,6 +320,15 @@ export class PeerHostService {
       }
       void this.regeneratePeerId();
     });
+
+    // Keep the Peer's iceServers in sync with the relay's coturn — every
+    // relay restart rotates the shared secret, so creds baked into the
+    // Peer's config at start() time would silently fail (401) on any
+    // subsequent TURN allocation. Existing data channels survive (their
+    // ICE pair is already chosen); only NEW peer connections from this
+    // point onward pick up the refreshed creds via the Peer's
+    // `_options.config` mutation.
+    this.startIceConfigRefresh();
 
     // Tell the broker we're leaving on page unload. Without this, the WS
     // close races the page teardown and may not flush before the page is
@@ -862,6 +889,7 @@ export class PeerHostService {
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;
     this.currentFlightSnapshot = null;
+    this.stopIceConfigRefresh();
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;
@@ -869,6 +897,53 @@ export class PeerHostService {
     this.connections.clear();
     this.idListeners.fire(null);
     logger.info("[PeerHost] stopped");
+  }
+
+  /**
+   * Re-fetch `/ice-config` every 60s and reseed the Peer's config when
+   * the credentials change. Runs only while a Peer is alive — `stop()`
+   * clears the timer. Empty fetches (relay unreachable) are ignored so
+   * a transient blip doesn't drop us back to STUN-only mid-session.
+   */
+  private startIceConfigRefresh(): void {
+    if (this.iceConfigRefreshTimer) return;
+    const REFRESH_MS = 60_000;
+    this.iceConfigRefreshTimer = setInterval(() => {
+      void this.refreshIceConfig();
+    }, REFRESH_MS);
+  }
+
+  private stopIceConfigRefresh(): void {
+    if (!this.iceConfigRefreshTimer) return;
+    clearInterval(this.iceConfigRefreshTimer);
+    this.iceConfigRefreshTimer = null;
+  }
+
+  private async refreshIceConfig(): Promise<void> {
+    if (!this.peer) return;
+    const next = await fetchHostIceServers();
+    // Empty fetch = relay unreachable. Don't clobber working creds with
+    // nothing — TURN-relayed paths in flight would lose their refresh.
+    if (next.length === 0) return;
+    if (areIceServersEqual(this.iceServers, next)) return;
+    this.iceServers = next;
+    // PeerJS's Peer doesn't expose a public setter for `iceServers`, so
+    // reach into `_options.config`. New peer.connect() / peer.call()
+    // calls grab `_options.config` when constructing the underlying
+    // RTCPeerConnection, so the next ICE attempt picks up the fresh
+    // creds. Existing connections aren't disturbed (their ICE pair is
+    // already negotiated).
+    const opts = (
+      this.peer as unknown as {
+        _options?: { config?: { iceServers: RTCIceServer[] } };
+      }
+    )._options;
+    if (opts) {
+      opts.config = { iceServers: next };
+    }
+    logger.info(
+      "[PeerHost] ice-config refreshed — new TURN creds active for future connections",
+    );
   }
 
   /**
