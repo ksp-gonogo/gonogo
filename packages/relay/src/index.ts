@@ -146,15 +146,16 @@ peerHost = new PeerHost({
   peerId: proxyPeerId,
   client: ocisly,
   poller,
-  iceServers: coturnHandle
-    ? [
-        {
-          urls: `turn:${coturnHandle.externalIp}:${coturnHandle.port}`,
-          username: coturnHandle.username,
-          credential: coturnHandle.credential,
-        },
-      ]
-    : [],
+  // Empty iceServers on the relay side — we used to wire coturn here,
+  // but it actively made the local case worse. Both endpoints share a
+  // public-IP srflx candidate (router hairpin NAT does the rest), and
+  // ICE prefers a relay candidate over srflx — so adding TURN here
+  // pushed the path through the relay's own coturn (also hairpin),
+  // which exhausted the 11-port relay pool and silently failed.
+  // External stations consume the host's TURN candidate via SDP
+  // signalling, so they still get TURN coverage; the relay itself
+  // only needs to gather direct + STUN candidates.
+  iceServers: [],
   logger: {
     info: (msg, ...args) => bridgeInfo(msg, { args }),
     error: (msg, ...args) => bridgeError(msg, undefined, { args }),
