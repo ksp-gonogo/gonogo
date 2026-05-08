@@ -92,6 +92,18 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--external-ip=${opts.externalIp}`,
     "--no-tls",
     "--no-dtls",
+    // Aggressive idle cleanup — coturn's defaults give an unused
+    // allocation up to 600s (10min) before reclaim. With our small
+    // 11-port relay range, a station retry storm or a few quick
+    // host reconnects exhaust the pool faster than the default
+    // sweeper can recover, and `create_relay_ioa_sockets: no
+    // available ports` starts firing — at which point new TURN
+    // allocations (including the host's own) fail and the camera
+    // pipeline silently breaks. 5 min max + 1 min channel timeout
+    // halves the worst-case pin time without affecting healthy
+    // sessions, which actively refresh well within these windows.
+    "--max-allocate-lifetime=300",
+    "--channel-lifetime=60",
   ];
 
   opts.logger.info(
