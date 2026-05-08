@@ -78,6 +78,9 @@ services:
       test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/5077" ]
       interval: 3s
       timeout: 2s
-      retries: 20
-      start_period: 5s
+      retries: 40
+      # Apple Silicon runs this image under qemu emulation (linux/amd64
+      # only), where dotnet boot regularly takes ~80s. start_period
+      # holds health checks below failure-counting until then.
+      start_period: 90s
     restart: unless-stopped
