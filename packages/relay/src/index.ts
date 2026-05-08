@@ -59,6 +59,31 @@ function bridgeError(
 
 await fastify.register(cors, { origin: true });
 
+// Bridge Fastify's per-request log line through @gonogo/logger so it
+// reaches Axiom alongside the explicit `bridgeInfo` operational events.
+// Without this, `podman logs gonogo-relay-1` shows incoming/completed
+// pairs (level 30 pino output) but the remote dataset stays silent
+// between OCISLY-peer events, which makes "did the host reach the
+// relay before timing out?" debugging from afar impossible.
+//
+// Successful responses (<400) go in at info; >=400 ride the warn
+// channel so a 4xx/5xx blip is queryable via `level == "warn"` without
+// scraping every routine request line. Body / headers are deliberately
+// excluded — log volume + leak surface from no benefit to the
+// debug use case.
+fastify.addHook("onResponse", async (req, reply) => {
+  const status = reply.statusCode;
+  const ctx = {
+    method: req.method,
+    url: req.url,
+    statusCode: status,
+    responseTimeMs: Math.round(reply.elapsedTime * 100) / 100,
+  };
+  const msg = `${req.method} ${req.url} → ${status} (${ctx.responseTimeMs}ms)`;
+  if (status >= 400) logger.warn(msg, ctx);
+  else logger.info(msg, ctx);
+});
+
 const ocisly = new OcislyClient(`${config.ocislyHost}:${config.ocislyPort}`);
 
 // Throttle per-camera metadata to ~2 Hz. Telemetry (speed/altitude) changes
