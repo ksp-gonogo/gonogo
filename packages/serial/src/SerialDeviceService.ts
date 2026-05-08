@@ -93,6 +93,16 @@ export class SerialDeviceService {
    */
   private pendingChoices = new Map<string, SerialPort[]>();
   private pendingChoicesListeners = new Set<() => void>();
+  /**
+   * Fires when the hot-plug adopt path detects that a returning device
+   * cannot be reopened in this JS context (the streams stay locked even
+   * after pipeTo abort + close). Subscribers — typically a top-level
+   * modal — can offer the user a one-click page reload, the only
+   * reliable way to release the SerialPort instance.
+   */
+  private portRecoveryListeners = new Set<
+    (deviceId: string, deviceName: string) => void
+  >();
 
   private deviceTypeListeners = new Set<() => void>();
   private devicesListeners = new Set<() => void>();
@@ -269,6 +279,17 @@ export class SerialDeviceService {
           `[SerialDeviceService] hot-plug adopt failed for ${managed.instance.id}`,
           { err: String(err) },
         );
+        // The OS just told us the device returned, but we can't reopen
+        // the port in this JS context — surface a recovery prompt. Match
+        // on the message rather than introducing a sentinel class so
+        // future tweaks to doConnect's throw don't silently break the
+        // hook-up; the message is unique to this code path.
+        if (
+          err instanceof Error &&
+          err.message.includes("Serial port streams are still locked")
+        ) {
+          this.emitPortRecovery(managed.instance.id, managed.instance.name);
+        }
       }
       // First match wins — refusing fan-out keeps two identical controllers
       // from racing to claim the same physical port.
@@ -589,6 +610,21 @@ export class SerialDeviceService {
   private emitPendingChoicesChange(): void {
     this.pendingChoicesListeners.forEach((cb) => {
       cb();
+    });
+  }
+
+  onPortRecoveryRequested(
+    cb: (deviceId: string, deviceName: string) => void,
+  ): () => void {
+    this.portRecoveryListeners.add(cb);
+    return () => {
+      this.portRecoveryListeners.delete(cb);
+    };
+  }
+
+  private emitPortRecovery(deviceId: string, deviceName: string): void {
+    this.portRecoveryListeners.forEach((cb) => {
+      cb(deviceId, deviceName);
     });
   }
 

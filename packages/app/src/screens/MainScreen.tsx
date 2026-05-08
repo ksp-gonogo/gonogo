@@ -19,6 +19,7 @@ import {
   SerialDeviceProvider,
   SerialDeviceService,
   SerialFab,
+  SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
 import { FabClusterProvider } from "@gonogo/ui";
 import type { ReactNode } from "react";
@@ -201,6 +202,7 @@ export function MainScreen() {
                                 />
                                 <FlightsFab />
                                 <SerialFab />
+                                <SerialPortRecoveryWatcher />
                                 <StationLinkFab />
                                 <SaveProfilesFab />
                                 <LogsFab />
