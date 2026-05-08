@@ -40,6 +40,7 @@ import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { downloadLogs } from "../logs/downloadLogs";
 import { LogsFab } from "../logs/LogsFab";
@@ -164,6 +165,10 @@ export function StationScreen() {
     const trimmed = hostId.trim().toUpperCase();
     if (!trimmed) return;
     localStorage.setItem(HOST_ID_KEY, trimmed);
+    // Keep the input state in sync so the StationConnectionFab can read
+    // the live host code even when auto-connect from `?host=` skipped
+    // typing it into the form.
+    setHostInput(trimmed);
 
     debugPeer("StationScreen attemptConnect", {
       host: trimmed,
@@ -426,12 +431,36 @@ export function StationScreen() {
                                   <FlightsFab />
                                   <SerialFab />
                                   <SerialPortRecoveryWatcher />
-                                  <SaveProfilesFab bottom={204} />
-                                  <LogsFab bottom={264} />
-                                  <FullscreenFab bottom={324} />
-                                  <SettingsFab bottom={384} />
+                                  <StationConnectionFab
+                                    bottom={204}
+                                    hostId={hostInput || null}
+                                    connStatus={connStatus}
+                                    onSwitchHost={(next) => {
+                                      // Hard-navigate so all data sources,
+                                      // listeners, and PeerClient state are
+                                      // dropped cleanly. attemptConnect on
+                                      // the fresh mount re-establishes the
+                                      // connection against the new host.
+                                      globalThis.location.assign(
+                                        `/station?host=${encodeURIComponent(
+                                          next,
+                                        )}`,
+                                      );
+                                    }}
+                                    onDisconnect={() => {
+                                      // Clear the persisted host so the next
+                                      // mount lands on the connect screen
+                                      // rather than auto-reconnecting.
+                                      localStorage.removeItem(HOST_ID_KEY);
+                                      globalThis.location.assign("/station");
+                                    }}
+                                  />
+                                  <SaveProfilesFab bottom={264} />
+                                  <LogsFab bottom={324} />
+                                  <FullscreenFab bottom={384} />
+                                  <SettingsFab bottom={444} />
                                   <MissionProfilesFab
-                                    bottom={444}
+                                    bottom={504}
                                     currentItems={dashboard.items}
                                     currentLayouts={dashboard.layouts}
                                     onLoad={(p) =>
@@ -439,7 +468,7 @@ export function StationScreen() {
                                     }
                                   />
                                   <AlarmsFab
-                                    bottom={504}
+                                    bottom={564}
                                     useSnapshot={useStationAlarmSnapshot}
                                     onAdd={(input) =>
                                       alarmClient.addAlarm(input)
