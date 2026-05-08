@@ -146,16 +146,20 @@ peerHost = new PeerHost({
   peerId: proxyPeerId,
   client: ocisly,
   poller,
-  // Empty iceServers on the relay side — we used to wire coturn here,
-  // but it actively made the local case worse. Both endpoints share a
-  // public-IP srflx candidate (router hairpin NAT does the rest), and
-  // ICE prefers a relay candidate over srflx — so adding TURN here
-  // pushed the path through the relay's own coturn (also hairpin),
-  // which exhausted the 11-port relay pool and silently failed.
-  // External stations consume the host's TURN candidate via SDP
-  // signalling, so they still get TURN coverage; the relay itself
-  // only needs to gather direct + STUN candidates.
-  iceServers: [],
+  // STUN only — no TURN on the relay side. ICE prefers a TURN-relay
+  // candidate over srflx whenever one is available; wiring our own
+  // coturn here made the local case strictly worse because it pushed
+  // the path through the same coturn (two hairpins through the
+  // router) and exhausted the small port pool. Without TURN here,
+  // ICE falls back to srflx-via-hairpin — the path that was carrying
+  // the local case for weeks. STUN is still required: with no STUN
+  // the @roamhq/wrtc inside the container can't even discover its
+  // public IP, so it only gathers the 10.89.x.x bridge candidate
+  // (unreachable from the macOS host) and ICE has no working pair
+  // at all. External stations consume the host's TURN candidate via
+  // SDP signalling, so they still get TURN coverage for restrictive
+  // networks — the relay itself doesn't need to relay.
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   logger: {
     info: (msg, ...args) => bridgeInfo(msg, { args }),
     error: (msg, ...args) => bridgeError(msg, undefined, { args }),
