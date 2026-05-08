@@ -310,15 +310,16 @@ function SensorRow({ type, raw }: { type: SensorType; raw: unknown }) {
 interface AggregatedReading {
   partName: string;
   value: number;
-  count: number;
 }
 
 /**
- * Multiple sensors of the same type stuck on the same part (a stack of 30
- * thermometers on a booster) collapse into one row — averaging across
- * physically distinct parts would hide real differences, but multiple
- * sensors at the same location are reading the same physical quantity, so
- * we surface a single value with a `×N` count badge.
+ * One chip per unique part name. Telemachus's `s.sensor.<type>` payload
+ * has been observed emitting more entries than there are physical sensors
+ * (a vessel with 3 thermometers can produce a list ~10× longer), so the
+ * raw count is unreliable — we just average the readings within a part
+ * and surface a single value. Different parts stay on separate rows so
+ * genuine readings (e.g. a heat-shielded sensor vs an exposed one) aren't
+ * folded together.
  */
 function aggregateByPart(readings: SensorReading[]): AggregatedReading[] {
   const groups = new Map<string, number[]>();
@@ -335,7 +336,7 @@ function aggregateByPart(readings: SensorReading[]): AggregatedReading[] {
     const live = values.filter((v) => v !== 0);
     const samples = live.length > 0 ? live : values;
     const avg = samples.reduce((a, v) => a + v, 0) / samples.length;
-    out.push({ partName, value: avg, count: values.length });
+    out.push({ partName, value: avg });
   }
   return out;
 }
@@ -353,7 +354,6 @@ function renderSensorValues(
       <ChipValue>
         {agg.value.toFixed(2)} {SENSOR_UNITS[type]}
       </ChipValue>
-      {agg.count > 1 && <ChipCount>×{agg.count}</ChipCount>}
     </SensorReadingChip>
   ));
 }
@@ -512,12 +512,6 @@ const ChipPart = styled.span`
 const ChipValue = styled.span`
   color: var(--color-text-primary);
   font-weight: 600;
-`;
-
-const ChipCount = styled.span`
-  color: var(--color-text-faint);
-  font-size: 10px;
-  letter-spacing: 0.04em;
 `;
 
 const ExperimentListWrap = styled.ul`
