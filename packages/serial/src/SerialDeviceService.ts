@@ -203,12 +203,6 @@ export class SerialDeviceService {
       portPid: info.usbProductId,
     });
     for (const managed of candidates) {
-      if (managed.transport.status === "connected") {
-        trace.debug("hot-plug skip — already connected", {
-          deviceId: managed.instance.id,
-        });
-        continue;
-      }
       // USB hubs sometimes emit a phantom 'connect' event during the
       // first moments of an unplug, before the disconnect propagates.
       // Skip if a connect is already in flight on this transport — the
@@ -223,6 +217,25 @@ export class SerialDeviceService {
           deviceId: managed.instance.id,
         });
         continue;
+      }
+      // If status is "connected" but the OS just told us this port
+      // became available, our state is stale — neither the read-loop's
+      // NetworkError catch nor the navigator.serial 'disconnect' event
+      // always fires on an unplug, so cleanup never ran and pipeTo's
+      // locks on port.readable/writable are still held. Force cleanup
+      // before adopting so the new doConnect sees clean streams.
+      if (managed.transport.status === "connected") {
+        trace.debug("hot-plug stale-connected; cleanup before adopt", {
+          deviceId: managed.instance.id,
+        });
+        try {
+          await managed.transport.disconnect();
+        } catch (err) {
+          logger.warn(
+            `[SerialDeviceService] stale-connected cleanup failed for ${managed.instance.id}`,
+            { err: String(err) },
+          );
+        }
       }
       const saved = managed.instance.portInfo;
       if (!saved?.vendorId) {
