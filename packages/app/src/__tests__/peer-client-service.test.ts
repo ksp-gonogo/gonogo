@@ -189,6 +189,7 @@ describe("PeerClientService", () => {
       kosOpened: 0,
       kosData: 1,
       kosClose: 0,
+      fogSnapshot: 0,
     });
   });
 });

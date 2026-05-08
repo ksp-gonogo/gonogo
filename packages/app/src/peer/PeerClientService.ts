@@ -202,6 +202,12 @@ export class PeerClientService {
   >();
   private flightListChangeListeners = new ListenerSet<[]>();
   private hostUnavailableListeners = new ListenerSet<[hostPeerId: string]>();
+  // One-shot fog-snapshot from the host, fired right after schema on each
+  // connect. Subscribers (StationScreen → FogMaskStore) decide what to
+  // do with the masks; the service itself doesn't keep them around.
+  private fogSnapshotListeners = new ListenerSet<
+    [msg: Extract<PeerMessage, { type: "fog-snapshot" }>]
+  >();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -702,6 +708,17 @@ export class PeerClientService {
     return this.hostUnavailableListeners.add(cb);
   }
 
+  /**
+   * Fires once per host-connect cycle when the host pushes its fog snapshot.
+   * The station applies the masks to its local FogMaskStore so the map
+   * reflects the host's exploration state.
+   */
+  onFogSnapshot(
+    cb: (msg: Extract<PeerMessage, { type: "fog-snapshot" }>) => void,
+  ) {
+    return this.fogSnapshotListeners.add(cb);
+  }
+
   onKosOpened(cb: (sessionId: string) => void) {
     return this.kosOpenedListeners.add(cb);
   }
@@ -750,6 +767,7 @@ export class PeerClientService {
       kosOpened: this.kosOpenedListeners.size,
       kosData: this.kosDataListeners.size,
       kosClose: this.kosCloseListeners.size,
+      fogSnapshot: this.fogSnapshotListeners.size,
     };
   }
 
@@ -826,6 +844,9 @@ export class PeerClientService {
     "relay-peer-id": (msg) => {
       this.relayPeerId = msg.peerId;
       this.relayPeerIdListeners.fire(msg.peerId);
+    },
+    "fog-snapshot": (msg) => {
+      this.fogSnapshotListeners.fire(msg);
     },
     "gonogo-countdown-start": (msg) => {
       this.gonogoCountdownStartListeners.fire(msg.t0Ms);

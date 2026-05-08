@@ -44,6 +44,7 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { KosDataSource } from "../dataSources/kos";
+import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { LogsFab } from "../logs/LogsFab";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
@@ -100,6 +101,18 @@ export function MainScreen() {
       () => (getDataSource("data") as BufferedDataSource | undefined) ?? null,
     ),
   );
+  const [fogSyncHost] = useState(
+    () =>
+      new FogSyncHostService({
+        peerHost: peerHostService,
+        fogStore: fogMaskStore,
+        getActiveProfileId: () => saveProfileService.getActiveId(),
+      }),
+  );
+  useEffect(() => {
+    fogSyncHost.start();
+    return () => fogSyncHost.stop();
+  }, [fogSyncHost]);
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({

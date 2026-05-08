@@ -95,6 +95,25 @@ export type PeerMessage =
   // whenever the relay is re-resolved. null means the main screen no longer
   // has a live relay connection.
   | { type: "relay-peer-id"; peerId: string | null }
+  // Host → station, fired once per connection right after schema. Carries
+  // every fog mask the host has stored for the active save profile so a
+  // station's map starts populated with whatever the operator has already
+  // explored. Stations keep their own copy and continue computing fresh
+  // tiles from telemetry afterwards — there's no delta sync, so a
+  // station refresh is the way to pick up later host-side discoveries.
+  | {
+      type: "fog-snapshot";
+      profileId: string;
+      masks: Array<{
+        bodyId: string;
+        width: number;
+        height: number;
+        // Raw alpha bytes (0 = fogged, 255 = imaged) — same shape as the
+        // station's local FogMaskStore record. PeerJS BinaryPack passes
+        // Uint8Array through without re-encoding.
+        data: Uint8Array;
+      }>;
+    }
   // ──────────────────────────────────────────────────────────────────────
   // GO/NO-GO and launch coordination
   // ──────────────────────────────────────────────────────────────────────
