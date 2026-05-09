@@ -1,6 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -82,6 +82,49 @@ describe("MissionDirectorComponent", () => {
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
     expect(screen.getByText(/5d 0h left/i)).toBeInTheDocument();
+  });
+
+  it("fires contracts.accept when the Accept button on an offered contract is clicked", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<MissionDirectorComponent config={{}} id="md" />);
+    act(() => {
+      // Emit active first so the widget exits the awaiting-telemetry
+      // early-return — without active, offered isn't rendered.
+      source.emit("contracts.active", []);
+      source.emit("contracts.offered", [
+        { id: 7, title: "Survey the Mun", parameters: [] },
+      ]);
+    });
+
+    fireEvent.click(screen.getByText("Accept"));
+    expect(onExecute).toHaveBeenCalledWith("contracts.accept[7]");
+  });
+
+  it("requires arm-then-confirm before declining an offered contract", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<MissionDirectorComponent config={{}} id="md" />);
+    act(() => {
+      source.emit("contracts.active", []);
+      source.emit("contracts.offered", [
+        { id: 9, title: "Land on Eve", parameters: [] },
+      ]);
+    });
+
+    // First click arms — should not fire yet.
+    fireEvent.click(screen.getByText("Decline"));
+    expect(onExecute).not.toHaveBeenCalled();
+
+    // Confirm fires the decline.
+    fireEvent.click(screen.getByText(/Confirm decline/i));
+    expect(onExecute).toHaveBeenCalledWith("contracts.decline[9]");
   });
 
   it("counts active / offered / recent in the subtitle", () => {

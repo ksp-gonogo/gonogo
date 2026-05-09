@@ -46,6 +46,8 @@ namespace GonogoTelemetry
             "sci.experimentBreakdown",
             "sci.canTransmitTotal",
             "sci.canRecoverTotal",
+            "sci.deploy",
+            "sci.transmit",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -60,9 +62,64 @@ namespace GonogoTelemetry
                     return (v, _) => DataAmountTotal(v);
                 case "sci.canRecoverTotal":
                     return (v, _) => DataAmountTotal(v);
+                case "sci.deploy":
+                    return (v, args) => DeployInstrument(v, args);
+                case "sci.transmit":
+                    return (v, args) => TransmitInstrument(v, args);
                 default:
                     return null;
             }
+        }
+
+        private static ModuleScienceExperiment FindExperimentByPartId(
+            Vessel vessel, string[] args)
+        {
+            if (vessel == null || vessel.parts == null) return null;
+            if (args == null || args.Length == 0) return null;
+            if (!uint.TryParse(args[0], out var partId)) return null;
+
+            foreach (var part in vessel.parts)
+            {
+                if (part == null || part.flightID != partId) continue;
+                foreach (var module in part.Modules)
+                {
+                    if (module is ModuleScienceExperiment exp) return exp;
+                }
+                return null;
+            }
+            return null;
+        }
+
+        private static object DeployInstrument(Vessel vessel, string[] args)
+        {
+            var exp = FindExperimentByPartId(vessel, args);
+            if (exp == null) return "instrument not found";
+            if (exp.Inoperable) return "instrument inoperable";
+            if (exp.Deployed) return 0; // already deployed — idempotent
+
+            // DeployExperiment is the public method invoked when the player
+            // right-clicks the part in-flight. KSP runs the same situation
+            // / biome checks it would in the UI, so we don't need to
+            // pre-validate here — surfacing a "no science here" failure
+            // back to the operator is a useful signal.
+            exp.DeployExperiment();
+            return 0;
+        }
+
+        private static object TransmitInstrument(Vessel vessel, string[] args)
+        {
+            var exp = FindExperimentByPartId(vessel, args);
+            if (exp == null) return "instrument not found";
+
+            var data = exp.GetData();
+            if (data == null || data.Length == 0) return "no data to transmit";
+
+            // KSP exposes ModuleScienceExperiment.TransmitData(...) on most
+            // versions, taking the data list. Some versions wrap it via
+            // IScienceDataTransmitter on the same vessel — we let KSP pick
+            // the active transmitter rather than choosing for it.
+            exp.TransmitData(new System.Collections.Generic.List<ScienceData>(data));
+            return 0;
         }
 
         private static object Instruments(Vessel vessel)

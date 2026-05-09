@@ -1,6 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -84,6 +84,78 @@ describe("ScienceOfficerComponent", () => {
     expect(
       screen.getByText(/1\/3 with data · 1 deployed · 1 inoperable/i),
     ).toBeInTheDocument();
+  });
+
+  it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 42,
+          partTitle: "Mystery Goo",
+          expId: "mysteryGoo",
+          deployed: false,
+          hasData: false,
+          rerunnable: true,
+          inoperable: false,
+        },
+      ]);
+    });
+
+    fireEvent.click(screen.getByText("Deploy"));
+    expect(onExecute).toHaveBeenCalledWith("sci.deploy[42]");
+  });
+
+  it("requires arm-then-confirm before transmitting an instrument's data", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 99,
+          partTitle: "Thermometer",
+          expId: "temperatureScan",
+          deployed: true,
+          hasData: true,
+          rerunnable: true,
+          inoperable: false,
+        },
+      ]);
+    });
+
+    fireEvent.click(screen.getByText("Transmit"));
+    expect(onExecute).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText(/Confirm transmit/i));
+    expect(onExecute).toHaveBeenCalledWith("sci.transmit[99]");
+  });
+
+  it("hides controls for an inoperable instrument", () => {
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 1,
+          partTitle: "Burned Sensor",
+          expId: "x",
+          deployed: false,
+          hasData: false,
+          rerunnable: false,
+          inoperable: true,
+        },
+      ]);
+    });
+    expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
+    expect(screen.queryByText("Transmit")).not.toBeInTheDocument();
   });
 });
 

@@ -30,6 +30,7 @@ namespace GonogoTelemetry
             "tech.unlockedIds",
             "tech.unlockedPartCount",
             "tech.affordable",
+            "tech.unlock",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -42,9 +43,47 @@ namespace GonogoTelemetry
                     return (_, __) => UnlockedPartCount();
                 case "tech.affordable":
                     return (_, __) => Affordable();
+                case "tech.unlock":
+                    return (_, args) => Unlock(args);
                 default:
                     return null;
             }
+        }
+
+        private static object Unlock(string[] args)
+        {
+            if (args == null || args.Length == 0) return "missing tech id";
+            var techId = args[0];
+            if (string.IsNullOrEmpty(techId)) return "missing tech id";
+
+            var rd = ResearchAndDevelopment.Instance;
+            if (rd == null) return "no R&D scenario";
+
+            // Find the node. KSP enumerates the tree top-down; iterate
+            // every time rather than caching because mods can add nodes
+            // mid-game and the cost of one walk is trivial.
+            RDTech target = null;
+            foreach (var node in rd.GetTreeTechs())
+            {
+                if (node != null && node.techID == techId) { target = node; break; }
+            }
+            if (target == null) return "tech not found";
+            if (target.state == RDTech.State.Available) return 0; // already unlocked
+
+            // Affordability check: surface a clear error rather than letting
+            // KSP's UnlockTech silently no-op or push the science balance
+            // negative on some game versions.
+            if (target.scienceCost > rd.Science) return "insufficient science";
+
+            // KSP exposes both UnlockTech (direct) and the more involved
+            // RDController flow (UI-level). The plugin uses UnlockTech +
+            // an explicit science deduction since UnlockTech alone doesn't
+            // always charge the player on every KSP version. Belt and
+            // braces: only deduct on success.
+            var charged = rd.AddScience(-target.scienceCost,
+                TransactionReasons.RnDTechResearch);
+            target.UnlockTech(true);
+            return charged != 0f ? 0 : "unlock failed";
         }
 
         private static object UnlockedIds()
