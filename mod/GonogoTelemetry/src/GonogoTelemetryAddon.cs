@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Telemachus;
 using UnityEngine;
 
@@ -32,11 +34,49 @@ namespace GonogoTelemetry
 
         public void Update()
         {
+            DrainDeferred();
             if (registered) return;
             TryRegister();
         }
 
         private bool registered = false;
+
+        // Deferred-action queue.  Action handlers run on Telemachus's HTTP /
+        // WS listener threads, but KSP scene transitions (StartWithNewLaunch,
+        // RevertToPrelaunch, recovery) require main-thread dispatch.
+        // Telemachus solves this internally via `queueDelayed`; the plugin
+        // can't reach into that machinery so we run our own queue, drained
+        // on each Update tick of this MonoBehaviour. Same pattern, less
+        // ceremony.
+        private static readonly Queue<Action> deferred = new Queue<Action>();
+        private static readonly object deferredLock = new object();
+
+        public static void Defer(Action action)
+        {
+            if (action == null) return;
+            lock (deferredLock) deferred.Enqueue(action);
+        }
+
+        private static void DrainDeferred()
+        {
+            // Move pending actions out of the lock before invoking them so
+            // a handler that re-enqueues doesn't deadlock or starve.
+            Action[] batch;
+            lock (deferredLock)
+            {
+                if (deferred.Count == 0) return;
+                batch = deferred.ToArray();
+                deferred.Clear();
+            }
+            foreach (var action in batch)
+            {
+                try { action(); }
+                catch (Exception ex)
+                {
+                    Debug.LogError("[GonogoTelemetry] Deferred action threw: " + ex);
+                }
+            }
+        }
 
         private void TryRegister()
         {
@@ -47,6 +87,7 @@ namespace GonogoTelemetry
                 PluginRegistration.Register(new KscApi());
                 PluginRegistration.Register(new ScienceApi());
                 PluginRegistration.Register(new ContractsApi());
+                PluginRegistration.Register(new LaunchApi());
                 registered = true;
                 Debug.Log("[GonogoTelemetry] Registered with Telemachus.");
             }

@@ -174,51 +174,127 @@ namespace GonogoTelemetry
                 if (!Directory.Exists(dir)) continue;
                 foreach (var craftPath in Directory.GetFiles(dir, "*.craft"))
                 {
-                    var name = Path.GetFileNameWithoutExtension(craftPath);
-                    int partCount = 0;
-                    double totalMass = 0;
-                    try
-                    {
-                        var node = ConfigNode.Load(craftPath);
-                        if (node != null)
-                        {
-                            // Each PART subnode is one part. Mass = sum of
-                            // part.mass + part.resource amounts × density,
-                            // but the cheap proxy is the dry mass declared
-                            // on each PART node (`mass = …`). Resources
-                            // would require a part-prefab lookup.
-                            var partNodes = node.GetNodes("PART");
-                            partCount = partNodes.Length;
-                            foreach (var p in partNodes)
-                            {
-                                if (p.HasValue("mass") &&
-                                    double.TryParse(p.GetValue("mass"), out var m))
-                                    totalMass += m;
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Corrupt or in-progress .craft — skip the values
-                        // but still surface the file so the operator sees
-                        // it exists.
-                    }
-
-                    result.Add(new Dictionary<string, object>
-                    {
-                        ["name"] = name,
-                        ["partCount"] = partCount,
-                        ["totalMass"] = totalMass,
-                        ["facility"] = facility,
-                        // Career-mode affordability + tech filtering hooks.
-                        // Stubbed empty until we layer on the part-walk
-                        // that resolves part costs and tech requirements.
-                        ["requiresFunds"] = 0,
-                        ["missingParts"] = new List<string>(),
-                    });
+                    result.Add(SerialiseCraftFile(craftPath, facility));
                 }
             }
             return result;
+        }
+
+        private static Dictionary<string, object> SerialiseCraftFile(
+            string craftPath, string facility)
+        {
+            var name = Path.GetFileNameWithoutExtension(craftPath);
+            int partCount = 0;
+            double totalMass = 0;
+            double requiresFunds = 0;
+            var missing = new HashSet<string>();
+
+            try
+            {
+                var node = ConfigNode.Load(craftPath);
+                if (node != null)
+                {
+                    var partNodes = node.GetNodes("PART");
+                    partCount = partNodes.Length;
+                    foreach (var p in partNodes)
+                    {
+                        WalkPart(p, ref totalMass, ref requiresFunds, missing);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Corrupt or in-progress .craft — surface the file with
+                // whatever we managed to read rather than dropping it.
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["name"] = name,
+                ["partCount"] = partCount,
+                ["totalMass"] = totalMass,
+                ["facility"] = facility,
+                ["requiresFunds"] = requiresFunds,
+                // List ordering is unstable across runs but the contents
+                // matter (UI dedupes / counts), so a HashSet → List<string>
+                // is the cheapest way to keep it predictable.
+                ["missingParts"] = new List<string>(missing),
+            };
+        }
+
+        // Stripping the craft-file part-id suffix.  The .craft format writes
+        // each part as `<partName>_<flightId>` (or sometimes the same shape
+        // under the `part = ` field instead of `name`). PartLoader keys by
+        // `<partName>` only, so we need everything before the last `_<digits>`.
+        private static string ExtractPartName(ConfigNode partNode)
+        {
+            var raw = partNode.HasValue("name")
+                ? partNode.GetValue("name")
+                : partNode.HasValue("part")
+                    ? partNode.GetValue("part")
+                    : null;
+            if (string.IsNullOrEmpty(raw)) return null;
+            var underscore = raw.LastIndexOf('_');
+            if (underscore <= 0) return raw;
+            // Only strip if the suffix is all digits — preserves part names
+            // that legitimately contain underscores (e.g. mod parts).
+            for (var i = underscore + 1; i < raw.Length; i++)
+            {
+                if (raw[i] < '0' || raw[i] > '9') return raw;
+            }
+            return raw.Substring(0, underscore);
+        }
+
+        private static void WalkPart(ConfigNode partNode,
+            ref double totalMass, ref double requiresFunds,
+            HashSet<string> missing)
+        {
+            var partName = ExtractPartName(partNode);
+            // Always count the dry mass declared on the PART node — even
+            // if we can't resolve the prefab, the mass field is reliable.
+            if (partNode.HasValue("mass") &&
+                double.TryParse(partNode.GetValue("mass"), out var dryMass))
+                totalMass += dryMass;
+
+            AvailablePart available = null;
+            if (!string.IsNullOrEmpty(partName) && PartLoader.LoadedPartsList != null)
+            {
+                foreach (var ap in PartLoader.LoadedPartsList)
+                {
+                    if (ap != null && ap.name == partName)
+                    {
+                        available = ap;
+                        break;
+                    }
+                }
+            }
+
+            if (available == null)
+            {
+                if (!string.IsNullOrEmpty(partName)) missing.Add(partName);
+            }
+            else
+            {
+                requiresFunds += available.cost;
+                if (ResearchAndDevelopment.Instance != null &&
+                    !ResearchAndDevelopment.PartTechAvailable(available))
+                    missing.Add(partName);
+            }
+
+            // Resources contribute both mass and funds. Read amount per
+            // RESOURCE subnode and look up density / unitCost from the
+            // global resource library.
+            foreach (var resNode in partNode.GetNodes("RESOURCE"))
+            {
+                if (!resNode.HasValue("name")) continue;
+                if (!resNode.HasValue("amount")) continue;
+                if (!double.TryParse(resNode.GetValue("amount"), out var amount)) continue;
+                var def = PartResourceLibrary.Instance?.GetDefinition(
+                    resNode.GetValue("name"));
+                if (def == null) continue;
+                totalMass += amount * def.density;
+                requiresFunds += amount * def.unitCost;
+            }
         }
 
         private static object CrewRoster()
