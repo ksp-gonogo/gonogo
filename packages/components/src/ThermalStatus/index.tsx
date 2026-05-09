@@ -382,6 +382,7 @@ registerComponent<ThermalStatusConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { ThermalStatusComponent };

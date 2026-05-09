@@ -846,6 +846,7 @@ registerComponent<NavballConfig>({
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
   pushable: true,
+  requires: ["flight"],
 });
 
 export { NavballComponent };

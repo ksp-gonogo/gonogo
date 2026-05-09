@@ -1,3 +1,4 @@
+import { RequiresGuard } from "@gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
@@ -178,12 +179,14 @@ function PushedItem({
                 </MissingComponent>
               )}
             >
-              <def.component
-                id={placement.widget.widgetInstanceId}
-                config={placement.widget.config}
-                w={placement.w}
-                h={placement.h}
-              />
+              <RequiresGuard requires={def.requires}>
+                <def.component
+                  id={placement.widget.widgetInstanceId}
+                  config={placement.widget.config}
+                  w={placement.w}
+                  h={placement.h}
+                />
+              </RequiresGuard>
             </ErrorBoundary>
           </DashboardItemContext.Provider>
         ) : (

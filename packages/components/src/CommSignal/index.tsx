@@ -241,6 +241,7 @@ registerComponent<CommSignalConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { CommSignalComponent };

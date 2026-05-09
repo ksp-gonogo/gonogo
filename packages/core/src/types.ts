@@ -222,7 +222,34 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * station-local state like serial input mappings).
    */
   pushable?: boolean;
+  /**
+   * Game-state preconditions for this widget to be "live". The dashboard
+   * orchestrator dims the widget with an explanatory overlay when any
+   * requirement is unmet (vessel not flying, career save not active, …)
+   * — the widget still renders its current values underneath the dim
+   * layer so the operator sees layout + last-good data, just visually
+   * de-emphasised. Empty / omitted = always live.
+   *
+   * Honoured via `useGameContext` from the GonogoTelemetry plugin's
+   * `kc.scene` + `career.mode` keys; without the plugin installed, the
+   * context reports `Unknown` and widgets stay live.
+   */
+  requires?: readonly ComponentRequirement[];
 }
+
+/**
+ * Game-state preconditions a widget can declare. The orchestrator looks
+ * each one up against `useGameContext()` and dims the widget if any is
+ * unmet.
+ *
+ * - `flight` — `kc.scene === "Flight"`. Most vessel-data widgets.
+ * - `career` — `career.mode` ∈ {CAREER, SCIENCE}. Funds / contracts /
+ *   tech-tree widgets where sandbox mode has nothing meaningful to show.
+ *
+ * Add new requirement names here when a widget needs a different gate;
+ * keep the enum closed so the matching overlay messages stay coherent.
+ */
+export type ComponentRequirement = "flight" | "career";
 
 export interface ThemeDefinition {
   id: string;

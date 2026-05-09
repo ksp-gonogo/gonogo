@@ -170,6 +170,7 @@ registerComponent<AtmosphereProfileConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { AtmosphereProfileComponent };

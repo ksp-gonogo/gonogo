@@ -205,6 +205,7 @@ registerComponent<CurrentOrbitConfig>({
   defaultConfig: { showDiagram: true },
   actions: currentOrbitActions,
   pushable: true,
+  requires: ["flight"],
 });
 
 export { CurrentOrbitComponent };

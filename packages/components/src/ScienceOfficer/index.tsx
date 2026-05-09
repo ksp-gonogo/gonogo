@@ -346,6 +346,7 @@ registerComponent<ScienceOfficerConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { ScienceOfficerComponent };

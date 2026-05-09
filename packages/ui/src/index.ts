@@ -2,6 +2,7 @@ export * from "./Badge";
 export * from "./Button";
 export * from "./DataKeyMultiPicker";
 export * from "./DataKeyPicker";
+export * from "./DimmedOverlay";
 export * from "./EmptyState";
 export * from "./Fab";
 export * from "./FabCluster";

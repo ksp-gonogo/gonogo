@@ -460,6 +460,7 @@ registerComponent<DistanceToTargetConfig>({
   ],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   pushable: true,
+  requires: ["flight"],
 });
 
 export { DistanceToTargetComponent };

@@ -146,6 +146,7 @@ registerComponent<OrbitalAscentConfig>({
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { OrbitalAscentComponent };

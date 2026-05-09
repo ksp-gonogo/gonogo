@@ -264,6 +264,7 @@ registerComponent<ActionGroupConfig>({
   dataRequirements: [],
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
+  requires: ["flight"],
 });
 
 export { ActionGroupComponent };

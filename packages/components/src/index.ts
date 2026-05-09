@@ -40,6 +40,7 @@ export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";
+export * from "./shared/RequiresGuard";
 export * from "./TargetPicker";
 export * from "./ThermalStatus";
 export * from "./Twr";

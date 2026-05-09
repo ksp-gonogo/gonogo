@@ -218,6 +218,7 @@ registerComponent<TwrConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { TwrComponent };
