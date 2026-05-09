@@ -133,6 +133,16 @@ export class PeerHostService {
   // that would otherwise be re-broadcast from station memory and look
   // like persistence across a fresh launch.
   private readonly sessionToken = safeRandomUuid();
+  // Direct map of host-owned data sources for backfillLatest. The global
+  // registry isn't a safe lookup here — under tests the same JS process
+  // hosts both host + station, and StationScreen overwrites the "data"
+  // entry with a PCDS that has no cached values. PBDS registers itself
+  // here on construction so the host always finds the wrapper that
+  // forwards to the real source's cache.
+  private readonly backfillSources = new Map<
+    string,
+    { getLatestValue?: (key: string) => unknown }
+  >();
   private kosSessions = new KosSessionManager({
     getKosConfig: async () => {
       const { getDataSource } = await import("@gonogo/core");
@@ -409,6 +419,54 @@ export class PeerHostService {
     return null;
   }
 
+  /**
+   * Register a host-owned data source for back-fill on peer-data-subscribe.
+   * Called by PeerBroadcastingDataSource on construction; the wrapper
+   * forwards getLatestValue to the real source's cache. Using this map
+   * instead of the global registry avoids a same-process race in tests
+   * where StationScreen overwrites the "data" entry with a PCDS.
+   */
+  registerSourceForBackfill(
+    sourceId: string,
+    source: { getLatestValue?: (key: string) => unknown },
+  ): void {
+    this.backfillSources.set(sourceId, source);
+  }
+
+  /**
+   * Push the latest cached value of each `keys` entry down a single conn.
+   * Called from the `peer-data-subscribe` handler so a freshly-mounted
+   * widget gets the current value immediately rather than waiting for
+   * the next change. Without this back-fill, low-rate keys like
+   * `v.situationString`, `v.body`, `sci.*`, `career.*` look broken on
+   * any station that mounts a widget after the value last changed.
+   *
+   * Silent no-op if the source doesn't expose `getLatestValue` (e.g. a
+   * stream source) or the value hasn't been cached yet (key has never
+   * been emitted on the host side).
+   */
+  private backfillLatest(
+    conn: DataConnection,
+    sourceId: string,
+    keys: readonly string[],
+  ): void {
+    if (keys.length === 0) return;
+    const source = this.backfillSources.get(sourceId);
+    const getLatest = source?.getLatestValue;
+    if (typeof getLatest !== "function") return;
+    for (const key of keys) {
+      const value = getLatest.call(source, key);
+      if (value === undefined) continue;
+      conn.send({
+        type: "data",
+        sourceId,
+        key,
+        value,
+        t: Date.now(),
+      } satisfies PeerMessage);
+    }
+  }
+
   setRelayPeerId(peerId: string | null) {
     this.relayPeerId = peerId;
     this.broadcast({ type: "relay-peer-id", peerId });
@@ -673,7 +731,22 @@ export class PeerHostService {
         bucket = new Set();
         subs.set(msg.sourceId, bucket);
       }
-      for (const k of msg.keys) bucket.add(k);
+      // Track which keys are *new* in this subscribe so we only back-fill
+      // for them — a station re-asserting an existing subscription
+      // shouldn't trigger a flood of cached re-sends.
+      const fresh: string[] = [];
+      for (const k of msg.keys) {
+        if (!bucket.has(k)) fresh.push(k);
+        bucket.add(k);
+      }
+      // Back-fill the latest cached value for each fresh key. Without
+      // this, a station that mounts a widget mid-flight gets nothing for
+      // any key whose value last changed before it subscribed — fatal
+      // for low-rate keys like v.situationString, v.body, sci.* / career.*
+      // which may not change again for the rest of the mission. We push
+      // directly to this conn instead of going through `broadcast` so
+      // other peers don't receive a duplicate sample.
+      this.backfillLatest(conn, msg.sourceId, fresh);
     },
     "peer-data-unsubscribe": (msg, conn) => {
       const subs = this.peerSubs.get(conn);

@@ -92,6 +92,14 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
       schemaKeyCount: schemaKeys.length,
       sampleAware: hasSubscribeSamples(real),
     });
+    // Tell the host where to find this source's latest cached values for
+    // peer-data-subscribe back-fill. The real source has the cache; the
+    // wrapper forwards via DataSourceWrapper.getLatestValue. Registering
+    // by id keys back-fill on host-side identity rather than the global
+    // data-source registry, which can be overwritten by station-side
+    // PCDS construction in same-process tests. Optional-chain because
+    // some tests inject a host stub without the back-fill API.
+    host.registerSourceForBackfill?.(real.id, this);
     // Subscribe to every schema key for the lifetime of the wrapper — we do
     // NOT unsubscribe in disconnect(). Reason: MainScreen's StrictMode
     // mount→unmount→mount cycle calls wrapper.disconnect() between the two
@@ -100,30 +108,39 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     // and the station would see zero telemetry. The wrapper is registered in
     // the registry for the lifetime of the app, so lifetime-of-wrapper is the
     // correct scope for broadcasting.
+    // Use the plain `subscribe` path for the broadcast loop, even when
+    // the wrapped source supports `subscribeSamples`. BufferedDataSource
+    // gates `sampleSubscribers.fire` on flight detection — pre-flight
+    // samples never reach `subscribeSamples` consumers, which means
+    // low-change-rate keys that emit before the FlightDetector
+    // establishes a current flight (v.body, v.situationString, sci.*,
+    // career.*, s.sensor.*) are silently dropped from the broadcast
+    // wire. A station mounting a widget after launch sees them as
+    // permanently undefined.
+    //
+    // `subscribe` fires from `keySubscribers`, which `handleSample`
+    // calls unconditionally. Cost is host-side timestamp loss — receivers
+    // fall back to Date.now(), a few ms of skew on station-side live
+    // charts. Acceptable trade for not silently losing values.
+    //
+    // Safe to do this before `buffered.connect()` thanks to the
+    // schema-aware guard in BufferedDataSource.subscribe (see comment
+    // there): a schema key won't trigger a demand-sub, so no
+    // double-fire when connect's upfront subscription lands.
     for (const { key } of schemaKeys) {
-      if (hasSubscribeSamples(real)) {
-        real.subscribeSamples(key, ({ t, v: value }) => {
-          if (!this.seenKeys.has(key)) {
-            this.seenKeys.add(key);
-            debugPeer("PBDS first value", { id: this.id, key });
-          }
-          host.broadcast({ type: "data", sourceId: this.id, key, value, t });
+      real.subscribe(key, (value) => {
+        if (!this.seenKeys.has(key)) {
+          this.seenKeys.add(key);
+          debugPeer("PBDS first value", { id: this.id, key });
+        }
+        host.broadcast({
+          type: "data",
+          sourceId: this.id,
+          key,
+          value,
+          t: Date.now(),
         });
-      } else {
-        real.subscribe(key, (value) => {
-          if (!this.seenKeys.has(key)) {
-            this.seenKeys.add(key);
-            debugPeer("PBDS first value", { id: this.id, key });
-          }
-          host.broadcast({
-            type: "data",
-            sourceId: this.id,
-            key,
-            value,
-            t: Date.now(),
-          });
-        });
-      }
+      });
     }
 
     this.real.onStatusChange((status) => {
