@@ -153,6 +153,7 @@ export class AlarmHostService {
     notes?: string;
     trigger: AlarmTrigger;
     createdBy?: string;
+    onFire?: import("./types").AlarmFireAction[];
   }): Alarm {
     const alarm: Alarm = {
       id: generateId(),
@@ -166,6 +167,7 @@ export class AlarmHostService {
       createdBy: input.createdBy ?? "main",
       createdAt: this.opts.nowMs(),
       matchSinceUT: input.trigger.kind === "threshold" ? null : undefined,
+      onFire: input.onFire && input.onFire.length > 0 ? input.onFire : undefined,
     };
     this.alarms.push(alarm);
     this.persist();
@@ -329,6 +331,27 @@ export class AlarmHostService {
   private notifyFire(alarm: Alarm): void {
     for (const cb of this.fireListeners) cb(alarm);
     this.peerBridge.broadcastFire(alarm, this.observedUT);
+    if (alarm.onFire && alarm.onFire.length > 0) {
+      void this.dispatchOnFire(alarm);
+    }
+  }
+
+  private async dispatchOnFire(alarm: Alarm): Promise<void> {
+    if (!this.telemetry || !alarm.onFire) return;
+    for (const fx of alarm.onFire) {
+      switch (fx.kind) {
+        case "action-group":
+          try {
+            await this.telemetry.execute(fx.action);
+          } catch {
+            // Swallow individual action failures so one missing action
+            // group (e.g. `f.ag5` not bound on this vessel) doesn't
+            // block the rest of the list. The visible alarm fire still
+            // shows up regardless.
+          }
+          break;
+      }
+    }
   }
 
   private loadAlarms(): void {

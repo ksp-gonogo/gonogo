@@ -41,6 +41,25 @@ export interface ThresholdTrigger {
 
 export type AlarmTrigger = TimeTrigger | ThresholdTrigger;
 
+/**
+ * Side-effect to dispatch when the alarm fires. Currently action-group
+ * only — the operator picks an existing Telemachus action key (`f.ag1`,
+ * `f.stage`, etc.) and the host calls `dataSource.execute()` at fire
+ * time. Lives alongside the visual fire event so the central alarm
+ * pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
+ * action-group dispatch automatically — see
+ * `project_central_alarm_pipeline.md`.
+ *
+ * Discriminated union from the start so future trigger-style side
+ * effects (kOS RUN, log-and-move-on, emit-peer-message etc.) can be
+ * added without churning consumers.
+ */
+export type AlarmFireAction = {
+  kind: "action-group";
+  /** Telemachus action key, e.g. `f.ag1`, `f.abort`, `f.stage`. */
+  action: string;
+};
+
 export interface Alarm {
   id: string;
   name: string;
@@ -57,6 +76,12 @@ export interface Alarm {
    * false, so the sustain timer always measures contiguous match.
    */
   matchSinceUT?: number | null;
+  /**
+   * Optional side effects fired in order when the alarm transitions to
+   * `firing`. Errors are swallowed at the host boundary so one failed
+   * action doesn't block the alarm itself or the rest of the list.
+   */
+  onFire?: AlarmFireAction[];
 }
 
 export interface AlarmWarpState {
