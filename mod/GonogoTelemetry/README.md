@@ -1,15 +1,31 @@
-# GonogoTelemetry — KSP plugin
+# GonogoTelemetry — KSP plugin (staging area)
 
-A KSP mod that adds gonogo-specific telemetry keys (tech tree, contracts, building shops, launchpad state) on top of [Telemachus Reborn](https://github.com/TeleIO/Telemachus-1). Registers as an external plugin via Telemachus's `IMinimalTelemachusPlugin` interface — no Telemachus fork required.
+A KSP mod that adds gonogo-specific telemetry keys (tech tree, contracts, building shops, launchpad state) on top of [Telemachus Reborn](https://github.com/TeleIO/Telemachus-1). Registers as an external plugin via Telemachus's `IMinimalTelemachusPlugin` interface so we can iterate on new keys without rebuilding Telemachus itself.
+
+## Role in the bigger picture
+
+Per the revised strategy in `local_docs/telemachus_extension_plan.md` (§3, 2026-05-09), production-quality keys destined for upstream live in **the Telemachus fork**, not here — we need to touch core anyway for write-path verbs (contract accept, tech unlock, launch), so the canonical home for shipped features is the fork.
+
+This plugin is the **fast-iteration staging area**: rebuild a small DLL, drop it into `GameData/`, restart KSP. No full Telemachus build cycle. New read-only keys land here first; once they've been validated end-to-end against gonogo's data feed, the implementation migrates into `local_docs/telemachus-fork/Telemachus/src/<area>DataLinkHandler.cs` and gets PR'd back upstream as part of a cohesive batch.
 
 ## Status
 
-**Phase 1 — proof of pipeline.** Ships two keys that prove the registration works end-to-end:
+**Phase 1 — read-only career view.**
+
+Currently registered (see `src/`):
 
 - `tech.unlockedIds` — array of researched tech-tree node ids
 - `tech.unlockedPartCount` — number of parts available under current tech
+- `tech.affordable` — `[{ id, title, scienceCost }]` for nodes whose prereqs are met AND scienceCost ≤ current science (drives the research-officer pick-list)
+- `kc.facilityLevels` — `{ launchPad, runway, vab, sph, mission, tracking, admin, rd, astronaut }`, each `{ level, max }`
+- `kc.partsAvailable` — int, parts purchasable under current tech
+- `kc.launchSite` — string, active flight's launch site name (empty when not in flight)
+- `kc.padOccupied` — bool, true when the active vessel is in `PRELAUNCH` situation
+- `kc.padVesselTitle` — string, vessel name when on the pad
+- `kc.savedShips` — `[{ name, partCount, totalMass, facility, requiresFunds, missingParts }]` for VAB + SPH .craft files. `requiresFunds` and `missingParts` are stubbed empty until the part-walk lands.
+- `kc.crewRoster` — `[{ name, trait, experienceLevel, available, unavailableReason }]`. `unavailableReason` is the raw RosterStatus string for greyed-out tooltips.
 
-See `local_docs/telemachus_extension_plan.md` in the repo root for the full roadmap (science detail, contracts, building shops, launchpad, write-paths).
+See `local_docs/telemachus_extension_plan.md` for the full roadmap (per-instrument science detail, contracts, write-paths, launch-director).
 
 ## Build
 
@@ -51,7 +67,7 @@ Open `http://<KSP-host>:8085/telemachus/datalink?tech.unlockedIds=tech.unlockedI
 { "tech.unlockedIds": ["start", "basicRocketry", "engineering101"] }
 ```
 
-Or in gonogo's WS feed, subscribe to `tech.unlockedIds` from the Data Source widget — value lands as an array.
+Or in gonogo's WS feed, subscribe to `tech.unlockedIds` (or any of the `kc.*` keys) from the Data Source widget — value lands as an array. The built-in `space-center-status` widget consumes `kc.facilityLevels`, `kc.partsAvailable`, `kc.launchSite`, `kc.padOccupied`, and `kc.padVesselTitle` and is the easiest end-to-end smoke test.
 
 ## Adding a new key
 
@@ -61,12 +77,15 @@ Or in gonogo's WS feed, subscribe to `tech.unlockedIds` from the Data Source wid
 
 For non-tech keys (contracts, science instruments, etc.), follow the same pattern in a new class implementing `IMinimalTelemachusPlugin` and register it from `GonogoTelemetryAddon.Awake`.
 
-## Why a separate plugin and not a Telemachus fork
+## Why a plugin AND a fork
 
-Telemachus exposes `PluginRegistration.Register(this)` for exactly this purpose. Going via the public extension API means:
+The plugin gives us a fast iteration loop — `dotnet build` of a ~kilobyte DLL, drop in `GameData/`, restart KSP. The fork gives us the production-quality home for keys we want everyone running Telemachus to be able to use, and is the only place we can add the parameterised `?a=verb&id=...` write-path endpoints needed for Phase 4 (contract accept, tech unlock, `ksp.launch`, `ksp.recover`).
 
-- Telemachus updates don't require us to merge upstream every time.
-- A user without gonogo can still install vanilla Telemachus.
-- We can iterate on gonogo-specific telemetry on our own cadence.
+Workflow for a new key:
 
-The trade-off is write paths (contract accept, tech node unlock) — Telemachus's action verb model is `?a=actionKey`, no parameters. For Phase 4 we either upstream a parameterised action endpoint to Telemachus or ship our own HTTP route in this plugin. Decision pending.
+1. Prototype it in this plugin, behind a new `IMinimalTelemachusPlugin` class or alongside an existing one.
+2. Verify end-to-end against gonogo's data feed (subscribe via the Data Source widget; build a consuming widget if one's planned).
+3. Migrate the implementation into `local_docs/telemachus-fork/Telemachus/src/<area>DataLinkHandler.cs` — same logic, now using the `[TelemetryAPI]` attribute pattern that the fork's `DataLinkHandler` base class consumes.
+4. Once the fork has accumulated a cohesive batch (e.g. all of `tech.*` + `kc.*`), PR it back upstream.
+
+Until upstream-merge, gonogo users install our fork's `Telemachus.dll` plus this plugin's `GonogoTelemetry.dll`. After a merge lands, the migrated keys come from vanilla Telemachus and this plugin contains only whatever's still in flight.

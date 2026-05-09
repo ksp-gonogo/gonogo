@@ -34,6 +34,7 @@ export * from "./PerfBudgets";
 export * from "./ScienceBench";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
+export * from "./SpaceCenterStatus";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";
 export * from "./TargetPicker";

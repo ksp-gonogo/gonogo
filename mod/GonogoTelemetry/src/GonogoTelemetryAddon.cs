@@ -4,11 +4,10 @@ using UnityEngine;
 namespace GonogoTelemetry
 {
     /// <summary>
-    /// Phase 1 entry point — registers the gonogo telemetry plugin with
-    /// Telemachus's PluginRegistration once on game start. The single key
-    /// `tech.unlockedIds` proves the pipeline end-to-end before we expand
-    /// to the full set described in
-    /// `local_docs/telemachus_extension_plan.md`.
+    /// Phase 1 entry point — registers the gonogo telemetry handlers
+    /// with Telemachus's PluginRegistration once on game start. See
+    /// `local_docs/telemachus_extension_plan.md` for the roadmap; the
+    /// handlers registered here are the read-only career-view slice.
     ///
     /// Lifecycle: KSPAddon.Startup.Instantly fires the moment the game
     /// loads (same scene Telemachus uses), and we run `Once = true` so
@@ -45,6 +44,7 @@ namespace GonogoTelemetry
             try
             {
                 PluginRegistration.Register(new TechTreeApi());
+                PluginRegistration.Register(new KscApi());
                 registered = true;
                 Debug.Log("[GonogoTelemetry] Registered with Telemachus.");
             }
