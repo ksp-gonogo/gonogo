@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>GonogoTelemetry</AssemblyName>
+    <RootNamespace>GonogoTelemetry</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- KSP / Unity reference assemblies. The repo keeps a copy in
+         local_docs/telemachus-fork/references/ — adjust the HintPath
+         if your KSP install is elsewhere. -->
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <!-- Telemachus plugin contract. The DLL is built from the fork in
+         local_docs/telemachus-fork/Telemachus/. Build Telemachus first,
+         then point this HintPath at its publish output. -->
+    <Reference Include="Telemachus" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\publish\GameData\Telemachus\Plugins\Telemachus.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
