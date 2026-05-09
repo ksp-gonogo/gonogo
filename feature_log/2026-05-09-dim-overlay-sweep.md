@@ -92,6 +92,27 @@ packages/app/src/pushToMain/
 - **Per-widget message override.** Currently `RequiresGuard` picks the message based on which requirement is unmet. A widget that wants a custom hint (e.g. "Mun probe required") would need a `requireMessageOverride` prop. Defer until it's actually wanted.
 - **Live dim vs full-blank threshold.** Right now the dim is always 35% opacity. A future enhancement: increase the opacity ramp based on how stale the data is (5min → 35%, 30min → 15%, never-arrived → 5%). Not on the path until we hit a case where 35% is misleading.
 
+## Partial-dim follow-up (same session)
+
+Three widgets have wider or partial scope than the orchestrator-level `requires` covers. Treated with widget-internal `<DimmedOverlay>` calls instead of (or in addition to) the registration field.
+
+- **ScienceBench** — sensors / situation / aboard sections wrapped in a single `DimmedOverlay show={!inFlight}`. Career strip (funds / sci / rep) stays bright outside the wrapper because it's meaningful in any career-mode scene. Banner: "Sensors require flight", hint: "Career stats below stay current."
+- **WarpControl** — custom scene gate via inline check: dims when scene ∉ { Flight, SpaceCenter, TrackingStation }. Time warp works at SC and Tracking Station too, so the standard `requires: ["flight"]` would over-dim. Banner explains the wider scope: "Time warp works in flight, Space Center, and Tracking Station." Wraps the body, leaves the WARP title bright.
+- **CrewManifest** — turned out to be binary after all (every render path depends on the active vessel), so it just gets `requires: ["flight"]` like the rest of the original sweep. Listed here as the third user-chosen widget but no internal `DimmedOverlay`.
+
+### Layout fix to `DimmedOverlay`
+
+Original `Wrap` used `height: 100%` which works in the orchestrator case (single-child of `ComponentWrapper`) but over-grows when wrapping a sub-section beside other flex siblings (Panel header / career strip / etc.). Switched to `flex: 1 1 auto; min-height: 0` so the wrap participates correctly in flex-column parents in both cases.
+
+### Pattern to use going forward
+
+If a widget has partial functionality outside its primary requirement:
+
+1. Skip `requires:` in the registration (or set it for the loosest case the *whole widget* needs).
+2. Inside the component, call `useGameContext()` to get scene / inFlight / careerMode / hasGameSignal.
+3. Wrap the affected sub-section(s) with `<DimmedOverlay show={...} message="..." hint="...">`. Keep `hasGameSignal` in the show condition so the WS warmup window doesn't flash.
+4. Sections outside the wrapper render unaffected.
+
 ## Commits
 
 - (uncommitted at time of writing — this entry will be updated on commit)
