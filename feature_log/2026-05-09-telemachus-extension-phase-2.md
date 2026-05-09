@@ -58,6 +58,13 @@ packages/components/src/index.ts — exports ScienceOfficer
 - **Computed transmit / recover science** — needs verification against a live save's transmit / recovery dialog. Sketched in `ScienceApi.cs` as `baseTransmitValue` + `transmitBonus`; the widget chooses not to multiply them out yet.
 - **Biome / situation from kerbalism / mod overrides** — same fix as the situation tokens: extend the known set if a mod emits new situations.
 
+## Migration prerequisites (before this lands in the Telemachus fork)
+
+Two spots where Phase 2 leans away from Telemachus's "surface raw values" convention. Both fine in the staging plugin; both need a clean-up pass before migration so we don't drag plugin-shaped warts upstream.
+
+- **`ParseSubjectId` heuristic.** Telemachus's existing `ScienceCareerDataLinkHandler` emits `subjectID` raw and lets the client interpret. Either drop `biome` / `situation` from the wire and parse client-side, or extend the upstream handler with the situation-token table baked in.
+- **`sci.canTransmitTotal` and `sci.canRecoverTotal` are aliases** of the same `dataAmount` sum, kept as separate keys on the assumption Phase 4's formulas will diverge. If they don't, collapse to one key (or drop in favour of upstream `sci.dataAmount`) before merging.
+
 ## Commits
 
 - (uncommitted at time of writing — this entry will be updated on commit)
