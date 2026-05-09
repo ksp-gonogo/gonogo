@@ -42,6 +42,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
@@ -241,6 +242,7 @@ export function MainScreen() {
                               <AlarmBanner />
                               <ReplayBanner />
                               <SignalLossIndicator />
+                              <SustainedFailureBanner />
                               <PushedDashboardOverlay />
                             </Layout>
                           </OverlayProvider>

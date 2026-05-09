@@ -41,6 +41,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { downloadLogs } from "../logs/downloadLogs";
 import { LogsFab } from "../logs/LogsFab";
@@ -500,6 +501,7 @@ export function StationScreen() {
                                   }
                                 />
                                 <SignalLossIndicator />
+                                <SustainedFailureBanner />
                                 <HostVersionBanner client={client} />
                               </Layout>
                             </OverlayProvider>
