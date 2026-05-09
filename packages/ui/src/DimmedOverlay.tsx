@@ -59,10 +59,14 @@ export function DimmedOverlay({
 const Wrap = styled.div`
   position: relative;
   width: 100%;
-  height: 100%;
+  /* flex: 1 lets the wrap participate in a flex-column parent (like Panel)
+   * without forcing height: 100%, which would push siblings out of the
+   * column. Falls back gracefully in non-flex contexts because min-height
+   * doesn't bound. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 `;
 
 const DimmedLayer = styled.div`

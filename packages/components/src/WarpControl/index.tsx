@@ -4,8 +4,9 @@ import {
   useActionInput,
   useDataValue,
   useExecuteAction,
+  useGameContext,
 } from "@gonogo/core";
-import { Panel, PanelTitle, ReadoutCaption } from "@gonogo/ui";
+import { DimmedOverlay, Panel, PanelTitle, ReadoutCaption } from "@gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -74,6 +75,18 @@ function WarpControlComponent({
   const mode = useDataValue<string>("data", "t.warpMode");
   const execute = useExecuteAction("data");
 
+  // Time warp works in Flight / SpaceCenter / TrackingStation but not
+  // Editor / MainMenu. Dim the body when KSP is in a no-warp scene so
+  // the operator doesn't click into a no-op. Wider gate than the
+  // shared `flight` requirement, so we apply it inline rather than via
+  // RequiresGuard.
+  const { scene, hasGameSignal } = useGameContext();
+  const warpableScene =
+    scene === "Flight" ||
+    scene === "SpaceCenter" ||
+    scene === "TrackingStation";
+  const dimBody = hasGameSignal && !warpableScene;
+
   const currentIndex =
     typeof indexRaw === "number" && Number.isFinite(indexRaw)
       ? Math.round(indexRaw)
@@ -123,67 +136,73 @@ function WarpControlComponent({
   return (
     <Panel>
       <PanelTitle>WARP</PanelTitle>
-      <Body>
-        <Rate $tone="go">
-          <RateValue aria-label={`Time warp rate ${rateLabel}`}>
-            {rateLabel}
-          </RateValue>
-          {showModeCaption && typeof mode === "string" && mode !== "" && (
-            <ReadoutCaption>{mode}</ReadoutCaption>
+      <DimmedOverlay
+        show={dimBody}
+        message="No active save"
+        hint="Time warp works in flight, Space Center, and Tracking Station."
+      >
+        <Body>
+          <Rate $tone="go">
+            <RateValue aria-label={`Time warp rate ${rateLabel}`}>
+              {rateLabel}
+            </RateValue>
+            {showModeCaption && typeof mode === "string" && mode !== "" && (
+              <ReadoutCaption>{mode}</ReadoutCaption>
+            )}
+          </Rate>
+
+          {showFullLadder && (
+            <FullLadder role="group" aria-label="Time warp levels">
+              {HIGH_LEVELS.map((lvl) => {
+                const active = currentIndex === lvl.index;
+                return (
+                  <WarpButton
+                    key={lvl.index}
+                    type="button"
+                    $active={active}
+                    aria-pressed={active}
+                    onClick={() => setWarp(lvl.index)}
+                  >
+                    {lvl.label}
+                  </WarpButton>
+                );
+              })}
+            </FullLadder>
           )}
-        </Rate>
 
-        {showFullLadder && (
-          <FullLadder role="group" aria-label="Time warp levels">
-            {HIGH_LEVELS.map((lvl) => {
-              const active = currentIndex === lvl.index;
-              return (
-                <WarpButton
-                  key={lvl.index}
-                  type="button"
-                  $active={active}
-                  aria-pressed={active}
-                  onClick={() => setWarp(lvl.index)}
-                >
-                  {lvl.label}
-                </WarpButton>
-              );
-            })}
-          </FullLadder>
-        )}
-
-        {showStepper && (
-          <Stepper role="group" aria-label="Time warp controls">
-            <WarpButton
-              type="button"
-              $active={false}
-              disabled={idx === 0}
-              onClick={() => setWarp(downIdx)}
-              aria-label="Warp down"
-            >
-              −
-            </WarpButton>
-            <WarpButton
-              type="button"
-              $active={idx === 0}
-              aria-pressed={idx === 0}
-              onClick={() => setWarp(0)}
-              aria-label="Drop to realtime"
-            >
-              1×
-            </WarpButton>
-            <WarpButton
-              type="button"
-              $active={false}
-              disabled={idx === HIGH_LEVELS.length - 1}
-              onClick={() => setWarp(upIdx)}
-              aria-label="Warp up"
-            >
-              +
-            </WarpButton>
-          </Stepper>
-        )}
-      </Body>
+          {showStepper && (
+            <Stepper role="group" aria-label="Time warp controls">
+              <WarpButton
+                type="button"
+                $active={false}
+                disabled={idx === 0}
+                onClick={() => setWarp(downIdx)}
+                aria-label="Warp down"
+              >
+                −
+              </WarpButton>
+              <WarpButton
+                type="button"
+                $active={idx === 0}
+                aria-pressed={idx === 0}
+                onClick={() => setWarp(0)}
+                aria-label="Drop to realtime"
+              >
+                1×
+              </WarpButton>
+              <WarpButton
+                type="button"
+                $active={false}
+                disabled={idx === HIGH_LEVELS.length - 1}
+                onClick={() => setWarp(upIdx)}
+                aria-label="Warp up"
+              >
+                +
+              </WarpButton>
+            </Stepper>
+          )}
+        </Body>
+      </DimmedOverlay>
     </Panel>
   );
 }

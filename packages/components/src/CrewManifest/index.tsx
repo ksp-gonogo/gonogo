@@ -185,6 +185,7 @@ registerComponent<CrewManifestConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { CrewManifestComponent };

@@ -1,6 +1,12 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import { registerComponent, useDataValue, useGameContext } from "@gonogo/core";
+import {
+  DimmedOverlay,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -205,6 +211,15 @@ function ScienceBenchComponent({
   w,
   h,
 }: Readonly<ComponentProps<ScienceBenchConfig>>) {
+  // Partial-dim: situation + sensors + aboard sections only mean
+  // something while a vessel is flying; the career strip (funds /
+  // science / rep) is meaningful in any scene. Dimming the whole
+  // widget at SC would hide legit career numbers, so we wrap only
+  // the flight-dependent half. `hasGameSignal` keeps the dim off
+  // until the kc.scene WS warmup completes.
+  const { inFlight, hasGameSignal } = useGameContext();
+  const dimNonCareer = hasGameSignal && !inFlight;
+
   const body = useDataValue("data", "v.body");
   const situation = useDataValue("data", "v.situationString") as
     | string
@@ -279,51 +294,57 @@ function ScienceBenchComponent({
   return (
     <Panel>
       <PanelTitle>SCIENCE</PanelTitle>
-      <SituationLine
-        role="status"
-        aria-live="polite"
-        aria-label="Current situation for science"
+      <DimmedOverlay
+        show={dimNonCareer}
+        message="Sensors require flight"
+        hint="Career stats below stay current."
       >
-        <SituationText>
-          {body && situation
-            ? `${situation}${landedAt ? ` — ${landedAt}` : ""}`
-            : "Awaiting situation telemetry"}
-        </SituationText>
-        {showNew && <NewBadge>NEW</NewBadge>}
-      </SituationLine>
+        <SituationLine
+          role="status"
+          aria-live="polite"
+          aria-label="Current situation for science"
+        >
+          <SituationText>
+            {body && situation
+              ? `${situation}${landedAt ? ` — ${landedAt}` : ""}`
+              : "Awaiting situation telemetry"}
+          </SituationText>
+          {showNew && <NewBadge>NEW</NewBadge>}
+        </SituationLine>
 
-      <Body>
-        {showSensors && (
-          <Section>
-            <SectionTitle>Sensors</SectionTitle>
-            <SensorList>
-              {sensors.map(([type, raw]) => (
-                <SensorRow key={type} type={type} raw={raw} />
-              ))}
-            </SensorList>
-          </Section>
-        )}
+        <Body>
+          {showSensors && (
+            <Section>
+              <SectionTitle>Sensors</SectionTitle>
+              <SensorList>
+                {sensors.map(([type, raw]) => (
+                  <SensorRow key={type} type={type} raw={raw} />
+                ))}
+              </SensorList>
+            </Section>
+          )}
 
-        {showAboard && (
-          <Section>
-            <SectionTitle>
-              Aboard
-              {typeof sciCount === "number" && (
-                <SectionMeta>
-                  · {sciCount} record{sciCount === 1 ? "" : "s"}
-                  {typeof sciDataAmount === "number" &&
-                    ` · ${sciDataAmount.toFixed(1)} mits`}
-                </SectionMeta>
+          {showAboard && (
+            <Section>
+              <SectionTitle>
+                Aboard
+                {typeof sciCount === "number" && (
+                  <SectionMeta>
+                    · {sciCount} record{sciCount === 1 ? "" : "s"}
+                    {typeof sciDataAmount === "number" &&
+                      ` · ${sciDataAmount.toFixed(1)} mits`}
+                  </SectionMeta>
+                )}
+              </SectionTitle>
+              {breakdown && breakdown.length > 0 ? (
+                <BreakdownList breakdown={breakdown} />
+              ) : (
+                <ExperimentList experiments={experiments} sciCount={sciCount} />
               )}
-            </SectionTitle>
-            {breakdown && breakdown.length > 0 ? (
-              <BreakdownList breakdown={breakdown} />
-            ) : (
-              <ExperimentList experiments={experiments} sciCount={sciCount} />
-            )}
-          </Section>
-        )}
-      </Body>
+            </Section>
+          )}
+        </Body>
+      </DimmedOverlay>
 
       {showCareerStrip && (
         <CareerStrip>
