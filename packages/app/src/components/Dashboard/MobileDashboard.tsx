@@ -7,7 +7,9 @@ import type { InputMappings } from "@gonogo/serial";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
+  FullHeightIcon,
   FullWidthIcon,
+  HalfHeightIcon,
   HalfWidthIcon,
 } from "@gonogo/ui";
 import { memo, useCallback, useMemo, useRef } from "react";
@@ -34,6 +36,7 @@ export function MobileDashboard({
   updateItemConfig,
   updateItemMappings,
   updateItemMobileWidth,
+  updateItemMobileHeight,
   removeItem,
   moveItemUp,
   moveItemDown,
@@ -53,6 +56,7 @@ export function MobileDashboard({
           updateItemConfig={updateItemConfig}
           updateItemMappings={updateItemMappings}
           updateItemMobileWidth={updateItemMobileWidth}
+          updateItemMobileHeight={updateItemMobileHeight}
           removeItem={removeItem}
           moveItemUp={moveItemUp}
           moveItemDown={moveItemDown}
@@ -71,6 +75,7 @@ interface MobileItemContentProps {
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   updateItemMobileWidth: (id: string, width: "full" | "half") => void;
+  updateItemMobileHeight: (id: string, height: "full" | "half") => void;
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;
@@ -85,6 +90,7 @@ const MobileItemContent = memo(function MobileItemContent({
   updateItemConfig,
   updateItemMappings,
   updateItemMobileWidth,
+  updateItemMobileHeight,
   removeItem,
   moveItemUp,
   moveItemDown,
@@ -126,7 +132,13 @@ const MobileItemContent = memo(function MobileItemContent({
   // both live in the same localStorage entry).
   const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "full";
   const half = effectiveWidth === "half";
-  const height = def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+  const fullHeightPx =
+    def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+  // Per-instance height override; defaults to "full". Half-height pairs
+  // alongside another half-height widget if both are also half-width
+  // (the row-fill arithmetic still works because the cell wraps).
+  const halfHeight = item.mobileHeight === "half";
+  const height = halfHeight ? Math.round(fullHeightPx / 2) : fullHeightPx;
   // Pass derived grid units to the component so size-bucket-aware widgets
   // (e.g. Graph's auto-mini) work on mobile too. Mobile uses the xxs
   // breakpoint's 6-col mental model: half = 3, full = 6. Height in grid
@@ -137,6 +149,8 @@ const MobileItemContent = memo(function MobileItemContent({
   const hasActions = Boolean(def.actions?.length);
   const onToggleWidth = () =>
     updateItemMobileWidth(item.i, half ? "full" : "half");
+  const onToggleHeight = () =>
+    updateItemMobileHeight(item.i, halfHeight ? "full" : "half");
 
   return (
     <MobileCell
@@ -162,6 +176,7 @@ const MobileItemContent = memo(function MobileItemContent({
         </MobileCellHeaderLeft>
         <MobileCellHeaderRight>
           <WidthToggleButton half={half} onClick={onToggleWidth} />
+          <HeightToggleButton half={halfHeight} onClick={onToggleHeight} />
           {(hasConfig || hasActions) && (
             <GearButton
               item={item}
@@ -226,6 +241,25 @@ function WidthToggleButton({
 }: Readonly<{ half: boolean; onClick: () => void }>) {
   const label = half ? "Expand to full width" : "Shrink to half width";
   const Glyph = half ? FullWidthIcon : HalfWidthIcon;
+  return (
+    <WidthToggleBtn
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={half}
+    >
+      <Glyph size={14} />
+    </WidthToggleBtn>
+  );
+}
+
+function HeightToggleButton({
+  half,
+  onClick,
+}: Readonly<{ half: boolean; onClick: () => void }>) {
+  const label = half ? "Expand to full height" : "Shrink to half height";
+  const Glyph = half ? FullHeightIcon : HalfHeightIcon;
   return (
     <WidthToggleBtn
       type="button"

@@ -27,6 +27,14 @@ export interface DashboardItem {
    * in the mobile cell header.
    */
   mobileWidth?: "full" | "half";
+  /**
+   * Per-instance override for the mobile-layout height. `"full"` uses
+   * the component's `mobileHeight` (or `defaultSize.h * ROW_HEIGHT`);
+   * `"half"` halves it so two short widgets can share a row alongside
+   * a half-width neighbour. Toggled by the height button next to the
+   * width toggle.
+   */
+  mobileHeight?: "full" | "half";
 }
 
 export interface DashboardConfig {
@@ -54,6 +62,7 @@ export interface DashboardProps {
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   updateItemMobileWidth: (id: string, width: "full" | "half") => void;
+  updateItemMobileHeight: (id: string, height: "full" | "half") => void;
   removeItem: (id: string) => void;
   moveItemUp: (id: string) => void;
   moveItemDown: (id: string) => void;
