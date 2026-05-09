@@ -124,6 +124,69 @@ describe("AlarmHostService", () => {
     ).toEqual(["A", "B"]);
   });
 
+  describe("onFire side effects", () => {
+    it("dispatches each onFire action via the telemetry execute path on transition to firing", async () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Stage at 70km",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+        onFire: [
+          { kind: "action-group", action: "f.ag1" },
+          { kind: "action-group", action: "f.stage" },
+        ],
+      });
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1100);
+      vi.advanceTimersByTime(1100);
+      // Drain the dispatch microtasks (telemetry.execute is awaited).
+      // Drain microtasks (telemetry.execute is async). Don't use
+      // runAllTimersAsync — the host's own tick interval would loop
+      // forever under fake timers.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(telemetry.calls).toContain("f.ag1");
+      expect(telemetry.calls).toContain("f.stage");
+      // Order preserved.
+      const ag1Idx = telemetry.calls.indexOf("f.ag1");
+      const stageIdx = telemetry.calls.indexOf("f.stage");
+      expect(ag1Idx).toBeLessThan(stageIdx);
+    });
+
+    it("does not call execute for alarms without onFire", async () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Just notify",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+      });
+      telemetry.set("v.altitude", 70_500);
+      telemetry.set("t.universalTime", 1100);
+      vi.advanceTimersByTime(1100);
+      // Drain microtasks (telemetry.execute is async). Don't use
+      // runAllTimersAsync — the host's own tick interval would loop
+      // forever under fake timers.
+      await Promise.resolve();
+      await Promise.resolve();
+      // Filter out warp-step calls (`t.timeWarp[0]`) that the warp-down
+      // ladder makes — they're unrelated to onFire dispatch.
+      const userActions = telemetry.calls.filter(
+        (c) => !c.startsWith("t.timeWarp"),
+      );
+      expect(userActions).toEqual([]);
+    });
+  });
+
   describe("threshold triggers", () => {
     it("fires when the telemetry value first crosses a >= threshold (no sustain)", () => {
       const { svc, telemetry } = makeService();
