@@ -1,0 +1,123 @@
+import type { DataKey, MockDataSource } from "@gonogo/core";
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  type MockDataSourceFixture,
+  setupMockDataSource,
+  teardownMockDataSource,
+} from "../test/setupMockDataSource";
+import { parseInstruments, ScienceOfficerComponent } from "./index";
+
+const KEYS: DataKey[] = [{ key: "sci.instruments" }];
+
+describe("ScienceOfficerComponent", () => {
+  let fixture: MockDataSourceFixture;
+  let source: MockDataSource;
+
+  beforeEach(async () => {
+    fixture = await setupMockDataSource({ keys: KEYS });
+    source = fixture.source;
+  });
+
+  afterEach(() => {
+    teardownMockDataSource(fixture);
+  });
+
+  it("shows the awaiting placeholder before any telemetry arrives", () => {
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    expect(
+      screen.getByText(/Awaiting instrument telemetry/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders 'No instruments' for an empty array", () => {
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", []);
+    });
+    expect(screen.getByText(/No instruments aboard/i)).toBeInTheDocument();
+  });
+
+  it("groups instruments by expId and shows badges", () => {
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 1,
+          partTitle: "Mystery Goo",
+          expId: "mysteryGoo",
+          deployed: true,
+          hasData: true,
+          rerunnable: false,
+          inoperable: false,
+        },
+        {
+          partId: 2,
+          partTitle: "Mystery Goo",
+          expId: "mysteryGoo",
+          deployed: false,
+          hasData: false,
+          rerunnable: false,
+          inoperable: true,
+        },
+        {
+          partId: 3,
+          partTitle: "Thermometer",
+          expId: "temperatureScan",
+          deployed: false,
+          hasData: false,
+          rerunnable: true,
+          inoperable: false,
+        },
+      ]);
+    });
+
+    // Group labels
+    expect(screen.getByText("mysteryGoo")).toBeInTheDocument();
+    expect(screen.getByText("temperatureScan")).toBeInTheDocument();
+
+    // Badges
+    expect(screen.getByText("DATA")).toBeInTheDocument();
+    expect(screen.getByText("INOPERABLE")).toBeInTheDocument();
+
+    // Subtitle summary: 1/3 with data, 1 deployed, 1 inoperable
+    expect(
+      screen.getByText(/1\/3 with data · 1 deployed · 1 inoperable/i),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("parseInstruments", () => {
+  it("returns null for non-array input", () => {
+    expect(parseInstruments(null)).toBeNull();
+    expect(parseInstruments(undefined)).toBeNull();
+    expect(parseInstruments({})).toBeNull();
+  });
+
+  it("drops malformed entries and coerces booleans", () => {
+    const parsed = parseInstruments([
+      {
+        partId: 1,
+        partTitle: "Goo",
+        expId: "mysteryGoo",
+        deployed: true,
+        hasData: false,
+        rerunnable: false,
+        inoperable: false,
+      },
+      // missing partId
+      { partTitle: "Bad" },
+      // missing partTitle (should fall back, not drop)
+      {
+        partId: 2,
+        expId: "temp",
+        deployed: false,
+        hasData: false,
+        rerunnable: true,
+        inoperable: false,
+      },
+    ]);
+    expect(parsed).toHaveLength(2);
+    expect(parsed?.[1].partTitle).toBe("Unknown part");
+  });
+});

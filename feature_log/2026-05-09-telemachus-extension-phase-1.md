@@ -75,4 +75,4 @@ local_docs/frozen_bash_commands.md — NEW. Tracks Bash invocations that hung
 
 ## Commits
 
-- (uncommitted at time of writing — this entry will be updated on commit)
+- `7515638` "Telemachus extension Phase 1: read-only career view"

@@ -154,6 +154,50 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   return out;
 }
 
+export interface ExperimentBreakdownEntry {
+  subjectId: string;
+  biome: string;
+  situation: string;
+  expTitle: string;
+  dataMits: number;
+  /** subjectScienceCap - subjectScience; how much science is left in this subject. */
+  remainingPotential: number;
+}
+
+/**
+ * Parses `sci.experimentBreakdown` from the GonogoTelemetry plugin. Richer
+ * shape than `sci.experiments`: includes biome / situation segments parsed
+ * from the subject id and the remaining science potential. Used when
+ * present; widget falls back to the existing `sci.experiments` view when
+ * the plugin isn't installed.
+ */
+export function parseExperimentBreakdown(
+  raw: unknown,
+): ExperimentBreakdownEntry[] | null {
+  if (raw === null || raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  const out: ExperimentBreakdownEntry[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const entry = raw[i];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    out.push({
+      subjectId:
+        typeof e.subjectId === "string" ? e.subjectId : `breakdown-${i}`,
+      biome: typeof e.biome === "string" ? e.biome : "",
+      situation: typeof e.situation === "string" ? e.situation : "",
+      expTitle: typeof e.expTitle === "string" ? e.expTitle : "(unnamed)",
+      dataMits: typeof e.dataMits === "number" ? e.dataMits : 0,
+      remainingPotential:
+        typeof e.remainingPotential === "number" ? e.remainingPotential : 0,
+    });
+  }
+  // Sort by remaining potential desc — subjects with the most science left
+  // to extract come first; the operator focuses on what's worth recovering.
+  out.sort((a, b) => b.remainingPotential - a.remainingPotential);
+  return out;
+}
+
 const SITUATION_BADGE_MS = 10_000;
 const SITUATION_DEBOUNCE_MS = 2_000;
 
@@ -175,6 +219,7 @@ function ScienceBenchComponent({
   const sciCount = useDataValue("data", "sci.count");
   const sciDataAmount = useDataValue("data", "sci.dataAmount");
   const sciExperimentsRaw = useDataValue("data", "sci.experiments");
+  const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
 
   const careerMode = useDataValue("data", "career.mode") as string | undefined;
   const careerScience = useDataValue("data", "career.science");
@@ -219,6 +264,7 @@ function ScienceBenchComponent({
   ];
 
   const experiments = parseExperiments(sciExperimentsRaw);
+  const breakdown = parseExperimentBreakdown(sciBreakdownRaw);
   const showCareer =
     typeof careerMode === "string" && careerMode.toUpperCase() !== "SANDBOX";
 
@@ -270,7 +316,11 @@ function ScienceBenchComponent({
                 </SectionMeta>
               )}
             </SectionTitle>
-            <ExperimentList experiments={experiments} sciCount={sciCount} />
+            {breakdown && breakdown.length > 0 ? (
+              <BreakdownList breakdown={breakdown} />
+            ) : (
+              <ExperimentList experiments={experiments} sciCount={sciCount} />
+            )}
           </Section>
         )}
       </Body>
@@ -356,6 +406,34 @@ function renderSensorValues(
       </ChipValue>
     </SensorReadingChip>
   ));
+}
+
+function BreakdownList({
+  breakdown,
+}: {
+  breakdown: ExperimentBreakdownEntry[];
+}) {
+  return (
+    <ExperimentListWrap>
+      {breakdown.map((b) => (
+        <ExperimentRow key={b.subjectId}>
+          <ExpSubject>
+            {b.expTitle}
+            {b.biome ? <BreakdownContext> · {b.biome}</BreakdownContext> : null}
+          </ExpSubject>
+          <ExpData>
+            {b.dataMits.toFixed(1)} mits
+            {b.remainingPotential > 0 ? (
+              <BreakdownPotential>
+                {" "}
+                · {b.remainingPotential.toFixed(1)} left
+              </BreakdownPotential>
+            ) : null}
+          </ExpData>
+        </ExperimentRow>
+      ))}
+    </ExperimentListWrap>
+  );
 }
 
 function ExperimentList({
@@ -544,6 +622,15 @@ const ExpData = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+const BreakdownContext = styled.span`
+  color: var(--color-text-faint);
+  font-weight: 400;
+`;
+
+const BreakdownPotential = styled.span`
+  color: var(--color-text-muted);
+`;
+
 const Muted = styled.div`
   font-size: 11px;
   color: var(--color-text-faint);
@@ -598,6 +685,7 @@ registerComponent<ScienceBenchConfig>({
     "sci.count",
     "sci.dataAmount",
     "sci.experiments",
+    "sci.experimentBreakdown",
     "career.mode",
     "career.science",
     "career.funds",

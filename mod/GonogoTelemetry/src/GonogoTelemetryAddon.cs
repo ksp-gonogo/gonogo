@@ -45,6 +45,7 @@ namespace GonogoTelemetry
             {
                 PluginRegistration.Register(new TechTreeApi());
                 PluginRegistration.Register(new KscApi());
+                PluginRegistration.Register(new ScienceApi());
                 registered = true;
                 Debug.Log("[GonogoTelemetry] Registered with Telemachus.");
             }
