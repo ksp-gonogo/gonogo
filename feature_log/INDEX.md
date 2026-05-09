@@ -43,7 +43,8 @@ piece shipped immediately before.
 
 ## Entries (newest first)
 
-- 2026-05-09 — [Telemachus extension — Phase 4 slice 2](2026-05-09-telemachus-extension-phase-4-slice-2.md) — uncommitted — ⏳ pending
+- 2026-05-09 — [Dim-overlay sweep](2026-05-09-dim-overlay-sweep.md) — uncommitted — ⏳ pending
+- 2026-05-09 — [Telemachus extension — Phase 4 slice 2](2026-05-09-telemachus-extension-phase-4-slice-2.md) — `e992bd8` — ⏳ pending
 - 2026-05-09 — [Telemachus extension — Phase 4 slice 1](2026-05-09-telemachus-extension-phase-4-slice-1.md) — `2fcffcd` — ⏳ pending
 - 2026-05-09 — [Telemachus extension — Phase 3](2026-05-09-telemachus-extension-phase-3.md) — `127ddf4` — ⏳ pending
 - 2026-05-09 — [Telemachus extension — Phase 2](2026-05-09-telemachus-extension-phase-2.md) — `2394cc6` (`160a452` migration-prereq follow-up) — ⏳ pending

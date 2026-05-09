@@ -303,6 +303,7 @@ registerComponent<LandingStatusConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { LandingStatusComponent };

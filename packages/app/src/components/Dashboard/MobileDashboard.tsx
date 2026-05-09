@@ -1,3 +1,4 @@
+import { RequiresGuard } from "@gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
@@ -197,13 +198,15 @@ const MobileItemContent = memo(function MobileItemContent({
       <ComponentWrapper>
         <DashboardItemContext.Provider value={itemContext}>
           <ErrorBoundary fallback={renderErrorFallback}>
-            <Comp
-              id={item.i}
-              config={item.config}
-              w={gridW}
-              h={gridH}
-              onConfigChange={onSaveConfig}
-            />
+            <RequiresGuard requires={def.requires}>
+              <Comp
+                id={item.i}
+                config={item.config}
+                w={gridW}
+                h={gridH}
+                onConfigChange={onSaveConfig}
+              />
+            </RequiresGuard>
           </ErrorBoundary>
         </DashboardItemContext.Provider>
       </ComponentWrapper>

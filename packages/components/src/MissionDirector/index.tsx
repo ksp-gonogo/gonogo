@@ -508,6 +508,7 @@ registerComponent<MissionDirectorConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  requires: ["career"],
 });
 
 export { MissionDirectorComponent };

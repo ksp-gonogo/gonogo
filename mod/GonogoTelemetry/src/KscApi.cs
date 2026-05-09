@@ -68,6 +68,7 @@ namespace GonogoTelemetry
             "kc.padVesselTitle",
             "kc.savedShips",
             "kc.crewRoster",
+            "kc.scene",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -88,8 +89,33 @@ namespace GonogoTelemetry
                     return (_, __) => SavedShips();
                 case "kc.crewRoster":
                     return (_, __) => CrewRoster();
+                case "kc.scene":
+                    return (_, __) => Scene();
                 default:
                     return null;
+            }
+        }
+
+        private static object Scene()
+        {
+            // The widget side cares about a small set: Flight, SpaceCenter,
+            // Editor, TrackingStation, MainMenu. Anything else collapses to
+            // "Other" so widgets can do `=== "Flight"` checks without
+            // worrying about edge scenes (loading, mission builder, etc.).
+            switch (HighLogic.LoadedScene)
+            {
+                case GameScenes.FLIGHT:
+                    return "Flight";
+                case GameScenes.SPACECENTER:
+                    return "SpaceCenter";
+                case GameScenes.EDITOR:
+                    return "Editor";
+                case GameScenes.TRACKSTATION:
+                    return "TrackingStation";
+                case GameScenes.MAINMENU:
+                    return "MainMenu";
+                default:
+                    return "Other";
             }
         }
 

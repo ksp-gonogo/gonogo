@@ -517,6 +517,7 @@ registerComponent<ManeuverPlannerConfig>({
   defaultConfig: { defaultPreset: "circularize-apo" },
   actions: maneuverActions,
   pushable: true,
+  requires: ["flight"],
 });
 
 export { ManeuverPlannerComponent };

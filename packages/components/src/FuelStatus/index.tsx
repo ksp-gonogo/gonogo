@@ -522,6 +522,7 @@ registerComponent<FuelStatusConfig>({
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { FuelStatusComponent };

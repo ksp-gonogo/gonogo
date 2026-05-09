@@ -165,6 +165,7 @@ registerComponent<KeplerPeriodConfig>({
   defaultConfig: { windowSec: 60 },
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { KeplerPeriodComponent };

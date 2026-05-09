@@ -142,6 +142,7 @@ registerComponent<EscapeProfileConfig>({
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { EscapeProfileComponent };

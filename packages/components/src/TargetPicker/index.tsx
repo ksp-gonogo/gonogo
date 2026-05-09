@@ -823,6 +823,7 @@ registerComponent<TargetPickerConfig>({
   defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,
+  requires: ["flight"],
 });
 
 export { TargetPickerComponent };

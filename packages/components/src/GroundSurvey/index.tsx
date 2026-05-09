@@ -331,6 +331,7 @@ registerComponent<GroundSurveyConfig>({
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
   pushable: true,
+  requires: ["flight"],
 });
 
 export { GroundSurveyComponent };

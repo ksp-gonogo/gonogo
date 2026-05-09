@@ -804,6 +804,7 @@ registerComponent<MapViewConfig>({
   },
   actions: mapViewActions,
   pushable: true,
+  requires: ["flight"],
 });
 
 export { MapViewComponent };
