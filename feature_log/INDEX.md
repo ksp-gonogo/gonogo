@@ -43,6 +43,7 @@ piece shipped immediately before.
 
 ## Entries (newest first)
 
-- 2026-05-09 — [Telemachus extension — Phase 2](2026-05-09-telemachus-extension-phase-2.md) — uncommitted — ⏳ pending
+- 2026-05-09 — [Telemachus extension — Phase 3](2026-05-09-telemachus-extension-phase-3.md) — uncommitted — ⏳ pending
+- 2026-05-09 — [Telemachus extension — Phase 2](2026-05-09-telemachus-extension-phase-2.md) — `2394cc6` (`160a452` migration-prereq follow-up) — ⏳ pending
 - 2026-05-09 — [Telemachus extension — Phase 1](2026-05-09-telemachus-extension-phase-1.md) — `7515638` — ⏳ pending
 - 2026-05-09 — [Action-group alarm UI](2026-05-09-action-group-alarm-ui.md) — `6c81cd6` — ⏳ pending
