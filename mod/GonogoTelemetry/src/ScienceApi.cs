@@ -114,11 +114,20 @@ namespace GonogoTelemetry
             var data = exp.GetData();
             if (data == null || data.Length == 0) return "no data to transmit";
 
-            // KSP exposes ModuleScienceExperiment.TransmitData(...) on most
-            // versions, taking the data list. Some versions wrap it via
-            // IScienceDataTransmitter on the same vessel — we let KSP pick
-            // the active transmitter rather than choosing for it.
-            exp.TransmitData(new System.Collections.Generic.List<ScienceData>(data));
+            // ModuleScienceExperiment doesn't expose a public TransmitData;
+            // its internal Transmit flow asks ScienceUtil.GetBestTransmitter
+            // for the vessel's active transmitter and pushes the data list.
+            // Mirror that path. Then DumpData on each entry so the source
+            // module reflects "transmitted, no longer holding it".
+            var transmitter = ScienceUtil.GetBestTransmitter(vessel);
+            if (transmitter == null) return "no transmitter available";
+
+            var list = new System.Collections.Generic.List<ScienceData>(data);
+            transmitter.TransmitData(list);
+            foreach (var d in data)
+            {
+                if (d != null) exp.DumpData(d);
+            }
             return 0;
         }
 

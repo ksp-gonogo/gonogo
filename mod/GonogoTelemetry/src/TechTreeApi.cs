@@ -5,23 +5,24 @@ using Telemachus;
 namespace GonogoTelemetry
 {
     /// <summary>
-    /// Surfaces the player's research state from KSP's
-    /// `ResearchAndDevelopment` so widgets can render
-    /// "kOS not unlocked yet" instead of the generic empty state, and so
-    /// a research-officer station can pick what to spend science on.
+    /// Surfaces the player's research state from KSP's research tree so
+    /// widgets can render "kOS not unlocked yet" instead of the generic
+    /// empty state, and so a research-officer station can pick what to
+    /// spend science on.
     ///
     /// Keys:
     /// - `tech.unlockedIds` — array of node ids the player has researched.
     /// - `tech.unlockedPartCount` — number of parts available in VAB/SPH
-    ///   under the current tech tree (cheap proxy for "how built up is
-    ///   this save").
-    /// - `tech.affordable` — array of `{ id, title, scienceCost }` for
-    ///   nodes the player could buy *right now*: prerequisites met AND
-    ///   cost ≤ current science. Drives the research-officer pick-list.
+    ///   under the current tech tree.
+    /// - `tech.affordable` — array of `{ id, scienceCost }` for nodes the
+    ///   player could buy: not-yet-unlocked AND scienceCost ≤ current
+    ///   science. Prereq filtering is left to KSP's own check at unlock
+    ///   time (ProtoTechNode doesn't expose predecessor info; widget
+    ///   consumes the list and KSP refuses prereq-blocked unlocks).
+    /// - `tech.unlock[techId]` — write action.
     ///
-    /// All keys are global (not vessel-specific), so the `Vessel`
-    /// parameter is ignored — same convention Telemachus's own
-    /// ScienceCareer handler uses.
+    /// All keys are global (vessel parameter ignored). Same convention as
+    /// Telemachus's own ScienceCareer handler.
     /// </summary>
     public class TechTreeApi : IMinimalTelemachusPlugin
     {
@@ -50,53 +51,27 @@ namespace GonogoTelemetry
             }
         }
 
-        private static object Unlock(string[] args)
+        // The tech tree is owned by AssetBase.RnDTechTree, not
+        // ResearchAndDevelopment.Instance. Returns ProtoTechNode[]; each
+        // entry has techID, scienceCost, state (RDTech.State), and
+        // partsPurchased.
+        private static ProtoTechNode[] GetTreeTechs()
         {
-            if (args == null || args.Length == 0) return "missing tech id";
-            var techId = args[0];
-            if (string.IsNullOrEmpty(techId)) return "missing tech id";
-
-            var rd = ResearchAndDevelopment.Instance;
-            if (rd == null) return "no R&D scenario";
-
-            // Find the node. KSP enumerates the tree top-down; iterate
-            // every time rather than caching because mods can add nodes
-            // mid-game and the cost of one walk is trivial.
-            RDTech target = null;
-            foreach (var node in rd.GetTreeTechs())
-            {
-                if (node != null && node.techID == techId) { target = node; break; }
-            }
-            if (target == null) return "tech not found";
-            if (target.state == RDTech.State.Available) return 0; // already unlocked
-
-            // Affordability check: surface a clear error rather than letting
-            // KSP's UnlockTech silently no-op or push the science balance
-            // negative on some game versions.
-            if (target.scienceCost > rd.Science) return "insufficient science";
-
-            // KSP exposes both UnlockTech (direct) and the more involved
-            // RDController flow (UI-level). The plugin uses UnlockTech +
-            // an explicit science deduction since UnlockTech alone doesn't
-            // always charge the player on every KSP version. Belt and
-            // braces: only deduct on success.
-            var charged = rd.AddScience(-target.scienceCost,
-                TransactionReasons.RnDTechResearch);
-            target.UnlockTech(true);
-            return charged != 0f ? 0 : "unlock failed";
+            var tree = AssetBase.RnDTechTree;
+            if (tree == null) return Array.Empty<ProtoTechNode>();
+            return tree.GetTreeTechs() ?? Array.Empty<ProtoTechNode>();
         }
 
         private static object UnlockedIds()
         {
-            // Sandbox + science modes don't have a research progression,
-            // so ResearchAndDevelopment.Instance is null. Return an empty
-            // list rather than throwing so the WS payload stays well-formed.
-            if (ResearchAndDevelopment.Instance == null)
-                return new List<string>();
             var result = new List<string>();
-            foreach (var node in ResearchAndDevelopment.Instance.GetTreeTechs())
+            // Sandbox / science-mode saves have no R&D instance; the tree
+            // is still loaded but no nodes show as Available. Empty result
+            // is the right shape.
+            if (ResearchAndDevelopment.Instance == null) return result;
+            foreach (var node in GetTreeTechs())
             {
-                if (node.state == RDTech.State.Available)
+                if (node != null && node.state == RDTech.State.Available)
                     result.Add(node.techID);
             }
             return result;
@@ -115,56 +90,64 @@ namespace GonogoTelemetry
 
         private static object Affordable()
         {
+            // Without parent / prerequisite info on ProtoTechNode, we
+            // can't gate on prereqs-met server-side. Return all
+            // not-yet-unlocked nodes whose science cost is affordable;
+            // KSP's UnlockProtoTechNode refuses prereq-blocked unlocks at
+            // call time, so the widget showing the list and the unlock
+            // action both behave correctly. Better than silently hiding
+            // affordable-but-locked nodes.
             var result = new List<Dictionary<string, object>>();
             var rd = ResearchAndDevelopment.Instance;
             if (rd == null) return result;
 
             var available = rd.Science;
-            // Build a set of unlocked ids first so the prereq-check is O(1)
-            // rather than O(unlocked) per candidate.
-            var unlocked = new HashSet<string>();
-            var nodes = rd.GetTreeTechs();
-            foreach (var node in nodes)
+            foreach (var node in GetTreeTechs())
             {
-                if (node.state == RDTech.State.Available)
-                    unlocked.Add(node.techID);
-            }
-
-            foreach (var node in nodes)
-            {
-                if (node.state == RDTech.State.Available) continue; // already bought
+                if (node == null) continue;
+                if (node.state == RDTech.State.Available) continue;
                 if (node.scienceCost > available) continue;
-                if (!PrereqsMet(node, unlocked)) continue;
-
                 result.Add(new Dictionary<string, object>
                 {
                     ["id"] = node.techID,
-                    ["title"] = node.title,
                     ["scienceCost"] = node.scienceCost,
                 });
             }
             return result;
         }
 
-        private static bool PrereqsMet(RDTech node, HashSet<string> unlocked)
+        private static object Unlock(string[] args)
         {
-            // RDTech.parents is a list of RDTech.OperatorMath entries in
-            // most KSP versions. The wider-compatible path is to fetch the
-            // RDNode from RDController and read parents.parent.tech.techID,
-            // but RDController isn't always loaded outside the R&D scene.
-            // Stick with what node.predecessors / parents give us, falling
-            // back to "no prereq info" (treat as met) so we don't silently
-            // hide affordable nodes.
-            var parents = node.parents;
-            if (parents == null || parents.Length == 0) return true;
-            foreach (var parent in parents)
+            if (args == null || args.Length == 0) return "missing tech id";
+            var techId = args[0];
+            if (string.IsNullOrEmpty(techId)) return "missing tech id";
+
+            var rd = ResearchAndDevelopment.Instance;
+            if (rd == null) return "no R&D scenario";
+
+            ProtoTechNode target = null;
+            foreach (var node in GetTreeTechs())
             {
-                // parent.parent is the predecessor RDTech in stock KSP.
-                var parentTech = parent?.parent?.tech;
-                if (parentTech == null) continue;
-                if (!unlocked.Contains(parentTech.techID)) return false;
+                if (node != null && node.techID == techId)
+                {
+                    target = node;
+                    break;
+                }
             }
-            return true;
+            if (target == null) return "tech not found";
+            if (target.state == RDTech.State.Available) return 0; // idempotent
+            if (target.scienceCost > rd.Science) return "insufficient science";
+
+            // ResearchAndDevelopment.UnlockProtoTechNode is the direct
+            // path (per the decompiled RefreshTechTreeUI flow). The
+            // automatic charge fires through the R&D scene UI, not the
+            // programmatic unlock — deduct funds explicitly with a
+            // matching transaction reason.
+            ResearchAndDevelopment.Instance.AddScience(
+                -target.scienceCost,
+                TransactionReasons.RnDTechResearch);
+            ResearchAndDevelopment.Instance.UnlockProtoTechNode(target);
+            return 0;
         }
     }
 }

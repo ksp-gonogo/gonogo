@@ -125,14 +125,22 @@ namespace GonogoTelemetry
             var roster = HighLogic.CurrentGame?.CrewRoster;
             if (roster == null) return;
 
+            // VesselCrewManifest holds part-level manifests on
+            // PartManifests (List<PartCrewManifest>). The seat count
+            // varies per part — we just probe AddCrewToSeat with
+            // increasing indices and break on a slot that already has
+            // someone (KSP's PartCrewManifest internally validates the
+            // seat index against the part's crewCapacity).
             var queue = new Queue<string>(crewNames);
-            foreach (var partManifest in manifest)
+            foreach (var partManifest in manifest.PartManifests)
             {
                 if (partManifest == null) continue;
-                var seats = partManifest.GetCrewSeats();
-                if (seats == null) continue;
-                for (var i = 0; i < seats.Count && queue.Count > 0; i++)
+                if (queue.Count == 0) return;
+                var existing = partManifest.GetPartCrew();
+                if (existing == null) continue;
+                for (var i = 0; i < existing.Length && queue.Count > 0; i++)
                 {
+                    if (existing[i] != null) continue; // seat occupied
                     var kerbalName = queue.Dequeue();
                     if (string.IsNullOrEmpty(kerbalName)) continue;
                     var kerbal = roster[kerbalName];
@@ -141,7 +149,6 @@ namespace GonogoTelemetry
                         ProtoCrewMember.RosterStatus.Available) continue;
                     partManifest.AddCrewToSeat(kerbal, i);
                 }
-                if (queue.Count == 0) return;
             }
         }
 
@@ -157,18 +164,13 @@ namespace GonogoTelemetry
 
             GonogoTelemetryAddon.Defer(() =>
             {
-                // Two API spellings exist depending on KSP version; prefer
-                // the lowercase event (the upstream-stable one) and fall
-                // back if the field doesn't exist.
-                try
-                {
-                    GameEvents.onVesselRecoveryRequested.Fire(vessel);
-                }
-                catch (Exception)
-                {
-                    // The proto-vessel variant exists on older KSP builds.
-                    GameEvents.OnVesselRecoveryRequested.Fire(vessel.protoVessel);
-                }
+                // GameEvents.OnVesselRecoveryRequested is EventData<Vessel>
+                // per the decompiled API surface — the lowercase event
+                // doesn't exist; the only similar lowercase one is
+                // onVesselRecovered which is the post-recovery
+                // notification, not the request. Fire the request and
+                // KSP runs its standard refund + crew transfer flow.
+                GameEvents.OnVesselRecoveryRequested.Fire(vessel);
             });
             return 0;
         }

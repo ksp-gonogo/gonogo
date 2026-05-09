@@ -117,45 +117,50 @@ namespace GonogoTelemetry
 
             try
             {
-                var list = Upgradeables.UpgradeableObject.UpgradeableObjects;
-                if (list == null) return "no upgradeables";
-                foreach (var obj in list)
-                {
-                    if (obj == null || obj.id != facilityId) continue;
-                    var levels = obj.UpgradeLevels;
-                    if (levels == null) return "no upgrade levels";
-                    var nextIdx = obj.currentLevel + 1;
-                    if (nextIdx >= levels.Length) return "already at max";
-                    var cost = levels[nextIdx]?.funds ?? 0d;
-                    if (Funding.Instance != null && Funding.Instance.Funds < cost)
-                        return "insufficient funds";
+                var dict = ScenarioUpgradeableFacilities.protoUpgradeables;
+                if (dict == null) return "no upgradeables";
+                if (!dict.TryGetValue(facilityId, out var proto) || proto == null)
+                    return "facility not found";
+                if (proto.facilityRefs == null || proto.facilityRefs.Count == 0)
+                    return "facility refs empty";
+                var fac = proto.facilityRefs[0];
+                if (fac == null) return "facility ref null";
+                var levels = fac.UpgradeLevels;
+                if (levels == null) return "no upgrade levels";
+                var nextIdx = fac.FacilityLevel + 1;
+                if (nextIdx >= levels.Length) return "already at max";
+                var cost = (double)(levels[nextIdx]?.levelCost ?? 0f);
+                if (Funding.Instance != null && Funding.Instance.Funds < cost)
+                    return "insufficient funds";
 
-                    GonogoTelemetryAddon.Defer(() =>
+                GonogoTelemetryAddon.Defer(() =>
+                {
+                    try
                     {
-                        try
+                        // SetLevel walks every ref in the proto and
+                        // routes through OnUpgradeableObjLevelChange so
+                        // KSP's persistence + scene state stay in sync.
+                        // Funds deduction is separate — KSP only auto-
+                        // charges through the SC UI.
+                        foreach (var refFac in proto.facilityRefs)
                         {
-                            // SetCurrentLevel handles persistence; the
-                            // funds deduction is separate (KSP doesn't do
-                            // it for direct level sets the way it does
-                            // when the player clicks the upgrade button).
-                            obj.SetCurrentLevel(nextIdx);
-                            if (Funding.Instance != null && cost > 0d)
-                            {
-                                Funding.Instance.AddFunds(
-                                    -cost,
-                                    TransactionReasons.StructureConstruction);
-                            }
+                            refFac?.SetLevel(nextIdx);
                         }
-                        catch (Exception ex)
+                        if (Funding.Instance != null && cost > 0d)
                         {
-                            UnityEngine.Debug.LogError(
-                                "[GonogoTelemetry] kc.upgradeFacility deferred path failed: "
-                                + ex);
+                            Funding.Instance.AddFunds(
+                                -cost,
+                                TransactionReasons.StructureConstruction);
                         }
-                    });
-                    return 0;
-                }
-                return "facility not found";
+                    }
+                    catch (Exception ex)
+                    {
+                        UnityEngine.Debug.LogError(
+                            "[GonogoTelemetry] kc.upgradeFacility deferred path failed: "
+                            + ex);
+                    }
+                });
+                return 0;
             }
             catch (Exception ex)
             {
@@ -223,34 +228,31 @@ namespace GonogoTelemetry
             return result;
         }
 
-        // Best-effort read of the next-tier upgrade cost. KSP's
-        // Upgradeables.UpgradeableObject instances live in the Space Center
-        // scene tree; outside SC the static list may be empty so we return 0
-        // and let the widget render a "—" placeholder. The structure of
-        // UpgradeLevel[].costGameCurrencies varies slightly by KSP version
-        // (some builds use `costGameCurrencies.Funds`, others a generic
-        // dictionary). Guard the whole walk in try/catch so a shape change
-        // doesn't crash the larger handler.
+        // Read next-tier upgrade cost via ScenarioUpgradeableFacilities's
+        // proto-upgradeables dictionary. The dictionary keys are the
+        // full facility ids ("SpaceCenter/LaunchPad" etc.); each value
+        // holds a list of UpgradeableFacility refs (the actual scene
+        // instances in SC) — we read UpgradeLevels[fac.FacilityLevel + 1]
+        // .levelCost from the first ref. Returns 0 when not at SC scene
+        // (refs list empty), the facility is at max, or the dictionary
+        // hasn't initialised yet.
         private static double ReadUpgradeFunds(string facilityId, int currentLevel)
         {
             try
             {
-                var list = Upgradeables.UpgradeableObject.UpgradeableObjects;
-                if (list == null) return 0d;
-                foreach (var obj in list)
-                {
-                    if (obj == null || obj.id != facilityId) continue;
-                    var levels = obj.UpgradeLevels;
-                    if (levels == null) return 0d;
-                    var nextIdx = currentLevel + 1;
-                    if (nextIdx >= levels.Length) return 0d; // already at max
-                    var next = levels[nextIdx];
-                    if (next == null) return 0d;
-                    // `funds` is the public field on most KSP versions; if
-                    // it's null or absent the cost is unknown — surface 0.
-                    return next.funds;
-                }
-                return 0d;
+                var dict = ScenarioUpgradeableFacilities.protoUpgradeables;
+                if (dict == null) return 0d;
+                if (!dict.TryGetValue(facilityId, out var proto) || proto == null)
+                    return 0d;
+                if (proto.facilityRefs == null || proto.facilityRefs.Count == 0)
+                    return 0d;
+                var fac = proto.facilityRefs[0];
+                if (fac == null) return 0d;
+                var levels = fac.UpgradeLevels;
+                if (levels == null) return 0d;
+                var nextIdx = fac.FacilityLevel + 1;
+                if (nextIdx >= levels.Length) return 0d;
+                return levels[nextIdx]?.levelCost ?? 0d;
             }
             catch (Exception)
             {
