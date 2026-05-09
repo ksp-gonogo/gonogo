@@ -69,10 +69,21 @@ namespace GonogoTelemetry
             // is still loaded but no nodes show as Available. Empty result
             // is the right shape.
             if (ResearchAndDevelopment.Instance == null) return result;
+            // ProtoTechNode.state on the AssetBase tree reflects the
+            // *static config-loaded* state — i.e. only `start` ever shows
+            // as Available, regardless of player progression. The
+            // player's actual unlocked set lives in
+            // ResearchAndDevelopment.Instance.protoTechNodes (private),
+            // accessed via the public static GetTechnologyState(id). Walk
+            // the tree for ids, query real state per node.
             foreach (var node in GetTreeTechs())
             {
-                if (node != null && node.state == RDTech.State.Available)
+                if (node == null) continue;
+                if (ResearchAndDevelopment.GetTechnologyState(node.techID)
+                    == RDTech.State.Available)
+                {
                     result.Add(node.techID);
+                }
             }
             return result;
         }
@@ -105,7 +116,11 @@ namespace GonogoTelemetry
             foreach (var node in GetTreeTechs())
             {
                 if (node == null) continue;
-                if (node.state == RDTech.State.Available) continue;
+                // Same lookup-via-static-API trick as UnlockedIds — the
+                // node.state on the AssetBase tree is config-static and
+                // reads as Unavailable for everything except `start`.
+                if (ResearchAndDevelopment.GetTechnologyState(node.techID)
+                    == RDTech.State.Available) continue;
                 if (node.scienceCost > available) continue;
                 result.Add(new Dictionary<string, object>
                 {
@@ -135,7 +150,10 @@ namespace GonogoTelemetry
                 }
             }
             if (target == null) return "tech not found";
-            if (target.state == RDTech.State.Available) return 0; // idempotent
+            // Real state via the static lookup — the in-tree node.state
+            // is config-static (always Unavailable except for `start`).
+            if (ResearchAndDevelopment.GetTechnologyState(target.techID)
+                == RDTech.State.Available) return 0; // idempotent
             if (target.scienceCost > rd.Science) return "insufficient science";
 
             // ResearchAndDevelopment.UnlockProtoTechNode is the direct
@@ -143,10 +161,19 @@ namespace GonogoTelemetry
             // automatic charge fires through the R&D scene UI, not the
             // programmatic unlock — deduct funds explicitly with a
             // matching transaction reason.
-            ResearchAndDevelopment.Instance.AddScience(
-                -target.scienceCost,
-                TransactionReasons.RnDTechResearch);
-            ResearchAndDevelopment.Instance.UnlockProtoTechNode(target);
+            //
+            // Defer onto the main thread: UnlockProtoTechNode walks parts
+            // and triggers part-purchased state on stock prefabs, which
+            // can re-instantiate Unity objects. Same Unity-only contract
+            // as Contract.Accept / KscApi.UpgradeFacility.
+            var captured = target;
+            GonogoTelemetryAddon.Defer(() =>
+            {
+                ResearchAndDevelopment.Instance.AddScience(
+                    -captured.scienceCost,
+                    TransactionReasons.RnDTechResearch);
+                ResearchAndDevelopment.Instance.UnlockProtoTechNode(captured);
+            });
             return 0;
         }
     }

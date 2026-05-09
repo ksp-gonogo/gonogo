@@ -89,10 +89,12 @@ namespace GonogoTelemetry
             // Cancel only meaningful for Active contracts (forfeits work in
             // progress). Decline is the verb for Offered. Explicit refusal
             // so the operator doesn't silently abandon the wrong contract
-            // by clicking the wrong button.
+            // by clicking the wrong button. Same Unity-thread requirement
+            // as Accept / Decline.
             if (found.ContractState != Contract.State.Active)
                 return "contract not in Active state";
-            found.Cancel();
+            var captured = found;
+            GonogoTelemetryAddon.Defer(() => captured.Cancel());
             return 0;
         }
 
@@ -119,12 +121,18 @@ namespace GonogoTelemetry
             // matches the right state — Accept on an already-Active
             // contract is a no-op rather than an error so a duplicate
             // double-click doesn't surface as a failure to the operator.
+            //
+            // CRITICAL: Contract.Accept / Decline / Cancel internally
+            // instantiate Unity prefabs (mission-control UI clones,
+            // meshes). Calling them from the WS listener thread segfaults
+            // KSP in Mesh::CreateMesh. Defer onto the main thread.
             if (accept)
             {
                 if (found.ContractState == Contract.State.Active) return 0;
                 if (found.ContractState != Contract.State.Offered)
                     return "contract not in Offered state";
-                found.Accept();
+                var capture = found;
+                GonogoTelemetryAddon.Defer(() => capture.Accept());
                 return 0;
             }
 
@@ -134,7 +142,8 @@ namespace GonogoTelemetry
             // when the operator hits "decline" on an active card.
             if (found.ContractState != Contract.State.Offered)
                 return "contract not in Offered state";
-            found.Decline();
+            var captured = found;
+            GonogoTelemetryAddon.Defer(() => captured.Decline());
             return 0;
         }
 
