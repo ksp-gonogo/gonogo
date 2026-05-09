@@ -71,20 +71,21 @@ export function SustainedFailureBanner() {
       since: sinceRef.current.get(s.id) ?? now,
     }));
 
-  // Re-render once per second so the elapsed-time labels stay current.
-  // Skip the timer entirely while everything's healthy — no banner = no
-  // point burning a setInterval.
+  // Re-render once per second so a source that crosses THRESHOLD_MS
+  // shows up even when nothing else is re-rendering us, and so the
+  // elapsed-time labels stay current. Always on while mounted: a 1Hz
+  // tick that early-returns null on a healthy state is functionally
+  // free, and gating the interval on a derived "has-failures"
+  // proxy was both fragile (timing against fake timers) and not
+  // worth the saved cycles.
   useEffect(() => {
-    if (sinceRef.current.size === 0) return;
     const id = setInterval(() => {
       tick((n) => n + 1);
     }, TICK_MS);
     return () => {
       clearInterval(id);
     };
-    // The dep is a stable ref count surface so the interval re-installs
-    // when sources start/stop failing, not on every tick.
-  }, [sinceRef.current.size]);
+  }, []);
 
   if (failing.length === 0) return null;
 
