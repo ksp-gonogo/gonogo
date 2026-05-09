@@ -1,11 +1,12 @@
 import {
+  type AlarmCreator,
   type AlarmsLauncher,
   AlarmsLauncherProvider,
 } from "@gonogo/components";
 import { useModal } from "@gonogo/ui";
 import { type ReactNode, useCallback } from "react";
 import { AlarmsModal, type AlarmsModalProps } from "./AlarmsModal";
-import type { AlarmSnapshot } from "./types";
+import type { AlarmSnapshot, AlarmTrigger } from "./types";
 
 /**
  * Provides an `AlarmsLauncher` to the subtree that wraps `useModal().open`
@@ -46,9 +47,31 @@ export function AlarmsLauncherBridge({
     },
     [open, useSnapshot, onAdd, onUpdate, onDelete],
   );
+  // Direct-create path used by Mission Director's parameter bells. Skips
+  // the modal entirely — the click already encodes everything the alarm
+  // needs (contract id, parameter title, target state).
+  const creator: AlarmCreator<AlarmTrigger> = useCallback(
+    (req) => {
+      onAdd({
+        name: req.name?.trim() || defaultNameForTrigger(req.trigger),
+        trigger: req.trigger,
+      });
+    },
+    [onAdd],
+  );
   return (
-    <AlarmsLauncherProvider launcher={launcher}>
+    <AlarmsLauncherProvider
+      launcher={launcher}
+      creator={creator as AlarmCreator<unknown>}
+    >
       {children}
     </AlarmsLauncherProvider>
   );
+}
+
+function defaultNameForTrigger(trigger: AlarmTrigger): string {
+  if (trigger.kind === "contract-parameter") {
+    return `${trigger.parameterTitle} → ${trigger.targetState}`;
+  }
+  return "Alarm";
 }

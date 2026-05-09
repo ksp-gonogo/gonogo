@@ -44,6 +44,7 @@ namespace GonogoTelemetry
             "contracts.completedRecent",
             "contracts.accept",
             "contracts.decline",
+            "contracts.cancel",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -60,9 +61,39 @@ namespace GonogoTelemetry
                     return (_, args) => MutateContract(args, accept: true);
                 case "contracts.decline":
                     return (_, args) => MutateContract(args, accept: false);
+                case "contracts.cancel":
+                    return (_, args) => CancelContract(args);
                 default:
                     return null;
             }
+        }
+
+        private static object CancelContract(string[] args)
+        {
+            if (args == null || args.Length == 0) return "missing contract id";
+            if (!long.TryParse(args[0], out var contractId))
+                return "invalid contract id";
+
+            var system = ContractSystem.Instance;
+            if (system == null || system.Contracts == null)
+                return "no contract system";
+
+            Contract found = null;
+            foreach (var c in system.Contracts)
+            {
+                if (c == null) continue;
+                if (c.ContractID == contractId) { found = c; break; }
+            }
+            if (found == null) return "contract not found";
+
+            // Cancel only meaningful for Active contracts (forfeits work in
+            // progress). Decline is the verb for Offered. Explicit refusal
+            // so the operator doesn't silently abandon the wrong contract
+            // by clicking the wrong button.
+            if (found.ContractState != Contract.State.Active)
+                return "contract not in Active state";
+            found.Cancel();
+            return 0;
         }
 
         private static object MutateContract(string[] args, bool accept)

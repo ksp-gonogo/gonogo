@@ -24,14 +24,51 @@ export type AlarmsLauncher = (opts: AlarmsLauncherOptions) => void;
 
 const Context = createContext<AlarmsLauncher | null>(null);
 
+/**
+ * Direct-create contract for "alarm me when X" affordances that don't
+ * need the modal's free-form trigger editor — the trigger is fully
+ * determined by where the operator clicked (e.g. Mission Director's
+ * bell next to a contract parameter creates a contract-parameter
+ * alarm with the contract id + parameter title baked in). Bypasses
+ * the modal and creates the alarm directly via the host's onAdd
+ * callback.
+ *
+ * Generic over the trigger type so this stays in
+ * `@gonogo/components/shared` (no `@gonogo/app` import) — the caller
+ * supplies a trigger of whatever shape; the host bridge unwraps it.
+ */
+export interface AlarmCreateRequest<TTrigger> {
+  name?: string;
+  trigger: TTrigger;
+}
+
+export type AlarmCreator<TTrigger> = (
+  req: AlarmCreateRequest<TTrigger>,
+) => void;
+
+const CreatorContext = createContext<AlarmCreator<unknown> | null>(null);
+
 export function AlarmsLauncherProvider({
   launcher,
+  creator,
   children,
 }: {
   launcher: AlarmsLauncher;
+  /**
+   * Optional direct-create handler. When omitted, widgets that depend on
+   * direct-create (e.g. Mission Director's parameter bell) hide their
+   * affordance — same fallback as `useAlarmsLauncher` returning null.
+   */
+  creator?: AlarmCreator<unknown>;
   children: ReactNode;
 }) {
-  return <Context.Provider value={launcher}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={launcher}>
+      <CreatorContext.Provider value={creator ?? null}>
+        {children}
+      </CreatorContext.Provider>
+    </Context.Provider>
+  );
 }
 
 /**
@@ -41,4 +78,8 @@ export function AlarmsLauncherProvider({
  */
 export function useAlarmsLauncher(): AlarmsLauncher | null {
   return useContext(Context);
+}
+
+export function useAlarmCreator<TTrigger>(): AlarmCreator<TTrigger> | null {
+  return useContext(CreatorContext) as AlarmCreator<TTrigger> | null;
 }

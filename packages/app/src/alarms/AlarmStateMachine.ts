@@ -1,5 +1,10 @@
 import { slopeFit } from "@gonogo/core";
-import type { Alarm, ThresholdOp, ThresholdTrigger } from "./types";
+import type {
+  Alarm,
+  ContractParameterTrigger,
+  ThresholdOp,
+  ThresholdTrigger,
+} from "./types";
 
 interface ThresholdSample {
   ut: number;
@@ -60,6 +65,29 @@ export class AlarmStateMachine {
     return changed;
   }
 
+  /**
+   * Update contract-parameter match state. Same shape as
+   * `updateThresholdTracking` minus the slope-fit sample buffer (no
+   * numeric value to model). Mutates `alarm.matchSinceUT`; returns true
+   * iff it changed.
+   */
+  updateContractParameterTracking(alarm: Alarm, ut: number): boolean {
+    if (alarm.trigger.kind !== "contract-parameter") return false;
+    const matched = this.evalContractParameter(alarm.trigger);
+    if (matched) {
+      if (alarm.matchSinceUT == null) {
+        alarm.matchSinceUT = ut;
+        return true;
+      }
+      return false;
+    }
+    if (alarm.matchSinceUT != null) {
+      alarm.matchSinceUT = null;
+      return true;
+    }
+    return false;
+  }
+
   /** Drop sample buffer for an alarm — used on delete or trigger change. */
   forget(alarmId: string): void {
     this.thresholdSamples.delete(alarmId);
@@ -79,6 +107,9 @@ export class AlarmStateMachine {
       return "pending";
     }
     if (alarm.state === "fired") return "fired";
+    // Threshold and contract-parameter both use the matchSinceUT +
+    // sustainSeconds shape; the underlying match check differs but the
+    // state transition logic is identical.
     const t = alarm.trigger;
     if (alarm.matchSinceUT == null) return "pending";
     const heldFor = now - alarm.matchSinceUT;
@@ -152,6 +183,25 @@ export class AlarmStateMachine {
     const observed = this.readTelemetryNumber(t.dataKey);
     if (observed === null) return false;
     return compare(observed, t.op, t.value);
+  }
+
+  private evalContractParameter(t: ContractParameterTrigger): boolean {
+    const raw = this.telemetry?.getLatestValue("contracts.active");
+    if (!Array.isArray(raw)) return false;
+    for (const c of raw) {
+      if (!c || typeof c !== "object") continue;
+      const ce = c as Record<string, unknown>;
+      if (ce.id !== t.contractId) continue;
+      if (!Array.isArray(ce.parameters)) return false;
+      for (const p of ce.parameters) {
+        if (!p || typeof p !== "object") continue;
+        const pe = p as Record<string, unknown>;
+        if (pe.title !== t.parameterTitle) continue;
+        return pe.state === t.targetState;
+      }
+      return false;
+    }
+    return false;
   }
 
   private recordThresholdSample(alarm: Alarm, ut: number): void {
