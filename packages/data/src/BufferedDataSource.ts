@@ -241,7 +241,20 @@ export class BufferedDataSource extends DataSourceWrapper {
     // For keys NOT covered by the upfront schema sub (indexed keys like
     // `b.name[1]`), demand-subscribe upstream so values actually flow.
     // Reference-counted so multiple widgets share a single upstream sub.
-    if (!this.upfrontKeys.has(key)) {
+    //
+    // Schema-aware guard: a key that's part of the upstream's static
+    // schema will be subscribed by `connect()` regardless of whether
+    // that has happened yet. If a subscriber arrives BEFORE `connect`
+    // (e.g. PeerBroadcastingDataSource wraps us at module load and
+    // subscribes to every schema key in its constructor), we must NOT
+    // also create a demand-sub here — when `connect` runs, both the
+    // demand-sub AND the upfront-sub would deliver each upstream sample,
+    // doubling every fanout. The check against `source.schema()` covers
+    // the pre-connect window; `upfrontKeys.has(key)` covers post-connect.
+    const isSchemaKey =
+      this.upfrontKeys.has(key) ||
+      this.source.schema().some((k) => k.key === key);
+    if (!isSchemaKey) {
       const existing = this.demandSubs.get(key);
       if (existing) {
         existing.count += 1;

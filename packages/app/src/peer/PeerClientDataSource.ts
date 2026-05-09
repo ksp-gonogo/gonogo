@@ -139,6 +139,14 @@ export class PeerClientDataSource implements ScriptableDataSource {
   subscribe(key: string, cb: (value: unknown) => void) {
     const removeLocal = this.addLocalSubscriber(key, cb);
     this.refKey(key);
+    // Sticky cache — emit the most recently received value to this new
+    // subscriber synchronously so a second widget subscribing to a key
+    // an earlier widget already requested doesn't sit on `undefined`
+    // waiting for the next change. Mirrors BufferedDataSource's
+    // last-value replay (line ~258 of BufferedDataSource.ts). Without
+    // this, low-rate keys like v.body / v.situationString stay blank on
+    // any widget mounted after the first to subscribe.
+    if (this.lastValues.has(key)) cb(this.lastValues.get(key));
     return () => {
       removeLocal();
       this.unrefKey(key);

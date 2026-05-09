@@ -522,6 +522,17 @@ describe("recorded launch — full mission control flow", () => {
       expect(typeof hotTempC).toBe("number");
       await screen.findByText(hotName);
       await screen.findByText(`${hotTempC.toFixed(1)}°C`);
+
+      // ScienceBench: situation pill renders from v.body + v.situationString
+      // when both are present in telemetry. The fixture covers a sub-orbital
+      // launch over Kerbin, so the situation will be one of the FLYING /
+      // SUB_ORBITAL etc. enum strings; we just assert it lands as text.
+      await addWidget("Science", "Science Bench");
+      const situation = valueAt("v.situationString", T_HIGH) as string;
+      expect(typeof situation).toBe("string");
+      // The pill renders inside the role="status" SciencePanel container —
+      // text like "FLYING — Highlands" or just "FLYING" depending on biome.
+      await screen.findByText(new RegExp(situation, "i"));
     },
     TEST_TIMEOUT_MS,
   );
@@ -598,6 +609,31 @@ describe("recorded launch — full mission control flow", () => {
       const apaHigh = valueAt("o.ApA", T_HIGH) as number;
       expect(typeof apaHigh).toBe("number");
       await screen.findByText(formatDistance(apaHigh), undefined, {
+        timeout: 5000,
+      });
+
+      // Add ScienceBench through the same overlay flow. Mid-flight mount
+      // on a station should pick up the host's cached v.body +
+      // v.situationString and render the situation pill. The assertion
+      // catches both layers — back-fill on fresh peer subscribe
+      // (v.situationString — Current Orbit didn't declare it) AND PBDS
+      // broadcasting pre-flight values (v.body — emits before the flight
+      // detector establishes a current flight).
+      await user.click(screen.getByRole("button", { name: /add component/i }));
+      const sciDialog = await screen.findByRole("dialog", {
+        name: /add a component/i,
+      });
+      const sciSearch = within(sciDialog).getByPlaceholderText(/search/i);
+      await user.clear(sciSearch);
+      await user.type(sciSearch, "Science");
+      const sciHeading = await within(sciDialog).findByText("Science Bench");
+      const sciCard = sciHeading.closest("button");
+      if (!sciCard) throw new Error("Science Bench card has no enclosing button");
+      await user.click(sciCard);
+
+      const situation = valueAt("v.situationString", T_HIGH) as string;
+      expect(typeof situation).toBe("string");
+      await screen.findByText(new RegExp(situation, "i"), undefined, {
         timeout: 5000,
       });
     },
