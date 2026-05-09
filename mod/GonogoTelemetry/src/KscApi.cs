@@ -69,6 +69,7 @@ namespace GonogoTelemetry
             "kc.savedShips",
             "kc.crewRoster",
             "kc.scene",
+            "kc.upgradeFacility",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -91,8 +92,74 @@ namespace GonogoTelemetry
                     return (_, __) => CrewRoster();
                 case "kc.scene":
                     return (_, __) => Scene();
+                case "kc.upgradeFacility":
+                    return (_, args) => UpgradeFacility(args);
                 default:
                     return null;
+            }
+        }
+
+        private static object UpgradeFacility(string[] args)
+        {
+            if (args == null || args.Length == 0) return "missing facility id";
+            var shortName = args[0];
+            if (string.IsNullOrEmpty(shortName)) return "missing facility id";
+            if (!Facilities.TryGetValue(shortName, out var facilityId))
+                return "unknown facility";
+
+            // KSP routes upgrades through Space Center UI flows; the
+            // programmatic path (SetCurrentLevel + AddFunds) bypasses any
+            // animation / dialog steps but is the only thing that works
+            // outside an interactive click. Refuse outside SC so the
+            // operator doesn't accidentally upgrade during a flight.
+            if (HighLogic.LoadedScene != GameScenes.SPACECENTER)
+                return "not in Space Center scene";
+
+            try
+            {
+                var list = Upgradeables.UpgradeableObject.UpgradeableObjects;
+                if (list == null) return "no upgradeables";
+                foreach (var obj in list)
+                {
+                    if (obj == null || obj.id != facilityId) continue;
+                    var levels = obj.UpgradeLevels;
+                    if (levels == null) return "no upgrade levels";
+                    var nextIdx = obj.currentLevel + 1;
+                    if (nextIdx >= levels.Length) return "already at max";
+                    var cost = levels[nextIdx]?.funds ?? 0d;
+                    if (Funding.Instance != null && Funding.Instance.Funds < cost)
+                        return "insufficient funds";
+
+                    GonogoTelemetryAddon.Defer(() =>
+                    {
+                        try
+                        {
+                            // SetCurrentLevel handles persistence; the
+                            // funds deduction is separate (KSP doesn't do
+                            // it for direct level sets the way it does
+                            // when the player clicks the upgrade button).
+                            obj.SetCurrentLevel(nextIdx);
+                            if (Funding.Instance != null && cost > 0d)
+                            {
+                                Funding.Instance.AddFunds(
+                                    -cost,
+                                    TransactionReasons.StructureConstruction);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            UnityEngine.Debug.LogError(
+                                "[GonogoTelemetry] kc.upgradeFacility deferred path failed: "
+                                + ex);
+                        }
+                    });
+                    return 0;
+                }
+                return "facility not found";
+            }
+            catch (Exception ex)
+            {
+                return "upgrade failed: " + ex.Message;
             }
         }
 
@@ -137,6 +204,7 @@ namespace GonogoTelemetry
                     {
                         ["level"] = level,
                         ["max"] = max,
+                        ["upgradeFunds"] = ReadUpgradeFunds(pair.Value, level),
                     };
                 }
                 catch (Exception)
@@ -148,10 +216,46 @@ namespace GonogoTelemetry
                     {
                         ["level"] = 0,
                         ["max"] = 0,
+                        ["upgradeFunds"] = 0d,
                     };
                 }
             }
             return result;
+        }
+
+        // Best-effort read of the next-tier upgrade cost. KSP's
+        // Upgradeables.UpgradeableObject instances live in the Space Center
+        // scene tree; outside SC the static list may be empty so we return 0
+        // and let the widget render a "—" placeholder. The structure of
+        // UpgradeLevel[].costGameCurrencies varies slightly by KSP version
+        // (some builds use `costGameCurrencies.Funds`, others a generic
+        // dictionary). Guard the whole walk in try/catch so a shape change
+        // doesn't crash the larger handler.
+        private static double ReadUpgradeFunds(string facilityId, int currentLevel)
+        {
+            try
+            {
+                var list = Upgradeables.UpgradeableObject.UpgradeableObjects;
+                if (list == null) return 0d;
+                foreach (var obj in list)
+                {
+                    if (obj == null || obj.id != facilityId) continue;
+                    var levels = obj.UpgradeLevels;
+                    if (levels == null) return 0d;
+                    var nextIdx = currentLevel + 1;
+                    if (nextIdx >= levels.Length) return 0d; // already at max
+                    var next = levels[nextIdx];
+                    if (next == null) return 0d;
+                    // `funds` is the public field on most KSP versions; if
+                    // it's null or absent the cost is unknown — surface 0.
+                    return next.funds;
+                }
+                return 0d;
+            }
+            catch (Exception)
+            {
+                return 0d;
+            }
         }
 
         private static object PartsAvailable()
