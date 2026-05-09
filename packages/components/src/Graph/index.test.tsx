@@ -233,6 +233,53 @@ describe("GraphComponent", () => {
     });
   });
 
+  it("auto variant also downgrades to readout at the small size bucket", async () => {
+    const config = {
+      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      windowSec: 300,
+    };
+
+    // small size bucket: 5 <= w < 8 OR 4 <= h < 7 — chart axes get squashed,
+    // readout is preferred.
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" w={6} h={6} />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 250);
+    });
+
+    await waitFor(() => {
+      expect(container.textContent ?? "").toMatch(/250/);
+      const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
+      expect(axisTicks.length).toBe(0);
+    });
+  });
+
+  it("auto variant stays as chart at the normal size bucket", async () => {
+    const config = {
+      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      windowSec: 300,
+    };
+
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" w={10} h={8} />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 1234);
+    });
+
+    await waitFor(() => {
+      const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
+      expect(axisTicks.length).toBeGreaterThan(0);
+    });
+  });
+
   it("readout variant falls back to chart when more than one series is configured", async () => {
     const config = {
       variant: "readout" as const,

@@ -127,6 +127,12 @@ const MobileItemContent = memo(function MobileItemContent({
   const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "full";
   const half = effectiveWidth === "half";
   const height = def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+  // Pass derived grid units to the component so size-bucket-aware widgets
+  // (e.g. Graph's auto-mini) work on mobile too. Mobile uses the xxs
+  // breakpoint's 6-col mental model: half = 3, full = 6. Height in grid
+  // units derives from the cell pixel height.
+  const gridW = half ? 3 : 6;
+  const gridH = Math.max(1, Math.round(height / ROW_HEIGHT));
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
   const onToggleWidth = () =>
@@ -179,6 +185,8 @@ const MobileItemContent = memo(function MobileItemContent({
             <Comp
               id={item.i}
               config={item.config}
+              w={gridW}
+              h={gridH}
               onConfigChange={onSaveConfig}
             />
           </ErrorBoundary>
