@@ -7,6 +7,7 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import {
+  parseExperimentBreakdown,
   parseExperiments,
   parseSensorReadings,
   ScienceBenchComponent,
@@ -25,6 +26,7 @@ const KEYS: DataKey[] = [
   { key: "sci.count" },
   { key: "sci.dataAmount" },
   { key: "sci.experiments" },
+  { key: "sci.experimentBreakdown" },
   { key: "career.mode" },
   { key: "career.science" },
   { key: "career.funds" },
@@ -129,6 +131,39 @@ describe("ScienceBenchComponent", () => {
     expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument();
     expect(screen.getByText("5.5 mits")).toBeInTheDocument();
   });
+
+  it("renders the breakdown view when sci.experimentBreakdown is present", () => {
+    render(<ScienceBenchComponent config={{}} id="sci" />);
+    act(() => {
+      source.emit("sci.count", 2);
+      source.emit("sci.dataAmount", 8);
+      source.emit("sci.experimentBreakdown", [
+        {
+          subjectId: "crewReport@KerbinSrfLandedKSC",
+          biome: "KSC",
+          situation: "SrfLanded",
+          expTitle: "Crew Report from KSC",
+          dataMits: 5,
+          remainingPotential: 1.5,
+        },
+        {
+          subjectId: "mysteryGoo@KerbinFlyingLowGrasslands",
+          biome: "Grasslands",
+          situation: "FlyingLow",
+          expTitle: "Mystery Goo over Grasslands",
+          dataMits: 3,
+          remainingPotential: 7.5,
+        },
+      ]);
+    });
+    // Sorted by remainingPotential desc — Mystery Goo (7.5) above Crew Report (1.5)
+    const subjects = screen.getAllByText(
+      /Mystery Goo over Grasslands|Crew Report from KSC/,
+    );
+    expect(subjects[0].textContent).toMatch(/Mystery Goo/);
+    expect(subjects[1].textContent).toMatch(/Crew Report/);
+    expect(screen.getByText(/7\.5 left/i)).toBeInTheDocument();
+  });
 });
 
 describe("parseSensorReadings", () => {
@@ -227,5 +262,54 @@ describe("parseExperiments", () => {
     const result = parseExperiments([{ title: "A" }, { title: "B" }]);
     expect(result?.[0]?.subjectId).toBe("experiment-0");
     expect(result?.[1]?.subjectId).toBe("experiment-1");
+  });
+});
+
+describe("parseExperimentBreakdown", () => {
+  it("returns null for non-array input", () => {
+    expect(parseExperimentBreakdown(null)).toBeNull();
+    expect(parseExperimentBreakdown(undefined)).toBeNull();
+    expect(parseExperimentBreakdown({})).toBeNull();
+  });
+
+  it("sorts entries by remainingPotential desc", () => {
+    const parsed = parseExperimentBreakdown([
+      {
+        subjectId: "a",
+        expTitle: "A",
+        dataMits: 1,
+        remainingPotential: 1,
+      },
+      {
+        subjectId: "b",
+        expTitle: "B",
+        dataMits: 1,
+        remainingPotential: 5,
+      },
+      {
+        subjectId: "c",
+        expTitle: "C",
+        dataMits: 1,
+        remainingPotential: 3,
+      },
+    ]);
+    expect(parsed?.map((p) => p.subjectId)).toEqual(["b", "c", "a"]);
+  });
+
+  it("falls back to safe defaults for missing fields", () => {
+    const parsed = parseExperimentBreakdown([
+      {
+        subjectId: "x",
+        // missing expTitle, dataMits, remainingPotential, biome, situation
+      },
+    ]);
+    expect(parsed?.[0]).toEqual({
+      subjectId: "x",
+      biome: "",
+      situation: "",
+      expTitle: "(unnamed)",
+      dataMits: 0,
+      remainingPotential: 0,
+    });
   });
 });

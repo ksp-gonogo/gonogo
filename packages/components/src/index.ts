@@ -32,6 +32,7 @@ export * from "./OrbitalAscent";
 export * from "./OrbitView";
 export * from "./PerfBudgets";
 export * from "./ScienceBench";
+export * from "./ScienceOfficer";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
