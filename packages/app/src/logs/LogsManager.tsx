@@ -1,8 +1,4 @@
-import {
-  getAppVersion,
-  useDataSources,
-  useStreamSources,
-} from "@gonogo/core";
+import { getAppVersion, useDataSources, useStreamSources } from "@gonogo/core";
 import { logger, tagRegistry } from "@gonogo/logger";
 import { Button, Switch } from "@gonogo/ui";
 import { useState } from "react";
@@ -105,19 +101,24 @@ export function LogsManager() {
     }
     lines.push("");
     lines.push("== Data sources ==");
-    for (const s of dataSources) lines.push(`  ${s.name} (${s.id}): ${s.status}`);
+    for (const s of dataSources)
+      lines.push(`  ${s.name} (${s.id}): ${s.status}`);
     if (dataSources.length === 0) lines.push("  (none registered)");
     lines.push("");
     lines.push("== Stream sources ==");
     for (const s of streamSources)
-      lines.push(`  ${s.name} (${s.id}): ${s.status} — ${s.streamCount} stream(s)`);
+      lines.push(
+        `  ${s.name} (${s.id}): ${s.status} — ${s.streamCount} stream(s)`,
+      );
     if (streamSources.length === 0) lines.push("  (none registered)");
     lines.push("");
     lines.push(`== Log buffer (${bufferSize} entries) ==`);
     for (const entry of logger.getBuffer()) {
       const tag = entry.tag ? `[${entry.tag}] ` : "";
       const ctx = entry.context ? ` ${JSON.stringify(entry.context)}` : "";
-      const err = entry.error ? ` ${entry.error.name}: ${entry.error.message}` : "";
+      const err = entry.error
+        ? ` ${entry.error.name}: ${entry.error.message}`
+        : "";
       lines.push(
         `  ${entry.timestamp} ${entry.level.toUpperCase()} ${tag}${entry.message}${err}${ctx}`,
       );
@@ -196,8 +197,8 @@ export function LogsManager() {
           </Button>
         </ActionRow>
         <Foot>
-          The report includes the snapshot above plus every entry currently
-          in the log buffer — paste it into a bug report.
+          The report includes the snapshot above plus every entry currently in
+          the log buffer — paste it into a bug report.
         </Foot>
       </Section>
 

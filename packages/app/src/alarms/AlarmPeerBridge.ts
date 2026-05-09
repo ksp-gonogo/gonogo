@@ -1,5 +1,5 @@
 import type { PeerHostService } from "../peer/PeerHostService";
-import type { Alarm, AlarmSnapshot } from "./types";
+import type { Alarm, AlarmFireAction, AlarmSnapshot } from "./types";
 
 export interface AlarmPeerBridgeHandlers {
   addAlarm(input: {
@@ -7,10 +7,11 @@ export interface AlarmPeerBridgeHandlers {
     notes?: string;
     trigger: Alarm["trigger"];
     createdBy?: string;
+    onFire?: AlarmFireAction[];
   }): void;
   updateAlarm(
     id: string,
-    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger" | "onFire">>,
   ): void;
   deleteAlarm(id: string): void;
   acknowledgeAlarm(id: string): void;
@@ -35,6 +36,7 @@ export class AlarmPeerBridge {
         notes: msg.notes,
         trigger: msg.trigger,
         createdBy: peerId,
+        onFire: msg.onFire,
       });
     });
     host.onAlarmUpdate((_peerId, msg) => {

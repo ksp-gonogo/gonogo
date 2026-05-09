@@ -230,11 +230,15 @@ export type PeerMessage =
   | { type: "alarm-fired"; id: string; name: string; ut: number }
   // Station → host: create a new alarm. v2 carries a typed `trigger`
   // (time or threshold). Host returns a fresh id in the next snapshot.
+  // `onFire` is optional; an empty array (or omission) means "no side
+  // effect". On `alarm-update.patch`, an empty array is the clear sentinel
+  // and `undefined` leaves the field unchanged.
   | {
       type: "alarm-add";
       name: string;
       notes?: string;
       trigger: import("../alarms/types").AlarmTrigger;
+      onFire?: import("../alarms/types").AlarmFireAction[];
     }
   | {
       type: "alarm-update";
@@ -243,6 +247,7 @@ export type PeerMessage =
         name?: string;
         notes?: string;
         trigger?: import("../alarms/types").AlarmTrigger;
+        onFire?: import("../alarms/types").AlarmFireAction[];
       };
     }
   | { type: "alarm-delete"; id: string }

@@ -1,5 +1,11 @@
 import { BellIcon, Fab, useModal } from "@gonogo/ui";
-import type { Alarm, AlarmSnapshot, AlarmTrigger } from "./types";
+import type { AlarmDraftPrefill } from "./AlarmsModal";
+import type {
+  Alarm,
+  AlarmFireAction,
+  AlarmSnapshot,
+  AlarmTrigger,
+} from "./types";
 
 /**
  * Screen-agnostic alarms FAB. Consumers pass a `useSnapshot` hook +
@@ -18,10 +24,11 @@ export interface AlarmsFabProps {
     name: string;
     notes?: string;
     trigger: AlarmTrigger;
+    onFire?: AlarmFireAction[];
   }) => void;
   onUpdate: (
     id: string,
-    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger" | "onFire">>,
   ) => void;
   onDelete: (id: string) => void;
   /**
@@ -33,6 +40,7 @@ export interface AlarmsFabProps {
     onAdd: AlarmsFabProps["onAdd"];
     onUpdate: AlarmsFabProps["onUpdate"];
     onDelete: AlarmsFabProps["onDelete"];
+    prefill?: AlarmDraftPrefill;
   }>;
 }
 

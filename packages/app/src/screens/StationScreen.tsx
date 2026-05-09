@@ -29,6 +29,7 @@ import {
   AlarmClientService,
   type AlarmSnapshot,
   AlarmsFab,
+  AlarmsLauncherBridge,
   AlarmsModal,
   StationAlarmBanner,
 } from "../alarms";
@@ -41,8 +42,8 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
-import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { StationConnectionFab } from "../components/StationConnectionFab";
+import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { downloadLogs } from "../logs/downloadLogs";
 import { LogsFab } from "../logs/LogsFab";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
@@ -407,103 +408,122 @@ export function StationScreen() {
                               addItem={dashboard.addItem}
                               updateItemConfig={dashboard.updateItemConfig}
                             >
-                              <Layout as="main" aria-label="Station dashboard">
-                                <Dashboard
-                                  items={dashboard.items}
-                                  layouts={dashboard.layouts}
-                                  currentLayouts={dashboard.currentLayouts}
-                                  breakpoint={dashboard.breakpoint}
-                                  onLayoutChange={dashboard.handleLayoutChange}
-                                  onBreakpointChange={
-                                    dashboard.handleBreakpointChange
-                                  }
-                                  updateItemConfig={dashboard.updateItemConfig}
-                                  updateItemMappings={
-                                    dashboard.updateItemMappings
-                                  }
-                                  updateItemMobileWidth={
-                                    dashboard.updateItemMobileWidth
-                                  }
-                                  updateItemMobileHeight={
-                                    dashboard.updateItemMobileHeight
-                                  }
-                                  removeItem={dashboard.removeItem}
-                                  moveItemUp={dashboard.moveItemUp}
-                                  moveItemDown={dashboard.moveItemDown}
-                                  lastAddedId={dashboard.lastAddedId}
-                                  clearLastAdded={dashboard.clearLastAdded}
-                                />
-                                <FabClusterProvider>
-                                  <ComponentOverlay
+                              <AlarmsLauncherBridge
+                                useSnapshot={useStationAlarmSnapshot}
+                                onAdd={(input) => alarmClient.addAlarm(input)}
+                                onUpdate={(id, patch) =>
+                                  alarmClient.updateAlarm(id, patch)
+                                }
+                                onDelete={(id) => alarmClient.deleteAlarm(id)}
+                              >
+                                <Layout
+                                  as="main"
+                                  aria-label="Station dashboard"
+                                >
+                                  <Dashboard
+                                    items={dashboard.items}
+                                    layouts={dashboard.layouts}
                                     currentLayouts={dashboard.currentLayouts}
-                                  />
-                                  <FlightsFab />
-                                  <SerialFab />
-                                  <SerialPortRecoveryWatcher />
-                                  <StationConnectionFab
-                                    bottom={204}
-                                    hostId={hostInput || null}
-                                    connStatus={connStatus}
-                                    onSwitchHost={(next) => {
-                                      // Hard-navigate so all data sources,
-                                      // listeners, and PeerClient state are
-                                      // dropped cleanly. attemptConnect on
-                                      // the fresh mount re-establishes the
-                                      // connection against the new host.
-                                      globalThis.location.assign(
-                                        `/station?host=${encodeURIComponent(
-                                          next,
-                                        )}`,
-                                      );
-                                    }}
-                                    onDisconnect={() => {
-                                      // Clear the persisted host so the next
-                                      // mount lands on the connect screen
-                                      // rather than auto-reconnecting.
-                                      localStorage.removeItem(HOST_ID_KEY);
-                                      globalThis.location.assign("/station");
-                                    }}
-                                  />
-                                  <SaveProfilesFab bottom={264} />
-                                  <LogsFab bottom={324} />
-                                  <FullscreenFab bottom={384} />
-                                  <SettingsFab bottom={444} />
-                                  <MissionProfilesFab
-                                    bottom={504}
-                                    currentItems={dashboard.items}
-                                    currentLayouts={dashboard.layouts}
-                                    onLoad={(p) =>
-                                      dashboard.replaceState(p.items, p.layouts)
+                                    breakpoint={dashboard.breakpoint}
+                                    onLayoutChange={
+                                      dashboard.handleLayoutChange
                                     }
+                                    onBreakpointChange={
+                                      dashboard.handleBreakpointChange
+                                    }
+                                    updateItemConfig={
+                                      dashboard.updateItemConfig
+                                    }
+                                    updateItemMappings={
+                                      dashboard.updateItemMappings
+                                    }
+                                    updateItemMobileWidth={
+                                      dashboard.updateItemMobileWidth
+                                    }
+                                    updateItemMobileHeight={
+                                      dashboard.updateItemMobileHeight
+                                    }
+                                    removeItem={dashboard.removeItem}
+                                    moveItemUp={dashboard.moveItemUp}
+                                    moveItemDown={dashboard.moveItemDown}
+                                    lastAddedId={dashboard.lastAddedId}
+                                    clearLastAdded={dashboard.clearLastAdded}
                                   />
-                                  <AlarmsFab
-                                    bottom={564}
+                                  <FabClusterProvider>
+                                    <ComponentOverlay
+                                      currentLayouts={dashboard.currentLayouts}
+                                    />
+                                    <FlightsFab />
+                                    <SerialFab />
+                                    <SerialPortRecoveryWatcher />
+                                    <StationConnectionFab
+                                      bottom={204}
+                                      hostId={hostInput || null}
+                                      connStatus={connStatus}
+                                      onSwitchHost={(next) => {
+                                        // Hard-navigate so all data sources,
+                                        // listeners, and PeerClient state are
+                                        // dropped cleanly. attemptConnect on
+                                        // the fresh mount re-establishes the
+                                        // connection against the new host.
+                                        globalThis.location.assign(
+                                          `/station?host=${encodeURIComponent(
+                                            next,
+                                          )}`,
+                                        );
+                                      }}
+                                      onDisconnect={() => {
+                                        // Clear the persisted host so the next
+                                        // mount lands on the connect screen
+                                        // rather than auto-reconnecting.
+                                        localStorage.removeItem(HOST_ID_KEY);
+                                        globalThis.location.assign("/station");
+                                      }}
+                                    />
+                                    <SaveProfilesFab bottom={264} />
+                                    <LogsFab bottom={324} />
+                                    <FullscreenFab bottom={384} />
+                                    <SettingsFab bottom={444} />
+                                    <MissionProfilesFab
+                                      bottom={504}
+                                      currentItems={dashboard.items}
+                                      currentLayouts={dashboard.layouts}
+                                      onLoad={(p) =>
+                                        dashboard.replaceState(
+                                          p.items,
+                                          p.layouts,
+                                        )
+                                      }
+                                    />
+                                    <AlarmsFab
+                                      bottom={564}
+                                      useSnapshot={useStationAlarmSnapshot}
+                                      onAdd={(input) =>
+                                        alarmClient.addAlarm(input)
+                                      }
+                                      onUpdate={(id, patch) =>
+                                        alarmClient.updateAlarm(id, patch)
+                                      }
+                                      onDelete={(id) =>
+                                        alarmClient.deleteAlarm(id)
+                                      }
+                                      ModalComponent={AlarmsModal}
+                                    />
+                                  </FabClusterProvider>
+                                  <StationNameChip>
+                                    <StationNameEditor compact />
+                                  </StationNameChip>
+                                  <StationAlarmBanner
                                     useSnapshot={useStationAlarmSnapshot}
-                                    onAdd={(input) =>
-                                      alarmClient.addAlarm(input)
+                                    onAcknowledge={(id) =>
+                                      alarmClient.acknowledgeAlarm(id)
                                     }
-                                    onUpdate={(id, patch) =>
-                                      alarmClient.updateAlarm(id, patch)
-                                    }
-                                    onDelete={(id) =>
-                                      alarmClient.deleteAlarm(id)
-                                    }
-                                    ModalComponent={AlarmsModal}
                                   />
-                                </FabClusterProvider>
-                                <StationNameChip>
-                                  <StationNameEditor compact />
-                                </StationNameChip>
-                                <StationAlarmBanner
-                                  useSnapshot={useStationAlarmSnapshot}
-                                  onAcknowledge={(id) =>
-                                    alarmClient.acknowledgeAlarm(id)
-                                  }
-                                />
-                                <SignalLossIndicator />
-                                <SustainedFailureBanner />
-                                <HostVersionBanner client={client} />
-                              </Layout>
+                                  <SignalLossIndicator />
+                                  <SustainedFailureBanner />
+                                  <HostVersionBanner client={client} />
+                                </Layout>
+                              </AlarmsLauncherBridge>
                             </OverlayProvider>
                           </SerialDeviceProvider>
                         </KosProxyContext.Provider>

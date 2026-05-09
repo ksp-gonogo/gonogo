@@ -44,9 +44,7 @@ describe("NotesHostService", () => {
 
     // Move C between A and B → order: A, C, B.
     svc.reorderNote(c.id, a.id);
-    const ordered = [...svc.snapshot().notes].sort(
-      (x, y) => x.order - y.order,
-    );
+    const ordered = [...svc.snapshot().notes].sort((x, y) => x.order - y.order);
     expect(ordered.map((n) => n.id)).toEqual([a.id, c.id, b.id]);
     // Orders are dense (0, 1, 2) so a subsequent reorder doesn't collide.
     expect(ordered.map((n) => n.order)).toEqual([0, 1, 2]);
@@ -57,9 +55,7 @@ describe("NotesHostService", () => {
     const a = svc.addNote({ body: "A" });
     const b = svc.addNote({ body: "B" });
     svc.reorderNote(b.id, null);
-    const ordered = [...svc.snapshot().notes].sort(
-      (x, y) => x.order - y.order,
-    );
+    const ordered = [...svc.snapshot().notes].sort((x, y) => x.order - y.order);
     expect(ordered.map((n) => n.id)).toEqual([b.id, a.id]);
   });
 

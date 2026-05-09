@@ -468,6 +468,7 @@ export class PeerClientService {
     name: string;
     notes?: string;
     trigger: import("../alarms/types").AlarmTrigger;
+    onFire?: import("../alarms/types").AlarmFireAction[];
   }) {
     this.conn?.send({ type: "alarm-add", ...input } satisfies PeerMessage);
   }
@@ -478,6 +479,7 @@ export class PeerClientService {
       name?: string;
       notes?: string;
       trigger?: import("../alarms/types").AlarmTrigger;
+      onFire?: import("../alarms/types").AlarmFireAction[];
     },
   ) {
     this.conn?.send({

@@ -1,4 +1,7 @@
-import { ActionGroupComponent } from "@gonogo/components";
+import {
+  ActionGroupComponent,
+  AlarmsLauncherProvider,
+} from "@gonogo/components";
 import {
   clearRegistry,
   DashboardItemContext,
@@ -18,6 +21,7 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from "vitest";
 import { telemachusSource } from "../dataSources/telemachus";
 
@@ -234,5 +238,71 @@ describe("ActionGroup component", () => {
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
 
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
+  });
+
+  it("hides the alarm bell when no AlarmsLauncherProvider is mounted", async () => {
+    setupTelemachus({ "v.ag1Value": false });
+    await telemachusSource.connect();
+    render(
+      withItemContext(
+        "t",
+        <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
+      ),
+    );
+
+    await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
+    expect(
+      screen.queryByRole("button", { name: /set alarm to fire ag1/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("invokes the alarms launcher with the group's toggle action when the bell is clicked", async () => {
+    const user = userEvent.setup();
+    const launcher = vi.fn();
+    setupTelemachus({ "v.ag1Value": false });
+    await telemachusSource.connect();
+    render(
+      <AlarmsLauncherProvider launcher={launcher}>
+        {withItemContext(
+          "t",
+          <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
+        )}
+      </AlarmsLauncherProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
+    await user.click(
+      screen.getByRole("button", { name: /set alarm to fire ag1/i }),
+    );
+    expect(launcher).toHaveBeenCalledWith({
+      name: "Fire AG1",
+      action: "f.ag1",
+    });
+  });
+
+  it("hides the bell on read-only groups (Precision Control has no toggle action)", async () => {
+    const launcher = vi.fn();
+    setupTelemachus({ "v.precisionControlValue": false });
+    await telemachusSource.connect();
+    render(
+      <AlarmsLauncherProvider launcher={launcher}>
+        {withItemContext(
+          "t",
+          <ActionGroupComponent
+            config={{ actionGroupId: "Precision Control" }}
+            id="t"
+          />,
+        )}
+      </AlarmsLauncherProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Precision Control")).toBeInTheDocument(),
+    );
+    // No bell — without a toggle action there's nothing for the alarm to
+    // dispatch, so the affordance is suppressed.
+    expect(
+      screen.queryByRole("button", { name: /set alarm to fire/i }),
+    ).not.toBeInTheDocument();
   });
 });

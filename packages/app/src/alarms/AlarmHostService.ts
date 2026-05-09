@@ -167,7 +167,8 @@ export class AlarmHostService {
       createdBy: input.createdBy ?? "main",
       createdAt: this.opts.nowMs(),
       matchSinceUT: input.trigger.kind === "threshold" ? null : undefined,
-      onFire: input.onFire && input.onFire.length > 0 ? input.onFire : undefined,
+      onFire:
+        input.onFire && input.onFire.length > 0 ? input.onFire : undefined,
     };
     this.alarms.push(alarm);
     this.persist();
@@ -177,7 +178,7 @@ export class AlarmHostService {
 
   updateAlarm(
     id: string,
-    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger" | "onFire">>,
   ): void {
     const idx = this.alarms.findIndex((a) => a.id === id);
     if (idx < 0) return;
@@ -191,6 +192,12 @@ export class AlarmHostService {
         ? { notes: patch.notes.trim() || undefined }
         : {}),
       ...(patch.trigger !== undefined ? { trigger: patch.trigger } : {}),
+      // Empty array is the explicit "clear" sentinel — same convention as
+      // addAlarm, which normalises [] to undefined so an alarm without
+      // side effects always stores `onFire: undefined`.
+      ...(patch.onFire !== undefined
+        ? { onFire: patch.onFire.length > 0 ? patch.onFire : undefined }
+        : {}),
     };
     if (patch.trigger && patch.trigger.kind !== prev.trigger.kind) {
       next.matchSinceUT = patch.trigger.kind === "threshold" ? null : undefined;

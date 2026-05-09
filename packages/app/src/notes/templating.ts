@@ -15,9 +15,7 @@
 
 const TAG_RE = /\{\{\s*([a-zA-Z0-9._[\]-]+)\s*\}\}/g;
 
-export interface TemplatingResolver {
-  (key: string): unknown;
-}
+export type TemplatingResolver = (key: string) => unknown;
 
 export function extractTags(body: string): string[] {
   const out: string[] = [];

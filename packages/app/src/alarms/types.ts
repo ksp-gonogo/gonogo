@@ -142,6 +142,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
   const notes = typeof r.notes === "string" ? r.notes : undefined;
   const matchSinceUT =
     typeof r.matchSinceUT === "number" ? r.matchSinceUT : null;
+  const onFire = parseOnFire(r.onFire);
 
   if (r.trigger && typeof r.trigger === "object") {
     const t = r.trigger as Record<string, unknown>;
@@ -161,6 +162,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         state: state ?? "pending",
         createdBy,
         createdAt,
+        onFire,
       };
     }
     if (
@@ -187,6 +189,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         createdBy,
         createdAt,
         matchSinceUT,
+        onFire,
       };
     }
     return null;
@@ -209,5 +212,25 @@ export function migrateAlarm(raw: unknown): Alarm | null {
     state: state ?? "pending",
     createdBy,
     createdAt,
+    onFire,
   };
+}
+
+function parseOnFire(raw: unknown): AlarmFireAction[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: AlarmFireAction[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      (item as { kind?: unknown }).kind === "action-group" &&
+      typeof (item as { action?: unknown }).action === "string"
+    ) {
+      out.push({
+        kind: "action-group",
+        action: (item as { action: string }).action,
+      });
+    }
+  }
+  return out.length > 0 ? out : undefined;
 }

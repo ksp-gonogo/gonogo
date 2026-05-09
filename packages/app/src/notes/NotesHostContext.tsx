@@ -1,4 +1,10 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import type { NotesHostService } from "./NotesHostService";
 import type { NotesSnapshot } from "./types";
 

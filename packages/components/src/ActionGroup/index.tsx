@@ -12,6 +12,7 @@ import {
   useExecuteAction,
 } from "@gonogo/core";
 import {
+  BellIcon,
   Button,
   ConfigForm,
   Field,
@@ -25,6 +26,7 @@ import {
 } from "@gonogo/ui";
 import { useRef, useState } from "react";
 import styled from "styled-components";
+import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 
 type ActionGroupConfig = {
   actionGroupId: ActionGroupId;
@@ -58,6 +60,7 @@ function ActionGroupComponent({
 
   const value = useDataValue("data", group?.value ?? "v.sasValue");
   const execute = useExecuteAction("data");
+  const openAlarms = useAlarmsLauncher();
 
   // Inline label editing state
   const [editing, setEditing] = useState(false);
@@ -161,9 +164,28 @@ function ActionGroupComponent({
             <OfficialName>{group.name}</OfficialName>
           )}
         </LabelArea>
-        <StateIndicator $on={isOn} $unknown={isUnknown}>
-          {isUnknown ? "—" : isOn ? "ON" : "OFF"}
-        </StateIndicator>
+        <HeaderRight>
+          {openAlarms && group.toggle && (
+            <AlarmIconButton
+              type="button"
+              aria-label={`Set alarm to fire ${currentLabel}`}
+              title={`Set alarm to fire ${currentLabel}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!group.toggle) return;
+                openAlarms({
+                  name: `Fire ${currentLabel}`,
+                  action: group.toggle,
+                });
+              }}
+            >
+              <BellIcon />
+            </AlarmIconButton>
+          )}
+          <StateIndicator $on={isOn} $unknown={isUnknown}>
+            {isUnknown ? "—" : isOn ? "ON" : "OFF"}
+          </StateIndicator>
+        </HeaderRight>
       </Header>
       {showToggleButton && (
         <Button onClick={handleToggle} aria-label={`Toggle ${currentLabel}`}>
@@ -317,4 +339,31 @@ const StateIndicator = styled.span<{ $on: boolean; $unknown: boolean }>`
       : $on
         ? "var(--color-accent-fg)"
         : "var(--color-status-nogo-bg)"};
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+`;
+
+const AlarmIconButton = styled.button`
+  background: transparent;
+  border: none;
+  padding: 2px;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+
+  &:hover {
+    color: var(--color-accent-fg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;

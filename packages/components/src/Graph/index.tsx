@@ -185,8 +185,7 @@ export function GraphView({
   // chart axes/legend get squashed enough that a number + sparkline reads
   // better. Mobile half-width cells land in `tiny`, mobile full-width and
   // desktop-shrunk widgets land in `small`.
-  const autoShouldReadout =
-    sizeBucket === "tiny" || sizeBucket === "small";
+  const autoShouldReadout = sizeBucket === "tiny" || sizeBucket === "small";
   const resolvedVariant: "chart" | "readout" = canReadout
     ? requestedVariant === "readout"
       ? "readout"
