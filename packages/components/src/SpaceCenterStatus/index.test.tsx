@@ -1,6 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -14,6 +14,8 @@ const KEYS: DataKey[] = [
   { key: "kc.launchSite" },
   { key: "kc.padOccupied" },
   { key: "kc.padVesselTitle" },
+  { key: "kc.scene" },
+  { key: "career.funds" },
 ];
 
 describe("SpaceCenterStatusComponent", () => {
@@ -75,6 +77,59 @@ describe("SpaceCenterStatusComponent", () => {
     });
     expect(screen.getByText("47")).toBeInTheDocument();
   });
+
+  it("fires kc.upgradeFacility on arm-then-confirm in the SC scene", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<SpaceCenterStatusComponent config={{}} id="ksc" />);
+    act(() => {
+      source.emit("kc.scene", "SpaceCenter");
+      source.emit("career.funds", 200_000);
+      source.emit("kc.facilityLevels", {
+        vab: { level: 0, max: 3, upgradeFunds: 75_000 },
+      });
+    });
+
+    const upgradeButtons = screen.getAllByRole("button", { name: "Upgrade" });
+    expect(upgradeButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(upgradeButtons[0]);
+    expect(onExecute).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(onExecute).toHaveBeenCalledWith("kc.upgradeFacility[vab]");
+  });
+
+  it("disables upgrade button outside the SC scene", () => {
+    render(<SpaceCenterStatusComponent config={{}} id="ksc" />);
+    act(() => {
+      source.emit("kc.scene", "Flight");
+      source.emit("career.funds", 200_000);
+      source.emit("kc.facilityLevels", {
+        vab: { level: 0, max: 3, upgradeFunds: 75_000 },
+      });
+    });
+
+    const upgradeButtons = screen.getAllByRole("button", { name: "Upgrade" });
+    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("disables upgrade when funds insufficient", () => {
+    render(<SpaceCenterStatusComponent config={{}} id="ksc" />);
+    act(() => {
+      source.emit("kc.scene", "SpaceCenter");
+      source.emit("career.funds", 1_000);
+      source.emit("kc.facilityLevels", {
+        vab: { level: 0, max: 3, upgradeFunds: 75_000 },
+      });
+    });
+
+    const upgradeButtons = screen.getAllByRole("button", { name: "Upgrade" });
+    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
+  });
 });
 
 describe("parseFacilityLevels", () => {
@@ -87,14 +142,21 @@ describe("parseFacilityLevels", () => {
 
   it("retains valid facility entries and drops malformed ones", () => {
     const parsed = parseFacilityLevels({
-      vab: { level: 1, max: 3 },
+      vab: { level: 1, max: 3, upgradeFunds: 75000 },
       runway: { level: "broken", max: 3 },
       unknownFacility: { level: 1, max: 3 },
       launchPad: { level: 0, max: 3 },
     });
     expect(parsed).toEqual({
-      vab: { level: 1, max: 3 },
-      launchPad: { level: 0, max: 3 },
+      vab: { level: 1, max: 3, upgradeFunds: 75000 },
+      launchPad: { level: 0, max: 3, upgradeFunds: 0 },
     });
+  });
+
+  it("defaults upgradeFunds to 0 when missing", () => {
+    const parsed = parseFacilityLevels({
+      sph: { level: 0, max: 3 },
+    });
+    expect(parsed.sph?.upgradeFunds).toBe(0);
   });
 });
