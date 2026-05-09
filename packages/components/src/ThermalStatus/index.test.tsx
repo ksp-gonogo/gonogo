@@ -100,4 +100,47 @@ describe("ThermalStatusComponent", () => {
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toMatch(/approaching max temperature/i);
   });
+
+  it("treats absolute-zero readings as missing data (no thermometer fitted)", () => {
+    render(<ThermalStatusComponent config={{}} id="therm" />);
+    act(() => {
+      primeFlight(source);
+      // Telemachus emits ~2K for both temp and max when no thermometer
+      // is fitted (e.g. early-career rocket). These should NOT light up
+      // the widget as CRITICAL — they should be treated as no data.
+      source.emit("therm.hottestPartName", "");
+      source.emit("therm.hottestPartTemp", 2.05); // °C — close to 275 K, but…
+      source.emit("therm.hottestPartMaxTemp", 2.05); // K — sentinel: max ≈ 0 K
+      source.emit("therm.hottestPartTempRatio", 1.0); // bogus ratio
+      source.emit("therm.hottestEngineTemp", 2.05); // K — sentinel
+      source.emit("therm.hottestEngineMaxTemp", 2.05); // K — sentinel
+      source.emit("therm.hottestEngineTempRatio", 1.0);
+      source.emit("therm.anyEnginesOverheating", false);
+    });
+
+    // No CRITICAL pill, no alert role, no part/engine rows rendered.
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText(/critical/i)).toBeNull();
+    // Should fall through to the no-data placeholder when every group
+    // is sentinel.
+    expect(screen.getByText("No thermal data")).toBeInTheDocument();
+  });
+
+  it("hides the heat-shield row when its temp is at the sentinel", () => {
+    render(<ThermalStatusComponent config={{}} id="therm" h={9} />);
+    act(() => {
+      primeFlight(source);
+      // Real engine telemetry — engine row should still render.
+      source.emit("therm.hottestEngineTemp", 913);
+      source.emit("therm.hottestEngineMaxTemp", 2273);
+      source.emit("therm.hottestEngineTempRatio", 0.4);
+      source.emit("therm.anyEnginesOverheating", false);
+      // Sentinel shield reading.
+      source.emit("therm.heatShieldTempCelsius", -271.1);
+      source.emit("therm.heatShieldFlux", 0);
+    });
+
+    expect(screen.getByText("Hottest engine")).toBeInTheDocument();
+    expect(screen.queryByText("Heat shield")).toBeNull();
+  });
 });

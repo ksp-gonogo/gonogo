@@ -13,6 +13,21 @@ import styled from "styled-components";
 // Empty config — room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
 
+// Telemachus emits readings near absolute zero (~−271°C / ~2 K) when no
+// real value is available — typically when the corresponding part isn't
+// fitted (e.g. early-career rocket with no thermometer or heat shield) or
+// the science instrument hasn't been unlocked yet. Treat anything below
+// this threshold as "no data" rather than rendering bogus CRITICAL bars.
+// 50 K is well below any operational KSP part max (parts melt at thousands
+// of K) and well below any meaningful in-game temperature.
+const THERMAL_SENTINEL_K = 50;
+const THERMAL_SENTINEL_C = THERMAL_SENTINEL_K - 273.15;
+
+const isSentinelK = (k: number | undefined): boolean =>
+  typeof k === "number" && Number.isFinite(k) && k < THERMAL_SENTINEL_K;
+const isSentinelC = (c: number | undefined): boolean =>
+  typeof c === "number" && Number.isFinite(c) && c < THERMAL_SENTINEL_C;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
@@ -78,18 +93,42 @@ function ThermalStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  const hottestName = useDataValue("data", "therm.hottestPartName");
-  const hottestTempC = useDataValue("data", "therm.hottestPartTemp");
-  const hottestMaxK = useDataValue("data", "therm.hottestPartMaxTemp");
-  const hottestRatio = useDataValue("data", "therm.hottestPartTempRatio");
+  const rawHottestName = useDataValue("data", "therm.hottestPartName");
+  const rawHottestTempC = useDataValue("data", "therm.hottestPartTemp");
+  const rawHottestMaxK = useDataValue("data", "therm.hottestPartMaxTemp");
+  const rawHottestRatio = useDataValue("data", "therm.hottestPartTempRatio");
 
-  const engineTempK = useDataValue("data", "therm.hottestEngineTemp");
-  const engineMaxK = useDataValue("data", "therm.hottestEngineMaxTemp");
-  const engineRatio = useDataValue("data", "therm.hottestEngineTempRatio");
-  const engineOverheat = useDataValue("data", "therm.anyEnginesOverheating");
+  const rawEngineTempK = useDataValue("data", "therm.hottestEngineTemp");
+  const rawEngineMaxK = useDataValue("data", "therm.hottestEngineMaxTemp");
+  const rawEngineRatio = useDataValue("data", "therm.hottestEngineTempRatio");
+  const rawEngineOverheat = useDataValue("data", "therm.anyEnginesOverheating");
 
-  const shieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
-  const shieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
+  const rawShieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
+  const rawShieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
+
+  // Sentinel guard — drop the whole group when its max (or temp) is at the
+  // absolute-zero floor. The ratio is meaningless in that case and rendering
+  // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
+  const hottestSentinel =
+    isSentinelK(rawHottestMaxK) || isSentinelC(rawHottestTempC);
+  const engineSentinel =
+    isSentinelK(rawEngineMaxK) || isSentinelK(rawEngineTempK);
+  const shieldSentinel = isSentinelC(rawShieldTempC);
+
+  const hottestName = hottestSentinel ? undefined : rawHottestName;
+  const hottestTempC = hottestSentinel ? undefined : rawHottestTempC;
+  const hottestMaxK = hottestSentinel ? undefined : rawHottestMaxK;
+  const hottestRatio = hottestSentinel ? undefined : rawHottestRatio;
+
+  const engineTempK = engineSentinel ? undefined : rawEngineTempK;
+  const engineMaxK = engineSentinel ? undefined : rawEngineMaxK;
+  const engineRatio = engineSentinel ? undefined : rawEngineRatio;
+  // anyEnginesOverheating is independent telemetry, but it's nonsense if
+  // no engine is fitted at all, so honour the same guard.
+  const engineOverheat = engineSentinel ? undefined : rawEngineOverheat;
+
+  const shieldTempC = shieldSentinel ? undefined : rawShieldTempC;
+  const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
   const engineTempC =
     engineTempK === undefined ? undefined : engineTempK - 273.15;
@@ -109,7 +148,8 @@ function ThermalStatusComponent({
   const noData =
     hottestName === undefined &&
     hottestTempC === undefined &&
-    engineTempK === undefined;
+    engineTempK === undefined &&
+    shieldTempC === undefined;
 
   // Selective rendering — pill is always shown; rows drop from the bottom
   // (heat shield first, then engine, then hottest-part) as height shrinks.
