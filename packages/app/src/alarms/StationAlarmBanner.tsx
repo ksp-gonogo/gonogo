@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { useFireBeep } from "./alarmTone";
 import type { Alarm, AlarmSnapshot } from "./types";
 
 /**
@@ -10,6 +9,12 @@ import type { Alarm, AlarmSnapshot } from "./types";
  * Renders nothing while no alarms are fired; mounts as a fixed-position
  * pill at the top of the station screen when one or more fire so the
  * operator can dismiss without opening the modal.
+ *
+ * No alarm tone here — only the main screen chimes (via AlarmBanner's
+ * useFireBeep). With every station beeping independently the operator
+ * gets a multi-tab cacophony, and the room-wide ack flow already runs
+ * through the host's snapshot broadcast so visual silence is in sync
+ * regardless of where the ack button is pressed.
  */
 
 export interface StationAlarmBannerProps {
@@ -22,7 +27,6 @@ export function StationAlarmBanner({
   onAcknowledge,
 }: StationAlarmBannerProps) {
   const snap = useSnapshot();
-  useFireBeep(snap.alarms);
   const fired = snap.alarms.filter((a) => a.state === "fired");
   if (fired.length === 0) return null;
 
