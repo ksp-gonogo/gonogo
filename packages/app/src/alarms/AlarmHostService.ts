@@ -17,6 +17,15 @@ import { WarpControl } from "./WarpControl";
 import { WarpObserver } from "./WarpObserver";
 
 /**
+ * Trigger kinds that need contiguous-match tracking via `matchSinceUT`.
+ * Time triggers don't (they fire purely on UT comparison); threshold
+ * and contract-parameter both do.
+ */
+function requiresMatchTracking(trigger: AlarmTrigger): boolean {
+  return trigger.kind === "threshold" || trigger.kind === "contract-parameter";
+}
+
+/**
  * Main-screen mission-alarm service.
  *
  * Responsibilities:
@@ -166,7 +175,7 @@ export class AlarmHostService {
       state: "pending",
       createdBy: input.createdBy ?? "main",
       createdAt: this.opts.nowMs(),
-      matchSinceUT: input.trigger.kind === "threshold" ? null : undefined,
+      matchSinceUT: requiresMatchTracking(input.trigger) ? null : undefined,
       onFire:
         input.onFire && input.onFire.length > 0 ? input.onFire : undefined,
     };
@@ -200,7 +209,9 @@ export class AlarmHostService {
         : {}),
     };
     if (patch.trigger && patch.trigger.kind !== prev.trigger.kind) {
-      next.matchSinceUT = patch.trigger.kind === "threshold" ? null : undefined;
+      next.matchSinceUT = requiresMatchTracking(patch.trigger)
+        ? null
+        : undefined;
       next.state = "pending";
     } else {
       next.state = this.stateMachine.deriveState(next);
@@ -299,6 +310,15 @@ export class AlarmHostService {
         // sample buffer. Don't reorder.
         if (alarm.trigger.kind === "threshold") {
           if (this.stateMachine.updateThresholdTracking(alarm, ut)) {
+            changed = true;
+          }
+        }
+        // Contract-parameter tracking has the same shape (matchSinceUT
+        // + sustain) but no rolling sample buffer — the underlying
+        // condition is a discrete state-string match, not a numeric
+        // approach.
+        if (alarm.trigger.kind === "contract-parameter") {
+          if (this.stateMachine.updateContractParameterTracking(alarm, ut)) {
             changed = true;
           }
         }

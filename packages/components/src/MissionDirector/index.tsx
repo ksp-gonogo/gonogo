@@ -4,9 +4,32 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  BellIcon,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { useAlarmCreator } from "../shared/AlarmsLauncher";
+
+/**
+ * Trigger shape used by the Mission Director's parameter bells. Mirrors
+ * `ContractParameterTrigger` in `@gonogo/app/src/alarms/types.ts`;
+ * declared inline here because @gonogo/components can't import from
+ * @gonogo/app (would be circular). The bridge in
+ * `AlarmsLauncherBridge.tsx` accepts the shape via the generic
+ * `AlarmCreator<TTrigger>` interface.
+ */
+interface ContractParameterAlarmTrigger {
+  kind: "contract-parameter";
+  contractId: number;
+  parameterTitle: string;
+  targetState: "Complete" | "Failed";
+  sustainSeconds: number;
+}
 
 type MissionDirectorConfig = Record<string, never>;
 
@@ -119,6 +142,7 @@ function MissionDirectorComponent({
     | number
     | undefined;
   const execute = useExecuteAction("data");
+  const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
 
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
@@ -199,10 +223,34 @@ function MissionDirectorComponent({
                       {p.title}
                       {p.optional && <Optional> (optional)</Optional>}
                     </ParameterTitle>
+                    {p.state === "Incomplete" && createAlarm && (
+                      <ParameterAlarmButton
+                        type="button"
+                        title={`Alarm me when "${p.title}" completes`}
+                        aria-label={`Set alarm for ${p.title} completion`}
+                        onClick={() =>
+                          createAlarm({
+                            name: `${p.title} → Complete`,
+                            trigger: {
+                              kind: "contract-parameter",
+                              contractId: c.id,
+                              parameterTitle: p.title,
+                              targetState: "Complete",
+                              sustainSeconds: 0,
+                            },
+                          })
+                        }
+                      >
+                        <BellIcon size={12} />
+                      </ParameterAlarmButton>
+                    )}
                   </Parameter>
                 ))}
               </Parameters>
             )}
+            <ActiveActions>
+              <CancelButton contractId={c.id} execute={execute} />
+            </ActiveActions>
           </ContractCard>
         ))}
         {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
@@ -292,6 +340,49 @@ function DeclineButton({
   );
 }
 
+function CancelButton({
+  contractId,
+  execute,
+}: {
+  contractId: number;
+  execute: (action: string) => Promise<void>;
+}) {
+  const [armed, setArmed] = useState(false);
+
+  // Cancel forfeits any work in progress on the contract — same arm-then-
+  // confirm pattern as Decline but stronger framing in the confirm copy
+  // because the loss is bigger (you may have already spent funds /
+  // achieved partial parameters).
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armed]);
+
+  if (!armed) {
+    return (
+      <CancelButtonStyled
+        type="button"
+        onClick={() => setArmed(true)}
+        title="Cancel this contract — forfeits all progress"
+      >
+        Cancel
+      </CancelButtonStyled>
+    );
+  }
+  return (
+    <ConfirmCancelButton
+      type="button"
+      onClick={() => {
+        setArmed(false);
+        void execute(`contracts.cancel[${contractId}]`);
+      }}
+    >
+      Forfeit contract
+    </ConfirmCancelButton>
+  );
+}
+
 function formatCurrency(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
@@ -327,6 +418,13 @@ const SectionLabel = styled.div`
 
 const OfferedActions = styled.div`
   display: flex;
+  gap: 6px;
+  margin-top: 4px;
+`;
+
+const ActiveActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
   gap: 6px;
   margin-top: 4px;
 `;
@@ -379,6 +477,25 @@ const ConfirmDeclineButton = styled(ActionButton)`
       }
     }
   }
+`;
+
+const CancelButtonStyled = styled(ActionButton)`
+  background: transparent;
+  color: var(--color-text-faint);
+  font-size: 10px;
+  padding: 2px 8px;
+
+  &:hover {
+    color: var(--color-status-nogo-fg);
+    border-color: var(--color-status-nogo-bg);
+  }
+`;
+
+const ConfirmCancelButton = styled(ActionButton)`
+  background: var(--color-status-nogo-bg);
+  color: var(--color-status-nogo-fg);
+  border-color: transparent;
+  animation: declinePulse 1s ease-in-out infinite;
 `;
 
 const ContractCard = styled.div`
@@ -481,6 +598,26 @@ const ParameterMark = styled.span<{ $state: ContractParameterState }>`
 const ParameterTitle = styled.span`
   flex: 1;
   min-width: 0;
+`;
+
+const ParameterAlarmButton = styled.button`
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--color-text-faint);
+  display: inline-flex;
+  align-items: center;
+
+  &:hover {
+    color: var(--color-accent-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
 const Optional = styled.span`

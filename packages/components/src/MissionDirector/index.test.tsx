@@ -104,6 +104,26 @@ describe("MissionDirectorComponent", () => {
     expect(onExecute).toHaveBeenCalledWith("contracts.accept[7]");
   });
 
+  it("requires arm-then-confirm before cancelling an active contract", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<MissionDirectorComponent config={{}} id="md" />);
+    act(() => {
+      source.emit("contracts.active", [
+        { id: 11, title: "Build a station", parameters: [] },
+      ]);
+    });
+
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(onExecute).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText(/Forfeit contract/i));
+    expect(onExecute).toHaveBeenCalledWith("contracts.cancel[11]");
+  });
+
   it("requires arm-then-confirm before declining an offered contract", async () => {
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);

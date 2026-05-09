@@ -39,7 +39,36 @@ export interface ThresholdTrigger {
   sustainSeconds: number;
 }
 
-export type AlarmTrigger = TimeTrigger | ThresholdTrigger;
+export type ContractParameterTargetState = "Complete" | "Failed";
+
+/**
+ * Fires when a specific parameter on a specific contract reaches the
+ * target state. Reads `contracts.active`; the parameter is identified
+ * by its title (string-equal) within the contract whose `id` matches.
+ *
+ * The trigger ignores the underlying numeric value and works on a
+ * discrete state transition — "Incomplete → Complete" is the canonical
+ * use case ("ping me when this objective is met"). Picking a contract
+ * that's no longer Active (e.g. the operator already accepted, or it
+ * was cancelled) means the trigger sits perpetually pending; the host
+ * doesn't auto-prune. Same shape as a parameterTitle-typo alarm —
+ * fail safe rather than silently fire.
+ */
+export interface ContractParameterTrigger {
+  kind: "contract-parameter";
+  contractId: number;
+  /** Parameter title as emitted on `contracts.active[].parameters[].title`. */
+  parameterTitle: string;
+  /** State the parameter must reach. Default "Complete". */
+  targetState: ContractParameterTargetState;
+  /** Sustain seconds — typically 0 since the state is already discrete. */
+  sustainSeconds: number;
+}
+
+export type AlarmTrigger =
+  | TimeTrigger
+  | ThresholdTrigger
+  | ContractParameterTrigger;
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group
@@ -184,6 +213,31 @@ export function migrateAlarm(raw: unknown): Alarm | null {
             typeof t.sustainSeconds === "number"
               ? t.sustainSeconds
               : DEFAULT_SUSTAIN_SECONDS,
+        },
+        state: state ?? "pending",
+        createdBy,
+        createdAt,
+        matchSinceUT,
+        onFire,
+      };
+    }
+    if (
+      t.kind === "contract-parameter" &&
+      typeof t.contractId === "number" &&
+      typeof t.parameterTitle === "string"
+    ) {
+      const targetState = t.targetState === "Failed" ? "Failed" : "Complete";
+      return {
+        id: r.id,
+        name: r.name,
+        notes,
+        trigger: {
+          kind: "contract-parameter",
+          contractId: t.contractId,
+          parameterTitle: t.parameterTitle,
+          targetState,
+          sustainSeconds:
+            typeof t.sustainSeconds === "number" ? t.sustainSeconds : 0,
         },
         state: state ?? "pending",
         createdBy,

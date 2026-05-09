@@ -42,6 +42,7 @@ import {
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
@@ -252,6 +253,7 @@ export function MainScreen() {
                                   <ReplayBanner />
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
+                                  <SceneChangeBanner />
                                   <PushedDashboardOverlay />
                                 </Layout>
                               </MainAlarmsLauncherScope>
