@@ -48,6 +48,8 @@ import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { LogsFab } from "../logs/LogsFab";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
+import { createNotesHost } from "../notes/createNotesHost";
+import { NotesHostProvider } from "../notes/NotesHostContext";
 import {
   MissionProfilesFab,
   MissionProfilesProvider,
@@ -95,6 +97,7 @@ export function MainScreen() {
       () => (getDataSource("data") as BufferedDataSource | undefined) ?? null,
     ),
   );
+  const [notesHost] = useState(() => createNotesHost(peerHostService));
   const [maneuverTriggerHost] = useState(() =>
     createManeuverTriggerHost(
       peerHostService,
@@ -174,6 +177,7 @@ export function MainScreen() {
     <ScreenProvider value="main">
       <SettingsProvider service={settingsService}>
         <AlarmHostProvider service={alarmHost}>
+         <NotesHostProvider service={notesHost}>
           <ManeuverTriggerProvider service={maneuverTriggerHost}>
             <CpuRegistryProvider service={cpuRegistry}>
               <MissionProfilesProvider service={missionProfiles}>
@@ -248,6 +252,7 @@ export function MainScreen() {
               </MissionProfilesProvider>
             </CpuRegistryProvider>
           </ManeuverTriggerProvider>
+         </NotesHostProvider>
         </AlarmHostProvider>
       </SettingsProvider>
     </ScreenProvider>
