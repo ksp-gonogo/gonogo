@@ -14,10 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { NotesClientService } from "./NotesClientService";
-import {
-  useNotesHostOptional,
-  useNotesHostSnapshot,
-} from "./NotesHostContext";
+import { useNotesHostOptional, useNotesHostSnapshot } from "./NotesHostContext";
 import { extractTags, renderTemplate } from "./templating";
 import type { Note, NotesSnapshot } from "./types";
 

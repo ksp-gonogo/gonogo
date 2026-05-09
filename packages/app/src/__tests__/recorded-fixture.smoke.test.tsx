@@ -628,7 +628,8 @@ describe("recorded launch — full mission control flow", () => {
       await user.type(sciSearch, "Science");
       const sciHeading = await within(sciDialog).findByText("Science Bench");
       const sciCard = sciHeading.closest("button");
-      if (!sciCard) throw new Error("Science Bench card has no enclosing button");
+      if (!sciCard)
+        throw new Error("Science Bench card has no enclosing button");
       await user.click(sciCard);
 
       const situation = valueAt("v.situationString", T_HIGH) as string;

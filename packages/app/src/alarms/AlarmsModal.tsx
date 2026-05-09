@@ -1,3 +1,4 @@
+import { ACTION_GROUPS } from "@gonogo/core";
 import { useDataSchema } from "@gonogo/data";
 import {
   Badge,
@@ -11,8 +12,32 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import type { Alarm, AlarmSnapshot, AlarmTrigger, ThresholdOp } from "./types";
+import type {
+  Alarm,
+  AlarmFireAction,
+  AlarmSnapshot,
+  AlarmTrigger,
+  ThresholdOp,
+} from "./types";
 import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "./types";
+
+/**
+ * Prefilled state for opening the modal in "create with hint" mode — the
+ * ActionGroup widget's bell button uses this to drop the operator into a
+ * draft that already has the action group attached, leaving them only the
+ * trigger to fill in.
+ */
+export interface AlarmDraftPrefill {
+  name?: string;
+  onFire?: AlarmFireAction[];
+}
+
+// Pickable telemetry actions for `onFire`. Filter out the synthetic entries
+// without a `toggle` key (e.g. Precision Control), since dispatching them
+// would be a no-op.
+const FIRABLE_ACTIONS = ACTION_GROUPS.filter(
+  (g): g is typeof g & { toggle: string } => typeof g.toggle === "string",
+);
 
 /**
  * CRUD UI for the alarm list. Intentionally screen-agnostic — accepts a
@@ -34,12 +59,19 @@ export interface AlarmsModalProps {
     name: string;
     notes?: string;
     trigger: AlarmTrigger;
+    onFire?: AlarmFireAction[];
   }) => void;
   onUpdate: (
     id: string,
-    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger">>,
+    patch: Partial<Pick<Alarm, "name" | "notes" | "trigger" | "onFire">>,
   ) => void;
   onDelete: (id: string) => void;
+  /**
+   * Optional prefill applied to the draft on first mount. Lets callers
+   * seed the form with a name + onFire so the operator only has to choose
+   * the trigger.
+   */
+  prefill?: AlarmDraftPrefill;
 }
 
 type DraftKind = "time" | "threshold";
@@ -50,6 +82,7 @@ export function AlarmsModal({
   onAdd,
   onUpdate,
   onDelete,
+  prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
   const schema = useDataSchema("data");
@@ -77,7 +110,7 @@ export function AlarmsModal({
     return () => clearTimeout(t);
   }, [justAddedName]);
   const [kind, setKind] = useState<DraftKind>("time");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefill?.name ?? "");
   // Time-trigger fields
   const [offsetSeconds, setOffsetSeconds] = useState("60");
   const [leadSeconds, setLeadSeconds] = useState(String(DEFAULT_LEAD_SECONDS));
@@ -87,6 +120,14 @@ export function AlarmsModal({
   const [thresholdValue, setThresholdValue] = useState("70000");
   const [sustainSeconds, setSustainSeconds] = useState(
     String(DEFAULT_SUSTAIN_SECONDS),
+  );
+  // Side-effect attachments. `onFire` order is the dispatch order at fire
+  // time; rely on add-order for v1 (no reorder UI yet).
+  const [draftOnFire, setDraftOnFire] = useState<AlarmFireAction[]>(
+    () => prefill?.onFire ?? [],
+  );
+  const [pickerAction, setPickerAction] = useState<string>(
+    FIRABLE_ACTIONS[0]?.toggle ?? "",
   );
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -133,10 +174,31 @@ export function AlarmsModal({
             : DEFAULT_SUSTAIN_SECONDS,
       };
     }
-    onAdd({ name: trimmedName, trigger });
+    onAdd({
+      name: trimmedName,
+      trigger,
+      onFire: draftOnFire.length > 0 ? draftOnFire : undefined,
+    });
     setJustAddedName(trimmedName);
     setName("");
+    setDraftOnFire([]);
     if (kind === "time") setOffsetSeconds("60");
+  };
+
+  const addPickerAction = () => {
+    if (!pickerAction) return;
+    // Allow duplicates — operators sometimes intentionally fire the same
+    // action twice (e.g. f.stage to drop two stages on different alarms is
+    // covered by separate alarms, but this row is order-preserving so we
+    // don't second-guess them).
+    setDraftOnFire((prev) => [
+      ...prev,
+      { kind: "action-group", action: pickerAction },
+    ]);
+  };
+
+  const removeDraftAt = (idx: number) => {
+    setDraftOnFire((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const sorted = [...snapshot.alarms].sort((a, b) => sortKey(a) - sortKey(b));
@@ -278,6 +340,14 @@ export function AlarmsModal({
           </>
         )}
 
+        <OnFireEditor
+          value={draftOnFire}
+          onRemove={removeDraftAt}
+          pickerValue={pickerAction}
+          onPickerChange={setPickerAction}
+          onAdd={addPickerAction}
+        />
+
         <PrimaryButton onClick={handleAdd} disabled={addDisabled}>
           Add alarm
         </PrimaryButton>
@@ -334,9 +404,40 @@ export function AlarmsModal({
                           {a.trigger.kind === "time" ? "TIME" : "COND"}
                         </Badge>
                         {a.name}
+                        {a.onFire && a.onFire.length > 0 && (
+                          <Badge tone="info" size="sm">
+                            {a.onFire.length === 1
+                              ? "FIRES 1 ACTION"
+                              : `FIRES ${a.onFire.length} ACTIONS`}
+                          </Badge>
+                        )}
                       </RowName>
                     )}
                     <RowMeta>{describeTrigger(a, snapshot.ut)}</RowMeta>
+                    {a.onFire && a.onFire.length > 0 && (
+                      <RowMeta>
+                        <FireList>
+                          {a.onFire.map((fx, i) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
+                            <FireChip key={`${fx.action}-${i}`}>
+                              <code>{fx.action}</code>
+                              <FireRemoveButton
+                                type="button"
+                                aria-label={`Remove ${fx.action} from ${a.name}`}
+                                onClick={() => {
+                                  const next = (a.onFire ?? []).filter(
+                                    (_, idx) => idx !== i,
+                                  );
+                                  onUpdate(a.id, { onFire: next });
+                                }}
+                              >
+                                ×
+                              </FireRemoveButton>
+                            </FireChip>
+                          ))}
+                        </FireList>
+                      </RowMeta>
+                    )}
                     <RowMeta>
                       <StateTag $state={a.state}>{a.state}</StateTag>
                     </RowMeta>
@@ -449,6 +550,69 @@ function formatSeconds(s: number): string {
   if (m < 60) return `${m}m ${sec.toString().padStart(2, "0")}s`;
   const h = Math.floor(m / 60);
   return `${h}h ${(m - h * 60).toString().padStart(2, "0")}m`;
+}
+
+interface OnFireEditorProps {
+  value: AlarmFireAction[];
+  onRemove: (idx: number) => void;
+  pickerValue: string;
+  onPickerChange: (next: string) => void;
+  onAdd: () => void;
+}
+
+function OnFireEditor({
+  value,
+  onRemove,
+  pickerValue,
+  onPickerChange,
+  onAdd,
+}: OnFireEditorProps) {
+  return (
+    <Field>
+      <FieldLabel>When fires</FieldLabel>
+      {value.length > 0 && (
+        <FireList>
+          {value.map((fx, i) => {
+            const meta = FIRABLE_ACTIONS.find((g) => g.toggle === fx.action);
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat; position is the only stable identity
+              <FireChip key={`${fx.action}-${i}`}>
+                <code>{fx.action}</code>
+                {meta && <FireMeta>{meta.name}</FireMeta>}
+                <FireRemoveButton
+                  type="button"
+                  aria-label={`Remove ${fx.action}`}
+                  onClick={() => onRemove(i)}
+                >
+                  ×
+                </FireRemoveButton>
+              </FireChip>
+            );
+          })}
+        </FireList>
+      )}
+      <PickerRow>
+        <PickerSelect
+          aria-label="Action group to fire"
+          value={pickerValue}
+          onChange={(e) => onPickerChange(e.target.value)}
+        >
+          {FIRABLE_ACTIONS.map((g) => (
+            <option key={g.toggle} value={g.toggle}>
+              {g.name} ({g.toggle})
+            </option>
+          ))}
+        </PickerSelect>
+        <GhostButton type="button" onClick={onAdd}>
+          + Add action
+        </GhostButton>
+      </PickerRow>
+      <FieldHint>
+        Each attached action runs in order when the alarm fires. Leave empty for
+        a notify-only alarm.
+      </FieldHint>
+    </Field>
+  );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -620,4 +784,63 @@ const DangerButton = styled.button`
     outline: 2px solid var(--color-status-nogo-bg);
     outline-offset: 2px;
   }
+`;
+
+const FireList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const FireChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  code {
+    color: var(--color-status-go-fg);
+  }
+`;
+
+const FireMeta = styled.span`
+  color: var(--color-text-dim);
+  font-size: 10px;
+`;
+
+const FireRemoveButton = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  &:hover {
+    color: var(--color-status-nogo-bg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-status-nogo-bg);
+    outline-offset: 1px;
+  }
+`;
+
+const PickerRow = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+`;
+
+const PickerSelect = styled.select`
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 6px;
+  background: var(--color-surface-panel);
+  color: var(--color-status-go-fg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
 `;

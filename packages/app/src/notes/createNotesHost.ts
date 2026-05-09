@@ -8,7 +8,9 @@ import { NotesPeerBridge } from "./NotesPeerBridge";
  * connected station. Returns the service so the caller can hand it to
  * <NotesHostProvider>. The bridge has no public API after construction.
  */
-export function createNotesHost(host: PeerHostService | null): NotesHostService {
+export function createNotesHost(
+  host: PeerHostService | null,
+): NotesHostService {
   const service = new NotesHostService();
   const bridge = new NotesPeerBridge(host, {
     addNote: (input) => service.addNote(input),

@@ -124,6 +124,60 @@ describe("AlarmHostService", () => {
     ).toEqual(["A", "B"]);
   });
 
+  it("persists onFire alongside the alarm and round-trips through reload", () => {
+    const storage = memoryStorage();
+    const telemetry = fakeTelemetry();
+    telemetry.set("t.universalTime", 1000);
+    const a = new AlarmHostService(null, telemetry, {
+      nowMs: () => nowMs,
+      storage,
+    });
+    a.addAlarm({
+      name: "Stage",
+      trigger: { kind: "time", ut: 2000, leadSeconds: 10 },
+      onFire: [{ kind: "action-group", action: "f.ag1" }],
+    });
+    a.dispose();
+
+    const b = new AlarmHostService(null, telemetry, {
+      nowMs: () => nowMs,
+      storage,
+    });
+    expect(b.snapshot().alarms[0].onFire).toEqual([
+      { kind: "action-group", action: "f.ag1" },
+    ]);
+  });
+
+  it("loads pre-onFire persisted alarms cleanly with onFire undefined", () => {
+    // Hand-rolled v1 record (no `onFire` field) seeded directly into
+    // storage — verifies migrateAlarm leaves onFire undefined and the
+    // service treats it as a no-side-effect alarm.
+    const storage = memoryStorage();
+    storage.setItem(
+      "gonogo.alarms.list",
+      JSON.stringify([
+        {
+          id: "legacy-1",
+          name: "Legacy",
+          state: "pending",
+          createdBy: "main",
+          createdAt: 1_700_000_000_000,
+          trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+        },
+      ]),
+    );
+    const telemetry = fakeTelemetry();
+    telemetry.set("t.universalTime", 1000);
+    const svc = new AlarmHostService(null, telemetry, {
+      nowMs: () => nowMs,
+      storage,
+    });
+    const alarms = svc.snapshot().alarms;
+    expect(alarms).toHaveLength(1);
+    expect(alarms[0].name).toBe("Legacy");
+    expect(alarms[0].onFire).toBeUndefined();
+  });
+
   describe("onFire side effects", () => {
     it("dispatches each onFire action via the telemetry execute path on transition to firing", async () => {
       const { svc, telemetry } = makeService();
@@ -669,6 +723,7 @@ describe("AlarmHostService", () => {
         name: string;
         notes?: string;
         trigger: import("./types").AlarmTrigger;
+        onFire?: import("./types").AlarmFireAction[];
       },
     ) => void;
     type UpdateCb = (
@@ -676,7 +731,7 @@ describe("AlarmHostService", () => {
       msg: {
         id: string;
         patch: Partial<
-          Pick<import("./types").Alarm, "name" | "notes" | "trigger">
+          Pick<import("./types").Alarm, "name" | "notes" | "trigger" | "onFire">
         >;
       },
     ) => void;
@@ -844,6 +899,51 @@ describe("AlarmHostService", () => {
       expect(captured.ackCb).not.toBeNull();
       captured.ackCb?.("station-peer-id", a.id);
       expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+
+    it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      // Threshold already met — the tick inside addAlarm will fire it
+      // straight away, so the dispatch path runs without further timer
+      // advances.
+      telemetry.set("v.altitude", 70_500);
+      captured.addCb?.("station-1", {
+        name: "Stage at 70km",
+        trigger: {
+          kind: "threshold",
+          dataKey: "v.altitude",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
+        onFire: [{ kind: "action-group", action: "f.ag1" }],
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().alarms[0].onFire).toEqual([
+        { kind: "action-group", action: "f.ag1" },
+      ]);
+      expect(telemetry.calls).toContain("f.ag1");
+    });
+
+    it("updates onFire via alarm-update and clears it when the patch carries an empty array", () => {
+      const { svc, captured } = makeServiceWithHost();
+      const a = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      });
+      captured.updateCb?.("peer-1", {
+        id: a.id,
+        patch: { onFire: [{ kind: "action-group", action: "f.stage" }] },
+      });
+      expect(svc.snapshot().alarms[0].onFire).toEqual([
+        { kind: "action-group", action: "f.stage" },
+      ]);
+      captured.updateCb?.("peer-1", {
+        id: a.id,
+        patch: { onFire: [] },
+      });
+      expect(svc.snapshot().alarms[0].onFire).toBeUndefined();
     });
   });
 

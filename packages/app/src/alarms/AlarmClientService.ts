@@ -1,5 +1,5 @@
 import type { PeerClientService } from "../peer/PeerClientService";
-import type { AlarmSnapshot, AlarmTrigger } from "./types";
+import type { AlarmFireAction, AlarmSnapshot, AlarmTrigger } from "./types";
 import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
 
 /**
@@ -55,13 +55,19 @@ export class AlarmClientService {
     name: string;
     notes?: string;
     trigger: AlarmTrigger;
+    onFire?: AlarmFireAction[];
   }): void {
     this.client.sendAlarmAdd(input);
   }
 
   updateAlarm(
     id: string,
-    patch: { name?: string; notes?: string; trigger?: AlarmTrigger },
+    patch: {
+      name?: string;
+      notes?: string;
+      trigger?: AlarmTrigger;
+      onFire?: AlarmFireAction[];
+    },
   ): void {
     this.client.sendAlarmUpdate(id, patch);
   }

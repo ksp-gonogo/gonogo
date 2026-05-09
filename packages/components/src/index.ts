@@ -35,6 +35,7 @@ export * from "./ScienceBench";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SystemView";
+export * from "./shared/AlarmsLauncher";
 export * from "./TargetPicker";
 export * from "./ThermalStatus";
 export * from "./Twr";
