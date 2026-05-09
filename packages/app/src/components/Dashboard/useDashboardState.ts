@@ -82,6 +82,7 @@ export interface DashboardState {
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   /** Set the per-instance mobile-width override (used by MobileDashboard). */
   updateItemMobileWidth: (id: string, width: "full" | "half") => void;
+  updateItemMobileHeight: (id: string, height: "full" | "half") => void;
   /** Subscribe to item changes — fires after every add / update. */
   subscribeItems: (cb: (items: DashboardItem[]) => void) => () => void;
   /** Always returns the latest items without going through React render. */
@@ -232,6 +233,15 @@ export function useDashboardState(
     [],
   );
 
+  const updateItemMobileHeight = useCallback(
+    (id: string, height: "full" | "half") => {
+      setItemsInner((prev) =>
+        prev.map((it) => (it.i === id ? { ...it, mobileHeight: height } : it)),
+      );
+    },
+    [],
+  );
+
   const subscribeItems = useCallback((cb: (items: DashboardItem[]) => void) => {
     itemListeners.current.add(cb);
     return () => {
@@ -272,6 +282,7 @@ export function useDashboardState(
     updateItemConfig,
     updateItemMappings,
     updateItemMobileWidth,
+    updateItemMobileHeight,
     subscribeItems,
     getItems,
     replaceState,

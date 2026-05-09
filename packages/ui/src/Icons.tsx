@@ -20,6 +20,8 @@ import {
   Plus,
   Radio,
   RectangleHorizontal,
+  RectangleVertical,
+  Rows2,
   Satellite,
   Settings,
   Square,
@@ -78,3 +80,5 @@ export const PushUpIcon = makeIcon(ArrowUpToLine);
 export const RecallIcon = makeIcon(Undo2);
 export const HalfWidthIcon = makeIcon(Columns2);
 export const FullWidthIcon = makeIcon(RectangleHorizontal);
+export const HalfHeightIcon = makeIcon(Rows2);
+export const FullHeightIcon = makeIcon(RectangleVertical);

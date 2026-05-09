@@ -53,6 +53,7 @@ function Harness({
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       updateItemMobileWidth={s.updateItemMobileWidth}
+      updateItemMobileHeight={s.updateItemMobileHeight}
       removeItem={s.removeItem}
       moveItemUp={s.moveItemUp}
       moveItemDown={s.moveItemDown}
@@ -250,6 +251,45 @@ describe("Dashboard — mobile / touch path", () => {
       screen.getByRole("button", { name: "Expand to full width" }),
     );
     expect(cell?.getAttribute("data-mobile-width")).toBe("full");
+  });
+
+  it("height toggle button flips a full widget to half (and back), persisting the override", async () => {
+    const user = userEvent.setup();
+    registerStubWidget("alpha", "Alpha");
+    const KEY = "test-mobile-height-toggle";
+
+    renderWithProviders(
+      <Harness
+        storageKey={KEY}
+        config={{
+          items: [{ i: "a", componentId: "alpha" }],
+          layouts: {},
+        }}
+      />,
+    );
+
+    const cell = screen
+      .getByTestId("body-alpha")
+      .closest("[data-mobile-height]");
+    const fullHeight = Number(cell?.getAttribute("data-mobile-height") ?? "0");
+    expect(fullHeight).toBeGreaterThan(0);
+
+    await user.click(
+      screen.getByRole("button", { name: "Shrink to half height" }),
+    );
+    const halfHeight = Number(cell?.getAttribute("data-mobile-height") ?? "0");
+    expect(halfHeight).toBe(Math.round(fullHeight / 2));
+
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
+      items: Array<{ i: string; mobileHeight?: string }>;
+    };
+    expect(stored.items[0].mobileHeight).toBe("half");
+
+    await user.click(
+      screen.getByRole("button", { name: "Expand to full height" }),
+    );
+    const restored = Number(cell?.getAttribute("data-mobile-height") ?? "0");
+    expect(restored).toBe(fullHeight);
   });
 
   it("per-instance mobileWidth on the item overrides the component default", () => {
