@@ -21,6 +21,7 @@ export * from "./KosTerminal";
 export * from "./KosWidget";
 export * from "./KosWrapperTester";
 export * from "./LandingStatus";
+export * from "./LaunchDirector";
 export * from "./ManeuverPlanner";
 export * from "./ManeuverPlanner/planning";
 export * from "./ManeuverPlanner/presets";
