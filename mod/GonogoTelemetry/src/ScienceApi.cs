@@ -99,10 +99,13 @@ namespace GonogoTelemetry
 
             // DeployExperiment is the public method invoked when the player
             // right-clicks the part in-flight. KSP runs the same situation
-            // / biome checks it would in the UI, so we don't need to
-            // pre-validate here — surfacing a "no science here" failure
-            // back to the operator is a useful signal.
-            exp.DeployExperiment();
+            // / biome checks it would in the UI. Defer onto the main
+            // thread — DeployExperiment spawns the science result dialog
+            // (Unity UI) and runs animations on the part. Calling from
+            // the WS listener thread segfaults the same way contract
+            // accept did.
+            var captured = exp;
+            GonogoTelemetryAddon.Defer(() => captured.DeployExperiment());
             return 0;
         }
 
@@ -119,15 +122,25 @@ namespace GonogoTelemetry
             // for the vessel's active transmitter and pushes the data list.
             // Mirror that path. Then DumpData on each entry so the source
             // module reflects "transmitted, no longer holding it".
+            //
+            // The transmitter resolution can read on this thread, but
+            // TransmitData spawns transmit visuals (antenna animations,
+            // scaled-particle FX) and DumpData mutates module state — all
+            // Unity-coupled. Defer the whole side-effecting block.
             var transmitter = ScienceUtil.GetBestTransmitter(vessel);
             if (transmitter == null) return "no transmitter available";
 
             var list = new System.Collections.Generic.List<ScienceData>(data);
-            transmitter.TransmitData(list);
-            foreach (var d in data)
+            var capturedExp = exp;
+            var capturedData = data;
+            GonogoTelemetryAddon.Defer(() =>
             {
-                if (d != null) exp.DumpData(d);
-            }
+                transmitter.TransmitData(list);
+                foreach (var d in capturedData)
+                {
+                    if (d != null) capturedExp.DumpData(d);
+                }
+            });
             return 0;
         }
 

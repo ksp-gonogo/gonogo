@@ -23,6 +23,19 @@ namespace GonogoTelemetry
     {
         public void Awake()
         {
+            // Survive scene transitions. Without DontDestroyOnLoad, even
+            // `KSPAddon(..., once: true)` lets Unity destroy the
+            // GameObject during scene loads, which silently kills the
+            // Update loop that drains our deferred-action queue. The
+            // plugin handlers stay registered with Telemachus's
+            // PluginManager (independent lifetime), so they keep
+            // receiving HTTP requests and queueing actions — but
+            // nothing drains them. Result: actions look successful
+            // (handlers return 0) but no state change in-game.
+            // Telemachus's own TelemachusBehaviour calls this for the
+            // same reason; mirror it.
+            DontDestroyOnLoad(this);
+
             // Telemachus's PluginRegistration.Manager is initialised by
             // its own KSPAddon. If we somehow run before it (load order
             // is not strictly defined in KSP), the Register call throws.
