@@ -329,7 +329,9 @@ export class KosComputeManager {
           this.handleError(
             topic,
             new Error(
-              "No active kOS CPU configured — set one in the kOS data source config.",
+              "No active kOS CPU. Pick one in the kOS data source config — " +
+                "or, in career mode, unlock Probodobodyne Inc and fit a " +
+                "kOS-capable probe core to the active vessel.",
             ),
             { isScriptError: false },
           );
