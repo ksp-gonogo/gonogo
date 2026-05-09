@@ -39,6 +39,7 @@ function DashboardHarness({
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       updateItemMobileWidth={s.updateItemMobileWidth}
+      updateItemMobileHeight={s.updateItemMobileHeight}
       removeItem={s.removeItem}
       moveItemUp={s.moveItemUp}
       moveItemDown={s.moveItemDown}

@@ -317,4 +317,19 @@ export type PeerMessage =
   // their own `listFlights()`. Stations get this on their own mutations
   // too so the modal stays consistent without the station having to
   // optimistically reload after every RPC.
-  | { type: "flight-list-changed" };
+  | { type: "flight-list-changed" }
+  // ──────────────────────────────────────────────────────────────────────
+  // Mission notes — host owns the canonical list and broadcasts the full
+  // snapshot on every change. Stations send mutations as `note-add`,
+  // `note-update`, `note-delete`, `note-reorder`; the host applies them and
+  // re-broadcasts. Templated `{{key.path}}` tags inside `body` are
+  // resolved client-side at render time against the local data feed.
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "notes-snapshot";
+      snapshot: import("../notes/types").NotesSnapshot;
+    }
+  | { type: "note-add"; body: string }
+  | { type: "note-update"; id: string; body: string }
+  | { type: "note-delete"; id: string }
+  | { type: "note-reorder"; id: string; afterId: string | null };

@@ -16,6 +16,7 @@ import { ThemeProvider } from "styled-components";
 import "@gonogo/components"; // triggers all component self-registration
 import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import
+import "./notes/NotesComponent"; // app-level component — registers on import
 import "./streamSources"; // triggers all stream source self-registration
 import App from "./App";
 import { BUILD_TIME, VERSION } from "./version";

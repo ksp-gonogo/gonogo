@@ -187,6 +187,9 @@ export class PeerClientService {
   private triggerSnapshotListeners = new ListenerSet<
     [snap: import("@gonogo/components").TriggerSnapshot]
   >();
+  private notesSnapshotListeners = new ListenerSet<
+    [snap: import("../notes/types").NotesSnapshot]
+  >();
   private gonogoAbortNotifyListeners = new ListenerSet<
     [stationName: string, t: number]
   >();
@@ -498,6 +501,23 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
+  sendNoteAdd(body: string) {
+    this.conn?.send({ type: "note-add", body } satisfies PeerMessage);
+  }
+  sendNoteUpdate(id: string, body: string) {
+    this.conn?.send({ type: "note-update", id, body } satisfies PeerMessage);
+  }
+  sendNoteDelete(id: string) {
+    this.conn?.send({ type: "note-delete", id } satisfies PeerMessage);
+  }
+  sendNoteReorder(id: string, afterId: string | null) {
+    this.conn?.send({
+      type: "note-reorder",
+      id,
+      afterId,
+    } satisfies PeerMessage);
+  }
+
   sendAlarmWarpIntent(index: number) {
     this.conn?.send({
       type: "alarm-warp-intent",
@@ -754,6 +774,10 @@ export class PeerClientService {
     return this.alarmSnapshotListeners.add(cb);
   }
 
+  onNotesSnapshot(cb: (snap: import("../notes/types").NotesSnapshot) => void) {
+    return this.notesSnapshotListeners.add(cb);
+  }
+
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
     return this.alarmFiredListeners.add(cb);
   }
@@ -881,6 +905,9 @@ export class PeerClientService {
     },
     "alarm-snapshot": (msg) => {
       this.alarmSnapshotListeners.fire(msg.snapshot);
+    },
+    "notes-snapshot": (msg) => {
+      this.notesSnapshotListeners.fire(msg.snapshot);
     },
     "alarm-fired": (msg) => {
       this.alarmFiredListeners.fire({

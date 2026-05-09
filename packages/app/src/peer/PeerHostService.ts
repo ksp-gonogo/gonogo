@@ -109,6 +109,19 @@ type TriggerArmListener = (
   msg: Extract<PeerMessage, { type: "trigger-arm" }>,
 ) => void;
 type TriggerCancelListener = (peerId: string, id: string) => void;
+type NoteAddListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "note-add" }>,
+) => void;
+type NoteUpdateListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "note-update" }>,
+) => void;
+type NoteDeleteListener = (peerId: string, id: string) => void;
+type NoteReorderListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "note-reorder" }>,
+) => void;
 
 export class PeerHostService {
   private peer: Peer | null = null;
@@ -174,6 +187,16 @@ export class PeerHostService {
   >();
   private triggerCancelListeners = new ListenerSet<
     Parameters<TriggerCancelListener>
+  >();
+  private noteAddListeners = new ListenerSet<Parameters<NoteAddListener>>();
+  private noteUpdateListeners = new ListenerSet<
+    Parameters<NoteUpdateListener>
+  >();
+  private noteDeleteListeners = new ListenerSet<
+    Parameters<NoteDeleteListener>
+  >();
+  private noteReorderListeners = new ListenerSet<
+    Parameters<NoteReorderListener>
   >();
 
   // Selective subscription state. Maps each connected DataConnection to:
@@ -617,6 +640,18 @@ export class PeerHostService {
     "trigger-cancel": (msg, conn) => {
       this.triggerCancelListeners.fire(conn.peer, msg.id);
     },
+    "note-add": (msg, conn) => {
+      this.noteAddListeners.fire(conn.peer, msg);
+    },
+    "note-update": (msg, conn) => {
+      this.noteUpdateListeners.fire(conn.peer, msg);
+    },
+    "note-delete": (msg, conn) => {
+      this.noteDeleteListeners.fire(conn.peer, msg.id);
+    },
+    "note-reorder": (msg, conn) => {
+      this.noteReorderListeners.fire(conn.peer, msg);
+    },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
       // When switching to selective with no subs yet, the peer will get
@@ -712,6 +747,19 @@ export class PeerHostService {
 
   onTriggerCancel(cb: TriggerCancelListener): () => void {
     return this.triggerCancelListeners.add(cb);
+  }
+
+  onNoteAdd(cb: NoteAddListener): () => void {
+    return this.noteAddListeners.add(cb);
+  }
+  onNoteUpdate(cb: NoteUpdateListener): () => void {
+    return this.noteUpdateListeners.add(cb);
+  }
+  onNoteDelete(cb: NoteDeleteListener): () => void {
+    return this.noteDeleteListeners.add(cb);
+  }
+  onNoteReorder(cb: NoteReorderListener): () => void {
+    return this.noteReorderListeners.add(cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {
