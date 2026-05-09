@@ -5,19 +5,23 @@ using Telemachus;
 namespace GonogoTelemetry
 {
     /// <summary>
-    /// First gonogo telemetry handler — surfaces the player's research
-    /// state from KSP's `ResearchAndDevelopment` so widgets can render
-    /// "kOS not unlocked yet" instead of the generic empty state.
+    /// Surfaces the player's research state from KSP's
+    /// `ResearchAndDevelopment` so widgets can render
+    /// "kOS not unlocked yet" instead of the generic empty state, and so
+    /// a research-officer station can pick what to spend science on.
     ///
-    /// Phase 1 keys:
+    /// Keys:
     /// - `tech.unlockedIds` — array of node ids the player has researched.
     /// - `tech.unlockedPartCount` — number of parts available in VAB/SPH
     ///   under the current tech tree (cheap proxy for "how built up is
     ///   this save").
+    /// - `tech.affordable` — array of `{ id, title, scienceCost }` for
+    ///   nodes the player could buy *right now*: prerequisites met AND
+    ///   cost ≤ current science. Drives the research-officer pick-list.
     ///
-    /// Both are global (not vessel-specific), so the `Vessel` parameter
-    /// is ignored — same convention Telemachus's own ScienceCareer
-    /// handler uses.
+    /// All keys are global (not vessel-specific), so the `Vessel`
+    /// parameter is ignored — same convention Telemachus's own
+    /// ScienceCareer handler uses.
     /// </summary>
     public class TechTreeApi : IMinimalTelemachusPlugin
     {
@@ -25,6 +29,7 @@ namespace GonogoTelemetry
         {
             "tech.unlockedIds",
             "tech.unlockedPartCount",
+            "tech.affordable",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -35,6 +40,8 @@ namespace GonogoTelemetry
                     return (_, __) => UnlockedIds();
                 case "tech.unlockedPartCount":
                     return (_, __) => UnlockedPartCount();
+                case "tech.affordable":
+                    return (_, __) => Affordable();
                 default:
                     return null;
             }
@@ -65,6 +72,60 @@ namespace GonogoTelemetry
                 if (ResearchAndDevelopment.PartTechAvailable(part)) count++;
             }
             return count;
+        }
+
+        private static object Affordable()
+        {
+            var result = new List<Dictionary<string, object>>();
+            var rd = ResearchAndDevelopment.Instance;
+            if (rd == null) return result;
+
+            var available = rd.Science;
+            // Build a set of unlocked ids first so the prereq-check is O(1)
+            // rather than O(unlocked) per candidate.
+            var unlocked = new HashSet<string>();
+            var nodes = rd.GetTreeTechs();
+            foreach (var node in nodes)
+            {
+                if (node.state == RDTech.State.Available)
+                    unlocked.Add(node.techID);
+            }
+
+            foreach (var node in nodes)
+            {
+                if (node.state == RDTech.State.Available) continue; // already bought
+                if (node.scienceCost > available) continue;
+                if (!PrereqsMet(node, unlocked)) continue;
+
+                result.Add(new Dictionary<string, object>
+                {
+                    ["id"] = node.techID,
+                    ["title"] = node.title,
+                    ["scienceCost"] = node.scienceCost,
+                });
+            }
+            return result;
+        }
+
+        private static bool PrereqsMet(RDTech node, HashSet<string> unlocked)
+        {
+            // RDTech.parents is a list of RDTech.OperatorMath entries in
+            // most KSP versions. The wider-compatible path is to fetch the
+            // RDNode from RDController and read parents.parent.tech.techID,
+            // but RDController isn't always loaded outside the R&D scene.
+            // Stick with what node.predecessors / parents give us, falling
+            // back to "no prereq info" (treat as met) so we don't silently
+            // hide affordable nodes.
+            var parents = node.parents;
+            if (parents == null || parents.Length == 0) return true;
+            foreach (var parent in parents)
+            {
+                // parent.parent is the predecessor RDTech in stock KSP.
+                var parentTech = parent?.parent?.tech;
+                if (parentTech == null) continue;
+                if (!unlocked.Contains(parentTech.techID)) return false;
+            }
+            return true;
         }
     }
 }
