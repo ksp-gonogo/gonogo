@@ -50,8 +50,17 @@ export type PeerMessage =
   // station can compare versions and surface a banner on mismatch. Always
   // emitted before `schema`; absence on the wire means the host is on a
   // pre-versioned bundle and the station should treat the host version as
-  // unknown.
-  | { type: "hello"; version: string; buildTime: string }
+  // unknown. `sessionToken` is fresh per host page-load so stations can
+  // distinguish "transient broker hiccup, same host process" from "host
+  // restarted" — used to clear stale GO/NO-GO votes that would otherwise
+  // re-broadcast from station memory on reconnect. Optional for
+  // back-compat.
+  | {
+      type: "hello";
+      version: string;
+      buildTime: string;
+      sessionToken?: string;
+    }
   | {
       type: "schema";
       sources: PeerSchemaSource[];

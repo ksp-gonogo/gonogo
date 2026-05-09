@@ -165,9 +165,15 @@ export class PeerClientService {
   private relayPeerIdListeners = new ListenerSet<[peerId: string | null]>();
   private relayPeerId: string | null = null;
   private hostVersion: { version: string; buildTime: string } | null = null;
+  private hostSessionToken: string | null = null;
   private hostHelloListeners = new ListenerSet<
     [info: { version: string; buildTime: string }]
   >();
+  // Fires when the host's `sessionToken` changes between two hellos (i.e.
+  // the host process has restarted). Stations use this to clear local
+  // state that would otherwise re-broadcast on reconnect — see GoNoGo
+  // station-side vote reset.
+  private hostRestartListeners = new ListenerSet<[]>();
   private gonogoCountdownStartListeners = new ListenerSet<[t0Ms: number]>();
   private gonogoCountdownCancelListeners = new ListenerSet<
     [reason: string | undefined]
@@ -339,6 +345,7 @@ export class PeerClientService {
     // Drop the cached hello so a reconnect to a freshly-deployed host on a
     // different version doesn't briefly report the old version.
     this.hostVersion = null;
+    this.hostSessionToken = null;
   }
 
   private emitConnStatus(status: ConnStatus) {
@@ -774,9 +781,24 @@ export class PeerClientService {
   private readonly dispatcher = new MessageDispatcher<void>({
     hello: (msg) => {
       this.hostVersion = { version: msg.version, buildTime: msg.buildTime };
+      const prevToken = this.hostSessionToken;
+      this.hostSessionToken = msg.sessionToken ?? null;
       logger.info(
-        `[PeerClient] host hello — v${msg.version} (build ${msg.buildTime})`,
+        `[PeerClient] host hello — v${msg.version} (build ${msg.buildTime})${msg.sessionToken ? ` session=${msg.sessionToken.slice(0, 8)}` : ""}`,
       );
+      // Fire restart BEFORE hello so subscribers can clear state (and any
+      // refs the hello handler reads) before the hello-driven resend
+      // path runs. Tokenless hosts (pre-versioned bundle) skip the
+      // restart event — legacy "always resend the current vote on hello"
+      // stays the safe default for them.
+      if (
+        msg.sessionToken &&
+        prevToken !== null &&
+        prevToken !== msg.sessionToken
+      ) {
+        logger.info("[PeerClient] host session changed — restart detected");
+        this.hostRestartListeners.fire();
+      }
       this.hostHelloListeners.fire(this.hostVersion);
     },
     data: (msg) => {
@@ -894,6 +916,18 @@ export class PeerClientService {
     cb: (info: { version: string; buildTime: string }) => void,
   ): () => void {
     return this.hostHelloListeners.add(cb);
+  }
+
+  /**
+   * Notified when the host's session token changes — i.e. the host process
+   * restarted between two connections. Used to clear station-local state
+   * that would otherwise re-broadcast stale values on reconnect (e.g. a
+   * GO vote that the operator left set before refreshing the main screen).
+   * Does not fire on the first hello of a session, only when the token
+   * actually changes.
+   */
+  onHostRestart(cb: () => void): () => void {
+    return this.hostRestartListeners.add(cb);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { PerfBudget } from "@gonogo/core";
+import { PerfBudget, safeRandomUuid } from "@gonogo/core";
 import type {
   BufferedDataSource,
   DataKeyMeta,
@@ -114,6 +114,12 @@ export class PeerHostService {
   private peer: Peer | null = null;
   private connections: Set<DataConnection> = new Set();
   private idListeners = new ListenerSet<[string | null]>();
+  // Fresh per page-load. Stations compare against the last-seen value to
+  // distinguish a transient broker reconnect (same token) from a genuine
+  // host restart (new token), so widgets like GO/NO-GO can clear state
+  // that would otherwise be re-broadcast from station memory and look
+  // like persistence across a fresh launch.
+  private readonly sessionToken = safeRandomUuid();
   private kosSessions = new KosSessionManager({
     getKosConfig: async () => {
       const { getDataSource } = await import("@gonogo/core");
@@ -248,6 +254,7 @@ export class PeerHostService {
           type: "hello",
           version: VERSION,
           buildTime: BUILD_TIME,
+          sessionToken: this.sessionToken,
         } satisfies PeerMessage);
         this.sendSchema(conn);
         // Station needs this to reach the relay directly — resend whenever

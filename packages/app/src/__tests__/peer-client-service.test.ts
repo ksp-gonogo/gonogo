@@ -175,6 +175,55 @@ describe("PeerClientService", () => {
     ]);
   });
 
+  it("fires onHostRestart only when the host's sessionToken changes between hellos", () => {
+    const svc = new PeerClientService();
+    const inner = svc as unknown as PeerClientServiceInternal;
+    const restarts: number[] = [];
+    let restartCount = 0;
+    svc.onHostRestart(() => {
+      restartCount += 1;
+      restarts.push(restartCount);
+    });
+
+    // First hello — establishes the baseline token. Should NOT fire
+    // restart (there's nothing to compare against).
+    inner.handleMessage({
+      type: "hello",
+      version: "1.0.0",
+      buildTime: "2026-05-08T00:00:00.000Z",
+      sessionToken: "session-A",
+    });
+    expect(restarts).toEqual([]);
+
+    // Same token again (transient broker reconnect to the same host
+    // process) — must NOT fire restart.
+    inner.handleMessage({
+      type: "hello",
+      version: "1.0.0",
+      buildTime: "2026-05-08T00:00:00.000Z",
+      sessionToken: "session-A",
+    });
+    expect(restarts).toEqual([]);
+
+    // Fresh token (host was refreshed) — restart fires.
+    inner.handleMessage({
+      type: "hello",
+      version: "1.0.0",
+      buildTime: "2026-05-08T00:00:00.000Z",
+      sessionToken: "session-B",
+    });
+    expect(restarts).toEqual([1]);
+
+    // Tokenless hello (legacy host) — must NOT fire restart, even though
+    // the token "changed" to undefined.
+    inner.handleMessage({
+      type: "hello",
+      version: "1.0.0",
+      buildTime: "2026-05-08T00:00:00.000Z",
+    });
+    expect(restarts).toEqual([1]);
+  });
+
   it("_listenerCounts reports per-event-type sizes", () => {
     const svc = new PeerClientService();
     svc.onData(() => {});

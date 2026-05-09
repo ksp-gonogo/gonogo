@@ -112,14 +112,32 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
 
   useEffect(() => {
     if (!client) return;
-    const unsub = client.onConnectionStatus((status) => {
-      if (status === "connected") {
-        client.sendGonogoVote(effectiveVoteRef.current);
-        if (iAbortedRef.current) client.sendGonogoAbort();
-      }
+    // Reset the local vote when the host process restarts (fresh session
+    // token). Without this, a station that voted GO before the operator
+    // refreshed the main screen would re-broadcast the old GO vote on
+    // reconnect, making it look like the GO state persisted across a
+    // fresh app launch. We clear local state; the change effect resends
+    // the fresh "no-go" automatically.
+    const unsubRestart = client.onHostRestart(() => {
+      iAbortedRef.current = false;
+      // Update the ref synchronously so the hello-driven resend that
+      // fires immediately after sees the cleared value, not the stale
+      // pre-restart vote.
+      effectiveVoteRef.current = "no-go";
+      setVote("no-go");
+    });
+    // Resend our current vote after every hello (initial connect AND
+    // reconnect). Doing this on `hello` rather than `connected` means we
+    // run AFTER the restart-detection above has had a chance to flip the
+    // local state — so a station that should reset doesn't briefly flash
+    // its old vote on the host's grid before the restart fires.
+    const unsubHello = client.onHostHello(() => {
+      client.sendGonogoVote(effectiveVoteRef.current);
+      if (iAbortedRef.current) client.sendGonogoAbort();
     });
     return () => {
-      unsub();
+      unsubHello();
+      unsubRestart();
       client.sendGonogoVote(null);
     };
   }, [client]);
