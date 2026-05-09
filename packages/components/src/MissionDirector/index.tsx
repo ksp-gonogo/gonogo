@@ -1,6 +1,11 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import {
+  registerComponent,
+  useDataValue,
+  useExecuteAction,
+} from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 type MissionDirectorConfig = Record<string, never>;
@@ -113,6 +118,7 @@ function MissionDirectorComponent({
   const universalTime = useDataValue("data", "t.universalTime") as
     | number
     | undefined;
+  const execute = useExecuteAction("data");
 
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
@@ -145,9 +151,10 @@ function MissionDirectorComponent({
         </PanelSubtitle>
       )}
       <Body>
-        {activeCount === 0 && (
+        {activeCount === 0 && offeredCount === 0 && (
           <Empty>No active contracts. Pick one up in Mission Control.</Empty>
         )}
+        {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
         {active.map((c) => (
           <ContractCard key={c.id}>
             <ContractHeader>
@@ -198,8 +205,90 @@ function MissionDirectorComponent({
             )}
           </ContractCard>
         ))}
+        {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
+        {offered?.map((c) => (
+          <ContractCard key={c.id}>
+            <ContractHeader>
+              <ContractTitle>{c.title}</ContractTitle>
+              <ContractDeadline>
+                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+              </ContractDeadline>
+            </ContractHeader>
+            {c.agency && <Agency>{c.agency}</Agency>}
+            <Rewards>
+              {c.fundsCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>FUNDS</RewardLabel>
+                  <RewardValue>{formatCurrency(c.fundsCompletion)}</RewardValue>
+                </Reward>
+              )}
+              {c.scienceCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>SCI</RewardLabel>
+                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+              {c.repCompletion > 0 && (
+                <Reward>
+                  <RewardLabel>REP</RewardLabel>
+                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                </Reward>
+              )}
+            </Rewards>
+            <OfferedActions>
+              <AcceptButton
+                type="button"
+                onClick={() => {
+                  void execute(`contracts.accept[${c.id}]`);
+                }}
+              >
+                Accept
+              </AcceptButton>
+              <DeclineButton contractId={c.id} execute={execute} />
+            </OfferedActions>
+          </ContractCard>
+        ))}
       </Body>
     </Panel>
+  );
+}
+
+const ARM_TIMEOUT_MS = 4000;
+
+function DeclineButton({
+  contractId,
+  execute,
+}: {
+  contractId: number;
+  execute: (action: string) => Promise<void>;
+}) {
+  const [armed, setArmed] = useState(false);
+
+  // Auto-disarm so a forgotten armed-decline doesn't sit waiting for a
+  // misclick. Matches the maneuver-trigger pattern.
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armed]);
+
+  if (!armed) {
+    return (
+      <DeclineButtonStyled type="button" onClick={() => setArmed(true)}>
+        Decline
+      </DeclineButtonStyled>
+    );
+  }
+  return (
+    <ConfirmDeclineButton
+      type="button"
+      onClick={() => {
+        setArmed(false);
+        void execute(`contracts.decline[${contractId}]`);
+      }}
+    >
+      Confirm decline
+    </ConfirmDeclineButton>
   );
 }
 
@@ -226,6 +315,70 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: 12px;
   padding: 8px 0;
+`;
+
+const SectionLabel = styled.div`
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+`;
+
+const OfferedActions = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+`;
+
+const ActionButton = styled.button`
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--color-surface-raised);
+  cursor: pointer;
+  font-family: inherit;
+`;
+
+const AcceptButton = styled(ActionButton)`
+  background: var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
+  border-color: transparent;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+`;
+
+const DeclineButtonStyled = styled(ActionButton)`
+  background: transparent;
+  color: var(--color-text-muted);
+
+  &:hover {
+    color: var(--color-status-nogo-fg);
+    border-color: var(--color-status-nogo-bg);
+  }
+`;
+
+const ConfirmDeclineButton = styled(ActionButton)`
+  background: var(--color-status-nogo-bg);
+  color: var(--color-status-nogo-fg);
+  border-color: transparent;
+  animation: declinePulse 1s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes declinePulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+  }
 `;
 
 const ContractCard = styled.div`

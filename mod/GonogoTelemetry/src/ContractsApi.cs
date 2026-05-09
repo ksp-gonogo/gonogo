@@ -42,6 +42,8 @@ namespace GonogoTelemetry
             "contracts.active",
             "contracts.offered",
             "contracts.completedRecent",
+            "contracts.accept",
+            "contracts.decline",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -54,9 +56,55 @@ namespace GonogoTelemetry
                     return (_, __) => ContractsByState(Contract.State.Offered);
                 case "contracts.completedRecent":
                     return (_, __) => CompletedRecent();
+                case "contracts.accept":
+                    return (_, args) => MutateContract(args, accept: true);
+                case "contracts.decline":
+                    return (_, args) => MutateContract(args, accept: false);
                 default:
                     return null;
             }
+        }
+
+        private static object MutateContract(string[] args, bool accept)
+        {
+            if (args == null || args.Length == 0) return "missing contract id";
+            if (!long.TryParse(args[0], out var contractId))
+                return "invalid contract id";
+
+            var system = ContractSystem.Instance;
+            if (system == null || system.Contracts == null)
+                return "no contract system";
+
+            Contract found = null;
+            foreach (var c in system.Contracts)
+            {
+                if (c == null) continue;
+                if (c.ContractID == contractId) { found = c; break; }
+            }
+            if (found == null) return "contract not found";
+
+            // Accept moves an Offered contract into Active; Decline removes
+            // an Offered contract from the list. Both require the caller
+            // matches the right state — Accept on an already-Active
+            // contract is a no-op rather than an error so a duplicate
+            // double-click doesn't surface as a failure to the operator.
+            if (accept)
+            {
+                if (found.ContractState == Contract.State.Active) return 0;
+                if (found.ContractState != Contract.State.Offered)
+                    return "contract not in Offered state";
+                found.Accept();
+                return 0;
+            }
+
+            // Decline only meaningful for Offered contracts. Cancelling an
+            // Active contract is a different verb (Contract.Cancel) — keep
+            // them separate so the UI doesn't silently abandon active work
+            // when the operator hits "decline" on an active card.
+            if (found.ContractState != Contract.State.Offered)
+                return "contract not in Offered state";
+            found.Decline();
+            return 0;
         }
 
         private static object ContractsByState(Contract.State state)

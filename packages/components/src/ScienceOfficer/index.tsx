@@ -1,6 +1,11 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import {
+  registerComponent,
+  useDataValue,
+  useExecuteAction,
+} from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 type ScienceOfficerConfig = Record<string, never>;
@@ -46,6 +51,7 @@ function ScienceOfficerComponent({
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
   const instrumentsRaw = useDataValue("data", "sci.instruments");
   const instruments = parseInstruments(instrumentsRaw);
+  const execute = useExecuteAction("data");
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
@@ -101,6 +107,7 @@ function ScienceOfficerComponent({
                     )}
                     {inst.inoperable && <Badge $kind="inop">INOPERABLE</Badge>}
                   </Badges>
+                  <InstrumentActions instrument={inst} execute={execute} />
                 </Row>
               ))}
             </InstrumentList>
@@ -108,6 +115,60 @@ function ScienceOfficerComponent({
         ))}
       </Body>
     </Panel>
+  );
+}
+
+const ARM_TIMEOUT_MS = 4000;
+
+function InstrumentActions({
+  instrument,
+  execute,
+}: {
+  instrument: Instrument;
+  execute: (action: string) => Promise<void>;
+}) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armed]);
+
+  // Inoperable instruments can't deploy or transmit. Hide the controls
+  // entirely rather than greying them out — the INOPERABLE badge already
+  // tells the operator why nothing's available.
+  if (instrument.inoperable) return null;
+
+  return (
+    <Actions>
+      {!instrument.deployed && !instrument.hasData && (
+        <ActionButton
+          type="button"
+          onClick={() => {
+            void execute(`sci.deploy[${instrument.partId}]`);
+          }}
+        >
+          Deploy
+        </ActionButton>
+      )}
+      {instrument.hasData &&
+        (armed ? (
+          <ConfirmTransmitButton
+            type="button"
+            onClick={() => {
+              setArmed(false);
+              void execute(`sci.transmit[${instrument.partId}]`);
+            }}
+          >
+            Confirm transmit
+          </ConfirmTransmitButton>
+        ) : (
+          <ActionButton type="button" onClick={() => setArmed(true)}>
+            Transmit
+          </ActionButton>
+        ))}
+    </Actions>
   );
 }
 
@@ -200,6 +261,50 @@ const Badges = styled.span`
   display: inline-flex;
   gap: 4px;
   flex-shrink: 0;
+`;
+
+const Actions = styled.span`
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 6px;
+`;
+
+const ActionButton = styled.button`
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--color-surface-raised);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-fg);
+  }
+`;
+
+const ConfirmTransmitButton = styled(ActionButton)`
+  background: var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
+  border-color: transparent;
+  animation: transmitPulse 1s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes transmitPulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+  }
 `;
 
 const Badge = styled.span<{

@@ -24,8 +24,21 @@ Currently registered (see `src/`):
 - `kc.padVesselTitle` — string, vessel name when on the pad
 - `kc.savedShips` — `[{ name, partCount, totalMass, facility, requiresFunds, missingParts }]` for VAB + SPH .craft files. `requiresFunds` and `missingParts` are stubbed empty until the part-walk lands.
 - `kc.crewRoster` — `[{ name, trait, experienceLevel, available, unavailableReason }]`. `unavailableReason` is the raw RosterStatus string for greyed-out tooltips.
+- `sci.instruments` — per-vessel `[{ partId, partTitle, expId, deployed, hasData, rerunnable, inoperable }]`.
+- `sci.experimentBreakdown` — per-vessel `[{ subjectId, biome, situation, expTitle, dataMits, baseTransmitValue, transmitBonus, subjectScience, subjectScienceCap, remainingPotential }]`.
+- `sci.canTransmitTotal` / `sci.canRecoverTotal` — float scalars (sum of `dataAmount`).
+- `contracts.active` / `contracts.offered` / `contracts.completedRecent` — `[{ id, title, agency, state, fundsAdvance, fundsCompletion, fundsFailure, scienceCompletion, repCompletion, deadlineUt, parameters: [{ title, state, optional }] }]`. `completedRecent` is capped at the most recent 20.
 
-See `local_docs/telemachus_extension_plan.md` for the full roadmap (per-instrument science detail, contracts, write-paths, launch-director).
+### Write paths (use Telemachus's bracket-args, e.g. `?a=tech.unlock[advFlightControl]`)
+
+- `tech.unlock[techId]` — purchases a tech node if affordable + prereqs met.
+- `contracts.accept[contractId]` / `contracts.decline[contractId]` — both target Offered contracts.
+- `sci.deploy[partId]` — runs a `ModuleScienceExperiment` (idempotent for already-deployed instruments).
+- `sci.transmit[partId]` — sends the instrument's stored data via the active vessel's transmitter.
+
+All write actions return `0` on success or a short error string on failure. The plugin matches Telemachus's existing action conventions (see `FlightControlHandlers.cs` `IsAction = true` handlers in the fork) so migration into the fork is mechanical.
+
+See `local_docs/telemachus_extension_plan.md` for the full roadmap (launch director write path is the remaining big piece).
 
 ## Build
 
