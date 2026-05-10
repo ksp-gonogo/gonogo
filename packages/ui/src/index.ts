@@ -6,6 +6,7 @@ export * from "./DimmedOverlay";
 export * from "./EmptyState";
 export * from "./Fab";
 export * from "./FabCluster";
+export * from "./FabPrompt";
 export * from "./FilterChip";
 export * from "./Form";
 export * from "./Gauge";
