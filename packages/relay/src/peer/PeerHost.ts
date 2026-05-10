@@ -67,6 +67,11 @@ export class PeerHost {
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
       const peerOptions: Partial<PeerOptions> = {
+        // Isolate us from the default `peerjs` namespace on the public
+        // broker so our ids don't collide with every other PeerJS app
+        // out there. MUST match PeerHostService + PeerClientService in
+        // the app — a mismatch and host/stations can't see the relay.
+        key: "gonogo",
         ...(this.opts.peerOptions ?? {}),
       };
       if (this.opts.iceServers && this.opts.iceServers.length > 0) {

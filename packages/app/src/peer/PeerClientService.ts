@@ -283,7 +283,12 @@ export class PeerClientService {
     // require the station to know the relay's URL, which it doesn't —
     // and previous defaults (`turn:localhost:3478`) actively broke
     // mobile clients.
-    this.peer = new Peer(this.stationPeerId);
+    //
+    // `key: "gonogo"` puts the station in our private namespace on the
+    // public broker. MUST match PeerHostService + the relay's PeerHost —
+    // a station with a different key is invisible to the host on the
+    // broker even if both ids would otherwise match.
+    this.peer = new Peer(this.stationPeerId, { key: "gonogo" });
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
       this.conn = this.peer.connect(this.hostPeerId);

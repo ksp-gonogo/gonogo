@@ -263,12 +263,18 @@ export class PeerHostService {
     // empty array and run direct/STUN-only; the readiness UI tells the
     // operator about it.
     this.iceServers = await fetchHostIceServers();
-    this.peer = new Peer(
-      peerId,
-      this.iceServers.length > 0
+    // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
+    // public 0.peerjs.com broker. Without it, our 4-char ids collide with
+    // every other PeerJS app on the planet using the default key — the broker
+    // namespace is shared by `key`, so picking our own gives us our own slice.
+    // MUST match the `key` set in PeerClientService and packages/relay (any
+    // mismatch and that peer is invisible on the broker to our other peers).
+    this.peer = new Peer(peerId, {
+      key: "gonogo",
+      ...(this.iceServers.length > 0
         ? { config: { iceServers: this.iceServers } }
-        : undefined,
-    );
+        : {}),
+    });
 
     this.peer.on("open", (id) => {
       localStorage.setItem(PEER_ID_KEY, id);
