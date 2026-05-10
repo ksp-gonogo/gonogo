@@ -9,6 +9,8 @@ type Listener = (...args: unknown[]) => void;
 class FakePeer {
   private listeners = new Map<string, Listener[]>();
   static last: FakePeer | null = null;
+  reconnectCount = 0;
+  disconnected = false;
 
   constructor(_id?: string) {
     FakePeer.last = this;
@@ -26,6 +28,10 @@ class FakePeer {
     this.listeners.get(event)?.forEach((cb) => {
       cb(...args);
     });
+  }
+
+  reconnect() {
+    this.reconnectCount += 1;
   }
 
   destroy() {}
@@ -515,5 +521,79 @@ describe("PeerHostService — schema broadcast", () => {
     });
 
     clearRegistry();
+  });
+});
+
+describe("PeerHostService — broker reconnect backoff", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("schedules peer.reconnect with exponential backoff instead of looping", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    void service.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const peer = FakePeer.last;
+    if (!peer) throw new Error("FakePeer not instantiated");
+
+    // First disconnect — backoff scheduled, reconnect NOT yet called.
+    peer.emit("disconnected");
+    expect(peer.reconnectCount).toBe(0);
+
+    // Advance ~500ms: first attempt fires.
+    await vi.advanceTimersByTimeAsync(500);
+    expect(peer.reconnectCount).toBe(1);
+
+    // Synchronous re-fire (PeerJS does this when the WS immediately
+    // re-closes) must NOT collapse into another instant reconnect.
+    peer.emit("disconnected");
+    expect(peer.reconnectCount).toBe(1);
+
+    // Second backoff doubles to ~1000ms.
+    await vi.advanceTimersByTimeAsync(999);
+    expect(peer.reconnectCount).toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(peer.reconnectCount).toBe(2);
+
+    // Third disconnect → ~2000ms.
+    peer.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(peer.reconnectCount).toBe(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(peer.reconnectCount).toBe(3);
+  });
+
+  it("resets the backoff after a successful open", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    void service.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const peer = FakePeer.last;
+    if (!peer) throw new Error("FakePeer not instantiated");
+
+    // Three failed cycles climb to attempt 3 (~2000ms).
+    peer.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(500);
+    peer.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(1000);
+    peer.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(peer.reconnectCount).toBe(3);
+
+    // Broker comes back — open fires.
+    peer.emit("open", "FAKE-PEER-ID");
+
+    // Next disconnect should be back to attempt 1 (~500ms), not 4000ms.
+    peer.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(499);
+    expect(peer.reconnectCount).toBe(3);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(peer.reconnectCount).toBe(4);
   });
 });
