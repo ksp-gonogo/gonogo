@@ -50,6 +50,9 @@ export function StationAlarmBanner({
 
 function describe(alarm: Alarm): string {
   if (alarm.trigger.kind === "time") return "scheduled time reached";
+  if (alarm.trigger.kind === "contract-parameter") {
+    return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;
+  }
   const t = alarm.trigger;
   return `${t.dataKey} ${t.op} ${t.value}`;
 }

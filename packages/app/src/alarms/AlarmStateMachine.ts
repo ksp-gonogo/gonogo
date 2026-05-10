@@ -154,6 +154,9 @@ export class AlarmStateMachine {
     for (const a of this.getAlarms()) {
       if (a.state !== "pending") continue;
       if (a.trigger.kind === "time") return a;
+      // Contract-parameter triggers are discrete state transitions;
+      // there's no scalar to warp toward, so they're not warp-targetable.
+      if (a.trigger.kind === "contract-parameter") continue;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") continue;
       if (a.matchSinceUT != null) continue;
