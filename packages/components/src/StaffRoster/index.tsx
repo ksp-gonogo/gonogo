@@ -1,6 +1,12 @@
 import type { ComponentProps } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Badge,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 type StaffRosterConfig = Record<string, never>;
@@ -11,6 +17,14 @@ export interface StaffMember {
   experienceLevel: number;
   available: boolean;
   unavailableReason: string;
+  // Expanded fields from kc.crewRoster — additive, default to safe
+  // zero/false when the older Telemachus DLL is loaded.
+  veteran: boolean;
+  isBadass: boolean;
+  careerFlights: number;
+  courage: number;
+  stupidity: number;
+  currentVesselName: string;
 }
 
 /**
@@ -36,6 +50,13 @@ export function parseStaff(raw: unknown): StaffMember[] | null {
       available: e.available === true,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
+      veteran: e.veteran === true,
+      isBadass: e.isBadass === true,
+      careerFlights: typeof e.careerFlights === "number" ? e.careerFlights : 0,
+      courage: typeof e.courage === "number" ? e.courage : 0,
+      stupidity: typeof e.stupidity === "number" ? e.stupidity : 0,
+      currentVesselName:
+        typeof e.currentVesselName === "string" ? e.currentVesselName : "",
     });
   }
   return out;
@@ -49,6 +70,26 @@ const TRAIT_RANK: Record<string, number> = TRAIT_ORDER.reduce(
   },
   {} as Record<string, number>,
 );
+
+// Tooltip stitched from the expanded kc.crewRoster fields. Includes
+// courage/stupidity (which we don't render as primary chrome to keep
+// the row compact) and the current-vessel attribution for assigned
+// kerbals — useful context the row otherwise loses.
+function buildTooltip(k: StaffMember): string {
+  const parts: string[] = [];
+  parts.push(`${k.trait || "—"} · L${k.experienceLevel}`);
+  if (k.careerFlights > 0) parts.push(`${k.careerFlights} flight(s)`);
+  parts.push(`courage ${Math.round(k.courage * 100)}`);
+  parts.push(`stupidity ${Math.round(k.stupidity * 100)}`);
+  if (k.veteran) parts.push("veteran");
+  if (k.isBadass) parts.push("badass");
+  if (!k.available && k.unavailableReason) {
+    if (k.currentVesselName)
+      parts.push(`${k.unavailableReason} (${k.currentVesselName})`);
+    else parts.push(k.unavailableReason);
+  }
+  return parts.join(" · ");
+}
 
 function sortStaff(roster: StaffMember[]): StaffMember[] {
   // Available kerbals first, then by trait (Pilot/Eng/Sci/Tourist), then
@@ -112,20 +153,35 @@ function StaffRosterComponent({
             <Row
               key={kerbal.name}
               $available={kerbal.available}
-              title={
-                kerbal.available
-                  ? `${kerbal.trait} · L${kerbal.experienceLevel}`
-                  : kerbal.unavailableReason || "Unavailable"
-              }
+              title={buildTooltip(kerbal)}
             >
               <Name>{kerbal.name}</Name>
               <Meta>
                 <TraitTag>{kerbal.trait || "—"}</TraitTag>
                 <Level>L{kerbal.experienceLevel}</Level>
+                {kerbal.veteran && (
+                  <Badge tone="go" size="sm" aria-label="veteran">
+                    ★
+                  </Badge>
+                )}
+                {kerbal.isBadass && (
+                  <Badge tone="warn" size="sm" aria-label="badass">
+                    BA
+                  </Badge>
+                )}
+                {kerbal.careerFlights > 0 && (
+                  <Badge
+                    tone="neutral"
+                    size="sm"
+                    aria-label={`${kerbal.careerFlights} flights`}
+                  >
+                    {kerbal.careerFlights}F
+                  </Badge>
+                )}
                 {!kerbal.available && (
-                  <UnavailableTag>
+                  <Badge tone="nogo" size="sm">
                     {kerbal.unavailableReason || "Unavailable"}
-                  </UnavailableTag>
+                  </Badge>
                 )}
               </Meta>
             </Row>
@@ -198,13 +254,6 @@ const Level = styled.span`
   font-size: 10px;
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
-`;
-
-const UnavailableTag = styled.span`
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  color: var(--color-status-nogo-fg);
-  text-transform: uppercase;
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

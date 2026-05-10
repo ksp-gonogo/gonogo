@@ -120,6 +120,53 @@ describe("parseStaff", () => {
       experienceLevel: 2,
       available: false,
       unavailableReason: "Dead",
+      veteran: false,
+      isBadass: false,
+      careerFlights: 0,
+      courage: 0,
+      stupidity: 0,
+      currentVesselName: "",
+    });
+  });
+
+  it("parses expanded fields when present", () => {
+    const parsed = parseStaff([
+      {
+        name: "Jeb",
+        trait: "Pilot",
+        experienceLevel: 3,
+        available: true,
+        unavailableReason: "",
+        veteran: true,
+        isBadass: true,
+        careerFlights: 4,
+        courage: 0.5,
+        stupidity: 0.5,
+        currentVesselName: "Mun Lander",
+      },
+    ]);
+    expect(parsed?.[0]).toMatchObject({
+      veteran: true,
+      isBadass: true,
+      careerFlights: 4,
+      courage: 0.5,
+      stupidity: 0.5,
+      currentVesselName: "Mun Lander",
+    });
+  });
+
+  it("defaults expanded fields when older Telemachus DLL is loaded", () => {
+    // Old DLL doesn't emit veteran/isBadass/careerFlights/etc.
+    const parsed = parseStaff([
+      { name: "Jeb", trait: "Pilot", experienceLevel: 0, available: true },
+    ]);
+    expect(parsed?.[0]).toMatchObject({
+      veteran: false,
+      isBadass: false,
+      careerFlights: 0,
+      courage: 0,
+      stupidity: 0,
+      currentVesselName: "",
     });
   });
 });
