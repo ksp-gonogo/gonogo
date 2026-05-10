@@ -169,6 +169,9 @@ export function AlarmBanner() {
 
 function isWarpToCandidate(alarm: Alarm): boolean {
   if (alarm.trigger.kind === "time") return true;
+  // Contract-parameter triggers are discrete state transitions — no
+  // monotonic axis to warp toward.
+  if (alarm.trigger.kind === "contract-parameter") return false;
   const op = alarm.trigger.op;
   return op !== "==" && op !== "!=";
 }
@@ -210,7 +213,10 @@ function formatNext(alarm: Alarm, utNow: number | null): string {
   if (alarm.trigger.kind === "time") {
     return formatTMinus(alarm.trigger.ut, utNow);
   }
-  // Threshold alarm — no single fire UT; show the condition compactly.
+  if (alarm.trigger.kind === "contract-parameter") {
+    return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;
+  }
+  // Threshold — no single fire UT; show the condition compactly.
   const t = alarm.trigger;
   return `${t.dataKey} ${t.op} ${t.value}`;
 }

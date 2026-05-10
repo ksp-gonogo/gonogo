@@ -35,11 +35,20 @@ namespace GonogoTelemetry
     ///   `missingParts` (career filtering) are stubbed empty for now —
     ///   they need a deeper part-walk that we can layer on once the
     ///   basic listing is verified.
-    /// - `kc.crewRoster` — array of `{ name, trait, experienceLevel,
-    ///   available, unavailableReason }`. `available` is false when the
-    ///   kerbal is `Assigned`, `Missing`, `Dead`, or `Hospitalized`;
-    ///   `unavailableReason` is the raw RosterStatus string for the
-    ///   greyed-out tooltip in the launch-director widget.
+    /// - `kc.crewRoster` — array of `{ name, trait, type, gender,
+    ///   experience, experienceLevel, courage, stupidity, isBadass,
+    ///   veteran, careerFlights, careerEntries, currentVesselId,
+    ///   currentVesselName, available, unavailableReason }`.
+    ///   `available` is false when the kerbal is `Assigned`, `Missing`,
+    ///   `Dead`, or `Hospitalized`; `unavailableReason` is the raw
+    ///   RosterStatus string for the greyed-out tooltip in the
+    ///   launch-director widget. `currentVesselId` / `currentVesselName`
+    ///   are populated for `Assigned` kerbals when their vessel is
+    ///   loaded in `FlightGlobals.Vessels` (i.e. the active vessel and
+    ///   its sphere of relevance); they're empty for kerbals on
+    ///   off-rails vessels in non-flight scenes. `careerFlights` is the
+    ///   completed-flight count from `FlightLog.Flight`;
+    ///   `careerEntries` is the entry count from `FlightLog.Count`.
     /// </summary>
     public class KscApi : IMinimalTelemachusPlugin
     {
@@ -435,16 +444,68 @@ namespace GonogoTelemetry
             var roster = HighLogic.CurrentGame?.CrewRoster;
             if (roster == null) return result;
 
+            // Pre-build name → vessel map so the per-kerbal walk stays O(K).
+            // FlightGlobals.Vessels is empty in non-flight scenes; that's fine,
+            // currentVesselId just stays empty for everyone in those scenes.
+            var crewVesselByName = new Dictionary<string, KeyValuePair<string, string>>(
+                StringComparer.Ordinal);
+            var vessels = FlightGlobals.Vessels;
+            if (vessels != null)
+            {
+                foreach (var vessel in vessels)
+                {
+                    if (vessel == null) continue;
+                    var vid = vessel.id.ToString();
+                    var vname = vessel.GetDisplayName() ?? vessel.vesselName ?? string.Empty;
+                    var crew = vessel.GetVesselCrew();
+                    if (crew == null) continue;
+                    foreach (var member in crew)
+                    {
+                        if (member?.name == null) continue;
+                        crewVesselByName[member.name] =
+                            new KeyValuePair<string, string>(vid, vname);
+                    }
+                }
+            }
+
             foreach (var kerbal in roster.Crew)
             {
                 if (kerbal == null) continue;
                 var status = kerbal.rosterStatus.ToString();
                 var available = kerbal.rosterStatus == ProtoCrewMember.RosterStatus.Available;
+                var vesselId = string.Empty;
+                var vesselName = string.Empty;
+                if (kerbal.name != null &&
+                    crewVesselByName.TryGetValue(kerbal.name, out var pair))
+                {
+                    vesselId = pair.Key;
+                    vesselName = pair.Value;
+                }
+
+                int careerFlights = 0;
+                int careerEntries = 0;
+                if (kerbal.careerLog != null)
+                {
+                    careerFlights = kerbal.careerLog.Flight;
+                    careerEntries = kerbal.careerLog.Count;
+                }
+
                 result.Add(new Dictionary<string, object>
                 {
                     ["name"] = kerbal.name ?? string.Empty,
                     ["trait"] = kerbal.trait ?? string.Empty,
+                    ["type"] = kerbal.type.ToString(),
+                    ["gender"] = kerbal.gender.ToString(),
+                    ["experience"] = Util.R4(kerbal.experience),
                     ["experienceLevel"] = kerbal.experienceLevel,
+                    ["courage"] = Util.R4(kerbal.courage),
+                    ["stupidity"] = Util.R4(kerbal.stupidity),
+                    ["isBadass"] = kerbal.isBadass,
+                    ["veteran"] = kerbal.veteran,
+                    ["careerFlights"] = careerFlights,
+                    ["careerEntries"] = careerEntries,
+                    ["currentVesselId"] = vesselId,
+                    ["currentVesselName"] = vesselName,
                     ["available"] = available,
                     ["unavailableReason"] = available ? string.Empty : status,
                 });
