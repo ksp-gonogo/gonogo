@@ -359,25 +359,25 @@ export class PeerHostService {
 
     this.peer.on("error", (err) => {
       logger.error("[PeerHost] peer error", err);
-      // Auto-recover from `unavailable-id` only when this Peer has not
-      // yet successfully opened. That's the genuine "broker still
-      // holds the previous tab's slot from a dirty unload" case where
-      // rotating is invisible (no station has been told about this
-      // code yet). A `connections.size === 0` gate looks similar but
-      // is wrong — `unavailable-id` can fire MID-SESSION when PeerJS
-      // internally reconnects to the broker, and a brief
-      // station-disconnect window in that moment would let the gate
-      // pass. The result was a real regression: the station's
-      // localStorage still had the old code, the broker had nothing,
-      // and the station retried forever. The "first open" latch
-      // can't fire spuriously — once opened, every subsequent error
-      // skips the rotation and waits for manual Regenerate.
       const peerErr = err as { type?: string };
       if (peerErr.type !== "unavailable-id") return;
+      // Two paths to recover from `unavailable-id`:
+      //   1. Before this Peer has ever opened — no station knows about
+      //      this code, rotate silently. This is the "broker still holds
+      //      a ghost slot from a prior tab" case.
+      //   2. After a successful open — typically post-laptop-sleep where
+      //      the broker's session-cleanup timer hasn't yet released our
+      //      slot but our `peer.reconnect()` hits it as taken. Stations
+      //      may still have live data channels: notify them over the
+      //      existing channel before we rotate so their built-in retry
+      //      loop targets the new id instead of the dead old one.
+      // Both paths end at `peer.destroy()` + `start()` with a fresh id;
+      // the difference is whether we broadcast a heads-up first.
       if (this.peerHasOpened) {
         logger.warn(
-          "[PeerHost] unavailable-id after a successful open — keeping existing code, manual Regenerate available",
+          "[PeerHost] unavailable-id after a successful open — rotating with station notice",
         );
+        void this.rotatePeerIdGracefully("unavailable-id-recovery");
         return;
       }
       void this.regeneratePeerId();
@@ -406,6 +406,59 @@ export class PeerHostService {
       window.addEventListener("pagehide", () => {
         this.peer?.destroy();
       });
+    }
+    // Pre-emptive cleanup on tab freeze (Chrome Page Lifecycle API; fires
+    // before the OS suspends the page on laptop sleep). `peer.disconnect()`
+    // is the surgical move here, not `destroy()`: it sends a clean leave to
+    // the broker so the slot is released — avoiding the post-wake
+    // "ID is taken" ghost — while keeping the underlying RTCPeerConnections
+    // and their data channels open so connected stations don't get torn
+    // down by the suspend cycle. On `resume`, peer.reconnect() re-registers
+    // with the broker against the same id; nothing else changes. Without
+    // this, laptop sleep silently strands the host's broker session and
+    // every outgoing peer.connect() (OCISLY etc.) wedges until manual
+    // regenerate. `freeze`/`resume` are document events, not window.
+    if (typeof document !== "undefined") {
+      const suspend = () => {
+        if (!this.peer) return;
+        const p = this.peer as Peer & { disconnected?: boolean };
+        if (p.disconnected) return;
+        logger.info(
+          "[PeerHost] page freezing — disconnecting broker (keeping live channels)",
+        );
+        try {
+          this.peer.disconnect();
+        } catch (err) {
+          logger.error(
+            "[PeerHost] peer.disconnect() threw on freeze",
+            err instanceof Error ? err : undefined,
+          );
+        }
+      };
+      const resume = () => {
+        if (!this.peer) return;
+        const p = this.peer as Peer & {
+          disconnected?: boolean;
+          reconnect?: () => void;
+        };
+        if (!p.disconnected) return;
+        logger.info(
+          "[PeerHost] page resuming — peer.reconnect() to re-register on broker",
+        );
+        try {
+          p.reconnect?.();
+        } catch (err) {
+          logger.error(
+            "[PeerHost] peer.reconnect() threw on resume",
+            err instanceof Error ? err : undefined,
+          );
+        }
+      };
+      document.addEventListener("freeze", suspend);
+      document.addEventListener("resume", resume);
+      // `pageshow` covers the bfcache-restore path (back/forward nav) where
+      // freeze/resume don't fire but the peer may still need re-registering.
+      window.addEventListener("pageshow", resume);
     }
   }
 
@@ -1109,6 +1162,38 @@ export class PeerHostService {
     logger.info("[PeerHost] regenerating peer id");
     this.stop();
     localStorage.removeItem(PEER_ID_KEY);
+    await this.start();
+  }
+
+  /**
+   * Rotate to a fresh share code without stranding currently-connected
+   * stations. Sends `host-id-rotation` over each live data channel BEFORE
+   * tearing the peer down, so the station's auto-reconnect targets the
+   * new id rather than retrying the dead old one. The 500ms flush window
+   * is empirical — typical LAN data-channel RTT is <50ms, and the
+   * message is small (~80 bytes), so half a second comfortably covers a
+   * one-way delivery even on a stressed link. Stations whose channels
+   * have already died before this fires (long sleep, MTU change, etc.)
+   * will need a manual reconnect — that's the residual edge case the
+   * Add Station modal's Regenerate button still serves.
+   *
+   * Used by the unavailable-id recovery path; replaces the previous
+   * "keep existing code, manual Regenerate available" behaviour, which
+   * left the host wedged until the operator noticed.
+   */
+  async rotatePeerIdGracefully(reason: string): Promise<void> {
+    const newPeerId = generateShortId();
+    const liveConns = this.connections.size;
+    logger.info(
+      `[PeerHost] rotating peer id — reason=${reason}, newId=${newPeerId}, liveConns=${liveConns}`,
+    );
+    if (liveConns > 0) {
+      this.broadcast({ type: "host-id-rotation", newPeerId, reason });
+      // Empirical flush window — see method JSDoc.
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
+    }
+    this.stop();
+    localStorage.setItem(PEER_ID_KEY, newPeerId);
     await this.start();
   }
 }

@@ -199,6 +199,15 @@ export function StationScreen() {
         setHostNotFound(true);
       }),
     );
+    // Graceful rotation: host announced a new share code over the live
+    // channel a beat before destroying it. Persist now so a refresh
+    // before the auto-reconnect succeeds also lands on the new id.
+    unsubsRef.current.push(
+      client.onHostPeerIdChange((newPeerId) => {
+        localStorage.setItem(HOST_ID_KEY, newPeerId);
+        setHostInput(newPeerId);
+      }),
+    );
     // One-shot fog snapshot from the host. Persist each mask to the
     // station's local FogMaskStore — the map widget reads through the
     // same store so a refresh shows the host's exploration state.
