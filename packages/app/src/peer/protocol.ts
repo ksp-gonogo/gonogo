@@ -104,6 +104,15 @@ export type PeerMessage =
   // whenever the relay is re-resolved. null means the main screen no longer
   // has a live relay connection.
   | { type: "relay-peer-id"; peerId: string | null }
+  // Host → station, sent over the existing data channel a beat before the
+  // host rotates its share code. Stations update their reconnect target
+  // *before* the host's `peer.destroy()` closes the channel, so their
+  // built-in retry loop reconnects to the new id rather than retrying the
+  // dead old one forever. `reason` is operator-facing diagnostic only
+  // (e.g. "unavailable-id-recovery"). Lifecycle: host broadcasts → ~500ms
+  // flush window → host destroys + restarts on new id → station's conn
+  // closes → station's retry kicks in against the freshly-cached id.
+  | { type: "host-id-rotation"; newPeerId: string; reason: string }
   // Host → station, fired once per connection right after schema. Carries
   // every fog mask the host has stored for the active save profile so a
   // station's map starts populated with whatever the operator has already

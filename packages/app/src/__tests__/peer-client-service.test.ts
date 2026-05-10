@@ -27,6 +27,7 @@ const { FakePeer } = vi.hoisted(() => {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
 
     _lastConn: FakeDataConnection | null = null;
+    _lastConnectTarget: string | null = null;
 
     constructor() {
       FakePeer.instances.push(this);
@@ -44,9 +45,10 @@ const { FakePeer } = vi.hoisted(() => {
       });
     }
 
-    connect(_id: string) {
+    connect(id: string) {
       const conn = new FakeDataConnection();
       this._lastConn = conn;
+      this._lastConnectTarget = id;
       return conn;
     }
 
@@ -393,6 +395,37 @@ describe("PeerClientService reconnect loop", () => {
     vi.advanceTimersByTime(1000);
     // No new FakePeer should be constructed after disconnect
     expect(FakePeer.instances).toHaveLength(1);
+  });
+
+  it("host-id-rotation fires onHostPeerIdChange and repoints subsequent reconnects", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const rotations: string[] = [];
+    svc.onHostPeerIdChange((id) => rotations.push(id));
+
+    svc.connect("OLD");
+    driveOpen(FakePeer.instances[0]);
+
+    // Host announces rotation over the live channel.
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "host-id-rotation",
+      newPeerId: "NEW",
+      reason: "unavailable-id-recovery",
+    });
+
+    expect(rotations).toEqual(["NEW"]);
+
+    // Host then destroys the channel a beat later — close fires, retry
+    // loop spins up against the *new* id.
+    FakePeer.instances[0]._lastConn?.emit("close");
+    vi.advanceTimersByTime(50);
+
+    // A second Peer is constructed; its peer.connect target is "NEW".
+    expect(FakePeer.instances).toHaveLength(2);
+    driveOpen(FakePeer.instances[1]);
+    expect(FakePeer.instances[1]._lastConnectTarget).toBe("NEW");
   });
 });
 
