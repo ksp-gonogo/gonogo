@@ -244,6 +244,16 @@ export class PeerHostService {
   // rebuild of the relay container silently breaks new TURN allocations
   // until the operator hard-refreshes the host page.
   private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  // Exponential-backoff state for the broker-reconnect path. PeerJS's
+  // `disconnected` event fires synchronously from the WS's `onclose`
+  // handler — if the broker is unreachable or rate-limiting us, the
+  // earlier "always reconnect immediately" handler turned that into a
+  // ~10 reconnect/sec loop that kept us blocked indefinitely. Backoff
+  // breaks the tight loop and lets a transient broker hiccup or rate
+  // limit recover without operator intervention. Resets on every
+  // successful `open`; cleared on stop().
+  private brokerReconnectAttempt = 0;
+  private brokerReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   async start() {
     const peerId = getOrCreatePeerId();
@@ -266,6 +276,16 @@ export class PeerHostService {
       // Latches once per session — see the auto-rotate guard in the
       // error handler below for why.
       this.peerHasOpened = true;
+      // Reset the broker-reconnect backoff: a successful open means
+      // whatever was wrong with the broker WS has cleared, and the next
+      // disconnect should retry quickly. Without this reset, a long-
+      // lived session that survives one bad-broker stretch would carry
+      // a stale 30s backoff forever.
+      this.brokerReconnectAttempt = 0;
+      if (this.brokerReconnectTimer !== null) {
+        clearTimeout(this.brokerReconnectTimer);
+        this.brokerReconnectTimer = null;
+      }
       // Tag every subsequent log entry with this device's identity so we
       // can filter "all logs from host XK3F" in the remote sink. The host
       // peer id is both the stable device id and the broker id.
@@ -343,18 +363,32 @@ export class PeerHostService {
     // The OcislyStreamSource was burning retries against this stuck
     // flag. Calling `peer.reconnect()` here resets the flag and
     // re-handshakes with the broker.
+    //
+    // Backoff: PeerJS fires `disconnected` synchronously from the WS's
+    // own `onclose`, so an immediate `peer.reconnect()` reopens a WS
+    // that may immediately fail again — closing the door on a ~10/sec
+    // tight loop that hammers the broker and keeps us blocked when
+    // peerjs.com is rate-limiting or temporarily unreachable.
+    // Exponential 500ms → 30s with a single in-flight timer; resets on
+    // the next successful `open`.
     this.peer.on("disconnected", () => {
+      if (this.brokerReconnectTimer !== null) return; // already scheduled
+      const attempt = ++this.brokerReconnectAttempt;
+      const delayMs = Math.min(500 * 2 ** (attempt - 1), 30_000);
       logger.warn(
-        "[PeerHost] broker disconnected — calling peer.reconnect() to clear stuck flag",
+        `[PeerHost] broker disconnected — scheduling peer.reconnect() in ${delayMs}ms (attempt ${attempt})`,
       );
-      try {
-        this.peer?.reconnect();
-      } catch (err) {
-        logger.error(
-          "[PeerHost] peer.reconnect() threw",
-          err instanceof Error ? err : undefined,
-        );
-      }
+      this.brokerReconnectTimer = setTimeout(() => {
+        this.brokerReconnectTimer = null;
+        try {
+          this.peer?.reconnect();
+        } catch (err) {
+          logger.error(
+            "[PeerHost] peer.reconnect() threw",
+            err instanceof Error ? err : undefined,
+          );
+        }
+      }, delayMs);
     });
 
     this.peer.on("error", (err) => {
@@ -1093,6 +1127,11 @@ export class PeerHostService {
     this.flightListChangeUnsub = null;
     this.currentFlightSnapshot = null;
     this.stopIceConfigRefresh();
+    if (this.brokerReconnectTimer !== null) {
+      clearTimeout(this.brokerReconnectTimer);
+      this.brokerReconnectTimer = null;
+    }
+    this.brokerReconnectAttempt = 0;
     this.peer?.destroy();
     this.peer = null;
     this.peerId = null;
