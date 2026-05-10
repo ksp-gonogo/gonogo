@@ -41,6 +41,7 @@ import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { RecoverySummaryBanner } from "../components/RecoverySummaryBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
@@ -51,6 +52,7 @@ import {
   MissionProfilesFab,
   MissionProfilesProvider,
   MissionProfilesService,
+  SceneSwitchPrompt,
 } from "../missionProfiles";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
 import { KosPeerConnection } from "../peer/KosPeerConnection";
@@ -504,6 +506,12 @@ export function StationScreen() {
                                         )
                                       }
                                     />
+                                    <SceneSwitchPrompt
+                                      bottom={504}
+                                      onLoad={(items, layouts) =>
+                                        dashboard.replaceState(items, layouts)
+                                      }
+                                    />
                                     <AlarmsFab
                                       bottom={564}
                                       useSnapshot={useStationAlarmSnapshot}
@@ -531,6 +539,7 @@ export function StationScreen() {
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
+                                  <RecoverySummaryBanner />
                                 </Layout>
                               </AlarmsLauncherBridge>
                             </OverlayProvider>

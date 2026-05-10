@@ -184,7 +184,19 @@ describe("parseContracts", () => {
       { title: "missing id" },
     ]);
     expect(parsed).toHaveLength(1);
-    expect(parsed?.[0]?.id).toBe(1);
+    // IDs are stringified — JS numbers can't represent KSP's full long
+    // range, so the parser normalises to string regardless of input type.
+    expect(parsed?.[0]?.id).toBe("1");
+  });
+
+  it("preserves big-number contract IDs from the new long-as-string fork", () => {
+    const parsed = parseContracts([
+      { id: "193244571874398123", title: "big id" },
+      { id: 690587659210, title: "legacy numeric id" },
+    ]);
+    expect(parsed).toHaveLength(2);
+    expect(parsed?.[0]?.id).toBe("193244571874398123");
+    expect(parsed?.[1]?.id).toBe("690587659210");
   });
 
   it("collapses unknown parameter states to Incomplete", () => {
