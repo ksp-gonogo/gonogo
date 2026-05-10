@@ -93,18 +93,27 @@ namespace GonogoTelemetry
                 ? Array.Empty<string>()
                 : crewArg.Split(';');
 
-            // Build a VesselCrewManifest by reading the .craft to find the
-            // command pod / crew capacity, then assigning the named crew
-            // to the first available seats. KSP exposes
-            // `VesselCrewManifest.FromConfigNode` for this; if the
-            // manifest is null the vessel launches unmanned.
-            VesselCrewManifest manifest = null;
+            // Always build a VesselCrewManifest from the .craft, even when
+            // launching unmanned. KSP's ShipConstruction.AssembleForLaunch
+            // dereferences fields on the manifest unconditionally; passing
+            // null causes an NRE inside FlightDriver.setStartupNewVessel,
+            // which leaves the Flight scene partially initialised and
+            // every per-frame UI subsystem (EditorActionGroups,
+            // VesselAutopilotUI, FlightCamera.GetCameraFoR, …) spamming
+            // NREs in LateUpdate. The visible symptom is a "frozen" HUD
+            // with sentinel values; root cause is the manifest null.
+            //
+            // We populate seats only when crew names are provided —
+            // otherwise the manifest exists but has no kerbals assigned,
+            // which is the unmanned-launch case KSP handles cleanly.
+            VesselCrewManifest manifest;
             try
             {
                 var craftNode = ConfigNode.Load(craftPath);
-                if (craftNode != null && crewNames.Length > 0)
+                if (craftNode == null) return "could not load craft node";
+                manifest = VesselCrewManifest.FromConfigNode(craftNode);
+                if (crewNames.Length > 0)
                 {
-                    manifest = VesselCrewManifest.FromConfigNode(craftNode);
                     AssignCrew(manifest, crewNames);
                 }
             }
