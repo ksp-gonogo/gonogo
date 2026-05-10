@@ -42,6 +42,7 @@ import {
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { RecoverySummaryBanner } from "../components/RecoverySummaryBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
@@ -55,6 +56,7 @@ import {
   MissionProfilesFab,
   MissionProfilesProvider,
   MissionProfilesService,
+  SceneSwitchPrompt,
 } from "../missionProfiles";
 import { createNotesHost } from "../notes/createNotesHost";
 import { NotesHostProvider } from "../notes/NotesHostContext";
@@ -247,6 +249,12 @@ export function MainScreen() {
                                         )
                                       }
                                     />
+                                    <SceneSwitchPrompt
+                                      bottom={504}
+                                      onLoad={(items, layouts) =>
+                                        dashboard.replaceState(items, layouts)
+                                      }
+                                    />
                                     <MainAlarmsFab />
                                   </FabClusterProvider>
                                   <AlarmBanner />
@@ -254,6 +262,7 @@ export function MainScreen() {
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <SceneChangeBanner />
+                                  <RecoverySummaryBanner />
                                   <PushedDashboardOverlay />
                                 </Layout>
                               </MainAlarmsLauncherScope>

@@ -96,7 +96,53 @@ export interface FlightRecord {
    * days" cleanup. Per-row delete and "Clear all" still remove them.
    */
   starred?: boolean;
+  /**
+   * Final outcome of the flight, populated when KSP fires a recovery
+   * dialog (`recovery.lastSummary`) or a crash (`crash.lastCrash`).
+   * Untouched while the flight is in progress and on flights that
+   * neither finished cleanly nor crashed (e.g. a save reload pulled
+   * the vessel out from under the detector). Most-recent-outcome
+   * wins if both events fire for the same vessel — KSP can crash a
+   * vessel and the operator might still recover its remains.
+   */
+  outcome?: FlightOutcome;
 }
+
+/**
+ * Recovery-side outcome: KSP completed its post-flight tally and
+ * surfaced the mission summary dialog. Captures the bits relevant to
+ * a flight-record view (vesselName + headline scalars + crew); the
+ * full breakdown lives on `recovery.lastSummary` and isn't duplicated
+ * onto every flight record.
+ */
+export interface FlightRecoveryOutcome {
+  kind: "recovered";
+  /** Wall-clock ms when the outcome was captured. */
+  recordedAt: number;
+  recoveryLocation: string;
+  recoveryFactor: string;
+  fundsEarned: number;
+  scienceEarned: number;
+  reputationEarned: number;
+  /** Names of crew that were aboard at recovery. */
+  crew: string[];
+}
+
+/**
+ * Crash-side outcome: KSP fired `onCrash` / `onCrashSplashdown`
+ * for the vessel. Records the headline cause and any kerbals killed.
+ */
+export interface FlightCrashOutcome {
+  kind: "crashed";
+  recordedAt: number;
+  body: string;
+  situation: string;
+  what: string;
+  partsLostCount: number;
+  kerbalsKilled: string[];
+}
+
+export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
 
 /**
  * One named slice of a flight, persisted on the FlightRecord. Mirrors the

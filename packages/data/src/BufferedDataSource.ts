@@ -17,7 +17,9 @@ import type { Store } from "./storage/Store";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
+  FlightCrashOutcome,
   FlightRecord,
+  FlightRecoveryOutcome,
   Sample,
   SeriesRange,
 } from "./types";
@@ -38,6 +40,41 @@ const BUFFERED_SAMPLE_BUDGET = new PerfBudget({
 });
 
 type Clock = () => number;
+
+/**
+ * Match a recovery/crash event to a FlightRecord by vessel name, prefer
+ * the most-recent (highest `launchedAt`). KSP may auto-name vessels with
+ * collisions so we don't trust the first match — we scan and pick the
+ * latest. Returns null if no flight in the list bears the given name.
+ */
+function pickMostRecentFlightByName(
+  flights: readonly FlightRecord[],
+  vesselName: string,
+): FlightRecord | null {
+  let best: FlightRecord | null = null;
+  for (const f of flights) {
+    if (f.vesselName !== vesselName) continue;
+    if (!best || f.launchedAt > best.launchedAt) best = f;
+  }
+  return best;
+}
+
+function parseCrewNames(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const names: string[] = [];
+  for (const entry of raw) {
+    if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+      const e = entry as Record<string, unknown>;
+      if (typeof e.name === "string") names.push(e.name);
+    }
+  }
+  return names;
+}
+
+function parseStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((x): x is string => typeof x === "string");
+}
 
 interface Options {
   /** Source id under which this buffered layer is registered. Defaults to `"data"`. */
@@ -151,6 +188,14 @@ export class BufferedDataSource extends DataSourceWrapper {
    */
   private signalConnected = true;
   private hasConfirmedConnection = false;
+
+  // Idempotence keys for outcome annotation. Telemachus's
+  // recovery.lastSummary / crash.lastCrash are sticky — they emit the same
+  // payload on every WS tick until a fresh capture replaces them. Track
+  // the snapshot's capture-time so we only annotate the FlightRecord
+  // when a genuinely new outcome arrives.
+  private lastAppliedRecoveryAtUT: number | null = null;
+  private lastAppliedCrashAtUT: number | null = null;
 
   constructor(opts: Options) {
     super(opts.source, {
@@ -648,6 +693,17 @@ export class BufferedDataSource extends DataSourceWrapper {
       this.latestName = value;
     }
 
+    // Recovery / crash snapshots from the GonogoTelemetry plugin —
+    // annotate the matching flight record with the final outcome. Idempotent
+    // per snapshot ut (the snapshots are sticky on Telemachus's side; we
+    // don't want to overwrite an outcome with the same outcome every tick).
+    if (key === "recovery.lastSummary" && value && typeof value === "object") {
+      this.applyRecoveryOutcome(value as Record<string, unknown>);
+    }
+    if (key === "crash.lastCrash" && value && typeof value === "object") {
+      this.applyCrashOutcome(value as Record<string, unknown>);
+    }
+
     const t = this.now();
 
     // Track latest raw sample for the derivation engine.
@@ -701,6 +757,84 @@ export class BufferedDataSource extends DataSourceWrapper {
 
     // Run derived keys that depend on this raw key.
     this.runDerivedKeys(key, current?.id ?? null);
+  }
+
+  /**
+   * Annotate the FlightRecord matching the recovered vessel with a
+   * recovery outcome. Matches by `vesselName` against listFlights ordered
+   * by most-recent — the recovered vessel is almost always the most
+   * recent flight, but if names collide (rare; KSP auto-assigns names),
+   * the most-recent match wins.
+   *
+   * Idempotent per `capturedAtUT`: a sticky `recovery.lastSummary`
+   * snapshot keeps emitting until replaced, but the FlightRecord is
+   * only updated once per snapshot.
+   */
+  private applyRecoveryOutcome(payload: Record<string, unknown>): void {
+    const capturedAt =
+      typeof payload.capturedAtUT === "number" ? payload.capturedAtUT : 0;
+    if (capturedAt === this.lastAppliedRecoveryAtUT) return;
+    const vesselName =
+      typeof payload.vesselName === "string" ? payload.vesselName : "";
+    if (!vesselName) return;
+    this.lastAppliedRecoveryAtUT = capturedAt;
+
+    void this.store.listFlights().then((flights) => {
+      const match = pickMostRecentFlightByName(flights, vesselName);
+      if (!match) return;
+      const outcome: FlightRecoveryOutcome = {
+        kind: "recovered",
+        recordedAt: this.now(),
+        recoveryLocation:
+          typeof payload.recoveryLocation === "string"
+            ? payload.recoveryLocation
+            : "",
+        recoveryFactor:
+          typeof payload.recoveryFactor === "string"
+            ? payload.recoveryFactor
+            : "",
+        fundsEarned:
+          typeof payload.fundsEarned === "number" ? payload.fundsEarned : 0,
+        scienceEarned:
+          typeof payload.scienceEarned === "number" ? payload.scienceEarned : 0,
+        reputationEarned:
+          typeof payload.reputationEarned === "number"
+            ? payload.reputationEarned
+            : 0,
+        crew: parseCrewNames(payload.crewBreakdown),
+      };
+      void this.store.upsertFlight({ ...match, outcome });
+      this.flightListSubscribers.fire();
+    });
+  }
+
+  private applyCrashOutcome(payload: Record<string, unknown>): void {
+    const ut = typeof payload.ut === "number" ? payload.ut : 0;
+    if (ut === this.lastAppliedCrashAtUT) return;
+    const vesselName =
+      typeof payload.vesselName === "string" ? payload.vesselName : "";
+    if (!vesselName) return;
+    this.lastAppliedCrashAtUT = ut;
+
+    void this.store.listFlights().then((flights) => {
+      const match = pickMostRecentFlightByName(flights, vesselName);
+      if (!match) return;
+      const partsLost = Array.isArray(payload.partsLost)
+        ? payload.partsLost.length
+        : 0;
+      const outcome: FlightCrashOutcome = {
+        kind: "crashed",
+        recordedAt: this.now(),
+        body: typeof payload.body === "string" ? payload.body : "",
+        situation:
+          typeof payload.situation === "string" ? payload.situation : "",
+        what: typeof payload.what === "string" ? payload.what : "",
+        partsLostCount: partsLost,
+        kerbalsKilled: parseStringArray(payload.kerbalsKilled),
+      };
+      void this.store.upsertFlight({ ...match, outcome });
+      this.flightListSubscribers.fire();
+    });
   }
 
   private runDerivedKeys(changedKey: string, flightId: string | null): void {

@@ -311,6 +311,22 @@ export function FlightsManager({ screen = "main" }: FlightsManagerProps = {}) {
                   <Td>
                     {f.vesselName || "—"}
                     {isCurrent && <CurrentBadge>current</CurrentBadge>}
+                    {f.outcome?.kind === "recovered" && (
+                      <OutcomeBadge
+                        $tone="go"
+                        title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${Math.round(f.outcome.fundsEarned).toLocaleString()}f · +${f.outcome.scienceEarned.toFixed(1)} sci`}
+                      >
+                        recovered
+                      </OutcomeBadge>
+                    )}
+                    {f.outcome?.kind === "crashed" && (
+                      <OutcomeBadge
+                        $tone="nogo"
+                        title={`Crashed at ${f.outcome.body} (${f.outcome.situation}) · ${f.outcome.partsLostCount} part(s) lost${f.outcome.kerbalsKilled.length > 0 ? ` · KIA: ${f.outcome.kerbalsKilled.join(", ")}` : ""}`}
+                      >
+                        crashed
+                      </OutcomeBadge>
+                    )}
                   </Td>
                   <Td>{formatDate(f.launchedAt)}</Td>
                   <Td>{formatDuration(f.launchedAt, f.lastSampleAt)}</Td>
@@ -577,6 +593,30 @@ const CurrentBadge = styled.span`
   color: var(--color-accent-fg);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+`;
+
+const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
+  display: inline-block;
+  margin-left: 6px;
+  font-size: var(--font-size-xs);
+  padding: 1px 5px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: help;
+  background: ${(p) =>
+    p.$tone === "go"
+      ? "var(--color-status-go-bg)"
+      : "var(--color-status-nogo-bg)"};
+  border: 1px solid
+    ${(p) =>
+      p.$tone === "go"
+        ? "var(--color-status-go-bg)"
+        : "var(--color-status-nogo-bg)"};
+  color: ${(p) =>
+    p.$tone === "go"
+      ? "var(--color-status-go-fg)"
+      : "var(--color-status-nogo-fg)"};
 `;
 
 const DeleteButton = styled.button`

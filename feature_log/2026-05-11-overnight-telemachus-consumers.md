@@ -92,6 +92,72 @@ Tests: 45 pass (existing — no new tests added; the change is purely
 visual caption text driven by useDataValue, which the existing test
 harness already exercises through `useDataSchema`).
 
+### MissionDirector multi-param rendering
+
+Parser updated to capture the type-aware fields (`parameterType`,
+`minAltitude`, `maxAltitude`, `body`, `situation`, `partName`). New
+`AltitudeProgress` sub-component renders a thin progress bar under any
+`Incomplete` parameter of type `ReachAltitudeEnvelope` — fills toward
+target band when below, full green when in-band, full grey + `+Xkm`
+overshoot when above. Driven by `v.altitude` from the existing live
+subscription.
+
+**Long-id-as-string fix shipped in this session also required parser
+changes here** — KSP contract IDs exceed 2^53 and the previous strict
+`typeof e.id === "number"` would silently drop string-encoded contracts
+after the fork's restart. Parser now accepts both string and number,
+normalises to string internally. ContractEntry.id is now `string`.
+
+Downstream consumers (`CancelButton`, `DeclineButton`) widened their
+contractId prop from `number` to `string`. The contract-parameter alarm
+trigger still uses `contractId: number` (alarm-system type) — bell button
+is now gated by a safe-integer check via `contractIdToSafeNumber()`;
+big-id contracts render a disabled bell with explanatory tooltip rather
+than silently dropping the bell or crashing on overflow.
+
+Tests: 16 pass (added 1 new — "preserves big-number contract IDs from
+the new long-as-string fork").
+
+### Mission summary banner + modal
+
+New `RecoverySummaryBanner` component (in
+`packages/app/src/components/RecoverySummaryBanner.tsx`). Mirrors the
+`SceneChangeBanner` pattern: subscribes to `recovery.hasRecent` +
+`recovery.lastSummary`, fires the banner on the false→true transition
+keyed by `capturedAtUT` (so a sticky snapshot doesn't re-fire). Banner
+shows vessel name + funds/sci/rep totals; tap opens a `useModal()`
+modal with the full breakdowns (science subjects, parts, resources,
+crew XP).
+
+Wired into both `MainScreen` and `StationScreen` next to existing
+banners — every screen pops its own independent banner since the
+underlying data flows over `PeerBroadcastingDataSource` to every
+station automatically.
+
+### Flight history annotation (recovery + crash)
+
+New `FlightOutcome` discriminated union on `FlightRecord` with two
+variants: `FlightRecoveryOutcome` (kind: "recovered" — recoveryLocation,
+recoveryFactor, fundsEarned, scienceEarned, reputationEarned, crew) and
+`FlightCrashOutcome` (kind: "crashed" — body, situation, what,
+partsLostCount, kerbalsKilled).
+
+`BufferedDataSource.handleSample` now intercepts `recovery.lastSummary`
+and `crash.lastCrash` arrivals, matches the payload to a `FlightRecord`
+by vessel name (most-recent-launchedAt wins on name collision), and
+persists the outcome via `store.upsertFlight`. Idempotent per
+snapshot's `capturedAtUT` / `ut` so sticky telemetry doesn't repeatedly
+overwrite the same outcome every WS tick.
+
+`FlightsManager` row renders an `OutcomeBadge` next to the vessel name:
+green "recovered" / red "crashed", with a hover tooltip showing the
+relevant detail (recovery location/factor/funds, or crash body/parts/
+kerbals KIA).
+
+Tests: 272 data tests + 382 app tests still pass; no new tests for the
+outcome annotation itself (would need integration-level fixtures with
+a fake store + faked recovery.lastSummary samples — worth a follow-up).
+
 ## Deferred this session
 
 ### Stock alarm mirror — blocked on read-response design
@@ -123,35 +189,31 @@ contract simple and the alarm mirror's "create + observe" model
 matches how gonogo already syncs state with KSP. Worth a focused
 design session.
 
-### MissionDirector multi-param rendering — pending next-restart DLL
-
-The type-aware parameter emit (`parameterType`, `minAltitude`,
-`maxAltitude`, `body`, `situation`, `partName`) is in the DLL that
-ships in this session but won't be live until KSP restarts. Holding
-the MissionDirector rendering changes for that boot.
-
-### Mission summary banner + modal — pending
-
-New component planned. SceneChangeBanner pattern; fires on
-`recovery.hasRecent` false→true transition; tap to open modal with
-the full breakdown. Cross-station via PeerBroadcastingDataSource.
-
-### Flight history annotation — pending
-
-Hook `recovery.lastSummary` and (new in this session)
-`crash.lastCrash` into `FlightRecord` so each flight gets an outcome
-appended. Natural insertion point: `BufferedDataSource.handleSample`
-around the existing detector decision at line 666.
+### Stock alarm mirror — same blocker (CORS / WS-observation design)
 
 ## Files touched
 
 ```
+# Fork
 local_docs/telemachus-fork/Telemachus/src/CrashDataHandler.cs   (NEW)
 local_docs/telemachus-fork/Telemachus/src/KSPAPIBase.cs         (wired handler)
-packages/components/src/StaffRoster/index.tsx                    (expanded)
+
+# gonogo (commit 1: 7bc8f1c)
+packages/components/src/StaffRoster/index.tsx                    (expanded; uses @gonogo/ui Badge)
 packages/components/src/StaffRoster/index.test.tsx               (2 new tests)
 packages/app/src/alarms/AlarmsModal.tsx                          (AG captions)
+
+# gonogo (commit 2)
+packages/components/src/MissionDirector/index.tsx                (multi-param + altitude progress + id-as-string)
+packages/components/src/MissionDirector/index.test.tsx           (1 new test for big-id roundtrip)
+packages/app/src/components/RecoverySummaryBanner.tsx            (NEW — banner + modal)
+packages/app/src/screens/MainScreen.tsx                          (mount banner)
+packages/app/src/screens/StationScreen.tsx                       (mount banner)
+packages/data/src/types.ts                                       (FlightOutcome union on FlightRecord)
+packages/data/src/BufferedDataSource.ts                          (outcome annotation on recovery/crash samples)
+packages/data/src/FlightsManager/index.tsx                       (OutcomeBadge in row)
 feature_log/2026-05-11-overnight-telemachus-consumers.md         (this entry)
+feature_log/INDEX.md                                             (index update)
 ```
 
 ## Outstanding (small)

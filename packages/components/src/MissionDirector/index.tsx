@@ -39,10 +39,33 @@ export interface ContractParameter {
   title: string;
   state: ContractParameterState;
   optional: boolean;
+  /**
+   * Subclass of `ContractParameter` in stock KSP. Present when the fork's
+   * type-aware emit recognises the parameter (ReachAltitudeEnvelope,
+   * ReachSituation, ReachDestination, PartTest). Older DLLs that only
+   * emit title/state/optional leave this undefined.
+   */
+  parameterType?: string;
+  /** ReachAltitudeEnvelope min, metres. */
+  minAltitude?: number;
+  /** ReachAltitudeEnvelope max, metres. */
+  maxAltitude?: number;
+  /** ReachDestination body name (matches v.body). */
+  body?: string;
+  /** ReachSituation / PartTest situation name (Landed, Flying, etc.). */
+  situation?: string;
+  /** PartTest target part name (e.g. "sensorBarometer"). */
+  partName?: string;
 }
 
 export interface ContractEntry {
-  id: number;
+  /**
+   * Contract id as a string. KSP contract IDs are full 64-bit longs and
+   * frequently exceed Number.MAX_SAFE_INTEGER; the fork emits them as
+   * strings (since 2026-05-11) to roundtrip cleanly. The parser accepts
+   * legacy numeric IDs too for backwards-compat with older DLLs.
+   */
+  id: string;
   title: string;
   agency: string;
   state: string;
@@ -78,7 +101,14 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    const id = typeof e.id === "number" ? e.id : null;
+    // Accept string (current) OR number (legacy DLL). KSP contract IDs
+    // routinely exceed Number.MAX_SAFE_INTEGER, so the fork emits them
+    // as strings since 2026-05-11. Older DLLs emit numbers, which we
+    // stringify so downstream consumers have one type to deal with.
+    let id: string | null = null;
+    if (typeof e.id === "string" && e.id.length > 0) id = e.id;
+    else if (typeof e.id === "number" && Number.isFinite(e.id))
+      id = String(e.id);
     if (id === null) continue;
     out.push({
       id,
@@ -109,9 +139,36 @@ function parseParameters(raw: unknown): ContractParameter[] {
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       state: isKnownParamState(stateRaw) ? stateRaw : "Incomplete",
       optional: e.optional === true,
+      parameterType:
+        typeof e.parameterType === "string" ? e.parameterType : undefined,
+      minAltitude:
+        typeof e.minAltitude === "number" ? e.minAltitude : undefined,
+      maxAltitude:
+        typeof e.maxAltitude === "number" ? e.maxAltitude : undefined,
+      body: typeof e.body === "string" ? e.body : undefined,
+      situation: typeof e.situation === "string" ? e.situation : undefined,
+      partName: typeof e.partName === "string" ? e.partName : undefined,
     });
   }
   return out;
+}
+
+/**
+ * Convert a contract id string to a JS number when it fits in the
+ * safe-integer range. Returns null for KSP-generated long IDs that
+ * exceed Number.MAX_SAFE_INTEGER (about 9×10^15). Used to gate
+ * features that depend on the alarm system's current
+ * `contractId: number` shape.
+ */
+export function contractIdToSafeNumber(id: string): number | null {
+  // Long.TryParse accepts negative IDs too, which JS Number can also
+  // represent. Reject scientific-notation strings since they'd already
+  // be lossy at this point.
+  if (!/^-?\d+$/.test(id)) return null;
+  const n = Number(id);
+  if (!Number.isFinite(n)) return null;
+  if (!Number.isSafeInteger(n)) return null;
+  return n;
 }
 
 /** Format a UT-second deadline relative to the current universal time. */
@@ -141,6 +198,7 @@ function MissionDirectorComponent({
   const universalTime = useDataValue("data", "t.universalTime") as
     | number
     | undefined;
+  const vAltitude = useDataValue("data", "v.altitude") as number | undefined;
   const execute = useExecuteAction("data");
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
 
@@ -222,28 +280,62 @@ function MissionDirectorComponent({
                     <ParameterTitle>
                       {p.title}
                       {p.optional && <Optional> (optional)</Optional>}
+                      {p.state === "Incomplete" &&
+                        p.parameterType === "ReachAltitudeEnvelope" &&
+                        p.minAltitude !== undefined &&
+                        p.maxAltitude !== undefined &&
+                        typeof vAltitude === "number" && (
+                          <AltitudeProgress
+                            min={p.minAltitude}
+                            max={p.maxAltitude}
+                            current={vAltitude}
+                          />
+                        )}
                     </ParameterTitle>
-                    {p.state === "Incomplete" && createAlarm && (
-                      <ParameterAlarmButton
-                        type="button"
-                        title={`Alarm me when "${p.title}" completes`}
-                        aria-label={`Set alarm for ${p.title} completion`}
-                        onClick={() =>
-                          createAlarm({
-                            name: `${p.title} → Complete`,
-                            trigger: {
-                              kind: "contract-parameter",
-                              contractId: c.id,
-                              parameterTitle: p.title,
-                              targetState: "Complete",
-                              sustainSeconds: 0,
-                            },
-                          })
-                        }
-                      >
-                        <BellIcon size={12} />
-                      </ParameterAlarmButton>
-                    )}
+                    {p.state === "Incomplete" &&
+                      createAlarm &&
+                      contractIdToSafeNumber(c.id) !== null && (
+                        <ParameterAlarmButton
+                          type="button"
+                          title={`Alarm me when "${p.title}" completes`}
+                          aria-label={`Set alarm for ${p.title} completion`}
+                          onClick={() => {
+                            // Pre-checked above so non-null; types still
+                            // need the local binding for TS to narrow.
+                            const numericId = contractIdToSafeNumber(c.id);
+                            if (numericId === null) return;
+                            createAlarm({
+                              name: `${p.title} → Complete`,
+                              trigger: {
+                                kind: "contract-parameter",
+                                contractId: numericId,
+                                parameterTitle: p.title,
+                                targetState: "Complete",
+                                sustainSeconds: 0,
+                              },
+                            });
+                          }}
+                        >
+                          <BellIcon size={12} />
+                        </ParameterAlarmButton>
+                      )}
+                    {p.state === "Incomplete" &&
+                      createAlarm &&
+                      contractIdToSafeNumber(c.id) === null && (
+                        // Big-id contracts (KSP-generated longs above
+                        // Number.MAX_SAFE_INTEGER) can't be addressed by the
+                        // current alarm trigger shape (contractId: number).
+                        // Render a disabled icon with explanation rather
+                        // than hide — keeps the row layout consistent.
+                        <ParameterAlarmButton
+                          type="button"
+                          disabled
+                          title="Cannot alarm — contract id exceeds JS safe-integer range. Fix tracked in feature_log."
+                          aria-label="Alarm unavailable for this contract"
+                        >
+                          <BellIcon size={12} />
+                        </ParameterAlarmButton>
+                      )}
                   </Parameter>
                 ))}
               </Parameters>
@@ -307,7 +399,7 @@ function DeclineButton({
   contractId,
   execute,
 }: {
-  contractId: number;
+  contractId: string;
   execute: (action: string) => Promise<void>;
 }) {
   const [armed, setArmed] = useState(false);
@@ -344,7 +436,7 @@ function CancelButton({
   contractId,
   execute,
 }: {
-  contractId: number;
+  contractId: string;
   execute: (action: string) => Promise<void>;
 }) {
   const [armed, setArmed] = useState(false);
@@ -598,6 +690,87 @@ const ParameterMark = styled.span<{ $state: ContractParameterState }>`
 const ParameterTitle = styled.span`
   flex: 1;
   min-width: 0;
+`;
+
+/**
+ * Inline progress indicator for ReachAltitudeEnvelope parameters. Renders
+ * a thin bar showing where the current altitude sits between min and max.
+ * Below the band: bar empty + "−Xkm". In the band: bar fully green +
+ * "in band". Above: bar full + "+Xkm".
+ *
+ * Helps the operator see at a glance how close the vessel is to the
+ * target band without parsing the title string and doing the maths.
+ */
+function AltitudeProgress({
+  min,
+  max,
+  current,
+}: {
+  min: number;
+  max: number;
+  current: number;
+}) {
+  const inBand = current >= min && current <= max;
+  let fillFrac: number;
+  let label: string;
+  if (inBand) {
+    fillFrac = 1;
+    label = "in band";
+  } else if (current < min) {
+    // Below the band — show progress toward min as fraction.
+    fillFrac = Math.max(0, Math.min(1, current / min));
+    const delta = min - current;
+    label = `−${formatAltitudeShort(delta)}`;
+  } else {
+    fillFrac = 1;
+    const delta = current - max;
+    label = `+${formatAltitudeShort(delta)}`;
+  }
+  return (
+    <AltitudeBarRow>
+      <AltitudeBarTrack>
+        <AltitudeBarFill $frac={fillFrac} $inBand={inBand} />
+      </AltitudeBarTrack>
+      <AltitudeBarLabel $inBand={inBand}>{label}</AltitudeBarLabel>
+    </AltitudeBarRow>
+  );
+}
+
+function formatAltitudeShort(m: number): string {
+  if (m < 1000) return `${Math.round(m)}m`;
+  return `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+}
+
+const AltitudeBarRow = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+`;
+
+const AltitudeBarTrack = styled.span`
+  display: inline-block;
+  width: 60px;
+  height: 4px;
+  background: var(--color-border-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const AltitudeBarFill = styled.span<{ $frac: number; $inBand: boolean }>`
+  display: block;
+  height: 100%;
+  width: ${(p) => Math.max(0, Math.min(1, p.$frac)) * 100}%;
+  background: ${(p) =>
+    p.$inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)"};
+  transition: width 200ms ease;
+`;
+
+const AltitudeBarLabel = styled.span<{ $inBand: boolean }>`
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: ${(p) =>
+    p.$inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
 `;
 
 const ParameterAlarmButton = styled.button`
