@@ -1,4 +1,4 @@
-import { ACTION_GROUPS } from "@gonogo/core";
+import { ACTION_GROUPS, useDataValue } from "@gonogo/core";
 import { useDataSchema } from "@gonogo/data";
 import {
   Badge,
@@ -516,6 +516,22 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
       </>
     );
   }
+  if (a.trigger.kind === "contract-parameter") {
+    const t = a.trigger;
+    const matchInfo =
+      a.matchSinceUT != null && utNow != null
+        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${t.sustainSeconds}s)`
+        : t.sustainSeconds > 0
+          ? ` · sustain ${t.sustainSeconds}s`
+          : "";
+    return (
+      <code>
+        {t.parameterTitle} → {t.targetState}
+        {matchInfo}
+      </code>
+    );
+  }
+  // Threshold — narrow exhausted by the two `kind` checks above.
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null
@@ -560,6 +576,69 @@ interface OnFireEditorProps {
   onAdd: () => void;
 }
 
+/**
+ * Translate a gonogo ACTION_GROUPS toggle key (e.g. `f.ag1`, `f.sas`,
+ * `f.brake`) into the matching KSPActionGroup enum name returned by
+ * Telemachus's `f.ag.bindings` payload (`Custom01`, `SAS`, `Brakes`).
+ * Returns null for toggle keys with no KSP equivalent.
+ */
+function kspActionGroupName(toggle: string | null): string | null {
+  if (!toggle) return null;
+  switch (toggle) {
+    case "f.sas":
+      return "SAS";
+    case "f.rcs":
+      return "RCS";
+    case "f.light":
+      return "Light";
+    case "f.gear":
+      return "Gear";
+    // KSP plural — toggle key is singular for ergonomic reasons.
+    case "f.brake":
+      return "Brakes";
+    case "f.abort":
+      return "Abort";
+    case "f.stage":
+      return "Stage";
+    default: {
+      const m = toggle.match(/^f\.ag(\d+)$/);
+      if (m) return `Custom${m[1].padStart(2, "0")}`;
+      return null;
+    }
+  }
+}
+
+interface AgBinding {
+  actionGroup: string;
+  partName: string;
+  partTitle: string;
+  actionGuiName: string;
+}
+
+function isAgBindingArray(v: unknown): v is AgBinding[] {
+  if (!Array.isArray(v)) return false;
+  return v.every(
+    (x) =>
+      x &&
+      typeof x === "object" &&
+      typeof (x as AgBinding).actionGroup === "string",
+  );
+}
+
+function captionForAg(
+  toggle: string | null,
+  bindings: AgBinding[] | null,
+): string {
+  if (!bindings) return "";
+  const kspName = kspActionGroupName(toggle);
+  if (!kspName) return "";
+  const matches = bindings.filter((b) => b.actionGroup === kspName);
+  if (matches.length === 0) return "";
+  const first = matches[0].actionGuiName || matches[0].partTitle || "bound";
+  if (matches.length === 1) return ` — ${first}`;
+  return ` — ${first} +${matches.length - 1} more`;
+}
+
 function OnFireEditor({
   value,
   onRemove,
@@ -567,6 +646,11 @@ function OnFireEditor({
   onPickerChange,
   onAdd,
 }: OnFireEditorProps) {
+  // `f.ag.bindings` is vessel-scoped — returns nothing outside Flight.
+  // That's fine: caption falls back to the plain "(f.ag1)" label.
+  const bindingsRaw = useDataValue("data", "f.ag.bindings");
+  const bindings = isAgBindingArray(bindingsRaw) ? bindingsRaw : null;
+
   return (
     <Field>
       <FieldLabel>When fires</FieldLabel>
@@ -599,7 +683,7 @@ function OnFireEditor({
         >
           {FIRABLE_ACTIONS.map((g) => (
             <option key={g.toggle} value={g.toggle}>
-              {g.name} ({g.toggle})
+              {g.name} ({g.toggle}){captionForAg(g.toggle, bindings)}
             </option>
           ))}
         </PickerSelect>
