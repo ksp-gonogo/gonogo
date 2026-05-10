@@ -62,13 +62,39 @@ namespace GonogoTelemetry
             return tree.GetTreeTechs() ?? Array.Empty<ProtoTechNode>();
         }
 
+        // Sticky-cache for transient empty results. KSP clears
+        // ResearchAndDevelopment.Instance.protoTechNodes during scene
+        // loads and rebuilds it from the save — there's a one-frame
+        // window where every node reports Unavailable. If a query
+        // would have returned a non-empty list last time but now
+        // returns empty, surface the cached result instead. Sticks
+        // until KSP repopulates and we naturally overwrite the cache.
+        private static List<string> _cachedUnlockedIds;
+        private static List<Dictionary<string, object>> _cachedAffordable;
+
+        // In any career/science save, `start` is always unlocked from
+        // game-start. If GetTechnologyState reports it as Unavailable,
+        // we're in the brief window where KSP has cleared
+        // protoTechNodes but not yet repopulated. Return cached values
+        // for that window.
+        private static bool IsTransientLoadingState()
+        {
+            if (ResearchAndDevelopment.Instance == null) return false;
+            return ResearchAndDevelopment.GetTechnologyState("start")
+                != RDTech.State.Available;
+        }
+
         private static object UnlockedIds()
         {
-            var result = new List<string>();
             // Sandbox / science-mode saves have no R&D instance; the tree
             // is still loaded but no nodes show as Available. Empty result
             // is the right shape.
-            if (ResearchAndDevelopment.Instance == null) return result;
+            if (ResearchAndDevelopment.Instance == null) return new List<string>();
+
+            if (IsTransientLoadingState() && _cachedUnlockedIds != null)
+                return new List<string>(_cachedUnlockedIds);
+
+            var result = new List<string>();
             // ProtoTechNode.state on the AssetBase tree reflects the
             // *static config-loaded* state — i.e. only `start` ever shows
             // as Available, regardless of player progression. The
@@ -85,6 +111,7 @@ namespace GonogoTelemetry
                     result.Add(node.techID);
                 }
             }
+            _cachedUnlockedIds = result;
             return result;
         }
 
@@ -112,6 +139,14 @@ namespace GonogoTelemetry
             var rd = ResearchAndDevelopment.Instance;
             if (rd == null) return result;
 
+            // During a scene load, GetTechnologyState briefly says
+            // Unavailable for every node — that'd cause Affordable to
+            // *balloon* (every cheap-enough node looks "not yet
+            // unlocked"). Detect via the same `start` check as
+            // UnlockedIds and return the previous cache instead.
+            if (IsTransientLoadingState() && _cachedAffordable != null)
+                return new List<Dictionary<string, object>>(_cachedAffordable);
+
             var available = rd.Science;
             foreach (var node in GetTreeTechs())
             {
@@ -128,6 +163,7 @@ namespace GonogoTelemetry
                     ["scienceCost"] = node.scienceCost,
                 });
             }
+            _cachedAffordable = result;
             return result;
         }
 

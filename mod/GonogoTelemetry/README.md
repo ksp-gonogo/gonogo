@@ -2,6 +2,20 @@
 
 A KSP mod that adds gonogo-specific telemetry keys (tech tree, contracts, building shops, launchpad state) on top of [Telemachus Reborn](https://github.com/TeleIO/Telemachus-1). Registers as an external plugin via Telemachus's `IMinimalTelemachusPlugin` interface so we can iterate on new keys without rebuilding Telemachus itself.
 
+## Status (2026-05-10): handlers migrated to the Telemachus fork
+
+All keys originally registered by this plugin have been **ported into the Telemachus fork** as proper `DataLinkHandler` subclasses with `[TelemetryAPI(...)]` attributes, alongside the stock handlers. See `local_docs/telemachus-fork/Telemachus/src/`:
+
+- `TechTreeDataLinkHandler.cs` — `tech.unlockedIds / unlockedPartCount / affordable / unlock`
+- `KscDataLinkHandler.cs` — `kc.scene / partsAvailable / launchSite / padOccupied / padVesselTitle / facilityLevels / crewRoster / savedShips / upgradeFacility`
+- `ScienceInstrumentsDataLinkHandler.cs` — `sci.instruments / experimentBreakdown / canTransmitTotal / canRecoverTotal / deploy / transmit / dump / reset`
+- `ContractsDataLinkHandler.cs` — `contracts.active / offered / completedRecent / accept / decline / cancel`
+- `LaunchDataLinkHandler.cs` — `ksp.launch / recover / revertToEditor`
+
+In production, the fork's `Telemachus.dll` alone serves all these keys. The staging plugin is no longer required — it's kept here as **the staging-area pattern** for any future keys we want to validate quickly before merging into the fork.
+
+If you still have `GonogoTelemetry.dll` installed in your KSP, it's harmless: Telemachus's `KSPAPIBase` consults its built-in handlers before falling through to the plugin manager, so the fork's versions take precedence. You can remove the staging-plugin DLL once you're confident.
+
 ## Role in the bigger picture
 
 Per the revised strategy in `local_docs/telemachus_extension_plan.md` (§3, 2026-05-09), production-quality keys destined for upstream live in **the Telemachus fork**, not here — we need to touch core anyway for write-path verbs (contract accept, tech unlock, launch), so the canonical home for shipped features is the fork.
