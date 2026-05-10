@@ -1,4 +1,10 @@
-import { Button, GhostButton, Input, PrimaryButton } from "@gonogo/ui";
+import {
+  Button,
+  FilterChip,
+  GhostButton,
+  Input,
+  PrimaryButton,
+} from "@gonogo/ui";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -7,7 +13,11 @@ import {
   useMissionProfiles,
   useMissionProfilesService,
 } from "./MissionProfilesContext";
-import type { MissionProfile } from "./MissionProfilesService";
+import {
+  BINDABLE_SCENES,
+  type BindableScene,
+  type MissionProfile,
+} from "./MissionProfilesService";
 
 interface MissionProfilesModalProps {
   /** Current dashboard state — used for the "save current as…" button. */
@@ -34,6 +44,7 @@ export function MissionProfilesModal({
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
   const [newName, setNewName] = useState("");
+  const [newBindings, setNewBindings] = useState<BindableScene[]>([]);
   const [pendingLoad, setPendingLoad] = useState<MissionProfile | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
     null,
@@ -44,8 +55,17 @@ export function MissionProfilesModal({
   const handleSaveCurrent = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    svc.save(trimmed, currentItems, currentLayouts);
+    svc.save(trimmed, currentItems, currentLayouts, newBindings);
     setNewName("");
+    setNewBindings([]);
+  };
+
+  const toggleBindingFor = (profile: MissionProfile, scene: BindableScene) => {
+    const current = profile.sceneBindings ?? [];
+    const next = current.includes(scene)
+      ? current.filter((s) => s !== scene)
+      : [...current, scene];
+    svc.update(profile.id, { sceneBindings: next });
   };
 
   const handleLoad = (profile: MissionProfile) => {
@@ -166,9 +186,29 @@ export function MissionProfilesModal({
             Save
           </PrimaryButton>
         </SaveRow>
+        <BindingsField>
+          <BindingsLabel>Auto-prompt when scene is</BindingsLabel>
+          <BindingsRow>
+            {BINDABLE_SCENES.map((scene) => (
+              <FilterChip
+                key={scene}
+                label={scene}
+                selected={newBindings.includes(scene)}
+                onToggle={() =>
+                  setNewBindings((prev) =>
+                    prev.includes(scene)
+                      ? prev.filter((s) => s !== scene)
+                      : [...prev, scene],
+                  )
+                }
+              />
+            ))}
+          </BindingsRow>
+        </BindingsField>
         <Hint>
           Captures the current widget layout. Load it back later to swap the
-          whole dashboard at once.
+          whole dashboard at once. Tagged scenes show a load prompt next to the
+          dashboard FAB when KSP enters that scene.
         </Hint>
       </Section>
 
@@ -205,6 +245,16 @@ export function MissionProfilesModal({
                   </ProfileMeta>
                 </ProfileHeader>
                 <ProfileActions>{renderRowActions(p)}</ProfileActions>
+                <BindingsRow>
+                  {BINDABLE_SCENES.map((scene) => (
+                    <FilterChip
+                      key={scene}
+                      label={scene}
+                      selected={p.sceneBindings?.includes(scene) ?? false}
+                      onToggle={() => toggleBindingFor(p, scene)}
+                    />
+                  ))}
+                </BindingsRow>
                 {pendingLoad?.id === p.id && (
                   <Warning role="alert">
                     Loading will replace the current dashboard with{" "}
@@ -330,4 +380,21 @@ const Warning = styled.div`
   padding: 6px 10px;
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-sm);
+`;
+
+const BindingsField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const BindingsLabel = styled.span`
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+`;
+
+const BindingsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 `;

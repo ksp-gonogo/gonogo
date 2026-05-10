@@ -106,4 +106,85 @@ describe("MissionProfilesService", () => {
     svc.save("Launch", ITEMS, LAYOUTS);
     expect(svc.list()).toHaveLength(1);
   });
+
+  describe("scene bindings", () => {
+    it("persists sceneBindings on save() and surfaces them via findForScene()", () => {
+      const svc = new MissionProfilesService("station", storage);
+      svc.save("Mission Control", ITEMS, LAYOUTS, ["Flight"]);
+      expect(svc.findForScene("Flight")?.name).toBe("Mission Control");
+      expect(svc.findForScene("Editor")).toBeUndefined();
+    });
+
+    it("normalises empty sceneBindings to undefined on save()", () => {
+      const svc = new MissionProfilesService("main", storage);
+      svc.save("Plain", ITEMS, LAYOUTS, []);
+      expect(svc.list()[0].sceneBindings).toBeUndefined();
+    });
+
+    it("can edit sceneBindings via update()", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const p = svc.save("Launch", ITEMS, LAYOUTS, ["SpaceCenter"]);
+      svc.update(p.id, { sceneBindings: ["Flight", "Editor"] });
+      expect(svc.findForScene("Flight")?.id).toBe(p.id);
+      expect(svc.findForScene("Editor")?.id).toBe(p.id);
+      expect(svc.findForScene("SpaceCenter")).toBeUndefined();
+    });
+
+    it("clearing sceneBindings via update() removes the binding", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const p = svc.save("Launch", ITEMS, LAYOUTS, ["Flight"]);
+      svc.update(p.id, { sceneBindings: [] });
+      expect(svc.findForScene("Flight")).toBeUndefined();
+      expect(svc.list()[0].sceneBindings).toBeUndefined();
+    });
+
+    it("findForScene() returns the most recently updated profile when multiple are tagged", async () => {
+      const svc = new MissionProfilesService("main", storage);
+      const older = svc.save("Older", ITEMS, LAYOUTS, ["Flight"]);
+      // Force a strictly later updatedAt without sleeping.
+      await new Promise((r) => setTimeout(r, 2));
+      const newer = svc.save("Newer", ITEMS, LAYOUTS, ["Flight"]);
+      expect(svc.findForScene("Flight")?.id).toBe(newer.id);
+      expect(svc.findForScene("Flight")?.id).not.toBe(older.id);
+    });
+
+    it("drops unknown scene names quietly on load()", () => {
+      // Pretend an old save wrote a scene we no longer recognise.
+      storage.setItem(
+        "gonogo.missionProfiles.main",
+        JSON.stringify([
+          {
+            id: "p1",
+            name: "Legacy",
+            screen: "main",
+            items: ITEMS,
+            layouts: LAYOUTS,
+            sceneBindings: ["Flight", "BogusScene", "Editor"],
+            updatedAt: 1,
+          },
+        ]),
+      );
+      const svc = new MissionProfilesService("main", storage);
+      expect(svc.list()[0].sceneBindings).toEqual(["Flight", "Editor"]);
+    });
+
+    it("normalises an all-bogus sceneBindings to undefined on load()", () => {
+      storage.setItem(
+        "gonogo.missionProfiles.main",
+        JSON.stringify([
+          {
+            id: "p1",
+            name: "Legacy",
+            screen: "main",
+            items: ITEMS,
+            layouts: LAYOUTS,
+            sceneBindings: ["BogusOnly"],
+            updatedAt: 1,
+          },
+        ]),
+      );
+      const svc = new MissionProfilesService("main", storage);
+      expect(svc.list()[0].sceneBindings).toBeUndefined();
+    });
+  });
 });
