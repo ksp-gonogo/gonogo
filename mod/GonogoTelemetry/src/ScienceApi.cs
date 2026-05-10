@@ -48,6 +48,8 @@ namespace GonogoTelemetry
             "sci.canRecoverTotal",
             "sci.deploy",
             "sci.transmit",
+            "sci.dump",
+            "sci.reset",
         };
 
         public Func<Vessel, string[], object> GetAPIHandler(string api)
@@ -66,6 +68,10 @@ namespace GonogoTelemetry
                     return (v, args) => DeployInstrument(v, args);
                 case "sci.transmit":
                     return (v, args) => TransmitInstrument(v, args);
+                case "sci.dump":
+                    return (v, args) => DumpInstrument(v, args);
+                case "sci.reset":
+                    return (v, args) => ResetInstrument(v, args);
                 default:
                     return null;
             }
@@ -97,15 +103,93 @@ namespace GonogoTelemetry
             if (exp.Inoperable) return "instrument inoperable";
             if (exp.Deployed) return 0; // already deployed — idempotent
 
-            // DeployExperiment is the public method invoked when the player
-            // right-clicks the part in-flight. KSP runs the same situation
-            // / biome checks it would in the UI. Defer onto the main
-            // thread — DeployExperiment spawns the science result dialog
-            // (Unity UI) and runs animations on the part. Calling from
-            // the WS listener thread segfaults the same way contract
-            // accept did.
+            // KSP's public DeployExperiment() calls the private coroutine
+            // gatherData(showDialog: true) — the dialog is a player-at-
+            // keyboard affordance and adds friction for headless / station
+            // automation. The same code path also exists with
+            // showDialog: false (used internally by EVA "deploy" + by the
+            // module's own no-dialog branch); we reach it via reflection
+            // because gatherData itself is private. Capture goes straight
+            // into the experiment's container — `Deployed` and `hasData`
+            // flip true the same way as the dialog path, just without
+            // the UI step.
+            //
+            // Fallback to DeployExperiment() if reflection fails (e.g. KSP
+            // renames gatherData on a future version) — better a dialog
+            // than no data capture.
             var captured = exp;
-            GonogoTelemetryAddon.Defer(() => captured.DeployExperiment());
+            GonogoTelemetryAddon.Defer(() =>
+            {
+                try
+                {
+                    var method = typeof(ModuleScienceExperiment).GetMethod(
+                        "gatherData",
+                        System.Reflection.BindingFlags.NonPublic |
+                        System.Reflection.BindingFlags.Instance);
+                    if (method == null)
+                    {
+                        captured.DeployExperiment();
+                        return;
+                    }
+                    var coroutine = method.Invoke(captured, new object[] { false })
+                        as System.Collections.IEnumerator;
+                    if (coroutine != null)
+                    {
+                        captured.StartCoroutine(coroutine);
+                    }
+                    else
+                    {
+                        captured.DeployExperiment();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError(
+                        "[GonogoTelemetry] sci.deploy non-dialog path failed: " + ex);
+                    try { captured.DeployExperiment(); } catch { /* best-effort */ }
+                }
+            });
+            return 0;
+        }
+
+        private static object DumpInstrument(Vessel vessel, string[] args)
+        {
+            var exp = FindExperimentByPartId(vessel, args);
+            if (exp == null) return "instrument not found";
+
+            var data = exp.GetData();
+            if (data == null || data.Length == 0) return 0; // already empty
+
+            // DumpData removes a specific ScienceData entry without
+            // transmitting (no science gain). Equivalent to the
+            // "Discard" button in KSP's result dialog. Defer onto the
+            // main thread — the experiment's container fires events on
+            // remove that some mods listen for, and the SR animation
+            // tear-down is Unity-coupled.
+            var capturedExp = exp;
+            var capturedData = data;
+            GonogoTelemetryAddon.Defer(() =>
+            {
+                foreach (var d in capturedData)
+                {
+                    if (d != null) capturedExp.DumpData(d);
+                }
+            });
+            return 0;
+        }
+
+        private static object ResetInstrument(Vessel vessel, string[] args)
+        {
+            var exp = FindExperimentByPartId(vessel, args);
+            if (exp == null) return "instrument not found";
+
+            // ResetExperiment clears Deployed + drops all stored data,
+            // making rerunnable instruments ready to run again. For
+            // non-rerunnable ones, this typically doesn't clear the
+            // Inoperable flag — only an Engineer's repair / recovery
+            // back to KSC can do that.
+            var captured = exp;
+            GonogoTelemetryAddon.Defer(() => captured.ResetExperiment());
             return 0;
         }
 
@@ -197,9 +281,9 @@ namespace GonogoTelemetry
                         {
                             ["subjectId"] = d.subjectID ?? string.Empty,
                             ["expTitle"] = d.title ?? string.Empty,
-                            ["dataMits"] = d.dataAmount,
-                            ["baseTransmitValue"] = d.baseTransmitValue,
-                            ["transmitBonus"] = d.transmitBonus,
+                            ["dataMits"] = Util.R4(d.dataAmount),
+                            ["baseTransmitValue"] = Util.R4(d.baseTransmitValue),
+                            ["transmitBonus"] = Util.R4(d.transmitBonus),
                         };
 
                         // Resolve biome / situation / remaining from the
@@ -226,10 +310,10 @@ namespace GonogoTelemetry
 
                         entry["biome"] = biome;
                         entry["situation"] = situation;
-                        entry["subjectScience"] = subjectScience;
-                        entry["subjectScienceCap"] = subjectCap;
+                        entry["subjectScience"] = Util.R4(subjectScience);
+                        entry["subjectScienceCap"] = Util.R4(subjectCap);
                         entry["remainingPotential"] =
-                            Math.Max(0f, subjectCap - subjectScience);
+                            Util.R4(Math.Max(0f, subjectCap - subjectScience));
                         result.Add(entry);
                     }
                 }
@@ -239,7 +323,7 @@ namespace GonogoTelemetry
 
         private static object DataAmountTotal(Vessel vessel)
         {
-            if (vessel == null || vessel.parts == null) return 0f;
+            if (vessel == null || vessel.parts == null) return 0d;
             float total = 0f;
             foreach (var part in vessel.parts)
             {
@@ -255,7 +339,7 @@ namespace GonogoTelemetry
                     }
                 }
             }
-            return total;
+            return Util.R4(total);
         }
 
         // SubjectIDs are conventionally `<expId>@<body><situation><biome>`,

@@ -210,12 +210,12 @@ namespace GonogoTelemetry
                 ["title"] = c.Title ?? string.Empty,
                 ["agency"] = c.Agent != null ? c.Agent.Name : string.Empty,
                 ["state"] = c.ContractState.ToString(),
-                ["fundsAdvance"] = c.FundsAdvance,
-                ["fundsCompletion"] = c.FundsCompletion,
-                ["fundsFailure"] = c.FundsFailure,
-                ["scienceCompletion"] = c.ScienceCompletion,
-                ["repCompletion"] = c.ReputationCompletion,
-                ["deadlineUt"] = c.DateExpire,
+                ["fundsAdvance"] = Util.R4(c.FundsAdvance),
+                ["fundsCompletion"] = Util.R4(c.FundsCompletion),
+                ["fundsFailure"] = Util.R4(c.FundsFailure),
+                ["scienceCompletion"] = Util.R4(c.ScienceCompletion),
+                ["repCompletion"] = Util.R4(c.ReputationCompletion),
+                ["deadlineUt"] = Util.R4(c.DateExpire),
                 ["parameters"] = SerialiseParameters(c),
             };
             return entry;

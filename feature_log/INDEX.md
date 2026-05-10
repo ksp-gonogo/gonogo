@@ -43,10 +43,11 @@ piece shipped immediately before.
 
 ## Entries (newest first)
 
-- 2026-05-09 — [Dim-overlay sweep](2026-05-09-dim-overlay-sweep.md) — uncommitted — ⏳ pending
-- 2026-05-09 — [Telemachus extension — Phase 4 slice 2](2026-05-09-telemachus-extension-phase-4-slice-2.md) — `e992bd8` — ⏳ pending
-- 2026-05-09 — [Telemachus extension — Phase 4 slice 1](2026-05-09-telemachus-extension-phase-4-slice-1.md) — `2fcffcd` — ⏳ pending
-- 2026-05-09 — [Telemachus extension — Phase 3](2026-05-09-telemachus-extension-phase-3.md) — `127ddf4` — ⏳ pending
-- 2026-05-09 — [Telemachus extension — Phase 2](2026-05-09-telemachus-extension-phase-2.md) — `2394cc6` (`160a452` migration-prereq follow-up) — ⏳ pending
-- 2026-05-09 — [Telemachus extension — Phase 1](2026-05-09-telemachus-extension-phase-1.md) — `7515638` — ⏳ pending
+- 2026-05-10 — [Telemachus extension — housekeeping + fork migration](2026-05-10-housekeeping-and-fork-migration.md) — uncommitted — ⏳ pending (housekeeping fixes ✅ on the live-validated phases; fork migration compiled + installed but next-boot pending)
+- 2026-05-09 — [Telemachus extension — Phase 4 slice 2](2026-05-09-telemachus-extension-phase-4-slice-2.md) — `e992bd8` (+ `9b8a858` live-fixes) — ✅ confirmed 2026-05-10 (kc.savedShips part-walk + kc.crewRoster + kc.upgradeFacility validated; ksp.launch fires but needs the active-vessel safety check from the housekeeping pass to be reliable)
+- 2026-05-09 — [Telemachus extension — Phase 4 slice 1](2026-05-09-telemachus-extension-phase-4-slice-1.md) — `2fcffcd` (+ `9b8a858` live-fixes) — ✅ confirmed 2026-05-10 (tech.unlock, contracts.accept/decline/cancel, sci.deploy all validated end-to-end with state changes)
+- 2026-05-09 — [Telemachus extension — Phase 3](2026-05-09-telemachus-extension-phase-3.md) — `127ddf4` — ✅ confirmed 2026-05-10 (contracts.active/offered/completedRecent return correct shapes; KSP-generated replacement contracts after decline observed working)
+- 2026-05-09 — [Telemachus extension — Phase 2](2026-05-09-telemachus-extension-phase-2.md) — `2394cc6` (`160a452` migration-prereq follow-up) — ✅ confirmed 2026-05-10 (sci.instruments / experimentBreakdown / canTransmitTotal all validated; ParseSubjectId heuristic correctly split "crewReport@KerbinSrfLandedLaunchPad")
+- 2026-05-09 — [Telemachus extension — Phase 1](2026-05-09-telemachus-extension-phase-1.md) — `7515638` (+ `0d14cdc` API fixes + `9b8a858` lifecycle fixes) — ✅ confirmed 2026-05-10 (all kc.* + tech.* read keys live-validated; PluginRegistration / KSPAssembly / KSPAPIBase fork patches needed before in-game register worked)
+- 2026-05-09 — [Dim-overlay sweep](2026-05-09-dim-overlay-sweep.md) — `c3ac509` (+ `73c42dd` partial-dim follow-up + `91d94f6` StaffRoster) — ⏳ pending (visible-in-screenshot dimming working as designed; needs full widget walkthrough to fully promote)
 - 2026-05-09 — [Action-group alarm UI](2026-05-09-action-group-alarm-ui.md) — `6c81cd6` — ⏳ pending

@@ -72,6 +72,14 @@ namespace GonogoTelemetry
                 HighLogic.LoadedScene != GameScenes.EDITOR)
                 return "not in a launchable scene";
 
+            // Defensive: even at SC, if there's an ActiveVessel from a
+            // prior flight that hasn't been recovered/destroyed yet,
+            // launching another wedges KSP — observed in-session as a
+            // frozen Flight scene with maxed-out UT counters. Refuse so
+            // the operator recovers the existing vessel first.
+            if (FlightGlobals.ActiveVessel != null)
+                return "active vessel exists — recover or revert before launching";
+
             var saveFolder = HighLogic.SaveFolder;
             if (string.IsNullOrEmpty(saveFolder)) return "no active save";
             var craftPath = Path.Combine(KSPUtil.ApplicationRootPath, "saves");

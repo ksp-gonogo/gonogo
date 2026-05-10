@@ -209,7 +209,7 @@ namespace GonogoTelemetry
                     {
                         ["level"] = level,
                         ["max"] = max,
-                        ["upgradeFunds"] = ReadUpgradeFunds(pair.Value, level),
+                        ["upgradeFunds"] = Util.R4(ReadUpgradeFunds(pair.Value, level)),
                     };
                 }
                 catch (Exception)
@@ -344,9 +344,9 @@ namespace GonogoTelemetry
             {
                 ["name"] = name,
                 ["partCount"] = partCount,
-                ["totalMass"] = totalMass,
+                ["totalMass"] = Util.R4(totalMass),
                 ["facility"] = facility,
-                ["requiresFunds"] = requiresFunds,
+                ["requiresFunds"] = Util.R4(requiresFunds),
                 // List ordering is unstable across runs but the contents
                 // matter (UI dedupes / counts), so a HashSet → List<string>
                 // is the cheapest way to keep it predictable.
