@@ -122,10 +122,12 @@ Repeat for other sources if you installed them:
 
 ### Step 8 — Enable Camera Feeds (if installed)
 
+If you're running the gonogo build of the OCISLY plugin (the one linked from the [Linux/Mesa note above](#prerequisites) — also the recommended path for Windows users), edit `GameData/OfCourseIStillLoveYou/settings.cfg` and set `AutoStream = true`. Every Hullcam on the active vessel will start streaming as soon as you reach the flight scene.
+
 1. In KSP, launch a vessel with one or more Hullcams attached.
-2. Click the **OCISLY icon on the toolbar** (the one the mod adds) — this opens the OCISLY window listing every Hullcam on the vessel.
-3. In that window, click **Enable streaming** next to each camera you want to share.
-4. In gonogo, add a **Camera Feed** widget from the component picker (the + button). It should pick up the cameras automatically — switch between them or turn on cycle mode.
+2. In gonogo, add a **Camera Feed** widget from the component picker (the + button). It should pick up the cameras automatically — switch between them or turn on cycle mode.
+
+**With upstream OCISLY** (or with `AutoStream = false`) you have to enable each camera by hand: click the OCISLY toolbar icon to open its window, then click **Enable streaming** next to each camera you want to share.
 
 ### Step 9 — Add station screens (optional)
 
@@ -190,6 +192,22 @@ Open `http://localhost:5173` in your browser.
 4. In the gonogo **Data Source Status** panel, set the host to your KSP machine's IP and port `8085`, then click save and reconnect.
 
 The app connects to `ws://host:8085/datalink` for live data and `http://host:8085/telemachus/datalink` for control actions.
+
+#### Enabling CORS _(required to read action responses)_
+
+By default Telemachus serves only its bundled HTML UI on its own port, so it ships without CORS headers. gonogo runs on a different origin (whatever URL you load the app from), which means **most action responses are opaque to gonogo** — the request fires and the action takes effect, but gonogo can't read what KSP sent back. For most actions that's fine (the state change arrives moments later over the WebSocket), but a handful of features need the response: mirroring local alarms into KSP's stock AlarmClock (uses the returned alarm id to delete the right alarm later), and any future feature where the action's return value isn't otherwise observable.
+
+The **gonogo build** of Telemachus Reborn supports a config-driven CORS allowlist. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/Telemachus.cfg` and add:
+
+```
+ALLOWED_ORIGINS = http://localhost:5173,https://jonpepler.github.io
+```
+
+One line, comma-separated origins (scheme + host + optional port, no trailing slash). Add your dev origin, your production origin, and any LAN-station origins you use (e.g. `http://192.168.86.42:5173`). Restart KSP. Telemachus will echo `Access-Control-Allow-Origin: <origin>` for any request whose `Origin` header matches.
+
+Default behaviour with no `ALLOWED_ORIGINS` line is the historical "no CORS headers ever," so existing setups aren't disturbed. Stock Telemachus Reborn (without the gonogo fork) has no CORS support at all — the alarm-mirror feature and any other "read the action response" feature requires the fork.
+
+**Security note:** any origin in the allowlist can read game state AND trigger actions (launch vessels, accept contracts, fire action groups). Keep the list to origins you control. There's no authentication on Telemachus's HTTP endpoints by default; the only barrier to a malicious origin is the allowlist. Don't add wildcards or origins you don't recognise.
 
 #### Signal loss (CommNet)
 
