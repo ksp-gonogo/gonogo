@@ -1,28 +1,29 @@
 import { useDataValue } from "@gonogo/core";
+import { useFlight } from "@gonogo/data";
 import { useModal } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 /**
- * Ephemeral top-of-viewport banner that fires when `recovery.hasRecent`
- * transitions false → true (a fresh mission summary just landed via the
- * fork's RecoveryDialogHandler). Surfaces the headline totals; tap to
- * open the full breakdown modal.
+ * Ephemeral top-of-viewport banner that fires when a fresh flight-end
+ * snapshot lands — either a recovery (`recovery.lastSummary`) or a
+ * crash (`crash.lastCrash`). Both outcome kinds flow through this
+ * single component so flight endings share the same UI slot.
  *
- * Mirrors the `SceneChangeBanner` pattern. Stays visible for VISIBLE_MS
- * then auto-dismisses; tapping it pins the modal until closed. The
- * underlying snapshot persists in `recovery.lastSummary` for the rest
- * of the session, so a station that joined after the recovery still
- * sees the data when it opens the modal — they just miss the banner.
- *
- * Cross-station-friendly: every screen subscribes to `recovery.hasRecent`
- * via the existing data-source bridge, so each screen pops its own
- * independent banner on transition. No host coordination needed.
+ * Auto-dismisses after VISIBLE_MS; tap to pin the detail modal.
+ * On a new-flight transition, the announce baseline is reset to the
+ * current sticky outcome's UT, so the previous flight's recovery
+ * never re-triggers the banner — only an outcome captured after the
+ * new flight started will fire.
  */
 
 const VISIBLE_MS = 10_000;
 
+// ── Recovery summary ─────────────────────────────────────────────────────
+
 interface RecoverySummary {
+  kind: "recovered";
+  ut: number;
   vesselName: string;
   recoveryLocation: string;
   recoveryFactor: string;
@@ -37,7 +38,6 @@ interface RecoverySummary {
   partBreakdown: PartEntry[];
   resourceBreakdown: ResourceEntry[];
   crewBreakdown: CrewEntry[];
-  capturedAtUT: number;
 }
 
 interface ScienceEntry {
@@ -69,10 +69,12 @@ interface CrewEntry {
   newLevel: number;
 }
 
-function parseSummary(raw: unknown): RecoverySummary | null {
+function parseRecovery(raw: unknown): RecoverySummary | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const e = raw as Record<string, unknown>;
   return {
+    kind: "recovered",
+    ut: num(e.capturedAtUT),
     vesselName: str(e.vesselName),
     recoveryLocation: str(e.recoveryLocation),
     recoveryFactor: str(e.recoveryFactor),
@@ -111,9 +113,58 @@ function parseSummary(raw: unknown): RecoverySummary | null {
       levelsGained: num(x.levelsGained),
       newLevel: num(x.newLevel),
     })),
-    capturedAtUT: num(e.capturedAtUT),
   };
 }
+
+// ── Crash summary ────────────────────────────────────────────────────────
+
+interface CrashSummary {
+  kind: "crashed";
+  ut: number;
+  vesselName: string;
+  body: string;
+  situation: string;
+  what: string;
+  partsLostCount: number;
+  crewAboard: string[];
+  kerbalsKilled: string[];
+  flightEndMode: string;
+  highestAltitude: number;
+  highestSpeed: number;
+  highestGee: number;
+  groundDistance: number;
+}
+
+function parseCrash(raw: unknown): CrashSummary | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const e = raw as Record<string, unknown>;
+  const stats =
+    e.flightStats &&
+    typeof e.flightStats === "object" &&
+    !Array.isArray(e.flightStats)
+      ? (e.flightStats as Record<string, unknown>)
+      : {};
+  return {
+    kind: "crashed",
+    ut: num(e.ut),
+    vesselName: str(e.vesselName),
+    body: str(e.body),
+    situation: str(e.situation),
+    what: str(e.what),
+    partsLostCount: Array.isArray(e.partsLost) ? e.partsLost.length : 0,
+    crewAboard: parseStringArray(e.crewAboard),
+    kerbalsKilled: parseStringArray(e.kerbalsKilled),
+    flightEndMode: str(e.flightEndMode),
+    highestAltitude: num(stats.highestAltitude),
+    highestSpeed: num(stats.highestSpeed),
+    highestGee: num(stats.highestGee),
+    groundDistance: num(stats.groundDistance),
+  };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+type Outcome = RecoverySummary | CrashSummary;
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -133,44 +184,63 @@ function parseArray<T>(
   }
   return out;
 }
+function parseStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((v): v is string => typeof v === "string");
+}
 
-export function RecoverySummaryBanner() {
-  const hasRecentRaw = useDataValue("data", "recovery.hasRecent");
-  const summaryRaw = useDataValue("data", "recovery.lastSummary");
+// ── Component ────────────────────────────────────────────────────────────
 
-  const hasRecent = hasRecentRaw === true;
-  const summary = useMemo(() => parseSummary(summaryRaw), [summaryRaw]);
+export function FlightOutcomeBanner() {
+  const recoveryHasRecent = useDataValue("data", "recovery.hasRecent") === true;
+  const recoveryRaw = useDataValue("data", "recovery.lastSummary");
+  const crashHasRecent = useDataValue("data", "crash.hasRecent") === true;
+  const crashRaw = useDataValue("data", "crash.lastCrash");
+  const currentFlight = useFlight();
 
-  // Track previous hasRecent value so we only fire on the false→true
-  // transition (not on every snapshot update — recovery.lastSummary
-  // changes are pushed live by the WS, but the banner only wants the
-  // moment of capture).
-  //
-  // We key the announcement on `capturedAtUT` so re-renders that don't
-  // bring a new snapshot don't re-show the banner.
-  const prevHasRecentRef = useRef<boolean>(false);
-  const lastAnnouncedUtRef = useRef<number | null>(null);
+  const recovery = useMemo(
+    () => (recoveryHasRecent ? parseRecovery(recoveryRaw) : null),
+    [recoveryHasRecent, recoveryRaw],
+  );
+  const crash = useMemo(
+    () => (crashHasRecent ? parseCrash(crashRaw) : null),
+    [crashHasRecent, crashRaw],
+  );
+
+  // Pick the most recent outcome. Recovery and crash are both reported in
+  // KSP universal time, so a direct numeric compare works.
+  const outcome: Outcome | null = useMemo(() => {
+    if (recovery && crash) return crash.ut > recovery.ut ? crash : recovery;
+    return recovery ?? crash ?? null;
+  }, [recovery, crash]);
+
+  // Banner state. lastAnnouncedRef is the (kind, ut) we last fired the
+  // banner for; on a new-flight transition we baseline it to the current
+  // sticky outcome so the previous flight's outcome doesn't re-fire.
+  const lastAnnouncedRef = useRef<{ kind: string; ut: number } | null>(null);
+  const flightIdRef = useRef<string | null>(null);
   const [bannerExpiresAt, setBannerExpiresAt] = useState<number | null>(null);
   const modal = useModal();
 
   useEffect(() => {
-    const prev = prevHasRecentRef.current;
-    prevHasRecentRef.current = hasRecent;
-    if (!hasRecent) return;
-    if (!summary) return;
-    // Only fire when the captured-at UT changes, so repeated reads of
-    // the same snapshot don't reopen the banner. Initial render with
-    // a pre-existing snapshot also doesn't fire (prev was false but
-    // we'd already-announced).
-    if (lastAnnouncedUtRef.current === summary.capturedAtUT) return;
-    // Only on transition (was false, now true) OR fresh ut.
-    if (prev || lastAnnouncedUtRef.current !== null) {
-      // Already saw a prior snapshot; this is a fresh capture only if
-      // the ut changed (checked above).
-    }
-    lastAnnouncedUtRef.current = summary.capturedAtUT;
+    const nextFlightId = currentFlight?.id ?? null;
+    if (flightIdRef.current === nextFlightId) return;
+    flightIdRef.current = nextFlightId;
+    // Baseline the announce key to whatever outcome is currently sticky
+    // so we don't fire on the previous flight's snapshot.
+    lastAnnouncedRef.current = outcome
+      ? { kind: outcome.kind, ut: outcome.ut }
+      : null;
+    setBannerExpiresAt(null);
+  }, [currentFlight, outcome]);
+
+  useEffect(() => {
+    if (!outcome) return;
+    const last = lastAnnouncedRef.current;
+    if (last && last.kind === outcome.kind && last.ut === outcome.ut) return;
+    lastAnnouncedRef.current = { kind: outcome.kind, ut: outcome.ut };
     setBannerExpiresAt(Date.now() + VISIBLE_MS);
-  }, [hasRecent, summary]);
+  }, [outcome]);
 
   useEffect(() => {
     if (bannerExpiresAt === null) return;
@@ -183,36 +253,65 @@ export function RecoverySummaryBanner() {
     return () => clearTimeout(id);
   }, [bannerExpiresAt]);
 
-  if (!summary) return null;
+  if (!outcome || bannerExpiresAt === null) return null;
 
-  if (bannerExpiresAt === null) return null;
+  if (outcome.kind === "recovered") {
+    return (
+      <RecoveryBanner
+        type="button"
+        role="status"
+        aria-live="polite"
+        onClick={() => {
+          setBannerExpiresAt(null);
+          modal.open(<RecoveryDetail summary={outcome} />, {
+            title: `${outcome.vesselName || "Vessel"} recovered`,
+            width: "640px",
+          });
+        }}
+      >
+        <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
+        <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
+        <BannerStats>
+          <Stat>+{Math.round(outcome.fundsEarned).toLocaleString()}f</Stat>
+          <Stat>+{outcome.scienceEarned.toFixed(1)} sci</Stat>
+          {outcome.displayReputation && (
+            <Stat>+{outcome.reputationEarned.toFixed(1)} rep</Stat>
+          )}
+        </BannerStats>
+        <BannerHint>Tap for breakdown</BannerHint>
+      </RecoveryBanner>
+    );
+  }
 
   return (
-    <Banner
+    <CrashBanner
       type="button"
       role="status"
       aria-live="polite"
       onClick={() => {
         setBannerExpiresAt(null);
-        modal.open(<RecoveryDetail summary={summary} />, {
-          title: `${summary.vesselName || "Vessel"} recovered`,
-          width: "640px",
+        modal.open(<CrashDetail summary={outcome} />, {
+          title: `${outcome.vesselName || "Vessel"} destroyed`,
+          width: "560px",
         });
       }}
     >
-      <BannerLabel>VESSEL RECOVERED</BannerLabel>
-      <BannerVessel>{summary.vesselName || "Untitled"}</BannerVessel>
+      <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
+      <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
       <BannerStats>
-        <Stat>+{Math.round(summary.fundsEarned).toLocaleString()}f</Stat>
-        <Stat>+{summary.scienceEarned.toFixed(1)} sci</Stat>
-        {summary.displayReputation && (
-          <Stat>+{summary.reputationEarned.toFixed(1)} rep</Stat>
+        {outcome.partsLostCount > 0 && (
+          <Stat>-{outcome.partsLostCount} parts</Stat>
+        )}
+        {outcome.kerbalsKilled.length > 0 && (
+          <Stat>{outcome.kerbalsKilled.length} KIA</Stat>
         )}
       </BannerStats>
       <BannerHint>Tap for breakdown</BannerHint>
-    </Banner>
+    </CrashBanner>
   );
 }
+
+// ── Recovery detail modal ─────────────────────────────────────────────────
 
 function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
   return (
@@ -316,9 +415,77 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
   );
 }
 
-// ── Banner styles ─────────────────────────────────────────────────────────
+// ── Crash detail modal ────────────────────────────────────────────────────
 
-const Banner = styled.button`
+function CrashDetail({ summary }: { summary: CrashSummary }) {
+  return (
+    <DetailWrap>
+      <DetailHeader>
+        <DetailTitle>{summary.vesselName || "Untitled Vessel"}</DetailTitle>
+        <DetailMeta>
+          {summary.what || summary.flightEndMode || "destroyed"}
+          {summary.body && ` · ${summary.body}`}
+          {summary.situation && ` · ${summary.situation}`}
+        </DetailMeta>
+      </DetailHeader>
+
+      <Totals>
+        <TotalRow>
+          <TotalLabel>Parts lost</TotalLabel>
+          <TotalValue>{summary.partsLostCount}</TotalValue>
+        </TotalRow>
+        <TotalRow>
+          <TotalLabel>Highest altitude</TotalLabel>
+          <TotalValue>
+            {Math.round(summary.highestAltitude).toLocaleString()} m
+          </TotalValue>
+        </TotalRow>
+        <TotalRow>
+          <TotalLabel>Highest speed</TotalLabel>
+          <TotalValue>
+            {Math.round(summary.highestSpeed).toLocaleString()} m/s
+          </TotalValue>
+        </TotalRow>
+        <TotalRow>
+          <TotalLabel>Highest G</TotalLabel>
+          <TotalValue>{summary.highestGee.toFixed(2)}</TotalValue>
+        </TotalRow>
+        {summary.groundDistance > 0 && (
+          <TotalRow>
+            <TotalLabel>Ground distance</TotalLabel>
+            <TotalValue>
+              {Math.round(summary.groundDistance).toLocaleString()} m
+            </TotalValue>
+          </TotalRow>
+        )}
+      </Totals>
+
+      {summary.crewAboard.length > 0 && (
+        <DetailSection>
+          <SectionTitle>Crew aboard ({summary.crewAboard.length})</SectionTitle>
+          {summary.crewAboard.map((name) => (
+            <DetailRow key={name}>
+              <DetailRowTitle>{name}</DetailRowTitle>
+              <DetailRowValue
+                style={{
+                  color: summary.kerbalsKilled.includes(name)
+                    ? "var(--color-status-nogo-fg)"
+                    : "var(--color-text-muted)",
+                }}
+              >
+                {summary.kerbalsKilled.includes(name) ? "KIA" : "survived"}
+              </DetailRowValue>
+            </DetailRow>
+          ))}
+        </DetailSection>
+      )}
+    </DetailWrap>
+  );
+}
+
+// ── Styles ───────────────────────────────────────────────────────────────
+
+const bannerBase = `
   position: fixed;
   top: 48px;
   left: 50%;
@@ -328,26 +495,20 @@ const Banner = styled.button`
   gap: 12px;
   padding: 8px 16px;
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
-  border: 1px solid var(--color-status-go-fg);
   border-radius: 3px;
   font-family: inherit;
   font-size: 12px;
   color: var(--color-text-primary);
   z-index: 100;
   cursor: pointer;
-  animation: recoveryBannerIn 280ms ease-out forwards;
+  animation: flightOutcomeBannerIn 280ms ease-out forwards;
 
   &:hover {
     background: var(--color-surface-raised);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-status-go-fg);
-    outline-offset: 2px;
-  }
-
   @media (prefers-reduced-motion: no-preference) {
-    @keyframes recoveryBannerIn {
+    @keyframes flightOutcomeBannerIn {
       from {
         opacity: 0;
         transform: translate(-50%, -8px);
@@ -360,10 +521,33 @@ const Banner = styled.button`
   }
 `;
 
-const BannerLabel = styled.span`
+const RecoveryBanner = styled.button`
+  ${bannerBase}
+  border: 1px solid var(--color-status-go-fg);
+
+  &:focus-visible {
+    outline: 2px solid var(--color-status-go-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const CrashBanner = styled.button`
+  ${bannerBase}
+  border: 1px solid var(--color-status-nogo-fg);
+
+  &:focus-visible {
+    outline: 2px solid var(--color-status-nogo-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const BannerLabel = styled.span<{ $variant: "recovered" | "crashed" }>`
   font-size: 10px;
   letter-spacing: 0.12em;
-  color: var(--color-status-go-fg);
+  color: ${({ $variant }) =>
+    $variant === "crashed"
+      ? "var(--color-status-nogo-fg)"
+      : "var(--color-status-go-fg)"};
   font-weight: 700;
 `;
 

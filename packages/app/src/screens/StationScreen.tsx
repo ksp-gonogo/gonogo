@@ -40,8 +40,8 @@ import {
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
+import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
-import { RecoverySummaryBanner } from "../components/RecoverySummaryBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
@@ -539,7 +539,7 @@ export function StationScreen() {
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
-                                  <RecoverySummaryBanner />
+                                  <FlightOutcomeBanner />
                                 </Layout>
                               </AlarmsLauncherBridge>
                             </OverlayProvider>
