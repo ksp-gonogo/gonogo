@@ -43,6 +43,7 @@ piece shipped immediately before.
 
 ## Entries (newest first)
 
+- 2026-05-11 — [Telemachus CORS allowlist + README](2026-05-11-telemachus-cors-allowlist.md) — uncommitted — ⏳ pending (config-driven echo-origin CORS in the fork; unlocks reading action responses cross-origin. Required for the deferred alarm-mirror feature; itself unverified live)
 - 2026-05-11 — [Overnight Telemachus consumer sweep + crash handler](2026-05-11-overnight-telemachus-consumers.md) — uncommitted — ⏳ pending (CrashDataHandler new in fork; StaffRoster expansion + AlarmsModal AG captions in gonogo; alarm-mirror deferred on CORS/WS-observation design)
 - 2026-05-10 — [Telemachus extension — housekeeping + fork migration](2026-05-10-housekeeping-and-fork-migration.md) — uncommitted — ⏳ pending (housekeeping fixes ✅ on the live-validated phases; fork migration compiled + installed but next-boot pending)
 - 2026-05-09 — [Telemachus extension — Phase 4 slice 2](2026-05-09-telemachus-extension-phase-4-slice-2.md) — `e992bd8` (+ `9b8a858` live-fixes) — ✅ confirmed 2026-05-10 (kc.savedShips part-walk + kc.crewRoster + kc.upgradeFacility validated; ksp.launch fires but needs the active-vessel safety check from the housekeeping pass to be reliable)
