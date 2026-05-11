@@ -68,15 +68,19 @@ DLL: 1,078,272 bytes installed at 2026-05-11 07:19 to
 
 ### Config example
 
-After first KSP boot with this DLL, Telemachus creates
-`Plugins/PluginData/Telemachus/Telemachus.cfg`. Edit it and add:
+Telemachus uses KSP's `PluginConfiguration` which writes XML, not the
+.cfg format. The file lives at
+`Plugins/PluginData/Telemachus/config.xml` and already contains
+`PORT`/`IPADDRESS`/`PARTLESS` lines. Add a sibling `<string>` entry
+inside the `<config>` element:
 
-```
-ALLOWED_ORIGINS = http://localhost:5173,https://jonpepler.github.io
+```xml
+<string name="ALLOWED_ORIGINS">http://localhost:5173,https://jonpepler.github.io</string>
 ```
 
 Multiple origins comma-separated, no trailing slashes, no wildcards.
-Restart KSP. Verify with curl:
+Restart KSP — the file is read once at plugin start, not on
+ModuleManager reload. Verify with curl:
 
 ```
 curl -i -H "Origin: http://localhost:5173" \

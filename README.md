@@ -197,13 +197,13 @@ The app connects to `ws://host:8085/datalink` for live data and `http://host:808
 
 By default Telemachus serves only its bundled HTML UI on its own port, so it ships without CORS headers. gonogo runs on a different origin (whatever URL you load the app from), which means **most action responses are opaque to gonogo** — the request fires and the action takes effect, but gonogo can't read what KSP sent back. For most actions that's fine (the state change arrives moments later over the WebSocket), but a handful of features need the response: mirroring local alarms into KSP's stock AlarmClock (uses the returned alarm id to delete the right alarm later), and any future feature where the action's return value isn't otherwise observable.
 
-The **gonogo build** of Telemachus Reborn supports a config-driven CORS allowlist. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/Telemachus.cfg` and add:
+The **gonogo build** of Telemachus Reborn supports a config-driven CORS allowlist. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/config.xml` (Telemachus uses XML for its config) and add a new line inside the `<config>` element:
 
-```
-ALLOWED_ORIGINS = http://localhost:5173,https://jonpepler.github.io
+```xml
+<string name="ALLOWED_ORIGINS">http://localhost:5173,https://jonpepler.github.io</string>
 ```
 
-One line, comma-separated origins (scheme + host + optional port, no trailing slash). Add your dev origin, your production origin, and any LAN-station origins you use (e.g. `http://192.168.86.42:5173`). Restart KSP. Telemachus will echo `Access-Control-Allow-Origin: <origin>` for any request whose `Origin` header matches.
+Comma-separated origins (scheme + host + optional port, no trailing slash). Add your dev origin, your production origin, and any LAN-station origins you use (e.g. `http://192.168.86.42:5173`). Restart KSP — `config.xml` is read once at plugin start, not on ModuleManager reload. Telemachus will echo `Access-Control-Allow-Origin: <origin>` for any request whose `Origin` header matches.
 
 Default behaviour with no `ALLOWED_ORIGINS` line is the historical "no CORS headers ever," so existing setups aren't disturbed. Stock Telemachus Reborn (without the gonogo fork) has no CORS support at all — the alarm-mirror feature and any other "read the action response" feature requires the fork.
 
