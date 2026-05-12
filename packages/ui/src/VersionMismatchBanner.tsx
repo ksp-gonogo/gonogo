@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { BannerPill } from "./BannerPill";
 
 export type VersionMismatchKind = "minor" | "major" | "unknown";
 
@@ -26,7 +27,6 @@ export function VersionMismatchBanner({
   remoteLabel = "Peer",
 }: VersionMismatchBannerProps) {
   const role = kind === "major" ? "alert" : "status";
-  const live = kind === "major" ? "assertive" : "polite";
   const label =
     kind === "major"
       ? "RELOAD REQUIRED"
@@ -39,11 +39,16 @@ export function VersionMismatchBanner({
       : `${remoteLabel} v${remote ?? "?"} ↔ this v${local}`;
 
   return (
-    <Pill $kind={kind} role={role} aria-live={live}>
-      <Dot $kind={kind} />
+    <BannerPill
+      accent={KIND_COLOR[kind]}
+      top={56}
+      zIndex={999}
+      glow="0 0 12px rgba(0, 0, 0, 0.5)"
+      role={role}
+    >
       <Label>{label}</Label>
       <Detail>{detail}</Detail>
-    </Pill>
+    </BannerPill>
   );
 }
 
@@ -52,33 +57,6 @@ const KIND_COLOR: Record<VersionMismatchKind, string> = {
   minor: "var(--color-status-warning-bg)",
   unknown: "var(--color-text-muted)",
 };
-
-const Pill = styled.div<{ $kind: VersionMismatchKind }>`
-  position: fixed;
-  top: 56px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 999;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.82);
-  border: 1px solid ${({ $kind }) => KIND_COLOR[$kind]};
-  border-radius: 999px;
-  color: ${({ $kind }) => KIND_COLOR[$kind]};
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.12em;
-  pointer-events: none;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
-`;
-
-const Dot = styled.span<{ $kind: VersionMismatchKind }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $kind }) => KIND_COLOR[$kind]};
-`;
 
 const Label = styled.span`
   font-weight: 600;
