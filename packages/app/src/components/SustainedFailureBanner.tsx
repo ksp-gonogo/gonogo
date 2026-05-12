@@ -1,10 +1,6 @@
-import {
-  type DataSourceStatus,
-  useDataSources,
-  useStreamSources,
-} from "@gonogo/core";
+import { useDataSources, useStreamSources } from "@gonogo/core";
+import { SourceOfflineBanner } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
 
 /**
  * Surfaces data sources / stream sources that have been disconnected or
@@ -20,14 +16,6 @@ import styled from "styled-components";
 
 const THRESHOLD_MS = 15_000;
 const TICK_MS = 1_000;
-
-interface Failing {
-  id: string;
-  name: string;
-  status: DataSourceStatus;
-  /** Wall-clock ms when this source first transitioned to a non-OK status. */
-  since: number;
-}
 
 export function SustainedFailureBanner() {
   const dataSources = useDataSources();
@@ -61,14 +49,14 @@ export function SustainedFailureBanner() {
     if (!liveIds.has(id)) sinceRef.current.delete(id);
   }
 
-  const failing: Failing[] = all
+  const entries = all
     .filter((s) => sinceRef.current.has(s.id))
     .filter((s) => now - (sinceRef.current.get(s.id) ?? now) >= THRESHOLD_MS)
     .map((s) => ({
       id: s.id,
       name: s.name,
       status: s.status,
-      since: sinceRef.current.get(s.id) ?? now,
+      elapsedMs: now - (sinceRef.current.get(s.id) ?? now),
     }));
 
   // Re-render once per second so a source that crosses THRESHOLD_MS
@@ -87,97 +75,5 @@ export function SustainedFailureBanner() {
     };
   }, []);
 
-  if (failing.length === 0) return null;
-
-  return (
-    <Wrap role="status" aria-live="polite">
-      <Pulse />
-      <Label>SOURCE OFFLINE</Label>
-      <List>
-        {failing.map((f) => (
-          <Entry key={f.id}>
-            <EntryName>{f.name}</EntryName>
-            <EntryStatus>{f.status}</EntryStatus>
-            <EntryTime>{formatElapsed(now - f.since)}</EntryTime>
-          </Entry>
-        ))}
-      </List>
-    </Wrap>
-  );
+  return <SourceOfflineBanner entries={entries} />;
 }
-
-function formatElapsed(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${Math.round(ms / 3_600_000)}h`;
-}
-
-// ── Styles ──────────────────────────────────────────────────────────────────
-
-const Wrap = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 14px;
-  background: rgba(120, 30, 30, 0.9);
-  border-bottom: 1px solid var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  flex-wrap: wrap;
-`;
-
-const Pulse = styled.span`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-status-nogo-bg);
-  flex-shrink: 0;
-  animation: pulse 1.4s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes pulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.4;
-      }
-    }
-  }
-`;
-
-const Label = styled.span`
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-`;
-
-const List = styled.div`
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-`;
-
-const Entry = styled.div`
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-`;
-
-const EntryName = styled.span`
-  color: var(--color-text-primary);
-  font-weight: 600;
-`;
-
-const EntryStatus = styled.span`
-  color: var(--color-status-nogo-fg);
-  text-transform: uppercase;
-  font-size: var(--font-size-xs);
-`;
-
-const EntryTime = styled.span`
-  color: var(--color-text-faint);
-  font-variant-numeric: tabular-nums;
-`;

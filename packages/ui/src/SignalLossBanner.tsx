@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { BannerPill } from "./BannerPill";
 
 export type SignalState = "connected" | "partial" | "lost";
 
@@ -18,11 +19,16 @@ export function SignalLossBanner({ state, elapsedMs }: SignalLossBannerProps) {
 
   const label = state === "lost" ? "SIGNAL LOSS" : "PARTIAL CONTROL";
   return (
-    <Pill $severity={state} role="status" aria-live="polite">
-      <Dot $severity={state} />
+    <BannerPill
+      accent={SEVERITY_COLOR[state]}
+      top={12}
+      zIndex={1000}
+      glow="0 0 12px rgba(255, 59, 48, 0.35)"
+      pulse
+    >
       <Label>{label}</Label>
       <Timer>T+{formatElapsed(elapsedMs)}</Timer>
-    </Pill>
+    </BannerPill>
   );
 }
 
@@ -39,42 +45,6 @@ const SEVERITY_COLOR: Record<Exclude<SignalState, "connected">, string> = {
   lost: "var(--color-status-nogo-bg)",
   partial: "var(--color-status-warning-bg)",
 };
-
-const Pill = styled.div<{ $severity: Exclude<SignalState, "connected"> }>`
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.82);
-  border: 1px solid ${({ $severity }) => SEVERITY_COLOR[$severity]};
-  border-radius: 999px;
-  color: ${({ $severity }) => SEVERITY_COLOR[$severity]};
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.12em;
-  pointer-events: none;
-  box-shadow: 0 0 12px rgba(255, 59, 48, 0.35);
-`;
-
-const Dot = styled.span<{ $severity: Exclude<SignalState, "connected"> }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $severity }) => SEVERITY_COLOR[$severity]};
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: signal-pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes signal-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-  }
-`;
 
 const Label = styled.span`
   font-weight: 600;
