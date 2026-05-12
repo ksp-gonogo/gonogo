@@ -1,10 +1,10 @@
-import { getAppVersion, useDataSources, useStreamSources } from "@gonogo/core";
 import { logger, tagRegistry } from "@gonogo/logger";
 import {
   Button,
   Field,
   FieldHint,
   FieldLabel,
+  FileInput,
   FormActions,
   Select,
   Switch,
@@ -129,57 +129,6 @@ function writeTags(mode: Mode, tags: Set<string>): void {
 export function LogsManager() {
   const [state, setState] = useState(readTags);
   const bufferSize = logger.getBuffer().length;
-  const dataSources = useDataSources();
-  const streamSources = useStreamSources();
-  const version = getAppVersion();
-  const [copied, setCopied] = useState(false);
-
-  function buildReport(): string {
-    const lines: string[] = [];
-    lines.push("gonogo diagnostic snapshot");
-    lines.push(`Captured: ${new Date().toISOString()}`);
-    if (version) {
-      lines.push(`App: v${version.version} (build ${version.buildTime})`);
-    }
-    lines.push("");
-    lines.push("== Data sources ==");
-    for (const s of dataSources)
-      lines.push(`  ${s.name} (${s.id}): ${s.status}`);
-    if (dataSources.length === 0) lines.push("  (none registered)");
-    lines.push("");
-    lines.push("== Stream sources ==");
-    for (const s of streamSources)
-      lines.push(
-        `  ${s.name} (${s.id}): ${s.status} — ${s.streamCount} stream(s)`,
-      );
-    if (streamSources.length === 0) lines.push("  (none registered)");
-    lines.push("");
-    lines.push(`== Log buffer (${bufferSize} entries) ==`);
-    for (const entry of logger.getBuffer()) {
-      const tag = entry.tag ? `[${entry.tag}] ` : "";
-      const ctx = entry.context ? ` ${JSON.stringify(entry.context)}` : "";
-      const err = entry.error
-        ? ` ${entry.error.name}: ${entry.error.message}`
-        : "";
-      lines.push(
-        `  ${entry.timestamp} ${entry.level.toUpperCase()} ${tag}${entry.message}${err}${ctx}`,
-      );
-    }
-    return lines.join("\n");
-  }
-
-  async function copyReport() {
-    const text = buildReport();
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2_000);
-    } catch {
-      // Clipboard write can fail on insecure origins or when permission
-      // is denied. The download path still works for sharing.
-      setCopied(false);
-    }
-  }
 
   function toggleTag(id: string) {
     const next = new Set(state.tags);
@@ -204,46 +153,6 @@ export function LogsManager() {
 
   return (
     <Container>
-      <Section>
-        <SectionTitle>Snapshot</SectionTitle>
-        {version && (
-          <SnapshotLine>
-            <SnapshotLabel>App</SnapshotLabel>
-            <SnapshotValue>
-              v{version.version} · build {version.buildTime}
-            </SnapshotValue>
-          </SnapshotLine>
-        )}
-        {(dataSources.length > 0 || streamSources.length > 0) && (
-          <SnapshotList>
-            {dataSources.map((s) => (
-              <SnapshotEntry key={`d-${s.id}`}>
-                <SnapshotName>{s.name}</SnapshotName>
-                <SnapshotStatus $status={s.status}>{s.status}</SnapshotStatus>
-              </SnapshotEntry>
-            ))}
-            {streamSources.map((s) => (
-              <SnapshotEntry key={`s-${s.id}`}>
-                <SnapshotName>{s.name}</SnapshotName>
-                <SnapshotStatus $status={s.status}>
-                  {s.status} · {s.streamCount} stream
-                  {s.streamCount === 1 ? "" : "s"}
-                </SnapshotStatus>
-              </SnapshotEntry>
-            ))}
-          </SnapshotList>
-        )}
-        <ActionRow>
-          <Button onClick={copyReport}>
-            {copied ? "Copied" : "Copy report"}
-          </Button>
-        </ActionRow>
-        <Foot>
-          The report includes the snapshot above plus every entry currently in
-          the log buffer — paste it into a bug report.
-        </Foot>
-      </Section>
-
       <Section>
         <SectionTitle>Active tags</SectionTitle>
         <ModeRow>
@@ -321,6 +230,7 @@ function ReportBug() {
   const [description, setDescription] = useState("");
   const [windowIndex, setWindowIndex] = useState(DEFAULT_WINDOW_INDEX);
   const [screenshot, setScreenshot] = useState<EncodedScreenshot | null>(null);
+  const [screenshotName, setScreenshotName] = useState<string | null>(null);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [phase, setPhase] = useState<FormPhase>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -364,6 +274,7 @@ function ReportBug() {
     setDescription("");
     setWindowIndex(DEFAULT_WINDOW_INDEX);
     setScreenshot(null);
+    setScreenshotName(null);
     setScreenshotError(null);
     setSubmitError(null);
     setPhase("idle");
@@ -375,8 +286,10 @@ function ReportBug() {
     setScreenshotError(null);
     if (!file) {
       setScreenshot(null);
+      setScreenshotName(null);
       return;
     }
+    setScreenshotName(file.name);
     setPhase("encoding");
     try {
       const encoded = await encodeScreenshot(file);
@@ -384,6 +297,7 @@ function ReportBug() {
       setPhase("idle");
     } catch (err) {
       setScreenshot(null);
+      setScreenshotName(null);
       setPhase("idle");
       if (err instanceof ScreenshotTooLargeError) {
         setScreenshotError(err.message);
@@ -426,6 +340,7 @@ function ReportBug() {
         setPhase((p) => (p === "sent" ? "idle" : p));
         setDescription("");
         setScreenshot(null);
+        setScreenshotName(null);
         setScreenshotError(null);
         setSubmitError(null);
         setWindowIndex(DEFAULT_WINDOW_INDEX);
@@ -479,11 +394,11 @@ function ReportBug() {
 
       <Field>
         <FieldLabel htmlFor={screenshotId}>Screenshot (optional)</FieldLabel>
-        <input
+        <FileInput
           id={screenshotId}
           ref={fileInputRef}
-          type="file"
           accept="image/*"
+          fileName={screenshotName}
           onChange={handleFileChange}
         />
         {phase === "encoding" && <FieldHint>Compressing image…</FieldHint>}
@@ -616,45 +531,6 @@ const ActionRow = styled.div`
   gap: 8px;
 `;
 
-const SnapshotLine = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  font-size: 12px;
-`;
-
-const SnapshotLabel = styled.span`
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  min-width: 32px;
-`;
-
-const SnapshotValue = styled.span`
-  color: var(--color-text-primary);
-`;
-
-const SnapshotList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 4px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-`;
-
-const SnapshotEntry = styled.li`
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 12px;
-`;
-
-const SnapshotName = styled.span`
-  color: var(--color-text-primary);
-`;
-
 const ReportForm = styled.form`
   display: flex;
   flex-direction: column;
@@ -700,17 +576,4 @@ const ScreenshotMeta = styled.div`
 const Warn = styled.span`
   color: var(--color-status-warning-bg);
   font-size: 11px;
-`;
-
-const SnapshotStatus = styled.span<{ $status: string }>`
-  color: ${({ $status }) =>
-    $status === "connected"
-      ? "var(--color-accent-fg)"
-      : $status === "reconnecting"
-        ? "var(--color-status-warning-bg)"
-        : $status === "error"
-          ? "var(--color-status-nogo-bg)"
-          : "var(--color-text-faint)"};
-  font-size: 11px;
-  text-transform: uppercase;
 `;

@@ -14,7 +14,8 @@ Axiom under a `bug-report` tag I can query on a regular basis.
 - New **Report bug** section at the bottom of `LogsManager.tsx`. Collapsed-to-
   button by default; on click it expands to a small form: description
   textarea, "Include logs from" select (1 / 5 (default) / 15 min / everything
-  in buffer), optional screenshot file input, Send / Cancel.
+  in buffer), optional screenshot upload (using the new `FileInput` primitive
+  in `@gonogo/ui` so the dark theme reads correctly), Send / Cancel.
 - On submit, calls
   `logger.tag("bug-report").error(description, undefined, { bug_report: { ... } })`
   + `logger.flushTransports()`. The existing AxiomTransport fan-out picks it
@@ -56,10 +57,37 @@ Axiom under a `bug-report` tag I can query on a regular basis.
 
 ## Validation
 
-⏳ pending — needs one live submission with the dev build pointed at a real
-Axiom token (the local dev path doesn't install the transport without
-`VITE_AXIOM_TOKEN`), then a manual Axiom query to confirm the entry shape and
-that an oversized screenshot is auto-resized to a payload Axiom accepts.
+✅ confirmed 2026-05-13 — submitted a live `Hello, Claude!` test report from
+the deployed build. Axiom entry landed with full `context.bug_report` shape;
+recent-logs slice carried 6 entries from a real OCISLY peer-failure
+sequence; the resized 600×440 / ~10 KB JPEG decoded cleanly and was readable
+end-to-end. Bug-report → Axiom round-trip works.
+
+## ⚠️ Operational caveat — don't try to read screenshots in-band
+
+The `screenshot.base64` field is ~10–15 KB per entry. Pulling it into a
+Claude Code conversation context (via `mcp__axiom__queryDataset` or by
+having the user paste the JSON) reliably triggers a Claude Code SSE-stall
+freeze the moment Claude tries to emit a `Write` tool call carrying the
+base64 as the `content` parameter. This was reproduced on Opus 4.7 and Haiku
+4.5, both as the parent agent and as a delegated subagent.
+
+**Workflow when investigating a bug-report entry:**
+
+1. Read the metadata, message, and `recentLogs` slice freely — those are
+   small.
+2. Decode the screenshot **outside** Claude Code:
+   ```
+   node scripts/decode-bug-report.mjs ~/Downloads/entry.json /tmp/bug-report
+   ```
+   Writes `screenshot.jpg`, `recent-logs.json`, and `summary.txt` to the
+   output dir. Accepts both bare-entry and `{ data: ... }` shapes that
+   Axiom returns from different export paths.
+3. Hand Claude the **file path** — `Read` renders images natively, no
+   base64 in text context.
+
+Don't ask Claude to "save the base64 to a file" or "decode it for me" —
+that's the freeze trigger. Don't paste the full JSON entry into chat.
 
 ## Plan
 
