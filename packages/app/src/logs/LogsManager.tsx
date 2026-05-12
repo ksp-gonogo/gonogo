@@ -1,9 +1,32 @@
 import { getAppVersion, useDataSources, useStreamSources } from "@gonogo/core";
 import { logger, tagRegistry } from "@gonogo/logger";
-import { Button, Switch } from "@gonogo/ui";
-import { useState } from "react";
+import {
+  Button,
+  Field,
+  FieldHint,
+  FieldLabel,
+  FormActions,
+  Select,
+  Switch,
+  Textarea,
+} from "@gonogo/ui";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styled from "styled-components";
 import { downloadLogs } from "./downloadLogs";
+import { recentLogsWindow } from "./recentLogsWindow";
+import {
+  type EncodedScreenshot,
+  encodeScreenshot,
+  SCREENSHOT_WARN_BYTES,
+  ScreenshotTooLargeError,
+} from "./screenshotEncoder";
 
 const LOG_TAGS_KEY = "LOG_TAGS";
 
@@ -52,7 +75,26 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     hint: "Station registration & votes",
   },
   { id: "flight", label: "flight", hint: "Flight history plumbing" },
+  {
+    id: "bug-report",
+    label: "bug-report",
+    hint: "User-submitted bug reports (rare, kept on for triage)",
+  },
 ];
+
+type TimeWindowOption = {
+  label: string;
+  /** Minutes; null = include the entire ring buffer. */
+  windowMinutes: number | null;
+};
+
+const TIME_WINDOW_OPTIONS: TimeWindowOption[] = [
+  { label: "last 1 min", windowMinutes: 1 },
+  { label: "last 5 min (recommended)", windowMinutes: 5 },
+  { label: "last 15 min", windowMinutes: 15 },
+  { label: "everything in buffer", windowMinutes: null },
+];
+const DEFAULT_WINDOW_INDEX = 1;
 
 type Mode = "all" | "none" | "list";
 
@@ -263,7 +305,225 @@ export function LogsManager() {
           reproducing a bug and share the file.
         </Foot>
       </Section>
+
+      <Section>
+        <SectionTitle>Report bug</SectionTitle>
+        <ReportBug />
+      </Section>
     </Container>
+  );
+}
+
+type FormPhase = "idle" | "encoding" | "submitting" | "sent";
+
+function ReportBug() {
+  const [open, setOpen] = useState(false);
+  const [description, setDescription] = useState("");
+  const [windowIndex, setWindowIndex] = useState(DEFAULT_WINDOW_INDEX);
+  const [screenshot, setScreenshot] = useState<EncodedScreenshot | null>(null);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<FormPhase>("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const descriptionId = useId();
+  const windowId = useId();
+  const screenshotId = useId();
+
+  const selectedWindow =
+    TIME_WINDOW_OPTIONS[windowIndex] ?? TIME_WINDOW_OPTIONS[0];
+  const previewCount = useMemo(
+    () =>
+      recentLogsWindow(logger.getBuffer(), selectedWindow.windowMinutes).length,
+    [selectedWindow.windowMinutes],
+  );
+
+  if (!open && phase !== "sent") {
+    return (
+      <>
+        <Foot>
+          Sends a tagged report straight to our log store. Includes a slice of
+          your recent log buffer and an optional screenshot.
+        </Foot>
+        <ActionRow>
+          <Button onClick={() => setOpen(true)}>Report a bug</Button>
+        </ActionRow>
+      </>
+    );
+  }
+
+  if (phase === "sent") {
+    return (
+      <SentNotice role="status" aria-live="polite">
+        Bug report sent — thanks. The log store has it tagged{" "}
+        <code>bug-report</code>.
+      </SentNotice>
+    );
+  }
+
+  function reset() {
+    setDescription("");
+    setWindowIndex(DEFAULT_WINDOW_INDEX);
+    setScreenshot(null);
+    setScreenshotError(null);
+    setSubmitError(null);
+    setPhase("idle");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setScreenshotError(null);
+    if (!file) {
+      setScreenshot(null);
+      return;
+    }
+    setPhase("encoding");
+    try {
+      const encoded = await encodeScreenshot(file);
+      setScreenshot(encoded);
+      setPhase("idle");
+    } catch (err) {
+      setScreenshot(null);
+      setPhase("idle");
+      if (err instanceof ScreenshotTooLargeError) {
+        setScreenshotError(err.message);
+      } else {
+        const message =
+          err instanceof Error ? err.message : "Could not read the image.";
+        setScreenshotError(message);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = description.trim();
+    if (trimmed.length === 0) return;
+    setPhase("submitting");
+    setSubmitError(null);
+    const recentLogs = recentLogsWindow(
+      logger.getBuffer(),
+      selectedWindow.windowMinutes,
+    );
+    try {
+      logger.tag("bug-report").error(trimmed, undefined, {
+        bug_report: {
+          timeWindowMinutes: selectedWindow.windowMinutes,
+          recentLogsCount: recentLogs.length,
+          recentLogs,
+          screenshot,
+          reportedAt: new Date().toISOString(),
+        },
+      });
+      await logger.flushTransports();
+      setPhase("sent");
+      setOpen(false);
+      window.setTimeout(() => {
+        // After the user has seen the success notice, collapse it and reset
+        // the form so a second report starts from a clean slate. We bail if
+        // the user has already started another report by then.
+        setPhase((p) => (p === "sent" ? "idle" : p));
+        setDescription("");
+        setScreenshot(null);
+        setScreenshotError(null);
+        setSubmitError(null);
+        setWindowIndex(DEFAULT_WINDOW_INDEX);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }, 5000);
+    } catch (err) {
+      setPhase("idle");
+      setSubmitError(
+        err instanceof Error ? err.message : "Could not submit the report.",
+      );
+    }
+  }
+
+  const submitDisabled =
+    description.trim().length === 0 ||
+    phase === "encoding" ||
+    phase === "submitting";
+
+  return (
+    <ReportForm onSubmit={handleSubmit} noValidate>
+      <Field>
+        <FieldLabel htmlFor={descriptionId}>What went wrong?</FieldLabel>
+        <Textarea
+          id={descriptionId}
+          rows={4}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What were you doing? What did you expect? What happened instead?"
+          required
+        />
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor={windowId}>Include logs from</FieldLabel>
+        <Select
+          id={windowId}
+          value={windowIndex}
+          onChange={(e) => setWindowIndex(Number(e.target.value))}
+        >
+          {TIME_WINDOW_OPTIONS.map((opt, i) => (
+            <option key={opt.label} value={i}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
+        <FieldHint>
+          {previewCount} log entr{previewCount === 1 ? "y" : "ies"} will be
+          attached.
+        </FieldHint>
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor={screenshotId}>Screenshot (optional)</FieldLabel>
+        <input
+          id={screenshotId}
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+        />
+        {phase === "encoding" && <FieldHint>Compressing image…</FieldHint>}
+        {screenshot && (
+          <ScreenshotPreview>
+            <ScreenshotThumb
+              src={`data:${screenshot.mimeType};base64,${screenshot.base64}`}
+              alt="Screenshot preview"
+            />
+            <ScreenshotMeta>
+              <span>
+                {screenshot.width}×{screenshot.height},{" "}
+                {Math.round(screenshot.encodedSize / 1024)} KB
+              </span>
+              {screenshot.encodedSize > SCREENSHOT_WARN_BYTES && (
+                <Warn>Large image — consider a tighter crop.</Warn>
+              )}
+            </ScreenshotMeta>
+          </ScreenshotPreview>
+        )}
+        {screenshotError && <Warn>{screenshotError}</Warn>}
+      </Field>
+
+      {submitError && <Warn>{submitError}</Warn>}
+
+      <FormActions>
+        <Button type="submit" disabled={submitDisabled}>
+          {phase === "submitting" ? "Sending…" : "Send report"}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => {
+            reset();
+            setOpen(false);
+          }}
+        >
+          Cancel
+        </Button>
+      </FormActions>
+    </ReportForm>
   );
 }
 
@@ -393,6 +653,53 @@ const SnapshotEntry = styled.li`
 
 const SnapshotName = styled.span`
   color: var(--color-text-primary);
+`;
+
+const ReportForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const SentNotice = styled.div`
+  background: var(--color-status-go-bg);
+  color: var(--color-status-go-fg);
+  padding: 8px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+
+  code {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+`;
+
+const ScreenshotPreview = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 6px;
+`;
+
+const ScreenshotThumb = styled.img`
+  max-width: 120px;
+  max-height: 80px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+`;
+
+const ScreenshotMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+`;
+
+const Warn = styled.span`
+  color: var(--color-status-warning-bg);
+  font-size: 11px;
 `;
 
 const SnapshotStatus = styled.span<{ $status: string }>`
