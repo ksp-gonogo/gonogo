@@ -335,9 +335,9 @@ const Badge = styled.span<{
 
 registerComponent<ScienceOfficerConfig>({
   id: "science-officer",
-  name: "Science Officer",
+  name: "Science Lab",
   description:
-    "Per-instrument science panel — every ModuleScienceExperiment on the active vessel grouped by experiment id, with badges for stored-data / deployed / one-shot / inoperable. Read-only Phase 2; Phase 4 will add deploy + transmit buttons.",
+    "All science instruments on the current vessel grouped by experiment. Shows which have stored data, which have already been deployed, which are one-shot, and which are inoperable.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },

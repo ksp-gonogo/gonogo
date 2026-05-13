@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  getSizeBucket,
   registerComponent,
   useDataValue,
   useExecuteAction,
@@ -102,6 +103,7 @@ function SpaceCenterStatusComponent({
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
   const compactGrid = cols < 5;
+  const sizeBucket = getSizeBucket(w, h);
 
   const padLine = padOccupied
     ? padVesselTitle
@@ -111,12 +113,42 @@ function SpaceCenterStatusComponent({
       ? `Last site: ${launchSite}`
       : "No vehicle on pad";
 
+  if (sizeBucket === "tiny") {
+    return (
+      <Panel>
+        <PanelTitle>KSC</PanelTitle>
+        <TinyBody>
+          {typeof careerFunds === "number" ? (
+            <TinyFunds>
+              {Math.round(careerFunds).toLocaleString()}
+              <TinyFundsUnit>f</TinyFundsUnit>
+            </TinyFunds>
+          ) : (
+            <TinyFunds>—</TinyFunds>
+          )}
+          <TinyPad
+            $occupied={padOccupied === true}
+            title={padLine}
+            aria-label={padLine}
+          >
+            {padOccupied === true ? "PAD ACTIVE" : "PAD CLEAR"}
+          </TinyPad>
+        </TinyBody>
+      </Panel>
+    );
+  }
+
   return (
     <Panel>
       <PanelTitle>SPACE CENTER</PanelTitle>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {padLine}
+          {typeof careerFunds === "number" && (
+            <FundsReadout title="Available funds">
+              · {Math.round(careerFunds).toLocaleString()}f
+            </FundsReadout>
+          )}
         </PanelSubtitle>
       )}
 
@@ -169,8 +201,8 @@ function SpaceCenterStatusComponent({
         </FacilityGrid>
 
         <Footer>
-          <FooterCell>
-            <FooterLabel>Parts</FooterLabel>
+          <FooterCell title="Parts unlocked by current R&D tier">
+            <FooterLabel>Parts unlocked</FooterLabel>
             <FooterValue>
               {typeof partsAvailable === "number" ? partsAvailable : "—"}
             </FooterValue>
@@ -381,6 +413,44 @@ const FooterValue = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+const FundsReadout = styled.span`
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+`;
+
+const TinyBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+`;
+
+const TinyFunds = styled.div`
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-status-go-fg);
+  line-height: 1;
+`;
+
+const TinyFundsUnit = styled.span`
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+`;
+
+const TinyPad = styled.span<{ $occupied: boolean }>`
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: ${(p) =>
+    p.$occupied ? "var(--color-accent-fg)" : "var(--color-text-faint)"};
+`;
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<SpaceCenterStatusConfig>({
@@ -390,7 +460,7 @@ registerComponent<SpaceCenterStatusConfig>({
     "KSC overview — facility levels (VAB, SPH, R&D, …), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 2, h: 2 },
   component: SpaceCenterStatusComponent,
   dataRequirements: [
     "kc.facilityLevels",

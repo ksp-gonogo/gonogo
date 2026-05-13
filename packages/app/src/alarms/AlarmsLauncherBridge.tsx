@@ -1,10 +1,11 @@
 import {
   type AlarmCreator,
+  type AlarmManagerLookup,
   type AlarmsLauncher,
   AlarmsLauncherProvider,
 } from "@gonogo/components";
 import { useModal } from "@gonogo/ui";
-import { type ReactNode, useCallback } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 import { AlarmsModal, type AlarmsModalProps } from "./AlarmsModal";
 import type { AlarmSnapshot, AlarmTrigger } from "./types";
 
@@ -59,10 +60,25 @@ export function AlarmsLauncherBridge({
     },
     [onAdd],
   );
+  const snap = useSnapshot();
+  const manager = useMemo<AlarmManagerLookup>(() => {
+    return {
+      find: (matcher) => {
+        for (const a of snap.alarms) {
+          if (matcher(a.trigger as unknown)) return a.id;
+        }
+        return null;
+      },
+      remove: (id: string) => {
+        onDelete(id);
+      },
+    };
+  }, [snap, onDelete]);
   return (
     <AlarmsLauncherProvider
       launcher={launcher}
       creator={creator as AlarmCreator<unknown>}
+      manager={manager}
     >
       {children}
     </AlarmsLauncherProvider>

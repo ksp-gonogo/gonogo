@@ -48,9 +48,26 @@ export type AlarmCreator<TTrigger> = (
 
 const CreatorContext = createContext<AlarmCreator<unknown> | null>(null);
 
+/**
+ * Lookup hook for "is there already an alarm matching this trigger?". Lets
+ * a widget render a stateful bell (set / unset) and toggle off the existing
+ * alarm rather than duplicating it. Returns the alarm id when one matches,
+ * or null when no match (or the manager isn't mounted).
+ *
+ * `matcher` should be a stable function (memoised by the caller) since this
+ * hook re-runs it on every alarm snapshot change.
+ */
+export interface AlarmManagerLookup {
+  find: (matcher: (trigger: unknown) => boolean) => string | null;
+  remove: (alarmId: string) => void;
+}
+
+const ManagerContext = createContext<AlarmManagerLookup | null>(null);
+
 export function AlarmsLauncherProvider({
   launcher,
   creator,
+  manager,
   children,
 }: {
   launcher: AlarmsLauncher;
@@ -60,15 +77,26 @@ export function AlarmsLauncherProvider({
    * affordance — same fallback as `useAlarmsLauncher` returning null.
    */
   creator?: AlarmCreator<unknown>;
+  /**
+   * Optional lookup + remove handler so widgets can render a "set / unset"
+   * bell state and toggle the alarm off without re-opening the modal.
+   */
+  manager?: AlarmManagerLookup;
   children: ReactNode;
 }) {
   return (
     <Context.Provider value={launcher}>
       <CreatorContext.Provider value={creator ?? null}>
-        {children}
+        <ManagerContext.Provider value={manager ?? null}>
+          {children}
+        </ManagerContext.Provider>
       </CreatorContext.Provider>
     </Context.Provider>
   );
+}
+
+export function useAlarmManager(): AlarmManagerLookup | null {
+  return useContext(ManagerContext);
 }
 
 /**

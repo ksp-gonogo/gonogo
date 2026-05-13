@@ -324,29 +324,36 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
       </DetailHeader>
 
       <Totals>
-        <TotalRow>
-          <TotalLabel>Funds</TotalLabel>
-          <TotalValue>
-            +{Math.round(summary.fundsEarned).toLocaleString()} · total{" "}
-            {Math.round(summary.totalFunds).toLocaleString()}
-          </TotalValue>
-        </TotalRow>
-        <TotalRow>
-          <TotalLabel>Science</TotalLabel>
-          <TotalValue>
-            +{summary.scienceEarned.toFixed(1)} · total{" "}
-            {summary.totalScience.toFixed(1)}
-          </TotalValue>
-        </TotalRow>
-        {summary.displayReputation && (
-          <TotalRow>
-            <TotalLabel>Reputation</TotalLabel>
-            <TotalValue>
-              +{summary.reputationEarned.toFixed(1)} · total{" "}
-              {summary.totalReputation.toFixed(1)}
-            </TotalValue>
-          </TotalRow>
-        )}
+        <TotalsTable>
+          <TotalsHeader>
+            <span />
+            <TotalsHeadCell>Gained</TotalsHeadCell>
+            <TotalsHeadCell>Total</TotalsHeadCell>
+          </TotalsHeader>
+          <TotalsRow>
+            <TotalLabel>Funds</TotalLabel>
+            <TotalGained>
+              +{Math.round(summary.fundsEarned).toLocaleString()}
+            </TotalGained>
+            <TotalAbsolute>
+              {Math.round(summary.totalFunds).toLocaleString()}
+            </TotalAbsolute>
+          </TotalsRow>
+          <TotalsRow>
+            <TotalLabel>Science</TotalLabel>
+            <TotalGained>+{summary.scienceEarned.toFixed(1)}</TotalGained>
+            <TotalAbsolute>{summary.totalScience.toFixed(1)}</TotalAbsolute>
+          </TotalsRow>
+          {summary.displayReputation && (
+            <TotalsRow>
+              <TotalLabel>Reputation</TotalLabel>
+              <TotalGained>+{summary.reputationEarned.toFixed(1)}</TotalGained>
+              <TotalAbsolute>
+                {summary.totalReputation.toFixed(1)}
+              </TotalAbsolute>
+            </TotalsRow>
+          )}
+        </TotalsTable>
       </Totals>
 
       {summary.scienceBreakdown.length > 0 && (
@@ -620,11 +627,49 @@ const TotalRow = styled.div`
   align-items: baseline;
 `;
 
+const TotalsTable = styled.div`
+  display: grid;
+  grid-template-columns: minmax(80px, auto) 1fr 1fr;
+  column-gap: 16px;
+  row-gap: 4px;
+  align-items: baseline;
+`;
+
+const TotalsHeader = styled.div`
+  display: contents;
+`;
+
+const TotalsHeadCell = styled.span`
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  text-align: right;
+`;
+
+const TotalsRow = styled.div`
+  display: contents;
+`;
+
 const TotalLabel = styled.span`
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+`;
+
+const TotalGained = styled.span`
+  font-size: var(--font-size-base);
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+`;
+
+const TotalAbsolute = styled.span`
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 `;
 
 const TotalValue = styled.span`
