@@ -16,6 +16,7 @@ import {
   type LucideProps,
   Maximize,
   Minimize,
+  Pause,
   Play,
   Plus,
   Radio,
@@ -69,6 +70,7 @@ export const CheckIcon = makeIcon(Check);
 export const GearIcon = SettingsIcon;
 export const StarIcon = makeIcon(Star);
 export const PlayIcon = makeIcon(Play);
+export const PauseIcon = makeIcon(Pause);
 export const StopIcon = makeIcon(Square);
 export const ChevronUpIcon = makeIcon(ChevronUp);
 export const ChevronDownIcon = makeIcon(ChevronDown);

@@ -6,7 +6,14 @@ import {
   useExecuteAction,
   useGameContext,
 } from "@gonogo/core";
-import { DimmedOverlay, Panel, PanelTitle, ReadoutCaption } from "@gonogo/ui";
+import {
+  DimmedOverlay,
+  Panel,
+  PanelTitle,
+  PauseIcon,
+  PlayIcon,
+  ReadoutCaption,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -45,6 +52,12 @@ const warpActions = [
     accepts: ["button"],
     description: "Drop warp straight to realtime.",
   },
+  {
+    id: "togglePause",
+    label: "Toggle pause",
+    accepts: ["button"],
+    description: "Pause / unpause KSP (in-flight only).",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type WarpControlActions = typeof warpActions;
@@ -73,6 +86,7 @@ function WarpControlComponent({
   const rate = useDataValue<number>("data", "t.currentRate");
   const indexRaw = useDataValue<number>("data", "t.timeWarp");
   const mode = useDataValue<string>("data", "t.warpMode");
+  const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const execute = useExecuteAction("data");
 
   // Time warp works in Flight / SpaceCenter / TrackingStation but not
@@ -97,6 +111,11 @@ function WarpControlComponent({
   const setWarp = (idx: number) => {
     void execute(`t.timeWarp[${idx}]`);
   };
+  // The fork ships separate `t.pause` / `t.unpause` action keys — there's
+  // no toggle. Fire the one matching the inverse of the current state.
+  const togglePause = () => {
+    void execute(isPaused ? "t.unpause" : "t.pause");
+  };
 
   useActionInput<WarpControlActions>({
     stepUp: (payload) => {
@@ -115,6 +134,11 @@ function WarpControlComponent({
       if (payload.kind === "button" && payload.value !== true) return undefined;
       setWarp(0);
       return { Warp: "1×" };
+    },
+    togglePause: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      togglePause();
+      return { Paused: !isPaused };
     },
   });
 
@@ -150,6 +174,25 @@ function WarpControlComponent({
               <ReadoutCaption>{mode}</ReadoutCaption>
             )}
           </Rate>
+
+          {scene === "Flight" && (
+            <PauseButton
+              type="button"
+              $paused={isPaused === true}
+              onClick={togglePause}
+              aria-label={isPaused === true ? "Resume game" : "Pause game"}
+              aria-pressed={isPaused === true}
+              title={
+                isPaused === true ? "Resume (t.unpause)" : "Pause (t.pause)"
+              }
+            >
+              {isPaused === true ? (
+                <PlayIcon size={14} />
+              ) : (
+                <PauseIcon size={14} />
+              )}
+            </PauseButton>
+          )}
 
           {showFullLadder && (
             <FullLadder role="group" aria-label="Time warp levels">
@@ -225,6 +268,37 @@ const Body = styled.div`
   justify-content: center;
   min-width: 0;
   min-height: 0;
+`;
+
+const PauseButton = styled.button<{ $paused: boolean }>`
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid
+    ${(p) =>
+      p.$paused
+        ? "var(--color-status-warn-fg)"
+        : "var(--color-surface-raised)"};
+  background: ${(p) =>
+    p.$paused ? "var(--color-status-warn-bg)" : "transparent"};
+  color: ${(p) =>
+    p.$paused ? "var(--color-status-warn-fg)" : "var(--color-text-muted)"};
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+
+  &:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
 const Rate = styled.div<{ $tone: "go" }>`
