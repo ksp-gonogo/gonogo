@@ -39,6 +39,7 @@ export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
 export * from "./StaffRoster";
+export * from "./Strategies";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";
 export * from "./shared/RequiresGuard";
