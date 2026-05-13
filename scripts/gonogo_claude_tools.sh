@@ -39,6 +39,14 @@
 #       back to findtype for namespaced lookups; you can pass either
 #       `Part` or `Strategies.Strategy`.
 #
+#   body <Type> <Method>
+#       Print one method's body from the cached disassembly. Pairs
+#       with `members` — use `members` to spot a method by signature,
+#       then `body` to see what it actually does. Returns the first
+#       overload that matches by name; if you have overloads, use
+#       `dump` instead. Detects the matching close-brace by indent
+#       level (ilspycmd output is consistently formatted).
+#
 #   build telemachus
 #       Build the Telemachus fork at local_docs/telemachus-fork/Telemachus/
 #       and copy the resulting Telemachus.dll into the synced
@@ -241,6 +249,85 @@ _resolve_type_range() {
     _RANGE_DLL="$(basename "$cand")"
     return 0
   done
+}
+
+body() {
+  if [ "$#" -lt 2 ]; then
+    echo "usage: gonogo_claude_tools.sh body <Type> <Method>"
+    echo "  Print one method's body from the cached disassembly. Useful"
+    echo "  when you've spotted a method via 'members' and want to see"
+    echo "  what it actually does (KSP's null-checks, side effects,"
+    echo "  fallback paths). Returns the first overload that matches"
+    echo "  by name."
+    return 2
+  fi
+  if [ ! -f "$DLL" ]; then
+    echo "Assembly-CSharp.dll not found at $DLL"
+    return 3
+  fi
+  local t="$1"
+  local m="$2"
+  # Hydrate the disassembly cache the same way 'members' does.
+  _findtype_emit "$t" > /dev/null 2>&1
+  _resolve_type_range "$t"
+  if [ -z "$_RANGE_FILE" ]; then
+    local fqn_line
+    fqn_line="$(_findtype_emit "$t" | head -1 || true)"
+    if [ -n "$fqn_line" ]; then
+      local fqn="${fqn_line%% (in *}"
+      local leaf="${fqn##*.}"
+      _resolve_type_range "$leaf"
+    fi
+  fi
+  if [ -z "$_RANGE_FILE" ]; then
+    echo "=== $t::$m ==="
+    echo "(type not found in any cached disassembly)"
+    return 1
+  fi
+  # Find the method declaration. We accept any public/protected/private
+  # modifier so non-public bodies are still inspectable. The method must
+  # be at strictly deeper indent than the class declaration (its body).
+  local class_indent
+  class_indent="$(awk -v lo="$_RANGE_LO" 'NR==lo { match($0, /^[[:space:]]*/); print RLENGTH; exit }' "$_RANGE_FILE")"
+  local match
+  match="$(awk \
+    -v lo="$_RANGE_LO" -v hi="$_RANGE_HI" -v m="$m" -v ci="$class_indent" '
+    NR > lo && NR < hi {
+      match($0, /^[[:space:]]*/)
+      ind = RLENGTH
+      if (ind <= ci) next
+      # Match signature: "<modifiers> [type] m("  or "<modifiers> [type] m<…>("
+      # Skip variable declarations by requiring an `(` after the name.
+      pat = "(public|protected|private|internal|static)[^(]*[[:space:]]+" m "[[:space:]<(]"
+      if ($0 ~ pat) {
+        print NR ":" ind
+        exit
+      }
+    }
+  ' "$_RANGE_FILE")"
+  if [ -z "$match" ]; then
+    echo "=== $t::$m ==="
+    echo "(method not found in $t within lines $_RANGE_LO..$_RANGE_HI)"
+    return 1
+  fi
+  local sig_line="${match%%:*}"
+  local sig_indent="${match##*:}"
+  # Walk forward looking for the matching close-brace at the same indent
+  # as the signature. ilspycmd's output is consistently brace-matched at
+  # indent level so this works without a full brace-counter.
+  local end_line
+  end_line="$(awk -v from="$sig_line" -v si="$sig_indent" '
+    NR > from {
+      match($0, /^[[:space:]]*/)
+      if (RLENGTH == si && $0 ~ /^[[:space:]]*}[[:space:]]*$/) {
+        print NR; exit
+      }
+    }
+  ' "$_RANGE_FILE")"
+  [ -z "$end_line" ] && end_line="$_RANGE_HI"
+  echo "=== $t::$m (in $_RANGE_DLL, lines $sig_line..$end_line) ==="
+  awk -v lo="$sig_line" -v hi="$end_line" 'NR>=lo && NR<=hi { print }' "$_RANGE_FILE"
+  echo
 }
 
 members() {
@@ -524,6 +611,10 @@ case "${1:-help}" in
   members)
     shift
     members "$@"
+    ;;
+  body)
+    shift
+    body "$@"
     ;;
   build)
     shift

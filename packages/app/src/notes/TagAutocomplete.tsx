@@ -256,7 +256,7 @@ function useKeyOptions(): KeyOption[] {
       merged.push({
         key: k,
         label: meta.label,
-        group: meta.group,
+        group: meta.group ?? "Other",
         unit: meta.unit === "raw" ? undefined : meta.unit,
       });
     }
