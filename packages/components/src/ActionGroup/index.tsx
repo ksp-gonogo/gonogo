@@ -186,7 +186,7 @@ function ActionGroupComponent({
               title={`Set alarm to fire ${currentLabel}`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (!group.toggle) return;
+                if (!group.toggle || !openAlarms) return;
                 openAlarms({
                   name: `Fire ${currentLabel}`,
                   action: group.toggle,

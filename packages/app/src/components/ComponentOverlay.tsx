@@ -93,18 +93,21 @@ export function ComponentOverlay({
   const allComponents = getComponents();
 
   // Tag → count, descending. Drives the chip row below the search box so the
-  // most-used tags appear first. Recompute per render — the registry is tiny
-  // (~few dozen entries) and we want any newly-registered component to show
-  // up immediately.
+  // most-used tags appear first. Singleton tags (only one widget carries
+  // them) are hidden — user feedback (2026-05-12): the chip row was dense
+  // with chips that filtered to a single result, and they pushed the
+  // useful filters off the screen.
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const def of allComponents) {
       for (const t of def.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
     }
-    return Array.from(counts.entries()).sort((a, b) => {
-      if (b[1] !== a[1]) return b[1] - a[1];
-      return a[0].localeCompare(b[0]);
-    });
+    return Array.from(counts.entries())
+      .filter(([, count]) => count > 1)
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0]);
+      });
   }, [allComponents]);
 
   const filtered = useMemo(() => {
@@ -222,21 +225,20 @@ export function ComponentOverlay({
             role="dialog"
             aria-label="Add a component"
           >
-            <PanelHeader>
-              <PanelTitle>ADD COMPONENT</PanelTitle>
+            <SearchRow>
+              <SearchInput
+                autoFocus
+                placeholder="Search widgets…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") closeOverlay();
+                }}
+              />
               <CloseBtn onClick={closeOverlay} aria-label="Close">
                 <CloseIcon size={16} />
               </CloseBtn>
-            </PanelHeader>
-            <SearchInput
-              autoFocus
-              placeholder="Search by name or tag…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") closeOverlay();
-              }}
-            />
+            </SearchRow>
             {tagCounts.length > 0 && (
               <ChipRow
                 role="group"
@@ -253,9 +255,15 @@ export function ComponentOverlay({
                 ))}
               </ChipRow>
             )}
+            <ResultsHeader>
+              {filtered.length} of {allComponents.length} widgets
+            </ResultsHeader>
             <List>
               {filtered.length === 0 && (
-                <Empty>No components match "{query}"</Empty>
+                <Empty>
+                  No widgets match "{query}"
+                  {selectedTags.size > 0 && " in selected tags"}
+                </Empty>
               )}
               {filtered.map((def) => (
                 <ListItem key={def.id} onClick={() => handleSelect(def)}>
@@ -327,31 +335,25 @@ const Panel = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
-  width: 480px;
+  width: 560px;
   max-width: 95vw;
-  max-height: 70vh;
+  /* Spotlight-style stable height: regardless of how many results match,
+     the panel is the same size. Filtering narrows the list inside, never
+     resizes the wrapper. */
+  height: min(640px, 80vh);
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
   overflow: hidden;
 `;
 
-const PanelHeader = styled.div`
+const SearchRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
+  gap: 8px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
-`;
-
-const PanelTitle = styled.h2`
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--color-text-faint);
-  text-transform: uppercase;
 `;
 
 const CloseBtn = styled.button`
@@ -360,34 +362,42 @@ const CloseBtn = styled.button`
   color: var(--color-text-faint);
   font-size: 14px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 6px;
+  border-radius: 2px;
   &:hover {
     color: var(--color-text-primary);
+    background: var(--color-surface-raised);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
   }
 `;
 
 const SearchInput = styled.input`
-  background: var(--color-surface-panel);
+  flex: 1;
+  background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-surface-raised);
   color: var(--color-text-primary);
-  font-size: 13px;
-  padding: 10px 16px;
-  flex-shrink: 0;
+  font-size: 16px;
+  padding: 4px 0;
 
   &:focus {
     outline: none;
-    border-bottom-color: var(--color-accent-fg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
   }
 
   &::placeholder {
-    color: var(--color-border-strong);
+    color: var(--color-text-faint);
   }
+`;
+
+const ResultsHeader = styled.div`
+  padding: 6px 16px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
 `;
 
 const ChipRow = styled.div`
