@@ -4,7 +4,13 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  Spinner,
+} from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -50,8 +56,13 @@ function ScienceOfficerComponent({
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
   const instrumentsRaw = useDataValue("data", "sci.instruments");
+  const dataAmountRaw = useDataValue<number>("data", "sci.dataAmount");
   const instruments = parseInstruments(instrumentsRaw);
   const execute = useExecuteAction("data");
+  const totalDataMits =
+    typeof dataAmountRaw === "number" && Number.isFinite(dataAmountRaw)
+      ? dataAmountRaw
+      : 0;
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
@@ -59,7 +70,7 @@ function ScienceOfficerComponent({
   if (instruments === null) {
     return (
       <Panel>
-        <PanelTitle>SCIENCE OFFICER</PanelTitle>
+        <PanelTitle>SCIENCE LAB</PanelTitle>
         {showSubtitle && (
           <PanelSubtitle>Awaiting instrument telemetry</PanelSubtitle>
         )}
@@ -70,7 +81,7 @@ function ScienceOfficerComponent({
   if (instruments.length === 0) {
     return (
       <Panel>
-        <PanelTitle>SCIENCE OFFICER</PanelTitle>
+        <PanelTitle>SCIENCE LAB</PanelTitle>
         {showSubtitle && <PanelSubtitle>No instruments aboard</PanelSubtitle>}
       </Panel>
     );
@@ -89,6 +100,11 @@ function ScienceOfficerComponent({
         <PanelSubtitle role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
           {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
+          {totalDataMits > 0 && (
+            <DataReadout title="Total stored science data (mits)">
+              · {totalDataMits.toFixed(1)} mits
+            </DataReadout>
+          )}
         </PanelSubtitle>
       )}
       <Body>
@@ -128,12 +144,31 @@ function InstrumentActions({
   execute: (action: string) => Promise<void>;
 }) {
   const [armed, setArmed] = useState(false);
+  const [pending, setPending] = useState<"deploy" | "transmit" | null>(null);
 
   useEffect(() => {
     if (!armed) return;
     const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [armed]);
+
+  // Clear the pending state once Telemachus reports the new instrument
+  // state — `deployed`/`hasData` transitions are the success signal. Fall
+  // back to a 5s safety timeout so an action that never lands doesn't
+  // leave the button forever-busy.
+  useEffect(() => {
+    if (pending === null) return;
+    if (pending === "deploy" && (instrument.deployed || instrument.hasData)) {
+      setPending(null);
+      return;
+    }
+    if (pending === "transmit" && !instrument.hasData) {
+      setPending(null);
+      return;
+    }
+    const id = setTimeout(() => setPending(null), 5_000);
+    return () => clearTimeout(id);
+  }, [pending, instrument.deployed, instrument.hasData]);
 
   // Inoperable instruments can't deploy or transmit. Hide the controls
   // entirely rather than greying them out — the INOPERABLE badge already
@@ -145,23 +180,43 @@ function InstrumentActions({
       {!instrument.deployed && !instrument.hasData && (
         <ActionButton
           type="button"
+          disabled={pending === "deploy"}
+          aria-busy={pending === "deploy"}
           onClick={() => {
+            if (pending !== null) return;
+            setPending("deploy");
             void execute(`sci.deploy[${instrument.partId}]`);
           }}
         >
-          Deploy
+          {pending === "deploy" ? (
+            <>
+              <Spinner size={10} /> Deploying…
+            </>
+          ) : (
+            "Deploy"
+          )}
         </ActionButton>
       )}
       {instrument.hasData &&
         (armed ? (
           <ConfirmTransmitButton
             type="button"
+            disabled={pending === "transmit"}
+            aria-busy={pending === "transmit"}
             onClick={() => {
+              if (pending !== null) return;
               setArmed(false);
+              setPending("transmit");
               void execute(`sci.transmit[${instrument.partId}]`);
             }}
           >
-            Confirm transmit
+            {pending === "transmit" ? (
+              <>
+                <Spinner size={10} /> Transmitting…
+              </>
+            ) : (
+              "Confirm transmit"
+            )}
           </ConfirmTransmitButton>
         ) : (
           <ActionButton type="button" onClick={() => setArmed(true)}>
@@ -223,6 +278,12 @@ const Group = styled.div`
   gap: 2px;
 `;
 
+const DataReadout = styled.span`
+  color: var(--color-accent-fg);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+`;
+
 const GroupLabel = styled.div`
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
@@ -281,10 +342,18 @@ const ActionButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: var(--color-text-primary);
     border-color: var(--color-accent-fg);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 `;
 
@@ -342,7 +411,7 @@ registerComponent<ScienceOfficerConfig>({
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ScienceOfficerComponent,
-  dataRequirements: ["sci.instruments"],
+  dataRequirements: ["sci.instruments", "sci.dataAmount"],
   defaultConfig: {},
   actions: [],
   pushable: true,

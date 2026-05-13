@@ -13,13 +13,16 @@ import styled from "styled-components";
  * loaded, a vessel was recovered), an unobtrusive banner gives them a
  * heads-up without taking the dashboard away.
  *
- * Initial scene (the first value to arrive) doesn't trigger a banner
- * — that's just the WS warmup, not a transition. Subsequent changes
- * do.
+ * Cross-mount continuity: the last-seen scene is persisted to
+ * localStorage so a station that reloads or only just connects can
+ * still recognise the transition that happened while it was away.
+ * Without persistence the station would silently swallow the first
+ * value as "initial" and miss the cue (user-reported, 2026-05-12).
  */
 
 const VISIBLE_MS = 10_000;
 const FADE_MS = 400;
+const STORAGE_KEY = "gonogo.scene-banner.lastSeen";
 
 const SCENE_LABELS: Record<string, string> = {
   Flight: "Flight",
@@ -34,15 +37,30 @@ function labelForScene(scene: string): string {
   return SCENE_LABELS[scene] ?? scene;
 }
 
+function readStoredScene(): string | null {
+  try {
+    return globalThis.localStorage?.getItem(STORAGE_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredScene(scene: string): void {
+  try {
+    globalThis.localStorage?.setItem(STORAGE_KEY, scene);
+  } catch {
+    /* localStorage unavailable in some test envs / private windows */
+  }
+}
+
 export function SceneChangeBanner() {
   const sceneRaw = useDataValue("data", "kc.scene");
   const scene = typeof sceneRaw === "string" ? sceneRaw : null;
 
-  // Track previous scene + the one currently being announced. The
-  // announcement state outlives the underlying telemetry value because
-  // we want to keep showing the banner for VISIBLE_MS regardless of
-  // any further changes that arrive during the window.
-  const prevSceneRef = useRef<string | null>(null);
+  // Seed prev-scene from localStorage so a station that reloads (or just
+  // joined a host) can compare the first arriving value against the last
+  // scene it saw, instead of silently treating every reload as "initial".
+  const prevSceneRef = useRef<string | null>(readStoredScene());
   const [announcement, setAnnouncement] = useState<{
     from: string | null;
     to: string;
@@ -52,14 +70,17 @@ export function SceneChangeBanner() {
   useEffect(() => {
     if (scene === null) return;
     const prev = prevSceneRef.current;
+    if (prev === scene) return;
     if (prev === null) {
-      // First sample — initial scene, not a transition. Set the ref so
-      // we'll detect the next change.
+      // First sample of the lifetime of this device — initial bootstrap,
+      // not a transition. Persist + skip the banner so a brand-new tab
+      // doesn't pop on every page load.
       prevSceneRef.current = scene;
+      writeStoredScene(scene);
       return;
     }
-    if (prev === scene) return;
     prevSceneRef.current = scene;
+    writeStoredScene(scene);
     setAnnouncement({
       from: prev,
       to: scene,
