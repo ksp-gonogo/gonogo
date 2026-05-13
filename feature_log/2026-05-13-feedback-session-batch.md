@@ -1,12 +1,10 @@
 # 2026-05-12 feedback — autonomous batch
 
 - **Date:** 2026-05-13
-- **Commits:** `d886c7c`, `0a3337d`, `11286a8`, `3b534fc`, `d5fae7d`, `a81207c`
-- **Validation:** ⏳ pending — landed and tested in CI (393 app + 319
-  components + 115 ui + 16 replay + 71 serial tests green, lint clean).
-  Needs a full multi-screen KSP session to promote.
-- **Feedback source:** `local_docs/2026-05-12-feedback/feedback.md` +
-  attachments.
+- **Commits (gonogo):** `d886c7c`, `0a3337d`, `11286a8`, `3b534fc`, `d5fae7d`, `a81207c`, `26aab21`, `2bdb17b`, `3c92659`, `6b2fa40`
+- **Commits (Telemachus fork):** `ebb43ad` on `telemachus/career-mode` (PR #86) — needs `git push fork telemachus/career-mode` to update the PR
+- **Validation:** ⏳ pending — 396 app + 329 components + 115 ui + serial/replay/proxy/data suites all green, lint clean. Live curl probes confirmed `tech.nodes`, `kc.facilityLevels` (incl. `currentLevelText`/`nextLevelText`), `crash.lastCrash`, and the FlightOutcomeBanner reproduction. Still need a full multi-screen KSP session to walk every banner / widget / new feature for the promotion check.
+- **Feedback source:** `local_docs/2026-05-12-feedback/feedback.md` + attachments.
 
 ## What landed
 
@@ -86,6 +84,57 @@ mirrors that.
   panel height, singleton tags dropped, "N of M" results header.
 - `#8` Notes — new `<TagAutocomplete>` inline-popover that opens on
   `{{`. Merges live schema with `telemachusMeta` friendly labels.
+
+### Live-KSP verified + landed (later additions)
+
+- `#2` FlightOutcomeBanner crash propagation — live curl on
+  `crash.lastCrash` confirmed the fork emits the snapshot correctly;
+  bug was widget-side (Effect 1 baseline preempting Effect 2 on
+  flight-end). Fix at `3c92659`; regression test
+  `flight-outcome-banner.test.tsx` covers it.
+- `#3` VAB upgrade tiers — live curl confirmed the fork's `max` field
+  is the *upgrade-count* (KSP's `GetFacilityLevelCount`), not
+  tier-count. Widget now renders 1-indexed `{level+1}/{max+1}`; VAB
+  at full tier 3 shows "3/3 MAX" instead of "1/1". Fix at `3c92659`.
+- `#24` Tech Tree widget — built on top of the new `tech.nodes` fork
+  data (commit `ebb43ad` on `telemachus/career-mode`). Filterable
+  list (Researchable / All / Unlocked), free-text search, click-to-
+  expand reveals description + parent chips + full parts list with
+  manufacturer / category / entryCost / purchased per part.
+  Arm-then-confirm Unlock fires `tech.unlock[<id>]`, gated by science
+  + scene + pending-resolution. Tiny mode shows the researchable
+  count. Commit `6b2fa40`. Same commit also surfaces the new
+  `currentLevelText` / `nextLevelText` fields from `kc.facilityLevels`
+  in `SpaceCenterStatus` — multi-line tooltip on every facility cell
+  (compact mode) plus an inline "Now / Next" block in normal mode.
+
+### Telemachus fork additions (commit `ebb43ad`)
+
+Lives on `telemachus/career-mode`, ready to push as a PR #86 update.
+
+- `tech.nodes` — new TelemetryAPI emitting the full RDNode graph from
+  `AssetBase.RnDTechTree.GetTreeNodes()`. Per node: `id`, `title` (via
+  `ResearchAndDevelopment.GetTechnologyTitle`), `description` (parsed
+  out of `tree.GetTreeConfigNode()`'s RDNode entries and routed
+  through `Localizer.Format`), `scienceCost`, `state`, `parents` (read
+  from `ProtoRDNode.parents` directly — elements are themselves
+  ProtoRDNodes), and `parts` (every `AvailablePart` whose
+  `TechRequired` matches, with `name`/`title`/`manufacturer`/`category`
+  /`entryCost`/`purchased`). Two session-stable caches:
+  `_descriptionsByTech` and `_partsByTech`, built once on the first
+  call and reused for the lifetime of the KSP process. Result list
+  itself sticky-cached during `IsTransientLoadingState()` the same
+  way `tech.unlockedIds` / `tech.affordable` already are.
+- `kc.facilityLevels` — extended payload with `currentLevelText` +
+  `nextLevelText` (multi-line bullet-list text matching what KSP's
+  stock upgrade dialog renders). Pulls from
+  `UpgradeableFacility.GetLevelText(int)` via the existing
+  `protoUpgradeables` access path; empty strings when refs unavailable
+  (e.g. before SC scene loaded). Existing
+  `level`/`max`/`upgradeFunds` fields unchanged.
+
+Both keys are `AlwaysEvaluable=true` so they read fine from any scene.
+Builds clean under dotnet 10 against the bundled Assembly-CSharp.
 
 ## Deferred (scoping docs only)
 
