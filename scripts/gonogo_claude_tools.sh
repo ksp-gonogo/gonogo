@@ -29,6 +29,16 @@
 #       filter. Same Tier 1/2/3 fallback as decompile. Use when you need
 #       to see what a method actually does, not just its signature.
 #
+#   members <Type> [<Type>...]
+#       Lists every public member (field / property / method) inside
+#       a type by line-range scan of the cached full disassembly.
+#       Unlike `decompile`, has no per-type cap — useful for large
+#       classes like KSP's `Part` (5000+ lines) where the 80-line
+#       decompile filter truncates before reaching the interesting
+#       fields. Output is one member per line, in source order. Falls
+#       back to findtype for namespaced lookups; you can pass either
+#       `Part` or `Strategies.Strategy`.
+#
 #   build telemachus
 #       Build the Telemachus fork at local_docs/telemachus-fork/Telemachus/
 #       and copy the resulting Telemachus.dll into the synced
@@ -176,6 +186,117 @@ dump() {
       echo "=== $t ==="
       echo "(not found in any Managed/ DLL)"
     fi
+    echo
+  done
+}
+
+# Internal: extract the body line-range of a type in a cached
+# disassembly. Sets these globals:
+#   _RANGE_FILE  — cache file the type lives in
+#   _RANGE_LO    — first line number (the class/interface/struct/enum line)
+#   _RANGE_HI    — last line number, exclusive (next top-level type, or file end)
+#   _RANGE_DLL   — basename of the originating DLL
+# Empty file/lo/hi if the bare name isn't found. Use after the cache has
+# been built (i.e. after at least one _findtype_emit run this session).
+_resolve_type_range() {
+  _RANGE_FILE=""
+  _RANGE_LO=""
+  _RANGE_HI=""
+  _RANGE_DLL=""
+  local name="$1"
+  local managed_dir
+  managed_dir="$(dirname "$DLL")"
+  local cache_dir="/tmp/gonogo-decompile-cache"
+  for cand in "$managed_dir"/*.dll; do
+    local cache="$cache_dir/$(basename "$cand").txt"
+    [ -f "$cache" ] || continue
+    # Find the FIRST line declaring this type. ilspycmd indents types
+    # one tab when they're inside a `namespace …;` block, so allow
+    # leading whitespace before the modifiers.
+    # `|| true` keeps `set -euo pipefail` from killing the function on
+    # a grep miss (return 1 = "no match" propagates through the pipe).
+    local lo
+    lo="$( { grep -nE "^[[:space:]]*(public |internal |abstract |sealed |static )*((public |internal |abstract |sealed |static )*)(class|interface|struct|enum) ${name}([[:space:]<:]|$)" "$cache" 2>/dev/null || true ; } | head -1 | cut -d: -f1)"
+    [ -z "$lo" ] && continue
+    # Find the NEXT sibling type declaration after $lo at the SAME
+    # indent level — that's the exclusive upper bound. Picking
+    # "same indent" rather than "any depth" prevents nested classes
+    # from cutting the parent short.
+    local lo_indent
+    lo_indent="$(awk -v lo="$lo" 'NR==lo { match($0, /^[[:space:]]*/); print RLENGTH; exit }' "$cache")"
+    local hi
+    hi="$(awk -v lo="$lo" -v ind="$lo_indent" '
+      NR>lo {
+        match($0, /^[[:space:]]*/)
+        # Strict same-or-shallower indent + a type keyword.
+        if (RLENGTH <= ind && $0 ~ /(public |internal |abstract |sealed |static )*(class|interface|struct|enum) /) {
+          print NR; exit
+        }
+      }
+    ' "$cache")"
+    [ -z "$hi" ] && hi="$(wc -l < "$cache" | tr -d ' ')"
+    _RANGE_FILE="$cache"
+    _RANGE_LO="$lo"
+    _RANGE_HI="$hi"
+    _RANGE_DLL="$(basename "$cand")"
+    return 0
+  done
+}
+
+members() {
+  if [ "$#" -lt 1 ]; then
+    echo "usage: gonogo_claude_tools.sh members <Type> [<Type>...]"
+    echo "  Lists every public member (field / property / method)"
+    echo "  declared inside a type, by line-range scan of the cached"
+    echo "  full disassembly. Use this when 'decompile' gets truncated"
+    echo "  at 80 lines — `members` has no per-type cap."
+    return 2
+  fi
+  if [ ! -f "$DLL" ]; then
+    echo "Assembly-CSharp.dll not found at $DLL"
+    return 3
+  fi
+  if [ ! -x "$ILSPYCMD" ]; then
+    echo "ilspycmd not found at $ILSPYCMD"
+    return 4
+  fi
+  for t in "$@"; do
+    # Ensure the textual cache exists; _findtype_emit hydrates per-DLL
+    # caches on first call this session.
+    _findtype_emit "$t" > /dev/null 2>&1
+    _resolve_type_range "$t"
+    # Fallback: type might be namespaced. Resolve its FQN to the bare
+    # leaf and retry the range scan with that.
+    if [ -z "$_RANGE_FILE" ]; then
+      local fqn_line
+      fqn_line="$(_findtype_emit "$t" | head -1 || true)"
+      if [ -n "$fqn_line" ]; then
+        local fqn="${fqn_line%% (in *}"
+        local leaf="${fqn##*.}"
+        _resolve_type_range "$leaf"
+      fi
+    fi
+    if [ -z "$_RANGE_FILE" ]; then
+      echo "=== $t ==="
+      echo "(not found in any cached disassembly)"
+      echo
+      continue
+    fi
+    echo "=== $t (in $_RANGE_DLL, lines $_RANGE_LO..$_RANGE_HI) ==="
+    # Filter to public members at any nesting depth inside the type body.
+    # Skip the class-declaration line itself; skip lines that are nested
+    # class declarations (those start their own scope and clutter the
+    # listing — use a separate `members` call to inspect them).
+    awk -v lo="$_RANGE_LO" -v hi="$_RANGE_HI" '
+      NR > lo && NR < hi {
+        # Public members appear with at least one leading tab.
+        if (match($0, /^[[:space:]]+public /)) {
+          # Skip nested class/interface/struct/enum declarations.
+          if ($0 ~ /public (class|interface|struct|enum) /) next
+          print
+        }
+      }
+    ' "$_RANGE_FILE"
     echo
   done
 }
@@ -348,7 +469,12 @@ tele_subscribe() {
     first=0
   done
   keys_json="${keys_json}]"
-  local payload="{\"run\":${keys_json},\"rate\":${rate_ms}}"
+  # `+` adds to persistent subscriptions (streams every tick at the
+  # configured rate). `run` is a one-shot — fires once and gets cleared,
+  # which is NOT what `tele subscribe` wants. The difference matters:
+  # with `run` the initial frame populates and every subsequent tick
+  # is an empty diff because nothing is actually subscribed.
+  local payload="{\"+\":${keys_json},\"rate\":${rate_ms}}"
   # http://host:port → ws://host:port  (and https → wss in the future)
   local ws_url="${TELE_HOST/http:/ws:}/datalink"
   echo "ws_url:  $ws_url"
@@ -394,6 +520,10 @@ case "${1:-help}" in
   findtype)
     shift
     findtype "$@"
+    ;;
+  members)
+    shift
+    members "$@"
     ;;
   build)
     shift
