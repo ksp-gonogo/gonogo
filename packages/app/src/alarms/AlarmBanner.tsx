@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
 import { useFireBeep } from "./alarmTone";
+import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
   MAX_WARP_SAFETY_MARGIN_SECONDS,
@@ -34,9 +35,18 @@ export function AlarmBanner() {
     return () => clearInterval(id);
   }, []);
 
-  const nextAlarm = pickNext(snap);
-  const tone = bannerTone(nextAlarm);
   const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
+  const cpCollapse = collapseFiredContractParam(firedAlarms);
+  // Hide the individual contract-parameter fires from pickNext so a
+  // pile of them doesn't dominate the banner. They surface together as
+  // a collapsed "N completed" row instead.
+  const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
+  const nextAlarm = pickNext(
+    collapsedIds
+      ? { ...snap, alarms: snap.alarms.filter((a) => !collapsedIds.has(a.id)) }
+      : snap,
+  );
+  const tone = bannerTone(nextAlarm);
 
   // The "Warp to" button targets the next pending alarm. Time alarms
   // have a fire-UT; threshold alarms get a slope-projected ETA from the
@@ -64,8 +74,14 @@ export function AlarmBanner() {
     snap.warp.rate <= 1.0001 &&
     nextAlarm === null &&
     firedAlarms.length === 0 &&
+    cpCollapse === null &&
     snap.warpTo === null;
   if (isQuiet) return null;
+
+  const ackAllCollapsed = () => {
+    if (!cpCollapse) return;
+    for (const id of cpCollapse.ids) host.acknowledgeAlarm(id);
+  };
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
@@ -119,6 +135,11 @@ export function AlarmBanner() {
                 )
               )}
             </>
+          ) : cpCollapse ? (
+            <CollapsedCPInline
+              count={cpCollapse.count}
+              onAckAll={ackAllCollapsed}
+            />
           ) : (
             <Quiet>No alarms set</Quiet>
           )}
@@ -143,11 +164,15 @@ export function AlarmBanner() {
             </SafetyHint>
           </SafetyRow>
         )}
-        {firedAlarms.length > 1 && (
-          <FiredList>
-            {firedAlarms
-              .filter((a) => a.id !== nextAlarm?.id)
-              .map((a) => (
+        {(() => {
+          const individuals = firedAlarms.filter(
+            (a) => a.id !== nextAlarm?.id && !collapsedIds?.has(a.id),
+          );
+          const showCollapsedInList = nextAlarm !== null && cpCollapse !== null;
+          if (individuals.length === 0 && !showCollapsedInList) return null;
+          return (
+            <FiredList>
+              {individuals.map((a) => (
                 <FiredRow key={a.id}>
                   <FiredName>{a.name} fired</FiredName>
                   <AckButton
@@ -158,8 +183,19 @@ export function AlarmBanner() {
                   </AckButton>
                 </FiredRow>
               ))}
-          </FiredList>
-        )}
+              {showCollapsedInList && cpCollapse && (
+                <FiredRow>
+                  <FiredName>
+                    {cpCollapse.count} contract objectives completed
+                  </FiredName>
+                  <AckButton type="button" onClick={ackAllCollapsed}>
+                    Ack all
+                  </AckButton>
+                </FiredRow>
+              )}
+            </FiredList>
+          );
+        })()}
         {snap.unscheduledWarp && (
           <WarnRow role="alert">
             <WarnLabel>
@@ -175,6 +211,24 @@ export function AlarmBanner() {
         )}
       </Stack>
     </Wrap>
+  );
+}
+
+function CollapsedCPInline({
+  count,
+  onAckAll,
+}: {
+  count: number;
+  onAckAll: () => void;
+}) {
+  return (
+    <>
+      <Label>Fired</Label>
+      <AlarmName>{count} contract objectives completed</AlarmName>
+      <AckButton type="button" onClick={onAckAll}>
+        Ack all
+      </AckButton>
+    </>
   );
 }
 
