@@ -173,7 +173,7 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
 
 ## Telemachus Reborn API
 
-Connects via WebSocket to `ws://host:8085/datalink`. Subscribe by sending `{ "run": ["v.sasValue", ...], "rate": 250 }`. Server streams JSON updates: `{ "v.sasValue": true, ... }`. Execute actions via HTTP GET: `GET http://host:8085/telemachus/datalink?a=<actionKey>` with `mode: 'no-cors'` (state change arrives back over the WS). Toggle keys use `f.` prefix; value keys use `v.` prefix (e.g. `f.ag1` toggles, `v.ag1Value` reads).
+Connects via WebSocket to `ws://host:8085/datalink`. Subscribe by sending `{ "run": ["v.sasValue", ...], "rate": 250 }`. Server streams JSON updates: `{ "v.sasValue": true, ... }`. Execute actions via HTTP GET: `GET http://host:8085/telemachus/datalink?a=<actionKey>`, fire-and-forget — state changes echo back over the WS, so the response body is ignored. Toggle keys use `f.` prefix; value keys use `v.` prefix (e.g. `f.ag1` toggles, `v.ag1Value` reads). The gonogo fork of Telemachus supports a config-driven CORS allowlist (`ALLOWED_ORIGINS` in `PluginData/Telemachus/config.xml`) for the niche cases where a feature needs to read the response body; see the README's "Enabling CORS" section.
 
 ## Centralised kOS scripts
 
