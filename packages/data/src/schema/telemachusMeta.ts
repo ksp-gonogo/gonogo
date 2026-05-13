@@ -553,6 +553,30 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     unit: "raw",
     group: "Flight outcome",
   },
+
+  // --- Strategies (Administration Building) ---
+  "strategies.all": {
+    label: "All strategies",
+    unit: "raw",
+    group: "Career",
+  },
+
+  // --- Scene / revert affordances ---
+  "ksp.canRevert": {
+    label: "Can revert (any)",
+    unit: "bool",
+    group: "KSC",
+  },
+  "ksp.canRevertToLaunch": {
+    label: "Can revert to launch",
+    unit: "bool",
+    group: "KSC",
+  },
+  "ksp.canRevertToEditor": {
+    label: "Can revert to editor",
+    unit: "bool",
+    group: "KSC",
+  },
 };
 
 /** Enrich a raw key with metadata. Falls back to `{ label: key, group: "Other" }`. */
