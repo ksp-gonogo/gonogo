@@ -1,6 +1,7 @@
 import { type ComponentRequirement, useGameContext } from "@gonogo/core";
 import { DimmedOverlay } from "@gonogo/ui";
 import type { ReactNode } from "react";
+import styled from "styled-components";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
@@ -40,37 +41,91 @@ export function RequiresGuard({ requires, children }: RequiresGuardProps) {
   // gate; a career-only-but-not-flight widget would still want the
   // career message even if flight is also missing (a sandbox flight
   // can't satisfy a career requirement either way).
+  //
+  // We render a compact placeholder (not the dimmed children) when a
+  // requirement is unmet. The previous behaviour was DimmedOverlay
+  // around the widget's full content, which on first load (no
+  // telemetry) showed an empty-but-tall card per widget — the dashboard
+  // looked broken. The placeholder collapses to just the banner;
+  // outer flex parents (Panel etc.) constrain to the natural content
+  // height. Last-good telemetry isn't preserved across the gate, but
+  // on first load there isn't any anyway.
   for (const req of requires) {
     if (req === "flight" && !ctx.inFlight) {
       return (
-        <DimmedOverlay
-          show={true}
+        <RequiresPlaceholder
           message="Vessel in flight required"
           hint={hintForScene(ctx.scene)}
-        >
-          {children}
-        </DimmedOverlay>
+        />
       );
     }
     if (req === "career" && !ctx.isCareerLike) {
       return (
-        <DimmedOverlay
-          show={true}
+        <RequiresPlaceholder
           message="Career or science save required"
           hint={
             ctx.careerMode === "SANDBOX"
               ? "Sandbox mode has no funds or science."
               : undefined
           }
-        >
-          {children}
-        </DimmedOverlay>
+        />
       );
     }
   }
 
   return <>{children}</>;
 }
+
+function RequiresPlaceholder({
+  message,
+  hint,
+}: {
+  message: string;
+  hint?: string;
+}) {
+  // Wrapped in DimmedOverlay-equivalent chrome but without any underlying
+  // dimmed content. The flex parent (Panel) can collapse to the banner's
+  // natural height rather than reserving the widget's default size for
+  // an empty stub.
+  return (
+    <PlaceholderWrap role="status" aria-live="polite">
+      <PlaceholderMessage>{message}</PlaceholderMessage>
+      {hint && <PlaceholderHint>{hint}</PlaceholderHint>}
+    </PlaceholderWrap>
+  );
+}
+
+const PlaceholderWrap = styled.div`
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  text-align: center;
+  color: var(--color-text-faint);
+`;
+
+const PlaceholderMessage = styled.span`
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+`;
+
+const PlaceholderHint = styled.span`
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+`;
+
+// Re-export DimmedOverlay binding so the existing ergonomic stays — older
+// callers that explicitly wrapped their content in DimmedOverlay keep
+// working. RequiresGuard no longer uses it internally.
+export { DimmedOverlay };
 
 function hintForScene(scene: string): string | undefined {
   switch (scene) {

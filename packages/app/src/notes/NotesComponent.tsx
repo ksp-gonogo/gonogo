@@ -235,11 +235,28 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
   // changes, which is rare.
   const tags = useMemo(() => extractTags(body), [body]);
   const valueMap = useTagValues(tags);
+  const knownKeys = useKnownDataKeys();
   const text = useMemo(
-    () => renderTemplate(body, (k) => valueMap.get(k)),
-    [body, valueMap],
+    () =>
+      renderTemplate(body, (k) => valueMap.get(k), { knownKeys }),
+    [body, valueMap, knownKeys],
   );
   return <>{text}</>;
+}
+
+/**
+ * Cached set of keys known to the `data` source. Lets the templating layer
+ * distinguish "typo" from "value not yet arrived" without re-querying the
+ * schema on every render. Recomputed if the data source switches (rare).
+ */
+function useKnownDataKeys(): ReadonlySet<string> {
+  return useMemo(() => {
+    const source = getDataSource("data");
+    if (!source) return new Set<string>();
+    return new Set(source.schema().map((k) => k.key));
+    // schema() is stable per-source — no dep array needs to track it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 }
 
 /**

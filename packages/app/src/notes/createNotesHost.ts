@@ -18,10 +18,19 @@ export function createNotesHost(
     deleteNote: (id) => service.deleteNote(id),
     reorderNote: (id, afterId) => service.reorderNote(id, afterId),
   });
-  // Re-broadcast on every change. Initial snapshot also goes out so a
-  // station that connects after the host has notes already gets them on
-  // hello+snapshot rather than waiting for the next mutation.
+  // Re-broadcast on every change.
   service.subscribe((snap) => bridge.broadcastSnapshot(snap));
+  // Initial broadcast also fires so a station that's already connected at
+  // host startup gets the snapshot. But broadcast() only reaches currently
+  // connected peers — a station that joins LATER misses this. So we also
+  // push a fresh snapshot to each new peer on connect (the user-reported
+  // bug: first-load station notes widget showed empty until a mutation).
   bridge.broadcastSnapshot(service.snapshot());
+  host?.onPeerConnect((peerId) => {
+    host.sendToPeer(peerId, {
+      type: "notes-snapshot",
+      snapshot: service.snapshot(),
+    });
+  });
   return service;
 }
