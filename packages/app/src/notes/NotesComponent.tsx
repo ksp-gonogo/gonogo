@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   CloseIcon,
-  Input,
   Panel,
   PanelTitle,
   PrimaryButton,
@@ -16,6 +15,7 @@ import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { NotesClientService } from "./NotesClientService";
 import { useNotesHostOptional, useNotesHostSnapshot } from "./NotesHostContext";
+import { TagAutocomplete } from "./TagAutocomplete";
 import { extractTags, renderTemplate } from "./templating";
 import type { Note, NotesSnapshot } from "./types";
 
@@ -102,11 +102,11 @@ function NotesView({
         )}
       </List>
       <AddRow>
-        <Input
-          aria-label="New note body (use {{key.path}} for telemetry tags)"
-          placeholder="New note… use {{key.path}} for telemetry tags"
+        <TagAutocomplete
+          ariaLabel="New note body (use {{ to insert a variable)"
+          placeholder="New note… type {{ to insert a variable"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={setDraft}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -186,9 +186,10 @@ function NoteRow({
       </ReorderColumn>
       <Body>
         {editing ? (
-          <EditBox
+          <TagAutocomplete
+            multiline
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={setDraft}
             onBlur={commit}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -358,18 +359,6 @@ const RenderedBody = styled.div`
   cursor: text;
   white-space: pre-wrap;
   padding: 2px 0;
-`;
-
-const EditBox = styled.textarea`
-  width: 100%;
-  min-height: 1.4em;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-primary);
-  font: inherit;
-  padding: 2px 4px;
-  border-radius: 2px;
-  resize: vertical;
 `;
 
 const RowActions = styled.div`
