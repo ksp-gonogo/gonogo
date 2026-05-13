@@ -21,7 +21,7 @@ import {
   SerialFab,
   SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
-import { FabClusterProvider, StatusIndicator } from "@gonogo/ui";
+import { BannerStack, FabClusterProvider, StatusIndicator } from "@gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -530,16 +530,18 @@ export function StationScreen() {
                                   <StationNameChip>
                                     <StationNameEditor compact />
                                   </StationNameChip>
-                                  <StationAlarmBanner
-                                    useSnapshot={useStationAlarmSnapshot}
-                                    onAcknowledge={(id) =>
-                                      alarmClient.acknowledgeAlarm(id)
-                                    }
-                                  />
-                                  <SignalLossIndicator />
-                                  <SustainedFailureBanner />
-                                  <HostVersionBanner client={client} />
-                                  <FlightOutcomeBanner />
+                                  <BannerStack>
+                                    <StationAlarmBanner
+                                      useSnapshot={useStationAlarmSnapshot}
+                                      onAcknowledge={(id) =>
+                                        alarmClient.acknowledgeAlarm(id)
+                                      }
+                                    />
+                                    <SignalLossIndicator />
+                                    <SustainedFailureBanner />
+                                    <HostVersionBanner client={client} />
+                                    <FlightOutcomeBanner />
+                                  </BannerStack>
                                 </Layout>
                               </AlarmsLauncherBridge>
                             </OverlayProvider>

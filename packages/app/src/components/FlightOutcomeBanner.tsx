@@ -493,37 +493,40 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
 // ── Styles ───────────────────────────────────────────────────────────────
 
 const bannerBase = `
-  position: fixed;
-  top: 48px;
-  left: 50%;
-  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.88);
+  border-radius: 999px;
   font-family: inherit;
   font-size: 12px;
   color: var(--color-text-primary);
-  z-index: 100;
   cursor: pointer;
-  animation: flightOutcomeBannerIn 280ms ease-out forwards;
+  animation: flightOutcomeBannerIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+  will-change: transform, opacity;
+  white-space: nowrap;
 
   &:hover {
-    background: var(--color-surface-raised);
+    background: rgba(20, 22, 26, 0.95);
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes flightOutcomeBannerIn {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -8px);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @keyframes flightOutcomeBannerIn {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scaleX(0.6);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scaleX(1);
     }
   }
 `;

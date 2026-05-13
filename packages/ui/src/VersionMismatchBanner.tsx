@@ -41,8 +41,6 @@ export function VersionMismatchBanner({
   return (
     <BannerPill
       accent={KIND_COLOR[kind]}
-      top={56}
-      zIndex={999}
       glow="0 0 12px rgba(0, 0, 0, 0.5)"
       role={role}
     >

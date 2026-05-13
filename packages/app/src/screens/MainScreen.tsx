@@ -21,7 +21,7 @@ import {
   SerialFab,
   SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
-import { FabClusterProvider } from "@gonogo/ui";
+import { BannerStack, FabClusterProvider } from "@gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -257,12 +257,14 @@ export function MainScreen() {
                                     />
                                     <MainAlarmsFab />
                                   </FabClusterProvider>
-                                  <AlarmBanner />
                                   <ReplayBanner />
-                                  <SignalLossIndicator />
-                                  <SustainedFailureBanner />
-                                  <SceneChangeBanner />
-                                  <FlightOutcomeBanner />
+                                  <BannerStack>
+                                    <AlarmBanner />
+                                    <SignalLossIndicator />
+                                    <SustainedFailureBanner />
+                                    <SceneChangeBanner />
+                                    <FlightOutcomeBanner />
+                                  </BannerStack>
                                   <PushedDashboardOverlay />
                                 </Layout>
                               </MainAlarmsLauncherScope>

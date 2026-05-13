@@ -14,9 +14,10 @@ export interface SourceOfflineBannerProps {
 }
 
 /**
- * Pinned banner along the bottom of the viewport listing data / stream
- * sources that have been disconnected or erroring long enough to surface.
- * Renders nothing when `entries` is empty.
+ * Inline banner listing data / stream sources that have been disconnected
+ * or erroring long enough to surface. Designed to be placed inside the
+ * shared `<BannerStack />` in the bottom-right corner — no fixed
+ * positioning of its own. Renders nothing when `entries` is empty.
  */
 export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
   if (entries.length === 0) return null;
@@ -45,24 +46,40 @@ function formatElapsed(ms: number): string {
 }
 
 const Wrap = styled.div`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 14px;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(14px + env(safe-area-inset-left, 0px));
-  padding-right: calc(14px + env(safe-area-inset-right, 0px));
-  background: rgba(120, 30, 30, 0.9);
-  border-top: 1px solid var(--color-status-nogo-bg);
+  padding: 8px 16px;
+  background: rgba(120, 30, 30, 0.92);
+  border: 1px solid var(--color-status-nogo-bg);
+  border-radius: 999px;
   color: var(--color-status-nogo-fg);
   font-size: 12px;
   letter-spacing: 0.08em;
-  flex-wrap: wrap;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @keyframes bannerSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scaleX(0.6);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scaleX(1);
+    }
+  }
 `;
 
 const Pulse = styled.span`

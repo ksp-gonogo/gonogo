@@ -116,34 +116,37 @@ export function SceneChangeBanner() {
 }
 
 const Banner = styled.div`
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
-  background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.88);
   border: 1px solid var(--color-accent-fg);
-  border-radius: 3px;
+  border-radius: 999px;
   font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
-  z-index: 100;
   pointer-events: none;
-  animation: sceneBannerIn ${FADE_MS}ms ease-out forwards;
+  white-space: nowrap;
+  animation: sceneBannerIn ${FADE_MS}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+  will-change: transform, opacity;
 
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes sceneBannerIn {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -8px);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @keyframes sceneBannerIn {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scaleX(0.6);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scaleX(1);
     }
   }
 `;

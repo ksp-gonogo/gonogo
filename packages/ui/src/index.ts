@@ -1,5 +1,6 @@
 export * from "./Badge";
 export * from "./BannerPill";
+export * from "./BannerStack";
 export * from "./Button";
 export * from "./DataKeyMultiPicker";
 export * from "./DataKeyPicker";
