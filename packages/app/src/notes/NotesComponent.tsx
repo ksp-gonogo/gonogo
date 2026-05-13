@@ -1,6 +1,7 @@
 import type { ComponentProps, DataKey } from "@gonogo/core";
 import { getDataSource, registerComponent, useScreen } from "@gonogo/core";
 import {
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   CloseIcon,
@@ -206,13 +207,22 @@ function NoteRow({
           </RenderedBody>
         )}
       </Body>
-      <DeleteBtn
-        type="button"
-        aria-label="Delete note"
-        onClick={() => actions.deleteNote(note.id)}
-      >
-        <CloseIcon size={12} />
-      </DeleteBtn>
+      <RowActions>
+        <DoneBtn
+          type="button"
+          aria-label="Mark note done"
+          onClick={() => actions.deleteNote(note.id)}
+        >
+          <CheckIcon size={14} />
+        </DoneBtn>
+        <DeleteBtn
+          type="button"
+          aria-label="Delete note"
+          onClick={() => actions.deleteNote(note.id)}
+        >
+          <CloseIcon size={12} />
+        </DeleteBtn>
+      </RowActions>
     </Item>
   );
 }
@@ -279,7 +289,7 @@ const List = styled(ScrollArea)`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 `;
 
 const Item = styled.div`
@@ -344,6 +354,29 @@ const EditBox = styled.textarea`
   padding: 2px 4px;
   border-radius: 2px;
   resize: vertical;
+`;
+
+const RowActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+`;
+
+const DoneBtn = styled.button`
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  padding: 1px 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-status-go-fg);
+    }
+  }
 `;
 
 const DeleteBtn = styled.button`

@@ -197,6 +197,11 @@ function LaunchDirectorComponent({
                     aria-disabled={blocked}
                     onClick={() => {
                       if (blocked) return;
+                      if (selectedShip === s.name) {
+                        setSelectedShip(null);
+                        setSelectedCrew(new Set());
+                        return;
+                      }
                       setSelectedShip(s.name);
                       setSelectedCrew(new Set());
                     }}

@@ -757,10 +757,13 @@ const AltitudeBarTrack = styled.span`
   overflow: hidden;
 `;
 
-const AltitudeBarFill = styled.span<{ $frac: number; $inBand: boolean }>`
+const AltitudeBarFill = styled.span.attrs<{ $frac: number; $inBand: boolean }>(
+  (p) => ({
+    style: { width: `${Math.max(0, Math.min(1, p.$frac)) * 100}%` },
+  }),
+)<{ $frac: number; $inBand: boolean }>`
   display: block;
   height: 100%;
-  width: ${(p) => Math.max(0, Math.min(1, p.$frac)) * 100}%;
   background: ${(p) =>
     p.$inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)"};
   transition: width 200ms ease;
