@@ -41,9 +41,15 @@ export function renderTemplate(
   options: RenderOptions = {},
 ): string {
   const { knownKeys } = options;
+  // An empty knownKeys means "we don't know what's in the schema yet" — at
+  // mount time the data source may not have registered. Falling through to
+  // formatValue's "…" placeholder is correct; flashing `[?key]` for every
+  // tag on every fresh load would be worse than the bug the field set out
+  // to fix.
+  const haveSchema = knownKeys !== undefined && knownKeys.size > 0;
   return body.replace(TAG_RE, (_, key: string) => {
     const value = resolve(key);
-    if (value === undefined && knownKeys && !knownKeys.has(key)) {
+    if (value === undefined && haveSchema && !knownKeys.has(key)) {
       // Surface the actual key so the operator can tell whether it's a
       // typo (`kc.reputation` vs `career.reputation`) or a key that was
       // valid in an earlier session and got renamed.

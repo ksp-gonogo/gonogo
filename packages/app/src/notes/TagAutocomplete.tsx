@@ -79,10 +79,12 @@ export const TagAutocomplete = forwardRef<
     return matches.slice(0, 50);
   }, [options, openAt]);
 
-  // Reset selection when the filtered list changes
+  // Clamp the selection cursor whenever the filtered list shrinks below
+  // it — otherwise Enter inserts the wrong option (or undefined when the
+  // index points past the end of the array).
   useEffect(() => {
-    setSelectedIdx(0);
-  }, []);
+    setSelectedIdx((i) => Math.min(i, Math.max(0, filtered.length - 1)));
+  }, [filtered.length]);
 
   // Detect whether the cursor is inside an open `{{ ... }}` tag and, if so,
   // extract the partial key the user has typed since `{{`.
@@ -231,8 +233,8 @@ export const TagAutocomplete = forwardRef<
 });
 
 function useKeyOptions(): KeyOption[] {
+  const source = getDataSource("data");
   return useMemo<KeyOption[]>(() => {
-    const source = getDataSource("data");
     const keys = source ? source.schema().map((k) => k.key) : [];
     const merged: KeyOption[] = [];
     const seen = new Set<string>();
