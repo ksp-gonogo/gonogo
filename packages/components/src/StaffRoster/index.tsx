@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import { getSizeBucket, registerComponent, useDataValue } from "@gonogo/core";
 import {
   Badge,
   Panel,
@@ -106,6 +106,7 @@ function sortStaff(roster: StaffMember[]): StaffMember[] {
 }
 
 function StaffRosterComponent({
+  w,
   h,
 }: Readonly<ComponentProps<StaffRosterConfig>>) {
   const rosterRaw = useDataValue("data", "kc.crewRoster");
@@ -113,6 +114,7 @@ function StaffRosterComponent({
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
+  const sizeBucket = getSizeBucket(w, h);
 
   if (staff === null) {
     return (
@@ -138,6 +140,23 @@ function StaffRosterComponent({
 
   const sorted = sortStaff(staff);
   const available = staff.filter((s) => s.available).length;
+  const missing = staff.length - available;
+
+  if (sizeBucket === "tiny") {
+    return (
+      <Panel>
+        <PanelTitle>STAFF</PanelTitle>
+        <TinyBody role="status" aria-live="polite">
+          <TinyCount>
+            {available}
+            <TinyTotal>/{staff.length}</TinyTotal>
+          </TinyCount>
+          <TinyLabel>available</TinyLabel>
+          {missing > 0 && <TinyMissing>{missing} unavailable</TinyMissing>}
+        </TinyBody>
+      </Panel>
+    );
+  }
 
   return (
     <Panel>
@@ -157,15 +176,32 @@ function StaffRosterComponent({
             >
               <Name>{kerbal.name}</Name>
               <Meta>
-                <TraitTag>{kerbal.trait || "—"}</TraitTag>
-                <Level>L{kerbal.experienceLevel}</Level>
+                <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
+                  {kerbal.trait || "—"}
+                </TraitTag>
+                <Level
+                  title={`Experience level ${kerbal.experienceLevel}`}
+                  aria-label={`Experience level ${kerbal.experienceLevel}`}
+                >
+                  L{kerbal.experienceLevel}
+                </Level>
                 {kerbal.veteran && (
-                  <Badge tone="go" size="sm" aria-label="veteran">
+                  <Badge
+                    tone="go"
+                    size="sm"
+                    aria-label="veteran"
+                    title="Veteran — has flown a notable mission"
+                  >
                     ★
                   </Badge>
                 )}
                 {kerbal.isBadass && (
-                  <Badge tone="warn" size="sm" aria-label="badass">
+                  <Badge
+                    tone="warn"
+                    size="sm"
+                    aria-label="badass"
+                    title="Badass — KSP's brave trait; rarely panics"
+                  >
                     BA
                   </Badge>
                 )}
@@ -174,12 +210,21 @@ function StaffRosterComponent({
                     tone="neutral"
                     size="sm"
                     aria-label={`${kerbal.careerFlights} flights`}
+                    title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
                   >
                     {kerbal.careerFlights}F
                   </Badge>
                 )}
                 {!kerbal.available && (
-                  <Badge tone="nogo" size="sm">
+                  <Badge
+                    tone="nogo"
+                    size="sm"
+                    title={
+                      kerbal.currentVesselName
+                        ? `${kerbal.unavailableReason || "Unavailable"} (${kerbal.currentVesselName})`
+                        : kerbal.unavailableReason || "Unavailable"
+                    }
+                  >
                     {kerbal.unavailableReason || "Unavailable"}
                   </Badge>
                 )}
@@ -256,6 +301,43 @@ const Level = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+const TinyBody = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+`;
+
+const TinyCount = styled.div`
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+`;
+
+const TinyTotal = styled.span`
+  font-size: 16px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+`;
+
+const TinyLabel = styled.span`
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+`;
+
+const TinyMissing = styled.span`
+  font-size: 10px;
+  color: var(--color-status-nogo-fg);
+  margin-top: 2px;
+`;
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<StaffRosterConfig>({
@@ -265,7 +347,7 @@ registerComponent<StaffRosterConfig>({
     "Whole-program kerbal roster sourced from kc.crewRoster — pilots, engineers, scientists, tourists. Sorted available-first then by trait + experience. Unavailable kerbals greyed with reason (Assigned / Hospitalised / etc.) in the tooltip. Cross-scene: works at SC, in flight, in editor.",
   tags: ["career", "crew"],
   defaultSize: { w: 5, h: 7 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 2, h: 2 },
   component: StaffRosterComponent,
   dataRequirements: ["kc.crewRoster"],
   defaultConfig: {},

@@ -6,6 +6,7 @@ import type {
 } from "@gonogo/core";
 import {
   ACTION_GROUPS,
+  getSizeBucket,
   registerComponent,
   useActionInput,
   useDataValue,
@@ -59,6 +60,8 @@ function ActionGroupComponent({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   const value = useDataValue("data", group?.value ?? "v.sasValue");
+  const isPaused = useDataValue<boolean>("data", "t.isPaused");
+  const commConnected = useDataValue<boolean>("data", "comm.connected");
   const execute = useExecuteAction("data");
   const openAlarms = useAlarmsLauncher();
 
@@ -92,12 +95,23 @@ function ActionGroupComponent({
   const isOn = value === true;
   const isUnknown = value === undefined;
 
+  // Surface the most common reasons the action wouldn't fire if the user
+  // pressed it now. Mirrors Telemachus's action-group response codes 1–4
+  // (paused / no power / antenna off / antenna missing) — codes 0 and 5 are
+  // covered upstream (0 = OK, 5 = handled by `requires: ["flight"]`).
+  let unavailableReason: string | null = null;
+  if (isPaused === true) unavailableReason = "Paused";
+  else if (commConnected === false) unavailableReason = "No signal";
+
   // Selective rendering — drop the secondary "official name" line when the
   // widget is narrow; drop the toggle button when there's no vertical room.
   const cols = w ?? 6;
   const rows = h ?? 6;
   const showOfficialName = cols >= 5;
   const showToggleButton = rows >= 4 && Boolean(group.toggle);
+  // Bell is reachable from the alarms menu — at tiny size it just crowds the
+  // pill and the size-locked button style breaks the layout.
+  const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
 
   const startEditing = () => {
     setDraft(currentLabel);
@@ -165,7 +179,7 @@ function ActionGroupComponent({
           )}
         </LabelArea>
         <HeaderRight>
-          {openAlarms && group.toggle && (
+          {showBell && group.toggle && (
             <AlarmIconButton
               type="button"
               aria-label={`Set alarm to fire ${currentLabel}`}
@@ -187,6 +201,15 @@ function ActionGroupComponent({
           </StateIndicator>
         </HeaderRight>
       </Header>
+      {unavailableReason && getSizeBucket(w, h) !== "tiny" && (
+        <UnavailableNotice
+          role="status"
+          aria-live="polite"
+          title="The action group can't fire right now"
+        >
+          {unavailableReason}
+        </UnavailableNotice>
+      )}
       {showToggleButton && (
         <Button onClick={handleToggle} aria-label={`Toggle ${currentLabel}`}>
           TOGGLE
@@ -347,6 +370,19 @@ const HeaderRight = styled.div`
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+`;
+
+const UnavailableNotice = styled.div`
+  margin-top: 4px;
+  padding: 2px 6px;
+  background: var(--color-status-warn-bg, transparent);
+  border: 1px solid var(--color-status-warn-fg, var(--color-text-faint));
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-status-warn-fg, var(--color-text-muted));
+  align-self: flex-start;
 `;
 
 const AlarmIconButton = styled.button`
