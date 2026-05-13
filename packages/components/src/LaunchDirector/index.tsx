@@ -4,7 +4,13 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  Spinner,
+} from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -106,6 +112,11 @@ function LaunchDirectorComponent({
   const [armed, setArmed] = useState<"launch" | "recover" | "revert" | null>(
     null,
   );
+  // While the launch RPC is in flight (and until the scene flips to Flight
+  // or a 10s safety timeout elapses), suppress the launch button so an
+  // impatient double-click doesn't fire two `ksp.launch` actions.
+  const [launching, setLaunching] = useState(false);
+  const scene = useDataValue<string>("data", "kc.scene");
 
   // Auto-disarm so a forgotten arm doesn't sit live indefinitely.
   useEffect(() => {
@@ -113,6 +124,18 @@ function LaunchDirectorComponent({
     const id = setTimeout(() => setArmed(null), ARM_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [armed]);
+
+  // Clear the launching guard when the scene flips to Flight (the success
+  // signal we actually care about) or after 10s either way.
+  useEffect(() => {
+    if (!launching) return;
+    if (scene === "Flight") {
+      setLaunching(false);
+      return;
+    }
+    const id = setTimeout(() => setLaunching(false), 10_000);
+    return () => clearTimeout(id);
+  }, [launching, scene]);
 
   const ship = useMemo(
     () => (selectedShip ? ships?.find((s) => s.name === selectedShip) : null),
@@ -132,7 +155,7 @@ function LaunchDirectorComponent({
   if (ships === null) {
     return (
       <Panel>
-        <PanelTitle>LAUNCH DIRECTOR</PanelTitle>
+        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
         {showSubtitle && (
           <PanelSubtitle>Awaiting launch-pad telemetry</PanelSubtitle>
         )}
@@ -148,6 +171,11 @@ function LaunchDirectorComponent({
           {padOccupied
             ? `On pad: ${padVesselTitle ?? "(unnamed)"}`
             : `${launchableShips.length}/${ships.length} ready · ${launchSite ?? "LaunchPad"}`}
+          {typeof careerFunds === "number" && (
+            <FundsReadout title="Available funds">
+              · {Math.round(careerFunds).toLocaleString()}f
+            </FundsReadout>
+          )}
         </PanelSubtitle>
       )}
       <Body>
@@ -274,9 +302,13 @@ function LaunchDirectorComponent({
                   <ArmedButton
                     kind="launch"
                     armed={armed === "launch"}
+                    disabled={launching}
+                    pending={launching}
                     onArm={() => setArmed("launch")}
                     onConfirm={() => {
+                      if (launching) return;
                       setArmed(null);
+                      setLaunching(true);
                       const crewArg = Array.from(selectedCrew).join(";");
                       const site = launchSite ?? "LaunchPad";
                       void execute(
@@ -289,6 +321,7 @@ function LaunchDirectorComponent({
                         : `Launch ${ship.name} unmanned`
                     }
                     confirmLabel="Confirm launch"
+                    pendingLabel="Launching…"
                   />
                 </LaunchControls>
               </>
@@ -307,6 +340,9 @@ function ArmedButton({
   label,
   confirmLabel,
   kind,
+  disabled,
+  pending,
+  pendingLabel,
 }: {
   armed: boolean;
   onArm: () => void;
@@ -314,16 +350,36 @@ function ArmedButton({
   label: string;
   confirmLabel: string;
   kind: "launch" | "recover" | "revert";
+  disabled?: boolean;
+  pending?: boolean;
+  pendingLabel?: string;
 }) {
+  if (pending) {
+    return (
+      <ConfirmButton type="button" $kind={kind} disabled aria-busy="true">
+        <Spinner size={12} /> {pendingLabel ?? "Working…"}
+      </ConfirmButton>
+    );
+  }
   if (armed) {
     return (
-      <ConfirmButton type="button" onClick={onConfirm} $kind={kind}>
+      <ConfirmButton
+        type="button"
+        onClick={onConfirm}
+        $kind={kind}
+        disabled={disabled}
+      >
         {confirmLabel}
       </ConfirmButton>
     );
   }
   return (
-    <ArmButton type="button" onClick={onArm} $kind={kind}>
+    <ArmButton
+      type="button"
+      onClick={onArm}
+      $kind={kind}
+      disabled={disabled}
+    >
       {label}
     </ArmButton>
   );
@@ -463,6 +519,12 @@ const PadActions = styled.div`
   flex-wrap: wrap;
 `;
 
+const FundsReadout = styled.span`
+  color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+`;
+
 const armButtonBase = `
   font-size: 11px;
   font-weight: 600;
@@ -472,6 +534,15 @@ const armButtonBase = `
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 `;
 
 const ArmButton = styled.button<{ $kind: "launch" | "recover" | "revert" }>`
@@ -522,9 +593,9 @@ const ConfirmButton = styled.button<{
 
 registerComponent<LaunchDirectorConfig>({
   id: "launch-director",
-  name: "Launch Director",
+  name: "Launch & Recovery",
   description:
-    "Pick a saved craft + crew and launch from a station. Shows affordability + tech-availability filters per craft, greys out unavailable kerbals, and switches to recover / revert controls when a vessel is on the pad. All write actions are arm-then-confirm.",
+    "Pick a saved craft and crew, launch from a pad, or recover/revert the current flight. Greyed-out craft are blocked by funds or missing tech; greyed-out kerbals are off-duty. Buttons that fire a launch or recovery always confirm before sending the action.",
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },

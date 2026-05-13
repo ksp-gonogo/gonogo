@@ -321,6 +321,14 @@ Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in `@g
 
 ---
 
+## Spending funds — always show the balance
+
+Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Subscribe to `career.funds` and surface it next to the spend control — a small "Funds: 289,848f" readout in the header is enough. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.
+
+Applies to widgets like `LaunchDirector`, `SpaceCenterStatus` (facility upgrades), future Tech Tree, and Strategies/Admin Building. The rule is per-widget, not per-screen — duplicate the readout across widgets that each spend funds rather than relying on a single elsewhere-on-the-dashboard balance.
+
+---
+
 ## Accessibility
 
 Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; see the [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/patterns/) for the canonical widget patterns.

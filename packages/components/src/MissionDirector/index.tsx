@@ -13,7 +13,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { useAlarmCreator } from "../shared/AlarmsLauncher";
+import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
  * Trigger shape used by the Mission Director's parameter bells. Mirrors
@@ -201,6 +201,7 @@ function MissionDirectorComponent({
   const vAltitude = useDataValue("data", "v.altitude") as number | undefined;
   const execute = useExecuteAction("data");
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
+  const alarmManager = useAlarmManager();
 
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
@@ -294,31 +295,62 @@ function MissionDirectorComponent({
                     </ParameterTitle>
                     {p.state === "Incomplete" &&
                       createAlarm &&
-                      contractIdToSafeNumber(c.id) !== null && (
-                        <ParameterAlarmButton
-                          type="button"
-                          title={`Alarm me when "${p.title}" completes`}
-                          aria-label={`Set alarm for ${p.title} completion`}
-                          onClick={() => {
-                            // Pre-checked above so non-null; types still
-                            // need the local binding for TS to narrow.
-                            const numericId = contractIdToSafeNumber(c.id);
-                            if (numericId === null) return;
-                            createAlarm({
-                              name: `${p.title} → Complete`,
-                              trigger: {
-                                kind: "contract-parameter",
-                                contractId: numericId,
-                                parameterTitle: p.title,
-                                targetState: "Complete",
-                                sustainSeconds: 0,
-                              },
-                            });
-                          }}
-                        >
-                          <BellIcon size={12} />
-                        </ParameterAlarmButton>
-                      )}
+                      contractIdToSafeNumber(c.id) !== null &&
+                      (() => {
+                        const numericId = contractIdToSafeNumber(c.id);
+                        if (numericId === null) return null;
+                        const existingId =
+                          alarmManager?.find((trigger) => {
+                            if (
+                              !trigger ||
+                              typeof trigger !== "object" ||
+                              Array.isArray(trigger)
+                            )
+                              return false;
+                            const t = trigger as Record<string, unknown>;
+                            return (
+                              t.kind === "contract-parameter" &&
+                              t.contractId === numericId &&
+                              t.parameterTitle === p.title
+                            );
+                          }) ?? null;
+                        const isSet = existingId !== null;
+                        return (
+                          <ParameterAlarmButton
+                            type="button"
+                            $set={isSet}
+                            title={
+                              isSet
+                                ? `Alarm set for "${p.title}" — click to clear`
+                                : `Alarm me when "${p.title}" completes`
+                            }
+                            aria-label={
+                              isSet
+                                ? `Clear alarm for ${p.title}`
+                                : `Set alarm for ${p.title} completion`
+                            }
+                            aria-pressed={isSet}
+                            onClick={() => {
+                              if (isSet && existingId && alarmManager) {
+                                alarmManager.remove(existingId);
+                                return;
+                              }
+                              createAlarm({
+                                name: `${p.title} → Complete`,
+                                trigger: {
+                                  kind: "contract-parameter",
+                                  contractId: numericId,
+                                  parameterTitle: p.title,
+                                  targetState: "Complete",
+                                  sustainSeconds: 0,
+                                },
+                              });
+                            }}
+                          >
+                            <BellIcon size={12} />
+                          </ParameterAlarmButton>
+                        );
+                      })()}
                     {p.state === "Incomplete" &&
                       createAlarm &&
                       contractIdToSafeNumber(c.id) === null && (
@@ -587,6 +619,8 @@ const ConfirmCancelButton = styled(ActionButton)`
   background: var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   border-color: transparent;
+  font-size: 10px;
+  padding: 2px 8px;
   animation: declinePulse 1s ease-in-out infinite;
 `;
 
@@ -776,13 +810,14 @@ const AltitudeBarLabel = styled.span<{ $inBand: boolean }>`
     p.$inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
 `;
 
-const ParameterAlarmButton = styled.button`
+const ParameterAlarmButton = styled.button<{ $set?: boolean }>`
   flex-shrink: 0;
   background: transparent;
   border: none;
   padding: 2px 4px;
   cursor: pointer;
-  color: var(--color-text-faint);
+  color: ${(p) =>
+    p.$set ? "var(--color-accent-fg)" : "var(--color-text-faint)"};
   display: inline-flex;
   align-items: center;
 
@@ -793,6 +828,11 @@ const ParameterAlarmButton = styled.button`
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    color: var(--color-text-faint);
   }
 `;
 
@@ -805,9 +845,9 @@ const Optional = styled.span`
 
 registerComponent<MissionDirectorConfig>({
   id: "mission-director",
-  name: "Mission Director",
+  name: "Contracts Board",
   description:
-    "Career-mode contracts panel — active contracts with parameter progress, deadline countdown, and reward breakdown. Counts in subtitle. Read-only Phase 3; Phase 4 will add accept / decline buttons.",
+    "Career contracts with active objectives, deadlines, and rewards. Accept new contracts from the offered list, decline ones you don't want, and cancel active ones (with a confirmation step). A bell next to each open objective sets an alarm that fires when the objective completes.",
   tags: ["career", "contracts"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
