@@ -264,7 +264,7 @@ function useKeyOptions(): KeyOption[] {
       if (a.group !== b.group) return a.group.localeCompare(b.group);
       return a.label.localeCompare(b.label);
     });
-  }, []);
+  }, [source]);
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────

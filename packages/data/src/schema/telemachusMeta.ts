@@ -443,6 +443,116 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     unit: "enum",
     group: "Target",
   },
+
+  // --- Career / KSC (GonogoTelemetry fork additions) ---
+  "career.funds": { label: "Funds", unit: "raw", group: "Career" },
+  "career.science": { label: "Science", unit: "raw", group: "Career" },
+  "career.reputation": { label: "Reputation", unit: "raw", group: "Career" },
+  "career.mode": { label: "Game mode", unit: "enum", group: "Career" },
+  "kc.scene": { label: "Current scene", unit: "enum", group: "KSC" },
+  "kc.launchSite": { label: "Last launch site", unit: "enum", group: "KSC" },
+  "kc.padOccupied": { label: "Pad occupied", unit: "bool", group: "KSC" },
+  "kc.padVesselTitle": {
+    label: "Pad vessel name",
+    unit: "enum",
+    group: "KSC",
+  },
+  "kc.facilityLevels": {
+    label: "Facility levels",
+    unit: "raw",
+    group: "KSC",
+  },
+  "kc.partsAvailable": {
+    label: "Parts unlocked",
+    unit: "raw",
+    group: "KSC",
+  },
+  "kc.crewRoster": { label: "Crew roster", unit: "raw", group: "KSC" },
+  "kc.savedShips": { label: "Saved craft", unit: "raw", group: "KSC" },
+
+  // --- Tech tree (GonogoTelemetry fork additions) ---
+  "tech.nodes": { label: "Tech tree nodes", unit: "raw", group: "Tech" },
+  "tech.unlockedIds": {
+    label: "Unlocked tech ids",
+    unit: "raw",
+    group: "Tech",
+  },
+  "tech.unlockedPartCount": {
+    label: "Parts in unlocked tech",
+    unit: "raw",
+    group: "Tech",
+  },
+  "tech.affordable": {
+    label: "Tech affordable now",
+    unit: "raw",
+    group: "Tech",
+  },
+
+  // --- Science (GonogoTelemetry fork additions) ---
+  "sci.instruments": {
+    label: "Science instruments",
+    unit: "raw",
+    group: "Science",
+  },
+  "sci.dataAmount": {
+    label: "Total science data (mits)",
+    unit: "raw",
+    group: "Science",
+  },
+  "sci.canTransmitTotal": {
+    label: "Transmittable science",
+    unit: "raw",
+    group: "Science",
+  },
+  "sci.experiments": {
+    label: "Stored experiments",
+    unit: "raw",
+    group: "Science",
+  },
+  "sci.experimentBreakdown": {
+    label: "Per-experiment breakdown",
+    unit: "raw",
+    group: "Science",
+  },
+
+  // --- Contracts ---
+  "contracts.active": {
+    label: "Active contracts",
+    unit: "raw",
+    group: "Contracts",
+  },
+  "contracts.offered": {
+    label: "Offered contracts",
+    unit: "raw",
+    group: "Contracts",
+  },
+  "contracts.completedRecent": {
+    label: "Recently completed",
+    unit: "raw",
+    group: "Contracts",
+  },
+
+  // --- Recovery / crash snapshots ---
+  "recovery.hasRecent": {
+    label: "Has recent recovery",
+    unit: "bool",
+    group: "Flight outcome",
+  },
+  "recovery.lastSummary": {
+    label: "Last recovery summary",
+    unit: "raw",
+    group: "Flight outcome",
+  },
+  "crash.hasRecent": {
+    label: "Has recent crash",
+    unit: "bool",
+    group: "Flight outcome",
+  },
+  "crash.lastCrash": {
+    label: "Last crash snapshot",
+    unit: "raw",
+    group: "Flight outcome",
+  },
 };
 
 /** Enrich a raw key with metadata. Falls back to `{ label: key, group: "Other" }`. */

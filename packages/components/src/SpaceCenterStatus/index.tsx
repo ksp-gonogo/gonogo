@@ -39,6 +39,17 @@ interface FacilityLevel {
   max: number;
   /** Funds cost for the next-tier upgrade. 0 = unknown / already at max. */
   upgradeFunds: number;
+  /**
+   * Multi-line text matching what KSP's stock upgrade dialog shows for
+   * the current tier (e.g. "* Max Active Strategies: 1\n* Max Commitment: 25.0%").
+   * Empty string when the fork isn't emitting them yet — older DLLs
+   * before the 2026-05-13 update.
+   */
+  currentLevelText: string;
+  /** Same shape as `currentLevelText`, but for what the *next* upgrade
+   *  would unlock. Empty string when at max tier (no next) or when the
+   *  fork doesn't emit them. */
+  nextLevelText: string;
 }
 
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
@@ -49,7 +60,9 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
  * drops anything that doesn't read as `{ level: number, max: number,
  * upgradeFunds: number }` — sandbox saves emit zeroed entries, which
  * is fine. `upgradeFunds` is best-effort; missing → 0 means "unknown
- * or at max".
+ * or at max". `currentLevelText` / `nextLevelText` are the 2026-05-13
+ * additions; missing means an older DLL — defaults to empty string so
+ * downstream "show this text" code can early-out cleanly.
  */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
@@ -63,7 +76,17 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
     if (!FACILITIES.some((f) => f.key === k)) continue;
     const upgradeFunds =
       typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0;
-    out[k as FacilityKey] = { level, max, upgradeFunds };
+    const currentLevelText =
+      typeof entry.currentLevelText === "string" ? entry.currentLevelText : "";
+    const nextLevelText =
+      typeof entry.nextLevelText === "string" ? entry.nextLevelText : "";
+    out[k as FacilityKey] = {
+      level,
+      max,
+      upgradeFunds,
+      currentLevelText,
+      nextLevelText,
+    };
   }
   return out;
 }
@@ -177,8 +200,18 @@ function SpaceCenterStatusComponent({
               !atMax &&
               f.upgradeFunds > 0 &&
               canAfford;
+            // Build a hover-tooltip body summarising the current tier's
+            // bullet-list and (if available) the next-tier preview. The
+            // newlines from the fork stay as \n — the browser's `title`
+            // attribute renders them with native multi-line wrapping in
+            // the OS-level tooltip on every major platform.
+            const tooltip = buildFacilityTooltip(label, f);
+            const showFullTextBody =
+              !compactGrid &&
+              !!f &&
+              (f.currentLevelText !== "" || f.nextLevelText !== "");
             return (
-              <FacilityCell key={key}>
+              <FacilityCell key={key} title={tooltip || undefined}>
                 <FacilityLabel>{label}</FacilityLabel>
                 <FacilityValue>
                   {f && f.max > 0 ? (
@@ -200,10 +233,31 @@ function SpaceCenterStatusComponent({
                       facilityKey={key}
                       enabled={canUpgrade}
                       execute={execute}
+                      titleOverride={
+                        f.nextLevelText
+                          ? `Upgrade to tier ${displayLevel + 1}:\n${f.nextLevelText}`
+                          : undefined
+                      }
                     />
                   </UpgradeRow>
                 )}
                 {atMax && <MaxBadge>MAX</MaxBadge>}
+                {showFullTextBody && f && (
+                  <FullText>
+                    {f.currentLevelText && (
+                      <FullTextBlock>
+                        <FullTextLabel>Now</FullTextLabel>
+                        <FullTextBody>{f.currentLevelText}</FullTextBody>
+                      </FullTextBlock>
+                    )}
+                    {f.nextLevelText && (
+                      <FullTextBlock>
+                        <FullTextLabel>Next</FullTextLabel>
+                        <FullTextBody>{f.nextLevelText}</FullTextBody>
+                      </FullTextBlock>
+                    )}
+                  </FullText>
+                )}
               </FacilityCell>
             );
           })}
@@ -226,10 +280,12 @@ function UpgradeButton({
   facilityKey,
   enabled,
   execute,
+  titleOverride,
 }: {
   facilityKey: FacilityKey;
   enabled: boolean;
   execute: (action: string) => Promise<void>;
+  titleOverride?: string;
 }) {
   const [armed, setArmed] = useState(false);
 
@@ -241,14 +297,18 @@ function UpgradeButton({
 
   if (!enabled) {
     return (
-      <UpgradeButtonStyled type="button" disabled>
+      <UpgradeButtonStyled type="button" disabled title={titleOverride}>
         Upgrade
       </UpgradeButtonStyled>
     );
   }
   if (!armed) {
     return (
-      <UpgradeButtonStyled type="button" onClick={() => setArmed(true)}>
+      <UpgradeButtonStyled
+        type="button"
+        onClick={() => setArmed(true)}
+        title={titleOverride}
+      >
         Upgrade
       </UpgradeButtonStyled>
     );
@@ -260,10 +320,30 @@ function UpgradeButton({
         setArmed(false);
         void execute(`kc.upgradeFacility[${facilityKey}]`);
       }}
+      title={titleOverride}
     >
       Confirm
     </ConfirmUpgradeButton>
   );
+}
+
+// Multi-line tooltip body shown on cell hover. Combines current-tier
+// text with next-tier preview (when not at max) so the operator can
+// compare without opening anything. The browser renders \n natively
+// in title attributes on every major platform.
+function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
+  if (!f) return label;
+  if (!f.currentLevelText && !f.nextLevelText) {
+    return `${label} (older Telemachus DLL — no level descriptions)`;
+  }
+  const parts: string[] = [`${label} — tier ${f.level + 1} of ${f.max + 1}`];
+  if (f.currentLevelText) {
+    parts.push("", "NOW", f.currentLevelText);
+  }
+  if (f.nextLevelText) {
+    parts.push("", "NEXT", f.nextLevelText);
+  }
+  return parts.join("\n");
 }
 
 function formatCost(value: number): string {
@@ -352,6 +432,37 @@ const MaxBadge = styled.span`
   color: var(--color-text-faint);
   text-transform: uppercase;
   margin-top: 2px;
+`;
+
+const FullText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-surface-raised);
+`;
+
+const FullTextBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const FullTextLabel = styled.span`
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+`;
+
+const FullTextBody = styled.pre`
+  margin: 0;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
 `;
 
 const UpgradeButtonStyled = styled.button`
