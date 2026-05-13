@@ -152,9 +152,23 @@ describe("parseFacilityLevels", () => {
       unknownFacility: { level: 1, max: 3 },
       launchPad: { level: 0, max: 3 },
     });
+    // currentLevelText / nextLevelText default to empty strings when the
+    // older Telemachus DLL doesn't emit them (pre-2026-05-13).
     expect(parsed).toEqual({
-      vab: { level: 1, max: 3, upgradeFunds: 75000 },
-      launchPad: { level: 0, max: 3, upgradeFunds: 0 },
+      vab: {
+        level: 1,
+        max: 3,
+        upgradeFunds: 75000,
+        currentLevelText: "",
+        nextLevelText: "",
+      },
+      launchPad: {
+        level: 0,
+        max: 3,
+        upgradeFunds: 0,
+        currentLevelText: "",
+        nextLevelText: "",
+      },
     });
   });
 
@@ -163,5 +177,30 @@ describe("parseFacilityLevels", () => {
       sph: { level: 0, max: 3 },
     });
     expect(parsed.sph?.upgradeFunds).toBe(0);
+  });
+
+  it("preserves currentLevelText and nextLevelText when the fork emits them", () => {
+    const parsed = parseFacilityLevels({
+      vab: {
+        level: 2,
+        max: 2,
+        upgradeFunds: 0,
+        currentLevelText: "* Max Parts: Unlimited",
+        nextLevelText: "",
+      },
+      admin: {
+        level: 0,
+        max: 2,
+        upgradeFunds: 150000,
+        currentLevelText: "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+        nextLevelText: "* Max Active Strategies: 3\n* Max Commitment: 60.0%",
+      },
+    });
+    expect(parsed.vab?.currentLevelText).toBe("* Max Parts: Unlimited");
+    expect(parsed.vab?.nextLevelText).toBe("");
+    expect(parsed.admin?.currentLevelText).toContain(
+      "Max Active Strategies: 1",
+    );
+    expect(parsed.admin?.nextLevelText).toContain("Max Commitment: 60.0%");
   });
 });
