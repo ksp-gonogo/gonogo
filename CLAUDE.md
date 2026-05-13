@@ -64,8 +64,9 @@ pnpm --filter @gonogo/core test     # test a single package
 
 Subcommands:
 
-- **`./scripts/gonogo_claude_tools.sh decompile <Type> [<Type>...]`** — dump KSP type signatures (with smart fallback across DLLs and a bare-name → FQN auto-resolve). Use this before assuming KSP API shapes; the live decompile beats memory.
-- **`./scripts/gonogo_claude_tools.sh dump <Type> [<Type>...]`** — full ilspycmd output (method bodies, fields). Use when you need to see what a method does, not just its signature.
+- **`./scripts/gonogo_claude_tools.sh decompile <Type> [<Type>...]`** — dump KSP type signatures (with smart fallback across DLLs and a bare-name → FQN auto-resolve). Capped at 80 lines per type — fine for small classes, truncates on the big ones. Use `members` when you hit the cap.
+- **`./scripts/gonogo_claude_tools.sh members <Type> [<Type>...]`** — list every public member of a type by line-range scan of the cached full disassembly. No per-type cap; nested-class members are included. Designed for new-TelemetryAPI scoping where you need to see *every* field the underlying KSP type exposes (Part has 660+ lines of public members, Strategy has ~50). Run after at least one `decompile` or `findtype` for the same type this session so the cache exists.
+- **`./scripts/gonogo_claude_tools.sh dump <Type> [<Type>...]`** — full ilspycmd output (method bodies, fields). Use when you need to see what a method does, not just its signature. For "what fields does this type have" prefer `members` — `dump` re-runs ilspycmd per call instead of reading the cache.
 - **`./scripts/gonogo_claude_tools.sh findtype <Name>`** — resolve a simple type name to its fully-qualified form. First call per session is ~30s/DLL; subsequent calls hit the textual cache.
 - **`./scripts/gonogo_claude_tools.sh build telemachus`** — `dotnet build` the fork *and* copy the resulting `Telemachus.dll` into `local_docs/syncthing/kspdata/GameData/Telemachus/Plugins/` (syncthing then mirrors it to the user's KSP install). User needs to restart KSP to load the new build.
 - **`./scripts/gonogo_claude_tools.sh tele read <key1> [<key2>...]`** — GET `/telemachus/datalink?…` against the running KSP at the hard-coded host. Pretty-prints JSON.
