@@ -102,6 +102,19 @@ function LaunchDirectorComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
+  // In-flight context — populated when scene === "Flight".
+  const vesselName = useDataValue<string>("data", "v.name");
+  const missionTime = useDataValue<number>("data", "v.missionTime");
+  const altitudeMeters = useDataValue<number>("data", "v.altitude");
+  const canRevertToLaunch = useDataValue<boolean>(
+    "data",
+    "ksp.canRevertToLaunch",
+  );
+  const canRevertToEditor = useDataValue<boolean>(
+    "data",
+    "ksp.canRevertToEditor",
+  );
+  const crashHasRecent = useDataValue<boolean>("data", "crash.hasRecent");
   const execute = useExecuteAction("data");
 
   const ships = parseSavedShips(savedShipsRaw);
@@ -163,14 +176,19 @@ function LaunchDirectorComponent({
     );
   }
 
+  const inFlight = scene === "Flight";
+  const activeName = vesselName ?? padVesselTitle ?? "(unnamed)";
+
   return (
     <Panel>
       <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
-          {padOccupied
-            ? `On pad: ${padVesselTitle ?? "(unnamed)"}`
-            : `${launchableShips.length}/${ships.length} ready · ${launchSite ?? "LaunchPad"}`}
+          {inFlight
+            ? `In flight: ${activeName}`
+            : padOccupied
+              ? `On pad: ${activeName}`
+              : `${launchableShips.length}/${ships.length} ready · ${launchSite ?? "LaunchPad"}`}
           {typeof careerFunds === "number" && (
             <FundsReadout title="Available funds">
               · {Math.round(careerFunds).toLocaleString()}f
@@ -179,7 +197,29 @@ function LaunchDirectorComponent({
         </PanelSubtitle>
       )}
       <Body>
-        {padOccupied ? (
+        {inFlight ? (
+          <InFlightPanel
+            missionTime={missionTime ?? null}
+            altitudeMeters={altitudeMeters ?? null}
+            canRevertToLaunch={canRevertToLaunch ?? false}
+            canRevertToEditor={canRevertToEditor ?? false}
+            crashBlocked={crashHasRecent === true}
+            armed={armed}
+            onArm={setArmed}
+            onRecover={() => {
+              setArmed(null);
+              void execute("ksp.recover");
+            }}
+            onRevertToLaunch={() => {
+              setArmed(null);
+              void execute("ksp.revertToLaunch");
+            }}
+            onRevertToVAB={() => {
+              setArmed(null);
+              void execute("ksp.revertToEditor[vab]");
+            }}
+          />
+        ) : padOccupied ? (
           <PadActions>
             <ArmedButton
               kind="recover"
@@ -331,6 +371,99 @@ function LaunchDirectorComponent({
       </Body>
     </Panel>
   );
+}
+
+function InFlightPanel({
+  missionTime,
+  altitudeMeters,
+  canRevertToLaunch,
+  canRevertToEditor,
+  crashBlocked,
+  armed,
+  onArm,
+  onRecover,
+  onRevertToLaunch,
+  onRevertToVAB,
+}: {
+  missionTime: number | null;
+  altitudeMeters: number | null;
+  canRevertToLaunch: boolean;
+  canRevertToEditor: boolean;
+  crashBlocked: boolean;
+  armed: "launch" | "recover" | "revert" | null;
+  onArm: (k: "recover" | "revert" | null) => void;
+  onRecover: () => void;
+  onRevertToLaunch: () => void;
+  onRevertToVAB: () => void;
+}) {
+  return (
+    <InFlightWrap>
+      {crashBlocked && (
+        <CrashChip role="status">
+          Crash in progress — return to Space Center to recover
+        </CrashChip>
+      )}
+      <FlightStats>
+        <FlightStatRow>
+          <StatLabel>Mission time</StatLabel>
+          <StatValue>{formatMissionTime(missionTime)}</StatValue>
+        </FlightStatRow>
+        <FlightStatRow>
+          <StatLabel>Altitude</StatLabel>
+          <StatValue>{formatAltitude(altitudeMeters)}</StatValue>
+        </FlightStatRow>
+      </FlightStats>
+      <PadActions>
+        <ArmedButton
+          kind="recover"
+          armed={armed === "recover"}
+          onArm={() => onArm("recover")}
+          onConfirm={onRecover}
+          label="Recover"
+          confirmLabel="Confirm recover"
+          disabled={crashBlocked}
+        />
+        <ArmedButton
+          kind="revert"
+          armed={armed === "revert"}
+          onArm={() => onArm("revert")}
+          onConfirm={onRevertToLaunch}
+          label={
+            canRevertToLaunch ? "Revert to launch" : "Revert to launch (n/a)"
+          }
+          confirmLabel="Confirm revert to launch"
+          disabled={!canRevertToLaunch}
+        />
+        <ArmedButton
+          kind="revert"
+          armed={false}
+          onArm={onRevertToVAB}
+          onConfirm={onRevertToVAB}
+          label={canRevertToEditor ? "Revert to VAB" : "Revert to VAB (n/a)"}
+          confirmLabel="Revert to VAB"
+          disabled={!canRevertToEditor}
+        />
+      </PadActions>
+    </InFlightWrap>
+  );
+}
+
+function formatMissionTime(s: number | null): string {
+  if (s === null || !Number.isFinite(s)) return "—";
+  const total = Math.max(0, Math.floor(s));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  if (h > 0) {
+    return `T+${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  }
+  return `T+${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+}
+
+function formatAltitude(m: number | null): string {
+  if (m === null || !Number.isFinite(m)) return "—";
+  if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(1)} km`;
+  return `${m.toFixed(0)} m`;
 }
 
 function ArmedButton({
@@ -514,6 +647,53 @@ const PadActions = styled.div`
   flex-wrap: wrap;
 `;
 
+const InFlightWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FlightStats = styled.dl`
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const FlightStatRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background: var(--color-surface-panel);
+`;
+
+const StatLabel = styled.dt`
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  margin: 0;
+`;
+
+const StatValue = styled.dd`
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  font-weight: 600;
+`;
+
+const CrashChip = styled.div`
+  background: var(--color-status-nogo-muted);
+  color: var(--color-status-nogo-fg);
+  font-size: var(--font-size-xs);
+  padding: 4px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+`;
+
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
@@ -601,7 +781,14 @@ registerComponent<LaunchDirectorConfig>({
     "kc.padOccupied",
     "kc.padVesselTitle",
     "kc.launchSite",
+    "kc.scene",
     "career.funds",
+    "v.name",
+    "v.missionTime",
+    "v.altitude",
+    "ksp.canRevertToLaunch",
+    "ksp.canRevertToEditor",
+    "crash.hasRecent",
   ],
   defaultConfig: {},
   actions: [],

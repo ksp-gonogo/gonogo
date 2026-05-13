@@ -14,7 +14,14 @@ const KEYS: DataKey[] = [
   { key: "kc.padOccupied" },
   { key: "kc.padVesselTitle" },
   { key: "kc.launchSite" },
+  { key: "kc.scene" },
   { key: "career.funds" },
+  { key: "v.name" },
+  { key: "v.missionTime" },
+  { key: "v.altitude" },
+  { key: "ksp.canRevertToLaunch" },
+  { key: "ksp.canRevertToEditor" },
+  { key: "crash.hasRecent" },
 ];
 
 describe("LaunchDirectorComponent", () => {
@@ -134,6 +141,62 @@ describe("LaunchDirectorComponent", () => {
     fireEvent.click(screen.getByText("Recover"));
     fireEvent.click(screen.getByText(/Confirm recover/i));
     expect(onExecute).toHaveBeenCalledWith("ksp.recover");
+  });
+
+  it("shows the in-flight panel with mission time + revert affordances when scene is Flight", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "Stayputnik X");
+      source.emit("v.missionTime", 263);
+      source.emit("v.altitude", 72_400);
+      source.emit("ksp.canRevertToLaunch", true);
+      source.emit("ksp.canRevertToEditor", true);
+      source.emit("crash.hasRecent", false);
+    });
+
+    expect(screen.getByText(/In flight: Stayputnik X/i)).toBeInTheDocument();
+    expect(screen.getByText("T+04:23")).toBeInTheDocument();
+    expect(screen.getByText("72.4 km")).toBeInTheDocument();
+    expect(screen.getByText("Revert to launch")).toBeInTheDocument();
+    expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Revert to launch"));
+    fireEvent.click(screen.getByText(/Confirm revert to launch/i));
+    expect(onExecute).toHaveBeenCalledWith("ksp.revertToLaunch");
+  });
+
+  it("surfaces a crash chip and disables recover when crash.hasRecent is true", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "Doomed Probe");
+      source.emit("v.missionTime", 12);
+      source.emit("v.altitude", 50);
+      source.emit("ksp.canRevertToLaunch", false);
+      source.emit("ksp.canRevertToEditor", false);
+      source.emit("crash.hasRecent", true);
+    });
+
+    expect(
+      screen.getByText(/Crash in progress — return to Space Center/i),
+    ).toBeInTheDocument();
+    const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
+    expect(recoverBtn).toBeDisabled();
   });
 
   it("greys out unavailable crew chips and ignores clicks", async () => {
