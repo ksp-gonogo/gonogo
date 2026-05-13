@@ -58,6 +58,22 @@ pnpm --filter @gonogo/core test     # test a single package
 
 **Node version:** run `nvm use` before `pnpm`/`node` if your shell isn't already on the repo's pinned version (`.nvmrc` → 24). Do **not** `source ~/.nvm/nvm.sh` — `nvm` is already on the PATH in this environment, so just invoke it directly.
 
+### Helper scripts
+
+`scripts/gonogo_claude_tools.sh` bundles purpose-scoped helpers that work without per-call permission prompts (the wrappers are already allow-listed in `.claude/settings.local.json`). Prefer the script over ad-hoc `curl`/`ilspycmd`/`dotnet build` calls — every subcommand pins the right paths, host, and timeouts.
+
+Subcommands:
+
+- **`./scripts/gonogo_claude_tools.sh decompile <Type> [<Type>...]`** — dump KSP type signatures (with smart fallback across DLLs and a bare-name → FQN auto-resolve). Use this before assuming KSP API shapes; the live decompile beats memory.
+- **`./scripts/gonogo_claude_tools.sh dump <Type> [<Type>...]`** — full ilspycmd output (method bodies, fields). Use when you need to see what a method does, not just its signature.
+- **`./scripts/gonogo_claude_tools.sh findtype <Name>`** — resolve a simple type name to its fully-qualified form. First call per session is ~30s/DLL; subsequent calls hit the textual cache.
+- **`./scripts/gonogo_claude_tools.sh build telemachus`** — `dotnet build` the fork *and* copy the resulting `Telemachus.dll` into `local_docs/syncthing/kspdata/GameData/Telemachus/Plugins/` (syncthing then mirrors it to the user's KSP install). User needs to restart KSP to load the new build.
+- **`./scripts/gonogo_claude_tools.sh tele read <key1> [<key2>...]`** — GET `/telemachus/datalink?…` against the running KSP at the hard-coded host. Pretty-prints JSON.
+- **`./scripts/gonogo_claude_tools.sh tele action <key[args]>`** — fire a write-action key (URL-encodes brackets).
+- **`./scripts/gonogo_claude_tools.sh tele subscribe <key1> [<key2>...]`** — open a WebSocket and stream value transitions. Needs `websocat`.
+
+Wrap every call with the perl-alarm pattern (`perl -e 'alarm shift; exec @ARGV' <seconds> ./scripts/gonogo_claude_tools.sh …`) — see [[feedback_bash_hangs]] — and prefer `run_in_background: true` for anything that touches network or `ilspycmd`.
+
 ---
 
 ## Architecture
