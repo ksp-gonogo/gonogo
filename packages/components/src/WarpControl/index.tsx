@@ -13,6 +13,7 @@ import {
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
+  ToggleButton,
 } from "@gonogo/ui";
 import styled from "styled-components";
 
@@ -176,22 +177,22 @@ function WarpControlComponent({
           </Rate>
 
           {scene === "Flight" && (
-            <PauseButton
-              type="button"
-              $paused={isPaused === true}
+            <ToggleButton
+              active={isPaused === true}
+              tone="warn"
+              size="sm"
               onClick={togglePause}
               aria-label={isPaused === true ? "Resume game" : "Pause game"}
-              aria-pressed={isPaused === true}
               title={
                 isPaused === true ? "Resume (t.unpause)" : "Pause (t.pause)"
               }
             >
               {isPaused === true ? (
-                <PlayIcon size={14} />
+                <PlayIcon size={12} />
               ) : (
-                <PauseIcon size={14} />
+                <PauseIcon size={12} />
               )}
-            </PauseButton>
+            </ToggleButton>
           )}
 
           {showFullLadder && (
@@ -268,37 +269,6 @@ const Body = styled.div`
   justify-content: center;
   min-width: 0;
   min-height: 0;
-`;
-
-const PauseButton = styled.button<{ $paused: boolean }>`
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid
-    ${(p) =>
-      p.$paused
-        ? "var(--color-status-warn-fg)"
-        : "var(--color-surface-raised)"};
-  background: ${(p) =>
-    p.$paused ? "var(--color-status-warn-bg)" : "transparent"};
-  color: ${(p) =>
-    p.$paused ? "var(--color-status-warn-fg)" : "var(--color-text-muted)"};
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: inherit;
-
-  &:hover {
-    color: var(--color-text-primary);
-    border-color: var(--color-accent-fg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 const Rate = styled.div<{ $tone: "go" }>`
