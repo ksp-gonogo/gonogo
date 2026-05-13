@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 
 /**
@@ -30,10 +31,16 @@ export function StationAlarmBanner({
   const fired = snap.alarms.filter((a) => a.state === "fired");
   if (fired.length === 0) return null;
 
+  const cpCollapse = collapseFiredContractParam(fired);
+  const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
+  const individuals = collapsedIds
+    ? fired.filter((a) => !collapsedIds.has(a.id))
+    : fired;
+
   return (
     <Wrap role="alert">
       <Stack>
-        {fired.map((a) => (
+        {individuals.map((a) => (
           <Row key={a.id}>
             <Label>Fired</Label>
             <AlarmName>{a.name}</AlarmName>
@@ -43,6 +50,22 @@ export function StationAlarmBanner({
             </AckButton>
           </Row>
         ))}
+        {cpCollapse && (
+          <Row>
+            <Label>Fired</Label>
+            <AlarmName>
+              {cpCollapse.count} contract objectives completed
+            </AlarmName>
+            <AckButton
+              type="button"
+              onClick={() => {
+                for (const id of cpCollapse.ids) onAcknowledge(id);
+              }}
+            >
+              Acknowledge all
+            </AckButton>
+          </Row>
+        )}
       </Stack>
     </Wrap>
   );
