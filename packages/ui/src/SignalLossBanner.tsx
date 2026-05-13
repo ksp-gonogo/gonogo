@@ -21,8 +21,6 @@ export function SignalLossBanner({ state, elapsedMs }: SignalLossBannerProps) {
   return (
     <BannerPill
       accent={SEVERITY_COLOR[state]}
-      top={12}
-      zIndex={1000}
       glow="0 0 12px rgba(255, 59, 48, 0.35)"
       pulse
     >

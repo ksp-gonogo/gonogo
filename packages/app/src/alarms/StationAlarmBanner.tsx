@@ -58,20 +58,36 @@ function describe(alarm: Alarm): string {
 }
 
 const Wrap = styled.div`
-  position: fixed;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 900;
   background: rgba(90, 15, 15, 0.95);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: 3px;
+  border-radius: 999px;
   color: var(--color-text-primary);
   font-size: 12px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
-  max-width: calc(100vw - 16px);
+  max-width: 100%;
+  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+  will-change: transform, opacity;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @keyframes bannerSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scaleX(0.6);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scaleX(1);
+    }
+  }
 `;
 
 const Stack = styled.div`

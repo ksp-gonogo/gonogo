@@ -56,6 +56,17 @@ export function AlarmBanner() {
   // (from the 1Hz tick) don't replay the tone.
   useFireBeep(snap.alarms);
 
+  // User feedback (2026-05-12): the warp/alarm banner used to be persistent
+  // at the top of the viewport and clobbered top-row widgets. New rule —
+  // only render when there's something to surface: warp ≠ 1×, an alarm is
+  // pending/firing, or a warpTo plan is queued.
+  const isQuiet =
+    snap.warp.rate <= 1.0001 &&
+    nextAlarm === null &&
+    firedAlarms.length === 0 &&
+    snap.warpTo === null;
+  if (isQuiet) return null;
+
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
       <Stack>
@@ -279,20 +290,36 @@ const TONE_COUNT: Record<Tone, string> = {
 };
 
 const Wrap = styled.div<{ $tone: Tone }>`
-  position: fixed;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 900;
   background: ${({ $tone }) => TONE_BG[$tone]};
   border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
-  border-radius: 3px;
+  border-radius: 999px;
   color: var(--color-text-primary);
   font-size: 12px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
-  max-width: calc(100vw - 16px);
+  max-width: 100%;
+  animation: bannerSlideIn 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+  will-change: transform, opacity;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @keyframes bannerSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scaleX(0.6);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scaleX(1);
+    }
+  }
 `;
 
 const Stack = styled.div`
