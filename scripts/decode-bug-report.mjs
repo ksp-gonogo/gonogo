@@ -68,13 +68,19 @@ const summaryPath = resolve(outDir, "summary.txt");
 writeFileSync(summaryPath, `${summaryLines.join("\n")}\n`);
 
 const logsPath = resolve(outDir, "recent-logs.json");
-writeFileSync(logsPath, `${JSON.stringify(payload.recentLogs ?? [], null, 2)}\n`);
+writeFileSync(
+  logsPath,
+  `${JSON.stringify(payload.recentLogs ?? [], null, 2)}\n`,
+);
 
 let screenshotPath = null;
 if (payload.screenshot?.base64) {
   const ext = payload.screenshot.mimeType === "image/png" ? "png" : "jpg";
   screenshotPath = resolve(outDir, `screenshot.${ext}`);
-  writeFileSync(screenshotPath, Buffer.from(payload.screenshot.base64, "base64"));
+  writeFileSync(
+    screenshotPath,
+    Buffer.from(payload.screenshot.base64, "base64"),
+  );
 }
 
 console.log(`summary: ${summaryPath}`);

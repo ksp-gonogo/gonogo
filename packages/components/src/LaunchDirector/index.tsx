@@ -165,7 +165,7 @@ function LaunchDirectorComponent({
 
   return (
     <Panel>
-      <PanelTitle>LAUNCH DIRECTOR</PanelTitle>
+      <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {padOccupied
@@ -374,12 +374,7 @@ function ArmedButton({
     );
   }
   return (
-    <ArmButton
-      type="button"
-      onClick={onArm}
-      $kind={kind}
-      disabled={disabled}
-    >
+    <ArmButton type="button" onClick={onArm} $kind={kind} disabled={disabled}>
       {label}
     </ArmButton>
   );

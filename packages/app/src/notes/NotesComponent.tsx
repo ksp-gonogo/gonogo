@@ -237,8 +237,7 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
   const valueMap = useTagValues(tags);
   const knownKeys = useKnownDataKeys();
   const text = useMemo(
-    () =>
-      renderTemplate(body, (k) => valueMap.get(k), { knownKeys }),
+    () => renderTemplate(body, (k) => valueMap.get(k), { knownKeys }),
     [body, valueMap, knownKeys],
   );
   return <>{text}</>;
