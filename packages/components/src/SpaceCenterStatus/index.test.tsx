@@ -40,16 +40,21 @@ describe("SpaceCenterStatusComponent", () => {
   it("shows facility tiers when telemetry arrives", () => {
     render(<SpaceCenterStatusComponent config={{}} id="ksc" />);
     act(() => {
+      // Fork emits `max` as KSP's `GetFacilityLevelCount` — number of
+      // upgrades available, not total tiers. So a 3-tier building shows
+      // up as `{level: 0..2, max: 2}`. Widget renders 1-indexed:
+      // `(level+1) / (max+1)`. Verified live 2026-05-13.
       source.emit("kc.facilityLevels", {
-        launchPad: { level: 1, max: 3 },
-        vab: { level: 2, max: 3 },
+        launchPad: { level: 1, max: 2 },
+        vab: { level: 2, max: 2 },
       });
     });
-    // launchPad: 1 / (max - 1 = 2) — display is "1 / 2"
+    // launchPad: tier 2 of 3
     const launchPadCell = screen.getByText(/Launch Pad/i).closest("div");
-    expect(launchPadCell?.textContent).toMatch(/1\s*\/\s*2/);
+    expect(launchPadCell?.textContent).toMatch(/2\s*\/\s*3/);
+    // vab: tier 3 of 3 (at max)
     const vabCell = screen.getByText(/^VAB$/i).closest("div");
-    expect(vabCell?.textContent).toMatch(/2\s*\/\s*2/);
+    expect(vabCell?.textContent).toMatch(/3\s*\/\s*3/);
   });
 
   it("shows the pad-occupied vessel name when on the pad", () => {

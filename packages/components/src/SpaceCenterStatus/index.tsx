@@ -156,7 +156,16 @@ function SpaceCenterStatusComponent({
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
             const f = facilities[key];
-            const atMax = !!f && f.max > 0 && f.level >= f.max - 1;
+            // Live curl 2026-05-13 confirmed: the fork's `max` field is the
+            // upgrade-count (KSP's `GetFacilityLevelCount`), not the
+            // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
+            // launchPad returns `{level:1, max:2}` at tier 2. So the total
+            // number of tiers is `max + 1` and the operator-facing "Lvl N
+            // of M" should read `{level+1}/{max+1}` — matches KSP's stock
+            // R&D dialog which calls VAB tier 3 "Level 3".
+            const atMax = !!f && f.max > 0 && f.level >= f.max;
+            const displayLevel = f ? f.level + 1 : 0;
+            const displayMax = f && f.max > 0 ? f.max + 1 : 0;
             const canAfford =
               !!f &&
               f.upgradeFunds > 0 &&
@@ -174,9 +183,9 @@ function SpaceCenterStatusComponent({
                 <FacilityValue>
                   {f && f.max > 0 ? (
                     <>
-                      <Tier>{f.level}</Tier>
+                      <Tier>{displayLevel}</Tier>
                       <Slash>/</Slash>
-                      <TierMax>{f.max - 1}</TierMax>
+                      <TierMax>{displayMax}</TierMax>
                     </>
                   ) : (
                     <Muted>—</Muted>

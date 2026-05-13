@@ -224,14 +224,29 @@ export function FlightOutcomeBanner() {
 
   useEffect(() => {
     const nextFlightId = currentFlight?.id ?? null;
-    if (flightIdRef.current === nextFlightId) return;
+    const prevFlightId = flightIdRef.current;
+    if (prevFlightId === nextFlightId) return;
     flightIdRef.current = nextFlightId;
-    // Baseline the announce key to whatever outcome is currently sticky
-    // so we don't fire on the previous flight's snapshot.
-    lastAnnouncedRef.current = outcome
-      ? { kind: outcome.kind, ut: outcome.ut }
-      : null;
-    setBannerExpiresAt(null);
+    // Baseline the announce key only on a true flight switch (one non-null
+    // flight to another non-null flight). Transitions involving null —
+    // mount-time bootstrap, or a flight ending into "no flight" — must not
+    // baseline, because Effect 2 hasn't had a chance to fire the banner
+    // for the just-arrived outcome yet. Effect order is declaration order;
+    // this effect runs before Effect 2, so if we wrote
+    // `lastAnnouncedRef.current = outcome` here, Effect 2 would see
+    // `last === outcome` and silently swallow the banner.
+    //
+    // Live-curl 2026-05-13: confirmed the fork emits crash.lastCrash + has
+    // crash.hasRecent=true. The earlier "crash didn't show on dashboard"
+    // user report was this effect closing the banner mid-fire when the
+    // flight ended (currentFlight: A → null) and the crash arrived in the
+    // same render cycle.
+    if (prevFlightId !== null && nextFlightId !== null) {
+      lastAnnouncedRef.current = outcome
+        ? { kind: outcome.kind, ut: outcome.ut }
+        : null;
+      setBannerExpiresAt(null);
+    }
   }, [currentFlight, outcome]);
 
   useEffect(() => {
