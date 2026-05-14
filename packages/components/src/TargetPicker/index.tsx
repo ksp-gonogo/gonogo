@@ -1,26 +1,22 @@
 import type {
   ActionDefinition,
+  AvailableVesselEntry,
   ComponentProps,
   ConfigComponentProps,
 } from "@gonogo/core";
 import {
-  formatAge,
   formatDistance,
-  getDataSource,
   registerComponent,
   useActionInput,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { hashKosScript, isScriptable, useKosScriptStatus } from "@gonogo/data";
 import {
   Button,
-  CheckIcon,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
-  GhostButton,
   Panel,
   PanelTitle,
   PrimaryButton,
@@ -28,22 +24,13 @@ import {
   Spinner,
   Tabs,
 } from "@gonogo/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
-import { SET_TARGET_SCRIPT, SET_TARGET_SCRIPT_NAME } from "./setTargetScript";
-import {
-  TARGET_VESSELS_TOPIC_ID,
-  type VesselListEntry,
-} from "./vesselListScript";
 
-const VESSELS_KEY = `kos.compute.${TARGET_VESSELS_TOPIC_ID}.vessels`;
-const DISPATCH_NOW_ACTION = `kos.compute.${TARGET_VESSELS_TOPIC_ID}.dispatchNow`;
-const SET_TARGET_SCRIPT_VERSION = hashKosScript(SET_TARGET_SCRIPT);
-
-// Config is empty post-migration — the per-widget CPU / scriptName moved
-// to the centralised kOS data source.
+// Config is empty post-migration — the kOS-driven vessel feed has been
+// retired in favour of native `tar.availableVessels`.
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
 
@@ -67,7 +54,6 @@ function TargetPickerComponent({
   const tarDistance = useDataValue("data", "tar.distance");
   const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");
   const execute = useExecuteAction("data");
-  const executeKos = useExecuteAction("kos");
 
   const [tab, setTab] = useState<TabId>("bodies");
   const [filter, setFilter] = useState("");
@@ -82,26 +68,20 @@ function TargetPickerComponent({
   // Pending state — which row is awaiting the `tar.name` readback after a
   // click. We render a spinner on that row until the readback confirms
   // (or a 5 s safety net clears it). Body rows use the integer index;
-  // vessel rows use `name@distance` (same disambiguator as the React key).
+  // vessel rows use the vessel's `index` from `tar.availableVessels`
+  // (same disambiguator as the React key).
   const [pendingTarget, setPendingTarget] = useState<{
     kind: "body" | "vessel";
     id: string;
-    name: string;
-    distance?: number;
     expectedName: string;
     since: number;
   } | null>(null);
   useEffect(() => {
     if (pendingTarget === null) return;
     if (tarName === pendingTarget.expectedName) {
-      // Confirmed. Distance match (when applicable) is enforced via the
-      // currentVesselId computation below — here we just clear the pending
-      // marker so the spinner stops.
       setPendingTarget(null);
       return;
     }
-    // Safety net so the spinner doesn't stick if the readback never lands
-    // (target out of range, kOS hiccup, action silently dropped).
     const id = setTimeout(() => setPendingTarget(null), 5000);
     return () => clearTimeout(id);
   }, [pendingTarget, tarName]);
@@ -110,7 +90,6 @@ function TargetPickerComponent({
     setPendingTarget({
       kind: "body",
       id: `body:${index}`,
-      name: name ?? `Body ${index}`,
       expectedName: name ?? "",
       since: Date.now(),
     });
@@ -121,70 +100,22 @@ function TargetPickerComponent({
     void execute("tar.clearTarget");
   };
 
-  // ── Centralised vessel listing ───────────────────────────────────────────
-  // The Vessels tab subscribes to the `target-vessels` feed. One loop runs
-  // on the active CPU regardless of how many TargetPickers are open; the
-  // active CPU lives on the kOS data source config now (no per-widget CPU
-  // picker).
-  const vessels = useDataValue<VesselListEntry[]>("kos", VESSELS_KEY);
-  const status = useKosScriptStatus(TARGET_VESSELS_TOPIC_ID);
+  // ── Vessel listing via tar.availableVessels ──────────────────────────────
+  // Native Telemachus path now — used to be a kOS managed script; replaced
+  // 2026-05-14. One subscription, server filters Flag/EVA/Debris/Unknown
+  // and the active vessel itself, position vector is local-frame so the
+  // client derives distance from `magnitude`.
+  const availableVessels = useDataValue("data", "tar.availableVessels");
 
-  const refreshVessels = useCallback(() => {
-    void executeKos(DISPATCH_NOW_ACTION);
-  }, [executeKos]);
-
-  // "✓ Updated" flash on each successful refresh — the Refreshing→Refresh
-  // button transition is too brief to read on a fast script and leaves the
-  // operator wondering whether anything happened. Tracks lastGoodAt's
-  // identity, sets a 2 s flash whenever it advances.
-  const lastGoodAt = status.lastGoodAt;
-  const prevLastGoodAtRef = useRef<number | null>(null);
-  const [flashConfirm, setFlashConfirm] = useState(false);
-  useEffect(() => {
-    if (lastGoodAt === null) return;
-    if (prevLastGoodAtRef.current === null) {
-      prevLastGoodAtRef.current = lastGoodAt;
-      return;
-    }
-    if (lastGoodAt > prevLastGoodAtRef.current) {
-      prevLastGoodAtRef.current = lastGoodAt;
-      setFlashConfirm(true);
-      const id = setTimeout(() => setFlashConfirm(false), 2000);
-      return () => clearTimeout(id);
-    }
-  }, [lastGoodAt]);
-
-  // Set-target is a one-shot RPC — kept off the centralised feed because
-  // it takes a per-call name argument. After the script resolves we kick
-  // the central feed for a fresh sample so the new TARGET row updates.
-  const targetVessel = useCallback(
-    (name: string, distance: number) => {
-      setPendingTarget({
-        kind: "vessel",
-        id: `vessel:${name}@${distance}`,
-        name,
-        distance,
-        expectedName: name,
-        since: Date.now(),
-      });
-      const source = getDataSource("kos");
-      if (!isScriptable(source)) return;
-      void source
-        .executeScript(
-          // The compute fanout owns the active CPU; we have to peek at its
-          // config to dispatch. Empty string short-circuits in the source.
-          (source.getConfig() as { activeCpu?: string }).activeCpu ?? "",
-          SET_TARGET_SCRIPT_NAME,
-          [name],
-          { body: SET_TARGET_SCRIPT, version: SET_TARGET_SCRIPT_VERSION },
-        )
-        .then(() => executeKos(DISPATCH_NOW_ACTION))
-        .catch(() => {
-          /* errors surface on next feed cycle */
-        });
-    },
-    [executeKos],
-  );
+  const targetVessel = (entry: AvailableVesselEntry) => {
+    setPendingTarget({
+      kind: "vessel",
+      id: `vessel:${entry.index}`,
+      expectedName: entry.name,
+      since: Date.now(),
+    });
+    void execute(`tar.setTargetVessel[${entry.index}]`);
+  };
 
   const filterText = filter.trim().toLowerCase();
   const isFiltering = filterText.length > 0;
@@ -211,9 +142,6 @@ function TargetPickerComponent({
   //     star as its own parent — `b.referenceBody[0] === "Sun"`); or
   //   - referenceBody points at a name that hasn't streamed yet, or never
   //     will (orphan).
-  // Without these, a strict "ref === null" check drops the whole tree
-  // whenever the star's parent is anything other than null — which in
-  // stock Kerbol is always.
   const tree = useMemo(() => {
     const childrenOf = new Map<string, typeof namedBodies>();
     const roots: typeof namedBodies = [];
@@ -241,14 +169,8 @@ function TargetPickerComponent({
         aria-label="Filter bodies"
       />
       {namedBodies.length === 0 ? (
-        // `bodies.length` flips non-zero as soon as `b.number` arrives, but
-        // that just gives us 17 placeholder entries with no names yet —
-        // showing them as "(unnamed)" rows is worse than the waiting hint.
-        // Wait for at least one name to stream before rendering the list.
         <Hint>Waiting for body data…</Hint>
       ) : isFiltering ? (
-        // Flat-list mode while filtering — a tree-walk would hide a matching
-        // child whose parent didn't match the filter.
         <BodyList>
           {filteredBodies.length === 0 ? (
             <Hint>No bodies match.</Hint>
@@ -292,95 +214,43 @@ function TargetPickerComponent({
   );
 
   const vesselsContent = (() => {
-    const sorted = [...(vessels ?? [])].sort((a, b) => a.distance - b.distance);
-    const error =
-      status.scriptError && !status.paused
-        ? status.scriptError
-        : status.parseError;
-
-    // Disambiguate same-name vessels for the TARGET badge. KSP allows
-    // multiple vessels to share a name, and Telemachus's `tar.name` only
-    // tells us "the target is named X" — so a naive `v.name === tarName`
-    // lights up every X. Pick the row whose listed distance is closest to
-    // live `tar.distance` instead.
-    let currentVesselKey: string | null = null;
-    if (typeof tarName === "string") {
-      const candidates = sorted.filter((v) => v.name === tarName);
-      if (candidates.length === 1) {
-        currentVesselKey = `${candidates[0].name}@${candidates[0].distance}`;
-      } else if (candidates.length > 1) {
-        const liveDist =
-          typeof tarDistance === "number" && Number.isFinite(tarDistance)
-            ? tarDistance
-            : null;
-        // Without a live distance we can't pick — leave nothing highlighted
-        // rather than light up all three rows incorrectly.
-        if (liveDist !== null) {
-          let best = candidates[0];
-          let bestDelta = Math.abs(best.distance - liveDist);
-          for (const c of candidates) {
-            const d = Math.abs(c.distance - liveDist);
-            if (d < bestDelta) {
-              best = c;
-              bestDelta = d;
-            }
-          }
-          currentVesselKey = `${best.name}@${best.distance}`;
-        }
-      }
-    }
+    const raw = (availableVessels ?? []) as AvailableVesselEntry[];
+    const sorted = [...raw]
+      .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
+      .sort((a, b) => a.distance - b.distance);
 
     return (
       <VesselsTab>
         <VesselsHeader>
-          <GhostButton
-            type="button"
-            onClick={refreshVessels}
-            disabled={status.running || status.paused}
-          >
-            {status.running ? "Refreshing…" : "Refresh"}
-          </GhostButton>
-          {status.lastGoodAt !== null && (
-            <VesselsMeta $flash={flashConfirm} role="status" aria-live="polite">
-              {flashConfirm && <CheckIcon size={12} strokeWidth={2.5} />}{" "}
-              {sorted.length} target{sorted.length === 1 ? "" : "s"} ·{" "}
-              {flashConfirm
-                ? "updated just now"
-                : `updated ${formatAge(Date.now() - status.lastGoodAt)} ago`}
-            </VesselsMeta>
-          )}
+          <VesselsMeta>
+            {sorted.length} target{sorted.length === 1 ? "" : "s"}
+          </VesselsMeta>
         </VesselsHeader>
-        {error && <ErrorBanner>{error.message}</ErrorBanner>}
-        {status.paused && status.scriptError && (
-          <ErrorBanner>{status.scriptError.message}</ErrorBanner>
-        )}
-        {vessels === null && !status.running ? (
-          <Hint>Waiting for kOS feed…</Hint>
+        {availableVessels === undefined ? (
+          <Hint>Waiting for vessel list…</Hint>
         ) : sorted.length === 0 ? (
           <Hint>No targets in range.</Hint>
         ) : (
           <BodyList>
-            {sorted.map((v) => {
-              // Same disambiguator as the React key — and as the
-              // `currentVesselKey` / `pendingTarget.id` strings — so the
-              // current/pending row is identified consistently across all
-              // three places.
-              const rowKey = `${v.name}@${v.distance}`;
-              const isCurrent = currentVesselKey === rowKey;
-              const isPending = pendingTarget?.id === `vessel:${rowKey}`;
+            {sorted.map(({ entry, distance }) => {
+              const isCurrent = tarName === entry.name;
+              const isPending = pendingTarget?.id === `vessel:${entry.index}`;
               return (
                 <BodyRow
-                  key={rowKey}
+                  key={entry.index}
                   type="button"
                   $depth={0}
                   $current={isCurrent}
-                  onClick={() => targetVessel(v.name, v.distance)}
+                  onClick={() => targetVessel(entry)}
                 >
                   <VesselName>
-                    <span>{v.name}</span>
-                    <VesselType>{v.type}</VesselType>
+                    <span>{entry.name}</span>
+                    <VesselType>
+                      {entry.type}
+                      {entry.body ? ` · ${entry.body}` : ""}
+                    </VesselType>
                   </VesselName>
-                  <VesselDistance>{formatDistance(v.distance)}</VesselDistance>
+                  <VesselDistance>{formatDistance(distance)}</VesselDistance>
                   {isPending && <Spinner ariaLabel="Setting target" />}
                   {!isPending && isCurrent && <BodyTag>TARGET</BodyTag>}
                 </BodyRow>
@@ -492,12 +362,16 @@ function TargetPickerComponent({
   );
 }
 
+function vectorMagnitude(v: [number, number, number] | undefined): number {
+  if (!v) return Number.POSITIVE_INFINITY;
+  return Math.hypot(v[0], v[1], v[2]);
+}
+
 interface BodyTreeNodeProps {
   body: ReturnType<typeof useCelestialBodies>[number];
   childrenOf: Map<string, ReturnType<typeof useCelestialBodies>>;
   depth: number;
   currentTargetName: string | undefined;
-  /** Identifier of the row currently awaiting `tar.name` confirmation. */
   pendingId: string | null;
   onTarget: (index: number, name: string | null) => void;
 }
@@ -548,11 +422,11 @@ function TargetPickerConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel>Active kOS CPU (Vessels tab)</FieldLabel>
+        <FieldLabel>Target Picker</FieldLabel>
         <FieldHint>
-          The Vessels tab subscribes to the centralised kOS feed. Set the active
-          CPU on the kOS data source — it applies to every centralised kOS
-          widget. Bodies and Current tabs work without a CPU configured.
+          No config — bodies come from Telemachus's <code>b.*</code> bucket,
+          vessels from <code>tar.availableVessels</code>. Click a row to set the
+          KSP target; click Clear in the Current tab to drop it.
         </FieldHint>
       </Field>
       <PrimaryButton onClick={() => onSave({})}>Save</PrimaryButton>
@@ -580,8 +454,6 @@ const OrbitalEventChipsRow = styled.div`
   }
 `;
 
-/** Read-out + click-to-open-Current chip. Visible on every tab so the
- *  operator never loses sight of the active target while picking. */
 const CurrentTargetChip = styled.button`
   display: flex;
   align-items: baseline;
@@ -765,21 +637,10 @@ const VesselsHeader = styled.div`
   gap: 8px;
 `;
 
-const VesselsMeta = styled.span<{ $flash: boolean }>`
+const VesselsMeta = styled.span`
   font-size: 10px;
-  color: ${({ $flash }) =>
-    $flash ? "var(--color-status-go-fg)" : "var(--color-text-faint)"};
+  color: var(--color-text-faint);
   letter-spacing: 0.04em;
-  transition: color 200ms ease-out;
-`;
-
-const ErrorBanner = styled.div`
-  font-size: 10px;
-  color: var(--color-status-warning-bg);
-  padding: 4px 6px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-status-warning-bg);
-  border-radius: 2px;
 `;
 
 const VesselName = styled.span`
@@ -796,11 +657,6 @@ const VesselName = styled.span`
 
 const VesselType = styled.span`
   font-size: 9px;
-  /* Inherit from BodyRow so the highlighted (green) row gives the type
-     enough contrast. Opacity dims it relative to the primary label
-     while keeping the same hue, replacing the prior hardcoded
-     var(--color-text-faint) which read as grey-on-green when the row
-     was current. */
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -820,19 +676,19 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab uses a kOS managed script to enumerate in-range targets (sorted by distance) and click-to-target by name. Current tab shows the active target's name / type / distance / Δv with a clear button.",
-  tags: ["telemetry", "navigation", "kos"],
+    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab streams `tar.availableVessels` (Telemachus fork addition) and click-to-target by integer index. Current tab shows the active target's name / type / distance / Δv with a clear button.",
+  tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
   dataRequirements: [
-    VESSELS_KEY,
     "b.number",
     "tar.name",
     "tar.type",
     "tar.distance",
     "tar.o.relativeVelocity",
+    "tar.availableVessels",
     "o.encounterExists",
     "o.encounterBody",
     "o.encounterTime",
