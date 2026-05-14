@@ -52,6 +52,9 @@ function AtmosphereProfileComponent({
   const bodyName = useDataValue<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
   const altitude = useDataValue<number>("data", "v.altitude");
+  const liveDensity = useDataValue<number>("data", "v.atmosphericDensity");
+  const liveAirTemp = useDataValue<number>("data", "v.atmosphericTemperature");
+  const liveSkinTemp = useDataValue<number>("data", "v.externalTemperature");
 
   const referenceCurve = useMemo(() => {
     if (!body) return null;
@@ -102,6 +105,15 @@ function AtmosphereProfileComponent({
   const showNoModelNotice = body?.hasAtmosphere && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
+  // Live readout chip — only meaningful when we're actually in atmosphere
+  // (density picks up). Outside it, density reads ~0 / NaN and the chip is
+  // noise.
+  const showLiveChip =
+    typeof liveDensity === "number" &&
+    Number.isFinite(liveDensity) &&
+    liveDensity > 1e-9 &&
+    body?.hasAtmosphere === true;
+
   return (
     <Wrap>
       <GraphView
@@ -125,8 +137,40 @@ function AtmosphereProfileComponent({
       {showNoBodyNotice && (
         <Notice role="status">Unknown body “{bodyName}”.</Notice>
       )}
+      {showLiveChip && (
+        <LiveChip role="status" aria-live="polite">
+          <LiveChipRow>
+            <LiveChipLabel>ρ</LiveChipLabel>
+            <LiveChipValue>{formatDensity(liveDensity)}</LiveChipValue>
+          </LiveChipRow>
+          {typeof liveAirTemp === "number" && Number.isFinite(liveAirTemp) && (
+            <LiveChipRow>
+              <LiveChipLabel>Air</LiveChipLabel>
+              <LiveChipValue>{formatTempC(liveAirTemp)}</LiveChipValue>
+            </LiveChipRow>
+          )}
+          {typeof liveSkinTemp === "number" &&
+            Number.isFinite(liveSkinTemp) && (
+              <LiveChipRow>
+                <LiveChipLabel>Skin</LiveChipLabel>
+                <LiveChipValue>{formatTempC(liveSkinTemp)}</LiveChipValue>
+              </LiveChipRow>
+            )}
+        </LiveChip>
+      )}
     </Wrap>
   );
+}
+
+function formatDensity(d: number): string {
+  const abs = Math.abs(d);
+  if (abs >= 1) return `${d.toFixed(3)} kg/m³`;
+  if (abs >= 1e-3) return `${(d * 1000).toFixed(2)} g/m³`;
+  return `${d.toExponential(2)} kg/m³`;
+}
+
+function formatTempC(k: number): string {
+  return `${(k - 273.15).toFixed(0)} °C`;
 }
 
 function formatPressure(p: number): string {
@@ -156,6 +200,41 @@ const Notice = styled.div`
   pointer-events: none;
 `;
 
+const LiveChip = styled.div`
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--color-surface-raised);
+  border-radius: 2px;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+`;
+
+const LiveChipRow = styled.div`
+  display: grid;
+  grid-template-columns: 28px auto;
+  gap: 6px;
+  align-items: baseline;
+`;
+
+const LiveChipLabel = styled.span`
+  color: var(--color-text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 9px;
+`;
+
+const LiveChipValue = styled.span`
+  color: var(--color-text-primary);
+  font-size: 11px;
+`;
+
 registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",
   name: "Atmosphere Profile",
@@ -166,7 +245,13 @@ registerComponent<AtmosphereProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: AtmosphereProfileComponent,
-  dataRequirements: ["v.altitude", "v.body"],
+  dataRequirements: [
+    "v.altitude",
+    "v.body",
+    "v.atmosphericDensity",
+    "v.atmosphericTemperature",
+    "v.externalTemperature",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,

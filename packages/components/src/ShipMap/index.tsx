@@ -27,6 +27,10 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // bumps. Keeps steady-state wire bytes minimal on a stable vessel.
   const topology = useTopology("data");
   const hottestPartName = useDataValue("data", "therm.hottestPartName");
+  // Ambient skin temperature — drives a background tint on the diagram so
+  // the operator can see reentry heating at a glance. Per-part heat tints
+  // still show on top.
+  const externalTemperature = useDataValue("data", "v.externalTemperature");
 
   // Subscribe to per-part live data (resources + thermal). Dynamic over
   // the topology's part list — the hook re-subscribes when the set of
@@ -75,9 +79,46 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   const highlight =
     typeof hottestPartName === "string" ? hottestPartName : null;
 
-  return (
-    <Panel>{renderBody(topology, parts, highlight, size, setWrapEl)}</Panel>
+  const ambientTint = useMemo(
+    () => externalTempTint(externalTemperature),
+    [externalTemperature],
   );
+
+  return (
+    <Panel>
+      {renderBody(topology, parts, highlight, size, setWrapEl, ambientTint)}
+    </Panel>
+  );
+}
+
+/**
+ * Map ambient external temperature (kelvin) to an rgba string that fades
+ * the diagram background blue (cold) → transparent → amber → red as the
+ * vessel heats up. Returns `null` when there's no signal — the styled
+ * background falls back to the surface colour. Keeps alpha capped at 0.25
+ * so the per-part heat tints stay visible.
+ */
+function externalTempTint(temperatureK: unknown): string | null {
+  if (typeof temperatureK !== "number" || !Number.isFinite(temperatureK)) {
+    return null;
+  }
+  // Anchor points: 200 K = deep cold (subtle blue), 290 K = ambient (clear),
+  // 600 K = warning amber, 1500+ K = reentry red.
+  if (temperatureK <= 250) {
+    const alpha = Math.min(0.18, (290 - temperatureK) / 600);
+    return `rgba(80, 140, 220, ${alpha.toFixed(3)})`;
+  }
+  if (temperatureK <= 320) return null;
+  if (temperatureK <= 1500) {
+    const t = (temperatureK - 320) / (1500 - 320);
+    // Blend amber → red across the band.
+    const r = Math.round(255);
+    const g = Math.round(170 - 130 * t);
+    const b = Math.round(60 - 40 * t);
+    const alpha = (0.08 + 0.17 * t).toFixed(3);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return "rgba(255, 40, 20, 0.25)";
 }
 
 function renderBody(
@@ -86,6 +127,7 @@ function renderBody(
   highlight: string | null,
   size: { w: number; h: number },
   setWrapEl: (el: HTMLDivElement | null) => void,
+  ambientTint: string | null,
 ) {
   if (!topology) {
     return (
@@ -105,7 +147,7 @@ function renderBody(
         <MetaTag>· seq {topology.topologySeq}</MetaTag>
         {highlight && <MetaTag>· hot: {highlight}</MetaTag>}
       </Meta>
-      <DiagramWrap ref={setWrapEl}>
+      <DiagramWrap ref={setWrapEl} $tint={ambientTint}>
         <ShipDiagram
           parts={parts}
           highlight={highlight}
@@ -179,16 +221,31 @@ const MetaTag = styled.span`
   color: var(--color-text-faint);
 `;
 
-const DiagramWrap = styled.div`
+const DiagramWrap = styled.div<{ $tint: string | null }>`
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+  position: relative;
   background: var(--color-surface-app);
   svg {
     display: block;
     flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+  /* Ambient external-temperature tint — sits behind the SVG so per-part
+     heat tints render unobstructed on top. Transition smooths the band
+     as temperature ramps during a reentry. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: ${({ $tint }) => $tint ?? "transparent"};
+    transition: background 400ms ease-out;
+    z-index: 0;
   }
 `;
 
@@ -207,7 +264,12 @@ registerComponent<ShipMapConfig>({
   openConfigOnAdd: false,
   // useTopology internally subscribes to v.topologySeq + briefly to
   // v.topology on bump; per-part live data joins via usePartsLive.
-  dataRequirements: ["v.topologySeq", "v.topology", "therm.hottestPartName"],
+  dataRequirements: [
+    "v.topologySeq",
+    "v.topology",
+    "therm.hottestPartName",
+    "v.externalTemperature",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,

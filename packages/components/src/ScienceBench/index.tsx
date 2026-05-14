@@ -225,6 +225,11 @@ function ScienceBenchComponent({
     | string
     | undefined;
   const landedAt = useDataValue("data", "v.landedAt") as string | undefined;
+  // Live biome from `ScienceUtil.GetExperimentBiome` — the same source the
+  // game uses to attribute new experiments. Works in flight + space scenes
+  // (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike `v.landedAt` which
+  // is only populated on the surface. Falls back to landedAt when blank.
+  const liveBiome = useDataValue("data", "v.biome") as string | undefined;
 
   const tempRaw = useDataValue("data", "s.sensor.temp");
   const presRaw = useDataValue("data", "s.sensor.pres");
@@ -243,8 +248,10 @@ function ScienceBenchComponent({
 
   // Composite "where am I doing science" key — body / situation / biome.
   // Debounced to suppress momentary biome flickers during low passes; the
-  // NEW badge only lights on a settled change.
-  const situationKey = `${body ?? ""}|${situation ?? ""}|${landedAt ?? ""}`;
+  // NEW badge only lights on a settled change. Prefer the live biome over
+  // `landedAt` because biome covers in-flight bands too.
+  const situationLocale = liveBiome ?? landedAt ?? "";
+  const situationKey = `${body ?? ""}|${situation ?? ""}|${situationLocale}`;
   const stableKey = useDebouncedValue(situationKey, SITUATION_DEBOUNCE_MS);
   const [highlightUntil, setHighlightUntil] = useState(0);
   const lastSeenRef = useRef<string | null>(null);
@@ -306,7 +313,7 @@ function ScienceBenchComponent({
         >
           <SituationText>
             {body && situation
-              ? `${situation}${landedAt ? ` — ${landedAt}` : ""}`
+              ? `${situation}${situationLocale ? ` — ${situationLocale}` : ""}`
               : "Awaiting situation telemetry"}
           </SituationText>
           {showNew && <NewBadge>NEW</NewBadge>}
@@ -699,6 +706,7 @@ registerComponent<ScienceBenchConfig>({
     "v.body",
     "v.situationString",
     "v.landedAt",
+    "v.biome",
     "s.sensor.temp",
     "s.sensor.pres",
     "s.sensor.grav",
