@@ -4,7 +4,7 @@ import type {
   VesselTopology,
 } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
-import { usePartsLive } from "@gonogo/data";
+import { usePartsLive, useTopology } from "@gonogo/data";
 import { ConfigForm, Field, FieldHint, FieldLabel } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -22,7 +22,10 @@ interface ShipMapConfig {
 }
 
 function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
-  const topology = useDataValue("data", "v.topology");
+  // Seq-driven topology refetch — subscribes to the lightweight
+  // v.topologySeq int continuously, fetches v.topology only when the seq
+  // bumps. Keeps steady-state wire bytes minimal on a stable vessel.
+  const topology = useTopology("data");
   const hottestPartName = useDataValue("data", "therm.hottestPartName");
 
   // Subscribe to per-part live data (resources + thermal). Dynamic over
@@ -202,7 +205,9 @@ registerComponent<ShipMapConfig>({
   component: ShipMapComponent,
   configComponent: ShipMapConfigComponent,
   openConfigOnAdd: false,
-  dataRequirements: ["v.topology", "v.topologySeq", "therm.hottestPartName"],
+  // useTopology internally subscribes to v.topologySeq + briefly to
+  // v.topology on bump; per-part live data joins via usePartsLive.
+  dataRequirements: ["v.topologySeq", "v.topology", "therm.hottestPartName"],
   defaultConfig: {},
   actions: [],
   pushable: true,

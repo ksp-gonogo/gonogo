@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-14
 **Task:** Follow-on to the Telemachus parts API PR drafted earlier on 2026-05-14 (`local_docs/2026-05-14-parts-api-design-feedback.md`, branch `telemachus/parts-topology` in the fork). The fork PR added `v.topology`, `v.topologySeq`, `r.resourceFor[flightId]` and `therm.part[flightId]`; this commit pulls the Ship Map widget over to that new data path.
-**Validation:** ⏳ pending — needs a live session against the new Telemachus DLL. KSP wasn't running and I'm AFK; nothing curl-able from the host.
+**Validation:** ⏳ pending — **fork API curl-validated 2026-05-14** (see "Live curl validation" below); widget rendering not yet visually confirmed in a browser.
 
 ## Overview
 
@@ -56,3 +56,33 @@ The `usePartsLive` hook re-subscribes only when the set of `flightIds` changes �
 ## Known projection limitation (carried over from the kOS version)
 
 The 2D side-view picks whichever lateral axis has the wider spread. Parts on the other axis still project onto the spine and overlap. Not fixed in this rework — would need a real 3D viewer.
+
+---
+
+## Live curl validation — 2026-05-14
+
+Tested against the parts-topology DLL with two test rockets on the launchpad. Curl-only — did not visually verify the widget in a browser; promote to ✅ once that's done.
+
+| Check | Result |
+|---|---|
+| `v.topology` shape, all fields populated | ✅ 9-part `tester` rocket, all keys present |
+| Prefab bounds carry real (non-zero) sizes | ✅ Mk1 pod 1.25×1.14×1.25 m, etc. |
+| `v.topologySeq` numeric, lightweight | ✅ int |
+| Seq stable across non-structural events | ✅ stayed at 3 through engine fire, full SF burn, parachute arming, 45km arc |
+| Seq bumps on full-vessel destruction (crash) | ✅ 3 → 29 on splash impact (26 invalidations across `onPartDie` cascade) |
+| Seq bumps on decouple | ✅ 33 → 36 (decoupler stage on the second rocket; active vessel correctly downsized 10 → 3 parts) |
+| Both seq sources agree (key + embedded) | ✅ `v.topologySeq` == `v.topology.topologySeq` |
+| Empty-vessel handled gracefully | ✅ post-disintegration `parts: []` doesn't blow up |
+| `r.resourceFor[fid]` tracks live fuel burn | ✅ booster SF 375 → 0 across the burn |
+| `therm.part[fid]` tracks live heating | ✅ booster 296 K → 553 K peak at burnout |
+| Dead-flightId lookups degrade gracefully | ✅ `r.resourceFor` → `{}`, `therm.part` → `1` (Telemachus partless-paused sentinel — pre-existing Telemachus behavior, widget treats non-object as "no thermal" and skips heat tint) |
+
+**Outstanding live checks** (not exercised today — need separate flight scenarios):
+
+- Dock event bumps seq (requires a second vessel in orbit).
+- Tracking Station "Fly" to a different vessel bumps seq (requires more than one vessel persisted in the save).
+- Widget renders correctly end-to-end in the browser.
+
+### Performance follow-up surfaced during validation
+
+The original implementation subscribed to `v.topology` directly, which sends the full topology payload at the WS rate (~4Hz) even when the seq hasn't changed. For a 100-part vessel that's ~28KB/s of redundant traffic. The design doc's intended pattern was "subscribe to `v.topologySeq`, refetch `v.topology` only on bump" — landed in a follow-up commit as the new `useTopology` hook in `@gonogo/data`. See `2026-05-14-ship-map-seq-driven-refetch.md`.
