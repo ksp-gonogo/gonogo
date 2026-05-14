@@ -504,6 +504,11 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     unit: "enum",
     group: "Target",
   },
+  "tar.availableVessels": {
+    label: "Available target vessels",
+    unit: "raw",
+    group: "Target",
+  },
 
   // --- Career / KSC (GonogoTelemetry fork additions) ---
   "career.funds": { label: "Funds", unit: "raw", group: "Career" },

@@ -144,6 +144,25 @@ export interface PartThermal {
 }
 
 /**
+ * One row from `tar.availableVessels`. The server-side filter is fixed
+ * (Flag / EVA / Debris / Unknown + the active vessel are excluded); the
+ * client doesn't get a knob.
+ */
+export interface AvailableVesselEntry {
+  /** Exact argument for `tar.setTargetVessel[index]`. */
+  index: number;
+  name: string;
+  /** Stringified `Vessel.vesselType` enum (Probe, Lander, Ship, Plane, …). */
+  type: string;
+  /** Stringified `Vessel.Situations` enum. */
+  situation: string;
+  /** Name of the vessel's current mainBody, or empty string. */
+  body: string;
+  /** Active vessel's local-frame position `[x, y, z]` in metres. */
+  position?: [number, number, number];
+}
+
+/**
  * A planned maneuver node. Telemachus includes the post-burn orbit patches
  * inline so a single subscription to `o.maneuverNodes` covers both the node
  * and its resulting trajectory.
@@ -441,6 +460,19 @@ export interface TelemaachusSchema {
   "tar.name": string;
   "tar.type": string;
   "tar.distance": number;
+
+  /**
+   * Vessels eligible for `tar.setTargetVessel`. The `index` field is the
+   * argument to pass back to the action — `FlightGlobals.Vessels` indices.
+   * Position is in the active vessel's local frame (Unity
+   * `transform.InverseTransformPoint`); the client derives distance and
+   * bearing from the vector. Server-side filtered to exclude Flag / EVA /
+   * Debris / Unknown vessel types plus the active vessel itself.
+   *
+   * `situation` is the stringified `Vessel.Situations` enum: LANDED,
+   * SPLASHED, PRELAUNCH, FLYING, SUB_ORBITAL, ORBITING, ESCAPING, DOCKED.
+   */
+  "tar.availableVessels": AvailableVesselEntry[];
   "tar.o.PeA": number;
   "tar.o.ApA": number;
   "tar.o.sma": number;

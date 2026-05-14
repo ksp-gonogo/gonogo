@@ -100,11 +100,7 @@ describe("OrbitDiagram projected overlay", () => {
 
   it("renders the rotation marker when rotationAngleDeg is supplied", () => {
     const { container } = render(
-      <OrbitDiagram
-        {...BASE}
-        bodyRadius={600_000}
-        rotationAngleDeg={45}
-      />,
+      <OrbitDiagram {...BASE} bodyRadius={600_000} rotationAngleDeg={45} />,
     );
     const lines = Array.from(container.querySelectorAll("line"));
     const rotationLine = lines.find((l) =>
@@ -114,21 +110,17 @@ describe("OrbitDiagram projected overlay", () => {
   });
 
   it("draws the atmosphere band only when atmosphereDepthM is supplied", () => {
-    const without = render(
-      <OrbitDiagram {...BASE} bodyRadius={600_000} />,
-    );
+    const without = render(<OrbitDiagram {...BASE} bodyRadius={600_000} />);
     const withBand = render(
-      <OrbitDiagram
-        {...BASE}
-        bodyRadius={600_000}
-        atmosphereDepthM={70_000}
-      />,
+      <OrbitDiagram {...BASE} bodyRadius={600_000} atmosphereDepthM={70_000} />,
     );
     // Atmosphere disc is a <circle> with the oxygen / non-oxygen rgba fill.
     const isAtmoCircle = (el: Element) =>
       (el.getAttribute("fill") ?? "").startsWith("rgba(220, 140, 60");
     expect(
-      Array.from(without.container.querySelectorAll("circle")).some(isAtmoCircle),
+      Array.from(without.container.querySelectorAll("circle")).some(
+        isAtmoCircle,
+      ),
     ).toBe(false);
     expect(
       Array.from(withBand.container.querySelectorAll("circle")).some(
