@@ -31,6 +31,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
+import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { SET_TARGET_SCRIPT, SET_TARGET_SCRIPT_NAME } from "./setTargetScript";
 import {
   TARGET_VESSELS_TOPIC_ID,
@@ -475,6 +476,9 @@ function TargetPickerComponent({
           </CurrentTargetChip>
         )}
       </PickerHeader>
+      <OrbitalEventChipsRow>
+        <OrbitalEventChips />
+      </OrbitalEventChipsRow>
       <Tabs
         tabs={[
           { id: "bodies", label: "Bodies", content: bodiesContent },
@@ -564,6 +568,16 @@ const PickerHeader = styled.div`
   justify-content: space-between;
   gap: 8px;
   min-height: 0;
+`;
+
+/** Chip row that collapses to zero height when there's no encounter / apsis
+ *  data — keeps the header tight in the common steady-orbit case. */
+const OrbitalEventChipsRow = styled.div`
+  display: flex;
+  margin-top: 4px;
+  &:empty {
+    display: none;
+  }
 `;
 
 /** Read-out + click-to-open-Current chip. Visible on every tab so the
@@ -819,6 +833,11 @@ registerComponent<TargetPickerConfig>({
     "tar.type",
     "tar.distance",
     "tar.o.relativeVelocity",
+    "o.encounterExists",
+    "o.encounterBody",
+    "o.encounterTime",
+    "o.nextApsisType",
+    "o.timeToNextApsis",
   ],
   defaultConfig: {},
   actions: targetPickerActions,
