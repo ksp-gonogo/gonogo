@@ -188,10 +188,13 @@ export function normaliseResources(
 }
 
 /**
- * Pick whichever vessel-local lateral axis (X or Y) has the wider spread,
- * so the side-view shows the actual silhouette rather than edge-on. Parts
- * on the other lateral axis still project onto the spine and overlap —
- * the known 2D-projection limitation of this widget.
+ * Pick whichever vessel-local lateral axis (X or Z) has the wider spread,
+ * so the side-view shows the actual silhouette rather than edge-on. In KSP
+ * the vessel's local Y axis is the stack/spine direction (parts run from
+ * pod at y≈0 down to engines at y<<0); X and Z are the two horizontal
+ * lateral axes that radial-mounted parts spread across. Parts on the
+ * other lateral axis still project onto the spine and overlap — the
+ * known 2D-projection limitation of this widget.
  */
 export function pickLateralAxis(parts: readonly TopologyPart[]): {
   useX: boolean;
@@ -199,16 +202,16 @@ export function pickLateralAxis(parts: readonly TopologyPart[]): {
   if (parts.length === 0) return { useX: true };
   let xMin = Infinity;
   let xMax = -Infinity;
-  let yMin = Infinity;
-  let yMax = -Infinity;
+  let zMin = Infinity;
+  let zMax = -Infinity;
   for (const p of parts) {
-    const [x, y] = p.orgPos;
+    const [x, , z] = p.orgPos;
     if (x < xMin) xMin = x;
     if (x > xMax) xMax = x;
-    if (y < yMin) yMin = y;
-    if (y > yMax) yMax = y;
+    if (z < zMin) zMin = z;
+    if (z > zMax) zMax = z;
   }
-  return { useX: xMax - xMin >= yMax - yMin };
+  return { useX: xMax - xMin >= zMax - zMin };
 }
 
 /**
@@ -238,8 +241,8 @@ export function buildShipMapPart(
     name: part.name,
     title: part.title,
     type: classifyPart(part, resources),
-    lat: useX ? orgPos[0] : orgPos[1],
-    axial: orgPos[2],
+    lat: useX ? orgPos[0] : orgPos[2],
+    axial: orgPos[1],
     size: part.bounds.size,
     dryMass: part.dryMass,
     stage: part.inverseStage,
