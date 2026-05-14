@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-14
 **Task:** Performance follow-up surfaced during the live curl validation of `2026-05-14-ship-map-on-telemachus-topology.md`. The widget was subscribing to `v.topology` directly, which keeps the full structural payload streaming at the WS rate even between invalidations.
-**Validation:** ⏳ pending — needs a live session to confirm the widget continues to render correctly while bytes-on-the-wire drop.
+**Validation:** ⏳ pending — Widget render confirmed against a live Validator-1 craft 2026-05-15 (no visible UI churn across many high-frequency seq bumps from solar deploy + PAW dismisses + decouple cascade), so the optimisation is structurally sound at the React-render level. **DevTools WS-frame inspection still pending** — would directly confirm that `v.topology` frames only appear after a `v.topologySeq` bump rather than at the WS rate. Defer to a follow-up session.
 
 ## Overview
 
