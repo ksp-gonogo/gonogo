@@ -3,7 +3,7 @@ import { EmptyState, TextButton } from "@gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import type { CompletedEntry } from "./BurnCompletionTracker";
-import { NodeRow } from "./NodeRow";
+import { type NodeEditPatch, NodeRow } from "./NodeRow";
 
 interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
@@ -13,6 +13,7 @@ interface ManeuverNodeListProps {
   /** Resolves to a no-op the operator can ignore — we only surface the error
    *  via the orchestrator's `error` state. */
   onDelete: (id: number) => Promise<void> | void;
+  onEdit: (id: number, patch: NodeEditPatch) => Promise<void> | void;
   onClearAll: () => Promise<void> | void;
 }
 
@@ -28,6 +29,7 @@ export function ManeuverNodeList({
   currentUT,
   availableDv,
   onDelete,
+  onEdit,
   onClearAll,
 }: ManeuverNodeListProps) {
   // Live nodes + phantom entries for completed nodes that have already
@@ -66,6 +68,9 @@ export function ManeuverNodeList({
               availableDv={availableDv}
               completed={d.completed}
               onDelete={d.phantom ? undefined : () => void onDelete(d.node.id)}
+              onEdit={
+                d.phantom ? undefined : (patch) => onEdit(d.node.id, patch)
+              }
             />
           ))}
         </NodeListUL>

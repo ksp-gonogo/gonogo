@@ -23,6 +23,7 @@ import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
+import type { NodeEditPatch } from "./NodeRow";
 import { PresetInput } from "./PresetInput";
 import {
   buildCurrentOrbit,
@@ -322,6 +323,20 @@ function ManeuverPlannerComponent({
     }
   }
 
+  async function handleEdit(id: number, patch: NodeEditPatch) {
+    // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
+    // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
+    // RADIAL, NORMAL, PROGRADE — *not* prograde-first.
+    const action = `o.updateManeuverNode[${id},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
+    try {
+      await execute(action);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  }
+
   async function handleClearAll() {
     // Remove from the highest index down — removing index 0 first would
     // shift every subsequent id and break the loop.
@@ -361,6 +376,7 @@ function ManeuverPlannerComponent({
           currentUT={currentUT}
           availableDv={vesselDeltaV.totalVac}
           onDelete={handleDelete}
+          onEdit={handleEdit}
           onClearAll={handleClearAll}
         />
       </Section>

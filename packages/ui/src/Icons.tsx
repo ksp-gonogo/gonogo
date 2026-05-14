@@ -17,6 +17,7 @@ import {
   Maximize,
   Minimize,
   Pause,
+  Pencil,
   Play,
   Plus,
   Radio,
@@ -66,6 +67,7 @@ export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 
 // New exports — replacements for inline unicode glyphs.
 export const CloseIcon = makeIcon(X);
+export const PencilIcon = makeIcon(Pencil);
 export const CheckIcon = makeIcon(Check);
 export const GearIcon = SettingsIcon;
 export const StarIcon = makeIcon(Star);
