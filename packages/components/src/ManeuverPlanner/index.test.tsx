@@ -407,6 +407,72 @@ describe("ManeuverPlannerComponent", () => {
     expect(reopenedInput.value).toBe("0");
   });
 
+  it("sends o.updateManeuverNode with edited values via the per-node editor", async () => {
+    // Edit flow: click Edit on a planned-node row, change the prograde, Save.
+    // Verifies the action string and arg order: `o.updateManeuverNode[id, ut,
+    // radial, normal, prograde]` — same vector convention as add.
+    buffered.disconnect();
+    clearRegistry();
+    const calls: string[] = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      affectedBySignalLoss: true,
+      onExecute: (action) => {
+        calls.push(action);
+      },
+    });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+      source.emit("o.maneuverNodes", [
+        { UT: 1_000_120, deltaV: [0, 0, 30], orbitPatch: null },
+      ]);
+    });
+
+    // Open the editor on the planned node.
+    const editBtn = screen.getByRole("button", { name: /edit node/i });
+    await act(async () => {
+      fireEvent.click(editBtn);
+    });
+
+    // The editor exposes a Prograde input pre-filled with the current value.
+    // Multiple "Prograde" labels can exist (the custom-preset form has one too,
+    // but the default preset doesn't show it). On the default preset, only the
+    // editor's Prograde input is rendered.
+    const progradeLabel = screen.getByText("Prograde");
+    const progradeInput = progradeLabel.parentElement?.querySelector(
+      'input[type="number"]',
+    ) as HTMLInputElement;
+    expect(progradeInput).toBeTruthy();
+    expect(progradeInput.value).toBe("30");
+    act(() => {
+      fireEvent.change(progradeInput, { target: { value: "45" } });
+    });
+
+    const saveBtn = screen.getByRole("button", { name: /^save$/i });
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+
+    expect(calls).toHaveLength(1);
+    const match =
+      /^o\.updateManeuverNode\[(\d+),([^,]+),([^,]+),([^,]+),([^\]]+)\]$/.exec(
+        calls[0],
+      );
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, id, ut, radial, normal, prograde] = match;
+    expect(Number(id)).toBe(0);
+    expect(Number(ut)).toBeCloseTo(1_000_120, 0);
+    expect(Number(radial)).toBe(0);
+    expect(Number(normal)).toBe(0);
+    expect(Number(prograde)).toBe(45);
+  });
+
   it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
     // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde) —
     // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
