@@ -107,20 +107,87 @@ Deleted:
 
 ## Validation checklist (next live session)
 
-- KSP must be restarted to load the new Telemachus.dll. Confirm with
-  `./scripts/gonogo_claude_tools.sh tele read tar.availableVessels`
-  on a save with multiple vessels.
-- Indexes returned by `tar.availableVessels[].index` must round-trip
-  through `tar.setTargetVessel[N]` correctly — pick a row, click,
-  verify the in-game target HUD lights up on the right vessel.
-- Distance derived from `position` magnitude should match the in-game
-  distance readout within float precision.
-- Position frame: confirm it reads sensibly across different active
-  vessels (rotation, translation) — `transform.InverseTransformPoint`
-  is the standard Unity local-frame transform, so we expect this to
-  Just Work.
-- Active vessel exclusion: the active vessel should never appear in
-  its own picker list.
+**Prerequisite:** restart KSP. The synced DLL only loads at boot — a
+running KSP session will keep serving the old handler.
+
+### Step 1 — verify the fork API directly
+
+Before opening the widget, confirm the wire shape from the running KSP:
+
+```bash
+./scripts/gonogo_claude_tools.sh tele read tar.availableVessels
+```
+
+Load a save with at least two vessels of different types (e.g. an
+active Probe and a separate Lander/Ship in orbit). Expected shape:
+
+```json
+{
+  "tar.availableVessels": [
+    {
+      "index": 0,
+      "name": "Munar Lander",
+      "type": "Lander",
+      "situation": "ORBITING",
+      "body": "Mun",
+      "position": [184523.4, 12055.2, -3217.8]
+    },
+    …
+  ]
+}
+```
+
+Spot-checks on the raw response:
+- The **active vessel** must NOT appear in the array (server-side
+  filter).
+- Vessels of type `Flag`, `EVA`, `Debris`, `Unknown` must NOT appear.
+- `index` values match `FlightGlobals.Vessels[index]` — they may be
+  non-contiguous (e.g. 3, 7, 12) if filtered vessels punched holes.
+- `situation` is one of `LANDED / SPLASHED / PRELAUNCH / FLYING /
+  SUB_ORBITAL / ORBITING / ESCAPING / DOCKED` only.
+- `position` magnitude (√(x² + y² + z²)) should roughly match the
+  in-game tracking-station distance for that vessel (within a few %
+  due to frame timing).
+
+### Step 2 — round-trip through `tar.setTargetVessel`
+
+```bash
+./scripts/gonogo_claude_tools.sh tele action 'tar.setTargetVessel[3]'
+```
+
+Substitute `3` with an actual index from Step 1. Then re-read:
+
+```bash
+./scripts/gonogo_claude_tools.sh tele read tar.name tar.type tar.distance
+```
+
+`tar.name` should match the corresponding entry's `name`. If it
+doesn't, the index semantic is wrong and we have a real bug.
+
+### Step 3 — widget exercise
+
+Open the Target Picker on the dashboard:
+
+- Vessels tab should list the same set as Step 1, sorted ascending by
+  distance.
+- Click a row → in-game target HUD lights up on that vessel. The
+  TARGET chip in the picker should flip to the new name within a
+  beat.
+- Click Clear in the Current tab → in-game target clears and the
+  TARGET chip disappears.
+
+### Step 4 — edge cases worth checking
+
+- **Many same-name vessels** (e.g. three "Test Probe"s) — the picker
+  used to disambiguate by name+distance because the kOS feed only had
+  names; now it keys by integer `index`, so multiple same-name rows
+  should still all be selectable and distinguishable.
+- **Vessel-swap mid-session** — switch active vessel via Tracking
+  Station, return to a station with the picker open. The active
+  vessel exclusion should follow the swap.
+- **Distance discrepancy** — derived (client) distance should equal
+  the existing `tar.distance` for whichever row is currently
+  targeted.
 
 ## Why this matters
 
