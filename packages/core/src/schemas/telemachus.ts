@@ -307,6 +307,25 @@ export interface TelemaachusSchema {
   "o.timeToTransition1": number;
   "o.timeToTransition2": number;
 
+  // SOI encounter / escape detection (off the active orbit's `patchEndTransition`).
+  // `o.encounterExists`: -1 = escape (leaving current SOI), 0 = none, 1 = encounter
+  //                     (entering another body's SOI). `o.encounterBody` is the
+  //                     name of that body — for ENCOUNTER it's the next patch's
+  //                     reference body, for ESCAPE it's the *grandparent* (e.g.
+  //                     escaping Mun → "Kerbin"). Empty string when no transition.
+  // `o.encounterTime`: seconds until the SOI transition. -1 sentinel when none.
+  // `o.UTsoi`: absolute UT of the transition. Treat as undefined when
+  //            `o.encounterExists === 0`.
+  "o.encounterExists": number;
+  "o.encounterBody": string;
+  "o.encounterTime": number;
+  "o.UTsoi": number;
+
+  // Next-apsis chips. `o.nextApsisType`: -1 = Pe, 1 = Ap, 0 = N/A (hyperbolic
+  // past Pe). `o.timeToNextApsis`: seconds; NaN for the hyperbolic past-Pe case.
+  "o.nextApsisType": number;
+  "o.timeToNextApsis": number;
+
   // Full patch list + maneuver nodes for the trajectory predictor. Subscribing
   // once gets all patches (including post-maneuver) — no per-UT queries needed.
   "o.orbitPatches": OrbitPatch[];

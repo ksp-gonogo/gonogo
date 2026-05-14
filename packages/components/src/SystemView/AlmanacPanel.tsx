@@ -14,6 +14,19 @@ export interface AlmanacPanelProps {
   hohmannIdealDeg?: number | null;
   /** Signed delta from ideal (deg). Negative = early; positive = late. */
   hohmannDeltaDeg?: number | null;
+  /**
+   * SOI event direction when *this* body is the vessel's upcoming encounter
+   * (or escape destination). `null` means no relevant transition for this
+   * body. Caller is responsible for matching `o.encounterBody` to the panel
+   * body before passing this through.
+   */
+  encounterDirection?: "encounter" | "escape" | null;
+  /** Seconds until the SOI transition. Caller filters to positive values. */
+  encounterTimeSec?: number | null;
+  /** Next apsis on the *vessel's* orbit: 1 = Ap, -1 = Pe. Only shown when `isVesselParent`. */
+  nextApsisType?: -1 | 1 | null;
+  /** Seconds to the next apsis. */
+  nextApsisTimeSec?: number | null;
 }
 
 interface AlmanacRow {
@@ -27,6 +40,10 @@ function buildRows(
   isVesselParent: boolean,
   hohmannIdealDeg: number | null,
   hohmannDeltaDeg: number | null,
+  encounterDirection: "encounter" | "escape" | null,
+  encounterTimeSec: number | null,
+  nextApsisType: -1 | 1 | null,
+  nextApsisTimeSec: number | null,
 ): AlmanacRow[] {
   const rows: AlmanacRow[] = [];
   if (body.radius !== null) {
@@ -110,6 +127,29 @@ function buildRows(
       });
     }
   }
+  if (
+    encounterDirection !== null &&
+    encounterTimeSec !== null &&
+    Number.isFinite(encounterTimeSec) &&
+    encounterTimeSec > 0
+  ) {
+    rows.push({
+      label: encounterDirection === "escape" ? "Escape in" : "Encounter in",
+      value: formatDuration(encounterTimeSec),
+    });
+  }
+  if (
+    isVesselParent &&
+    nextApsisType !== null &&
+    nextApsisTimeSec !== null &&
+    Number.isFinite(nextApsisTimeSec) &&
+    nextApsisTimeSec >= 0
+  ) {
+    rows.push({
+      label: nextApsisType === -1 ? "Next Pe" : "Next Ap",
+      value: formatDuration(nextApsisTimeSec),
+    });
+  }
   return rows;
 }
 
@@ -119,6 +159,10 @@ export function AlmanacPanel({
   isVesselParent = false,
   hohmannIdealDeg = null,
   hohmannDeltaDeg = null,
+  encounterDirection = null,
+  encounterTimeSec = null,
+  nextApsisType = null,
+  nextApsisTimeSec = null,
 }: AlmanacPanelProps) {
   if (!body) {
     return (
@@ -136,6 +180,10 @@ export function AlmanacPanel({
     isVesselParent,
     hohmannIdealDeg,
     hohmannDeltaDeg,
+    encounterDirection,
+    encounterTimeSec,
+    nextApsisType,
+    nextApsisTimeSec,
   );
   return (
     <Wrap>

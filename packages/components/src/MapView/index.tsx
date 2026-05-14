@@ -18,6 +18,7 @@ import { useDataSchema } from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
+import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
   cameraTransform,
   fitCamera,
@@ -154,6 +155,10 @@ function MapViewComponent({
   const impactLat = useDataValue("data", "land.predictedLat");
   const impactLon = useDataValue("data", "land.predictedLon");
   const physicsMode = useDataValue("data", "a.physicsMode");
+  // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the
+  // marker draw cares about the sign; the chips component owns the body/time
+  // readouts.
+  const encounterExists = useDataValue("data", "o.encounterExists");
   // Principia (N-body) breaks patched-conic assumptions, so stock o.* and our
   // Keplerian propagator are both wrong. Suppress the prediction entirely and
   // show a chip. On Principia installs this field can briefly flap to
@@ -538,6 +543,45 @@ function MapViewComponent({
 
     ctx.setLineDash([]);
 
+    // SOI transition marker — the last sample of the prediction is the
+    // ground position just before the patch ends, which is exactly the
+    // ground track at SOI change (predictGroundTrack terminates on
+    // patch.referenceBody mismatch). Only renders when `o.encounterExists`
+    // is non-zero; -1 = escape (orange ring), 1 = encounter (green ring).
+    // Drawn in world space so it pans/zooms with the map.
+    if (typeof encounterExists === "number" && encounterExists !== 0) {
+      let last: TrackSample | null = null;
+      for (let i = predictionSegments.length - 1; i >= 0; i--) {
+        const seg = predictionSegments[i];
+        if (seg.length > 0) {
+          last = seg[seg.length - 1];
+          break;
+        }
+      }
+      if (last !== null) {
+        const { x: ex, y: ey } = adjustedMap(
+          WORLD_W,
+          WORLD_H,
+          last.lat,
+          last.lon,
+        );
+        const r = 6 / camera.zoom;
+        ctx.strokeStyle =
+          encounterExists === 1
+            ? "rgba(64, 200, 255, 0.9)"
+            : "rgba(255, 180, 64, 0.9)";
+        ctx.lineWidth = 1.5 / camera.zoom;
+        ctx.beginPath();
+        ctx.arc(ex, ey, r, 0, Math.PI * 2);
+        ctx.stroke();
+        // Inner dot so the ring is legible even at low zoom.
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.arc(ex, ey, 1.5 / camera.zoom, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     // Impact marker — Telemachus's own landing math. (0, 0) is the
     // "no prediction" sentinel; skip it. Rendered in world space so the
     // marker pans/zooms with the map.
@@ -574,6 +618,7 @@ function MapViewComponent({
     impactLat,
     impactLon,
     adjustedMap,
+    encounterExists,
   ]);
 
   // ── Data layer: vessel dot in world → screen space ────────────────────────
@@ -684,6 +729,7 @@ function MapViewComponent({
             label="Follow"
           />
         )}
+        {showImagingChip && <OrbitalEventChips />}
       </Header>
 
       <MapOuter ref={outerRef}>
@@ -794,6 +840,11 @@ registerComponent<MapViewConfig>({
     "v.altitude",
     "v.body",
     "o.orbitPatches",
+    "o.encounterExists",
+    "o.encounterBody",
+    "o.encounterTime",
+    "o.nextApsisType",
+    "o.timeToNextApsis",
     "t.universalTime",
     "n.pitch",
     "n.heading",

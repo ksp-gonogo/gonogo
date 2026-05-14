@@ -198,6 +198,35 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     group: "Orbit",
   },
 
+  // --- Orbit: SOI encounter / escape ---
+  // -1 = escape, 0 = none, 1 = encounter. Read as an int; only meaningful
+  // when paired with encounterBody / encounterTime / UTsoi.
+  "o.encounterExists": {
+    label: "Encounter exists",
+    unit: "raw",
+    group: "Orbit",
+  },
+  "o.encounterBody": {
+    label: "Encounter body",
+    unit: "enum",
+    group: "Orbit",
+  },
+  "o.encounterTime": {
+    label: "Time to SOI transition",
+    unit: "s",
+    group: "Orbit",
+  },
+  "o.UTsoi": { label: "UT of SOI transition", unit: "s", group: "Orbit" },
+
+  // --- Orbit: next apsis ---
+  // -1 = Pe, 1 = Ap, 0 = N/A (hyperbolic past Pe).
+  "o.nextApsisType": { label: "Next apsis type", unit: "raw", group: "Orbit" },
+  "o.timeToNextApsis": {
+    label: "Time to next apsis",
+    unit: "s",
+    group: "Orbit",
+  },
+
   // --- Celestial bodies ---
   "b.number": { label: "Body count", unit: "raw", group: "Bodies" },
 

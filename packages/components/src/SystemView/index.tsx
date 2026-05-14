@@ -52,6 +52,14 @@ function SystemViewComponent({
   const vArgPe = useDataValue("data", "o.argumentOfPeriapsis");
   const vInc = useDataValue("data", "o.inclination");
   const vTrueAnomaly = useDataValue("data", "o.trueAnomaly");
+  // Vessel-wide orbital event reads — surfaced in the AlmanacPanel when the
+  // panel's body matches the encounter destination (or is the vessel's parent
+  // for the next-apsis row).
+  const encounterExists = useDataValue("data", "o.encounterExists");
+  const encounterBody = useDataValue("data", "o.encounterBody");
+  const encounterTime = useDataValue("data", "o.encounterTime");
+  const nextApsisTypeRaw = useDataValue("data", "o.nextApsisType");
+  const timeToNextApsis = useDataValue("data", "o.timeToNextApsis");
   const vesselOrbit =
     typeof vesselBody === "string" &&
     typeof vSma === "number" &&
@@ -203,6 +211,28 @@ function SystemViewComponent({
               isVesselParent={panelIsVesselParent}
               hohmannIdealDeg={panelHohmann?.ideal ?? null}
               hohmannDeltaDeg={panelHohmann?.delta ?? null}
+              encounterDirection={
+                typeof encounterExists === "number" &&
+                encounterExists !== 0 &&
+                typeof encounterBody === "string" &&
+                panelBody !== null &&
+                panelBody.name === encounterBody
+                  ? encounterExists === -1
+                    ? "escape"
+                    : "encounter"
+                  : null
+              }
+              encounterTimeSec={
+                typeof encounterTime === "number" ? encounterTime : null
+              }
+              nextApsisType={
+                nextApsisTypeRaw === -1 || nextApsisTypeRaw === 1
+                  ? nextApsisTypeRaw
+                  : null
+              }
+              nextApsisTimeSec={
+                typeof timeToNextApsis === "number" ? timeToNextApsis : null
+              }
             />
           )}
         </Body>
@@ -355,7 +385,16 @@ registerComponent<SystemViewConfig>({
   minSize: { w: 3, h: 4 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
-  dataRequirements: ["b.number", "v.body", "tar.name"],
+  dataRequirements: [
+    "b.number",
+    "v.body",
+    "tar.name",
+    "o.encounterExists",
+    "o.encounterBody",
+    "o.encounterTime",
+    "o.nextApsisType",
+    "o.timeToNextApsis",
+  ],
   defaultConfig: { frame: "auto" },
   actions: [],
   pushable: true,
