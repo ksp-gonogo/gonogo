@@ -43,6 +43,7 @@ piece shipped immediately before.
 
 ## Entries (newest first)
 
+- 2026-05-14 — [Ship Map widget — re-wired onto Telemachus v.topology](2026-05-14-ship-map-on-telemachus-topology.md) — uncommitted — ⏳ pending (kOS pipeline dropped; subscribes to `v.topology` + dynamic `r.resourceFor[fid]` / `therm.part[fid]` via new `usePartsLive`; prefab bounds replace the mass-cubed-root sizing heuristic; tag chip-row dropped — no KSP-native equivalent; needs live KSP with the new Telemachus DLL to validate)
 - 2026-05-13 — [Launch Director in-flight panel](2026-05-13-launch-director-in-flight.md) — uncommitted — ⏳ pending (in-flight mode triggers on kc.scene=Flight; mission time + altitude readouts; Recover / Revert-to-launch / Revert-to-VAB greyed by `ksp.canRevert*`; crash chip + disabled recover when crash.hasRecent; covers feedback #11)
 - 2026-05-13 — [Strategies / Admin Building widget](2026-05-13-strategies-widget.md) — uncommitted — ⏳ pending (consumes the strategies.* fork keys shipped 2026-05-13; active / available / locked sections; commitment-factor slider with effective-cost preview; two-step arm-then-confirm; covers feedback #25)
 - 2026-05-13 — [Contract-parameter fire collapse](2026-05-13-contract-parameter-fire-collapse.md) — uncommitted — ⏳ pending (multiple fired contract-parameter alarms collapse into one banner row with Ack-all; main row preserved for threshold/time fires; covers feedback #6)

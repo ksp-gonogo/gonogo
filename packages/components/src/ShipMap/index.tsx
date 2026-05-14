@@ -1,93 +1,55 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import {
-  formatAge,
-  registerComponent,
-  useDataValue,
-  useExecuteAction,
+import type {
+  ComponentProps,
+  ConfigComponentProps,
+  VesselTopology,
 } from "@gonogo/core";
-import { useKosScriptStatus } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
-import {
-  ConfigForm,
-  Field,
-  FieldHint,
-  FieldLabel,
-  GhostButton,
-  PrimaryButton,
-  ScrollArea,
-  Switch,
-} from "@gonogo/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { registerComponent, useDataValue } from "@gonogo/core";
+import { usePartsLive } from "@gonogo/data";
+import { ConfigForm, Field, FieldHint, FieldLabel } from "@gonogo/ui";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
-import { KosScriptFrame } from "../kos/KosScriptFrame";
 import { ShipDiagram } from "./ShipDiagram";
 import {
-  SHIP_MAP_SCRIPT,
-  SHIP_MAP_TOPIC_ID,
+  buildShipMapPart,
+  pickLateralAxis,
   type ShipMapPart,
-} from "./shipMapScript";
-
-const PARTS_KEY = `kos.compute.${SHIP_MAP_TOPIC_ID}.parts`;
-const DISPATCH_NOW_ACTION = `kos.compute.${SHIP_MAP_TOPIC_ID}.dispatchNow`;
-const RE_ENABLE_ACTION = `kos.compute.${SHIP_MAP_TOPIC_ID}.reEnable`;
+} from "./shipTopology";
 
 interface ShipMapConfig {
-  /** If true, re-run the script automatically when v.currentStage changes. */
-  refreshOnStage?: boolean;
+  /** Reserved — no widget-level options yet. Kept for forward
+   *  compatibility so saved layouts don't break when options land. */
+  _reserved?: never;
 }
 
-function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
-  const refreshOnStage = config?.refreshOnStage !== false;
-
-  // Centralised compute fanout: one loop per registered script, regardless
-  // of how many ShipMaps are mounted. The active CPU lives on the kOS data
-  // source's config now (no per-widget CPU picker).
-  const payload = useDataValue<ShipMapPart[]>("kos", PARTS_KEY);
-  const status = useKosScriptStatus(SHIP_MAP_TOPIC_ID);
-  const executeKos = useExecuteAction("kos");
-
-  const dispatch = useCallback(() => {
-    void executeKos(DISPATCH_NOW_ACTION);
-  }, [executeKos]);
-  const reEnable = useCallback(() => {
-    void executeKos(RE_ENABLE_ACTION);
-  }, [executeKos]);
-
-  // Auto-refresh on staging. Reads v.currentStage; when it changes, ask the
-  // central loop for a fresh sample without waiting for the next interval.
-  const currentStage = useDataValue("data", "v.currentStage");
-  const lastStageRef = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    if (!refreshOnStage) return;
-    if (currentStage === undefined) return;
-    const prev = lastStageRef.current;
-    lastStageRef.current = currentStage;
-    if (prev === undefined) return;
-    if (prev === currentStage) return;
-    logger.info("ship-map: restaging, re-running script", {
-      previousStage: prev,
-      currentStage,
-    });
-    dispatch();
-  }, [currentStage, refreshOnStage, dispatch]);
-
-  // Diagnostic logging — makes the first-time iteration cheap.
-  useEffect(() => {
-    if (!payload) return;
-    logger.info("ship-map: payload received", {
-      parts: payload.length,
-      payload,
-    });
-  }, [payload]);
-
-  // Highlight the hottest part (if Telemachus is shipping thermal data).
-  // Falls back to null when therm.* isn't emitting yet.
+function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
+  const topology = useDataValue("data", "v.topology");
   const hottestPartName = useDataValue("data", "therm.hottestPartName");
 
-  // Measure the container so the SVG picks a size without a hardcoded value.
-  // State-backed ref (rather than useRef) so the effect re-attaches when
-  // DiagramWrap mounts — it's only rendered once `payload` exists, so a
-  // plain useRef + [] deps would never see the element.
+  // Subscribe to per-part live data (resources + thermal). Dynamic over
+  // the topology's part list — the hook re-subscribes when the set of
+  // flightIds changes.
+  const flightIds = useMemo(
+    () => topology?.parts.map((p) => p.flightId) ?? [],
+    [topology],
+  );
+  const liveByFlightId = usePartsLive(flightIds);
+
+  // Flatten topology + live data into the diagram's view-model. Axis
+  // pick happens once per topology rebuild so every part shares the
+  // same lateral basis.
+  const parts: ShipMapPart[] = useMemo(() => {
+    if (!topology) return [];
+    const { useX } = pickLateralAxis(topology.parts);
+    return topology.parts.map((p) => {
+      const live = liveByFlightId.get(p.flightId);
+      return buildShipMapPart(p, live?.thermal, live?.resources, useX);
+    });
+  }, [topology, liveByFlightId]);
+
+  // Measure the container so the SVG picks a size without a hardcoded
+  // value. State-backed ref (rather than useRef) so the effect re-attaches
+  // when DiagramWrap mounts — it's only rendered once topology exists, so
+  // a plain useRef + [] deps would never see the element.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 320, h: 240 });
   useEffect(() => {
@@ -107,159 +69,80 @@ function ShipMapComponent({ config }: Readonly<ComponentProps<ShipMapConfig>>) {
     return () => ro.disconnect();
   }, [wrapEl]);
 
-  // Chip-hover overrides the hottest-part highlight so users can preview
-  // exactly where each tagged part lives. Click locks the selection;
-  // re-clicking clears it.
-  const [stickyTag, setStickyTag] = useState<string | null>(null);
-  const [hoverTag, setHoverTag] = useState<string | null>(null);
+  const highlight =
+    typeof hottestPartName === "string" ? hottestPartName : null;
 
   return (
-    <KosScriptFrame
-      title="Ship Map"
-      running={status.running}
-      scriptError={status.scriptError}
-      parseError={status.parseError}
-      lastGoodAt={status.lastGoodAt}
-      onRun={dispatch}
-      runDisabled={status.running}
-      paused={status.paused}
-      pausedReason={status.scriptError?.message ?? null}
-      onReEnable={reEnable}
-    >
-      {renderBody()}
-    </KosScriptFrame>
+    <Panel>{renderBody(topology, parts, highlight, size, setWrapEl)}</Panel>
   );
+}
 
-  function renderBody() {
-    if (!payload) {
-      return (
-        <Placeholder>
-          {status.running ? "Running shipmap…" : "No ship data yet. Press Run."}
-        </Placeholder>
-      );
-    }
-    const tags = Array.from(
-      new Set(
-        payload
-          .map((p) => p.tag)
-          .filter((t): t is string => typeof t === "string" && t.length > 0),
-      ),
-    ).sort((a, b) => a.localeCompare(b));
-    const activeTag = hoverTag ?? stickyTag;
-    const highlight =
-      activeTag ??
-      (typeof hottestPartName === "string" ? hottestPartName : null);
+function renderBody(
+  topology: VesselTopology | undefined,
+  parts: ShipMapPart[],
+  highlight: string | null,
+  size: { w: number; h: number },
+  setWrapEl: (el: HTMLDivElement | null) => void,
+) {
+  if (!topology) {
     return (
-      <>
-        <Meta>
-          {payload.length} part{payload.length === 1 ? "" : "s"}
-          {status.lastGoodAt && (
-            <MetaTag>
-              · updated {formatAge(Date.now() - status.lastGoodAt)} ago
-            </MetaTag>
-          )}
-          {hottestPartName !== undefined && (
-            <MetaTag>· hot: {hottestPartName}</MetaTag>
-          )}
-        </Meta>
-        {tags.length > 0 && (
-          <TagRow>
-            <TagRowLabel>tags:</TagRowLabel>
-            {tags.map((t) => (
-              <TagChip
-                key={t}
-                type="button"
-                $active={stickyTag === t}
-                onMouseEnter={() => setHoverTag(t)}
-                onMouseLeave={() => setHoverTag(null)}
-                onFocus={() => setHoverTag(t)}
-                onBlur={() => setHoverTag(null)}
-                onClick={() =>
-                  setStickyTag((current) => (current === t ? null : t))
-                }
-                aria-pressed={stickyTag === t}
-              >
-                {t}
-              </TagChip>
-            ))}
-          </TagRow>
-        )}
-        <DiagramWrap ref={setWrapEl}>
-          <ShipDiagram
-            parts={payload}
-            highlight={highlight}
-            width={size.w}
-            height={size.h}
-          />
-        </DiagramWrap>
-      </>
+      <Placeholder>
+        Waiting for vessel topology from Telemachus. Check the data source
+        status if this persists.
+      </Placeholder>
     );
   }
+  if (parts.length === 0) {
+    return <Placeholder>Vessel has no parts.</Placeholder>;
+  }
+  return (
+    <>
+      <Meta>
+        {parts.length} part{parts.length === 1 ? "" : "s"}
+        <MetaTag>· seq {topology.topologySeq}</MetaTag>
+        {highlight && <MetaTag>· hot: {highlight}</MetaTag>}
+      </Meta>
+      <DiagramWrap ref={setWrapEl}>
+        <ShipDiagram
+          parts={parts}
+          highlight={highlight}
+          width={size.w}
+          height={size.h}
+        />
+      </DiagramWrap>
+    </>
+  );
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-function ShipMapConfigComponent({
-  config,
-  onSave,
-}: Readonly<ConfigComponentProps<ShipMapConfig>>) {
-  const [refreshOnStage, setRefreshOnStage] = useState(
-    config?.refreshOnStage !== false,
-  );
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    void navigator.clipboard?.writeText(SHIP_MAP_SCRIPT).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
+function ShipMapConfigComponent(
+  _props: Readonly<ConfigComponentProps<ShipMapConfig>>,
+) {
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel>Active kOS CPU</FieldLabel>
+        <FieldLabel>Data source</FieldLabel>
         <FieldHint>
-          The active CPU is set on the kOS data source (open the data source
-          config). It applies to every centralised kOS widget so two Ship Maps
-          share a single dispatch per cycle.
+          Reads <code>v.topology</code> from Telemachus. The topology snapshot
+          is event-invalidated on the server side — the widget refreshes when
+          you stage, dock, decouple, or otherwise change the vessel graph; no
+          configurable interval.
         </FieldHint>
       </Field>
-
-      <Field>
-        <FieldLabel>Auto-refresh on staging</FieldLabel>
-        <Switch
-          checked={refreshOnStage}
-          onChange={setRefreshOnStage}
-          label="Re-run when v.currentStage changes"
-        />
-      </Field>
-
-      <Field>
-        <ScriptHeader>
-          <FieldLabel>Script (auto-deployed)</FieldLabel>
-          <GhostButton type="button" onClick={handleCopy}>
-            {copied ? "Copied" : "Copy"}
-          </GhostButton>
-        </ScriptHeader>
-        <FieldHint>
-          The kOS data source syncs this script to its conventional path
-          automatically — no copy-paste needed. Shown here for reference and for
-          hand-editing the on-volume copy if you want to experiment.
-        </FieldHint>
-        <ScriptBox>
-          <pre>{SHIP_MAP_SCRIPT}</pre>
-        </ScriptBox>
-      </Field>
-
-      <PrimaryButton onClick={() => onSave({ refreshOnStage })}>
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const Panel = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--color-surface-app);
+`;
 
 const Placeholder = styled.div`
   flex: 1;
@@ -275,40 +158,6 @@ const Placeholder = styled.div`
     padding: 1px 4px;
     border-radius: 2px;
     color: var(--color-status-go-fg);
-  }
-`;
-
-const TagRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-surface-raised);
-  font-size: var(--font-size-xs);
-`;
-
-const TagRowLabel = styled.span`
-  color: var(--color-text-faint);
-  margin-right: 2px;
-`;
-
-const TagChip = styled.button<{ $active: boolean }>`
-  font-size: var(--font-size-xs);
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$active ? "var(--color-tag-cyan-fg)" : "var(--color-border-subtle)")};
-  background: ${(p) => (p.$active ? "var(--color-border-subtle)" : "var(--color-surface-panel)")};
-  color: ${(p) => (p.$active ? "var(--color-tag-cyan-fg)" : "var(--color-text-muted)")};
-  cursor: pointer;
-  &:hover {
-    border-color: var(--color-tag-cyan-fg);
-    color: var(--color-tag-cyan-fg);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
   }
 `;
 
@@ -340,44 +189,21 @@ const DiagramWrap = styled.div`
   }
 `;
 
-const ScriptHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-`;
-
-const ScriptBox = styled(ScrollArea)`
-  max-height: 260px;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  font-size: 11px;
-  color: var(--color-status-go-fg);
-  pre {
-    margin: 0;
-    padding: 6px 8px;
-    white-space: pre;
-  }
-`;
-
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
   description:
-    "kOS-driven part diagram of the active vessel. The widget runs a saved kerboscript on-demand (and on staging) and plots every part as a dot, sized by mass, edges following the parent/child tree. Highlights the part currently reported as hottest by Telemachus.",
-  tags: ["kos", "telemetry", "ship"],
+    "Part diagram of the active vessel, driven by Telemachus v.topology. Renders the assembled-space vessel graph as a 2D side-view: prefab-bounds size, per-part heat tint, fuel-fill bars on tanks and boosters, hottest part highlighted.",
+  tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
   configComponent: ShipMapConfigComponent,
-  openConfigOnAdd: true,
-  dataRequirements: [PARTS_KEY, "v.currentStage", "therm.hottestPartName"],
-  defaultConfig: {
-    refreshOnStage: true,
-  },
+  openConfigOnAdd: false,
+  dataRequirements: ["v.topology", "v.topologySeq", "therm.hottestPartName"],
+  defaultConfig: {},
   actions: [],
   pushable: true,
 });
