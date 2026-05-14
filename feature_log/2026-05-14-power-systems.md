@@ -105,28 +105,112 @@ dominant signals. EC only in v1; other resources can be opt-in later.
 
 ## Validation checklist (next live session)
 
-KSP restart required before any of this works.
+**Prerequisite:** restart KSP. The synced DLL only loads at boot.
 
-- **Solar panels**: deploy a panel, confirm PowerSystems shows a
-  positive ElectricCharge producer row with efficiency below 100% when
-  off-angle, near 100% sunlit and aligned.
-- **RTG**: an RTG-bearing probe should show a constant ~0.75
-  ElectricCharge producer with efficiency ~100%. The RTG part itself
-  has no EC storage, so the row's stored should read 0.
-- **ISRU**: run an ISRU converter with Ore input. Confirm Ore appears
-  as a negative consumer row, the output (LF/Ox/Mono) as positive
-  producer rows. Efficiency reflects `lastTimeFactor`.
-- **Drill**: extract Ore on a planet with `OreAbundance > 0`. Should
-  show Ore as a positive producer at the harvester.
-- **Engine**: ignite an engine. Confirm LiquidFuel + Oxidizer (or
-  appropriate propellant) consumers appear at the engine, with
-  efficiency suppressed (nominal not emitted).
-- **ShipMap ring**: every producer/consumer part should have a
-  green/amber ring respectively. Highlighted (hot) parts keep their
-  amber highlight ring as dominant.
-- **Net behaviour**: a coasting probe (RTG + life-support) should show
-  a positive net; an active flight (engine + RCS) should show negative
-  net.
+### Step 1 — pick a flightId to probe
+
+`r.resourceFor` is keyed by flightId. Pull the topology to find live
+ones for the parts you care about:
+
+```bash
+./scripts/gonogo_claude_tools.sh tele read v.topology | jq '.["v.topology"].parts[] | {flightId, name, modules}'
+```
+
+Note the flightIds for: a solar panel, an RTG, an ISRU, a drill, an
+engine, and a fuel tank (control case — should have storage but no
+flow).
+
+### Step 2 — verify each module type via the fork API
+
+For each part:
+
+```bash
+./scripts/gonogo_claude_tools.sh tele read 'r.resourceFor[<flightId>]'
+```
+
+Expected shapes per module:
+
+- **Fuel tank** (control): `{ LiquidFuel: { amount: N, maxAmount: N } }`.
+  No `flow`, no `nominalFlow` — confirms a part with no contributing
+  modules stays clean.
+- **Solar panel** (extended, sun-aligned): `{ ElectricCharge: {
+  amount: 0, maxAmount: 0, flow: 0.75, nominalFlow: 0.75 } }` (sunlit
+  ≈ nominal). Off-angle or in shadow: `flow < nominalFlow`. Stowed:
+  `flow ≈ 0`, `nominalFlow` is still the panel's max.
+- **RTG**: `{ ElectricCharge: { amount: 0, maxAmount: 0, flow: 0.75,
+  nominalFlow: 0.75 } }`. RTGs have no storage so amount/maxAmount = 0;
+  flow == nominalFlow so `nominalFlow` should actually be **omitted**
+  in the wire payload (`Math.abs(nominal − flow) < 1e-9` rule).
+- **ISRU** (running, Ore→LFO): `{ Ore: { amount: 0, maxAmount: 0,
+  flow: -2.5, nominalFlow: -3.0 }, LiquidFuel: { amount: 0, maxAmount:
+  0, flow: 1.25, nominalFlow: 1.5 }, Oxidizer: { flow: 1.5,
+  nominalFlow: 1.8 }, ElectricCharge: { flow: -15, nominalFlow: -30 }
+  }` — exact numbers vary; what matters is **inputs are negative**,
+  **outputs are positive**, and `flow / nominalFlow` ≈ `lastTimeFactor`
+  (rendered ≈ 0.85 when at 85% efficiency).
+- **Drill** (extracting Ore at OreAbundance > 0): `{ Ore: { amount: 0,
+  maxAmount: 0, flow: +R, nominalFlow: +Rmax }, ElectricCharge: { flow:
+  -K, nominalFlow: -Kmax } }` — positive Ore, negative EC. Inactive
+  drill: rows absent.
+- **Engine** (ignited at full throttle): `{ LiquidFuel: { amount: 0,
+  maxAmount: 0, flow: -3.5 }, Oxidizer: { flow: -4.3 } }`. `nominalFlow`
+  must be **omitted** for engine-contributed rows because the v1 fork
+  marks it as incomplete. Engine off: rows absent.
+
+Watch for: **`nominalFlow` always shares the sign of `flow`**. If a
+row reports `flow: -2` and `nominalFlow: +2` something's wrong with
+the sign convention.
+
+### Step 3 — widget exercise (PowerSystems)
+
+Add the **Power Systems** widget to the dashboard.
+
+- **Solar panels**: deploy a panel; the EC chart should switch from
+  "net negative" (probe drain) to "net positive". Per-row efficiency
+  should swing with sun angle.
+- **RTG**: a probe with RTG + life support draws should show RTG in
+  Producers, command pod in Consumers. Net positive (RTG outpaces
+  consumers).
+- **ISRU**: run a converter; resource picker should now offer Ore /
+  LF / Ox / Mono / EC depending on what's running. Switching to Ore
+  shows a negative net (being consumed), LF a positive net (being
+  produced).
+- **Drill**: extract Ore; widget picker offers Ore; net positive.
+- **Engine**: ignite an engine; widget picker offers LF / Ox / Mono /
+  SolidFuel etc.; engine rows appear under Consumers, no efficiency
+  shown (nominal omitted by the fork).
+- **Compact mode**: shrink the widget to ≤ 5 cols or ≤ 7 rows; it
+  should collapse to the single "POWER · <resource> · net" line.
+- **No-flow state**: with everything stowed/off on the launchpad
+  (just a probe core idle), the empty-state message "No active flow
+  on any resource" should appear.
+- **`cycleResource` action** (if you've mapped a button input):
+  pressing it should walk through every resource in the
+  resources-with-flow set.
+
+### Step 4 — widget exercise (ShipMap producer / consumer ring)
+
+Open the Ship Map widget alongside Power Systems on the same vessel:
+
+- Producer parts (deployed solar, active RTG, active ISRU's EC
+  output if applicable) should show a thin green ring.
+- Consumer parts (command pod, running engine, ISRU's EC input,
+  drill, active light banks) should show a thin amber ring.
+- Hot parts (the `therm.hottestPartName` highlight) keep their
+  amber **highlight** ring as the dominant visual.
+- Inactive parts: no ring.
+- The ring tracks EC only in v1 — toggling between resources in
+  Power Systems doesn't change the Ship Map ring.
+
+### Step 5 — net behaviour sanity checks
+
+- Coasting probe (RTG + probe core drain): Power Systems net should
+  be slightly positive, stored EC slowly climbing.
+- Active flight (engine ignited): the engine resources show a net
+  negative on whatever propellant the engine uses.
+- Stage separation: after staging, the parts list should shrink
+  (decoupled stage drops out of `v.topology`), and stale producers /
+  consumers should disappear within one topology refresh.
 
 ## Why this matters
 
