@@ -1,10 +1,7 @@
 # tar.availableVessels — native vessel listing, retires kOS feed
 
 **Date:** 2026-05-14
-**Validation:** ⏳ pending — landed and tested in CI (full suite green,
-lint + typecheck clean, TargetPicker tests rewritten for the native
-contract). Telemachus DLL compiled and synced to the KSP install via
-syncthing; needs a KSP restart + live vessel-targeting pass.
+**Validation:** ✅ confirmed 2026-05-15 — full live pass against a save with 10 asteroids + 3 "Low Orbt Tester" vessels in Kerbin orbit. Array shape, active-vessel exclusion, non-contiguous indices (holes where filtered vessels live), `tar.setTargetVessel[index]` round-trip, and active-vessel swap behaviour all verified.
 
 ## What changed
 
@@ -211,3 +208,26 @@ Open the Target Picker on the dashboard:
 
 Next item from the followups doc: fork PR B — `flow` / `nominalFlow`
 on `r.resourceFor` + the Power Systems widget that consumes it.
+
+## Live validation — 2026-05-15
+
+Test save: 10 asteroids (`Ast. *` + `UnknownComet`) on solar orbits + 3 "Low Orbt Tester" Ships in Kerbin orbit. Validator-1 (suborbital test craft) launched, decoupled, parachuted to a hard landing at KSC.
+
+| Check | Result |
+|---|---|
+| `tar.availableVessels` returns JSON array of `{ index, name, type, situation, body, position }` | ✅ |
+| Active vessel absent (Validator-1 on the pad / Tester after swap) | ✅ both directions |
+| Non-contiguous indices (filtered vessels punch holes) | ✅ pre-swap list missing 12 (Validator-1's active slot); post-swap missing 10 (the now-active Tester) |
+| `index` round-trips through `tar.setTargetVessel[N]` — `tar.name` echoes the correct vessel | ✅ `tar.setTargetVessel[13]` then `tar.name = "Low Orbt Tester"` |
+| Position magnitude approximates the in-game tracking-station distance | ✅ `tar.distance ≈ 87 km` for an index-13 row whose computed `|position| ≈ 113 km` — drift consistent with a few-second-stale position from a vessel moving at orbital velocity |
+| Position frame stays sensible across active-vessel swap | ✅ post-swap, Validator-1's `position ≈ 805 km` relative to the active Tester, matches expected KSC-to-low-orbit distance |
+| Flag / EVA / Debris / Unknown vessels excluded | ✅ — decoupled debris from the lower stage did NOT appear in the list (would have been a Debris-typed vessel) |
+| Many same-name vessels distinguishable by `index` | ✅ three "Low Orbt Tester" rows with same name, different indices, all selectable |
+
+### Notes worth surfacing in the PR / widget follow-up
+
+- **`SpaceObject` is included by design** — the doc's exclusion list is `Flag / EVA / Debris / Unknown` only. The result is asteroid + comet rows flood the picker on any save with the stock tracking station seeded. Not a fork bug; a widget-side UX note (maybe a `type` filter chip-row, or a default-hide-asteroids toggle).
+- **HTTP body for `tar.setTargetVessel` returns `false` regardless of success.** This is the standard Telemachus action-handler pattern (the `IsAction = true` decoration causes the HTTP layer to emit a placeholder, while the actual return is echoed on the WS state stream). Functional success was verified by re-reading `tar.name` immediately after firing. Worth a one-line callout in the upstream PR body so reviewers don't trip on it.
+- **`tar.body` doesn't exist** in stock Telemachus — typo from the original test plan. Use `tar.o.referenceBody` or the `body` field embedded in each `tar.availableVessels` row.
+- Scene transitions via `ksp.toTrackingStation` work as expected — used during the test session to automate the Tracking Station hop for the active-vessel-swap verification.
+

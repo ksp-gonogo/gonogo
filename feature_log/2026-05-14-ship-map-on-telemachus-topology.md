@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-14
 **Task:** Follow-on to the Telemachus parts API PR drafted earlier on 2026-05-14 (`local_docs/2026-05-14-parts-api-design-feedback.md`, branch `telemachus/parts-topology` in the fork). The fork PR added `v.topology`, `v.topologySeq`, `r.resourceFor[flightId]` and `therm.part[flightId]`; this commit pulls the Ship Map widget over to that new data path.
-**Validation:** ⏳ pending — **fork API curl-validated 2026-05-14** (see "Live curl validation" below); widget rendering not yet visually confirmed in a browser.
+**Validation:** ✅ confirmed 2026-05-15 — fork API curl-validated 2026-05-14 (see "Live curl validation" below); widget rendering visually confirmed against Validator-1 in the 2026-05-15 live pass. One rendering bug found and fixed inline: side-view picker was rotated 90° because the axis convention assumed Z was the spine; corrected to KSP's local-Y stack-axis convention.
 
 ## Overview
 
@@ -80,8 +80,17 @@ Tested against the parts-topology DLL with two test rockets on the launchpad. Cu
 **Outstanding live checks** (not exercised today — need separate flight scenarios):
 
 - Dock event bumps seq (requires a second vessel in orbit).
-- Tracking Station "Fly" to a different vessel bumps seq (requires more than one vessel persisted in the save).
-- Widget renders correctly end-to-end in the browser.
+- ~~Tracking Station "Fly" to a different vessel bumps seq~~ — confirmed in the 2026-05-15 pass; Tracking Station → Fly cycle bumped `v.topologySeq` 198 → 325 across the swap + heat-shield destruction cascade.
+- ~~Widget renders correctly end-to-end in the browser~~ — confirmed 2026-05-15 against a live Validator-1 craft (initial 18-part stack and post-decouple 5-part stack both rendered with sensible silhouettes once the axis fix landed).
+
+### 2026-05-15 follow-up — axis rotation fix
+
+Symptom: vessel rendered horizontally instead of vertically, parts strung along the lateral axis. Root cause: `pickLateralAxis()` compared X-spread vs Y-spread (then picked the wider as lateral), and `buildShipMapPart` hardcoded `axial: orgPos[2]`. KSP's local-frame convention is that Y is the stack axis and X/Z are the two lateral axes — so the picker was inadvertently choosing the stack axis as lateral. Fix: pickLateralAxis now compares X-spread vs Z-spread; `buildShipMapPart` reads `axial: orgPos[1]` and `lat: useX ? orgPos[0] : orgPos[2]`. Tests already use precomputed `lat`/`axial` values so no fixtures needed updating.
+
+### Other observations from the 2026-05-15 pass
+
+- `v.topologySeq` is bumped more aggressively than the design predicted — 83 → 198 across one suborbital flight (decouple + parachute deploy + heat-shield destruction + ground impact) and another 100+ across a Tracking-Station-driven vessel swap. Each individual bump traces to a real KSP event, but downstream consumers should be tolerant of frequent invalidations; the seq-driven refetch hook handles this gracefully (the wire cost stays low because `v.topology` only flows after a bump).
+- `therm.part[<deadFlightId>]` returned `null` rather than the `1` partless-paused sentinel reported in the original validation. Both satisfy the client's "non-object = no thermal" contract; the variation is likely active-vs-paused scene state.
 
 ### Performance follow-up surfaced during validation
 
