@@ -76,6 +76,38 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     unit: "kPa",
     group: "Forces",
   },
+  "v.atmosphericDensity": {
+    label: "Atmospheric density",
+    unit: "kg/m³",
+    group: "Atmosphere",
+  },
+  "v.atmosphericTemperature": {
+    label: "Atmospheric temperature",
+    unit: "K",
+    group: "Atmosphere",
+  },
+  "v.externalTemperature": {
+    label: "External temperature",
+    unit: "K",
+    group: "Atmosphere",
+  },
+  "v.indicatedAirSpeed": {
+    label: "Indicated air speed",
+    unit: "m/s",
+    group: "Atmosphere",
+  },
+  "v.solarFlux": { label: "Solar flux", unit: "W/m²", group: "Solar" },
+  "v.directSunlight": {
+    label: "Direct sunlight",
+    unit: "bool",
+    group: "Solar",
+  },
+  "v.distanceToSun": {
+    label: "Distance to Sun",
+    unit: "m",
+    group: "Solar",
+  },
+  "v.biome": { label: "Current biome", unit: "enum", group: "State" },
 
   // --- State & situation ---
   "v.name": { label: "Vessel name", unit: "enum", group: "State" },

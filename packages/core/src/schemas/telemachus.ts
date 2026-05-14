@@ -196,6 +196,25 @@ export interface TelemaachusSchema {
   "v.dynamicPressurekPa": number;
   "v.staticPressure": number;
   "v.atmosphericPressure": number;
+  // Ambient atmospheric conditions. `v.atmosphericTemperature` is the local
+  // air temperature in kelvin; `v.externalTemperature` is the per-vessel
+  // skin-temperature value KSP uses for re-entry heating. They diverge once
+  // the craft is moving — `external` includes ram-air heating.
+  "v.atmosphericDensity": number;
+  "v.atmosphericTemperature": number;
+  "v.externalTemperature": number;
+  "v.indicatedAirSpeed": number;
+
+  // Solar context. `v.solarFlux` is in W/m² (stock units), `v.directSunlight`
+  // is true when the vessel has line-of-sight to the star.
+  "v.solarFlux": number;
+  "v.directSunlight": boolean;
+  "v.distanceToSun": number;
+
+  // Live biome string from `ScienceUtil.GetExperimentBiome`. Use this for
+  // "where am I right now"; ScienceBench stored-experiment rows keep their
+  // own per-record biome (the biome the experiment was *taken in*).
+  "v.biome": string;
 
   // Situation & state
   "v.name": string;

@@ -49,6 +49,27 @@ function formatDegrees(d: number | undefined): string {
   return `${d.toFixed(1)}°`;
 }
 
+/** Kelvin → Celsius, for readability on the LandingStatus readout. */
+function formatTempC(k: number | undefined): string {
+  if (k === undefined || !Number.isFinite(k)) return "—";
+  const c = k - 273.15;
+  return `${c.toFixed(0)} °C`;
+}
+
+/**
+ * Atmospheric density in kg/m³. Stock Kerbin sea level is ~1.225 kg/m³; the
+ * mesosphere thins to single-digit grams; high-altitude values drop into
+ * 1e-6 territory. Pick a representation per magnitude so the readout stays
+ * comparable across an entire descent.
+ */
+function formatDensity(d: number | undefined): string {
+  if (d === undefined || !Number.isFinite(d)) return "—";
+  const abs = Math.abs(d);
+  if (abs >= 1) return `${d.toFixed(3)} kg/m³`;
+  if (abs >= 1e-3) return `${(d * 1000).toFixed(2)} g/m³`;
+  return `${d.toExponential(2)} kg/m³`;
+}
+
 function LandingStatusComponent({
   w,
   h,
@@ -67,6 +88,10 @@ function LandingStatusComponent({
 
   const heightFromTerrain = useDataValue("data", "v.heightFromTerrain");
   const verticalSpeed = useDataValue("data", "v.verticalSpeed");
+
+  const atmDensity = useDataValue("data", "v.atmosphericDensity");
+  const atmTemperature = useDataValue("data", "v.atmosphericTemperature");
+  const externalTemperature = useDataValue("data", "v.externalTemperature");
 
   // No trajectory solution at all — hide the full readout.
   const noPrediction =
@@ -95,6 +120,10 @@ function LandingStatusComponent({
   const showSlopeRows = rows >= 10;
   const showAnyMetricGrid = showImpactRows || showAltitudeRows || showSlopeRows;
   const showBestImpactInline = cols >= 8;
+  // Ambient section is only ever useful on atmospheric bodies — it tells the
+  // operator how thick the air is and how hot the skin is during a reentry
+  // burn. On vacuum landings the values are all ~0/ambient and add noise.
+  const showAmbient = atmospheric && rows >= 9;
 
   return (
     <Panel>
@@ -187,6 +216,19 @@ function LandingStatusComponent({
                   </MetricValue>
                 </>
               )}
+            </MetricGrid>
+          )}
+
+          {showAmbient && (
+            <MetricGrid>
+              <MetricLabel>Air density</MetricLabel>
+              <MetricValue>{formatDensity(atmDensity)}</MetricValue>
+
+              <MetricLabel>Air temp</MetricLabel>
+              <MetricValue>{formatTempC(atmTemperature)}</MetricValue>
+
+              <MetricLabel>Skin temp</MetricLabel>
+              <MetricValue>{formatTempC(externalTemperature)}</MetricValue>
             </MetricGrid>
           )}
         </Body>
@@ -292,6 +334,9 @@ registerComponent<LandingStatusConfig>({
     "v.body",
     "v.heightFromTerrain",
     "v.verticalSpeed",
+    "v.atmosphericDensity",
+    "v.atmosphericTemperature",
+    "v.externalTemperature",
     "land.timeToImpact",
     "land.speedAtImpact",
     "land.bestSpeedAtImpact",
