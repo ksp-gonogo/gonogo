@@ -51,6 +51,13 @@ export interface ShipMapPart {
   /** Live resources from `r.resourceFor[flightId]`, normalised to the same
    *  `{n, a, c}` triplet shape the diagram uses for fuel-fill bars. */
   resources?: { n: string; a: number; c: number }[];
+  /**
+   * Net ElectricCharge flow sign on this part — drives a subtle producer /
+   * consumer ring in the diagram. `null` when there's no live flow row
+   * (the part doesn't contribute to EC). EC is the only resource tinted in
+   * v1; other resources can be added behind a config later.
+   */
+  ecFlowSign?: "producer" | "consumer" | null;
 }
 
 /**
@@ -218,6 +225,13 @@ export function buildShipMapPart(
   useX: boolean,
 ): ShipMapPart {
   const orgPos = part.orgPos;
+  const ecFlow = resources?.ElectricCharge?.flow;
+  const ecFlowSign: "producer" | "consumer" | null =
+    typeof ecFlow === "number" && Math.abs(ecFlow) > 1e-6
+      ? ecFlow > 0
+        ? "producer"
+        : "consumer"
+      : null;
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
@@ -233,5 +247,6 @@ export function buildShipMapPart(
     temperatureK: thermal?.temperatureK,
     maxTemperatureK: thermal?.maxTemperatureK,
     resources: normaliseResources(resources),
+    ecFlowSign,
   };
 }

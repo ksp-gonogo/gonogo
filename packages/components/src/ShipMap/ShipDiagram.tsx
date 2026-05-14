@@ -214,6 +214,28 @@ export function ShipDiagram({
                   outerSign,
                 )}
                 {showFuel && renderResourceFill(p.resources, box)}
+                {p.ecFlowSign && !isHot && (
+                  // Producer / consumer ring — drawn before the highlight ring
+                  // so a hot part still gets the dominant amber highlight.
+                  // Subtle so it complements (not competes with) the per-part
+                  // thermal tint.
+                  <rect
+                    data-role="ec-flow-ring"
+                    x={box.x - 1}
+                    y={box.y - 1}
+                    width={box.w + 2}
+                    height={box.h + 2}
+                    fill="none"
+                    stroke={
+                      p.ecFlowSign === "producer"
+                        ? "var(--color-status-go-fg)"
+                        : "var(--color-status-warning-bg)"
+                    }
+                    strokeWidth={stroke(1)}
+                    opacity={0.5}
+                    rx={2}
+                  />
+                )}
                 {isHot && (
                   <rect
                     data-role="highlight-ring"

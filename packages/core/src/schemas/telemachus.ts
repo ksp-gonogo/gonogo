@@ -125,10 +125,31 @@ export interface VesselTopology {
 /**
  * Live per-part resource state from `r.resourceFor[flightId]`. Keyed by
  * resource name (LiquidFuel, Oxidizer, ElectricCharge, …); empty object
- * when the part has no resources or the flightId isn't found.
+ * when the part has no resources / contributes no flow / the flightId
+ * isn't found.
+ *
+ * `amount` / `maxAmount` cover storage. `flow` and `nominalFlow` are
+ * present when the part's modules contribute production / consumption
+ * (solar panels, RTGs, generators, ISRU, drills, engines):
+ *
+ * - `flow`: signed units/sec — positive = producing, negative =
+ *   consuming. Summed across every contributing module on the part.
+ * - `nominalFlow`: same sign, 100%-efficiency cap (sun-aligned solar,
+ *   full-rate generator). Omitted when no module supports a nominal
+ *   (e.g. engines), when no module contributes, or when nominal equals
+ *   flow.
+ *
+ * Rows are emitted for resources the part contributes flow to even when
+ * storage is zero — an RTG part reports `{ ElectricCharge: { amount: 0,
+ * maxAmount: 0, flow: 0.7, nominalFlow: 0.75 } }`.
  */
 export interface PartResources {
-  [resourceName: string]: { amount: number; maxAmount: number };
+  [resourceName: string]: {
+    amount: number;
+    maxAmount: number;
+    flow?: number;
+    nominalFlow?: number;
+  };
 }
 
 /**
