@@ -86,6 +86,22 @@ export interface OrbitDiagramProps {
   secondaryProjected?: ProjectedOrbit | null;
   /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
+  /**
+   * Current rotation angle (degrees) of the body. When provided, an
+   * inset pole marker rotates around the centre to indicate the body's
+   * spin. Combined with the body fill alone gives "is this thing
+   * spinning at all" at a glance.
+   */
+  rotationAngleDeg?: number | null;
+  /**
+   * Atmosphere depth in the same units as `bodyRadius`. When provided,
+   * a soft radial gradient extends from the body's surface up to the
+   * top of the atmosphere — a thin band the operator can use to gauge
+   * where the orbit is relative to the air. Defaults to no band.
+   */
+  atmosphereDepthM?: number | null;
+  /** Tint the atmosphere band blue when oxygen, amber when not. */
+  atmosphereHasOxygen?: boolean | null;
 }
 
 // Per-variant styling knobs. Kept here so the two call sites don't diverge.
@@ -128,6 +144,9 @@ export function OrbitDiagram({
   projected = null,
   secondaryProjected = null,
   maneuverHandles = null,
+  rotationAngleDeg = null,
+  atmosphereDepthM = null,
+  atmosphereHasOxygen = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
@@ -347,12 +366,54 @@ export function OrbitDiagram({
           />
         </g>
 
+        {/* Atmosphere band — soft radial gradient from body surface to
+            atmosphere top. Drawn before the body disc so the body's solid
+            fill occludes the inner edge. */}
+        {atmosphereDepthM !== null &&
+          atmosphereDepthM > 0 &&
+          bodyRadius !== undefined && (
+            <circle
+              cx={0}
+              cy={0}
+              r={bodyRadius + atmosphereDepthM}
+              fill={
+                atmosphereHasOxygen
+                  ? "rgba(80, 160, 220, 0.18)"
+                  : "rgba(220, 140, 60, 0.16)"
+              }
+            />
+          )}
+
         <circle
           cx={0}
           cy={0}
           r={bodyDisc}
           fill={bodyColor ?? cfg.defaultBodyColor}
         />
+
+        {/* Rotation marker — a small dot near the limb that rotates as
+            `b.rotationAngle` ticks. Rendered with a thin diameter line so
+            the rotation is legible even on small body discs. Only shown
+            in the "full" variant; mini-variant frames are too small for
+            a meaningful read. */}
+        {rotationAngleDeg !== null && variant === "full" && (
+          <g transform={`rotate(${-rotationAngleDeg})`}>
+            <line
+              x1={-bodyDisc * 0.85}
+              y1={0}
+              x2={bodyDisc * 0.85}
+              y2={0}
+              stroke="rgba(255, 255, 255, 0.35)"
+              strokeWidth={strokeW * 0.6}
+            />
+            <circle
+              cx={bodyDisc * 0.9}
+              cy={0}
+              r={dotR * 0.5}
+              fill="rgba(255, 255, 255, 0.7)"
+            />
+          </g>
+        )}
 
         <g transform={`rotate(${-argPe})`}>
           {showMarkers && (

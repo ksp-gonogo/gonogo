@@ -14,6 +14,7 @@ import {
   StatusPill,
 } from "@gonogo/ui";
 import styled from "styled-components";
+import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
@@ -60,6 +61,13 @@ function OrbitViewComponent({
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
+  // Live rotation feed — single-body subscription so we don't pay the
+  // ~17-bodies-at-4Hz fanout cost of useCelestialBodies just for the
+  // marker. Atmosphere band sticks to the static body registry's
+  // `maxAtmosphere`, which already covers stock bodies.
+  const { angleDeg: rotationAngleDeg, rotates } = useBodyRotation(
+    typeof bodyName === "string" ? bodyName : null,
+  );
 
   const hasOrbit =
     sma !== undefined &&
@@ -116,6 +124,15 @@ function OrbitViewComponent({
           bodyColor={body?.color}
           bodyRadius={body?.radius}
           isOrbiting={isOrbiting}
+          rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
+          atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
+          atmosphereHasOxygen={
+            // Kerbin / Laythe are the stock oxygen-bearing atmospheres.
+            // Static registry doesn't carry the flag yet — treat as oxygen
+            // for those names, plain for the rest. Cheap; gets replaced
+            // when the static body registry grows a `hasOxygen` field.
+            body !== undefined && (body.id === "Kerbin" || body.id === "Laythe")
+          }
         />
       ) : (
         <PillFill>
@@ -145,6 +162,7 @@ registerComponent<OrbitViewConfig>({
     "o.PeA",
     "o.argumentOfPeriapsis",
     "v.body",
+    "b.number",
   ],
   defaultConfig: { showMarkers: true },
   actions: orbitViewActions,

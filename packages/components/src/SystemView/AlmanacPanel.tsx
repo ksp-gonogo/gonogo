@@ -86,6 +86,12 @@ function buildRows(
     rows.push({ label: "Atmosphere", value: "None" });
   }
   if (body.hasOcean === true) rows.push({ label: "", value: "Has ocean" });
+  if (body.hillSphere !== null) {
+    rows.push({ label: "Hill sphere", value: formatLength(body.hillSphere) });
+  }
+  if (body.rotates === false) {
+    rows.push({ label: "", value: "Does not rotate" });
+  }
   if (body.period !== null) {
     rows.push({ label: "Orbital period", value: formatDuration(body.period) });
   }
@@ -201,6 +207,7 @@ export function AlmanacPanel({
           ))
         )}
       </Rows>
+      {body.description && <Description>{body.description}</Description>}
     </Wrap>
   );
 }
@@ -312,4 +319,14 @@ const Hint = styled.div`
   color: var(--color-text-faint);
   font-size: 10px;
   line-height: 1.4;
+`;
+
+/** KSP's per-body flavour text. Long-form copy lives below the stats grid;
+ *  the panel scroll handles overflow on shorter widget sizes. */
+const Description = styled.p`
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: pre-wrap;
 `;

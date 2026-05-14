@@ -291,7 +291,21 @@ export interface TelemaachusSchema {
   [key: IndexedKey<"b.radius">]: number;
   [key: IndexedKey<"b.soi">]: number;
   [key: IndexedKey<"b.atmosphere">]: boolean;
+  [key: IndexedKey<"b.atmosphereContainsOxygen">]: boolean;
   [key: IndexedKey<"b.maxAtmosphere">]: number;
+  [key: IndexedKey<"b.hillSphere">]: number;
+  [key: IndexedKey<"b.mass">]: number;
+  [key: IndexedKey<"b.geeASL">]: number;
+  // `b.rotationAngle` is the only b.* indexed key that ticks every WS frame
+  // — it's used to drive the rotation marker on OrbitView. Subscribe per
+  // body, not via the system-wide useCelestialBodies fan-out, to avoid
+  // forcing every SystemView/TargetPicker re-render on every tick.
+  [key: IndexedKey<"b.rotationPeriod">]: number;
+  [key: IndexedKey<"b.rotationAngle">]: number;
+  [key: IndexedKey<"b.rotates">]: boolean;
+  [key: IndexedKey<"b.tidallyLocked">]: boolean;
+  [key: IndexedKey<"b.description">]: string;
+  [key: IndexedKey<"b.ocean">]: boolean;
   [key: IndexedKey<"b.o.sma">]: number;
   [key: IndexedKey<"b.o.eccentricity">]: number;
   [key: IndexedKey<"b.o.inclination">]: number;
