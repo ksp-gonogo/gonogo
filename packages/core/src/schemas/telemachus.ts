@@ -82,6 +82,68 @@ export interface OrbitPatch {
 }
 
 /**
+ * One part in the `v.topology` payload. Shape mirrors the Telemachus
+ * `PartsTopologyDataLinkHandler` walker exactly — no client-side renaming.
+ * Live per-tick values (resources, temperatures) are NOT here; they live on
+ * the separate `r.resourceFor[flightId]` / `therm.part[flightId]` keys so
+ * the topology snapshot stays cacheable across staging-quiet stretches.
+ */
+export interface TopologyPart {
+  flightId: number;
+  persistentId: number;
+  parentFlightId: number | null;
+  name: string;
+  title: string;
+  manufacturer: string;
+  /** `PartCategories` enum as string (e.g. "Engine", "FuelTank"). */
+  category: string;
+  inverseStage: number;
+  crewCapacity: number;
+  maxTemp: number;
+  crashTolerance: number;
+  /** `Part.mass` — dry mass only, not including resources. */
+  dryMass: number;
+  /** Vessel-local root-relative position `[x, y, z]`. */
+  orgPos: [number, number, number];
+  /** Prefab renderer bounds in metres — stable across the session. */
+  bounds: { size: { x: number; y: number; z: number } };
+  /** Raw `PartModule.moduleName` strings; no filtering. */
+  modules: string[];
+}
+
+/**
+ * `v.topology` response shape. `topologySeq` matches the lightweight
+ * `v.topologySeq` key — consumers subscribe to the seq and refetch this key
+ * only when it ticks rather than streaming the topology continuously.
+ */
+export interface VesselTopology {
+  topologySeq: number;
+  rootFlightId: number;
+  parts: TopologyPart[];
+}
+
+/**
+ * Live per-part resource state from `r.resourceFor[flightId]`. Keyed by
+ * resource name (LiquidFuel, Oxidizer, ElectricCharge, …); empty object
+ * when the part has no resources or the flightId isn't found.
+ */
+export interface PartResources {
+  [resourceName: string]: { amount: number; maxAmount: number };
+}
+
+/**
+ * Live per-part thermal state from `therm.part[flightId]`. `null` upstream
+ * when the flightId isn't found — consumers should treat the missing case
+ * as "thermal data not available" rather than zero-Kelvin.
+ */
+export interface PartThermal {
+  temperature: number;
+  maxTemperature: number;
+  temperatureK: number;
+  maxTemperatureK: number;
+}
+
+/**
  * A planned maneuver node. Telemachus includes the post-burn orbit patches
  * inline so a single subscription to `o.maneuverNodes` covers both the node
  * and its resulting trajectory.
@@ -151,6 +213,10 @@ export interface TelemaachusSchema {
   "v.crew": string[];
   "v.crewCount": number;
   "v.crewCapacity": number;
+
+  // Topology (gonogo Telemachus fork additions)
+  "v.topology": VesselTopology;
+  "v.topologySeq": number;
 
   // Action group state (read)
   "v.sasValue": boolean;

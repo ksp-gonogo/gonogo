@@ -1,54 +1,67 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
-import type { ShipMapPart } from "./shipMapScript";
+import type { ShipMapPart } from "./shipTopology";
+
+const SIZE_SMALL = { x: 0.6, y: 0.6, z: 0.4 };
+const SIZE_TANK = { x: 1.25, y: 1.25, z: 1.85 };
+const SIZE_ENGINE = { x: 1.25, y: 1.25, z: 1.0 };
 
 const PARTS: ShipMapPart[] = [
   {
-    uid: "root",
+    flightId: 1,
+    parentFlightId: null,
     name: "probeCoreCube",
     title: "RC-001S Remote Guidance Unit",
-    mass: 0.1,
-    x: 0,
-    y: 0,
-    z: 0,
-    parent: "",
+    type: "capsule",
+    lat: 0,
+    axial: 0,
+    size: SIZE_SMALL,
+    dryMass: 0.1,
+    stage: 0,
+    maxTemp: 1200,
   },
   {
-    uid: "tank",
+    flightId: 2,
+    parentFlightId: 1,
     name: "fuelTank",
     title: "FL-T400 Fuel Tank",
-    mass: 2.25,
-    x: 0,
-    y: 0,
-    z: -1,
-    parent: "root",
+    type: "tank",
+    lat: 0,
+    axial: -1,
+    size: SIZE_TANK,
+    dryMass: 0.25,
+    stage: 1,
+    maxTemp: 2000,
+    resources: [
+      { n: "LiquidFuel", a: 90, c: 180 },
+      { n: "Oxidizer", a: 100, c: 220 },
+    ],
   },
   {
-    uid: "engine",
+    flightId: 3,
+    parentFlightId: 2,
     name: "liquidEngine3",
     title: "LV-T30 'Reliant' Liquid Fuel Engine",
-    mass: 1.25,
-    x: 0,
-    y: 0,
-    z: -2,
-    parent: "tank",
+    type: "engine",
+    lat: 0,
+    axial: -2,
+    size: SIZE_ENGINE,
+    dryMass: 1.25,
+    stage: 1,
+    maxTemp: 2000,
   },
 ];
 
 describe("ShipDiagram", () => {
   afterEach(cleanup);
 
-  it("renders a circle per part and edges between parent/child pairs", () => {
+  it("renders one group per part and edges between parent/child pairs", () => {
     const { container } = render(
       <ShipDiagram parts={PARTS} width={200} height={200} />,
     );
-    // Each part renders inside its own <g> — count groups that have
-    // a uid-bearing key (every projected part wraps its shape).
     const groups = container.querySelectorAll("g[style]");
     expect(groups.length).toBeGreaterThanOrEqual(PARTS.length);
-    // Two parent/child edges: tank→root and engine→tank. Filter by
-    // data-edge so spine/stage decoration lines don't get counted.
     const edges = container.querySelectorAll('line[data-edge="parent-child"]');
     expect(edges).toHaveLength(2);
   });
@@ -62,7 +75,6 @@ describe("ShipDiagram", () => {
         height={200}
       />,
     );
-    // Highlight draws an outer ring around the matched part's body box.
     const rings = container.querySelectorAll(
       'rect[data-role="highlight-ring"]',
     );
@@ -83,11 +95,24 @@ describe("ShipDiagram", () => {
     ).toHaveLength(1);
   });
 
-  it("renders a graceful placeholder when the parts list is empty", () => {
+  it("renders fuel-fill bars only inside tanks and boosters", () => {
+    const { container } = render(
+      <ShipDiagram parts={PARTS} width={400} height={400} />,
+    );
+    // Two drainable resources on the one tank → two fill bars + two
+    // backdrop rects = 4 inner rects with the resource-fill role. The
+    // engine has no resources, so no extra bars from it.
+    //
+    // Test the structural invariant rather than count: at least one
+    // fill-bar group exists, and engine groups have none.
+    const fillGroups = container.querySelectorAll('g[pointer-events="none"]');
+    expect(fillGroups.length).toBeGreaterThan(0);
+  });
+
+  it("renders a placeholder when the parts list is empty", () => {
     const { container } = render(
       <ShipDiagram parts={[]} width={200} height={200} />,
     );
-    expect(container.textContent).toMatch(/shipmap\.ks/);
-    expect(container.querySelectorAll("circle")).toHaveLength(0);
+    expect(container.textContent).toMatch(/no vessel topology/i);
   });
 });

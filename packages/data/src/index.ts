@@ -26,6 +26,7 @@ export * from "./hooks/useKosScriptStatus";
 export * from "./hooks/useKosWidget";
 export * from "./hooks/useManeuverFeasibility";
 export * from "./hooks/useManeuverNodes";
+export * from "./hooks/usePartsLive";
 export * from "./hooks/useVesselDeltaV";
 export * from "./kos/CpuRegistryContext";
 export * from "./kos/CpuRegistryService";

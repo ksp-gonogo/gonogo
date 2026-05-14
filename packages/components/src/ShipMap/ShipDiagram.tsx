@@ -1,21 +1,8 @@
-import { StarIcon } from "@gonogo/ui";
 import type React from "react";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { useZoomPan } from "../shared/useZoomPan";
-import type { ShipMapPart } from "./shipMapScript";
-
-type PartType =
-  | "engine"
-  | "booster"
-  | "tank"
-  | "decoupler"
-  | "fin"
-  | "rcs"
-  | "capsule"
-  | "solar"
-  | "parachute"
-  | "other";
+import type { PartType, ShipMapPart } from "./shipTopology";
 
 interface BodyBox {
   latMin: number;
@@ -25,27 +12,18 @@ interface BodyBox {
 }
 
 interface ProjectedPart extends ShipMapPart {
-  lat: number;
-  axial: number;
-  type: PartType;
   body: BodyBox;
   /** Distance from the spine — used for back-to-front draw ordering. */
   spineDist: number;
 }
 
-interface BasePart extends ShipMapPart {
-  lat: number;
-  axial: number;
-  type: PartType;
-}
-
 interface Intrinsic {
-  /** Half-height in world units (axial). */
+  /** Half-extent along the axial (spine) axis, in metres. */
   halfH: number;
-  /** Half-width in world units (lateral). */
+  /** Half-extent along the lateral axis, in metres. */
   halfW: number;
-  /** Tanks/boosters stretch axially to fill their stack slab; everything
-   *  else stays at its intrinsic size so engines, decouplers, etc. don't
+  /** Tanks/boosters/engines stretch axially to fill stack slabs; everything
+   *  else stays at its intrinsic size so decouplers, fins, etc. don't
    *  inflate to fill huge gaps. */
   stretchy: boolean;
 }
@@ -66,6 +44,11 @@ interface Props {
  *  than side-mounted. KSP stack diameters are ~1.25m; 0.3m is well
  *  under the radius so axial-stack joints don't get misclassified. */
 const STACK_LAT_TOL = 0.3;
+
+/** Floor on bounds extents so a zero-bounds part (rare, mid-load) doesn't
+ *  collapse to a point and break the projection. ~0.1m mirrors the smallest
+ *  real KSP part size. */
+const MIN_HALF_EXTENT = 0.1;
 
 export function ShipDiagram({
   parts,
@@ -106,12 +89,7 @@ export function ShipDiagram({
   };
 
   if (parts.length === 0) {
-    return (
-      <Empty>
-        No ship data yet. Save the script to <code>shipmap.ks</code> on Archive
-        and press Run.
-      </Empty>
-    );
+    return <Empty>No vessel topology yet — waiting for Telemachus.</Empty>;
   }
 
   const transform = `translate(${cam.panX}, ${cam.panY}) scale(${cam.zoom})`;
@@ -167,7 +145,7 @@ export function ShipDiagram({
             const b = toBase(e.b.lat, e.b.axial);
             return (
               <line
-                key={`edge-${e.a.uid}-${e.b.uid}`}
+                key={`edge-${e.a.flightId}-${e.b.flightId}`}
                 data-edge="parent-child"
                 x1={a.x}
                 y1={a.y}
@@ -184,9 +162,12 @@ export function ShipDiagram({
             const isHot =
               !!highlight &&
               (p.title.toLowerCase() === highlight.toLowerCase() ||
-                p.name.toLowerCase() === highlight.toLowerCase() ||
-                (!!p.tag && p.tag.toLowerCase() === highlight.toLowerCase()));
-            const fill = heatTint(colorFor(p.type), p.temp, p.maxTemp);
+                p.name.toLowerCase() === highlight.toLowerCase());
+            const fill = heatTint(
+              colorFor(p.type),
+              p.temperatureK,
+              p.maxTemperatureK ?? p.maxTemp,
+            );
             const a = toBase(p.body.latMin, p.body.axialMax);
             const c = toBase(p.body.latMax, p.body.axialMin);
             const box = {
@@ -200,13 +181,13 @@ export function ShipDiagram({
             const showFuel = p.type === "tank" || p.type === "booster";
             return (
               <PartGroup
-                key={p.uid}
+                key={p.flightId}
                 tabIndex={0}
                 role="button"
                 aria-label={partAriaLabel(p)}
                 onPointerEnter={() => setHovered(p)}
                 onPointerLeave={() =>
-                  setHovered((h) => (h?.uid === p.uid ? null : h))
+                  setHovered((h) => (h?.flightId === p.flightId ? null : h))
                 }
                 onFocus={() => {
                   // Position the tooltip near the focused part so keyboard
@@ -218,7 +199,9 @@ export function ShipDiagram({
                   });
                   setHovered(p);
                 }}
-                onBlur={() => setHovered((h) => (h?.uid === p.uid ? null : h))}
+                onBlur={() =>
+                  setHovered((h) => (h?.flightId === p.flightId ? null : h))
+                }
                 style={{ cursor: "pointer" }}
               >
                 {renderPartShape(
@@ -231,18 +214,6 @@ export function ShipDiagram({
                   outerSign,
                 )}
                 {showFuel && renderResourceFill(p.resources, box)}
-                {p.tag ? (
-                  <circle
-                    data-role="tag-badge"
-                    cx={box.x + box.w}
-                    cy={box.y}
-                    r={3 / cam.zoom + 1}
-                    fill="var(--color-tag-cyan-fg)"
-                    stroke="var(--color-surface-sunken)"
-                    strokeWidth={0.6 / cam.zoom}
-                    pointerEvents="none"
-                  />
-                ) : null}
                 {isHot && (
                   <rect
                     data-role="highlight-ring"
@@ -282,11 +253,6 @@ export function ShipDiagram({
             top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
           }}
         >
-          {hovered.tag ? (
-            <div className="tag">
-              <StarIcon size={11} fill="currentColor" /> {hovered.tag}
-            </div>
-          ) : null}
           <div className="title">{hovered.title || hovered.name}</div>
           <div className="row">
             <span>type</span>
@@ -294,7 +260,7 @@ export function ShipDiagram({
           </div>
           <div className="row">
             <span>mass</span>
-            <span>{hovered.mass.toFixed(3)} t</span>
+            <span>{hovered.dryMass.toFixed(3)} t</span>
           </div>
           <div className="row">
             <span>pos</span>
@@ -302,20 +268,20 @@ export function ShipDiagram({
               {hovered.lat.toFixed(2)}, {hovered.axial.toFixed(2)}
             </span>
           </div>
-          {hovered.temp !== undefined && hovered.maxTemp ? (
+          {hovered.temperatureK !== undefined &&
+          (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (
             <div className="row">
               <span>temp</span>
               <span>
-                {Math.round(hovered.temp)} / {Math.round(hovered.maxTemp)} K
+                {Math.round(hovered.temperatureK)} /{" "}
+                {Math.round(hovered.maxTemperatureK ?? hovered.maxTemp)} K
               </span>
             </div>
           ) : null}
-          {hovered.stage === undefined ? null : (
-            <div className="row">
-              <span>stage</span>
-              <span>{hovered.stage}</span>
-            </div>
-          )}
+          <div className="row">
+            <span>stage</span>
+            <span>{hovered.stage}</span>
+          </div>
           {hovered.resources && hovered.resources.length > 0
             ? hovered.resources.map((r) => (
                 <div className="row" key={r.n}>
@@ -577,12 +543,6 @@ function colorFor(type: PartType): string {
 }
 
 /**
- * Tint a base colour toward red as temp/maxTemp ratio rises. Returns the
- * base colour unchanged below 50% — most parts hover around ambient and
- * we don't want every cold part to look slightly off. Above 50%, blend
- * toward amber (75%) and red (100%).
- */
-/**
  * Stacks one vertical bar per drainable resource inside the part body.
  * Bars fill bottom-up (gravity-style) at `amount/capacity`. For multi-
  * resource tanks (LF + Ox) each resource gets its own column so the user
@@ -643,9 +603,7 @@ function renderResourceFill(
 
 function partAriaLabel(p: ProjectedPart): string {
   const name = p.title || p.name;
-  const bits: string[] = [];
-  if (p.tag) bits.push(`tagged ${p.tag}`);
-  bits.push(name, p.type, `${p.mass.toFixed(2)} tonnes`);
+  const bits: string[] = [name, p.type, `${p.dryMass.toFixed(2)} tonnes`];
   if (p.resources) {
     const drainable = p.resources.filter((r) => DRAINABLE.has(r.n) && r.c > 0);
     for (const r of drainable) {
@@ -653,13 +611,20 @@ function partAriaLabel(p: ProjectedPart): string {
       bits.push(`${r.n} ${pct} percent`);
     }
   }
-  if (p.temp !== undefined && p.maxTemp && p.maxTemp > 0) {
-    const ratio = p.temp / p.maxTemp;
+  const maxK = p.maxTemperatureK ?? p.maxTemp;
+  if (p.temperatureK !== undefined && maxK > 0) {
+    const ratio = p.temperatureK / maxK;
     if (ratio > 0.75) bits.push("hot");
   }
   return bits.join(", ");
 }
 
+/**
+ * Tint a base colour toward red as temp/maxTemp ratio rises. Returns the
+ * base colour unchanged below 50% — most parts hover around ambient and
+ * we don't want every cold part to look slightly off. Above 50%, blend
+ * toward amber (75%) and red (100%).
+ */
 function heatTint(base: string, temp?: number, maxTemp?: number): string {
   if (!temp || !maxTemp || maxTemp <= 0) return base;
   const t = Math.max(0, Math.min(1, temp / maxTemp));
@@ -690,39 +655,20 @@ function parseHex(hex: string): [number, number, number] | null {
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-function intrinsicSize(type: PartType, mass: number): Intrinsic {
-  // Mass^(1/3) is a rough proxy for linear dimension (volume → length).
-  // Real values come from `p:BOUNDS` in the kerboscript — that's step 3
-  // of the Ship Map plan and will make this whole table redundant.
-  const m = Math.max(mass, 0.01);
-  const c = Math.cbrt(m);
-  switch (type) {
-    case "tank":
-      return { halfH: 0.45 + c * 0.4, halfW: 0.4 + c * 0.15, stretchy: true };
-    case "booster":
-      return { halfH: 0.6 + c * 0.5, halfW: 0.5 + c * 0.15, stretchy: true };
-    case "engine":
-      // Stretchy: an engine in a stack slab grows the mount block above
-      // its bell to fill the gap. Bell stays width-derived in render so
-      // it doesn't balloon with the body.
-      return { halfH: 0.35 + c * 0.2, halfW: 0.3 + c * 0.15, stretchy: true };
-    case "capsule":
-      return { halfH: 0.4 + c * 0.3, halfW: 0.35 + c * 0.2, stretchy: false };
-    case "decoupler":
-      // Width gets overwritten with parent/child stack width during
-      // projection so decouplers always span the visible stack.
-      return { halfH: 0.1, halfW: 0.4, stretchy: false };
-    case "rcs":
-      return { halfH: 0.1, halfW: 0.08, stretchy: false };
-    case "fin":
-      return { halfH: 0.3, halfW: 0.35, stretchy: false };
-    case "solar":
-      return { halfH: 0.06, halfW: 0.18, stretchy: false };
-    case "parachute":
-      return { halfH: 0.25, halfW: 0.3, stretchy: false };
-    default:
-      return { halfH: 0.12 + c * 0.2, halfW: 0.12 + c * 0.15, stretchy: false };
-  }
+/**
+ * Per-part intrinsic extents from prefab bounds. The diagram projects
+ * `(lat, axial)` from `orgPos`; the prefab `size` is `{x, y, z}` in
+ * metres, axial-aligned. `halfH` is the spine extent (z/2); `halfW`
+ * picks the larger of the two lateral extents so a rotation-agnostic
+ * lateral profile renders sensibly.
+ */
+function intrinsicSize(part: ShipMapPart): Intrinsic {
+  const s = part.size;
+  const halfH = Math.max(s.z / 2, MIN_HALF_EXTENT);
+  const halfW = Math.max(Math.max(s.x, s.y) / 2, MIN_HALF_EXTENT);
+  const stretchy =
+    part.type === "tank" || part.type === "booster" || part.type === "engine";
+  return { halfH, halfW, stretchy };
 }
 
 function project(parts: readonly ShipMapPart[]) {
@@ -735,40 +681,23 @@ function project(parts: readonly ShipMapPart[]) {
     };
   }
 
-  // Pick whichever lateral axis the ship is widest on so the side-view
-  // shows the actual silhouette rather than edge-on. Parts on the *other*
-  // lateral axis get projected onto the spine and overlap — known
-  // limitation; would need a real 3D viewer to fix.
-  const xs = parts.map((p) => p.x);
-  const ys = parts.map((p) => p.y);
-  const spreadX = Math.max(...xs) - Math.min(...xs);
-  const spreadY = Math.max(...ys) - Math.min(...ys);
-  const useX = spreadX >= spreadY;
-
-  const base: BasePart[] = parts.map((p) => ({
-    ...p,
-    lat: useX ? p.x : p.y,
-    axial: p.z,
-    type: classify(p.name, p.title, p.category),
-  }));
-
-  // Pass 1: intrinsic sizes per part.
-  const intrinsics = new Map<string, Intrinsic>(
-    base.map((p) => [p.uid, intrinsicSize(p.type, p.mass)]),
+  // Lateral axis was picked at the topology layer (see
+  // `pickLateralAxis` in shipTopology.ts) so every part already carries
+  // the right `lat` value. The diagram just projects.
+  const intrinsics = new Map<number, Intrinsic>(
+    parts.map((p) => [p.flightId, intrinsicSize(p)]),
   );
-
-  // Pass 2: body boxes using topology + intrinsics.
-  const byUid = new Map(base.map((p) => [p.uid, p]));
-  const childrenOf = new Map<string, BasePart[]>();
-  for (const p of base) {
-    if (!p.parent) continue;
-    const list = childrenOf.get(p.parent) ?? [];
+  const byId = new Map(parts.map((p) => [p.flightId, p]));
+  const childrenOf = new Map<number, ShipMapPart[]>();
+  for (const p of parts) {
+    if (p.parentFlightId == null) continue;
+    const list = childrenOf.get(p.parentFlightId) ?? [];
     list.push(p);
-    childrenOf.set(p.parent, list);
+    childrenOf.set(p.parentFlightId, list);
   }
 
-  const projected: ProjectedPart[] = base.map((p) =>
-    withBody(p, byUid, childrenOf, intrinsics),
+  const projected: ProjectedPart[] = parts.map((p) =>
+    withBody(p, byId, childrenOf, intrinsics),
   );
 
   const stages = projected
@@ -776,10 +705,10 @@ function project(parts: readonly ShipMapPart[]) {
     .map((p) => p.axial);
 
   const edges: { a: ProjectedPart; b: ProjectedPart }[] = [];
-  const projByUid = new Map(projected.map((p) => [p.uid, p]));
+  const projById = new Map(projected.map((p) => [p.flightId, p]));
   for (const p of projected) {
-    if (!p.parent) continue;
-    const parent = projByUid.get(p.parent);
+    if (p.parentFlightId == null) continue;
+    const parent = projById.get(p.parentFlightId);
     if (parent) edges.push({ a: p, b: parent });
   }
 
@@ -804,37 +733,45 @@ function project(parts: readonly ShipMapPart[]) {
 }
 
 function withBody(
-  p: BasePart,
-  byUid: Map<string, BasePart>,
-  childrenOf: Map<string, BasePart[]>,
-  intrinsics: Map<string, Intrinsic>,
+  p: ShipMapPart,
+  byId: Map<number, ShipMapPart>,
+  childrenOf: Map<number, ShipMapPart[]>,
+  intrinsics: Map<number, Intrinsic>,
 ): ProjectedPart {
-  const intr = intrinsics.get(p.uid);
-  if (!intr) throw new Error(`ShipDiagram: missing intrinsic for ${p.uid}`);
-  const parent = p.parent ? (byUid.get(p.parent) ?? null) : null;
-  const children = childrenOf.get(p.uid) ?? [];
+  const intr = intrinsics.get(p.flightId);
+  if (!intr)
+    throw new Error(`ShipDiagram: missing intrinsic for ${p.flightId}`);
+  const parent =
+    p.parentFlightId != null ? (byId.get(p.parentFlightId) ?? null) : null;
+  const children = childrenOf.get(p.flightId) ?? [];
 
   // A child counts as "stack-attached" (axially in line with us) when its
   // lateral offset is small. Side-mounted children sit ON our flank.
-  const isStackAxial = (c: BasePart) =>
+  const isStackAxial = (c: ShipMapPart) =>
     Math.abs(c.lat - p.lat) < STACK_LAT_TOL &&
     Math.abs(c.axial - p.axial) > 0.05;
 
   const stackParent = parent && isStackAxial(parent) ? parent : null;
   const stackChildAbove = children
     .filter((c) => isStackAxial(c) && c.axial > p.axial)
-    .reduce<BasePart | null>((m, c) => (!m || c.axial > m.axial ? c : m), null);
+    .reduce<ShipMapPart | null>(
+      (m, c) => (!m || c.axial > m.axial ? c : m),
+      null,
+    );
   const stackChildBelow = children
     .filter((c) => isStackAxial(c) && c.axial < p.axial)
-    .reduce<BasePart | null>((m, c) => (!m || c.axial < m.axial ? c : m), null);
+    .reduce<ShipMapPart | null>(
+      (m, c) => (!m || c.axial < m.axial ? c : m),
+      null,
+    );
 
   let axialMax = p.axial + intr.halfH;
   let axialMin = p.axial - intr.halfH;
 
   if (intr.stretchy) {
-    // Tank/booster fills its slab. Meets stretchy neighbours at the
-    // midpoint; meets non-stretchy neighbours (engine, decoupler) at
-    // the neighbour's intrinsic boundary so we don't overlap them.
+    // Tank/booster/engine fills its slab. Meets stretchy neighbours at
+    // the midpoint; meets non-stretchy neighbours (decoupler, capsule)
+    // at the neighbour's intrinsic boundary so we don't overlap them.
     const upper =
       stackParent && stackParent.axial > p.axial
         ? stackParent
@@ -844,7 +781,7 @@ function withBody(
         ? stackParent
         : stackChildBelow;
     if (upper) {
-      const ui = intrinsics.get(upper.uid);
+      const ui = intrinsics.get(upper.flightId);
       if (ui) {
         axialMax = ui.stretchy
           ? (p.axial + upper.axial) / 2
@@ -852,7 +789,7 @@ function withBody(
       }
     }
     if (lower) {
-      const li = intrinsics.get(lower.uid);
+      const li = intrinsics.get(lower.flightId);
       if (li) {
         axialMin = li.stretchy
           ? (p.axial + lower.axial) / 2
@@ -869,7 +806,7 @@ function withBody(
   let latMax = p.lat + intr.halfW;
   for (const c of children) {
     if (isStackAxial(c)) continue;
-    const ci = intrinsics.get(c.uid);
+    const ci = intrinsics.get(c.flightId);
     if (!ci) continue;
     if (c.type !== "fin" && c.type !== "solar") {
       if (c.axial + ci.halfH > axialMax) axialMax = c.axial + ci.halfH;
@@ -890,8 +827,8 @@ function withBody(
   // Decouplers inherit width from neighbouring stack parts so the band
   // always spans the visible stack diameter.
   if (p.type === "decoupler") {
-    const widthOf = (n: BasePart | null) =>
-      n ? (intrinsics.get(n.uid)?.halfW ?? 0) : 0;
+    const widthOf = (n: ShipMapPart | null) =>
+      n ? (intrinsics.get(n.flightId)?.halfW ?? 0) : 0;
     const halfW = Math.max(
       intr.halfW,
       widthOf(stackParent),
@@ -907,53 +844,6 @@ function withBody(
     body: { latMin, latMax, axialMin, axialMax },
     spineDist: Math.abs(p.lat),
   };
-}
-
-// Categories the v2 kerboscript can emit — kept here so adding a new
-// category in-game just needs the matching enum addition.
-const CATEGORY_TO_TYPE: Record<string, PartType> = {
-  engine: "engine",
-  booster: "booster",
-  tank: "tank",
-  decoupler: "decoupler",
-  rcs: "rcs",
-  capsule: "capsule",
-  solar: "solar",
-  parachute: "parachute",
-  fin: "fin",
-  other: "other",
-};
-
-function classify(name: string, title: string, category?: string): PartType {
-  if (category && CATEGORY_TO_TYPE[category]) return CATEGORY_TO_TYPE[category];
-  // Name/title heuristics — only used for v1 payloads (no category) or
-  // unknown categories.
-  const n = `${name} ${title}`.toLowerCase();
-  if (n.includes("solid") && n.includes("booster")) return "booster";
-  if (n.includes("engine") || n.includes("liquidengine")) return "engine";
-  if (n.includes("decoupler") || n.includes("separator")) return "decoupler";
-  if (n.includes("rcs") || n.includes("monoprop") || n.includes("thruster"))
-    return "rcs";
-  if (n.includes("winglet") || n.includes("wing") || n.includes("fin"))
-    return "fin";
-  if (
-    n.includes("capsule") ||
-    n.includes("pod") ||
-    n.includes("command") ||
-    n.includes("cockpit")
-  )
-    return "capsule";
-  if (n.includes("solar") || n.includes("photovoltaic")) return "solar";
-  if (n.includes("parachute")) return "parachute";
-  if (
-    n.includes("tank") ||
-    n.includes("fuel") ||
-    n.includes("fl-t") ||
-    n.includes("fl-r") ||
-    n.includes("rocketmax")
-  )
-    return "tank";
-  return "other";
 }
 
 const PartGroup = styled.g`
@@ -1007,12 +897,6 @@ const Tooltip = styled.div`
   pointer-events: none;
   min-width: 140px;
   z-index: 20;
-  .tag {
-    color: var(--color-tag-cyan-fg);
-    font-weight: 600;
-    margin-bottom: 2px;
-    word-break: break-word;
-  }
   .title {
     font-weight: 600;
     color: var(--color-status-go-fg);
@@ -1041,11 +925,4 @@ const Empty = styled.div`
   text-align: center;
   width: 100%;
   height: 100%;
-  code {
-    background: var(--color-surface-raised);
-    padding: 1px 4px;
-    border-radius: 2px;
-    color: var(--color-status-go-fg);
-    margin: 0 2px;
-  }
 `;
