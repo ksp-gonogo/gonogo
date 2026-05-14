@@ -473,9 +473,14 @@ tele_read() {
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
     return 2
   fi
+  # URL-encode brackets so parameterized keys like r.resourceFor[123] and
+  # therm.part[456] survive the query-string round-trip. Telemachus parses
+  # the bracket args itself after URL-decoding.
   local q=""
   for k in "$@"; do
-    q="${q:+$q&}${k}=${k}"
+    local enc="${k//\[/%5B}"
+    enc="${enc//\]/%5D}"
+    q="${q:+$q&}${enc}=${enc}"
   done
   local url="${TELE_HOST}/telemachus/datalink?${q}"
   # Tempfile pattern: keeps curl/jq non-zero exits from tripping set -e
