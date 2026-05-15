@@ -112,7 +112,7 @@ const Label = styled.span`
 const List = styled.div`
   display: flex;
   gap: 14px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 `;
 
 const Entry = styled.div`
