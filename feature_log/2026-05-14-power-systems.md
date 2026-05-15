@@ -1,7 +1,7 @@
 # Power Systems — flow / nominalFlow + producers/consumers widget
 
 **Date:** 2026-05-14
-**Validation:** ⏳ pending — Substantially validated 2026-05-15 against Validator-1 (suborbital test craft with solar panels, RTGs, an LV-T45 engine, and a fuel tank). 4 of 5 dispatch cases confirmed end-to-end (solar, RTG, engine, fuel-tank control). One real bug found in engine dispatch (units/frame vs units/sec) — fix landed in source, awaits DLL rebuild for live re-verify. ISRU + drill dispatch not exercised (no Convert-O-Tron or harvester on the test craft). One coverage-gap finding worth a fork v2 PR: consumer dispatch missing for `ModuleDataTransmitter` / `TelemachusPowerDrain` / `ModuleCommand` / `ModuleReactionWheel` / `ModuleLight`, and producer dispatch missing for `ModuleAlternator`. See "Live validation 2026-05-15" below.
+**Validation:** ✅ confirmed 2026-05-15 — engine flow units fix re-verified across three engine catalog rates (LV-T45 vacuum -6.17 LF/s, LV-T45 atmospheric -6.04 LF/s, LV-909 vacuum -1.60 LF/s, all matching catalog to two decimal places). v2 dispatch confirmed live for `ModuleCommand`, `ModuleReactionWheel`, `ModuleLight`, `TelemachusPowerDrain`, `ModuleAlternator`. ISRU + drill still not exercised (no Convert-O-Tron / harvester on the test craft); deferred to a future Mun-base flight. One v2-dispatch bug found + fixed in-session: `ModuleAlternator` ghost-EC after engine flameout (commit `00d85d8` on `telemachus/parts-topology` adds sibling-engine gate). See "Live validation 2026-05-15" + "2026-05-15 re-verify pass" sections below.
 
 ## What changed
 
@@ -284,4 +284,37 @@ This is a fork v2 expansion, not a v1 bug. Tracking as a follow-up; the v1 surfa
 3. Drill extracting: Ore positive, EC negative.
 4. PowerSystems with a craft that has all five module types loaded at once (station-class build with a Convert-O-Tron + harvester + solar farm).
 5. ShipMap producer / consumer ring: was visible on the Validator-1 RTGs but masked by the hottest-part highlight (which correctly took precedence at higher opacity). Needs a craft with a non-hot producer and a non-hot consumer side-by-side.
+
+## 2026-05-15 re-verify pass
+
+DLL rebuilt with the engine units fix + v2 dispatch. Twin rocket-rovers tested on the launchpad with full docking + staging sequence. Findings:
+
+### Engine flow units — confirmed live
+
+| Engine + state | Reported flow | Catalog | Match |
+|---|---|---|---|
+| LV-T45 at vacuum full throttle | -6.17 LF / -7.54 Ox unit/sec | 6.16 / 7.53 | ✅ |
+| LV-T45 at atmospheric throttle | -6.04 LF unit/sec | 6.04 ± Isp curve | ✅ |
+| LV-909 ("Terrier") at vacuum full throttle | -1.60 LF unit/sec | 1.60 | ✅ |
+
+Pre-fix the same engines reported ~0.123 LF/s (units/frame at 50 Hz physics). Fix conclusively confirmed.
+
+### v2 dispatch — live confirmations
+
+| Module | How exercised | Result |
+|---|---|---|
+| `ModuleAlternator` | LV-T45 ignited, sibling-pair output | ✅ +4.75 EC/s while engine firing |
+| `ModuleCommand` | Mk1 pod + ModuleReactionWheel sibling | ✅ -0.24 EC/s (RW + cmd combined) |
+| `ModuleReactionWheel` | AG3 toggle on Mk1 pod | ✅ Row appears/disappears on toggle |
+| `ModuleLight` (dome) | AG2 toggle on dome lights | ✅ -0.005 EC/s per light, no row when off |
+| `TelemachusPowerDrain` | Always-on antenna draw | ✅ -0.04 EC/s exactly (matches F12 readout) |
+| `ModuleDataTransmitter` | Stock antenna transmit | ⏳ not exercised — no science transmit in test |
+
+### Alternator ghost-EC bug — found + fixed
+
+Live observation post-staging: a flamed-out LV-T45 on a 1-part debris vessel reported `r.resourceFor` EC `+4.70` flow, even though `v.partState` correctly reported `state: "active", flameout: true`. Root cause: `ModuleAlternator.outputRate` retains its last-non-zero value across the flameout transition. Original v1 dispatch had a sibling-engine gate; got incorrectly simplified away in commit `27d14de`. Fix re-adds the gate (commit `00d85d8`).
+
+### Fork bug audit complete
+
+All cases dispatched by `ResourceHandlers.AddModuleFlow` now validated under live conditions or skipped with documented rationale. Single open coverage gap: ISRU + drill (requires station-class craft on a body with Ore — deferred to future Mun-base session).
 

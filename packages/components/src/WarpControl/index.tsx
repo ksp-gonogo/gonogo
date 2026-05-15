@@ -6,7 +6,6 @@ import {
   useExecuteAction,
   useGameContext,
 } from "@gonogo/core";
-import { useEffect, useState } from "react";
 import {
   DimmedOverlay,
   Panel,
@@ -16,6 +15,7 @@ import {
   ReadoutCaption,
   ToggleButton,
 } from "@gonogo/ui";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 /**
