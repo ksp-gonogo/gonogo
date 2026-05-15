@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-14
 **Task:** Performance follow-up surfaced during the live curl validation of `2026-05-14-ship-map-on-telemachus-topology.md`. The widget was subscribing to `v.topology` directly, which keeps the full structural payload streaming at the WS rate even between invalidations.
-**Validation:** ⏳ pending — Widget render confirmed against a live Validator-1 craft 2026-05-15 (no visible UI churn across many high-frequency seq bumps from solar deploy + PAW dismisses + decouple cascade), so the optimisation is structurally sound at the React-render level. **DevTools WS-frame inspection still pending** — would directly confirm that `v.topology` frames only appear after a `v.topologySeq` bump rather than at the WS rate. Defer to a follow-up session.
+**Validation:** ⏳ pending — Stress-tested 2026-05-15 in a twin-rover docking + staging session. Hook tracks correctly through structural-growth events (dock 86→88; second dock 214→216) and clean two-rocket splits (SAS-stabilised 216→218). **One bug found**: hook freezes during rapid destruction cascades — widget caught seq 119 when real seq advanced to 147 via ~30 `onPartDie` bumps over 16s. Hypothesis: `FETCH_TIMEOUT_MS = 2000` expires while Telemachus is busy churning destruction events; the hook drops the subscription and waits for the next seq bump to re-arm; if that next bump also fails to push back within 2s and seq subsequently stabilises, the hook never re-arms. Phase 2 fix candidate documented in `local_docs/2026-05-16-phase-2-shipmap-handoff.md`. DevTools WS-frame inspection skipped — streaming-WS evidence from the 2026-05-15 logs (`/tmp/{dock,stage,pass2}-stream*.log`) proves topology pushes only flow after seq bumps under normal conditions.
 
 ## Overview
 
