@@ -105,6 +105,15 @@ export interface TopologyPart {
   dryMass: number;
   /** Vessel-local root-relative position `[x, y, z]`. */
   orgPos: [number, number, number];
+  /**
+   * Part's local +up axis in vessel-local frame (`part.orgRot * Vector3.up`).
+   * `[0, 1, 0]` for axially-mounted parts (the majority); `[±1, 0, 0]` or
+   * `[0, 0, ±1]` for radially-mounted parts (docking ports, side nose cones,
+   * radial decouplers); inverted parts (rare) carry a negative-Y component.
+   * Optional because fixtures captured before the fork started emitting it
+   * stay readable — consumers should default to `[0, 1, 0]`.
+   */
+  up?: [number, number, number];
   /** Prefab renderer bounds in metres — stable across the session. */
   bounds: { size: { x: number; y: number; z: number } };
   /** Raw `PartModule.moduleName` strings; no filtering. */

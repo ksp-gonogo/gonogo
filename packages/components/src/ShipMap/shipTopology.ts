@@ -11,6 +11,7 @@ export type PartType =
   | "booster"
   | "tank"
   | "decoupler"
+  | "nose-cone"
   | "fin"
   | "rcs"
   | "capsule"
@@ -35,6 +36,16 @@ export interface ShipMapPart {
   lat: number;
   /** Position along the spine (orgPos z). */
   axial: number;
+  /**
+   * Screen-space CCW rotation in radians applied to the part's body box
+   * when rendering. Derived from the part's vessel-local `up` vector
+   * projected into the same 2D plane the diagram uses for positions:
+   * axial → screen-up, lateral (picked) → screen-right. A part with
+   * `up=[0,1,0]` (axially mounted) renders with zero rotation; a part
+   * with `up=[1,0,0]` rotates 90° clockwise; an inverted part rotates
+   * 180°. Falls back to 0 when the fork didn't emit `up`.
+   */
+  rotationRad: number;
   /** Prefab bounds in metres — `{x, y, z}` from `v.topology.parts[].bounds.size`. */
   size: { x: number; y: number; z: number };
   /** Half-extent along the picked lateral axis (matches whatever `useX`
@@ -111,6 +122,13 @@ export function classifyPart(
     (resources.SolidFuel?.maxAmount ?? 0) > 0;
   const hasAnyResource = resources && Object.keys(resources).length > 0;
 
+  // Nose cones live under PartCategories.Aero alongside wings + control
+  // surfaces, but they're shape-distinct (rounded dome vs. triangle) so
+  // they get their own classification. Name-based detection because KSP
+  // doesn't gate them with a dedicated module; convention is reliable
+  // ("noseCone", "rocketNoseCone", "nosecone_v2", etc.).
+  const isNoseCone = part.name.toLowerCase().includes("nose");
+
   if (hasEngine && hasSolidFuel) return "booster";
   if (hasEngine) return "engine";
   if (hasDecouple) return "decoupler";
@@ -118,6 +136,7 @@ export function classifyPart(
   if (hasCommand) return "capsule";
   if (hasSolar) return "solar";
   if (hasParachute) return "parachute";
+  if (isNoseCone) return "nose-cone";
   if (hasFin && !hasCargoBay) return "fin";
   if (hasAnyResource) return "tank";
 
@@ -247,6 +266,15 @@ export function buildShipMapPart(
         : "consumer"
       : null;
   const size = part.bounds.size;
+  // Project the part's vessel-local up vector into screen space. The
+  // diagram maps vessel +axial → screen-up (smaller y) and vessel
+  // +picked-lateral → screen-right (larger x), so the rotation angle
+  // is `atan2(lateral, axial)` from screen-up. Without fork-emitted up,
+  // default to axially-aligned (zero rotation).
+  const up = part.up;
+  const upLat = up ? (useX ? up[0] : up[2]) : 0;
+  const upAxial = up ? up[1] : 1;
+  const rotationRad = Math.atan2(upLat, upAxial);
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
@@ -255,6 +283,7 @@ export function buildShipMapPart(
     type: classifyPart(part, resources),
     lat: useX ? orgPos[0] : orgPos[2],
     axial: orgPos[1],
+    rotationRad,
     size,
     // Vessel-local Y is the spine; the bounds emit in part-local frame
     // where Y is also the axial extent, so this maps 1:1 for axially
