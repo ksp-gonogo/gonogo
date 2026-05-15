@@ -15,6 +15,7 @@ function half(size: { x: number; y: number; z: number }) {
     size,
     latHalfExtent: size.x / 2,
     axialHalfExtent: size.y / 2,
+    rotationRad: 0,
   };
 }
 

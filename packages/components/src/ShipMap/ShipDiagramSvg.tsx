@@ -205,8 +205,23 @@ export function ShipDiagramSvg({
               }
             : {};
 
+          // Convert the projected rotationRad into an SVG-degrees rotate
+          // applied around the part's centre. Zero rotation (the legacy
+          // / fixture-fallback case) renders as today; non-zero rotation
+          // turns the body box + every overlay together so fuel bars,
+          // heat tint, EC + highlight rings stay locked to the part.
+          const rotateDeg = (p.rotationRad * 180) / Math.PI;
+          const rotateTransform =
+            Math.abs(rotateDeg) > 0.01
+              ? `rotate(${rotateDeg.toFixed(2)} ${center.x.toFixed(2)} ${center.y.toFixed(2)})`
+              : undefined;
+
           return (
-            <PartGroup key={p.flightId} {...interactiveProps}>
+            <PartGroup
+              key={p.flightId}
+              transform={rotateTransform}
+              {...interactiveProps}
+            >
               {renderPartShape(
                 p.type,
                 box,
@@ -414,18 +429,36 @@ function renderPartShape(
           opacity={opacity}
         />
       );
-    case "capsule":
+    case "capsule": {
+      // Truncated cone (frustum) — Mk1 pod and probe cores both share the
+      // wider-at-base silhouette. Apex flat (not pointed) and stretches
+      // to the bounds top so parts attached above the pod (e.g. the
+      // parachute) visually touch instead of floating with a gap.
+      const topInset = w * 0.18;
       return (
-        <path
-          d={`M ${x} ${y + h} L ${x} ${y + h * 0.4} Q ${cx} ${y} ${
-            x + w
-          } ${y + h * 0.4} L ${x + w} ${y + h} Z`}
+        <polygon
+          points={`${x},${y + h} ${x + w},${y + h} ${x + w - topInset},${y} ${x + topInset},${y}`}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
       );
+    }
+    case "nose-cone": {
+      // Rounded dome whose apex reaches the bounds top. Cubic Bezier with
+      // both control points pulled to y so the curve is tangent to the
+      // top edge at its peak — gives a smoother nose than a Q curve.
+      return (
+        <path
+          d={`M ${x} ${y + h} L ${x} ${y + h * 0.4} C ${x} ${y} ${x + w} ${y} ${x + w} ${y + h * 0.4} L ${x + w} ${y + h} Z`}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+        />
+      );
+    }
     case "solar": {
       // Wide thin strip — solar panels are skinny.
       const thickness = Math.max(4 / zoom, Math.min(h, 8 / zoom));
@@ -442,20 +475,24 @@ function renderPartShape(
         />
       );
     }
-    case "parachute":
+    case "parachute": {
+      // Stowed parachute canister — squat dome that sits on its mount.
+      // Flat bottom matching the base width, semicircular top reaching
+      // the bounds apex via cubic-Bezier control points pulled to y.
+      // Inset narrower than the bounds box because the canister itself
+      // is smaller than its mounted footprint.
+      const inset = w * 0.18;
+      const baseY = y + h * 0.85;
       return (
-        <rect
-          x={x + w * 0.2}
-          y={y + h * 0.15}
-          width={w * 0.6}
-          height={h * 0.7}
-          rx={Math.min(w, h) * 0.15}
+        <path
+          d={`M ${x + inset},${baseY} L ${x + inset},${y + h * 0.45} C ${x + inset},${y} ${x + w - inset},${y} ${x + w - inset},${y + h * 0.45} L ${x + w - inset},${baseY} Z`}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
       );
+    }
     default:
       return (
         <rect
@@ -510,6 +547,8 @@ function colorFor(type: PartType): string {
       return "var(--color-text-muted)";
     case "decoupler":
       return "var(--color-status-warning-bg)";
+    case "nose-cone":
+      return "var(--color-text-primary)";
     case "fin":
       return "var(--color-status-info-fg)";
     case "rcs":
