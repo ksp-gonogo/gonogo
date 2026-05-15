@@ -6,6 +6,7 @@ import {
   useExecuteAction,
   useGameContext,
 } from "@gonogo/core";
+import { useEffect, useState } from "react";
 import {
   DimmedOverlay,
   Panel,
@@ -90,6 +91,19 @@ function WarpControlComponent({
   const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const execute = useExecuteAction("data");
 
+  // Optimistic pause state: tracks the operator's *intent* between click
+  // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
+  // a click before the ~250ms WS push lands sees stale `isPaused` and
+  // fires the wrong action key — explicitly observed as the "pause works,
+  // unpause doesn't" symptom on 2026-05-15. Cleared by the reconcile effect
+  // below once truth catches up.
+  const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);
+  const effectivePaused = pauseIntent ?? isPaused;
+  useEffect(() => {
+    if (pauseIntent === null) return;
+    if (isPaused === pauseIntent) setPauseIntent(null);
+  }, [pauseIntent, isPaused]);
+
   // Time warp works in Flight / SpaceCenter / TrackingStation but not
   // Editor / MainMenu. Dim the body when KSP is in a no-warp scene so
   // the operator doesn't click into a no-op. Wider gate than the
@@ -113,9 +127,13 @@ function WarpControlComponent({
     void execute(`t.timeWarp[${idx}]`);
   };
   // The fork ships separate `t.pause` / `t.unpause` action keys — there's
-  // no toggle. Fire the one matching the inverse of the current state.
+  // no toggle. Fire the inverse of the operator's last intent (or the
+  // current truth if no intent is in-flight). Optimistic so back-to-back
+  // clicks before the WS push catches up still pick the right action.
   const togglePause = () => {
-    void execute(isPaused ? "t.unpause" : "t.pause");
+    const next = !effectivePaused;
+    setPauseIntent(next);
+    void execute(next ? "t.pause" : "t.unpause");
   };
 
   useActionInput<WarpControlActions>({
@@ -139,7 +157,7 @@ function WarpControlComponent({
     togglePause: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       togglePause();
-      return { Paused: !isPaused };
+      return { Paused: !effectivePaused };
     },
   });
 
@@ -178,16 +196,20 @@ function WarpControlComponent({
 
           {scene === "Flight" && (
             <ToggleButton
-              active={isPaused === true}
+              active={effectivePaused === true}
               tone="warn"
               size="sm"
               onClick={togglePause}
-              aria-label={isPaused === true ? "Resume game" : "Pause game"}
+              aria-label={
+                effectivePaused === true ? "Resume game" : "Pause game"
+              }
               title={
-                isPaused === true ? "Resume (t.unpause)" : "Pause (t.pause)"
+                effectivePaused === true
+                  ? "Resume (t.unpause)"
+                  : "Pause (t.pause)"
               }
             >
-              {isPaused === true ? (
+              {effectivePaused === true ? (
                 <PlayIcon size={12} />
               ) : (
                 <PauseIcon size={12} />
@@ -338,7 +360,7 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
-  dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode"],
+  dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode", "t.isPaused"],
   defaultConfig: {},
   actions: warpActions,
   pushable: true,
