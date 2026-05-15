@@ -102,19 +102,26 @@ function PowerSystemsComponent({
     },
   });
 
-  // Per-part flow contributions for the selected resource. Excludes rows
-  // with zero or absent flow — they're storage-only entries.
+  // Per-part flow contributions for the selected resource. Includes
+  // zero-flow rows when the part exposes a nominalFlow — those are
+  // "idle" deployables (stowed solar panel, shaded panel, etc.) that
+  // would contribute power if the conditions were right. Storage-only
+  // rows (no flow, no nominal) are still skipped.
   const contributions = useMemo<Contribution[]>(() => {
     const out: Contribution[] = [];
     if (!topology) return out;
     for (const part of topology.parts) {
       const slice = liveByFlightId.get(part.flightId);
       const row = slice?.resources?.[resource];
-      if (!row || typeof row.flow !== "number" || row.flow === 0) continue;
+      if (!row) continue;
+      const hasFlow = typeof row.flow === "number" && row.flow !== 0;
+      const hasNominal =
+        typeof row.nominalFlow === "number" && row.nominalFlow !== 0;
+      if (!hasFlow && !hasNominal) continue;
       out.push({
         flightId: part.flightId,
         partTitle: part.title ?? part.name,
-        flow: row.flow,
+        flow: row.flow ?? 0,
         nominalFlow: row.nominalFlow,
       });
     }
@@ -129,6 +136,24 @@ function PowerSystemsComponent({
   const consumers = useMemo(
     () =>
       contributions.filter((c) => c.flow < 0).sort((a, b) => a.flow - b.flow),
+    [contributions],
+  );
+  // Parts with a known nominal capacity but no current flow — stowed
+  // solar panels, panels in shadow, etc. Rendered at low opacity so the
+  // operator can distinguish "no panels installed" from "panels installed
+  // but currently idle".
+  const idle = useMemo(
+    () =>
+      contributions
+        .filter(
+          (c) =>
+            c.flow === 0 &&
+            typeof c.nominalFlow === "number" &&
+            c.nominalFlow !== 0,
+        )
+        .sort(
+          (a, b) => Math.abs(b.nominalFlow ?? 0) - Math.abs(a.nominalFlow ?? 0),
+        ),
     [contributions],
   );
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
@@ -279,6 +304,19 @@ function PowerSystemsComponent({
             </ContribList>
           )}
         </Section>
+        {idle.length > 0 && (
+          <Section>
+            <SectionTitle>
+              Idle
+              <SectionCount>· {idle.length}</SectionCount>
+            </SectionTitle>
+            <IdleList>
+              {idle.map((c) => (
+                <ContributionRow key={c.flightId} contribution={c} />
+              ))}
+            </IdleList>
+          </Section>
+        )}
       </SectionsScroll>
     </Panel>
   );
@@ -456,6 +494,10 @@ const ContribList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1px;
+`;
+
+const IdleList = styled(ContribList)`
+  opacity: 0.55;
 `;
 
 const Row = styled.div`
