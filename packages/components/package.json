@@ -10,7 +10,8 @@
     "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts"
   },
   "dependencies": {
     "@gonogo/core": "workspace:*",
@@ -28,6 +29,7 @@
     "@vitest/coverage-v8": "^4.1.4",
     "jsdom": "^29.0.2",
     "msw": "^2.13.2",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   },
