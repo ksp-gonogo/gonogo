@@ -115,6 +115,50 @@ describe("useTopology", () => {
     expect(result.current?.parts).toHaveLength(2);
   });
 
+  it("recovers when seq bumps repeatedly without an interleaved topology push", () => {
+    // Destruction cascade: 30+ onPartDie callbacks bump seq within a
+    // short window and Telemachus is too busy to push v.topology in
+    // between. The earlier 2s timeout would drop the subscription on
+    // its own, and if seq then stabilised the hook never re-armed and
+    // the widget froze at the pre-cascade snapshot. With no timer, the
+    // last subscription stays alive until Telemachus catches up.
+    const { result } = renderHook(() => useTopology("data"));
+
+    act(() => {
+      source.emit("v.topologySeq", 1);
+    });
+    act(() => {
+      source.emit("v.topology", topology(1, 3));
+    });
+    expect(result.current?.topologySeq).toBe(1);
+
+    // Rapid seq bumps with no v.topology pushes in between.
+    act(() => {
+      source.emit("v.topologySeq", 2);
+    });
+    act(() => {
+      source.emit("v.topologySeq", 3);
+    });
+    act(() => {
+      source.emit("v.topologySeq", 4);
+    });
+    act(() => {
+      source.emit("v.topologySeq", 5);
+    });
+    // Topology is still the pre-cascade snapshot at this point.
+    expect(result.current?.topologySeq).toBe(1);
+
+    // Telemachus catches up and pushes the post-cascade topology. The
+    // hook's last subscription is still live — without it, this push
+    // would land on a dead subscription and the widget would stay
+    // frozen.
+    act(() => {
+      source.emit("v.topology", topology(5, 8));
+    });
+    expect(result.current?.topologySeq).toBe(5);
+    expect(result.current?.parts).toHaveLength(8);
+  });
+
   it("unsubscribes from v.topology after the first valid push", () => {
     const { result } = renderHook(() => useTopology("data"));
 
