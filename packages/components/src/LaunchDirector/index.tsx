@@ -218,6 +218,10 @@ function LaunchDirectorComponent({
               setArmed(null);
               void execute("ksp.revertToEditor[vab]");
             }}
+            onToTrackingStation={() => {
+              setArmed(null);
+              void execute("ksp.toTrackingStation");
+            }}
           />
         ) : padOccupied ? (
           <PadActions>
@@ -384,6 +388,7 @@ function InFlightPanel({
   onRecover,
   onRevertToLaunch,
   onRevertToVAB,
+  onToTrackingStation,
 }: {
   missionTime: number | null;
   altitudeMeters: number | null;
@@ -395,6 +400,7 @@ function InFlightPanel({
   onRecover: () => void;
   onRevertToLaunch: () => void;
   onRevertToVAB: () => void;
+  onToTrackingStation: () => void;
 }) {
   return (
     <InFlightWrap>
@@ -443,6 +449,9 @@ function InFlightPanel({
           confirmLabel="Revert to VAB"
           disabled={!canRevertToEditor}
         />
+        <TrackingStationButton type="button" onClick={onToTrackingStation}>
+          Tracking Station
+        </TrackingStationButton>
       </PadActions>
     </InFlightWrap>
   );
@@ -733,6 +742,18 @@ const ArmButton = styled.button<{ $kind: "launch" | "recover" | "revert" }>`
 
   &:hover {
     filter: brightness(1.1);
+  }
+`;
+
+const TrackingStationButton = styled.button`
+  ${armButtonBase}
+  background: transparent;
+  color: var(--color-status-info-fg);
+  border-color: var(--color-surface-raised);
+
+  &:hover {
+    filter: brightness(1.1);
+    border-color: var(--color-status-info-fg);
   }
 `;
 
