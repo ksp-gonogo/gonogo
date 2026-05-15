@@ -1,6 +1,6 @@
 import type { TopologyPart } from "@gonogo/core";
 import { describe, expect, it } from "vitest";
-import { classifyPart } from "./shipTopology";
+import { buildShipMapPart, classifyPart } from "./shipTopology";
 
 function part(overrides: Partial<TopologyPart>): TopologyPart {
   return {
@@ -57,6 +57,43 @@ describe("classifyPart", () => {
         }),
       ),
     ).toBe("fin");
+  });
+
+  it("treats edge-on parts as unrotated (no -0 atan2 flip)", () => {
+    // A docking port mounted laterally has up = [0, -0, ±1] — both X
+    // and Y components are zero. With useX=true the diagram projects
+    // away Z, leaving (0, -0) as the 2D up vector. Math.atan2(0, -0)
+    // returns π (because the sign of -0 matters), which would render
+    // the port upside-down. The edge-on guard must short-circuit to
+    // rotation = 0 in that case.
+    const p = buildShipMapPart(
+      part({
+        name: "dockingPort2",
+        orgPos: [0, -5, -1.22],
+        up: [0, -0, -1],
+      }),
+      undefined,
+      undefined,
+      true, // useX
+    );
+    expect(p.rotationRad).toBe(0);
+  });
+
+  it("rotates a radially-mounted part toward its projected up", () => {
+    // Side nose cone with up ≈ [+0.5, +0.87, 0] (about 30° tilt from
+    // vessel up). With useX=true the 2D up is (0.5, 0.87), giving
+    // atan2 ≈ 0.524 rad ≈ 30°.
+    const p = buildShipMapPart(
+      part({
+        name: "noseCone",
+        orgPos: [1.0, 0, 0],
+        up: [0.5, 0.866, 0],
+      }),
+      undefined,
+      undefined,
+      true,
+    );
+    expect(p.rotationRad).toBeCloseTo(Math.PI / 6, 2);
   });
 
   it("prefers engine over fin when both modules are present", () => {

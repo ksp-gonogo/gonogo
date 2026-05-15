@@ -271,10 +271,18 @@ export function buildShipMapPart(
   // +picked-lateral → screen-right (larger x), so the rotation angle
   // is `atan2(lateral, axial)` from screen-up. Without fork-emitted up,
   // default to axially-aligned (zero rotation).
+  //
+  // Edge-on guard: when both projected components are near zero the
+  // part's up points along the collapsed depth axis — atan2 in that
+  // case would flip 0 vs π depending on the sign of -0 (Unity routinely
+  // emits -0.0 for components that are floating-point zero). Render
+  // unrotated rather than picking a meaningless angle.
   const up = part.up;
   const upLat = up ? (useX ? up[0] : up[2]) : 0;
   const upAxial = up ? up[1] : 1;
-  const rotationRad = Math.atan2(upLat, upAxial);
+  const projectedMagSq = upLat * upLat + upAxial * upAxial;
+  const rotationRad =
+    projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
