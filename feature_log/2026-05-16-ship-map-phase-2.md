@@ -1,8 +1,8 @@
 # 2026-05-16 — Ship Map Phase 2: harness, snapshots, sizing, freeze fix
 
-**Status:** ⏳ pending — landed and CI-green, awaits live KSP verification.
+**Status:** ⏳ pending — landed and CI-green, awaits live KSP verification (fork DLL rebuilt 2026-05-16, needs a restart to take effect for orientation).
 
-**Commits:** `14c4756`..`d751f71` on `main`.
+**Commits:** `14c4756`..`2455c35` on `main`; fork side `c0cc3bd` on `telemachus/parts-topology`.
 
 **Driven by:** `local_docs/2026-05-16-phase-2-shipmap-handoff.md` (the
 fresh-session handoff doc from the 2026-05-15 session). All items in
@@ -115,6 +115,24 @@ Fix:
 
 Synthetic `ShipDiagram.test.tsx` parts updated to the Y-axial bounds
 convention. SVG snapshots regenerated.
+
+### Fork-emitted `up` + client-side part rotation (`c0cc3bd` fork, `2455c35` client)
+
+Per-part orientation problem the harness surfaced: nose cones rendering pointing outward (should be up), TT-38K radial decouplers rendering as horizontal slabs (should be vertical), docking ports between two side-by-side rovers rendering wrong axis. Position-derived heuristics were possible but expensive in code + edge cases.
+
+Fork change: `PartsTopologyDataLinkHandler.SerialisePart` now emits `up: [x, y, z]` per part from `part.orgRot * Vector3.up` — the part's local +up axis in the vessel's assembly frame.
+
+Client change: `TopologyPart.up` is optional (defaults to `[0, 1, 0]` so legacy fixtures render identically). `buildShipMapPart` projects `up` into screen-space rotation by mapping vessel `+axial → screen-up` and `+picked-lateral → screen-right`. `ShipDiagramSvg` wraps each part's `<PartGroup>` in `<g transform="rotate(...)">` around the part's centre so the body shape, heat tint, fuel bars, EC/highlight rings all stay locked to the part's local frame.
+
+**Live verification:** fork DLL is in `local_docs/syncthing/kspdata/...` after the build — needs a KSP restart to take effect. Once it does, re-capture the four fixtures via the helper `tele read v.topology` to lock the new orientation data into the snapshot fold.
+
+### Mk1 capsule frustum + nose-cone dome + parachute dome (`2455c35`)
+
+Three shape changes for visual readability:
+
+1. **Capsule:** was a Q-curve dome whose apex fell short of the bounds top — the parachute appeared to float above the pod with a gap. Now a frustum (truncated cone) that fills bounds top-to-bottom; the parachute sits flush.
+2. **Nose-cone:** new `nose-cone` PartType (detected by `name` containing `"nose"`) with a rounded dome shape via cubic Bezier with both control points at y, so the apex reaches the bounds top. Stops nose cones rendering as fin triangles under the `Aero` category fallback.
+3. **Parachute:** was a rounded rect; now a stowed-canister dome (flat base, semicircular top, narrower than bounds to reflect the canister's footprint).
 
 ### Cargo bays no longer classify as fins (`cb2b946`)
 
