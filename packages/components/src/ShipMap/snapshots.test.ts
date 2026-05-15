@@ -32,9 +32,7 @@ interface Fixture {
 function fixtureToParts(fixture: Fixture): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
-  return topo.parts.map((p) =>
-    buildShipMapPart(p, undefined, undefined, useX),
-  );
+  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
 }
 
 /** Round any decimal number in an SVG attribute value to 2dp so floating-
