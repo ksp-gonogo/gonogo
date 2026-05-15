@@ -147,9 +147,7 @@ describe("ShipDiagram", () => {
       <ShipDiagram parts={warm} width={200} height={200} />,
     );
     const tint = container.querySelector('rect[data-role="heat-tint"]');
-    expect(tint?.getAttribute("fill")).toBe(
-      "var(--color-status-warning-bg)",
-    );
+    expect(tint?.getAttribute("fill")).toBe("var(--color-status-warning-bg)");
   });
 
   it("paints a red heat tint above 80% of max", () => {
