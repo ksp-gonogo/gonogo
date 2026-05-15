@@ -92,6 +92,13 @@ export interface TopologyPart {
   flightId: number;
   persistentId: number;
   parentFlightId: number | null;
+  /**
+   * For parts carrying `CModuleFuelLine`, the flightId of the receiving
+   * tank — the "to" end of the line. `parentFlightId` already points
+   * at the source. `null` for any non-fuel-line part. Optional because
+   * fixtures captured before the fork started emitting it stay readable.
+   */
+  fuelLineTarget?: number | null;
   name: string;
   title: string;
   manufacturer: string;
