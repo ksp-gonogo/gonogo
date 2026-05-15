@@ -385,15 +385,50 @@ function renderPartShape(
         />
       );
     case "decoupler": {
-      // Always thin, wide as the stack — width comes from the body box
-      // (which inherited from neighbouring stack parts during projection).
-      const thickness = Math.max(4 / zoom, Math.min(h, 12 / zoom));
+      // Thin slab perpendicular to the body's long axis. Stack
+      // decouplers are wide laterally (long w, short h) — render as a
+      // horizontal band sitting on the spine. Radial decouplers have a
+      // tall narrow body box (short w, long h) — render as a vertical
+      // bar bridging the spine and the side stack.
+      if (w >= h) {
+        const thickness = Math.max(4 / zoom, Math.min(h, 12 / zoom));
+        return (
+          <rect
+            x={x}
+            y={cy - thickness / 2}
+            width={w}
+            height={thickness}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={opacity}
+          />
+        );
+      }
+      const thickness = Math.max(4 / zoom, Math.min(w, 12 / zoom));
       return (
         <rect
-          x={x}
-          y={cy - thickness / 2}
-          width={w}
-          height={thickness}
+          x={cx - thickness / 2}
+          y={y}
+          width={thickness}
+          height={h}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+        />
+      );
+    }
+    case "wheel": {
+      // Side-profile of a rolling wheel — circle (or ellipse for slightly
+      // asymmetric bounds). Radius takes the smaller half-extent so the
+      // wheel never overflows a side-mounted-on-rover body box.
+      const r = Math.min(w, h) / 2;
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
@@ -559,6 +594,8 @@ function colorFor(type: PartType): string {
       return "var(--color-status-info-fg)";
     case "parachute":
       return "var(--color-status-nogo-bg)";
+    case "wheel":
+      return "var(--color-text-muted)";
     default:
       return "var(--color-text-muted)";
   }
