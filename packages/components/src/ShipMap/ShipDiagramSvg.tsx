@@ -174,8 +174,8 @@ export function ShipDiagramSvg({
             !!highlight &&
             (p.title.toLowerCase() === highlight.toLowerCase() ||
               p.name.toLowerCase() === highlight.toLowerCase());
-          const fill = heatTint(
-            colorFor(p.type),
+          const fill = colorFor(p.type);
+          const tint = heatTintFor(
             p.temperatureK,
             p.maxTemperatureK ?? p.maxTemp,
           );
@@ -220,6 +220,18 @@ export function ShipDiagramSvg({
                 isHot,
                 cam.zoom,
                 outerSign,
+              )}
+              {tint && (
+                <rect
+                  data-role="heat-tint"
+                  x={box.x}
+                  y={box.y}
+                  width={box.w}
+                  height={box.h}
+                  fill={tint.color}
+                  opacity={tint.opacity}
+                  pointerEvents="none"
+                />
               )}
               {showFuel && renderResourceFill(p.resources, box)}
               {p.ecFlowSign && !isHot && (
@@ -585,34 +597,38 @@ export function partAriaLabel(p: ShipMapPart): string {
   return bits.join(", ");
 }
 
-function heatTint(base: string, temp?: number, maxTemp?: number): string {
-  if (!temp || !maxTemp || maxTemp <= 0) return base;
+/**
+ * Heat indicator overlay for a part. Returns the colour + opacity to
+ * paint over the part's body, or null when the part is comfortably cold.
+ *
+ * Ramp:
+ * - < 50% of maxTemp: nothing — most parts hover near ambient.
+ * - 50–80%: amber overlay growing from 0 to ~0.5 opacity.
+ * - 80–100%: red overlay at 0.55–0.85 opacity, signalling imminent
+ *   structural failure.
+ *
+ * Rendered as a plain `<rect>` over the part's body box rather than
+ * blending the base fill, so the colours stay CSS-variable driven (no
+ * resolved-hex palette duplicated in component code) and the visual
+ * read is bolder at high temperatures than a subtle blend would give.
+ */
+function heatTintFor(
+  temp: number | undefined,
+  maxTemp: number,
+): { color: string; opacity: number } | null {
+  if (!temp || maxTemp <= 0) return null;
   const t = Math.max(0, Math.min(1, temp / maxTemp));
-  if (t < 0.5) return base;
-  if (t < 0.75)
-    return blendHex(base, "var(--color-status-warning-bg)", (t - 0.5) / 0.25);
-  return blendHex(
-    "var(--color-status-warning-bg)",
-    "var(--color-status-nogo-bg)",
-    (t - 0.75) / 0.25,
-  );
-}
-
-function blendHex(a: string, b: string, ratio: number): string {
-  const pa = parseHex(a);
-  const pb = parseHex(b);
-  if (!pa || !pb) return a;
-  const r = Math.round(pa[0] + (pb[0] - pa[0]) * ratio);
-  const g = Math.round(pa[1] + (pb[1] - pa[1]) * ratio);
-  const bl = Math.round(pa[2] + (pb[2] - pa[2]) * ratio);
-  return `rgb(${r},${g},${bl})`;
-}
-
-function parseHex(hex: string): [number, number, number] | null {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return null;
-  const n = Number.parseInt(m[1], 16);
-  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+  if (t < 0.5) return null;
+  if (t < 0.8) {
+    return {
+      color: "var(--color-status-warning-bg)",
+      opacity: ((t - 0.5) / 0.3) * 0.5,
+    };
+  }
+  return {
+    color: "var(--color-status-nogo-bg)",
+    opacity: 0.55 + ((t - 0.8) / 0.2) * 0.3,
+  };
 }
 
 function intrinsicSize(part: ShipMapPart): Intrinsic {

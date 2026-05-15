@@ -115,4 +115,40 @@ describe("ShipDiagram", () => {
     );
     expect(container.textContent).toMatch(/no vessel topology/i);
   });
+
+  it("emits no heat tint when temperatures are below 50% of max", () => {
+    const cool: ShipMapPart[] = [
+      { ...PARTS[2], temperatureK: 300, maxTemperatureK: 2000 },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={cool} width={200} height={200} />,
+    );
+    expect(
+      container.querySelectorAll('rect[data-role="heat-tint"]'),
+    ).toHaveLength(0);
+  });
+
+  it("paints an amber heat tint between 50% and 80% of max", () => {
+    const warm: ShipMapPart[] = [
+      { ...PARTS[2], temperatureK: 1300, maxTemperatureK: 2000 },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={warm} width={200} height={200} />,
+    );
+    const tint = container.querySelector('rect[data-role="heat-tint"]');
+    expect(tint?.getAttribute("fill")).toBe(
+      "var(--color-status-warning-bg)",
+    );
+  });
+
+  it("paints a red heat tint above 80% of max", () => {
+    const hot: ShipMapPart[] = [
+      { ...PARTS[2], temperatureK: 1900, maxTemperatureK: 2000 },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={hot} width={200} height={200} />,
+    );
+    const tint = container.querySelector('rect[data-role="heat-tint"]');
+    expect(tint?.getAttribute("fill")).toBe("var(--color-status-nogo-bg)");
+  });
 });
