@@ -24,7 +24,7 @@ import {
  */
 
 interface Fixture {
-  ["v.topology"]: VesselTopology;
+  "v.topology": VesselTopology;
 }
 
 function loadParts(fixture: Fixture): ShipMapPart[] {
