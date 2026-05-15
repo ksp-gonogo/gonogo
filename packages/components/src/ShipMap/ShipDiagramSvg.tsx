@@ -329,46 +329,60 @@ interface FuelLineArrowProps {
 }
 
 function FuelLineArrow({ from, to, zoom }: FuelLineArrowProps) {
-  // Source→target yellow arrow. Line stops short of the target tank by
-  // `arrowHead` so the arrowhead is the visible terminus instead of
-  // overlapping the tank body. Arrowhead is sized in screen pixels so
-  // it stays readable at any zoom level.
+  // Render the line as a stubby yellow pipe with a row of small dark
+  // chevrons inside indicating flow direction. The whole pipe lives in
+  // a rotated local frame whose +X axis points from source to target,
+  // so the chevrons just need to point in local +X.
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy);
-  if (len < 0.5) return null;
-  const ux = dx / len;
-  const uy = dy / len;
-  const arrowHead = 10 / zoom;
-  const tipX = to.x;
-  const tipY = to.y;
-  const baseX = tipX - ux * arrowHead;
-  const baseY = tipY - uy * arrowHead;
-  // Perpendicular vector for the arrowhead wings.
-  const px = -uy;
-  const py = ux;
-  const wing = arrowHead * 0.5;
-  const w1x = baseX + px * wing;
-  const w1y = baseY + py * wing;
-  const w2x = baseX - px * wing;
-  const w2y = baseY - py * wing;
+  if (len < 1) return null;
+  const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+  const thickness = 16 / zoom;
+  const stroke = 0.5 / zoom;
+  // Cluster chevrons in the middle stretch so the pipe-end joints stay
+  // visually clean. Each chevron is roughly half the pipe's thickness
+  // (leaves margin top and bottom), and the stride is ~1.5× the chevron
+  // width so the row reads as discrete arrows rather than a dashed
+  // pattern.
+  const chevronW = 7 / zoom;
+  const chevronH = 8 / zoom;
+  const chevronStride = 12 / zoom;
+  const zoneStart = len * 0.18;
+  const zoneEnd = len * 0.82;
+  const zoneLen = Math.max(0, zoneEnd - zoneStart);
+  const count = Math.max(0, Math.floor(zoneLen / chevronStride));
+  const actualStride = count > 0 ? zoneLen / count : 0;
   return (
-    <g data-role="fuel-line" pointerEvents="none">
-      <line
-        x1={from.x}
-        y1={from.y}
-        x2={baseX}
-        y2={baseY}
-        stroke="var(--color-tag-yellow-fg)"
-        strokeWidth={2 / zoom}
-        strokeLinecap="round"
-        opacity={0.9}
-      />
-      <polygon
-        points={`${tipX},${tipY} ${w1x},${w1y} ${w2x},${w2y}`}
+    <g
+      data-role="fuel-line"
+      pointerEvents="none"
+      transform={`translate(${from.x.toFixed(2)} ${from.y.toFixed(2)}) rotate(${angleDeg.toFixed(2)})`}
+    >
+      <rect
+        x={0}
+        y={-thickness / 2}
+        width={len}
+        height={thickness}
+        rx={thickness * 0.35}
         fill="var(--color-tag-yellow-fg)"
-        opacity={0.9}
+        stroke="var(--color-tag-yellow-border)"
+        strokeWidth={stroke}
+        opacity={0.95}
       />
+      {Array.from({ length: count }, (_, i) => {
+        const cx = zoneStart + (i + 0.5) * actualStride;
+        return (
+          <polygon
+            // biome-ignore lint/suspicious/noArrayIndexKey: chevrons have no stable identity beyond their order along the pipe
+            key={i}
+            points={`${cx - chevronW * 0.5},${-chevronH * 0.5} ${cx - chevronW * 0.5},${chevronH * 0.5} ${cx + chevronW * 0.5},0`}
+            fill="var(--color-tag-blue-bg)"
+            opacity={0.9}
+          />
+        );
+      })}
     </g>
   );
 }

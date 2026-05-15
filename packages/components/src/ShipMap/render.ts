@@ -91,6 +91,8 @@ const SVG_STYLE_BLOCK = `<style><![CDATA[
   --color-status-nogo-bg: #ff4d4d;
   --color-status-info-fg: #7cf;
   --color-tag-yellow-fg: #ffeb3b;
+  --color-tag-yellow-border: #6a5a2a;
+  --color-tag-blue-bg: #0a0a1a;
   --color-tag-cyan-fg: #00cccc;
 }
 ]]></style>`;
