@@ -57,6 +57,7 @@ function TargetPickerComponent({
 
   const [tab, setTab] = useState<TabId>("bodies");
   const [filter, setFilter] = useState("");
+  const [showSpaceObjects, setShowSpaceObjects] = useState(false);
 
   useActionInput<TargetPickerActions>({
     "clear-target": (payload) => {
@@ -215,7 +216,11 @@ function TargetPickerComponent({
 
   const vesselsContent = (() => {
     const raw = (availableVessels ?? []) as AvailableVesselEntry[];
-    const sorted = [...raw]
+    const spaceObjectCount = raw.filter((v) => v.type === "SpaceObject").length;
+    const filtered = showSpaceObjects
+      ? raw
+      : raw.filter((v) => v.type !== "SpaceObject");
+    const sorted = [...filtered]
       .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
       .sort((a, b) => a.distance - b.distance);
 
@@ -225,6 +230,22 @@ function TargetPickerComponent({
           <VesselsMeta>
             {sorted.length} target{sorted.length === 1 ? "" : "s"}
           </VesselsMeta>
+          {spaceObjectCount > 0 && (
+            <SpaceObjectToggle
+              type="button"
+              aria-pressed={showSpaceObjects}
+              onClick={() => setShowSpaceObjects((v) => !v)}
+              title={
+                showSpaceObjects
+                  ? "Hide asteroids / comets from the list"
+                  : "Show asteroids / comets in the list"
+              }
+            >
+              {showSpaceObjects
+                ? `Asteroids: shown (${spaceObjectCount})`
+                : `Asteroids: hidden (${spaceObjectCount})`}
+            </SpaceObjectToggle>
+          )}
         </VesselsHeader>
         {availableVessels === undefined ? (
           <Hint>Waiting for vessel list…</Hint>
@@ -641,6 +662,30 @@ const VesselsMeta = styled.span`
   font-size: 10px;
   color: var(--color-text-faint);
   letter-spacing: 0.04em;
+`;
+
+const SpaceObjectToggle = styled.button`
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-surface-raised);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+  &[aria-pressed="true"] {
+    color: var(--color-status-info-fg);
+    border-color: var(--color-status-info-fg);
+  }
+  &:hover {
+    filter: brightness(1.15);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
 const VesselName = styled.span`
