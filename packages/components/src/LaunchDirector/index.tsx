@@ -1,5 +1,6 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { AvailableVesselEntry, ComponentProps } from "@gonogo/core";
 import {
+  formatDistance,
   registerComponent,
   useDataValue,
   useExecuteAction,
@@ -115,6 +116,10 @@ function LaunchDirectorComponent({
     "ksp.canRevertToEditor",
   );
   const crashHasRecent = useDataValue<boolean>("data", "crash.hasRecent");
+  const availableVessels = useDataValue<AvailableVesselEntry[]>(
+    "data",
+    "tar.availableVessels",
+  );
   const execute = useExecuteAction("data");
 
   const ships = parseSavedShips(savedShipsRaw);
@@ -206,6 +211,7 @@ function LaunchDirectorComponent({
             crashBlocked={crashHasRecent === true}
             armed={armed}
             onArm={setArmed}
+            availableVessels={availableVessels}
             onRecover={() => {
               setArmed(null);
               void execute("ksp.recover");
@@ -221,6 +227,10 @@ function LaunchDirectorComponent({
             onToTrackingStation={() => {
               setArmed(null);
               void execute("ksp.toTrackingStation");
+            }}
+            onSwitchVessel={(idx) => {
+              setArmed(null);
+              void execute(`tar.switchVessel[${idx}]`);
             }}
           />
         ) : padOccupied ? (
@@ -385,10 +395,12 @@ function InFlightPanel({
   crashBlocked,
   armed,
   onArm,
+  availableVessels,
   onRecover,
   onRevertToLaunch,
   onRevertToVAB,
   onToTrackingStation,
+  onSwitchVessel,
 }: {
   missionTime: number | null;
   altitudeMeters: number | null;
@@ -397,11 +409,24 @@ function InFlightPanel({
   crashBlocked: boolean;
   armed: "launch" | "recover" | "revert" | null;
   onArm: (k: "recover" | "revert" | null) => void;
+  availableVessels: AvailableVesselEntry[] | undefined;
   onRecover: () => void;
   onRevertToLaunch: () => void;
   onRevertToVAB: () => void;
   onToTrackingStation: () => void;
+  onSwitchVessel: (vesselIndex: number) => void;
 }) {
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const switchableVessels = useMemo(() => {
+    const raw = availableVessels ?? [];
+    // Filter SpaceObjects (asteroids / comets) — same UX call as the
+    // TargetPicker. Operator can pop open the Tracking Station for the
+    // long tail if they actually want to switch to an asteroid.
+    const list = raw.filter((v) => v.type !== "SpaceObject");
+    return list
+      .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
+      .sort((a, b) => a.distance - b.distance);
+  }, [availableVessels]);
   return (
     <InFlightWrap>
       {crashBlocked && (
@@ -452,9 +477,54 @@ function InFlightPanel({
         <TrackingStationButton type="button" onClick={onToTrackingStation}>
           Tracking Station
         </TrackingStationButton>
+        <TrackingStationButton
+          type="button"
+          disabled={switchableVessels.length === 0}
+          aria-expanded={switchOpen}
+          aria-haspopup="listbox"
+          onClick={() => setSwitchOpen((v) => !v)}
+          title={
+            switchableVessels.length === 0
+              ? "No other vessels in this save"
+              : `Switch to one of ${switchableVessels.length} other vessel${switchableVessels.length === 1 ? "" : "s"}`
+          }
+        >
+          Switch to vessel ▾
+        </TrackingStationButton>
       </PadActions>
+      {switchOpen && switchableVessels.length > 0 && (
+        <VesselSwitchPanel role="listbox" aria-label="Switch active vessel">
+          {switchableVessels.map(({ entry, distance }) => (
+            <VesselSwitchRow
+              key={entry.index}
+              type="button"
+              onClick={() => {
+                setSwitchOpen(false);
+                onSwitchVessel(entry.index);
+              }}
+            >
+              <VesselSwitchName>
+                <span>{entry.name}</span>
+                <VesselSwitchMeta>
+                  {entry.type}
+                  {entry.body ? ` · ${entry.body}` : ""}
+                  {entry.situation ? ` · ${entry.situation.toLowerCase()}` : ""}
+                </VesselSwitchMeta>
+              </VesselSwitchName>
+              <VesselSwitchDistance>
+                {Number.isFinite(distance) ? formatDistance(distance) : "—"}
+              </VesselSwitchDistance>
+            </VesselSwitchRow>
+          ))}
+        </VesselSwitchPanel>
+      )}
     </InFlightWrap>
   );
+}
+
+function vectorMagnitude(v: [number, number, number] | undefined): number {
+  if (!v) return Number.POSITIVE_INFINITY;
+  return Math.hypot(v[0], v[1], v[2]);
 }
 
 function formatMissionTime(s: number | null): string {
@@ -757,6 +827,70 @@ const TrackingStationButton = styled.button`
   }
 `;
 
+const VesselSwitchPanel = styled.div`
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--color-surface-raised);
+  border-radius: 2px;
+  background: var(--color-surface-app);
+  padding: 2px;
+`;
+
+const VesselSwitchRow = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 11px;
+
+  &:hover {
+    background: var(--color-surface-panel);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: -2px;
+  }
+`;
+
+const VesselSwitchName = styled.span`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const VesselSwitchMeta = styled.span`
+  font-size: 9px;
+  color: currentColor;
+  opacity: 0.7;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
+
+const VesselSwitchDistance = styled.span`
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+`;
+
 const ConfirmButton = styled.button<{
   $kind: "launch" | "recover" | "revert";
 }>`
@@ -810,6 +944,7 @@ registerComponent<LaunchDirectorConfig>({
     "ksp.canRevertToLaunch",
     "ksp.canRevertToEditor",
     "crash.hasRecent",
+    "tar.availableVessels",
   ],
   defaultConfig: {},
   actions: [],
