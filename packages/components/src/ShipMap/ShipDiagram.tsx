@@ -76,12 +76,6 @@ export function ShipDiagram({
             <span>mass</span>
             <span>{hovered.dryMass.toFixed(3)} t</span>
           </div>
-          <div className="row">
-            <span>pos</span>
-            <span>
-              {hovered.lat.toFixed(2)}, {hovered.axial.toFixed(2)}
-            </span>
-          </div>
           {hovered.temperatureK !== undefined &&
           (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (
             <div className="row">
