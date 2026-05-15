@@ -1,0 +1,831 @@
+{
+  "v.topology": {
+    "topologySeq": 214,
+    "rootFlightId": 2953815503,
+    "parts": [
+      {
+        "category": "Pods",
+        "name": "mk1pod.v2",
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.1390700340271,
+            "z": 1.25
+          }
+        },
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "crashTolerance": 14,
+        "title": "Mk1 Command Pod",
+        "dryMass": 0.800000071525574,
+        "inverseStage": -1,
+        "flightId": 2953815503,
+        "crewCapacity": 1,
+        "persistentId": 947412294,
+        "orgPos": [0, 0, 0],
+        "maxTemp": 1200,
+        "parentFlightId": null,
+        "modules": [
+          "ModuleCommand",
+          "ModuleReactionWheel",
+          "ModuleColorChanger",
+          "ModuleScienceExperiment",
+          "ModuleScienceContainer",
+          "ModuleConductionMultiplier",
+          "ModuleDataTransmitter",
+          "ModuleLiftingSurface",
+          "FlagDecal",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "ModuleInventoryPart",
+          "KOSNameTag",
+          "ModuleTripLogger"
+        ]
+      },
+      {
+        "category": "Utility",
+        "name": "parachuteSingle",
+        "bounds": {
+          "size": {
+            "x": 0.630669236183167,
+            "y": 0.36260974407196,
+            "z": 0.612354636192322
+          }
+        },
+        "manufacturer": "Found lying by the side of the road",
+        "crashTolerance": 12,
+        "title": "Mk16 Parachute",
+        "dryMass": 0.100000001490116,
+        "inverseStage": 0,
+        "flightId": 4104582180,
+        "crewCapacity": 0,
+        "persistentId": 1506949844,
+        "orgPos": [
+          1.2638068369597e-7, 0.65745884180069, 0.00000390243894798914
+        ],
+        "maxTemp": 2500,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "solarPanels3",
+        "bounds": {
+          "size": {
+            "x": 0.200387164950371,
+            "y": 0.453826308250427,
+            "z": 0.319229423999786
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "OX-4W 3x2 Photovoltaic Panels",
+        "dryMass": 0.0175000000745058,
+        "inverseStage": -1,
+        "flightId": 2437796497,
+        "crewCapacity": 0,
+        "persistentId": 2670291914,
+        "orgPos": [
+          -0.555686354637146, -0.186259552836418, -0.00000234697540690831
+        ],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "solarPanels3",
+        "bounds": {
+          "size": {
+            "x": 0.200387164950371,
+            "y": 0.453826308250427,
+            "z": 0.319229423999786
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "OX-4W 3x2 Photovoltaic Panels",
+        "dryMass": 0.0175000000745058,
+        "inverseStage": -1,
+        "flightId": 2876835219,
+        "crewCapacity": 0,
+        "persistentId": 1934047157,
+        "orgPos": [
+          0.555686593055725, -0.186256572604179, 0.00000211456017495948
+        ],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "batteryPack",
+        "bounds": {
+          "size": {
+            "x": 0.275159865617752,
+            "y": 0.412556111812592,
+            "z": 0.288296937942505
+          }
+        },
+        "manufacturer": "Zaltonic Electronics",
+        "crashTolerance": 8,
+        "title": "Z-100 Rechargeable Battery Pack",
+        "dryMass": 0.00499999988824129,
+        "inverseStage": -1,
+        "flightId": 2446762744,
+        "crewCapacity": 0,
+        "persistentId": 4294719940,
+        "orgPos": [
+          -0.443643093109131, 0.16602785885334, 0.00000303359729514341
+        ],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": ["ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "category": "Electrical",
+        "name": "batteryPack",
+        "bounds": {
+          "size": {
+            "x": 0.275159865617752,
+            "y": 0.412556111812592,
+            "z": 0.288296937942505
+          }
+        },
+        "manufacturer": "Zaltonic Electronics",
+        "crashTolerance": 8,
+        "title": "Z-100 Rechargeable Battery Pack",
+        "dryMass": 0.00499999988824129,
+        "inverseStage": -1,
+        "flightId": 2018495260,
+        "crewCapacity": 0,
+        "persistentId": 138312309,
+        "orgPos": [
+          0.443643122911453, 0.166030421853065, 0.00000642888153379317
+        ],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": ["ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "category": "Science",
+        "name": "sensorThermometer",
+        "bounds": {
+          "size": {
+            "x": 0.091363400220871,
+            "y": 0.269624531269073,
+            "z": 0.0743734836578369
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "2HOT Thermometer",
+        "dryMass": 0.00499999988824129,
+        "inverseStage": -1,
+        "flightId": 3671995344,
+        "crewCapacity": 0,
+        "persistentId": 2496669204,
+        "orgPos": [-0.453836232423782, -0.0946855396032333, -0.262024313211441],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleEnviroSensor",
+          "ModuleScienceExperiment",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Science",
+        "name": "sensorBarometer",
+        "bounds": {
+          "size": {
+            "x": 0.175093486905098,
+            "y": 0.249387308955193,
+            "z": 0.12739734351635
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "PresMat Barometer",
+        "dryMass": 0.00499999988824129,
+        "inverseStage": -1,
+        "flightId": 1125176831,
+        "crewCapacity": 0,
+        "persistentId": 3356458233,
+        "orgPos": [-0.370323985815048, -0.117161870002747, -0.370322942733765],
+        "maxTemp": 1200,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleEnviroSensor",
+          "ModuleScienceExperiment",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Control",
+        "name": "KAL9000",
+        "bounds": {
+          "size": {
+            "x": 0.0192123018205166,
+            "y": 0.240624994039536,
+            "z": 0.090557798743248
+          }
+        },
+        "manufacturer": "Squalid State Devices",
+        "crashTolerance": 9,
+        "title": "KAL9000 Scriptable Control System",
+        "dryMass": 0.000500000023748726,
+        "inverseStage": -1,
+        "flightId": 3725168837,
+        "crewCapacity": 0,
+        "persistentId": 2749913842,
+        "orgPos": [0.24858121573925, 0.0508364699780941, -0.430550843477249],
+        "maxTemp": 1500,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "kOSProcessor",
+          "ModuleLight",
+          "kOSLightModule",
+          "KOSNameTag",
+          "ModuleCargoPart"
+        ]
+      },
+      {
+        "category": "Control",
+        "name": "KAL9000",
+        "bounds": {
+          "size": {
+            "x": 0.0192123018205166,
+            "y": 0.240624994039536,
+            "z": 0.090557798743248
+          }
+        },
+        "manufacturer": "Squalid State Devices",
+        "crashTolerance": 9,
+        "title": "KAL9000 Scriptable Control System",
+        "dryMass": 0.000500000023748726,
+        "inverseStage": -1,
+        "flightId": 2958761864,
+        "crewCapacity": 0,
+        "persistentId": 2741044081,
+        "orgPos": [0.340551257133484, 0.0569446124136448, -0.340546250343323],
+        "maxTemp": 1500,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "kOSProcessor",
+          "ModuleLight",
+          "kOSLightModule",
+          "KOSNameTag",
+          "ModuleCargoPart"
+        ]
+      },
+      {
+        "category": "Control",
+        "name": "Telemach.Blade",
+        "bounds": {
+          "size": {
+            "x": 0.289516389369965,
+            "y": 0.201837450265884,
+            "z": 0.529413163661957
+          }
+        },
+        "manufacturer": "Karmin Navigation",
+        "crashTolerance": 5,
+        "title": "Telemachus TeleBlade Antenna",
+        "dryMass": 0.00499999988824129,
+        "inverseStage": -1,
+        "flightId": 1531195025,
+        "crewCapacity": 0,
+        "persistentId": 135627592,
+        "orgPos": [-2.34393073839101e-8, 0.395749062299728, 0.410338848829269],
+        "maxTemp": 1600,
+        "parentFlightId": 2953815503,
+        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"]
+      },
+      {
+        "category": "Thermal",
+        "name": "HeatShield1",
+        "bounds": {
+          "size": {
+            "x": 1.35549640655518,
+            "y": 0.283841103315353,
+            "z": 1.35549676418304
+          }
+        },
+        "manufacturer": "O.M.B. Demolition Enterprises",
+        "crashTolerance": 9,
+        "title": "Heat Shield (1.25m)",
+        "dryMass": 0.100000001490116,
+        "inverseStage": -1,
+        "flightId": 557662987,
+        "crewCapacity": 0,
+        "persistentId": 3701749464,
+        "orgPos": [
+          1.71757605471612e-7, -0.427033334970474, 0.0000037760544273624
+        ],
+        "maxTemp": 3300,
+        "parentFlightId": 2953815503,
+        "modules": [
+          "ModuleJettison",
+          "ModuleAblator",
+          "ModuleColorChanger",
+          "ModuleDecouple",
+          "ModuleTestSubject",
+          "ModuleLiftingSurface",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Coupling",
+        "name": "Decoupler.1",
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 0.159999996423721,
+            "z": 1.25
+          }
+        },
+        "manufacturer": "O.M.B. Demolition Enterprises",
+        "crashTolerance": 6,
+        "title": "TD-12 Decoupler",
+        "dryMass": 0.0399999991059303,
+        "inverseStage": 1,
+        "flightId": 1000470614,
+        "crewCapacity": 0,
+        "persistentId": 3394720517,
+        "orgPos": [
+          1.16308164876955e-7, -0.647035479545593, 0.00000214329998016183
+        ],
+        "maxTemp": 2000,
+        "parentFlightId": 557662987,
+        "modules": [
+          "ModuleDecouple",
+          "ModuleToggleCrossfeed",
+          "ModuleTestSubject",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "FuelTank",
+        "name": "fuelTank",
+        "bounds": {
+          "size": {
+            "x": 1.25001692771912,
+            "y": 1.94930243492126,
+            "z": 1.25001728534698
+          }
+        },
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "crashTolerance": 6,
+        "title": "FL-T400 Fuel Tank",
+        "dryMass": 0.25,
+        "inverseStage": 1,
+        "flightId": 2714030578,
+        "crewCapacity": 0,
+        "persistentId": 1774913421,
+        "orgPos": [
+          -1.14740430490201e-7, -1.67876362800598, -0.00000565569507671171
+        ],
+        "maxTemp": 2000,
+        "parentFlightId": 1000470614,
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "category": "Engine",
+        "name": "liquidEngine2.v2",
+        "bounds": {
+          "size": {
+            "x": 1.26249992847443,
+            "y": 1.65028274059296,
+            "z": 1.26250016689301
+          }
+        },
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "crashTolerance": 7,
+        "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+        "dryMass": 1.5,
+        "inverseStage": 2,
+        "flightId": 4051412097,
+        "crewCapacity": 0,
+        "persistentId": 3061800859,
+        "orgPos": [1.39185987180213e-8, -2.59126567840576, 6.31085868008086e-7],
+        "maxTemp": 2000,
+        "parentFlightId": 2714030578,
+        "modules": [
+          "FXModuleLookAtConstraint",
+          "ModulePartVariants",
+          "ModuleEngines",
+          "ModuleJettison",
+          "ModuleGimbal",
+          "FXModuleAnimateThrottle",
+          "ModuleAlternator",
+          "ModuleSurfaceFX",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Coupling",
+        "name": "Decoupler.1",
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 0.159999996423721,
+            "z": 1.25
+          }
+        },
+        "manufacturer": "O.M.B. Demolition Enterprises",
+        "crashTolerance": 6,
+        "title": "TD-12 Decoupler",
+        "dryMass": 0.0399999991059303,
+        "inverseStage": 2,
+        "flightId": 2554571133,
+        "crewCapacity": 0,
+        "persistentId": 257551186,
+        "orgPos": [
+          -1.19357892458538e-7, -4.27126169204712, -0.00000339153280037863
+        ],
+        "maxTemp": 2000,
+        "parentFlightId": 4051412097,
+        "modules": [
+          "ModuleDecouple",
+          "ModuleToggleCrossfeed",
+          "ModuleTestSubject",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Payload",
+        "name": "mk2CargoBayS",
+        "bounds": {
+          "size": {
+            "x": 2.5,
+            "y": 1.87524771690369,
+            "z": 1.50000047683716
+          }
+        },
+        "manufacturer": "C7 Aerospace Division",
+        "crashTolerance": 50,
+        "title": "Mk2 Cargo Bay CRG-04",
+        "dryMass": 0.25,
+        "inverseStage": 2,
+        "flightId": 2052538069,
+        "crewCapacity": 0,
+        "persistentId": 1704250369,
+        "orgPos": [-1.74482920556329e-7, -5.12126445770264, -0.137506946921349],
+        "maxTemp": 2500,
+        "parentFlightId": 2554571133,
+        "modules": [
+          "ModuleLiftingSurface",
+          "ModuleAnimateGeneric",
+          "ModuleCargoBay",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Ground",
+        "name": "roverWheel1",
+        "bounds": {
+          "size": {
+            "x": 1.0032205581665,
+            "y": 0.97022932767868,
+            "z": 0.947139382362366
+          }
+        },
+        "manufacturer": "Kerbal Motion LLC",
+        "crashTolerance": 50,
+        "title": "RoveMax Model M1",
+        "dryMass": 0.0750000029802322,
+        "inverseStage": 2,
+        "flightId": 2371982896,
+        "crewCapacity": 0,
+        "persistentId": 2530519168,
+        "orgPos": [-1.23800146579742, -6.12376737594604, 1.17969870567322],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleWheelBase",
+          "ModuleWheelSuspension",
+          "ModuleWheelSteering",
+          "ModuleWheelMotor",
+          "ModuleWheelBrakes",
+          "ModuleWheelDamage",
+          "FXModuleLookAtConstraint",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Ground",
+        "name": "roverWheel1",
+        "bounds": {
+          "size": {
+            "x": 1.0032205581665,
+            "y": 0.97022932767868,
+            "z": 0.947139382362366
+          }
+        },
+        "manufacturer": "Kerbal Motion LLC",
+        "crashTolerance": 50,
+        "title": "RoveMax Model M1",
+        "dryMass": 0.0750000029802322,
+        "inverseStage": 2,
+        "flightId": 781842576,
+        "crewCapacity": 0,
+        "persistentId": 371233025,
+        "orgPos": [1.23800086975098, -6.12376260757446, 1.17970633506775],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleWheelBase",
+          "ModuleWheelSuspension",
+          "ModuleWheelSteering",
+          "ModuleWheelMotor",
+          "ModuleWheelBrakes",
+          "ModuleWheelDamage",
+          "FXModuleLookAtConstraint",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Ground",
+        "name": "roverWheel1",
+        "bounds": {
+          "size": {
+            "x": 1.0032205581665,
+            "y": 0.97022932767868,
+            "z": 0.947139382362366
+          }
+        },
+        "manufacturer": "Kerbal Motion LLC",
+        "crashTolerance": 50,
+        "title": "RoveMax Model M1",
+        "dryMass": 0.0750000029802322,
+        "inverseStage": 2,
+        "flightId": 2976292481,
+        "crewCapacity": 0,
+        "persistentId": 207006360,
+        "orgPos": [-1.30249130725861, -6.1182804107666, -0.89734423160553],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleWheelBase",
+          "ModuleWheelSuspension",
+          "ModuleWheelSteering",
+          "ModuleWheelMotor",
+          "ModuleWheelBrakes",
+          "ModuleWheelDamage",
+          "FXModuleLookAtConstraint",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Ground",
+        "name": "roverWheel1",
+        "bounds": {
+          "size": {
+            "x": 1.0032205581665,
+            "y": 0.97022932767868,
+            "z": 0.947139382362366
+          }
+        },
+        "manufacturer": "Kerbal Motion LLC",
+        "crashTolerance": 50,
+        "title": "RoveMax Model M1",
+        "dryMass": 0.0750000029802322,
+        "inverseStage": 2,
+        "flightId": 1229651972,
+        "crewCapacity": 0,
+        "persistentId": 3799116153,
+        "orgPos": [1.30249083042145, -6.11827993392944, -0.8973388671875],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleWheelBase",
+          "ModuleWheelSuspension",
+          "ModuleWheelSteering",
+          "ModuleWheelMotor",
+          "ModuleWheelBrakes",
+          "ModuleWheelDamage",
+          "FXModuleLookAtConstraint",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "LgRadialSolarPanel",
+        "bounds": {
+          "size": {
+            "x": 0.800000011920929,
+            "y": 1.60000002384186,
+            "z": 0.163067221641541
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "OX-STAT-XL Photovoltaic Panels",
+        "dryMass": 0.0399999991059303,
+        "inverseStage": 2,
+        "flightId": 4198013115,
+        "crewCapacity": 0,
+        "persistentId": 521466240,
+        "orgPos": [-1.16514122486115, -4.80906629562378, -0.165611237287521],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "LgRadialSolarPanel",
+        "bounds": {
+          "size": {
+            "x": 0.800000011920929,
+            "y": 1.60000002384186,
+            "z": 0.163067221641541
+          }
+        },
+        "manufacturer": "Probodobodyne Inc",
+        "crashTolerance": 8,
+        "title": "OX-STAT-XL Photovoltaic Panels",
+        "dryMass": 0.0399999991059303,
+        "inverseStage": 2,
+        "flightId": 1562320580,
+        "crewCapacity": 0,
+        "persistentId": 3504322283,
+        "orgPos": [1.16514098644257, -4.8090705871582, -0.165605083107948],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Electrical",
+        "name": "ksp.r.largeBatteryPack",
+        "bounds": {
+          "size": {
+            "x": 0.5,
+            "y": 0.650000154972076,
+            "z": 0.364494264125824
+          }
+        },
+        "manufacturer": "Zaltonic Electronics",
+        "crashTolerance": 8,
+        "title": "Z-400 Rechargeable Battery",
+        "dryMass": 0.0199999995529652,
+        "inverseStage": 2,
+        "flightId": 867294805,
+        "crewCapacity": 0,
+        "persistentId": 3659979563,
+        "orgPos": [-0.756558954715729, -5.55806541442871, 0.213432982563972],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": ["ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "category": "Electrical",
+        "name": "ksp.r.largeBatteryPack",
+        "bounds": {
+          "size": {
+            "x": 0.5,
+            "y": 0.650000154972076,
+            "z": 0.364494264125824
+          }
+        },
+        "manufacturer": "Zaltonic Electronics",
+        "crashTolerance": 8,
+        "title": "Z-400 Rechargeable Battery",
+        "dryMass": 0.0199999995529652,
+        "inverseStage": 2,
+        "flightId": 2834139757,
+        "crewCapacity": 0,
+        "persistentId": 3028163476,
+        "orgPos": [0.75655871629715, -5.55806398391724, 0.213434398174286],
+        "maxTemp": 1200,
+        "parentFlightId": 2052538069,
+        "modules": ["ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "category": "Utility",
+        "name": "domeLight1",
+        "bounds": {
+          "size": {
+            "x": 0.224300369620323,
+            "y": 0.224300473928452,
+            "z": 0.0523745864629745
+          }
+        },
+        "manufacturer": "Rokea Inc",
+        "crashTolerance": 8,
+        "title": "Domelight Mk1",
+        "dryMass": 0.0020000000949949,
+        "inverseStage": 2,
+        "flightId": 3567189349,
+        "crewCapacity": 0,
+        "persistentId": 1033956481,
+        "orgPos": [-1.18506991863251, -5.12126493453979, -1.0750048160553],
+        "maxTemp": 2000,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleLight",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Utility",
+        "name": "domeLight1",
+        "bounds": {
+          "size": {
+            "x": 0.224300369620323,
+            "y": 0.224300473928452,
+            "z": 0.0523745864629745
+          }
+        },
+        "manufacturer": "Rokea Inc",
+        "crashTolerance": 8,
+        "title": "Domelight Mk1",
+        "dryMass": 0.0020000000949949,
+        "inverseStage": 2,
+        "flightId": 3890454084,
+        "crewCapacity": 0,
+        "persistentId": 146463614,
+        "orgPos": [1.18506944179535, -5.12126445770264, -1.07500207424164],
+        "maxTemp": 2000,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleLight",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "category": "Coupling",
+        "name": "dockingPort2",
+        "bounds": {
+          "size": {
+            "x": 1.15134644508362,
+            "y": 0.575257301330566,
+            "z": 1.15134644508362
+          }
+        },
+        "manufacturer": "Found lying by the side of the road",
+        "crashTolerance": 10,
+        "title": "Clamp-O-Tron Docking Port",
+        "dryMass": 0.0500000007450581,
+        "inverseStage": 2,
+        "flightId": 1147193264,
+        "crewCapacity": 0,
+        "persistentId": 749187469,
+        "orgPos": [0.0517254248261452, -4.99963521957397, -1.22457242012024],
+        "maxTemp": 2000,
+        "parentFlightId": 2052538069,
+        "modules": [
+          "ModuleDockingNode",
+          "ModuleCargoPart",
+          "ModuleColorChanger",
+          "MuMechModuleHullCameraZoom",
+          "KOSNameTag"
+        ]
+      }
+    ]
+  }
+}
