@@ -98,6 +98,12 @@ export function classifyPart(
       m.includes("AeroSurface") ||
       m.includes("ControlSurface"),
   );
+  // Cargo bays / service bays carry ModuleLiftingSurface for the body-
+  // lift bonus, but visually they're boxes, not wings. Disqualify the
+  // fin classification when we see a ModuleCargoBay so a 2.5 m bay
+  // doesn't render as a giant triangle (this was the rover's mk2CargoBayS
+  // dominating every harness render before the gate was added).
+  const hasCargoBay = modules.some((m) => m.includes("CargoBay"));
 
   const hasSolidFuel =
     !!resources &&
@@ -112,7 +118,7 @@ export function classifyPart(
   if (hasCommand) return "capsule";
   if (hasSolar) return "solar";
   if (hasParachute) return "parachute";
-  if (hasFin) return "fin";
+  if (hasFin && !hasCargoBay) return "fin";
   if (hasAnyResource) return "tank";
 
   // Fall back to KSP's `PartCategories` enum, then name/title heuristics.
