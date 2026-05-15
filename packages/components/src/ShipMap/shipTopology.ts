@@ -17,6 +17,7 @@ export type PartType =
   | "capsule"
   | "solar"
   | "parachute"
+  | "wheel"
   | "other";
 
 /**
@@ -115,6 +116,7 @@ export function classifyPart(
   // doesn't render as a giant triangle (this was the rover's mk2CargoBayS
   // dominating every harness render before the gate was added).
   const hasCargoBay = modules.some((m) => m.includes("CargoBay"));
+  const hasWheel = modules.some((m) => m.includes("ModuleWheelBase"));
 
   const hasSolidFuel =
     !!resources &&
@@ -131,6 +133,7 @@ export function classifyPart(
 
   if (hasEngine && hasSolidFuel) return "booster";
   if (hasEngine) return "engine";
+  if (hasWheel) return "wheel";
   if (hasDecouple) return "decoupler";
   if (hasRCSMod) return "rcs";
   if (hasCommand) return "capsule";
