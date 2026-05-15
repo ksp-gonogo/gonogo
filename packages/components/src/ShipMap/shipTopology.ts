@@ -18,6 +18,7 @@ export type PartType =
   | "solar"
   | "parachute"
   | "wheel"
+  | "fuel-line"
   | "other";
 
 /**
@@ -75,6 +76,12 @@ export interface ShipMapPart {
    * v1; other resources can be added behind a config later.
    */
   ecFlowSign?: "producer" | "consumer" | null;
+  /**
+   * Pass-through from `TopologyPart.fuelLineTarget` — the destination
+   * tank's flightId for fuel-line parts. Used by the renderer to draw
+   * source→target arrows.
+   */
+  fuelLineTarget?: number | null;
 }
 
 /**
@@ -117,6 +124,7 @@ export function classifyPart(
   // dominating every harness render before the gate was added).
   const hasCargoBay = modules.some((m) => m.includes("CargoBay"));
   const hasWheel = modules.some((m) => m.includes("ModuleWheelBase"));
+  const isFuelLine = modules.some((m) => m.includes("CModuleFuelLine"));
 
   const hasSolidFuel =
     !!resources &&
@@ -134,6 +142,12 @@ export function classifyPart(
   if (hasEngine && hasSolidFuel) return "booster";
   if (hasEngine) return "engine";
   if (hasWheel) return "wheel";
+  // Fuel lines come back from KSP under PartCategories.FuelTank with
+  // bounds that wrap the whole conduit run (per the 2026-05-15 audit) —
+  // neither the category nor the bounds are useful for rendering. Bail
+  // out before the resource-based 'tank' fallback so they get the
+  // dedicated source→target arrow treatment in the renderer.
+  if (isFuelLine) return "fuel-line";
   if (hasDecouple) return "decoupler";
   if (hasRCSMod) return "rcs";
   if (hasCommand) return "capsule";
@@ -312,5 +326,6 @@ export function buildShipMapPart(
     maxTemperatureK: thermal?.maxTemperatureK,
     resources: normaliseResources(resources),
     ecFlowSign,
+    fuelLineTarget: part.fuelLineTarget ?? null,
   };
 }

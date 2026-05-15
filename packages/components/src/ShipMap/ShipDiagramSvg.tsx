@@ -110,7 +110,13 @@ export function ShipDiagramSvg({
   const stroke = (n: number) => n / cam.zoom;
 
   // Draw outer parts first so the central stack overlaps cleanly on top.
-  const drawOrder = [...projected].sort((a, b) => b.spineDist - a.spineDist);
+  // Fuel-line parts come out of the main pass and render as source→target
+  // arrows in a separate layer on top.
+  const drawOrder = [...projected]
+    .filter((p) => p.type !== "fuel-line")
+    .sort((a, b) => b.spineDist - a.spineDist);
+  const fuelLines = projected.filter((p) => p.type === "fuel-line");
+  const partsById = new Map(projected.map((p) => [p.flightId, p]));
 
   const interactive = !!onPartHover;
 
@@ -293,8 +299,77 @@ export function ShipDiagramSvg({
             </PartGroup>
           );
         })}
+
+        {fuelLines.map((line) => {
+          const sourceId = line.parentFlightId;
+          const targetId = line.fuelLineTarget ?? null;
+          const source = sourceId != null ? partsById.get(sourceId) : null;
+          const target = targetId != null ? partsById.get(targetId) : null;
+          if (!source || !target) return null;
+          const a = toBase(source.lat, source.axial);
+          const b = toBase(target.lat, target.axial);
+          return (
+            <FuelLineArrow
+              key={`fuel-line-${line.flightId}`}
+              from={a}
+              to={b}
+              zoom={cam.zoom}
+            />
+          );
+        })}
       </g>
     </svg>
+  );
+}
+
+interface FuelLineArrowProps {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  zoom: number;
+}
+
+function FuelLineArrow({ from, to, zoom }: FuelLineArrowProps) {
+  // Source→target yellow arrow. Line stops short of the target tank by
+  // `arrowHead` so the arrowhead is the visible terminus instead of
+  // overlapping the tank body. Arrowhead is sized in screen pixels so
+  // it stays readable at any zoom level.
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.5) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+  const arrowHead = 10 / zoom;
+  const tipX = to.x;
+  const tipY = to.y;
+  const baseX = tipX - ux * arrowHead;
+  const baseY = tipY - uy * arrowHead;
+  // Perpendicular vector for the arrowhead wings.
+  const px = -uy;
+  const py = ux;
+  const wing = arrowHead * 0.5;
+  const w1x = baseX + px * wing;
+  const w1y = baseY + py * wing;
+  const w2x = baseX - px * wing;
+  const w2y = baseY - py * wing;
+  return (
+    <g data-role="fuel-line" pointerEvents="none">
+      <line
+        x1={from.x}
+        y1={from.y}
+        x2={baseX}
+        y2={baseY}
+        stroke="var(--color-tag-yellow-fg)"
+        strokeWidth={2 / zoom}
+        strokeLinecap="round"
+        opacity={0.9}
+      />
+      <polygon
+        points={`${tipX},${tipY} ${w1x},${w1y} ${w2x},${w2y}`}
+        fill="var(--color-tag-yellow-fg)"
+        opacity={0.9}
+      />
+    </g>
   );
 }
 
