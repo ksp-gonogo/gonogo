@@ -58,11 +58,6 @@ export interface ShipDiagramSvgProps {
  *  under the radius so axial-stack joints don't get misclassified. */
 const STACK_LAT_TOL = 0.3;
 
-/** Floor on bounds extents so a zero-bounds part (rare, mid-load) doesn't
- *  collapse to a point and break the projection. ~0.1m mirrors the smallest
- *  real KSP part size. */
-const MIN_HALF_EXTENT = 0.1;
-
 /**
  * Pure SVG rendering of the ship diagram. Separated from the interactive
  * `ShipDiagram` shell (Wrapper/Reset/Tooltip) so the harness + snapshot
@@ -632,12 +627,13 @@ function heatTintFor(
 }
 
 function intrinsicSize(part: ShipMapPart): Intrinsic {
-  const s = part.size;
-  const halfH = Math.max(s.z / 2, MIN_HALF_EXTENT);
-  const halfW = Math.max(Math.max(s.x, s.y) / 2, MIN_HALF_EXTENT);
   const stretchy =
     part.type === "tank" || part.type === "booster" || part.type === "engine";
-  return { halfH, halfW, stretchy };
+  return {
+    halfH: part.axialHalfExtent,
+    halfW: part.latHalfExtent,
+    stretchy,
+  };
 }
 
 function project(parts: readonly ShipMapPart[]) {

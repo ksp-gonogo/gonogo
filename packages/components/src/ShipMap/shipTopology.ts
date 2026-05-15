@@ -37,6 +37,11 @@ export interface ShipMapPart {
   axial: number;
   /** Prefab bounds in metres — `{x, y, z}` from `v.topology.parts[].bounds.size`. */
   size: { x: number; y: number; z: number };
+  /** Half-extent along the picked lateral axis (matches whatever `useX`
+   *  chose when building this part). Always in metres. */
+  latHalfExtent: number;
+  /** Half-extent along the vessel-local Y axis (the spine). In metres. */
+  axialHalfExtent: number;
   /** `Part.mass` from topology — dry mass, no resources. */
   dryMass: number;
   /** `Part.inverseStage` from topology. */
@@ -235,6 +240,7 @@ export function buildShipMapPart(
         ? "producer"
         : "consumer"
       : null;
+  const size = part.bounds.size;
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
@@ -243,7 +249,16 @@ export function buildShipMapPart(
     type: classifyPart(part, resources),
     lat: useX ? orgPos[0] : orgPos[2],
     axial: orgPos[1],
-    size: part.bounds.size,
+    size,
+    // Vessel-local Y is the spine; the bounds emit in part-local frame
+    // where Y is also the axial extent, so this maps 1:1 for axially
+    // aligned parts (the majority). Lateral picks the picked axis to
+    // match the projected silhouette — using max(x,y) like the previous
+    // implementation mistook a part's axial extent for lateral, blowing
+    // up wing-shaped parts (e.g. radial solar panels would render as
+    // 1.6m wings instead of 0.16m thin strips).
+    latHalfExtent: (useX ? size.x : size.z) / 2,
+    axialHalfExtent: size.y / 2,
     dryMass: part.dryMass,
     stage: part.inverseStage,
     maxTemp: part.maxTemp,

@@ -3,9 +3,20 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 
-const SIZE_SMALL = { x: 0.6, y: 0.6, z: 0.4 };
-const SIZE_TANK = { x: 1.25, y: 1.25, z: 1.85 };
-const SIZE_ENGINE = { x: 1.25, y: 1.25, z: 1.0 };
+// Sizes in metres, KSP convention: y is axial extent. Lateral pick for
+// these straight-stack test parts is X (the lat=0 line places parts on
+// the picked axis), so latHalfExtent = size.x / 2.
+const SIZE_SMALL = { x: 0.6, y: 0.4, z: 0.6 };
+const SIZE_TANK = { x: 1.25, y: 1.85, z: 1.25 };
+const SIZE_ENGINE = { x: 1.25, y: 1.0, z: 1.25 };
+
+function half(size: { x: number; y: number; z: number }) {
+  return {
+    size,
+    latHalfExtent: size.x / 2,
+    axialHalfExtent: size.y / 2,
+  };
+}
 
 const PARTS: ShipMapPart[] = [
   {
@@ -16,7 +27,7 @@ const PARTS: ShipMapPart[] = [
     type: "capsule",
     lat: 0,
     axial: 0,
-    size: SIZE_SMALL,
+    ...half(SIZE_SMALL),
     dryMass: 0.1,
     stage: 0,
     maxTemp: 1200,
@@ -29,7 +40,7 @@ const PARTS: ShipMapPart[] = [
     type: "tank",
     lat: 0,
     axial: -1,
-    size: SIZE_TANK,
+    ...half(SIZE_TANK),
     dryMass: 0.25,
     stage: 1,
     maxTemp: 2000,
@@ -46,7 +57,7 @@ const PARTS: ShipMapPart[] = [
     type: "engine",
     lat: 0,
     axial: -2,
-    size: SIZE_ENGINE,
+    ...half(SIZE_ENGINE),
     dryMass: 1.25,
     stage: 1,
     maxTemp: 2000,
