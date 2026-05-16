@@ -46,19 +46,14 @@ export interface DecodedHeights {
   metres: Int16Array;
 }
 
-export function decodeHeightGrid(
-  grid: SCANHeightGrid,
-): DecodedHeights | null {
+export function decodeHeightGrid(grid: SCANHeightGrid): DecodedHeights | null {
   const bytes = base64ToBytes(grid.heights);
   const expected = grid.width * grid.height * 2;
   if (bytes.length < expected) return null;
   // The fork packs little-endian. Use the byte buffer as the backing
   // store for an Int16Array — but a slice can be ArrayBuffer-aligned in
   // theory, so copy through a fresh ArrayBuffer to be safe.
-  const buf = bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + expected,
-  );
+  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + expected);
   return {
     width: grid.width,
     height: grid.height,
@@ -165,7 +160,10 @@ function base64ToBytes(b64: string): Uint8Array {
   }
   const g = globalThis as unknown as {
     Buffer?: {
-      from: (s: string, enc: string) => {
+      from: (
+        s: string,
+        enc: string,
+      ) => {
         [n: number]: number;
         length: number;
       };

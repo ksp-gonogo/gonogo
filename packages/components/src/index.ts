@@ -34,6 +34,7 @@ export * from "./OrbitalAscent";
 export * from "./OrbitView";
 export * from "./PerfBudgets";
 export * from "./PowerSystems";
+export * from "./Scanning";
 export * from "./ScienceBench";
 export * from "./ScienceOfficer";
 export * from "./SemiMajorAxis";

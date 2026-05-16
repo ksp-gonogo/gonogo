@@ -14,7 +14,11 @@ import {
   useActionInput,
   useDataValue,
 } from "@gonogo/core";
-import { useDataSchema, useScanAnomalies, useScanSatFogSync } from "@gonogo/data";
+import {
+  useDataSchema,
+  useScanAnomalies,
+  useScanSatFogSync,
+} from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
@@ -55,8 +59,8 @@ import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { useFogDisplayCanvas } from "./useFogMask";
-import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useMapResize } from "./useMapResize";
+import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
 
