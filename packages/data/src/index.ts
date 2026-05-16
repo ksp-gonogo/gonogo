@@ -26,6 +26,24 @@ export {
   SCAN_BITMAP_WIDTH,
 } from "./fog/scanCoverageSync";
 export { useScanSatFogSync } from "./fog/useScanSatFogSync";
+export type {
+  DecodedBiomes,
+  DecodedCoverage,
+  DecodedHeights,
+} from "./scansat/scanDecode";
+export {
+  decodeBiomeGrid,
+  decodeCoverage,
+  decodeHeightGrid,
+  tileToPixelRect,
+} from "./scansat/scanDecode";
+export {
+  useScanAnomalies,
+  useScanBiomeGrid,
+  useScanCoverage,
+  useScanHeightGrid,
+  useScanningVessels,
+} from "./scansat/useScanLayers";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";

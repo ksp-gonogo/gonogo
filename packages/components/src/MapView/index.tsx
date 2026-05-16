@@ -55,6 +55,7 @@ import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { useFogDisplayCanvas } from "./useFogMask";
+import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useMapResize } from "./useMapResize";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
@@ -135,6 +136,9 @@ function MapViewComponent({
   const telemetryKeys = config?.telemetryKeys ?? [];
   const showTelemetry = telemetryKeys.length > 0;
   const showPrediction = config?.showPrediction ?? true;
+  const baseLayer = config?.baseLayer ?? "altimetry";
+  const showHeightShading = config?.showHeightShading ?? false;
+  const showAnomalies = config?.showAnomalies ?? false;
 
   const schema = useDataSchema("data");
   const labelMap = new Map(schema.map((k) => [k.key, k.label]));
@@ -243,6 +247,14 @@ function MapViewComponent({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
+  // SCANsat layer hooks. Declared up here (before the base-canvas
+  // render effect) so the effect's dependency array can reference
+  // them without TDZ. Each hook gates its own fetch on the toggle.
+  useScanSatFogSync(body);
+  const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
+  const heightDisplay = useHeightCanvas(body, showHeightShading);
+  const fogDisplay = useFogDisplayCanvas(targetBodyId);
+
   // Per-body coordinate offsets — applied in both world canvas and screen space
   const adjustedMap = useCallback(
     (canvasW: number, canvasH: number, rawLat: number, rawLon: number) => {
@@ -313,13 +325,28 @@ function MapViewComponent({
 
     ctx.setTransform(...cameraTransform(camera, w, h));
 
-    if (textureImage) {
-      ctx.drawImage(textureImage, 0, 0, WORLD_W, WORLD_H);
+    // Pick the base image: biome canvas when in biome mode and the
+    // grid has decoded, otherwise the body's stock texture. The body-
+    // colour wash is the last-resort fallback for bodies without a
+    // texture loaded yet.
+    const baseImage =
+      baseLayer === "biome" && biomeDisplay.canvas
+        ? biomeDisplay.canvas
+        : textureImage;
+
+    if (baseImage) {
+      ctx.drawImage(baseImage, 0, 0, WORLD_W, WORLD_H);
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     } else if (body?.color) {
       ctx.fillStyle = `${body.color}22`;
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+
+    // Elevation shading rides on top of either base layer — opacity is
+    // baked into the ramp colours so the underlying base shows through.
+    if (showHeightShading && heightDisplay.canvas) {
+      ctx.drawImage(heightDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
     }
 
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel
@@ -358,7 +385,18 @@ function MapViewComponent({
     ctx.stroke();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [containerSize, camera, textureReady, body?.color]);
+  }, [
+    containerSize,
+    camera,
+    textureReady,
+    body?.color,
+    baseLayer,
+    biomeDisplay.canvas,
+    biomeDisplay.version,
+    showHeightShading,
+    heightDisplay.canvas,
+    heightDisplay.version,
+  ]);
 
   // ── Fog-of-war: driven exclusively by SCANsat ────────────────────────────
   // The per-vessel painter (paintFogFromBody / paintFogDisc) modelled
@@ -370,9 +408,6 @@ function MapViewComponent({
   // mirror still work through it); it's just now sourced from SCANsat
   // alone. Without SCANsat installed there is no fog source — MapView
   // shows the base body texture without an overlay.
-  useScanSatFogSync(body);
-
-  const fogDisplay = useFogDisplayCanvas(targetBodyId);
 
   // fogDisplay.version is needed even though the canvas reference is stable:
   // the canvas contents are repainted in place as the fog mask mutates.
