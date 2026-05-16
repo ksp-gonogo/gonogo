@@ -6,10 +6,11 @@
  *
  * Run with `pnpm --filter @gonogo/components render-ship-map`.
  */
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { VesselTopology } from "@gonogo/core";
+import type { PartState, PartStateModule, VesselTopology } from "@gonogo/core";
 import { renderShipMapToSvg } from "../src/ShipMap/render";
 import {
   buildShipMapPart,
@@ -25,6 +26,17 @@ interface Fixture {
   "v.topology": VesselTopology;
 }
 
+/**
+ * Optional partState sidecar — keyed by stringified `flightId` →
+ * `PartStateModule[]`. The harness loads `<fixture>.partState.json`
+ * when present so the rendered SVG exercises the engine-flame /
+ * parachute-canopy / deploy-chevron overlays. Real captures pull
+ * `v.partState[fid]` from Telemachus; for demo purposes (where no
+ * live capture is available) a hand-written sidecar drives the same
+ * code path.
+ */
+type PartStateSidecar = Record<string, PartStateModule[]>;
+
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
   const entries = await readdir(FIXTURES_DIR);
@@ -35,25 +47,45 @@ async function main(): Promise<void> {
   }
 
   for (const name of fixtures) {
+    if (name.endsWith(".partState.json")) continue;
     const raw = await readFile(join(FIXTURES_DIR, name), "utf8");
     const fixture = JSON.parse(raw) as Fixture;
-    const parts = fixtureToShipMapParts(fixture);
+    const sidecarPath = join(
+      FIXTURES_DIR,
+      name.replace(/\.json$/, ".partState.json"),
+    );
+    let sidecar: PartStateSidecar | undefined;
+    if (existsSync(sidecarPath)) {
+      sidecar = JSON.parse(await readFile(sidecarPath, "utf8")) as
+        PartStateSidecar;
+    }
+    const parts = fixtureToShipMapParts(fixture, sidecar);
     const svg = renderShipMapToSvg(parts, { width: 800, height: 800 });
     const outName = name.replace(/\.json$/, ".svg");
     const outPath = join(OUT_DIR, outName);
     await writeFile(outPath, svg, "utf8");
+    const stateNote = sidecar ? " (partState)" : "";
     console.log(
-      `  ${outName.padEnd(48)} ${String(parts.length).padStart(4)} parts`,
+      `  ${outName.padEnd(48)} ${String(parts.length).padStart(4)} parts${stateNote}`,
     );
   }
 
   console.log(`\nRendered ${fixtures.length} fixtures → ${OUT_DIR}`);
 }
 
-function fixtureToShipMapParts(fixture: Fixture): ShipMapPart[] {
+function fixtureToShipMapParts(
+  fixture: Fixture,
+  sidecar?: PartStateSidecar,
+): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
-  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
+  return topo.parts.map((p) => {
+    const modules = sidecar?.[String(p.flightId)];
+    const partState: PartState | undefined = modules
+      ? { seq: 0, modules }
+      : undefined;
+    return buildShipMapPart(p, undefined, undefined, useX, partState);
+  });
 }
 
 main().catch((err) => {
