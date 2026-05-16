@@ -1,5 +1,9 @@
-import { type BodyDefinition, useDataValue } from "@gonogo/core";
-import { useScanAnomalies } from "@gonogo/data";
+import {
+  type BodyDefinition,
+  type SCANScanningVessel,
+  useDataValue,
+} from "@gonogo/core";
+import { useScanAnomalies, useScanningVessels } from "@gonogo/data";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useFogDisplayCanvas } from "../MapView/useFogMask";
@@ -38,6 +42,7 @@ export function Minimap({
   const biome = useBiomeCanvas(body, true);
   const fog = useFogDisplayCanvas(body.name);
   const anomalies = useScanAnomalies(body.name);
+  const scanningVessels = useScanningVessels();
 
   // Repaint on body change, vessel-move, or upstream-canvas mutation.
   // biome-ignore lint/correctness/useExhaustiveDependencies: biome.version / fog.version bump on canvas-bytes-changed; the canvas reference is stable across mutations
@@ -76,6 +81,17 @@ export function Minimap({
       drawWindowed(ctx, fog.canvas, sx, sy, sw, sh);
     }
 
+    // Scanner footprints — drawn with SCANsat's own getFOV +
+    // trackColor so the minimap mirrors the in-game ground-track
+    // overlay. We render every tracked vessel on this body, not just
+    // the active one.
+    if (scanningVessels) {
+      for (const v of scanningVessels) {
+        if (v.body !== body.name) continue;
+        drawScannerFootprint(ctx, body, v, texLat, texLon);
+      }
+    }
+
     // Anomaly markers, transformed into minimap pixel space.
     if (anomalies) {
       for (const a of anomalies) {
@@ -107,6 +123,7 @@ export function Minimap({
     fog.canvas,
     fog.version,
     anomalies,
+    scanningVessels,
   ]);
 
   return (
@@ -207,6 +224,71 @@ function drawWindowed(
     return;
   }
   ctx.drawImage(source, sx, sy, sw, sh, 0, 0, MINIMAP_PX, MINIMAP_PX);
+}
+
+/**
+ * Paint a single scanning vessel's footprint rectangle. The lat/lon
+ * extents come straight off the wire — `groundTrackWidthDeg` (from
+ * SCANsat's private `getFOV` via reflection) for latitude, and
+ * `groundTrackLonHalfDeg` (the fork-side 1/cos widening with the 120°
+ * cap that SCANsat itself uses) for longitude. The tint mirrors
+ * `SCANvessel.trackColor`. No formula here — only projection of the
+ * SCANsat-supplied rect into the minimap's window.
+ */
+function drawScannerFootprint(
+  ctx: CanvasRenderingContext2D,
+  body: BodyDefinition,
+  v: SCANScanningVessel,
+  centerTexLat: number,
+  centerTexLon: number,
+): void {
+  const halfLat = v.groundTrackWidthDeg;
+  const halfLon = v.groundTrackLonHalfDeg;
+  if (halfLat == null || halfLat <= 0) return;
+  if (halfLon == null || halfLon <= 0) return;
+
+  const tc = v.trackColor;
+  const fill = tc
+    ? `rgba(${tc.r}, ${tc.g}, ${tc.b}, ${(tc.a / 255).toFixed(3)})`
+    : "rgba(255, 255, 255, 0.4)";
+
+  const vTexLat = v.subLatitude + (body.latitudeOffset ?? 0);
+  const vTexLon = wrapLon(v.subLongitude + (body.longitudeOffset ?? 0));
+  // Vertical extent — straight delta-lat from the minimap centre.
+  const dLatTop = vTexLat + halfLat - centerTexLat;
+  const dLatBot = vTexLat - halfLat - centerTexLat;
+  if (dLatTop < -WINDOW_HALF_DEG && dLatBot < -WINDOW_HALF_DEG) return;
+  if (dLatTop > WINDOW_HALF_DEG && dLatBot > WINDOW_HALF_DEG) return;
+  const yTop =
+    MINIMAP_PX / 2 -
+    (clamp(dLatTop, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
+      (MINIMAP_PX / 2);
+  const yBot =
+    MINIMAP_PX / 2 -
+    (clamp(dLatBot, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
+      (MINIMAP_PX / 2);
+
+  // Horizontal extent — shortest delta-lon from the minimap centre.
+  const dLon = shortestLonDelta(vTexLon, centerTexLon);
+  const dLonLeft = dLon - halfLon;
+  const dLonRight = dLon + halfLon;
+  if (dLonLeft > WINDOW_HALF_DEG && dLonRight > WINDOW_HALF_DEG) return;
+  if (dLonLeft < -WINDOW_HALF_DEG && dLonRight < -WINDOW_HALF_DEG) return;
+  const xLeft =
+    MINIMAP_PX / 2 +
+    (clamp(dLonLeft, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
+      (MINIMAP_PX / 2);
+  const xRight =
+    MINIMAP_PX / 2 +
+    (clamp(dLonRight, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
+      (MINIMAP_PX / 2);
+
+  ctx.fillStyle = fill;
+  ctx.fillRect(xLeft, yTop, xRight - xLeft, yBot - yTop);
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 function drawCrosshair(ctx: CanvasRenderingContext2D): void {
