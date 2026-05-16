@@ -14,7 +14,7 @@ import {
   useActionInput,
   useDataValue,
 } from "@gonogo/core";
-import { useDataSchema, useScanSatFogSync } from "@gonogo/data";
+import { useDataSchema, useScanAnomalies, useScanSatFogSync } from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
@@ -253,6 +253,7 @@ function MapViewComponent({
   useScanSatFogSync(body);
   const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
   const heightDisplay = useHeightCanvas(body, showHeightShading);
+  const anomalies = useScanAnomalies(showAnomalies ? body?.name : undefined);
   const fogDisplay = useFogDisplayCanvas(targetBodyId);
 
   // Per-body coordinate offsets — applied in both world canvas and screen space
@@ -421,11 +422,46 @@ function MapViewComponent({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, w, h);
-    if (!fogDisplay.canvas) return;
     ctx.setTransform(...cameraTransform(camera, w, h));
-    ctx.drawImage(fogDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
+    if (fogDisplay.canvas) {
+      ctx.drawImage(fogDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
+    }
+    // Anomaly markers — only render the discovered ones (known = true).
+    // `detail = true` parts get a brighter ring + label-ready hit area;
+    // discovered-without-detail render dimmer. Undiscovered anomalies
+    // don't appear at all (the player can't see what they haven't
+    // found).
+    if (showAnomalies && body && anomalies && anomalies.length > 0) {
+      const r = Math.max(2, 4 / camera.zoom);
+      const stroke = Math.max(1, 1.5 / camera.zoom);
+      for (const a of anomalies) {
+        if (!a.known) continue;
+        const adjLat = a.latitude + (body.latitudeOffset ?? 0);
+        const adjLon = a.longitude + (body.longitudeOffset ?? 0);
+        const { x, y } = latLonToMap(adjLat, adjLon, WORLD_W, WORLD_H);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = a.detail
+          ? "rgba(255, 220, 90, 0.95)"
+          : "rgba(255, 220, 90, 0.55)";
+        ctx.fill();
+        ctx.strokeStyle = a.detail
+          ? "rgba(255, 255, 200, 0.95)"
+          : "rgba(255, 255, 200, 0.4)";
+        ctx.lineWidth = stroke;
+        ctx.stroke();
+      }
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [containerSize, camera, fogDisplay.canvas, fogDisplay.version]);
+  }, [
+    containerSize,
+    camera,
+    fogDisplay.canvas,
+    fogDisplay.version,
+    showAnomalies,
+    anomalies,
+    body,
+  ]);
 
   // ── Trajectory layer: blit world canvas through camera ────────────────────
   // trajectoryCount is needed here even though worldCanvasRef is a ref:
