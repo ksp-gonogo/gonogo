@@ -54,7 +54,7 @@ import { MapViewConfigComponent } from "./MapViewConfig";
 import { quantiseUt } from "./predictionThrottle";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
-import { useFogDisplayCanvas, useFogPainter } from "./useFogMask";
+import { useFogDisplayCanvas } from "./useFogMask";
 import { useMapResize } from "./useMapResize";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
@@ -360,22 +360,16 @@ function MapViewComponent({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }, [containerSize, camera, textureReady, body?.color]);
 
-  // ── Fog-of-war: paint on telemetry tick, composite onto overlay ───────────
-  useFogPainter({
-    body,
-    shipLat: lat,
-    shipLon: lon,
-    altitude: altSea,
-    pitch: shipPitch,
-    heading: shipHeading,
-    enabled: true,
-  });
-
-  // Layer SCANsat's authoritative per-program coverage on top of the
-  // painter's per-vessel imaging when the mod is present. Both write the
-  // same BodyMask via max-lighten so they coexist safely — the painter
-  // fills tiles SCANsat hasn't reached yet, and SCANsat fills tiles the
-  // painter wouldn't reach (low orbit + no scanner / un-mapped FOV).
+  // ── Fog-of-war: driven exclusively by SCANsat ────────────────────────────
+  // The per-vessel painter (paintFogFromBody / paintFogDisc) modelled
+  // gonogo's own imaging FOV from lat/lon/altitude/heading. SCANsat
+  // replaces that wholesale: scanner range gates + sub-vessel point are
+  // KSP's own model, persisted into the save's SCANcontroller scenario
+  // module, and the fork's scan.maskBitmap surfaces the resulting
+  // coverage bitfield. The FogMaskCache stays (PeerJS sync + station
+  // mirror still work through it); it's just now sourced from SCANsat
+  // alone. Without SCANsat installed there is no fog source — MapView
+  // shows the base body texture without an overlay.
   useScanSatFogSync(body);
 
   const fogDisplay = useFogDisplayCanvas(targetBodyId);

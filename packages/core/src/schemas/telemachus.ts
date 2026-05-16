@@ -279,6 +279,92 @@ export interface SCANCoverageBitmap {
 }
 
 /**
+ * `scan.heightGrid[bodyName]` response. `heights` is a base64-encoded
+ * `Int16[width*height]` row-major in the same (lon+180)*height + (lat+90)
+ * order as the coverage bitmap. Values are metres above the body's
+ * reference radius; `minMetres` / `maxMetres` give the colour-ramp
+ * extents without a full scan of the decoded array.
+ *
+ * PQS-backed on the fork side, so this resolves even without SCANsat
+ * installed — operators should still gate display behind
+ * `scan.maskBitmap` coverage if fog-of-war semantics are desired.
+ */
+export interface SCANHeightGrid {
+  width: number;
+  height: number;
+  minMetres: number;
+  maxMetres: number;
+  /** Base64 Int16 little-endian per cell. */
+  heights: string;
+}
+
+/**
+ * One biome entry from `scan.biomeGrid[bodyName].biomes`. `colour` is a
+ * packed RGB integer (0xRRGGBB) lifted from KSP's stock BiomeMap so the
+ * client doesn't need a colour table of its own.
+ */
+export interface SCANBiomeEntry {
+  name: string;
+  displayName: string;
+  colour: number;
+}
+
+/**
+ * `scan.biomeGrid[bodyName]` response. `indices` is a base64 byte-per-
+ * cell array; each byte is the position of the cell's biome in `biomes`
+ * (or 0xFF for a null biome / a body without a BiomeMap). Same cell
+ * order as scan.heightGrid + scan.maskBitmap.
+ *
+ * Stock BiomeMap-backed — works without SCANsat. Indices saturate at
+ * 254; bodies with >254 biomes (unrealistic in stock) collapse the
+ * tail.
+ */
+export interface SCANBiomeGrid {
+  width: number;
+  height: number;
+  biomes: SCANBiomeEntry[];
+  /** Base64 byte-per-cell. */
+  indices: string;
+}
+
+/**
+ * One scanner module on a `scan.scanningVessels` vessel. `type` is the
+ * SCANsat `SCANtype` bit value (see SCAN_TYPE); a single vessel can carry
+ * scanners of several types. `inRange` / `bestRange` reflect SCANsat's
+ * own per-tick range gates: inRange means the vessel is between
+ * `minAlt` and `maxAlt`, bestRange means it's at the high-fidelity
+ * altitude. Below `minAlt` or above `maxAlt` both are false and the
+ * scanner is idle.
+ */
+export interface SCANSensorEntry {
+  type: number;
+  fov: number;
+  minAlt: number;
+  maxAlt: number;
+  bestAlt: number;
+  inRange: boolean;
+  bestRange: boolean;
+}
+
+/**
+ * One entry from `scan.scanningVessels`. SCANsat tracks unloaded vessels
+ * too, so this list is *cross-vessel by design* — a satellite mapping
+ * Kerbin and a probe orbiting Mun both appear here at the same time.
+ * `subLatitude` / `subLongitude` are the sub-satellite ground point;
+ * the scanning footprint is a circle centred there with radius derived
+ * from each sensor's `fov` and the body radius.
+ */
+export interface SCANScanningVessel {
+  vesselId: string;
+  vesselName: string;
+  body: string;
+  subLatitude: number;
+  subLongitude: number;
+  altitude: number;
+  sensors: SCANSensorEntry[];
+}
+
+/**
  * One anomaly from `scan.anomalies[bodyName]`. `known` is true once the
  * player has discovered the anomaly's position (SCANsat Anomaly scan);
  * `detail` is true once they have the name (AnomalyDetail scan). Pre-
