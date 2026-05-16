@@ -40,14 +40,15 @@ type PartStateSidecar = Record<string, PartStateModule[]>;
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
   const entries = await readdir(FIXTURES_DIR);
-  const fixtures = entries.filter((e) => e.endsWith(".json"));
+  const fixtures = entries.filter(
+    (e) => e.endsWith(".json") && !e.endsWith(".partState.json"),
+  );
   if (fixtures.length === 0) {
     console.error(`No fixtures found in ${FIXTURES_DIR}`);
     process.exit(1);
   }
 
   for (const name of fixtures) {
-    if (name.endsWith(".partState.json")) continue;
     const raw = await readFile(join(FIXTURES_DIR, name), "utf8");
     const fixture = JSON.parse(raw) as Fixture;
     const sidecarPath = join(

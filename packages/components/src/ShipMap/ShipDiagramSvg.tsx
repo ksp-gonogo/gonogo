@@ -1,3 +1,4 @@
+import type { PartStateModule } from "@gonogo/core";
 import type React from "react";
 import { useMemo } from "react";
 import { styled } from "styled-components";
@@ -237,7 +238,7 @@ export function ShipDiagramSvg({
                 cam.zoom,
                 outerSign,
               )}
-              {renderPartStateOverlays(p, box, cam.zoom)}
+              {renderPartStateOverlays(p.partState, box, cam.zoom)}
               {tint && (
                 <rect
                   data-role="heat-tint"
@@ -411,33 +412,42 @@ interface ScreenBox {
  * project away from the part regardless of mount orientation.
  */
 function renderPartStateOverlays(
-  p: { partState?: { type: string; state: string }[]; type: PartType },
+  partState: readonly PartStateModule[] | undefined,
   box: ScreenBox,
   zoom: number,
 ): React.ReactNode {
-  const states = p.partState;
-  if (!states || states.length === 0) return null;
+  if (!partState || partState.length === 0) return null;
   const overlays: React.ReactNode[] = [];
-  for (const m of states) {
-    if (m.type === "engine" && m.state === "active") {
-      overlays.push(renderEngineFlame(box, zoom));
-    } else if (m.type === "parachute") {
-      const canopy = renderParachuteCanopy(box, m.state, zoom);
-      if (canopy) overlays.push(canopy);
-    } else if (
-      (m.type === "solarPanel" ||
-        m.type === "radiator" ||
-        m.type === "antenna") &&
-      (m.state === "deploying" || m.state === "retracting")
-    ) {
-      overlays.push(renderAnimatingChevron(box, m.state, zoom));
-    } else if (m.type === "landingGear" && m.state === "extended") {
-      overlays.push(renderLandingGearStand(box, zoom));
-    } else if (m.type === "cargoBay" && m.state === "extended") {
-      overlays.push(renderCargoBayOpenMark(box, zoom));
-    }
+  for (const m of partState) {
+    const overlay = overlayFor(m, box, zoom);
+    if (overlay) overlays.push(overlay);
   }
-  return overlays.length > 0 ? <>{overlays}</> : null;
+  return overlays;
+}
+
+function overlayFor(
+  m: PartStateModule,
+  box: ScreenBox,
+  zoom: number,
+): React.ReactNode {
+  switch (m.type) {
+    case "engine":
+      return m.state === "active" ? renderEngineFlame(box, zoom) : null;
+    case "parachute":
+      return renderParachuteCanopy(box, m.state);
+    case "solarPanel":
+    case "radiator":
+    case "antenna":
+      return m.state === "deploying" || m.state === "retracting"
+        ? renderAnimatingChevron(box, m.state, zoom)
+        : null;
+    case "landingGear":
+      return m.state === "extended" ? renderLandingGearStand(box, zoom) : null;
+    case "cargoBay":
+      return m.state === "extended" ? renderCargoBayOpenMark(box, zoom) : null;
+    default:
+      return null;
+  }
 }
 
 function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
@@ -469,7 +479,6 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
 function renderParachuteCanopy(
   box: ScreenBox,
   state: string,
-  _zoom: number,
 ): React.ReactNode {
   // Canopy sits above the parachute canister body (in part-local +up).
   // Width and height grow with deploy progression so the operator sees
