@@ -27,6 +27,15 @@ export function MapViewConfigComponent({
   const [showPrediction, setShowPrediction] = useState(
     config?.showPrediction ?? true,
   );
+  const [baseLayer, setBaseLayer] = useState<"altimetry" | "biome">(
+    config?.baseLayer ?? "altimetry",
+  );
+  const [showHeightShading, setShowHeightShading] = useState(
+    config?.showHeightShading ?? false,
+  );
+  const [showAnomalies, setShowAnomalies] = useState(
+    config?.showAnomalies ?? false,
+  );
 
   const allKeys = useDataSchema("data");
 
@@ -53,6 +62,9 @@ export function MapViewConfigComponent({
       ),
       telemetryKeys: keys.length > 0 ? keys : undefined,
       showPrediction,
+      baseLayer,
+      showHeightShading,
+      showAnomalies,
     });
   };
 
@@ -70,12 +82,40 @@ export function MapViewConfigComponent({
         />
       </Field>
       <Field>
+        <FieldLabel>Base map</FieldLabel>
+        <FieldRow>
+          <Switch
+            checked={baseLayer === "biome"}
+            onChange={(b) => setBaseLayer(b ? "biome" : "altimetry")}
+            label="Biome colours (off = altimetry)"
+          />
+        </FieldRow>
+        <FieldHint>
+          Altimetry reveals the body's stock texture; biome paints stock
+          per-tile biome colours from SCANsat.
+        </FieldHint>
+      </Field>
+      <Field>
         <FieldLabel>Overlays</FieldLabel>
         <FieldRow>
           <Switch
             checked={showPrediction}
             onChange={setShowPrediction}
             label="Trajectory prediction"
+          />
+        </FieldRow>
+        <FieldRow>
+          <Switch
+            checked={showHeightShading}
+            onChange={setShowHeightShading}
+            label="Elevation shading"
+          />
+        </FieldRow>
+        <FieldRow>
+          <Switch
+            checked={showAnomalies}
+            onChange={setShowAnomalies}
+            label="Anomaly markers"
           />
         </FieldRow>
       </Field>
