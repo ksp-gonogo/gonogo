@@ -314,8 +314,7 @@ export function buildShipMapPart(
   const upLat = up ? (useX ? up[0] : up[2]) : 0;
   const upAxial = up ? up[1] : 1;
   const projectedMagSq = upLat * upLat + upAxial * upAxial;
-  const rotationRad =
-    projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
+  const rotationRad = projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
   // Mesh-centre offset (pre-rotated to vessel frame on the fork side).
   // orgPos is the attach-node anchor; for radial-mount parts the mesh
   // centre sits some distance away. The diagram positions the body box

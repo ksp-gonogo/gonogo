@@ -23,17 +23,9 @@
         "dryMass": 0.800000071525574,
         "persistentId": 2171218098,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          0,
-          0
-        ],
+        "orgPos": [0, 0, 0],
         "title": "Mk1 Command Pod",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 1952844948,
         "crewCapacity": 1,
         "inverseStage": -1,
@@ -63,17 +55,9 @@
         "dryMass": 0.100000001490116,
         "persistentId": 2356812552,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          0.65745735168457,
-          0
-        ],
+        "orgPos": [0, 0.65745735168457, 0],
         "title": "Mk16 Parachute",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 1608792364,
         "crewCapacity": 0,
         "inverseStage": 0,
@@ -105,17 +89,9 @@
         "dryMass": 0.100000001490116,
         "persistentId": 3258580377,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          -0.427038192749023,
-          0
-        ],
+        "orgPos": [0, -0.427038192749023, 0],
         "title": "Heat Shield (1.25m)",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 805604239,
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -145,17 +121,9 @@
         "dryMass": 0.0399999991059303,
         "persistentId": 4230951612,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          -0.477038383483887,
-          0
-        ],
+        "orgPos": [0, -0.477038383483887, 0],
         "title": "TD-12 Decoupler",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 891833681,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -174,25 +142,13 @@
         "name": "Decoupler.1"
       },
       {
-        "modules": [
-          "ModulePartVariants",
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.25,
         "persistentId": 774042815,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          -1.50876331329346,
-          0
-        ],
+        "orgPos": [0, -1.50876331329346, 0],
         "title": "FL-T400 Fuel Tank",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 1351475656,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -227,17 +183,9 @@
         "dryMass": 1.5,
         "persistentId": 3011088472,
         "fuelLineTarget": null,
-        "orgPos": [
-          0,
-          -2.42126274108887,
-          0
-        ],
+        "orgPos": [0, -2.42126274108887, 0],
         "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 965970713,
         "crewCapacity": 0,
         "inverseStage": 4,
@@ -264,17 +212,9 @@
         "dryMass": 0.0175000000745058,
         "persistentId": 3625865929,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.603757381439209,
-          -0.597407341003418,
-          3.59867478039178E-8
-        ],
+        "orgPos": [-0.603757381439209, -0.597407341003418, 3.59867478039178e-8],
         "title": "OX-4L 1x6 Photovoltaic Panels",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 363616651,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -301,17 +241,9 @@
         "dryMass": 0.0175000000745058,
         "persistentId": 2112917456,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.603757381439209,
-          -0.597407341003418,
-          3.59867478039178E-8
-        ],
+        "orgPos": [0.603757381439209, -0.597407341003418, 3.59867478039178e-8],
         "title": "OX-4L 1x6 Photovoltaic Panels",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 2978762229,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -330,24 +262,13 @@
         "name": "solarPanels4"
       },
       {
-        "modules": [
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 2984084990,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.605145454406738,
-          -1.37195777893066,
-          3.60694834000697E-8
-        ],
+        "orgPos": [-0.605145454406738, -1.37195777893066, 3.60694834000697e-8],
         "title": "Z-100 Rechargeable Battery Pack",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 889570420,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -366,24 +287,13 @@
         "name": "batteryPack"
       },
       {
-        "modules": [
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 2050341423,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.605145454406738,
-          -1.37195777893066,
-          -8.89729818709384E-8
-        ],
+        "orgPos": [0.605145454406738, -1.37195777893066, -8.89729818709384e-8],
         "title": "Z-100 Rechargeable Battery Pack",
-        "up": [
-          0,
-          1,
-          0
-        ],
+        "up": [0, 1, 0],
         "flightId": 3520997518,
         "crewCapacity": 0,
         "inverseStage": 1,
@@ -412,17 +322,9 @@
         "dryMass": 0.400000005960464,
         "persistentId": 4118056700,
         "fuelLineTarget": null,
-        "orgPos": [
-          -5.27789261184353E-8,
-          -1.23836135864258,
-          -0.603720545768738
-        ],
+        "orgPos": [-5.27789261184353e-8, -1.23836135864258, -0.603720545768738],
         "title": "Hydraulic Detachment Manifold",
-        "up": [
-          0,
-          1,
-          -8.34464628951537E-7
-        ],
+        "up": [0, 1, -8.34464628951537e-7],
         "flightId": 3577303300,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -441,25 +343,13 @@
         "name": "radialDecoupler1-2"
       },
       {
-        "modules": [
-          "ModulePartVariants",
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.0625,
         "persistentId": 2738554194,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.205530852079391,
-          -0.82866382598877,
-          -1.37077331542969
-        ],
+        "orgPos": [-0.205530852079391, -0.82866382598877, -1.37077331542969],
         "title": "FL-T100 Fuel Tank",
-        "up": [
-          -3.08536129978165E-8,
-          1,
-          -9.49612172007619E-7
-        ],
+        "up": [-3.08536129978165e-8, 1, -9.49612172007619e-7],
         "flightId": 2058239254,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -478,25 +368,13 @@
         "name": "fuelTankSmallFlat"
       },
       {
-        "modules": [
-          "ModulePartVariants",
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.0299999993294477,
         "persistentId": 3583527987,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.205530971288681,
-          -0.51616382598877,
-          -1.37077403068542
-        ],
+        "orgPos": [-0.205530971288681, -0.51616382598877, -1.37077403068542],
         "title": "Aerodynamic Nose Cone",
-        "up": [
-          1.85121564300061E-7,
-          1,
-          -1.43581303291285E-7
-        ],
+        "up": [1.85121564300061e-7, 1, -1.43581303291285e-7],
         "flightId": 4230246402,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -529,17 +407,9 @@
         "dryMass": 0.5,
         "persistentId": 357715804,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.205531030893326,
-          -1.14116382598877,
-          -1.37077367305756
-        ],
+        "orgPos": [-0.205531030893326, -1.14116382598877, -1.37077367305756],
         "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
-        "up": [
-          5.68433849794901E-14,
-          1,
-          2.84217121409094E-13
-        ],
+        "up": [5.68433849794901e-14, 1, 2.84217121409094e-13],
         "flightId": 1807025709,
         "crewCapacity": 0,
         "inverseStage": 3,
@@ -568,17 +438,9 @@
         "dryMass": 0.0500000007450581,
         "persistentId": 3506597246,
         "fuelLineTarget": 1351475656,
-        "orgPos": [
-          -0.740406215190887,
-          -0.772211074829102,
-          -1.06196331977844
-        ],
+        "orgPos": [-0.740406215190887, -0.772211074829102, -1.06196331977844],
         "title": "FTX-2 External Fuel Duct",
-        "up": [
-          2.72488392738524E-7,
-          1,
-          -0.00000112474708657828
-        ],
+        "up": [2.72488392738524e-7, 1, -0.00000112474708657828],
         "flightId": 942558324,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -607,17 +469,9 @@
         "dryMass": 0.400000005960464,
         "persistentId": 1333007407,
         "fuelLineTarget": null,
-        "orgPos": [
-          1.05557852236871E-7,
-          -1.23836135864258,
-          0.603720545768738
-        ],
+        "orgPos": [1.05557852236871e-7, -1.23836135864258, 0.603720545768738],
         "title": "Hydraulic Detachment Manifold",
-        "up": [
-          5.6843418860808E-14,
-          1,
-          8.34464628951537E-7
-        ],
+        "up": [5.6843418860808e-14, 1, 8.34464628951537e-7],
         "flightId": 3278365258,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -636,25 +490,13 @@
         "name": "radialDecoupler1-2"
       },
       {
-        "modules": [
-          "ModulePartVariants",
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.0625,
         "persistentId": 97671884,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.205531373620033,
-          -0.82866382598877,
-          1.37077343463898
-        ],
+        "orgPos": [0.205531373620033, -0.82866382598877, 1.37077343463898],
         "title": "FL-T100 Fuel Tank",
-        "up": [
-          3.08537266846542E-8,
-          1,
-          9.49612399381294E-7
-        ],
+        "up": [3.08537266846542e-8, 1, 9.49612399381294e-7],
         "flightId": 2419370101,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -673,25 +515,13 @@
         "name": "fuelTankSmallFlat"
       },
       {
-        "modules": [
-          "ModulePartVariants",
-          "ModuleCargoPart",
-          "KOSNameTag"
-        ],
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
         "dryMass": 0.0299999993294477,
         "persistentId": 4098596640,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.205531492829323,
-          -0.51616382598877,
-          1.37077414989471
-        ],
+        "orgPos": [0.205531492829323, -0.51616382598877, 1.37077414989471],
         "title": "Aerodynamic Nose Cone",
-        "up": [
-          -1.85121905360575E-7,
-          1,
-          1.43581360134704E-7
-        ],
+        "up": [-1.85121905360575e-7, 1, 1.43581360134704e-7],
         "flightId": 2844763991,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -724,17 +554,9 @@
         "dryMass": 0.5,
         "persistentId": 4073913482,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.205531552433968,
-          -1.14116382598877,
-          1.37077379226685
-        ],
+        "orgPos": [0.205531552433968, -1.14116382598877, 1.37077379226685],
         "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
-        "up": [
-          5.68434256370716E-14,
-          1,
-          -8.52651418437392E-14
-        ],
+        "up": [5.68434256370716e-14, 1, -8.52651418437392e-14],
         "flightId": 4078145714,
         "crewCapacity": 0,
         "inverseStage": 3,
@@ -763,17 +585,9 @@
         "dryMass": 0.0500000007450581,
         "persistentId": 65425777,
         "fuelLineTarget": 1351475656,
-        "orgPos": [
-          0.740407228469849,
-          -0.772211074829102,
-          1.06196331977844
-        ],
+        "orgPos": [0.740407228469849, -0.772211074829102, 1.06196331977844],
         "title": "FTX-2 External Fuel Duct",
-        "up": [
-          -2.72488392738524E-7,
-          1,
-          0.00000112474720026512
-        ],
+        "up": [-2.72488392738524e-7, 1, 0.00000112474720026512],
         "flightId": 3616518718,
         "crewCapacity": 0,
         "inverseStage": 2,
@@ -792,25 +606,13 @@
         "name": "fuelLine"
       },
       {
-        "modules": [
-          "TelemachusDataLink",
-          "TelemachusPowerDrain",
-          "KOSNameTag"
-        ],
+        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 2317469622,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.555722713470459,
-          -0.106305122375488,
-          3.54170737182358E-8
-        ],
+        "orgPos": [-0.555722713470459, -0.106305122375488, 3.54170737182358e-8],
         "title": "Telemachus TeleBlade Antenna",
-        "up": [
-          -0.960914731025696,
-          0.276844650506973,
-          1.49011611938477E-7
-        ],
+        "up": [-0.960914731025696, 0.276844650506973, 1.49011611938477e-7],
         "flightId": 2142191657,
         "crewCapacity": 0,
         "inverseStage": -1,
@@ -829,25 +631,13 @@
         "name": "Telemach.Blade"
       },
       {
-        "modules": [
-          "TelemachusDataLink",
-          "TelemachusPowerDrain",
-          "KOSNameTag"
-        ],
+        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 84290765,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.555722713470459,
-          -0.106305122375488,
-          -8.39998932633534E-8
-        ],
+        "orgPos": [0.555722713470459, -0.106305122375488, -8.39998932633534e-8],
         "title": "Telemachus TeleBlade Antenna",
-        "up": [
-          0.960914790630341,
-          0.276844680309296,
-          -2.08616256713867E-7
-        ],
+        "up": [0.960914790630341, 0.276844680309296, -2.08616256713867e-7],
         "flightId": 132207464,
         "crewCapacity": 0,
         "inverseStage": -1,

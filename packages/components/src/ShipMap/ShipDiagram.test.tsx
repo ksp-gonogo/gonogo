@@ -172,8 +172,9 @@ describe("ShipDiagram", () => {
     const { container } = render(
       <ShipDiagram parts={firing} width={400} height={400} />,
     );
-    expect(container.querySelectorAll('g[data-role="engine-flame"]'))
-      .toHaveLength(1);
+    expect(
+      container.querySelectorAll('g[data-role="engine-flame"]'),
+    ).toHaveLength(1);
   });
 
   it("omits the engine flame when state is inactive", () => {
@@ -186,8 +187,9 @@ describe("ShipDiagram", () => {
     const { container } = render(
       <ShipDiagram parts={idle} width={400} height={400} />,
     );
-    expect(container.querySelectorAll('g[data-role="engine-flame"]'))
-      .toHaveLength(0);
+    expect(
+      container.querySelectorAll('g[data-role="engine-flame"]'),
+    ).toHaveLength(0);
   });
 
   it("renders a parachute canopy when partState reports deploying", () => {
@@ -201,8 +203,9 @@ describe("ShipDiagram", () => {
     const { container } = render(
       <ShipDiagram parts={chute} width={400} height={400} />,
     );
-    expect(container.querySelectorAll('g[data-role="parachute-canopy"]'))
-      .toHaveLength(1);
+    expect(
+      container.querySelectorAll('g[data-role="parachute-canopy"]'),
+    ).toHaveLength(1);
   });
 
   it("renders a deploy-chevron when a solar panel is mid-animation", () => {
@@ -216,7 +219,8 @@ describe("ShipDiagram", () => {
     const { container } = render(
       <ShipDiagram parts={animating} width={400} height={400} />,
     );
-    expect(container.querySelectorAll('g[data-role="anim-chevron"]'))
-      .toHaveLength(1);
+    expect(
+      container.querySelectorAll('g[data-role="anim-chevron"]'),
+    ).toHaveLength(1);
   });
 });
