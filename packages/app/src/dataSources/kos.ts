@@ -712,8 +712,28 @@ export class KosComputeSession {
     // matching our session's CPU — discovery wants every tagname kOS is
     // exposing, not just the one this session targets.
     this.init.onCpusDiscovered?.(menu.cpus);
-    const cpu = menu.cpus.find((c) => c.tagname === this.init.cpu);
-    if (!cpu) return;
+    // Duplicate-tagname disambiguation: KSP happily lets the player
+    // place two kOS cores with identical KOSNameTag values (or no name
+    // at all — both default to "" then). When that happens the menu
+    // lists them with distinct menu numbers but identical tagnames.
+    // Pick the lowest-numbered match deterministically so the session
+    // doesn't oscillate between rows on successive menu repaints, and
+    // log a warning so the operator can see the collision in Axiom.
+    const matches = menu.cpus.filter((c) => c.tagname === this.init.cpu);
+    if (matches.length === 0) return;
+    if (matches.length > 1) {
+      logger.tag("kos").warn(
+        "[kos] multiple CPUs share tagname — selecting lowest menu number",
+        {
+          tagname: this.init.cpu,
+          matches: matches.map((c) => ({
+            number: c.number,
+            partType: c.partType,
+          })),
+        },
+      );
+    }
+    const cpu = matches.reduce((lo, c) => (c.number < lo.number ? c : lo));
     // State transition BEFORE the send: some WS implementations (and
     // our mock telnet fixture) dispatch message events synchronously
     // from `.send()`, so kOS's reply lands while we're still inside

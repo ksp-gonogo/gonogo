@@ -67,6 +67,60 @@ describe("parseKosMenu", () => {
   });
 });
 
+describe("parseKosMenu — duplicate-name scenarios", () => {
+  // Two KAL9000 cores added to a craft without the player setting a
+  // KOSNameTag default to an empty inner tagname — kOS renders that as
+  // the bare `()` pair below. The earlier regex required a non-empty
+  // tagname group, so both rows were silently dropped and the compute
+  // session waited forever on a selection that never came. Live repro:
+  // see local_docs/TODO.md kOS reconnect-loop entry (2026-05-15
+  // docking test, Rover-A had 2× KAL9000s).
+  const MENU_DUPLICATE_EMPTY_TAGS = `Terminal: type = XTERM-256COLOR, size = 123x18
+__________________________________________________________________________________________________________________________
+                        Menu GUI   Other
+                        Pick Open Telnets  Vessel Name (CPU tagname)
+                        ---- ---- -------  --------------------------------
+                         [1]   no    0     Rover-A (KAL9000())
+                         [2]   no    0     Rover-A (KAL9000())
+--------------------------------------------------------------------------------------------------------------------------
+Choose a CPU to attach to by typing a selection number and pressing return/enter. Or enter [Q] to quit terminal server.`;
+
+  const MENU_DUPLICATE_TAGS = `Terminal: type = XTERM-256COLOR, size = 123x18
+__________________________________________________________________________________________________________________________
+                        Menu GUI   Other
+                        Pick Open Telnets  Vessel Name (CPU tagname)
+                        ---- ---- -------  --------------------------------
+                         [1]   no    0     Rover-A (KAL9000(ascent))
+                         [2]   no    0     Rover-A (KAL9000(ascent))
+--------------------------------------------------------------------------------------------------------------------------
+Choose a CPU to attach to by typing a selection number and pressing return/enter. Or enter [Q] to quit terminal server.`;
+
+  it("parses two CPUs with empty tagnames into two rows (not zero)", () => {
+    const result = parseKosMenu(MENU_DUPLICATE_EMPTY_TAGS);
+    expect(result).not.toBeNull();
+    expect(result?.cpus).toHaveLength(2);
+    expect(result?.cpus[0]).toEqual({
+      number: 1,
+      vesselName: "Rover-A",
+      partType: "KAL9000",
+      tagname: "",
+    });
+    expect(result?.cpus[1].number).toBe(2);
+    expect(result?.cpus[1].tagname).toBe("");
+    expect(result?.waitingForSelection).toBe(true);
+  });
+
+  it("parses two CPUs sharing the same non-empty tagname", () => {
+    // Less common but possible — player intentionally names two cores
+    // the same. We want both rows surfaced so discovery can flag the
+    // collision; downstream selection picks the lowest menu number.
+    const result = parseKosMenu(MENU_DUPLICATE_TAGS);
+    expect(result?.cpus).toHaveLength(2);
+    expect(result?.cpus.map((c) => c.tagname)).toEqual(["ascent", "ascent"]);
+    expect(result?.cpus.map((c) => c.number)).toEqual([1, 2]);
+  });
+});
+
 describe("parseListChanged", () => {
   it("detects the list-changed marker", () => {
     expect(parseListChanged("--(List of CPU's has Changed)--")).toBe(true);
