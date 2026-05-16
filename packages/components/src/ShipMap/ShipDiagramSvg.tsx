@@ -451,11 +451,7 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
   const outer = `${x + inset},${top} ${x + w - inset},${top} ${x + w * 0.62},${top + flameH * 0.7} ${x + w * 0.5},${top + flameH} ${x + w * 0.38},${top + flameH * 0.7}`;
   const inner = `${x + inset * 1.4},${top + flameH * 0.18} ${x + w - inset * 1.4},${top + flameH * 0.18} ${x + w * 0.5},${top + flameH * 0.85}`;
   return (
-    <g
-      key="engine-flame"
-      data-role="engine-flame"
-      pointerEvents="none"
-    >
+    <g key="engine-flame" data-role="engine-flame" pointerEvents="none">
       <polygon
         points={outer}
         fill="var(--color-status-warning-bg)"
@@ -531,9 +527,10 @@ function renderAnimatingChevron(
   const size = Math.max(4 / zoom, Math.min(w, h) * 0.18);
   const ax = x + w - size - 1;
   const ay = y + 1;
-  const points = state === "deploying"
-    ? `${ax},${ay + size} ${ax + size},${ay + size} ${ax + size / 2},${ay}`
-    : `${ax},${ay} ${ax + size},${ay} ${ax + size / 2},${ay + size}`;
+  const points =
+    state === "deploying"
+      ? `${ax},${ay + size} ${ax + size},${ay + size} ${ax + size / 2},${ay}`
+      : `${ax},${ay} ${ax + size},${ay} ${ax + size / 2},${ay + size}`;
   return (
     <g
       key={`anim-chevron-${state}`}
@@ -549,10 +546,7 @@ function renderAnimatingChevron(
   );
 }
 
-function renderLandingGearStand(
-  box: ScreenBox,
-  zoom: number,
-): React.ReactNode {
+function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
   // Short stand under the wheel/gear indicating "down". For now a tiny
   // tick below the body box — clear enough that the gear is extended
   // without redrawing the wheel itself.
@@ -574,10 +568,7 @@ function renderLandingGearStand(
   );
 }
 
-function renderCargoBayOpenMark(
-  box: ScreenBox,
-  zoom: number,
-): React.ReactNode {
+function renderCargoBayOpenMark(box: ScreenBox, zoom: number): React.ReactNode {
   // Dashed inset rect to suggest the cargo-bay doors are open. Sized
   // smaller than the bay body so the original orange rect frames it.
   const { x, y, w, h } = box;
