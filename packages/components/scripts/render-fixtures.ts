@@ -57,8 +57,9 @@ async function main(): Promise<void> {
     );
     let sidecar: PartStateSidecar | undefined;
     if (existsSync(sidecarPath)) {
-      sidecar = JSON.parse(await readFile(sidecarPath, "utf8")) as
-        PartStateSidecar;
+      sidecar = JSON.parse(
+        await readFile(sidecarPath, "utf8"),
+      ) as PartStateSidecar;
     }
     const parts = fixtureToShipMapParts(fixture, sidecar);
     const svg = renderShipMapToSvg(parts, { width: 800, height: 800 });

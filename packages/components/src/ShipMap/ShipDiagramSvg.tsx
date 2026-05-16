@@ -481,10 +481,7 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
   );
 }
 
-function renderParachuteCanopy(
-  box: ScreenBox,
-  state: string,
-): React.ReactNode {
+function renderParachuteCanopy(box: ScreenBox, state: string): React.ReactNode {
   // Canopy sits above the parachute canister body (in part-local +up).
   // Width and height grow with deploy progression so the operator sees
   // the chute open out — armed = small marker, deploying = mid canopy,
