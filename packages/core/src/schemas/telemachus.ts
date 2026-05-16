@@ -121,8 +121,24 @@ export interface TopologyPart {
    * stay readable — consumers should default to `[0, 1, 0]`.
    */
   up?: [number, number, number];
-  /** Prefab renderer bounds in metres — stable across the session. */
-  bounds: { size: { x: number; y: number; z: number } };
+  /**
+   * Prefab renderer bounds in metres — stable across the session.
+   *
+   * `size` is the mesh extent in part-local frame.
+   *
+   * `center` is the mesh-center offset from `orgPos` in *vessel-local*
+   * frame (the fork pre-rotates by `orgRot` before emitting). Non-zero
+   * for parts whose mesh doesn't sit on the attach-node anchor — radial
+   * decouplers, surface ladders, structural brackets. Add it to `orgPos`
+   * to get the mesh centre in assembly space. Optional because fixtures
+   * captured before the fork started emitting it stay readable; missing
+   * → treat as `{x: 0, y: 0, z: 0}` (correct for the axially-stacked
+   * majority where the mesh centres on the anchor).
+   */
+  bounds: {
+    size: { x: number; y: number; z: number };
+    center?: { x: number; y: number; z: number };
+  };
   /** Raw `PartModule.moduleName` strings; no filtering. */
   modules: string[];
 }
