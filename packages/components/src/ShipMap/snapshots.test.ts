@@ -1,5 +1,6 @@
-import type { VesselTopology } from "@gonogo/core";
+import type { PartState, PartStateModule, VesselTopology } from "@gonogo/core";
 import { describe, expect, it } from "vitest";
+import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
@@ -29,10 +30,21 @@ interface Fixture {
   "v.topology": VesselTopology;
 }
 
-function fixtureToParts(fixture: Fixture): ShipMapPart[] {
+type PartStateSidecar = Record<string, PartStateModule[]>;
+
+function fixtureToParts(
+  fixture: Fixture,
+  sidecar?: PartStateSidecar,
+): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
-  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
+  return topo.parts.map((p) => {
+    const modules = sidecar?.[String(p.flightId)];
+    const partState: PartState | undefined = modules
+      ? { seq: 0, modules }
+      : undefined;
+    return buildShipMapPart(p, undefined, undefined, useX, partState);
+  });
 }
 
 /** Round any decimal number in an SVG attribute value to 2dp so floating-
@@ -41,9 +53,12 @@ function normalise(svg: string): string {
   return svg.replace(/-?\d+\.\d+/g, (m) => Number.parseFloat(m).toFixed(2));
 }
 
-function renderFixture(fixture: Fixture): string {
+function renderFixture(fixture: Fixture, sidecar?: PartStateSidecar): string {
   return normalise(
-    renderShipMapToSvg(fixtureToParts(fixture), { width: 800, height: 800 }),
+    renderShipMapToSvg(fixtureToParts(fixture, sidecar), {
+      width: 800,
+      height: 800,
+    }),
   );
 }
 
@@ -57,7 +72,16 @@ describe("Ship Map SVG snapshots", () => {
   });
 
   it("renders fuelline-tester-prelaunch (multi-engine with fuel lines)", () => {
-    expect(renderFixture(fuellinePrelaunch as Fixture)).toMatchSnapshot();
+    // Drives the partState overlay path: synthetic engine-firing /
+    // parachute-armed / solar-deploying entries in the sidecar exercise
+    // renderPartStateOverlays in the snapshot fold. Without the sidecar
+    // the snapshot would never catch a regression in the overlay layer.
+    expect(
+      renderFixture(
+        fuellinePrelaunch as Fixture,
+        fuellinePrelaunchPartState as PartStateSidecar,
+      ),
+    ).toMatchSnapshot();
   });
 
   it("renders fuelline-tester-poststage2 (minimum-survival craft)", () => {

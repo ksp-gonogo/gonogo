@@ -1,0 +1,9 @@
+{
+  "_comment": "Synthetic partState sidecar for the harness demo. Drives the engine-flame / parachute-canopy / deploy-chevron overlays so the visual layer is covered by the snapshot fold. Real captures pull `v.partState[flightId]` from Telemachus; this file is hand-written to exercise the rendering path without a live KSP session.",
+  "965970713": [{ "type": "engine", "state": "active" }],
+  "1807025709": [{ "type": "engine", "state": "active" }],
+  "4078145714": [{ "type": "engine", "state": "active" }],
+  "1608792364": [{ "type": "parachute", "state": "armed" }],
+  "363616651": [{ "type": "solarPanel", "state": "deploying" }],
+  "2978762229": [{ "type": "solarPanel", "state": "extended" }]
+}
