@@ -1,4 +1,8 @@
-import { DEFAULT_MASK_HEIGHT, DEFAULT_MASK_WIDTH, useBodyFogMask } from "@gonogo/data";
+import {
+  DEFAULT_MASK_HEIGHT,
+  DEFAULT_MASK_WIDTH,
+  useBodyFogMask,
+} from "@gonogo/data";
 import { useEffect, useRef, useState } from "react";
 
 export type { BodyMask } from "@gonogo/data";

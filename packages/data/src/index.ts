@@ -26,24 +26,6 @@ export {
   SCAN_BITMAP_WIDTH,
 } from "./fog/scanCoverageSync";
 export { useScanSatFogSync } from "./fog/useScanSatFogSync";
-export type {
-  DecodedBiomes,
-  DecodedCoverage,
-  DecodedHeights,
-} from "./scansat/scanDecode";
-export {
-  decodeBiomeGrid,
-  decodeCoverage,
-  decodeHeightGrid,
-  tileToPixelRect,
-} from "./scansat/scanDecode";
-export {
-  useScanAnomalies,
-  useScanBiomeGrid,
-  useScanCoverage,
-  useScanHeightGrid,
-  useScanningVessels,
-} from "./scansat/useScanLayers";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";
@@ -70,6 +52,24 @@ export * from "./replay/ReplayBanner";
 export * from "./replay/ReplayController";
 export * from "./replay/synthesizeFlight";
 export * from "./replay/useReplayActive";
+export type {
+  DecodedBiomes,
+  DecodedCoverage,
+  DecodedHeights,
+} from "./scansat/scanDecode";
+export {
+  decodeBiomeGrid,
+  decodeCoverage,
+  decodeHeightGrid,
+  tileToPixelRect,
+} from "./scansat/scanDecode";
+export {
+  useScanAnomalies,
+  useScanBiomeGrid,
+  useScanCoverage,
+  useScanHeightGrid,
+  useScanningVessels,
+} from "./scansat/useScanLayers";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, TELEMACHUS_META } from "./schema/telemachusMeta";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
