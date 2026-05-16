@@ -722,16 +722,18 @@ export class KosComputeSession {
     const matches = menu.cpus.filter((c) => c.tagname === this.init.cpu);
     if (matches.length === 0) return;
     if (matches.length > 1) {
-      logger.tag("kos").warn(
-        "[kos] multiple CPUs share tagname — selecting lowest menu number",
-        {
-          tagname: this.init.cpu,
-          matches: matches.map((c) => ({
-            number: c.number,
-            partType: c.partType,
-          })),
-        },
-      );
+      logger
+        .tag("kos")
+        .warn(
+          "[kos] multiple CPUs share tagname — selecting lowest menu number",
+          {
+            tagname: this.init.cpu,
+            matches: matches.map((c) => ({
+              number: c.number,
+              partType: c.partType,
+            })),
+          },
+        );
     }
     const cpu = matches.reduce((lo, c) => (c.number < lo.number ? c : lo));
     // State transition BEFORE the send: some WS implementations (and

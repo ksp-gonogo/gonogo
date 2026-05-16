@@ -1,7 +1,7 @@
 import type { PartState, PartStateModule, VesselTopology } from "@gonogo/core";
 import { describe, expect, it } from "vitest";
-import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
+import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
