@@ -362,6 +362,29 @@ export interface SCANScanningVessel {
   subLongitude: number;
   altitude: number;
   sensors: SCANSensorEntry[];
+  /**
+   * SCANsat's actual current ground-track FoV for this vessel in
+   * degrees — reflected from the private `SCANcontroller.getFOV`
+   * (the same number used to paint the in-flight overlay via
+   * `drawGroundTrackTris`). This is the per-side latitude half-width.
+   * Null when SCANsat is not installed or the vessel currently has
+   * no in-range sensors.
+   */
+  groundTrackWidthDeg?: number | null;
+  /**
+   * Per-side longitude half-width in degrees, computed fork-side as
+   * `groundTrackWidthDeg / cos(|subLat|)` and capped at 120°,
+   * matching the widening SCANsat applies inside its coverage paint
+   * loop. Null when SCANsat is not installed or the vessel has no
+   * in-range sensors.
+   */
+  groundTrackLonHalfDeg?: number | null;
+  /**
+   * SCANsat's combined per-vessel `trackColor` (Color32). Use the
+   * same tint on minimap footprints so the rendering matches the
+   * in-game overlay. Null when SCANsat is not installed.
+   */
+  trackColor?: { r: number; g: number; b: number; a: number } | null;
 }
 
 /**
