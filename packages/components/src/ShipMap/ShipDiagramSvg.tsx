@@ -474,11 +474,14 @@ function renderPartShape(
         />
       );
     case "decoupler": {
-      // Thin slab perpendicular to the body's long axis. Stack
-      // decouplers are wide laterally (long w, short h) — render as a
-      // horizontal band sitting on the spine. Radial decouplers have a
-      // tall narrow body box (short w, long h) — render as a vertical
-      // bar bridging the spine and the side stack.
+      // Stack decouplers (wide w, short h) keep the thin-band rendering
+      // — KSP stack decouplers really are flat discs and the geometric
+      // thinness is part of their identity. Radial decouplers (tall
+      // narrow box) take the full body extent: their mesh genuinely
+      // does span the gap between the parent stack and the side stack,
+      // and reducing them to a 12 px bar was hiding the bridge. Both
+      // paths still render the full long-axis extent so the slab
+      // connects its neighbours visually.
       if (w >= h) {
         const thickness = Math.max(4 / zoom, Math.min(h, 12 / zoom));
         return (
@@ -494,13 +497,13 @@ function renderPartShape(
           />
         );
       }
-      const thickness = Math.max(4 / zoom, Math.min(w, 12 / zoom));
       return (
         <rect
-          x={cx - thickness / 2}
+          x={x}
           y={y}
-          width={thickness}
+          width={w}
           height={h}
+          rx={Math.min(w, h) * 0.08}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}

@@ -300,14 +300,27 @@ export function buildShipMapPart(
   const projectedMagSq = upLat * upLat + upAxial * upAxial;
   const rotationRad =
     projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
+  // Mesh-centre offset (pre-rotated to vessel frame on the fork side).
+  // orgPos is the attach-node anchor; for radial-mount parts the mesh
+  // centre sits some distance away. The diagram positions the body box
+  // on the mesh centre, not the anchor, so radial decouplers don't
+  // appear to sink into the parent stack. Defaults to zero so fixtures
+  // captured before the fork started emitting bounds.center still
+  // render identically (correct for axially-stacked parts where mesh
+  // centre = anchor).
+  const center = part.bounds.center;
+  const meshLat =
+    (useX ? orgPos[0] : orgPos[2]) +
+    (center ? (useX ? center.x : center.z) : 0);
+  const meshAxial = orgPos[1] + (center?.y ?? 0);
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
     name: part.name,
     title: part.title,
     type: classifyPart(part, resources),
-    lat: useX ? orgPos[0] : orgPos[2],
-    axial: orgPos[1],
+    lat: meshLat,
+    axial: meshAxial,
     rotationRad,
     size,
     // Vessel-local Y is the spine; the bounds emit in part-local frame
