@@ -1,8 +1,8 @@
 # 2026-05-16 — Ship Map Phase 2: harness, snapshots, sizing, freeze fix
 
-**Status:** ⏳ pending — landed and CI-green, awaits live KSP verification (fork DLL rebuilt 2026-05-16, needs a restart to take effect for orientation).
+**Status:** ⏳ pending — landed and CI-green, partially live-verified (orientation + sizing + fuel-line target captured on 2026-05-16); part-state overlays + bounds.center still need a KSP capture with `v.partState` + bounds.center pulled to fully exercise the rendering path.
 
-**Commits:** `14c4756`..`2455c35` on `main`; fork side `c0cc3bd` on `telemachus/parts-topology`.
+**Commits:** `14c4756`..`2018b94` on `main`; fork side `c0cc3bd`..`2f852ec` on `telemachus/parts-topology` (plus combined-branch DLL builds on `test-combined-2026-05-16`).
 
 **Driven by:** `local_docs/2026-05-16-phase-2-shipmap-handoff.md` (the
 fresh-session handoff doc from the 2026-05-15 session). All items in
@@ -161,22 +161,48 @@ Each fixture shows:
 - Cargo bays render as rectangles, not triangles.
 - Rover wheels are roughly square.
 
+### Second-session additions (post-handoff doc)
+
+The handoff plan covered through Item 6; the live capture session that followed in the same day extended the work as follows. All committed on top of `2455c35`.
+
+**Recapture pass against the rebuilt fork DLL (`f94ffc2`).** Re-pulled rover-b-alone and rover-merged topology with `up` populated on every part. Added an edge-on rotation guard in `buildShipMapPart`: when both projected components of the up vector are near zero (radial parts mounted along the picked-away axis, where Unity emits negative-zero), short-circuit `rotationRad` to 0 instead of letting `Math.atan2(0, -0)` flip it 180°. Regression tests cover both the edge-on docking-port case and a properly-tilted side nose cone.
+
+**Wheels render as circles (`9a13ac1`).** `ModuleWheelBase`-bearing parts get a dedicated `wheel` PartType (rover wheels were falling through to a default rect under `Ground` category before).
+
+**Decoupler shape from body proportions (`9a13ac1`).** Stack decouplers (wide w, short h) keep the thin horizontal slab; radial decouplers (tall narrow body) flip to a full-extent rounded rect that bridges the parent stack and the side stack, matching the prefab's real footprint.
+
+**Fuel-line target field (`e5f7b06` fork, `f78ac7f` client).** `CModuleFuelLine.target` (inherited from `CompoundPartModule`) resolves to a `flightID` and rides on the per-part payload as `fuelLineTarget`. Client renders a yellow source→target arrow as a separate pass after the parts loop.
+
+**Fuel-line pipe + chevrons (`3416bca`).** Replaced the single source→target line with a stubby rounded-rect pipe carrying a row of dark blue chevrons pointing along the flow direction. Each pipe lives in a rotated local frame whose +X axis points source→target, so chevrons in local +X are always toward the target regardless of the pipe's screen orientation.
+
+**bounds.center for radial-mount parts (`d03a266` → `2f852ec` fork, `30b6e47` client).** `PartGeometryUtil.MergeBounds` returns both `.size` and `.center` — for radial decouplers, surface ladders, structural brackets the mesh centre doesn't sit on the attach-node anchor. Fork now pre-rotates `bounds.center` by `orgRot` and emits the vessel-frame offset alongside `bounds.size`. Client uses `orgPos + boundsCenter` to position the body box so the rendered shape sits on the mesh centre, not the anchor. Existing fixtures fall back to the zero default. **Needs a fresh capture against the rebuilt DLL** to fully verify radial decouplers no longer overlap the parent tank in the rendered SVGs.
+
+**Part-state overlays (`ba81303`).** End-to-end plumbing for `v.partState[flightId]`:
+- `@gonogo/core`: `PartState` + `PartStateModule` types.
+- `@gonogo/data`: `usePartsLive` subscribes alongside the existing resource + thermal keys.
+- `@gonogo/components`: `ShipMapPart.partState` pass-through; `renderPartStateOverlays` adds visual indicators per supported module — engine flame (active), parachute marker / canopy / mushroom (armed / deploying / extended), deploy chevron (solar / radiator / antenna mid-animation), landing gear stand (extended), cargo bay open mark (extended). All overlays sit inside the per-part rotation transform so they project correctly on radially-mounted parts.
+
+**Inspect helper (`30b6e47`).** New `scripts/inspect_fixture.py` with subcommands `parts`, `modules`, `name`, `radial`, `fuel-lines`, `field`, `bounds` so future fixture inspection isn't ad-hoc `python3 -c …`.
+
 ## What did NOT ship
 
 Tracked for a future session:
 
-- **Engine firing pulse** (Item 3b in handoff). Needs `flow` field
-  threaded onto `ShipMapPart.resources` or a derived `engineFiring`
-  boolean. Visual treatment also debatable (pulse vs static brightness
-  vs thrust-arrow). Defer to a session that can verify against a live
-  burn.
-- **Deployable state icons** (Item 3c — solar, parachute). Needs
-  `v.partState[fid]` plumbing all the way through `@gonogo/core`
-  schemas + `usePartsLive` + `buildShipMapPart`. Multi-file change;
-  worth doing alongside live KSP verification.
-- **Fuel-line flow arrows** (Item 4). Needs the fork extension that
-  emits `fuelLineTarget` on `telemachus/parts-topology`. KSP rebuild
-  required.
+- **Live-capture demonstration of part-state overlays.** Harness path
+  (`scripts/render-fixtures.ts`) passes `partState=undefined`. Fixtures
+  on disk don't carry partState. To exercise the rendering in the
+  snapshot fold, a future capture session would need to pull
+  `v.partState[fid]` for each part alongside the topology snapshot and
+  write a sidecar JSON the harness reads. Unit tests cover the path;
+  visual verification will happen in live KSP.
+- **bounds.center verification.** The fork side emits it, the client
+  consumes it, but the recorded fixtures don't have it yet. Next
+  capture against the rebuilt DLL will surface whether the radial
+  decoupler now bridges the gap as designed.
+- **Fork-side fuel-line flow magnitude.** The current arrow visualises
+  direction only. Per-line flow rate would need either KSP's
+  ResourceFlowGraph exposed via the fork or a heuristic from
+  source-tank drain rate. Deferred per the 2026-05-16 design chat.
 
 ## Files touched
 
