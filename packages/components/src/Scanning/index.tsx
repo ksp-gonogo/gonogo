@@ -1,8 +1,14 @@
 import type { ComponentProps, SCANType } from "@gonogo/core";
-import { registerComponent, SCAN_TYPE, useDataValue } from "@gonogo/core";
+import {
+  getBody,
+  registerComponent,
+  SCAN_TYPE,
+  useDataValue,
+} from "@gonogo/core";
 import { useScanAnomalies, useScanningVessels } from "@gonogo/data";
 import { Panel, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
+import { MinimapForActiveVessel } from "./Minimap";
 
 export interface ScanningConfig {
   /**
@@ -52,9 +58,18 @@ function ScanningComponent({
     );
   }
 
+  const body = bodyName ? getBody(bodyName) : undefined;
+
   return (
     <Panel>
       <PanelTitle>Scanning</PanelTitle>
+
+      {body ? (
+        <Section>
+          <SectionTitle>Live view</SectionTitle>
+          <MinimapForActiveVessel body={body} />
+        </Section>
+      ) : null}
 
       <Section>
         <SectionTitle>Coverage — {bodyName ?? "?"}</SectionTitle>
