@@ -1,6 +1,7 @@
 import {
   getDataSource,
   type PartResources,
+  type PartState,
   type PartThermal,
 } from "@gonogo/core";
 import { useEffect, useState } from "react";
@@ -11,10 +12,15 @@ import { useEffect, useState } from "react";
  * payload for the id (e.g. mid-load). Either field may be missing on the
  * first frame after a flightId joins the set — consumers should fall back
  * to the topology values.
+ *
+ * `partState` carries the per-module behavioural state (solar deployed,
+ * engine firing, parachute armed, etc.). `null` when Telemachus has no
+ * row yet; absent (undefined) when no subscription has come back.
  */
 export interface PartLiveSlice {
   resources?: PartResources;
   thermal?: PartThermal | null;
+  partState?: PartState | null;
 }
 
 /**
@@ -76,6 +82,7 @@ export function usePartsLive(
     for (const fid of decodedIds) {
       const resourceKey = `r.resourceFor[${fid}]`;
       const thermalKey = `therm.part[${fid}]`;
+      const partStateKey = `v.partState[${fid}]`;
 
       unsubs.push(
         source.subscribe(resourceKey, (value) => {
@@ -93,6 +100,16 @@ export function usePartsLive(
           slices.set(fid, {
             ...slice,
             thermal: (value as PartThermal | null | undefined) ?? null,
+          });
+          flush();
+        }),
+      );
+      unsubs.push(
+        source.subscribe(partStateKey, (value) => {
+          const slice = slices.get(fid) ?? {};
+          slices.set(fid, {
+            ...slice,
+            partState: (value as PartState | null | undefined) ?? null,
           });
           flush();
         }),

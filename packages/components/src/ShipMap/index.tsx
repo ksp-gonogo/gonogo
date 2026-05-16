@@ -49,7 +49,13 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     const { useX } = pickLateralAxis(topology.parts);
     return topology.parts.map((p) => {
       const live = liveByFlightId.get(p.flightId);
-      return buildShipMapPart(p, live?.thermal, live?.resources, useX);
+      return buildShipMapPart(
+        p,
+        live?.thermal,
+        live?.resources,
+        useX,
+        live?.partState,
+      );
     });
   }, [topology, liveByFlightId]);
 

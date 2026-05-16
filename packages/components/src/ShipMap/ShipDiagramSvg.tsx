@@ -237,6 +237,7 @@ export function ShipDiagramSvg({
                 cam.zoom,
                 outerSign,
               )}
+              {renderPartStateOverlays(p, box, cam.zoom)}
               {tint && (
                 <rect
                   data-role="heat-tint"
@@ -392,6 +393,211 @@ interface ScreenBox {
   y: number;
   w: number;
   h: number;
+}
+
+/**
+ * Render visual indicators driven by `v.partState[fid]`: an engine flame
+ * when the engine is firing, a parachute canopy when it's deploying or
+ * extended, a deploy chevron on solar panels / radiators / antennas
+ * mid-animation, a deployed-gear stand when landing gear is down.
+ *
+ * Returns null when the part has no live state yet — pre-push parts
+ * look identical to inactive ones, which is the right default (operator
+ * sees "nothing happening" rather than a misleading "deployed" state
+ * stale from a previous flight).
+ *
+ * All overlays sit in part-local coordinates inside the parent's
+ * rotation transform, so flames pointing in part-local -up correctly
+ * project away from the part regardless of mount orientation.
+ */
+function renderPartStateOverlays(
+  p: { partState?: { type: string; state: string }[]; type: PartType },
+  box: ScreenBox,
+  zoom: number,
+): React.ReactNode {
+  const states = p.partState;
+  if (!states || states.length === 0) return null;
+  const overlays: React.ReactNode[] = [];
+  for (const m of states) {
+    if (m.type === "engine" && m.state === "active") {
+      overlays.push(renderEngineFlame(box, zoom));
+    } else if (m.type === "parachute") {
+      const canopy = renderParachuteCanopy(box, m.state, zoom);
+      if (canopy) overlays.push(canopy);
+    } else if (
+      (m.type === "solarPanel" ||
+        m.type === "radiator" ||
+        m.type === "antenna") &&
+      (m.state === "deploying" || m.state === "retracting")
+    ) {
+      overlays.push(renderAnimatingChevron(box, m.state, zoom));
+    } else if (m.type === "landingGear" && m.state === "extended") {
+      overlays.push(renderLandingGearStand(box, zoom));
+    } else if (m.type === "cargoBay" && m.state === "extended") {
+      overlays.push(renderCargoBayOpenMark(box, zoom));
+    }
+  }
+  return overlays.length > 0 ? <>{overlays}</> : null;
+}
+
+function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
+  // Stylised flame below the engine bell. Outer flame in warning-amber,
+  // inner core in yellow. Height ~40% of the engine body so it reads
+  // clearly at full-vessel zoom without dominating the diagram.
+  const { x, y, w, h } = box;
+  const flameH = Math.max(h * 0.4, 8 / zoom);
+  const top = y + h;
+  const inset = w * 0.22;
+  const outer = `${x + inset},${top} ${x + w - inset},${top} ${x + w * 0.62},${top + flameH * 0.7} ${x + w * 0.5},${top + flameH} ${x + w * 0.38},${top + flameH * 0.7}`;
+  const inner = `${x + inset * 1.4},${top + flameH * 0.18} ${x + w - inset * 1.4},${top + flameH * 0.18} ${x + w * 0.5},${top + flameH * 0.85}`;
+  return (
+    <g
+      key="engine-flame"
+      data-role="engine-flame"
+      pointerEvents="none"
+    >
+      <polygon
+        points={outer}
+        fill="var(--color-status-warning-bg)"
+        opacity={0.85}
+      />
+      <polygon
+        points={inner}
+        fill="var(--color-tag-yellow-fg)"
+        opacity={0.95}
+      />
+    </g>
+  );
+}
+
+function renderParachuteCanopy(
+  box: ScreenBox,
+  state: string,
+  _zoom: number,
+): React.ReactNode {
+  // Canopy sits above the parachute canister body (in part-local +up).
+  // Width and height grow with deploy progression so the operator sees
+  // the chute open out — armed = small marker, deploying = mid canopy,
+  // extended = full mushroom.
+  const { x, y, w } = box;
+  const cx = x + w / 2;
+  let canopyW: number;
+  let canopyH: number;
+  let opacity: number;
+  if (state === "armed") {
+    canopyW = w * 0.6;
+    canopyH = w * 0.08;
+    opacity = 0.5;
+  } else if (state === "deploying") {
+    canopyW = w * 1.5;
+    canopyH = w * 0.45;
+    opacity = 0.85;
+  } else if (state === "extended") {
+    canopyW = w * 2.4;
+    canopyH = w * 0.8;
+    opacity = 0.95;
+  } else {
+    return null;
+  }
+  const baseY = y;
+  const apexY = baseY - canopyH;
+  const left = cx - canopyW / 2;
+  const right = cx + canopyW / 2;
+  return (
+    <g
+      key={`parachute-canopy-${state}`}
+      data-role="parachute-canopy"
+      pointerEvents="none"
+    >
+      <path
+        d={`M ${left},${baseY} Q ${cx},${apexY - canopyH * 0.3} ${right},${baseY} Z`}
+        fill="var(--color-status-nogo-bg)"
+        opacity={opacity}
+      />
+    </g>
+  );
+}
+
+function renderAnimatingChevron(
+  box: ScreenBox,
+  state: string,
+  zoom: number,
+): React.ReactNode {
+  // Small chevron in the part's spine-facing corner indicating the
+  // deploy / retract animation is in flight. Operator sees a momentary
+  // marker on a part transitioning from stowed → extended, useful for
+  // catching solar panels mid-deploy after a stage event.
+  const { x, y, w, h } = box;
+  const size = Math.max(4 / zoom, Math.min(w, h) * 0.18);
+  const ax = x + w - size - 1;
+  const ay = y + 1;
+  const points = state === "deploying"
+    ? `${ax},${ay + size} ${ax + size},${ay + size} ${ax + size / 2},${ay}`
+    : `${ax},${ay} ${ax + size},${ay} ${ax + size / 2},${ay + size}`;
+  return (
+    <g
+      key={`anim-chevron-${state}`}
+      data-role="anim-chevron"
+      pointerEvents="none"
+    >
+      <polygon
+        points={points}
+        fill="var(--color-tag-yellow-fg)"
+        opacity={0.85}
+      />
+    </g>
+  );
+}
+
+function renderLandingGearStand(
+  box: ScreenBox,
+  zoom: number,
+): React.ReactNode {
+  // Short stand under the wheel/gear indicating "down". For now a tiny
+  // tick below the body box — clear enough that the gear is extended
+  // without redrawing the wheel itself.
+  const { x, y, w, h } = box;
+  const standH = Math.max(3 / zoom, h * 0.18);
+  return (
+    <line
+      key="gear-stand"
+      data-role="gear-stand"
+      x1={x + w * 0.3}
+      y1={y + h}
+      x2={x + w * 0.7}
+      y2={y + h + standH}
+      stroke="var(--color-status-go-fg)"
+      strokeWidth={2 / zoom}
+      strokeLinecap="round"
+      pointerEvents="none"
+    />
+  );
+}
+
+function renderCargoBayOpenMark(
+  box: ScreenBox,
+  zoom: number,
+): React.ReactNode {
+  // Dashed inset rect to suggest the cargo-bay doors are open. Sized
+  // smaller than the bay body so the original orange rect frames it.
+  const { x, y, w, h } = box;
+  const inset = Math.min(w, h) * 0.12;
+  return (
+    <rect
+      key="cargo-bay-open"
+      data-role="cargo-bay-open"
+      x={x + inset}
+      y={y + inset}
+      width={w - inset * 2}
+      height={h - inset * 2}
+      fill="none"
+      stroke="var(--color-status-go-fg)"
+      strokeWidth={1.5 / zoom}
+      strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+      opacity={0.8}
+      pointerEvents="none"
+    />
+  );
 }
 
 function renderPartShape(

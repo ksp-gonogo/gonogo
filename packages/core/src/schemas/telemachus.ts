@@ -197,6 +197,51 @@ export interface PartThermal {
 }
 
 /**
+ * Behavioural state for one PartModule on a part — the fork emits one
+ * entry per supported module under `v.partState[flightId].modules`.
+ *
+ * `type` discriminates the module; `state` is the standardised deploy /
+ * activation vocabulary (see fork's PartStateDataLinkHandler):
+ *
+ * - `extended` / `retracted` / `deploying` / `retracting` — for parts
+ *   that animate (solar panels, radiators, antennas, cargo bays, gear).
+ * - `stowed` / `armed` / `extended` / `broken` — parachute lifecycle.
+ *   `armed` means the chute is armed and waiting for atmospheric trigger.
+ * - `active` / `inactive` — engines (EngineIgnited toggle), drills.
+ * - `unknown` — fallback when the underlying KSP enum doesn't map.
+ *
+ * Module-specific extras:
+ * - solarPanel: `tracking` (bool) — sun-tracking gimbal active.
+ * - engine: `flameout` (bool, only when true) — fuel-starved.
+ */
+export interface PartStateModule {
+  type:
+    | "solarPanel"
+    | "radiator"
+    | "antenna"
+    | "parachute"
+    | "engine"
+    | "drill"
+    | "cargoBay"
+    | "landingGear";
+  state: string;
+  tracking?: boolean;
+  flameout?: boolean;
+}
+
+/**
+ * `v.partState[flightId]` response. `seq` is a per-vessel counter the
+ * fork bumps on staging, vessel modifications, part death / undock /
+ * couple, PAW dismiss, and as a 10s backstop for events without a
+ * GameEvent hook. Consumers dedup on `seq` rather than deep-comparing
+ * the modules array. Returns `null` when the flightId is unknown.
+ */
+export interface PartState {
+  seq: number;
+  modules: PartStateModule[];
+}
+
+/**
  * One row from `tar.availableVessels`. The server-side filter is fixed
  * (Flag / EVA / Debris / Unknown + the active vessel are excluded); the
  * client doesn't get a knob.
