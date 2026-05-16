@@ -14,7 +14,7 @@ import {
   useActionInput,
   useDataValue,
 } from "@gonogo/core";
-import { useDataSchema } from "@gonogo/data";
+import { useDataSchema, useScanSatFogSync } from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
@@ -370,6 +370,13 @@ function MapViewComponent({
     heading: shipHeading,
     enabled: true,
   });
+
+  // Layer SCANsat's authoritative per-program coverage on top of the
+  // painter's per-vessel imaging when the mod is present. Both write the
+  // same BodyMask via max-lighten so they coexist safely — the painter
+  // fills tiles SCANsat hasn't reached yet, and SCANsat fills tiles the
+  // painter wouldn't reach (low orbit + no scanner / un-mapped FOV).
+  useScanSatFogSync(body);
 
   const fogDisplay = useFogDisplayCanvas(targetBodyId);
 

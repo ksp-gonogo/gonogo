@@ -242,6 +242,59 @@ export interface PartState {
 }
 
 /**
+ * SCANsat scan-type bit values. The fork's `scan.*` keys take an integer
+ * matching one of these — bit positions are the same as SCANsat's own
+ * `SCANtype` enum so the wire shape mirrors the source mod.
+ */
+export const SCAN_TYPE = {
+  AltimetryLoRes: 1,
+  AltimetryHiRes: 2,
+  Biome: 8,
+  Anomaly: 16,
+  AnomalyDetail: 32,
+  ResourceLoRes: 128,
+  ResourceHiRes: 256,
+} as const;
+export type SCANType = (typeof SCAN_TYPE)[keyof typeof SCAN_TYPE];
+
+/**
+ * `scan.maskBitmap[bodyName, scanType]` response. `bits` is a base64-encoded
+ * `(width * height + 7) / 8` byte buffer; each bit (MSB-first within each
+ * byte, row-major over coverage) is set when the corresponding 1°×1° tile
+ * has been scanned for the requested scan type. The natural granularity is
+ * 360×180 (matching SCANsat's own `Coverage` array); clients upsample to
+ * their own fog-mask resolution.
+ *
+ * Coverage indexing follows SCANsat's `icLON`/`icLAT`: bit index
+ * `ilon * height + ilat` where `ilon = (int)(lon + 540) % 360` and
+ * `ilat = (int)(lat + 270) % 180`. So `ilat=0` is the south pole row,
+ * `ilat=height-1` is the north pole row.
+ */
+export interface SCANCoverageBitmap {
+  width: number;
+  height: number;
+  type: SCANType;
+  /** Base64-encoded bit-packed coverage. */
+  bits: string;
+}
+
+/**
+ * One anomaly from `scan.anomalies[bodyName]`. `known` is true once the
+ * player has discovered the anomaly's position (SCANsat Anomaly scan);
+ * `detail` is true once they have the name (AnomalyDetail scan). Pre-
+ * discovery, the entry can still appear but with `known: false` — useful
+ * for "this body has N anomalies, M discovered" readouts but not for
+ * marker rendering.
+ */
+export interface SCANAnomalyEntry {
+  name: string;
+  latitude: number;
+  longitude: number;
+  known: boolean;
+  detail: boolean;
+}
+
+/**
  * One row from `tar.availableVessels`. The server-side filter is fixed
  * (Flag / EVA / Debris / Unknown + the active vessel are excluded); the
  * client doesn't get a knob.

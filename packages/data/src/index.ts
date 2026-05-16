@@ -19,6 +19,13 @@ export {
 } from "./fog/FogMaskContext";
 export type { StoredMask } from "./fog/FogMaskStore";
 export { FogMaskStore } from "./fog/FogMaskStore";
+export {
+  applyScanCoverageToMask,
+  DEFAULT_SCAN_TYPE,
+  SCAN_BITMAP_HEIGHT,
+  SCAN_BITMAP_WIDTH,
+} from "./fog/scanCoverageSync";
+export { useScanSatFogSync } from "./fog/useScanSatFogSync";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";
