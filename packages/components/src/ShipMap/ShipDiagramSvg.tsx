@@ -122,7 +122,12 @@ export function ShipDiagramSvg({
   const interactive = !!onPartHover;
 
   return (
-    <svg width={width} height={height} role="img" aria-label="Ship diagram">
+    <svg
+      width={width}
+      height={height}
+      role={interactive ? "graphics-document" : "img"}
+      aria-label="Ship diagram"
+    >
       <g transform={transform}>
         <line
           x1={toBase(0, bounds.cy + bounds.h / 2 + 0.5).x}
