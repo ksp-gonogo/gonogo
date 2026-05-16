@@ -1,4 +1,10 @@
-import type { PartResources, PartThermal, TopologyPart } from "@gonogo/core";
+import type {
+  PartResources,
+  PartState,
+  PartStateModule,
+  PartThermal,
+  TopologyPart,
+} from "@gonogo/core";
 
 /**
  * Diagram-side categories. Narrower than KSP's `PartCategories` enum
@@ -82,6 +88,15 @@ export interface ShipMapPart {
    * source→target arrows.
    */
   fuelLineTarget?: number | null;
+  /**
+   * Per-module behavioural state from `v.partState[flightId]`. Carries
+   * deploy / activation status for solar panels, radiators, antennas,
+   * parachutes, engines, drills, cargo bays, and landing gear. Empty
+   * array when the part has no behavioural modules; undefined when no
+   * v.partState push has landed yet (consumers should treat it as
+   * "unknown" rather than "all retracted").
+   */
+  partState?: PartStateModule[];
 }
 
 /**
@@ -273,6 +288,7 @@ export function buildShipMapPart(
   thermal: PartThermal | null | undefined,
   resources: PartResources | undefined,
   useX: boolean,
+  partState?: PartState | null,
 ): ShipMapPart {
   const orgPos = part.orgPos;
   const ecFlow = resources?.ElectricCharge?.flow;
@@ -340,5 +356,6 @@ export function buildShipMapPart(
     resources: normaliseResources(resources),
     ecFlowSign,
     fuelLineTarget: part.fuelLineTarget ?? null,
+    partState: partState?.modules,
   };
 }

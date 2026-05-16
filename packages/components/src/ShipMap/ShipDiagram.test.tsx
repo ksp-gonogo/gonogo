@@ -161,4 +161,62 @@ describe("ShipDiagram", () => {
     const tint = container.querySelector('rect[data-role="heat-tint"]');
     expect(tint?.getAttribute("fill")).toBe("var(--color-status-nogo-bg)");
   });
+
+  it("paints an engine-firing flame when partState reports active", () => {
+    const firing: ShipMapPart[] = [
+      {
+        ...PARTS[2],
+        partState: [{ type: "engine", state: "active" }],
+      },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={firing} width={400} height={400} />,
+    );
+    expect(container.querySelectorAll('g[data-role="engine-flame"]'))
+      .toHaveLength(1);
+  });
+
+  it("omits the engine flame when state is inactive", () => {
+    const idle: ShipMapPart[] = [
+      {
+        ...PARTS[2],
+        partState: [{ type: "engine", state: "inactive" }],
+      },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={idle} width={400} height={400} />,
+    );
+    expect(container.querySelectorAll('g[data-role="engine-flame"]'))
+      .toHaveLength(0);
+  });
+
+  it("renders a parachute canopy when partState reports deploying", () => {
+    const chute: ShipMapPart[] = [
+      {
+        ...PARTS[0],
+        type: "parachute",
+        partState: [{ type: "parachute", state: "deploying" }],
+      },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={chute} width={400} height={400} />,
+    );
+    expect(container.querySelectorAll('g[data-role="parachute-canopy"]'))
+      .toHaveLength(1);
+  });
+
+  it("renders a deploy-chevron when a solar panel is mid-animation", () => {
+    const animating: ShipMapPart[] = [
+      {
+        ...PARTS[0],
+        type: "solar",
+        partState: [{ type: "solarPanel", state: "deploying" }],
+      },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={animating} width={400} height={400} />,
+    );
+    expect(container.querySelectorAll('g[data-role="anim-chevron"]'))
+      .toHaveLength(1);
+  });
 });
