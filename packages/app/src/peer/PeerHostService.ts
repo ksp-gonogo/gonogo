@@ -7,6 +7,7 @@ import type {
 import { isScriptable, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
+import { peerBrokerOptions } from "./peerOptions";
 import { BUILD_TIME, VERSION } from "../version";
 import { fetchHostIceServers } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
@@ -270,7 +271,7 @@ export class PeerHostService {
     // MUST match the `key` set in PeerClientService and packages/relay (any
     // mismatch and that peer is invisible on the broker to our other peers).
     this.peer = new Peer(peerId, {
-      key: "gonogo",
+      ...peerBrokerOptions(),
       ...(this.iceServers.length > 0
         ? { config: { iceServers: this.iceServers } }
         : {}),
@@ -1244,3 +1245,15 @@ export class PeerHostService {
 }
 
 export const peerHostService = new PeerHostService();
+
+// Expose on window so the Playwright multi-screen integration test can
+// read `peerHostService.peerId` without depending on dashboard chrome
+// (the FAB cluster sits below the grid layout in z-order; pointer
+// interception makes the share-code modal unreliable for tests). Also
+// useful for browser-console debugging without the dev-tools React
+// component hierarchy walk. Harmless in production — only adds a single
+// reference to an already-singleton service.
+if (typeof window !== "undefined") {
+  (window as unknown as { peerHostService?: PeerHostService }).peerHostService =
+    peerHostService;
+}

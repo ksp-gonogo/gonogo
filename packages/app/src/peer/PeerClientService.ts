@@ -8,6 +8,7 @@ import type {
 import { KosScriptError, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
+import { peerBrokerOptions } from "./peerOptions";
 import { MessageDispatcher } from "./MessageDispatcher";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
@@ -288,7 +289,7 @@ export class PeerClientService {
     // public broker. MUST match PeerHostService + the relay's PeerHost —
     // a station with a different key is invisible to the host on the
     // broker even if both ids would otherwise match.
-    this.peer = new Peer(this.stationPeerId, { key: "gonogo" });
+    this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
     this.peer.on("open", () => {
       if (!this.peer || !this.hostPeerId) return;
       this.conn = this.peer.connect(this.hostPeerId);
