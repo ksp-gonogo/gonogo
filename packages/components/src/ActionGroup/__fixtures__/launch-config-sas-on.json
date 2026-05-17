@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "launch-config-sas-on",
+    "notes": "Launch configuration: SAS enabled (StabilityAssist), gear retracted, RCS on for attitude, brakes off, comm live. Widget configured for SAS group."
+  },
+  "v.sasValue": true,
+  "t.isPaused": false,
+  "comm.connected": true
+}

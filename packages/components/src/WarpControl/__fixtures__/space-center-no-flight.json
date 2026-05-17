@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "space-center-no-flight",
+    "notes": "KSP is in the Space Center scene (not Flight). DimmedOverlay should NOT fire — SpaceCenter is a warpable scene. Pause button should be hidden (only shown in Flight). Rate shows 1×."
+  },
+  "kc.scene": "SpaceCenter",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": false
+}

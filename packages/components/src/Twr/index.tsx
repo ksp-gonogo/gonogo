@@ -61,7 +61,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   const variant: "tiny" | "small" | "normal" =
     rows < 3 || cols < 3 ? "tiny" : rows < 4 || cols < 4 ? "small" : "normal";
   const showSparkline = variant === "normal";
-  const showSubtitle = variant === "normal";
+  // Subtitle elaborates the "per-stage" context, but at the registered
+  // defaultSize (4×5) the gauge arc visually overlaps the subtitle row.
+  // Show it only when there's clear room — i.e. at cols ≥ 5, beyond the
+  // default. The PanelTitle "TWR" covers the at-a-glance read either way.
+  const showSubtitle = variant === "normal" && cols >= 5;
 
   // Measure the gauge slot so the SVG fills it responsively. Falls back to
   // fixed defaults when ResizeObserver hasn't fired (initial render, tests).
@@ -98,7 +102,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     return (
       <Panel>
         <PanelTitle>TWR</PanelTitle>
-        <EmptyState>No engine data</EmptyState>
+        {/* Tiny widget has ~70 px of inner width — the full "No engine
+            data" sentence clips to just "No". A single em-dash conveys
+            "no data" without crowding the panel; the panel title alone
+            tells the operator what the widget is. */}
+        <EmptyState>{variant === "tiny" ? "—" : "No engine data"}</EmptyState>
       </Panel>
     );
   }
@@ -110,8 +118,12 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
       <Panel>
         <PanelTitle>TWR</PanelTitle>
         <TinyBody>
-          <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(2)}</TinyValue>
-          <TinyUnit>g</TinyUnit>
+          {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
+              two-character value, which clips the leading digit of "1.82"
+              into ".82" at 72 px inner width. Scale the readout font and
+              drop the explicit "g" unit at this size — the panel title is
+              "TWR", the unit is implied. */}
+          <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
         </TinyBody>
       </Panel>
     );
@@ -190,19 +202,16 @@ const TinyBody = styled.div`
 `;
 
 const TinyValue = styled.span<{ $color: string }>`
-  font-size: 32px;
+  /* 24 px keeps a three-character value ("1.8") within ~50 px so the
+     leading digit doesn't clip at the panel's ~70 px inner width. The
+     panel title "TWR" supplies the unit context. */
+  font-size: 24px;
   font-weight: 700;
   color: ${(p) => p.$color};
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   line-height: 1;
-`;
-
-const TinyUnit = styled.span`
-  font-size: 13px;
-  color: var(--color-text-faint);
-  align-self: flex-end;
-  padding-bottom: 4px;
+  white-space: nowrap;
 `;
 
 registerComponent<TwrConfig>({

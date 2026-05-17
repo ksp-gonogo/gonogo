@@ -124,6 +124,12 @@ function LandingStatusComponent({
   // operator how thick the air is and how hot the skin is during a reentry
   // burn. On vacuum landings the values are all ~0/ambient and add noise.
   const showAmbient = atmospheric && rows >= 9;
+  // At narrow widths the SuicideRow's label + 28px value won't fit
+  // side-by-side (label "SUICIDE BURN" alone takes ~95px before adding
+  // the value). Stack vertically — label on top, value on its own line —
+  // so the value can use the full inner width. cols 4 (minSize) is the
+  // first reachable width and triggers stacking.
+  const stackSuicide = cols < 6;
 
   return (
     <Panel>
@@ -151,9 +157,10 @@ function LandingStatusComponent({
             aria-live={urgent ? "assertive" : "polite"}
             $urgent={urgent}
             $muted={atmospheric}
+            $stack={stackSuicide}
           >
             <SuicideLabel>Suicide burn</SuicideLabel>
-            <SuicideValue $urgent={urgent}>
+            <SuicideValue $urgent={urgent} $stack={stackSuicide}>
               {suicideBurn === undefined || !Number.isFinite(suicideBurn)
                 ? "—"
                 : suicideBurn <= 0
@@ -247,7 +254,11 @@ const Body = styled.div`
   min-height: 0;
 `;
 
-const SuicideRow = styled.div<{ $urgent: boolean; $muted: boolean }>`
+const SuicideRow = styled.div<{
+  $urgent: boolean;
+  $muted: boolean;
+  $stack: boolean;
+}>`
   margin-top: 8px;
   padding: ${({ $muted }) => ($muted ? "6px 10px" : "10px 12px")};
   background: ${({ $urgent, $muted }) =>
@@ -265,7 +276,10 @@ const SuicideRow = styled.div<{ $urgent: boolean; $muted: boolean }>`
           : "var(--color-border-subtle)"};
   border-radius: 2px;
   display: grid;
-  grid-template-columns: auto 1fr;
+  /* Wide widgets use a two-column layout (label · value) for a single
+     scannable row; narrow widgets stack so the value can claim the full
+     width and stay at the headline 28 px font size without clipping. */
+  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
   align-items: baseline;
   gap: 4px 12px;
   opacity: ${({ $muted, $urgent }) => ($muted && !$urgent ? 0.8 : 1)};
@@ -276,15 +290,17 @@ const SuicideLabel = styled.span`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-dim);
+  white-space: nowrap;
 `;
 
-const SuicideValue = styled.span<{ $urgent: boolean }>`
+const SuicideValue = styled.span<{ $urgent: boolean; $stack: boolean }>`
   font-size: 28px;
   font-weight: 700;
   color: ${({ $urgent }) => ($urgent ? "var(--color-status-nogo-fg)" : "var(--color-status-warning-bg)")};
   letter-spacing: 0.04em;
-  justify-self: end;
-  text-align: right;
+  justify-self: ${({ $stack }) => ($stack ? "start" : "end")};
+  text-align: ${({ $stack }) => ($stack ? "left" : "right")};
+  white-space: nowrap;
 `;
 
 const SuicideNote = styled.span`

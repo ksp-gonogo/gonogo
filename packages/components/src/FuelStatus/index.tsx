@@ -207,6 +207,14 @@ function FuelStatusComponent({
         </BigReadout>
       )}
 
+      {/* No engine data + no totals row to fall back on → render an
+          em-dash so the tiny widget doesn't appear blank. Without this
+          branch the panel shows only the title and a black void below
+          (the no-engine-data fixture at tiny-3x3 hit this state). */}
+      {!showHeroDv && !showTotals && totalDv === undefined && (
+        <BigReadout>—</BigReadout>
+      )}
+
       {showTotals && (totalDv !== undefined || totalBurnTime !== undefined) && (
         <TotalsRow>
           <TotalsBlock>
@@ -357,7 +365,12 @@ const ResourceList = styled.div`
 
 const ResourceRow = styled.div`
   display: grid;
-  grid-template-columns: 7em 1fr auto;
+  /* minmax(0, 5em) lets the label column shrink below its 5em
+     ideal when the cell is narrow, so the bar + readout don't get
+     pushed off the right edge. Was 7em fixed — at medium-5x7
+     (~120px inner) the label ate ~80px and clipped readouts like
+     "18.50 / 30.0". */
+  grid-template-columns: minmax(0, 5em) 1fr auto;
   align-items: center;
   gap: 8px;
   font-size: 11px;
@@ -366,6 +379,10 @@ const ResourceRow = styled.div`
 const ResourceLabel = styled.span`
   color: var(--color-text-primary);
   letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 `;
 
 const ScopeHint = styled.span`

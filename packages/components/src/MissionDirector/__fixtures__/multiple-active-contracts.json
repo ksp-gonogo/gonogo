@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "scenario": "multiple-active-contracts",
+    "notes": "Three active contracts simultaneously — tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range) to exercise the contractIdToSafeNumber null path. No offered contracts. Deadline formats: days+hours, hours, no-deadline."
+  },
+  "contracts.active": [
+    {
+      "id": "193244571874398123",
+      "title": "Build an orbital station around Kerbin",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 50000,
+      "fundsCompletion": 200000,
+      "scienceCompletion": 0,
+      "repCompletion": 25,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Have at least 3 crew docking ports",
+          "state": "Incomplete",
+          "optional": false
+        },
+        {
+          "title": "Have at least 15 crew capacity",
+          "state": "Complete",
+          "optional": false
+        },
+        {
+          "title": "Have a science lab",
+          "state": "Incomplete",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "100",
+      "title": "Fly by the Mun",
+      "agency": "Periapsis Rocket Parts",
+      "state": "Active",
+      "fundsAdvance": 3000,
+      "fundsCompletion": 10000,
+      "scienceCompletion": 3,
+      "repCompletion": 2,
+      "deadlineUt": 128940,
+      "parameters": [
+        {
+          "title": "Reach Mun SOI",
+          "state": "Complete",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "id": "101",
+      "title": "Crew Report from Upper Atmosphere",
+      "agency": "Research & Development Dept.",
+      "state": "Active",
+      "fundsAdvance": 1000,
+      "fundsCompletion": 5000,
+      "scienceCompletion": 8,
+      "repCompletion": 1,
+      "deadlineUt": 130740,
+      "parameters": [
+        {
+          "title": "Crew report from upper atmosphere",
+          "state": "Incomplete",
+          "optional": false,
+          "parameterType": "ReachAltitudeEnvelope",
+          "minAltitude": 18000,
+          "maxAltitude": 70000
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [],
+  "contracts.completedRecent": [
+    {
+      "id": "90",
+      "title": "Launch a new vessel",
+      "agency": "Kerbin Space Program",
+      "state": "Completed",
+      "fundsAdvance": 0,
+      "fundsCompletion": 3000,
+      "scienceCompletion": 0,
+      "repCompletion": 1,
+      "deadlineUt": 0,
+      "parameters": []
+    }
+  ],
+  "t.universalTime": 125340,
+  "v.altitude": 25000
+}

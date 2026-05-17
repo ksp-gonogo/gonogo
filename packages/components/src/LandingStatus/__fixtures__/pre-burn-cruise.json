@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "pre-burn-cruise",
+    "notes": "High-altitude cruise above Mun, no landing prediction yet. timeToImpact is NaN, predictedLat/Lon are sentinel (0,0). Widget should show empty state 'Waiting for a landing prediction' because vessel is descending."
+  },
+  "v.body": "Mun",
+  "v.heightFromTerrain": 45000,
+  "v.verticalSpeed": -18.3,
+  "v.atmosphericDensity": 0,
+  "v.atmosphericTemperature": 0,
+  "v.externalTemperature": 0,
+  "land.timeToImpact": null,
+  "land.speedAtImpact": null,
+  "land.bestSpeedAtImpact": null,
+  "land.suicideBurnCountdown": null,
+  "land.predictedLat": 0,
+  "land.predictedLon": 0,
+  "land.slopeAngle": null
+}

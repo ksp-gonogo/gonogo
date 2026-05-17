@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "engine-overheat",
+    "notes": "Engine thermal stress — anyEnginesOverheating flag is true. Forces CRITICAL band via the flag path regardless of ratio. Hottest part is the engine itself."
+  },
+  "therm.hottestPartName": "LV-T45 'Swivel'",
+  "therm.hottestPartTemp": 2100.0,
+  "therm.hottestPartMaxTemp": 2273,
+  "therm.hottestPartTempRatio": 0.94,
+  "therm.hottestEngineTemp": 2180.0,
+  "therm.hottestEngineMaxTemp": 2273,
+  "therm.hottestEngineTempRatio": 0.96,
+  "therm.anyEnginesOverheating": true,
+  "therm.heatShieldTempCelsius": -271.1,
+  "therm.heatShieldFlux": 0
+}

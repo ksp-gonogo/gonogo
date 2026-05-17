@@ -1,0 +1,136 @@
+{
+  "_meta": {
+    "scenario": "near-zero-battery-alarm",
+    "notes": "Battery critically low — less than 2% remaining. Heavy consumers running (ISRU, life support). No solar (dark side). NET cell must show warning tone prominently. Alarm condition: vessel will lose control soon."
+  },
+  "v.topologySeq": 5,
+  "v.topology": {
+    "topologySeq": 5,
+    "rootFlightId": 1001,
+    "parts": [
+      {
+        "flightId": 1001,
+        "name": "mk1pod.v2",
+        "title": "Mk1 Command Pod",
+        "parentFlightId": null,
+        "modules": ["ModuleCommand", "ModuleReactionWheel"],
+        "dryMass": 0.8,
+        "orgPos": [0, 0, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+        "category": "Pods",
+        "crewCapacity": 1,
+        "inverseStage": -1,
+        "crashTolerance": 14,
+        "maxTemp": 1200,
+        "persistentId": 1001001
+      },
+      {
+        "flightId": 1002,
+        "name": "rtg",
+        "title": "PB-NUK Radioisotope Thermoelectric Generator",
+        "parentFlightId": 1001,
+        "modules": ["ModuleGenerator"],
+        "dryMass": 0.08,
+        "orgPos": [-0.6, 0, 0],
+        "up": [-1, 0, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 1002003
+      },
+      {
+        "flightId": 1003,
+        "name": "ISRU",
+        "title": "Convert-O-Tron 250",
+        "parentFlightId": 1001,
+        "modules": ["ModuleResourceConverter"],
+        "dryMass": 4.25,
+        "orgPos": [0, -2.0, 0],
+        "up": [0, -1, 0],
+        "bounds": { "size": { "x": 2.5, "y": 2.0, "z": 2.5 } },
+        "category": "Utility",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 1003003
+      },
+      {
+        "flightId": 1004,
+        "name": "largeDrill",
+        "title": "Drill-O-Matic Mining Excavator",
+        "parentFlightId": 1001,
+        "modules": ["ModuleResourceHarvester"],
+        "dryMass": 1.5,
+        "orgPos": [0, -4.0, 0],
+        "up": [0, -1, 0],
+        "bounds": { "size": { "x": 1.25, "y": 3.5, "z": 1.25 } },
+        "category": "Utility",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 1004003
+      },
+      {
+        "flightId": 1005,
+        "name": "batteryBankLarge",
+        "title": "Z-4K Rechargeable Battery Bank",
+        "parentFlightId": 1001,
+        "modules": [],
+        "dryMass": 0.1,
+        "orgPos": [0, 0.8, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.5, "z": 0.625 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1005003
+      }
+    ]
+  },
+  "r.resourceFor[1001]": {
+    "ElectricCharge": {
+      "amount": 50.0,
+      "maxAmount": 50.0,
+      "flow": -0.18,
+      "nominalFlow": -0.18
+    }
+  },
+  "r.resourceFor[1002]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.75,
+      "nominalFlow": 0.75
+    }
+  },
+  "r.resourceFor[1003]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": -15.0,
+      "nominalFlow": -17.5
+    }
+  },
+  "r.resourceFor[1004]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": -3.0,
+      "nominalFlow": -3.0
+    }
+  },
+  "r.resourceFor[1005]": {
+    "ElectricCharge": {
+      "amount": 72.4,
+      "maxAmount": 4000.0
+    }
+  }
+}

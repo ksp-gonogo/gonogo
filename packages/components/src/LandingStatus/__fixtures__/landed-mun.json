@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "landed-mun",
+    "notes": "Vessel has landed on Mun. verticalSpeed is 0, heightFromTerrain ~0m. timeToImpact is NaN (no trajectory), predictedLat/Lon are sentinel (0,0). Widget should show empty state 'No landing in progress'."
+  },
+  "v.body": "Mun",
+  "v.heightFromTerrain": 0.3,
+  "v.verticalSpeed": 0,
+  "v.atmosphericDensity": 0,
+  "v.atmosphericTemperature": 0,
+  "v.externalTemperature": 0,
+  "land.timeToImpact": null,
+  "land.speedAtImpact": null,
+  "land.bestSpeedAtImpact": null,
+  "land.suicideBurnCountdown": null,
+  "land.predictedLat": 0,
+  "land.predictedLon": 0,
+  "land.slopeAngle": null
+}

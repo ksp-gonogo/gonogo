@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "no-contracts",
+    "notes": "Telemetry connected but no active or offered contracts. Shows the empty-state 'No active contracts. Pick one up in Mission Control.' message. Subtitle shows '0 active · 0 offered · 0 recent'."
+  },
+  "contracts.active": [],
+  "contracts.offered": [],
+  "contracts.completedRecent": [],
+  "t.universalTime": 125340,
+  "v.altitude": 0
+}

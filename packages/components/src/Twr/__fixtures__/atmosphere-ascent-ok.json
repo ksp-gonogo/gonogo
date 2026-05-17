@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "scenario": "atmosphere-ascent-ok",
+    "notes": "Mid-ascent through atmosphere, fuel depleting, TWR 2.55 — high-green zone. Upper-third of the dial arc."
+  },
+  "dv.currentTWR": 2.55
+}

@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "mun-surface-low-orbit",
+    "notes": "Low Mun orbit at 10 km. Mun escape velocity at this altitude ~788 m/s. Orbital speed ~552 m/s — well below escape. Airless body so no atmosphere ceiling; reference curve spans a few body radii."
+  },
+  "v.body": "Mun",
+  "v.altitude": 10000,
+  "v.orbitalVelocity": 552
+}

@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "strong-direct-ksc",
+    "notes": "Direct 4-bar link to KSC from LKO. Full control, near-zero delay typical of a crewed vessel in low orbit."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.87,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 0.0004
+}

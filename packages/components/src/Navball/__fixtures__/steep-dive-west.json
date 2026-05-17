@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Re-entry / steep descent — nose 60° below horizon, heading west, slight 10° right roll for visual interest. SAS holding retrograde (drag-stabilising), throttle cut.",
+    "scenario": "steep-dive-west"
+  },
+  "n.heading": 270,
+  "n.pitch": -60,
+  "n.roll": 10,
+  "f.sasMode": "Retrograde",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0,
+  "v.isControllable": true
+}

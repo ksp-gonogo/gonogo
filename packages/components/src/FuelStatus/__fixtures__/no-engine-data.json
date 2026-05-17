@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "scenario": "no-engine-data",
+    "notes": "Empty state: dv.stages is an empty array, all totalDV* are omitted (undefined in the widget), all resource maxes are 0. The TotalsRow shows two dash readouts, the resource list renders nothing (all filtered), and the stage stack is hidden. Tests the widget's minimum viable empty state — title only, plus dashes in totals."
+  },
+  "v.currentStage": 0,
+  "dv.stageCount": 0,
+  "dv.totalBurnTime": 0.0,
+  "r.resource[LiquidFuel]": 0.0,
+  "r.resourceMax[LiquidFuel]": 0.0,
+  "r.resourceCurrent[LiquidFuel]": 0.0,
+  "r.resourceCurrentMax[LiquidFuel]": 0.0,
+  "r.resource[Oxidizer]": 0.0,
+  "r.resourceMax[Oxidizer]": 0.0,
+  "r.resourceCurrent[Oxidizer]": 0.0,
+  "r.resourceCurrentMax[Oxidizer]": 0.0,
+  "r.resource[MonoPropellant]": 0.0,
+  "r.resourceMax[MonoPropellant]": 0.0,
+  "r.resourceCurrent[MonoPropellant]": 0.0,
+  "r.resourceCurrentMax[MonoPropellant]": 0.0,
+  "r.resource[XenonGas]": 0.0,
+  "r.resourceMax[XenonGas]": 0.0,
+  "r.resourceCurrent[XenonGas]": 0.0,
+  "r.resourceCurrentMax[XenonGas]": 0.0,
+  "r.resource[ElectricCharge]": 0.0,
+  "r.resourceMax[ElectricCharge]": 0.0,
+  "r.resourceCurrent[ElectricCharge]": 0.0,
+  "r.resourceCurrentMax[ElectricCharge]": 0.0,
+  "dv.stages": []
+}

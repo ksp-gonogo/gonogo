@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "scenario": "docking-aligned",
+    "notes": "Vessel target at 62m in docking-HUD range (<100m). ax/ay both < 1° so reticle renders green (aligned). Negative relVel = closing slowly. Reticle near centre of Viewport. HUD mode forced to 'hud' (no camera) to avoid ocisly dependency."
+  },
+  "tar.name": "Docking Port Mk2",
+  "tar.type": "Vessel",
+  "tar.distance": 62,
+  "tar.o.relativeVelocity": -0.4,
+  "o.closestTgtApprUT": 0,
+  "t.universalTime": 87654,
+  "dock.ax": 0.3,
+  "dock.ay": -0.2,
+  "dock.az": 0.8,
+  "dock.x": 0.12,
+  "dock.y": -0.07
+}

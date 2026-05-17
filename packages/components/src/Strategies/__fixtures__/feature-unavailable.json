@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "notes": "Strategies feature unavailable: sandbox mode or admin building not constructed. The data source returns null (not an empty array) — parseStrategies(null) returns null, triggering the 'Awaiting career data...' loading state. This is the authentic null-data path, not an empty-list career state.",
+    "scenario": "feature-unavailable"
+  },
+  "strategies.all": null,
+  "career.funds": null,
+  "career.reputation": null,
+  "career.science": null
+}

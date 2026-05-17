@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "cruise-nominal",
+    "notes": "Cruising in upper atmosphere. All thermal readings nominal — parts and engines well below limits. No heat shield fitted."
+  },
+  "therm.hottestPartName": "LV-T30 'Reliant'",
+  "therm.hottestPartTemp": 287.5,
+  "therm.hottestPartMaxTemp": 2000,
+  "therm.hottestPartTempRatio": 0.22,
+  "therm.hottestEngineTemp": 850.0,
+  "therm.hottestEngineMaxTemp": 2273,
+  "therm.hottestEngineTempRatio": 0.37,
+  "therm.anyEnginesOverheating": false,
+  "therm.heatShieldTempCelsius": -271.1,
+  "therm.heatShieldFlux": 0
+}

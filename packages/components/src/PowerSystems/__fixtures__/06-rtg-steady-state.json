@@ -1,0 +1,134 @@
+{
+  "_meta": {
+    "scenario": "rtg-steady-state",
+    "notes": "Deep-space probe — RTG as sole power source. Balanced net (RTG just keeps up with probe systems). No solar, no batteries other than small buffer. Net near-zero, neutral tone. Shows RTG efficiency at 100% (flow equals nominalFlow)."
+  },
+  "v.topologySeq": 6,
+  "v.topology": {
+    "topologySeq": 6,
+    "rootFlightId": 2001,
+    "parts": [
+      {
+        "flightId": 2001,
+        "name": "probeCoreCube",
+        "title": "OKTO2 Probe Core",
+        "parentFlightId": null,
+        "modules": ["ModuleCommand", "ModuleReactionWheel", "ModuleSAS"],
+        "dryMass": 0.04,
+        "orgPos": [0, 0, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.4, "z": 0.625 } },
+        "category": "Pods",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 9,
+        "maxTemp": 1200,
+        "persistentId": 2001001
+      },
+      {
+        "flightId": 2002,
+        "name": "rtg",
+        "title": "PB-NUK Radioisotope Thermoelectric Generator",
+        "parentFlightId": 2001,
+        "modules": ["ModuleGenerator"],
+        "dryMass": 0.08,
+        "orgPos": [0.4, 0, 0],
+        "up": [1, 0, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 2002001
+      },
+      {
+        "flightId": 2003,
+        "name": "rtg",
+        "title": "PB-NUK Radioisotope Thermoelectric Generator",
+        "parentFlightId": 2001,
+        "modules": ["ModuleGenerator"],
+        "dryMass": 0.08,
+        "orgPos": [-0.4, 0, 0],
+        "up": [-1, 0, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 2003001
+      },
+      {
+        "flightId": 2004,
+        "name": "batteryPack",
+        "title": "Z-100 Rechargeable Battery Pack",
+        "parentFlightId": 2001,
+        "modules": [],
+        "dryMass": 0.005,
+        "orgPos": [0, 0.3, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.15, "z": 0.625 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 2004001
+      },
+      {
+        "flightId": 2005,
+        "name": "commDish88",
+        "title": "Communotron 88-88",
+        "parentFlightId": 2001,
+        "modules": ["ModuleDataTransmitter", "ModuleDeployableAntenna"],
+        "dryMass": 0.1,
+        "orgPos": [0, -0.5, 0],
+        "up": [0, -1, 0],
+        "bounds": { "size": { "x": 1.8, "y": 0.1, "z": 1.8 } },
+        "category": "Communication",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 2005001
+      }
+    ]
+  },
+  "r.resourceFor[2001]": {
+    "ElectricCharge": {
+      "amount": 10.0,
+      "maxAmount": 10.0,
+      "flow": -0.03
+    }
+  },
+  "r.resourceFor[2002]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.75,
+      "nominalFlow": 0.75
+    }
+  },
+  "r.resourceFor[2003]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.75,
+      "nominalFlow": 0.75
+    }
+  },
+  "r.resourceFor[2004]": {
+    "ElectricCharge": {
+      "amount": 100.0,
+      "maxAmount": 100.0
+    }
+  },
+  "r.resourceFor[2005]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": -1.47
+    }
+  }
+}

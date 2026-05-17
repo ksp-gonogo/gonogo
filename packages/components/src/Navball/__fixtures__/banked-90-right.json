@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Knife-edge bank right — 90° roll, level pitch. Horizon line should run vertically through the dial centre with sky on the left, ground on the right. RCS on for precision attitude work, SAS off (manual).",
+    "scenario": "banked-90-right"
+  },
+  "n.heading": 90,
+  "n.pitch": 0,
+  "n.roll": 90,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": false,
+  "f.precisionControl": true,
+  "v.rcsValue": true,
+  "f.throttle": 0,
+  "v.isControllable": true
+}

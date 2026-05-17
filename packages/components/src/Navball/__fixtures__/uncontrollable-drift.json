@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Vessel without a probe core / out of EC — controllable=false. In control-mode rendering this should disable all buttons and show the 'Vessel not controllable' banner. Useful for catching regressions in the disabled-state styling.",
+    "scenario": "uncontrollable-drift"
+  },
+  "n.heading": 200,
+  "n.pitch": -15,
+  "n.roll": 25,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": false,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0,
+  "v.isControllable": false
+}

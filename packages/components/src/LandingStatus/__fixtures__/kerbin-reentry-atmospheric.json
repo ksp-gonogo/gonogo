@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "kerbin-reentry-atmospheric",
+    "notes": "Kerbin reentry — atmospheric body so suicide-burn row is demoted/muted and shows the aerobraking note. Ambient section visible (air density, air temp, skin temp). Parachutes pending, no suicide burn urgency."
+  },
+  "v.body": "Kerbin",
+  "v.heightFromTerrain": 28000,
+  "v.verticalSpeed": -210.4,
+  "v.atmosphericDensity": 0.087,
+  "v.atmosphericTemperature": 240.15,
+  "v.externalTemperature": 1850.0,
+  "land.timeToImpact": 95,
+  "land.speedAtImpact": 220,
+  "land.bestSpeedAtImpact": 5,
+  "land.suicideBurnCountdown": 40,
+  "land.predictedLat": -0.047,
+  "land.predictedLon": -74.623,
+  "land.slopeAngle": 0.3
+}

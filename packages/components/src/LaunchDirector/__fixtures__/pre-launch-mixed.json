@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "scenario": "pre-launch-mixed",
+    "notes": "Pad is empty. 3 ships listed: one affordable/launchable, one funds-blocked, one parts-locked. Funds readout visible in subtitle."
+  },
+  "kc.savedShips": [
+    {
+      "name": "Mun Hopper I",
+      "partCount": 18,
+      "totalMass": 8.4,
+      "facility": "VAB",
+      "requiresFunds": 12000,
+      "missingParts": []
+    },
+    {
+      "name": "Duna Transfer Stage",
+      "partCount": 42,
+      "totalMass": 35.2,
+      "facility": "VAB",
+      "requiresFunds": 180000,
+      "missingParts": []
+    },
+    {
+      "name": "SSTO Spaceplane",
+      "partCount": 24,
+      "totalMass": 11.6,
+      "facility": "SPH",
+      "requiresFunds": 8500,
+      "missingParts": ["rapierEngine", "precooler"]
+    }
+  ],
+  "kc.crewRoster": [
+    {
+      "name": "Jebediah Kerman",
+      "trait": "Pilot",
+      "experienceLevel": 5,
+      "available": true,
+      "unavailableReason": ""
+    },
+    {
+      "name": "Bill Kerman",
+      "trait": "Engineer",
+      "experienceLevel": 3,
+      "available": true,
+      "unavailableReason": ""
+    },
+    {
+      "name": "Valentina Kerman",
+      "trait": "Pilot",
+      "experienceLevel": 4,
+      "available": false,
+      "unavailableReason": "On EVA"
+    }
+  ],
+  "kc.padOccupied": false,
+  "kc.padVesselTitle": null,
+  "kc.launchSite": "LaunchPad",
+  "kc.scene": "SpaceCenter",
+  "career.funds": 42500
+}

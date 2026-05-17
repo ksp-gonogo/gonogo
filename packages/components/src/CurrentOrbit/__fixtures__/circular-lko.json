@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "circular-lko",
+    "notes": "Near-circular low Kerbin orbit. Ap and Pe close together (80–85 km), low eccentricity, equatorial. isOrbiting=true (PeA > 70 km atmosphere). Diagram renders."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 85000,
+  "o.PeA": 80000,
+  "o.ApR": 685000,
+  "o.PeR": 680000,
+  "o.sma": 682500,
+  "o.eccentricity": 0.00367,
+  "o.trueAnomaly": 45.0,
+  "o.argumentOfPeriapsis": 12.5,
+  "o.inclination": 0.3,
+  "o.period": 1795.4,
+  "o.timeToAp": 390.2,
+  "o.timeToPe": 1007.8
+}

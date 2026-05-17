@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "paused-in-flight",
+    "notes": "Game is paused during flight (t.isPaused=true). Warp is at 1×. Pause button should render with active/play-icon state. The pause toggle is only visible in Flight scene."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": true
+}

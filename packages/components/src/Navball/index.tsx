@@ -271,6 +271,7 @@ function NavballComponent({
   const [dialSize, setDialSize] = useState(180);
   const dialRef = useRef<HTMLDivElement>(null);
   const showThrottleColumnRef = useRef(false);
+  const controlModeRef = useRef(false);
   useEffect(() => {
     const el = dialRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -283,7 +284,12 @@ function NavballComponent({
         // bar + 10 px gap.
         const throttleReserve = showThrottleColumnRef.current ? 42 : 0;
         const fit = Math.min(w - throttleReserve, h);
-        const next = Math.max(80, Math.min(600, Math.floor(fit)));
+        // In control mode the dial competes with the SAS / throttle / FBW
+        // surface for vertical space — cap it so the buttons stay readable.
+        // The display-only path keeps the full 600px ceiling so a dedicated
+        // big-navball widget still fills its slot.
+        const cap = controlModeRef.current ? 200 : 600;
+        const next = Math.max(80, Math.min(cap, Math.floor(fit)));
         setDialSize(next);
       }
     });
@@ -294,20 +300,32 @@ function NavballComponent({
   // Selective rendering — at very small sizes the SVG dial doesn't have
   // room to be readable, so collapse to numeric heading/pitch/roll
   // readouts. The throttle column and mode badge row drop independently.
+  //
+  // The control-surface gate is intentionally strict (rows≥18, cols≥7)
+  // because the SAS mode grid + throttle group + FBW row need ~350px of
+  // vertical real estate on top of the dial + strip + readouts. Anything
+  // smaller and the surface overlaps the dial. When the widget is too
+  // small for the surface, control mode degrades to a regular dial — the
+  // user keeps the deeper config selection without losing the readout.
   const cols = w ?? 8;
   const rows = h ?? 11;
   const showDial = rows >= 6 && cols >= 4;
   const showThrottleColumn = showDial && cols >= 5;
   const showModeBadges = cols >= 5;
-  const showControlSurface = controlMode && rows >= 10 && cols >= 5;
-  // Sync to the ResizeObserver — closure captures showThrottleColumn at
-  // mount, so changing widget size needs to propagate via ref.
+  const showControlSurface = controlMode && rows >= 18 && cols >= 7;
+  controlModeRef.current = showControlSurface;
+  // Sync refs the ResizeObserver reads inside its closure — the observer
+  // was created on mount with the initial values closed over, so updates
+  // to either flag need to propagate via refs the callback re-reads on
+  // each observation.
   showThrottleColumnRef.current = showThrottleColumn;
 
   return (
     <Panel>
       <Header>
-        <PanelTitle>{controlMode ? "GNC CONTROL" : "ATTITUDE"}</PanelTitle>
+        <PanelTitle>
+          {showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
+        </PanelTitle>
         {showModeBadges && (
           <ModeBadgeRow>
             <ModeBadge $on={sasOn}>

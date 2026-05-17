@@ -108,8 +108,10 @@ describe("CommSignal — integration via FlightReplayDataSource", () => {
       expect(screen.getByLabelText("Signal 0 of 4")).toBeInTheDocument();
     });
     expect(screen.getByText(/no signal/i)).toBeInTheDocument();
-    // Headline collapses to em-dash when connected is false.
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // Headline reads "LOS" (loss of signal) when connected is false —
+    // disambiguates from "—" (no telemetry / unknown state) which
+    // both used to render the same em-dash.
+    expect(screen.getByText("LOS")).toBeInTheDocument();
     // Delay still surfaces (formatted in ms when sub-second).
     expect(screen.getByText(/500 ms/)).toBeInTheDocument();
   });

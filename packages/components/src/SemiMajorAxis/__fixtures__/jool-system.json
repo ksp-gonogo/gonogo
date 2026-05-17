@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "jool-system",
+    "notes": "Orbit around Jool (KSP's gas giant). Very large SMA ~26 Mm from body centre. Exercises formatDistance at megameter scale."
+  },
+  "o.sma": 26000000,
+  "o.referenceBody": "Jool"
+}

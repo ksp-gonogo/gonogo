@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "deep-space-delay",
+    "notes": "Probe in transit to Jool — barely in range via relay, 2 bars, 8-minute signal delay. Stress-tests the formatDelay minutes+seconds branch."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.31,
+  "comm.controlState": 1,
+  "comm.controlStateName": "Partial",
+  "comm.signalDelay": 487
+}

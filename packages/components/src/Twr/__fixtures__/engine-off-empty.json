@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "scenario": "engine-off-empty",
+    "notes": "No engine data available (NaN / undefined TWR). Widget should show the EmptyState panel — 'No engine data'."
+  },
+  "dv.currentTWR": null
+}

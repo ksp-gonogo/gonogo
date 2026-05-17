@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "scenario": "warp-only",
+    "notes": "Warp != 1x, no alarms — banner shows just the warp rate."
+  },
+  "alarms": [],
+  "ut": 1000,
+  "warp": { "index": 3, "rate": 50, "mode": "HIGH" },
+  "unscheduledWarp": null,
+  "warpTo": null,
+  "warpSafetyMarginSeconds": 10
+}

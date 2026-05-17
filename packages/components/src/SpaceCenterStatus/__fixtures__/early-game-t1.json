@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "notes": "Early career game. All buildings at tier 1 (level 0 of max 2). Low funds. Upgrade buttons visible but most unaffordable.",
+    "scenario": "early-game-t1"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "runway": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "vab": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "sph": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "mission": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 45000,
+      "currentLevelText": "* Active contracts: 2",
+      "nextLevelText": "* Active contracts: 7"
+    },
+    "tracking": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 45000,
+      "currentLevelText": "* No maneuver nodes",
+      "nextLevelText": "* Maneuver nodes enabled"
+    },
+    "admin": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 55000,
+      "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+      "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+    },
+    "rd": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 45000,
+      "currentLevelText": "* Science archive: 500 pts",
+      "nextLevelText": "* Science archive: 2500 pts"
+    },
+    "astronaut": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "* Max crew: 1",
+      "nextLevelText": "* Max crew: 12"
+    }
+  },
+  "kc.partsAvailable": 30,
+  "kc.launchSite": "LaunchPad",
+  "kc.padOccupied": false,
+  "kc.padVesselTitle": null,
+  "kc.scene": "SpaceCenter",
+  "career.funds": 12500
+}

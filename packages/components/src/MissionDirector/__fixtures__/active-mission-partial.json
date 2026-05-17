@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "scenario": "active-mission-partial",
+    "notes": "One active contract (Mun flag plant) with three parameters: first complete, two incomplete. One parameter is ReachAltitudeEnvelope with an in-progress altitude bar (vessel currently at 45,000m, band is 70,000–100,000m so still below). Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
+  },
+  "contracts.active": [
+    {
+      "id": "42",
+      "title": "Plant a flag on the Mun",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 5000,
+      "fundsCompletion": 25000,
+      "scienceCompletion": 15,
+      "repCompletion": 5,
+      "deadlineUt": 233340,
+      "parameters": [
+        {
+          "title": "Reach orbit around Kerbin",
+          "state": "Complete",
+          "optional": false,
+          "parameterType": "ReachSituation",
+          "situation": "Orbiting"
+        },
+        {
+          "title": "Reach altitude between 70 km and 100 km",
+          "state": "Incomplete",
+          "optional": false,
+          "parameterType": "ReachAltitudeEnvelope",
+          "minAltitude": 70000,
+          "maxAltitude": 100000
+        },
+        {
+          "title": "Return to Kerbin",
+          "state": "Incomplete",
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [
+    {
+      "id": "77",
+      "title": "Survey the Shores of Kerbin",
+      "agency": "Experimental Engineering Group",
+      "state": "Offered",
+      "fundsAdvance": 1200,
+      "fundsCompletion": 8000,
+      "scienceCompletion": 0,
+      "repCompletion": 2,
+      "deadlineUt": 323340,
+      "parameters": [
+        {
+          "title": "Land on the Shores biome",
+          "state": "Incomplete",
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "contracts.completedRecent": [],
+  "t.universalTime": 125340,
+  "v.altitude": 45000
+}

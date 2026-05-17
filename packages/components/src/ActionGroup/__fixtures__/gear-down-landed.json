@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "gear-down-landed",
+    "notes": "Vessel landed: gear deployed (on), brakes applied, lights on for night ops. Widget configured for Gear group (v.gearValue).",
+    "widgetConfig": { "actionGroupId": "Gear" }
+  },
+  "v.gearValue": true,
+  "t.isPaused": false,
+  "comm.connected": true
+}

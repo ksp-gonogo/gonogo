@@ -48,6 +48,8 @@ function buildPressureCurve(
 
 function AtmosphereProfileComponent({
   config,
+  w,
+  h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
   const bodyName = useDataValue<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
@@ -101,14 +103,18 @@ function AtmosphereProfileComponent({
     [thresholds],
   );
 
-  const showAirlessNotice = body !== undefined && !body.hasAtmosphere;
   const showNoModelNotice = body?.hasAtmosphere && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   // Live readout chip — only meaningful when we're actually in atmosphere
   // (density picks up). Outside it, density reads ~0 / NaN and the chip is
-  // noise.
+  // noise. Also suppress on very small widgets where the chip would
+  // obscure most of the chart it's annotating.
+  const cols = w ?? 8;
+  const rows = h ?? 8;
+  const chipFits = cols >= 7 && rows >= 6;
   const showLiveChip =
+    chipFits &&
     typeof liveDensity === "number" &&
     Number.isFinite(liveDensity) &&
     liveDensity > 1e-9 &&
@@ -116,19 +122,24 @@ function AtmosphereProfileComponent({
 
   return (
     <Wrap>
-      <GraphView
-        config={graphConfig}
-        referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-        title="ATMOSPHERE PROFILE"
-        emptyState={
-          body
-            ? `No atmosphere on ${body.name}.`
-            : "Waiting for body telemetry…"
-        }
-      />
-      {showAirlessNotice && body && (
-        <Notice role="status">{body.name} has no atmosphere.</Notice>
-      )}
+      <GraphSlot>
+        <GraphView
+          config={graphConfig}
+          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+          title="ATMOSPHERE PROFILE"
+          emptyState={
+            body
+              ? `No atmosphere on ${body.name}.`
+              : "Waiting for body telemetry…"
+          }
+        />
+      </GraphSlot>
+      {/* `showAirlessNotice` would duplicate the GraphView empty-state
+          ("No atmosphere on Mun.") that already fires when buildPressureCurve
+          returns null for an airless body. Suppress the Notice for that
+          case — `showNoModelNotice` and `showNoBodyNotice` stay because
+          they describe a missing-data state where the chart is still
+          attempting to render and the operator needs the explanation. */}
       {showNoModelNotice && body && (
         <Notice role="status">
           No atmospheric model registered for {body.name}.
@@ -188,22 +199,38 @@ const Wrap = styled.div`
   min-height: 0;
 `;
 
+/* Notice sits below the chart as a normal flow row rather than an
+   absolute overlay — the absolute version covered the x-axis tick
+   labels at narrow heights. The LiveChip remains a HUD-style overlay
+   (sized down via showLiveChip on small widgets). */
 const Notice = styled.div`
-  position: absolute;
-  bottom: 4px;
-  left: 8px;
+  flex: 0 0 auto;
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 2px;
   pointer-events: none;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 4px;
+`;
+
+const GraphSlot = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const LiveChip = styled.div`
   position: absolute;
-  top: 28px;
+  /* Bottom-right keeps the chip clear of the threshold label (which
+     renders near the threshold line, usually high up in the chart for
+     high-pressure altitudes) and the chart legend (top-left). */
+  bottom: 32px;
   right: 8px;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 1px;

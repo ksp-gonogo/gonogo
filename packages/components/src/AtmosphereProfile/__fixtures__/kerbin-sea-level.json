@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "kerbin-sea-level",
+    "notes": "KSC launch pad, ~80 m ASL. Dense air, near sea-level pressure. Live chip should show density ~1.2 kg/m³ and temps. Threshold line sits at the top of the log chart (highest pressure)."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 80,
+  "v.atmosphericDensity": 1.217,
+  "v.atmosphericTemperature": 289.0,
+  "v.externalTemperature": 291.0
+}

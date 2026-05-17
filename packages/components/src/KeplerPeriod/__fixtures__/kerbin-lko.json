@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "kerbin-lko",
+    "notes": "Low Kerbin Orbit at 80 km altitude. SMA ≈ 680 km (600 km radius + 80 km), period ≈ 33 min. Dot should sit near the left-bottom of the Kepler curve."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.sma": 680000,
+  "o.period": 1984.9
+}

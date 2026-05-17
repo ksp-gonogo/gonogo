@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "physics-warp-4x-atmosphere",
+    "notes": "Physical time warp at 4× during atmospheric flight. Mode is 'Physics' and rate shows 4×. This is low-warp mode — the game uses a separate physics ladder. Pause button visible (Flight scene)."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 4,
+  "t.timeWarp": 0,
+  "t.warpMode": "Physics",
+  "t.isPaused": false
+}

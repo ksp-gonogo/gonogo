@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "scenario": "kerbin-lko-equator",
+    "notes": "Vessel in low Kerbin orbit at the equator, mid-flight."
+  },
+  "v.body": "Kerbin",
+  "v.lat": 0.5,
+  "v.long": 75.0,
+  "v.altitude": 85000,
+  "n.pitch": 0,
+  "n.heading": 90,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 2287,
+  "v.verticalSpeed": 0.2,
+  "t.universalTime": 1234567,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "a.physicsMode": "Orbital"
+}

@@ -85,131 +85,200 @@ export function AlarmBanner() {
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
-      <Stack>
-        <Row>
-          <Label>Warp</Label>
-          <Value>{formatWarp(snap.warp.index, snap.warp.rate)}</Value>
-          {warpToTargetRate !== null && (
-            <>
-              <WarpArrow aria-hidden="true">
-                <ArrowRightIcon size={14} />
-              </WarpArrow>
-              <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
-            </>
-          )}
-          <Divider />
-          {nextAlarm ? (
-            <>
-              <Label>
-                {nextAlarm.state === "fired" ? "Fired" : "Next alarm"}
-              </Label>
-              <AlarmName>{nextAlarm.name}</AlarmName>
-              <Countdown $tone={tone}>
-                {formatNext(nextAlarm, snap.ut)}
-              </Countdown>
-              {nextAlarm.state === "fired" && (
-                <AckButton
-                  type="button"
-                  onClick={() => host.acknowledgeAlarm(nextAlarm.id)}
-                >
-                  Acknowledge
-                </AckButton>
-              )}
-              {snap.warpTo !== null ? (
-                <StopWarpButton
-                  type="button"
-                  onClick={() => host.cancelWarpTo()}
-                  title="Stop the managed warp and drop to 1×"
-                >
-                  <StopIcon size={12} /> Stop warp
-                </StopWarpButton>
-              ) : (
-                warpToCandidate && (
-                  <WarpToButton
-                    type="button"
-                    onClick={() => host.beginWarpTo()}
-                    title="Warp toward the next alarm at the highest safe rate"
-                  >
-                    <PlayIcon size={12} /> Warp to alarm
-                  </WarpToButton>
-                )
-              )}
-            </>
-          ) : cpCollapse ? (
-            <CollapsedCPInline
-              count={cpCollapse.count}
-              onAckAll={ackAllCollapsed}
-            />
-          ) : (
-            <Quiet>No alarms set</Quiet>
-          )}
-        </Row>
-        {(warpToCandidate || snap.warpTo !== null) && (
-          <SafetyRow>
-            <Label>Safety margin</Label>
-            <SafetyInput
-              type="number"
-              min={MIN_WARP_SAFETY_MARGIN_SECONDS}
-              max={MAX_WARP_SAFETY_MARGIN_SECONDS}
-              step={1}
-              value={snap.warpSafetyMarginSeconds}
-              onChange={(e) => {
-                const n = Number.parseFloat(e.target.value);
-                if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
-              }}
-              aria-label="Warp-to safety margin in real seconds"
-            />
-            <SafetyHint>
-              real seconds before arming — higher = step down earlier
-            </SafetyHint>
-          </SafetyRow>
+      <Row>
+        <Label>Warp</Label>
+        <Value>{formatWarp(snap.warp.index, snap.warp.rate)}</Value>
+        {warpToTargetRate !== null && (
+          <>
+            <WarpArrow aria-hidden="true">
+              <ArrowRightIcon size={14} />
+            </WarpArrow>
+            <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
+          </>
         )}
-        {(() => {
-          const individuals = firedAlarms.filter(
-            (a) => a.id !== nextAlarm?.id && !collapsedIds?.has(a.id),
-          );
-          const showCollapsedInList = nextAlarm !== null && cpCollapse !== null;
-          if (individuals.length === 0 && !showCollapsedInList) return null;
-          return (
-            <FiredList>
-              {individuals.map((a) => (
-                <FiredRow key={a.id}>
-                  <FiredName>{a.name} fired</FiredName>
-                  <AckButton
-                    type="button"
-                    onClick={() => host.acknowledgeAlarm(a.id)}
-                  >
-                    Ack
-                  </AckButton>
-                </FiredRow>
-              ))}
-              {showCollapsedInList && cpCollapse && (
-                <FiredRow>
-                  <FiredName>
-                    {cpCollapse.count} contract objectives completed
-                  </FiredName>
-                  <AckButton type="button" onClick={ackAllCollapsed}>
-                    Ack all
-                  </AckButton>
-                </FiredRow>
-              )}
-            </FiredList>
-          );
-        })()}
-        {snap.unscheduledWarp && (
-          <WarnRow role="alert">
-            <WarnLabel>
-              Unscheduled warp — rate {snap.unscheduledWarp.index}× detected
-            </WarnLabel>
+        <Divider />
+        {nextAlarm ? (
+          <>
+            <Label>{headlineLabel(nextAlarm.state)}</Label>
+            <AlarmName>{nextAlarm.name}</AlarmName>
+            {/* Only render the countdown text when it adds information
+                beyond the alarm name. Threshold alarms used to render
+                the trigger condition next to the name — but the user's
+                name typically already encodes it ("latlong v.lat >= 80"),
+                so we'd produce visible duplicates like "latlong v.lat
+                >= 80  v.lat >= 80". Time alarms still get a T-minus,
+                contract parameters still get the target-state label. */}
+            {(() => {
+              const next = formatNextLine(nextAlarm, snap.ut);
+              return next === null ? null : (
+                <Countdown $tone={tone}>{next}</Countdown>
+              );
+            })()}
+            {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (
+              <AckButton
+                type="button"
+                onClick={() => host.acknowledgeAlarm(nextAlarm.id)}
+              >
+                Acknowledge
+              </AckButton>
+            )}
+            {snap.warpTo !== null ? (
+              <StopWarpButton
+                type="button"
+                onClick={() => host.cancelWarpTo()}
+                title="Stop the managed warp and drop to 1×"
+              >
+                <StopIcon size={12} /> Stop warp
+              </StopWarpButton>
+            ) : (
+              warpToCandidate && (
+                <WarpToButton
+                  type="button"
+                  onClick={() => host.beginWarpTo()}
+                  title="Warp toward the next alarm at the highest safe rate"
+                >
+                  <PlayIcon size={12} /> Warp to alarm
+                </WarpToButton>
+              )
+            )}
+          </>
+        ) : cpCollapse ? (
+          <CollapsedCPInline
+            count={cpCollapse.count}
+            onAckAll={ackAllCollapsed}
+          />
+        ) : (
+          <Quiet>No alarms set</Quiet>
+        )}
+      </Row>
+    </Wrap>
+  );
+}
+
+/**
+ * Sibling pill that surfaces the warp-to safety margin as its own
+ * single-row banner. Rendered only when a warp-to session is active
+ * (or a candidate exists) — the operator only cares about the margin
+ * when it's actively shaping behaviour. The hint moves to a `title`
+ * tooltip so the pill stays one row tall like every other banner.
+ */
+export function SafetyMarginPill() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  const nextAlarm = pickNext(snap);
+  const warpToCandidate =
+    nextAlarm && nextAlarm.state === "pending" && isWarpToCandidate(nextAlarm)
+      ? nextAlarm
+      : null;
+  if (snap.warpTo === null && !warpToCandidate) return null;
+  return (
+    <Wrap $tone="set" role="status">
+      <Row>
+        <Label>Safety</Label>
+        <SafetyInput
+          type="number"
+          min={MIN_WARP_SAFETY_MARGIN_SECONDS}
+          max={MAX_WARP_SAFETY_MARGIN_SECONDS}
+          step={1}
+          value={snap.warpSafetyMarginSeconds}
+          onChange={(e) => {
+            const n = Number.parseFloat(e.target.value);
+            if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
+          }}
+          aria-label="Warp-to safety margin in real seconds"
+          title="Real seconds before arming — higher = step down earlier"
+        />
+        <Label>s</Label>
+      </Row>
+    </Wrap>
+  );
+}
+
+/**
+ * One sibling pill per fired alarm not already represented in the
+ * headline AlarmBanner. Contract-parameter fires collapse to a single
+ * "N contract objectives completed" pill so a pile of them doesn't
+ * crowd the stack. Each pill has its own Ack button — clicking
+ * removes only that pill, leaving the others.
+ */
+export function FiredAlarmPills() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
+  const cpCollapse = collapseFiredContractParam(firedAlarms);
+  const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
+  // Skip the alarm the headline AlarmBanner is already rendering so
+  // we don't duplicate it as a sibling pill.
+  const headline = pickNext(
+    collapsedIds
+      ? { ...snap, alarms: snap.alarms.filter((a) => !collapsedIds.has(a.id)) }
+      : snap,
+  );
+  const extras = firedAlarms.filter(
+    (a) => a.id !== headline?.id && !collapsedIds?.has(a.id),
+  );
+  const ackAllCollapsed = () => {
+    if (!cpCollapse) return;
+    for (const id of cpCollapse.ids) host.acknowledgeAlarm(id);
+  };
+  if (extras.length === 0 && (cpCollapse === null || headline === null)) {
+    return null;
+  }
+  return (
+    <>
+      {extras.map((a) => (
+        <Wrap key={a.id} $tone="fire" role="alert">
+          <Row>
+            <Label>Fired</Label>
+            <AlarmName>{a.name}</AlarmName>
             <AckButton
               type="button"
-              onClick={() => host.acknowledgeUnscheduledWarp()}
+              onClick={() => host.acknowledgeAlarm(a.id)}
             >
-              Acknowledge
+              Ack
             </AckButton>
-          </WarnRow>
-        )}
-      </Stack>
+          </Row>
+        </Wrap>
+      ))}
+      {cpCollapse && headline !== null && (
+        <Wrap $tone="fire" role="alert">
+          <Row>
+            <Label>Fired</Label>
+            <AlarmName>
+              {cpCollapse.count} contract objectives completed
+            </AlarmName>
+            <AckButton type="button" onClick={ackAllCollapsed}>
+              Ack all
+            </AckButton>
+          </Row>
+        </Wrap>
+      )}
+    </>
+  );
+}
+
+/**
+ * Sibling pill that surfaces an unscheduled warp change — KSP-side
+ * warp wasn't triggered by an alarm or by the operator clicking the
+ * banner's warp-to button. Stays distinct from the alarm pills so the
+ * operator can ack it without affecting alarm state.
+ */
+export function UnscheduledWarpPill() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  if (!snap.unscheduledWarp) return null;
+  return (
+    <Wrap $tone="arm" role="alert">
+      <Row>
+        <Label>Unscheduled warp</Label>
+        <Value>{snap.unscheduledWarp.index}×</Value>
+        <AckButton
+          type="button"
+          onClick={() => host.acknowledgeUnscheduledWarp()}
+        >
+          Ack
+        </AckButton>
+      </Row>
     </Wrap>
   );
 }
@@ -274,16 +343,43 @@ function pickNext(snap: AlarmSnapshot): Alarm | null {
   return sorted[0] ?? null;
 }
 
-function formatNext(alarm: Alarm, utNow: number | null): string {
+/** Headline label per alarm state. "Firing" / "Fired" carry the urgency
+ *  word so an operator scanning the banner sees an active alert before
+ *  reading the alarm name; "Arming" makes the imminent state explicit;
+ *  "Next alarm" is the resting / pending case. */
+function headlineLabel(state: Alarm["state"]): string {
+  switch (state) {
+    case "firing":
+      return "Firing";
+    case "fired":
+      return "Fired";
+    case "arming":
+      return "Arming";
+    default:
+      return "Next alarm";
+  }
+}
+
+/** Secondary text after the alarm name. Returns null when there's
+ *  nothing useful to add — keeps the banner pill single-row and
+ *  avoids redundant condition echoes.
+ *
+ *  Time alarms get a T-minus countdown (essential live info).
+ *  Contract-parameter alarms get the parameter-title → target-state
+ *  short form (the user's name is usually generic like "contract").
+ *  Threshold alarms get nothing — the user's name almost always
+ *  encodes the condition already ("latlong v.lat >= 80", "Pe < 70km"
+ *  etc.) and rendering `dataKey op value` next to it just produces
+ *  visible duplicates. Full condition stays one click away in the
+ *  alarms modal. */
+function formatNextLine(alarm: Alarm, utNow: number | null): string | null {
   if (alarm.trigger.kind === "time") {
     return formatTMinus(alarm.trigger.ut, utNow);
   }
   if (alarm.trigger.kind === "contract-parameter") {
     return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;
   }
-  // Threshold — no single fire UT; show the condition compactly.
-  const t = alarm.trigger;
-  return `${t.dataKey} ${t.op} ${t.value}`;
+  return null;
 }
 
 function formatWarp(index: number, rate: number): string {
@@ -324,11 +420,16 @@ function formatSeconds(s: number): string {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+// Solid backgrounds — the previous 0.85-0.95 alphas let widgets behind
+// the BannerStack bleed through as ghost text. Operator readability
+// trumps the "see-through pill" aesthetic; the surface app colour
+// matches the dashboard's app background so the pill still feels
+// like part of the chrome rather than a hovering modal.
 const TONE_BG: Record<Tone, string> = {
-  idle: "rgba(20, 20, 20, 0.85)",
-  set: "rgba(25, 40, 20, 0.9)",
-  arm: "rgba(60, 45, 15, 0.95)",
-  fire: "rgba(90, 15, 15, 0.95)",
+  idle: "var(--color-surface-raised)",
+  set: "rgb(20, 35, 15)",
+  arm: "rgb(55, 40, 12)",
+  fire: "rgb(80, 12, 12)",
 };
 const TONE_BORDER: Record<Tone, string> = {
   idle: "var(--color-border-subtle)",
@@ -376,12 +477,6 @@ const Wrap = styled.div<{ $tone: Tone }>`
   }
 `;
 
-const Stack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
 const Row = styled.div`
   display: flex;
   align-items: baseline;
@@ -426,42 +521,6 @@ const Countdown = styled.span<{ $tone: Tone }>`
 const Quiet = styled.span`
   color: var(--color-text-dim);
   font-style: italic;
-`;
-
-const FiredList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--color-status-nogo-bg);
-  margin-top: 2px;
-`;
-
-const FiredRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-`;
-
-const FiredName = styled.span`
-  color: var(--color-status-nogo-fg);
-  font-weight: 600;
-`;
-
-const WarnRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--color-status-nogo-bg);
-  margin-top: 2px;
-`;
-
-const WarnLabel = styled.span`
-  color: var(--color-status-nogo-fg);
-  font-weight: 600;
 `;
 
 const AckButton = styled.button`
@@ -543,15 +602,6 @@ const StopWarpButton = styled.button`
   }
 `;
 
-const SafetyRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--color-border-subtle);
-  margin-top: 2px;
-`;
-
 const SafetyInput = styled.input`
   width: 4em;
   font-size: 12px;
@@ -565,10 +615,4 @@ const SafetyInput = styled.input`
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 1px;
   }
-`;
-
-const SafetyHint = styled.span`
-  color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
-  font-style: italic;
 `;

@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "sub-orbital",
+    "notes": "Sub-orbital trajectory above Kerbin. PeA is negative (below surface) — isOrbiting=false. hasOrbit guard: sma, eccentricity, ApR, PeR all present so hasOrbit=true and diagram still renders, but isOrbiting=false changes the diagram's visual style."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 72000,
+  "o.PeA": -5000,
+  "o.ApR": 672000,
+  "o.PeR": 595000,
+  "o.sma": 633500,
+  "o.eccentricity": 0.0612,
+  "o.trueAnomaly": 340.0,
+  "o.argumentOfPeriapsis": 5.0,
+  "o.inclination": 2.1,
+  "o.period": 1627.4,
+  "o.timeToAp": 820.0,
+  "o.timeToPe": 185.0
+}

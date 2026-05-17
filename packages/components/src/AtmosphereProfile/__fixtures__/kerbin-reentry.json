@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "kerbin-reentry",
+    "notes": "Kerbin reentry at 30 km, skin temp 1500 K from aerodynamic heating. Density is measurable but low. Tests skin-temp formatting in live chip (°C conversion for very high Kelvin values)."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 30000,
+  "v.atmosphericDensity": 0.0184,
+  "v.atmosphericTemperature": 220.0,
+  "v.externalTemperature": 1500.0
+}

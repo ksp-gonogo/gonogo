@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "kerbin-escape-trajectory",
+    "notes": "Kerbin escape trajectory at 200 km altitude. Orbital speed ~3600 m/s exceeds escape velocity at this altitude (~2929 m/s). Trace dot plots above the reference curve — craft on hyperbolic trajectory."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 200000,
+  "v.orbitalVelocity": 3600
+}

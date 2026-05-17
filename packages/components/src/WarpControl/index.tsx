@@ -172,6 +172,14 @@ function WarpControlComponent({
   const showModeCaption = rows >= 4;
 
   const rateLabel = formatRate(currentRate);
+  // Physics warp (atmospheric, ≤4×) and high warp (on-rails, ≥5×) feel
+  // very different to fly — physics keeps the aerodynamics live and
+  // is risky in atmosphere. Tint the Rate readout to differentiate
+  // without burying the cue in the small mode caption.
+  const rateTone: "physics" | "high" =
+    typeof mode === "string" && mode.toLowerCase().startsWith("phys")
+      ? "physics"
+      : "high";
   const idx = currentIndex ?? 0;
   const downIdx = Math.max(0, idx - 1);
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
@@ -185,7 +193,7 @@ function WarpControlComponent({
         hint="Time warp works in flight, Space Center, and Tracking Station."
       >
         <Body>
-          <Rate $tone="go">
+          <Rate $tone={rateTone}>
             <RateValue aria-label={`Time warp rate ${rateLabel}`}>
               {rateLabel}
             </RateValue>
@@ -194,7 +202,11 @@ function WarpControlComponent({
             )}
           </Rate>
 
-          {scene === "Flight" && (
+          {/* Pause button only renders when there's room next to the
+              rate readout. At minimal-4x3 the pause button crowded
+              the stepper into the rate row; hide it at small grid
+              counts to give the warp-control buttons their own line. */}
+          {scene === "Flight" && cols >= 4 && rows >= 4 && (
             <ToggleButton
               active={effectivePaused === true}
               tone="warn"
@@ -293,7 +305,7 @@ const Body = styled.div`
   min-height: 0;
 `;
 
-const Rate = styled.div<{ $tone: "go" }>`
+const Rate = styled.div<{ $tone: "physics" | "high" }>`
   flex: 1 1 70px;
   display: flex;
   flex-direction: column;
@@ -301,7 +313,12 @@ const Rate = styled.div<{ $tone: "go" }>`
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  color: var(--color-status-go-fg);
+  /* Physics warp (≤4×) tints amber — operator at speed in atmosphere
+     needs to know it's NOT on-rails. High warp (≥5×) stays green. */
+  color: ${({ $tone }) =>
+    $tone === "physics"
+      ? "var(--color-status-warning-bg)"
+      : "var(--color-status-go-fg)"};
 `;
 
 const RateValue = styled.span`

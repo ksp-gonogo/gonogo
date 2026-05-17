@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "no-body-data",
+    "notes": "Neither v.body nor o.referenceBody is set yet (e.g. loading state). Widget should render an empty GraphView with title KEPLER PERIOD and no curve."
+  },
+  "o.sma": 680000,
+  "o.period": 1984.9
+}

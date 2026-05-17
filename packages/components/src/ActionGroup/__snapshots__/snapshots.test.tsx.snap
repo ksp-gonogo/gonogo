@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ActionGroup DOM snapshots > ag1-parachutes-armed @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>—</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > ag1-parachutes-armed @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>ON</span></div></div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > ag1-parachutes-armed @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>—</span></div></div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > ag1-parachutes-armed @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > ag1-parachutes-armed @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>—</span></div></div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > cold-pad-all-off @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>—</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > cold-pad-all-off @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>—</span></div></div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > cold-pad-all-off @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>—</span></div></div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > cold-pad-all-off @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > cold-pad-all-off @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>OFF</span></div></div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > gear-down-landed @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>—</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > gear-down-landed @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>—</span></div></div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > gear-down-landed @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>ON</span></div></div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > gear-down-landed @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > gear-down-landed @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>—</span></div></div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > launch-config-sas-on @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>—</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > launch-config-sas-on @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>—</span></div></div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > launch-config-sas-on @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>—</span></div></div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > launch-config-sas-on @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > launch-config-sas-on @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>ON</span></div></div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > no-signal-paused @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>OFF</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > no-signal-paused @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>—</span></div></div><div role="status" aria-live="polite" title="The action group can't fire right now">Paused</div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > no-signal-paused @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>—</span></div></div><div role="status" aria-live="polite" title="The action group can't fire right now">Paused</div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > no-signal-paused @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > no-signal-paused @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>—</span></div></div><div role="status" aria-live="polite" title="The action group can't fire right now">Paused</div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > unknown-state @ compact-3x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename RCS" title="Click to rename"><span>RCS</span></div><div><span>—</span></div></div><button aria-label="Toggle RCS">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > unknown-state @ default-6x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Chutes" title="Click to rename"><span>Chutes</span><span>AG1</span></div><div><span>—</span></div></div><button aria-label="Toggle Chutes">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > unknown-state @ normal-6x4 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename Landing Gear" title="Click to rename"><span>Landing Gear</span><span>Gear</span></div><div><span>—</span></div></div><button aria-label="Toggle Landing Gear">TOGGLE</button></div>"`;
+
+exports[`ActionGroup DOM snapshots > unknown-state @ tiny-3x3 1`] = `"<div><span>No action group configured</span></div>"`;
+
+exports[`ActionGroup DOM snapshots > unknown-state @ wide-9x6 1`] = `"<div><div><div role="button" tabindex="0" aria-label="Rename SAS" title="Click to rename"><span>SAS</span></div><div><span>—</span></div></div><button aria-label="Toggle SAS">TOGGLE</button></div>"`;

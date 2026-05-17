@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "lko-circular",
+    "notes": "Low Kerbin orbit, near-circular (e≈0). Periapsis well above atmosphere (70 km). Stable orbit. Rotation tick active via b.number + b.name[0] match on v.body."
+  },
+  "v.body": "Kerbin",
+  "o.sma": 681500,
+  "o.eccentricity": 0.003,
+  "o.trueAnomaly": 47,
+  "o.argumentOfPeriapsis": 12,
+  "o.ApR": 685000,
+  "o.PeR": 678000,
+  "o.ApA": 85000,
+  "o.PeA": 78000,
+  "b.number": 1,
+  "b.name[0]": "Kerbin",
+  "b.rotates[0]": true,
+  "b.rotationAngle[0]": 137
+}

@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "rails-warp-1000x",
+    "notes": "On-rails warp at 1000× (index 5 = '1k×' on the high ladder) in vacuum orbit above Kerbin. Mode is 'High'. The 1k× button should be highlighted in the full ladder. Rate label formats as '1.0k×'."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1000,
+  "t.timeWarp": 5,
+  "t.warpMode": "High",
+  "t.isPaused": false
+}

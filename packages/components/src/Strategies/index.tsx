@@ -209,13 +209,35 @@ function StrategiesComponent({
       /active strategies at this level/i.test(s.activateBlockedReason),
   );
 
+  // Over-cap detection — the KSP UI silently allows a save to carry
+  // more active strategies than the admin building's level allows
+  // (see project_ksp_strategy_overcap_quirk). Telemachus's blocked
+  // reason text encodes the cap, e.g. "more than 2 active strategies
+  // at this level"; if any softBlocked strategy mentions a cap N and
+  // we have more than N active, surface that visually so the operator
+  // doesn't mistake the over-cap save for a fully-staffed T3 admin.
+  const inferredCap = (() => {
+    for (const s of softBlocked) {
+      const m = s.activateBlockedReason.match(/(\d+)\s+active strategies/i);
+      if (m) {
+        const n = Number(m[1]);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    }
+    return null;
+  })();
+  const overCap = inferredCap !== null && active.length > inferredCap;
+
   // ── Tiny mode ─────────────────────────────────────────────────────────
   if (bucket === "tiny") {
     return (
       <Panel>
         <Header>
           <PanelTitle>Strategies</PanelTitle>
-          <Tally>{active.length} active</Tally>
+          <Tally $overCap={overCap}>
+            {active.length} active
+            {overCap && ` / ${inferredCap}`}
+          </Tally>
         </Header>
       </Panel>
     );
@@ -225,14 +247,26 @@ function StrategiesComponent({
     <Panel>
       <Header>
         <PanelTitle>Admin Building</PanelTitle>
+        {/* HeaderMeta wraps to a second row at narrow widths so funds /
+            rep / sci aren't clipped by the title's space-between layout.
+            At very narrow widths (cols < 6) the funds/rep/sci line gets
+            dropped entirely — the active count is the headline; full
+            tallies need the wide-9x12 mode to fit on one row. */}
         <HeaderMeta>
-          <Tally>{active.length} active</Tally>
-          <Sep>·</Sep>
-          <Tally>{formatNumber(funds)}f</Tally>
-          <Sep>·</Sep>
-          <Tally>{formatNumber(reputation)} rep</Tally>
-          <Sep>·</Sep>
-          <Tally>{formatNumber(science)} sci</Tally>
+          <Tally $overCap={overCap}>
+            {active.length} active
+            {overCap && ` / ${inferredCap}`}
+          </Tally>
+          {(w ?? 9) >= 6 && (
+            <>
+              <Sep>·</Sep>
+              <Tally>{formatNumber(funds)}f</Tally>
+              <Sep>·</Sep>
+              <Tally>{formatNumber(reputation)} rep</Tally>
+              <Sep>·</Sep>
+              <Tally>{formatNumber(science)} sci</Tally>
+            </>
+          )}
         </HeaderMeta>
       </Header>
       <ScrollArea>
@@ -525,6 +559,7 @@ const Header = styled.div`
   gap: 8px;
   padding: 0 12px 6px;
   border-bottom: 1px solid var(--color-border-subtle);
+  flex-wrap: wrap;
 `;
 
 const HeaderMeta = styled.div`
@@ -533,11 +568,16 @@ const HeaderMeta = styled.div`
   gap: 6px;
   color: var(--color-text-dim);
   font-size: var(--font-size-xs);
+  flex-wrap: wrap;
 `;
 
-const Tally = styled.span`
-  color: var(--color-text-primary);
+const Tally = styled.span<{ $overCap?: boolean }>`
+  color: ${(p) =>
+    p.$overCap
+      ? "var(--color-status-warning-bg)"
+      : "var(--color-text-primary)"};
   font-variant-numeric: tabular-nums;
+  font-weight: ${(p) => (p.$overCap ? 700 : 400)};
 `;
 
 const Sep = styled.span`
@@ -601,6 +641,13 @@ const CardDept = styled.span`
   font-size: var(--font-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  /* Truncate gracefully at narrow card widths instead of clipping
+     mid-glyph (was reading as "OPERAT" with no ellipsis at
+     compact-5x7). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 `;
 
 const ExpandToggle = styled.button`

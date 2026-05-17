@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EscapeProfile DOM snapshots > eve-orbit-high-gravity @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > eve-orbit-high-gravity @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > eve-orbit-high-gravity @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > eve-orbit-high-gravity @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-escape-trajectory @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-escape-trajectory @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-escape-trajectory @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-escape-trajectory @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-hko-approaching-escape @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-hko-approaching-escape @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-hko-approaching-escape @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-hko-approaching-escape @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-lko-well-below-escape @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-lko-well-below-escape @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-lko-well-below-escape @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > kerbin-lko-well-below-escape @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > mun-surface-low-orbit @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > mun-surface-low-orbit @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > mun-surface-low-orbit @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > mun-surface-low-orbit @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > unknown-body-no-reference @ default-10x8 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div><div role="status">Unknown body “Proxima” — plotting trace only.</div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > unknown-body-no-reference @ small-5x6 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div><div role="status">Unknown body “Proxima” — plotting trace only.</div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > unknown-body-no-reference @ tiny-4x4 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div><div role="status">Unknown body “Proxima” — plotting trace only.</div></div>"`;
+
+exports[`EscapeProfile DOM snapshots > unknown-body-no-reference @ wide-14x10 1`] = `"<div><div><div><div><h3>ESCAPE PROFILE</h3></div></div><div></div></div><div role="status">Unknown body “Proxima” — plotting trace only.</div></div>"`;

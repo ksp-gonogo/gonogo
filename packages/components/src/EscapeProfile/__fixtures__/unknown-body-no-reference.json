@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "unknown-body-no-reference",
+    "notes": "Body name not in the stock registry. Widget should show the unknown-body notice and plot the orbital-speed trace without a reference curve."
+  },
+  "v.body": "Proxima",
+  "v.altitude": 150000,
+  "v.orbitalVelocity": 1800
+}

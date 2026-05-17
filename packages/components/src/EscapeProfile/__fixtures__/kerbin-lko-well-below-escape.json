@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "kerbin-lko-well-below-escape",
+    "notes": "Low Kerbin orbit at 80 km. Orbital speed ~2246 m/s; escape velocity at this altitude ~3224 m/s. Trace dot plots well below the reference curve — craft is in a stable orbit."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 80000,
+  "v.orbitalVelocity": 2246
+}

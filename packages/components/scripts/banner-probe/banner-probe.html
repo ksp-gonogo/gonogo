@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Alarm banner probe</title>
+    <style id="probe-theme">/* injected by render-alarm-banner driver from packages/app/src/styles/global.css */</style>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-surface-app);
+        color: var(--color-text-primary);
+        font-family: var(--font-family-mono);
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #root {
+        position: relative;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./banner-probe-entry.bundle.js"></script>
+  </body>
+</html>

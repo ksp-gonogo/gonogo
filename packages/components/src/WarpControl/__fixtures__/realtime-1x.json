@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "realtime-1x",
+    "notes": "No time warp active. Vessel in flight above Kerbin. Rate shows 1× and warp index is 0. Pause button visible (Flight scene). Full ladder should highlight the 1× button."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": false
+}

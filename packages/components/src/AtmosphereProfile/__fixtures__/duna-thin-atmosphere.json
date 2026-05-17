@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "duna-thin-atmosphere",
+    "notes": "Duna surface at 1000 m. Thin atmosphere ~0.067 atm (6755 Pa surface). Tests the g/m³ density branch in formatDensity and a narrow pressure curve on the log Y axis."
+  },
+  "v.body": "Duna",
+  "v.altitude": 1000,
+  "v.atmosphericDensity": 0.067,
+  "v.atmosphericTemperature": 210.0,
+  "v.externalTemperature": 213.0
+}

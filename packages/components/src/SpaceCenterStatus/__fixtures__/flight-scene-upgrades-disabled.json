@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "notes": "Player is in Flight scene — not at Space Center. All upgrade buttons are disabled even though funds are ample. Tests the scene-guard logic. Pad is occupied with a vessel in flight.",
+    "scenario": "flight-scene-upgrades-disabled"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 150000,
+      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+    },
+    "runway": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "vab": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 175000,
+      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+    },
+    "sph": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "mission": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 120000,
+      "currentLevelText": "* Active contracts: 7",
+      "nextLevelText": "* Active contracts: Unlimited"
+    },
+    "tracking": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 115000,
+      "currentLevelText": "* Maneuver nodes enabled",
+      "nextLevelText": "* Patched conics (full)"
+    },
+    "admin": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 55000,
+      "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+      "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+    },
+    "rd": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 225000,
+      "currentLevelText": "* Science archive: 2500 pts",
+      "nextLevelText": "* Science archive: Unlimited"
+    },
+    "astronaut": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 65000,
+      "currentLevelText": "* Max crew: 12",
+      "nextLevelText": "* Max crew: Unlimited"
+    }
+  },
+  "kc.partsAvailable": 183,
+  "kc.launchSite": "LaunchPad",
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Kerbal X",
+  "kc.scene": "Flight",
+  "career.funds": 500000
+}

@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "no-signal-paused",
+    "notes": "Game paused and signal lost simultaneously. Both unavailability reasons active — widget should surface 'Paused' (takes priority over No signal). Widget configured for RCS (v.rcsValue).",
+    "widgetConfig": { "actionGroupId": "RCS" }
+  },
+  "v.rcsValue": false,
+  "t.isPaused": true,
+  "comm.connected": false
+}

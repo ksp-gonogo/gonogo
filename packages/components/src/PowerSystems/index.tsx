@@ -213,7 +213,7 @@ function PowerSystemsComponent({
       <Panel>
         <PanelTitle>POWER</PanelTitle>
         <CompactBody>
-          <CompactResource>{resource}</CompactResource>
+          <CompactResource>{splitCamel(resource)}</CompactResource>
           <CompactNet $tone={netTone}>
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
@@ -324,7 +324,11 @@ function PowerSystemsComponent({
 
 function ContributionRow({ contribution }: { contribution: Contribution }) {
   const { partTitle, flow, nominalFlow } = contribution;
-  const isProducer = flow >= 0;
+  // Three-way sign — a shadowed solar panel produces nothing but is
+  // not consuming either; rendering its `+0.00` in green misreads as
+  // "actively producing". Neutral colour communicates "idle" honestly.
+  const sign: "pos" | "neg" | "zero" =
+    Math.abs(flow) < 1e-9 ? "zero" : flow > 0 ? "pos" : "neg";
   const eff =
     typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
       ? Math.abs(flow / nominalFlow)
@@ -337,12 +341,21 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
           {(eff * 100).toFixed(0)}%
         </RowEff>
       )}
-      <RowValue $sign={isProducer ? "pos" : "neg"}>
-        {isProducer ? "+" : ""}
+      <RowValue $sign={sign}>
+        {sign === "pos" ? "+" : ""}
         {flow.toFixed(2)}
       </RowValue>
     </Row>
   );
+}
+
+/** Telemachus resource ids are camelCase (`ElectricCharge`,
+ *  `LiquidFuel`) — the compact-mode CSS uppercases them to
+ *  `ELECTRICCHARGE` with no visible word boundary. Inserting a space
+ *  between a lowercase and the following uppercase preserves the
+ *  word break under the uppercase transform. */
+function splitCamel(s: string): string {
+  return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
 function formatUnits(v: number): string {
@@ -406,7 +419,11 @@ const ResourceSelect = styled(Select)`
 
 const Totals = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  /* 64px lets four cells fit in one row at threshold-6×8 (was wrapping
+     to 2×2 with the inner STORED value breaking inside). The narrower
+     cell pairs with the smaller CellValue font (13px + nowrap) so the
+     "2900 / 4050"-shape value stays on one line. */
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 6px;
   margin-top: 8px;
   margin-bottom: 8px;
@@ -445,9 +462,10 @@ const CellLabel = styled.span`
 `;
 
 const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: ${({ $sign }) =>
     $sign === "pos"
       ? "var(--color-status-go-fg)"
@@ -526,12 +544,14 @@ const RowEff = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const RowValue = styled.span<{ $sign: "pos" | "neg" }>`
+const RowValue = styled.span<{ $sign: "pos" | "neg" | "zero" }>`
   font-variant-numeric: tabular-nums;
   color: ${({ $sign }) =>
     $sign === "pos"
       ? "var(--color-status-go-fg)"
-      : "var(--color-status-warning-bg)"};
+      : $sign === "neg"
+        ? "var(--color-status-warning-bg)"
+        : "var(--color-text-faint)"};
 `;
 
 const Hint = styled.div`

@@ -80,26 +80,83 @@ function OrbitViewComponent({
   // canonical example for "tiny mode"). Accept either:
   //   - Square / portrait ≥ 5 cols × 5 rows (the original threshold), or
   //   - Landscape ≥ 8 cols × 3 rows (wide-short, e.g. the dashboard's
-  //     header strip — the diagram aspect-fits horizontally and stays
-  //     legible).
+  //     header strip — the diagram + chrome render side-by-side so the
+  //     diagram gets a usable square slot at panel height instead of
+  //     being squeezed under the title.).
   const cols = w ?? 9;
   const rows = h ?? 18;
   const showDiagram = (rows >= 5 && cols >= 5) || (cols >= 8 && rows >= 3);
+  // Landscape gate: wide-short slots flow the layout horizontally so the
+  // diagram doesn't have to share vertical real estate with the header.
+  const isLandscape = cols >= 8 && rows < 5;
   const showSubtitle = rows >= 4;
 
+  // 3×3 minSize panel is ~104 px wide; the multi-word pill labels wrap
+  // to two lines ("STABLE\nORBIT", "SUB-\nORBITAL"). At that size,
+  // abbreviate so the status fits on one line — abbreviations are the
+  // standard mission-control shorthand the operator already reads
+  // elsewhere (e.g. flight-plan annotations).
+  const compactPill = cols < 4 || rows < 4;
   let pillLabel = "—";
   let pillTone: ReadoutTone = "default";
   if (hasOrbit) {
     if (eccentricity >= 1) {
-      pillLabel = "Escape";
+      pillLabel = compactPill ? "ESC" : "Escape";
       pillTone = "warning";
     } else if (isOrbiting) {
-      pillLabel = "Stable orbit";
+      pillLabel = compactPill ? "ORBIT" : "Stable orbit";
       pillTone = "go";
     } else {
-      pillLabel = "Sub-orbital";
+      pillLabel = compactPill ? "SUB-O" : "Sub-orbital";
       pillTone = "alert";
     }
+  }
+
+  const diagram = hasOrbit ? (
+    <OrbitDiagram
+      variant="full"
+      sma={sma}
+      ecc={eccentricity}
+      apoapsis={apoapsisR}
+      periapsis={periapsisR}
+      trueAnomaly={trueAnomaly ?? 0}
+      argPe={argPe ?? 0}
+      showMarkers={showMarkers}
+      bodyColor={body?.color}
+      bodyRadius={body?.radius}
+      isOrbiting={isOrbiting}
+      rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
+      atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
+      atmosphereHasOxygen={
+        // Kerbin / Laythe are the stock oxygen-bearing atmospheres.
+        // Static registry doesn't carry the flag yet — treat as oxygen
+        // for those names, plain for the rest. Cheap; gets replaced
+        // when the static body registry grows a `hasOxygen` field.
+        body !== undefined && (body.id === "Kerbin" || body.id === "Laythe")
+      }
+    />
+  ) : null;
+
+  if (isLandscape && showDiagram && hasOrbit) {
+    // Wide-short slot: chrome on the left, diagram on the right. The
+    // diagram lives in a square slot taking the full panel height, which
+    // is much more visible than the portrait fallback (where the title
+    // row eats most of the vertical space). Header content stacks
+    // vertically in the left chrome — title, body name, status pill.
+    return (
+      <Panel>
+        <LandscapeRow>
+          <LandscapeChrome>
+            <PanelTitle>ORBIT VIEW</PanelTitle>
+            {bodyName !== undefined && (
+              <PanelSubtitle>{bodyName}</PanelSubtitle>
+            )}
+            <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
+          </LandscapeChrome>
+          <LandscapeDiagramSlot>{diagram}</LandscapeDiagramSlot>
+        </LandscapeRow>
+      </Panel>
+    );
   }
 
   return (
@@ -112,28 +169,7 @@ function OrbitViewComponent({
       {!hasOrbit ? (
         <NoData>No orbital data</NoData>
       ) : showDiagram ? (
-        <OrbitDiagram
-          variant="full"
-          sma={sma}
-          ecc={eccentricity}
-          apoapsis={apoapsisR}
-          periapsis={periapsisR}
-          trueAnomaly={trueAnomaly ?? 0}
-          argPe={argPe ?? 0}
-          showMarkers={showMarkers}
-          bodyColor={body?.color}
-          bodyRadius={body?.radius}
-          isOrbiting={isOrbiting}
-          rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
-          atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
-          atmosphereHasOxygen={
-            // Kerbin / Laythe are the stock oxygen-bearing atmospheres.
-            // Static registry doesn't carry the flag yet — treat as oxygen
-            // for those names, plain for the rest. Cheap; gets replaced
-            // when the static body registry grows a `hasOxygen` field.
-            body !== undefined && (body.id === "Kerbin" || body.id === "Laythe")
-          }
-        />
+        diagram
       ) : (
         <PillFill>
           <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
@@ -183,4 +219,34 @@ const PillFill = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const LandscapeRow = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+`;
+
+const LandscapeChrome = styled.div`
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  /* Narrow column for header content — the diagram on the right gets
+     everything left over. */
+  min-width: 0;
+`;
+
+const LandscapeDiagramSlot = styled.div`
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 `;

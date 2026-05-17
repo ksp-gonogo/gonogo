@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "eccentric-capture",
+    "notes": "Highly eccentric Kerbin capture. Ap at 2500 km, Pe at 80 km. Eccentricity ~0.64. isOrbiting=true (PeA > 70 km atmosphere threshold). Exercises the diagram with a pronounced ellipse."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 2500000,
+  "o.PeA": 80000,
+  "o.ApR": 3100000,
+  "o.PeR": 680000,
+  "o.sma": 1890000,
+  "o.eccentricity": 0.6402,
+  "o.trueAnomaly": 12.0,
+  "o.argumentOfPeriapsis": 270.0,
+  "o.inclination": 5.2,
+  "o.period": 20140.7,
+  "o.timeToAp": 18900.0,
+  "o.timeToPe": 880.5
+}

@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "in-flight-crash",
+    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible."
+  },
+  "kc.savedShips": [],
+  "kc.crewRoster": [],
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Doomed Probe",
+  "kc.launchSite": "LaunchPad",
+  "kc.scene": "Flight",
+  "career.funds": 15000,
+  "v.name": "Doomed Probe",
+  "v.missionTime": 47,
+  "v.altitude": 50,
+  "ksp.canRevertToLaunch": false,
+  "ksp.canRevertToEditor": false,
+  "crash.hasRecent": true,
+  "tar.availableVessels": []
+}

@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "mun-orbit",
+    "notes": "Low Mun orbit. Mun radius 200 km + ~15 km altitude = 215 km SMA. Tests the reference body label showing 'Mun'."
+  },
+  "o.sma": 215000,
+  "o.referenceBody": "Mun"
+}

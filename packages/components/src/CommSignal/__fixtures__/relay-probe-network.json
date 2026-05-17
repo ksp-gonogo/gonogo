@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "relay-probe-network",
+    "notes": "Signal routed via a relay network. Strength is good (3 bars) but delay is significant because signal hops through multiple relays in HKO."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.63,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 4.7
+}

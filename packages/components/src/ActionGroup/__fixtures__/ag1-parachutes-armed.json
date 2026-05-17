@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "ag1-parachutes-armed",
+    "notes": "Atmospheric descent: AG1 = parachutes armed (on). Widget configured for AG1 group. RCS off, comm strong.",
+    "widgetConfig": { "actionGroupId": "AG1", "label": "Chutes" }
+  },
+  "v.ag1Value": true,
+  "t.isPaused": false,
+  "comm.connected": true
+}

@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "On the pad, nose straight up. Heading nominal east (90°). Pitch +90 = horizon dropped below the dial. Throttle armed at full but engines not fired.",
+    "scenario": "launchpad-vertical"
+  },
+  "n.heading": 90,
+  "n.pitch": 90,
+  "n.roll": 0,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 1.0,
+  "v.isControllable": true
+}

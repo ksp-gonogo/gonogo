@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "scenario": "threshold-with-safety",
+    "notes": "Pending threshold alarm with warpTo active — SafetyRow expanded. Reproduces the user's bug: banner extends below the 48px stack and the rounded pill shape + translucent background let widgets behind bleed through as ghost text."
+  },
+  "alarms": [
+    {
+      "id": "thr1",
+      "name": "latlong v.lat >= 80",
+      "state": "pending",
+      "trigger": {
+        "kind": "threshold",
+        "dataKey": "v.lat",
+        "op": ">=",
+        "value": 80,
+        "leadSeconds": 5,
+        "sustainSeconds": 0
+      },
+      "fireActions": ["beep"],
+      "createdAtUT": 900
+    }
+  ],
+  "ut": 1000,
+  "warp": { "index": 0, "rate": 1, "mode": "HIGH" },
+  "unscheduledWarp": null,
+  "warpTo": { "alarmId": "thr1", "targetIndex": 4 },
+  "warpSafetyMarginSeconds": 1
+}

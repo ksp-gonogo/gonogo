@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "scenario": "awaiting",
+    "notes": "No kc.savedShips yet — widget shows awaiting-telemetry placeholder. career.funds intentionally absent (short-circuits before subtitle)."
+  }
+}

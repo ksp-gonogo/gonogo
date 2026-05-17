@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "scenario": "vacuum-low-nogo",
+    "notes": "Vacuum stage, TWR 0.72 — below 1, in the red no-go zone. Craft cannot arrest descent. Dial needle in the red sector, value label reads 0.72."
+  },
+  "dv.currentTWR": 0.72
+}

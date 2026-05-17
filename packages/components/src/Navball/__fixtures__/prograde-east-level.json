@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Baseline: level cruise on east heading. Horizon should bisect the dial perfectly. SAS in stability-assist, no RCS, throttle idle.",
+    "scenario": "prograde-east-level"
+  },
+  "n.heading": 90,
+  "n.pitch": 0,
+  "n.roll": 0,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0,
+  "v.isControllable": true
+}

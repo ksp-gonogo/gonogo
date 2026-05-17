@@ -98,6 +98,12 @@ function CurrentOrbitComponent({
   const showApProgressRows = rows >= 6;
   const showEccentricityRows = rows >= 8;
   const showDiagramSlot = showDiagram && hasOrbit && rows >= 8 && cols >= 5;
+  // Tiny widget: at minSize 3×4 the formatted "85.0 km" wraps to two
+  // lines inside the 1fr value column. Drop the label column to 2.2em
+  // and the value font to 11 px so a one-line value fits inside ~80 px
+  // of content width.
+  const tight = cols < 4 || rows < 5;
+  const hyperbolic = typeof eccentricity === "number" && eccentricity >= 1;
 
   return (
     <Panel>
@@ -107,14 +113,22 @@ function CurrentOrbitComponent({
       )}
 
       <Body ref={bodyRef} $landscape={isLandscape}>
-        <Grid $landscape={isLandscape}>
+        <Grid $landscape={isLandscape} $tight={tight}>
           <Label>Ap</Label>
           <Value $accent="ap">
             {apoapsisA === undefined ? "—" : formatDistance(apoapsisA)}
           </Value>
 
           <Label>Pe</Label>
-          <Value $accent="pe">
+          {/* Sub-surface periapsis (negative altitude) means the vessel
+              will impact terrain — promote the readout to the nogo
+              alert colour so the operator notices at a glance instead
+              of reading "Pe = -5 km" as just another low number. */}
+          <Value
+            $accent={
+              periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
+            }
+          >
             {periapsisA === undefined ? "—" : formatDistance(periapsisA)}
           </Value>
 
@@ -131,7 +145,15 @@ function CurrentOrbitComponent({
             <>
               <Label>t-Ap</Label>
               <Value $accent="ap">
-                {timeToAp === undefined ? "—" : formatDuration(timeToAp)}
+                {/* On hyperbolic orbits there's no apoapsis to reach —
+                    Telemachus emits 0 which reads as "arriving now" on a
+                    countdown. Render an em-dash so the operator doesn't
+                    mistake a hyperbolic flyby for an imminent event. */}
+                {timeToAp === undefined
+                  ? "—"
+                  : hyperbolic
+                    ? "—"
+                    : formatDuration(timeToAp)}
               </Value>
 
               <Label>t-Pe</Label>
@@ -150,7 +172,14 @@ function CurrentOrbitComponent({
 
               <Label>T</Label>
               <Value>
-                {period === undefined ? "—" : formatDuration(period)}
+                {/* Period is undefined on a hyperbolic orbit (the
+                    trajectory never closes); Telemachus emits 0 which
+                    is again indistinguishable from "now". */}
+                {period === undefined
+                  ? "—"
+                  : hyperbolic
+                    ? "—"
+                    : formatDuration(period)}
               </Value>
             </>
           )}
@@ -219,13 +248,21 @@ const Body = styled.div<{ $landscape: boolean }>`
   gap: 8px;
 `;
 
-const Grid = styled.div<{ $landscape: boolean }>`
+const Grid = styled.div<{ $landscape: boolean; $tight: boolean }>`
   display: grid;
-  grid-template-columns: 3em 1fr;
-  gap: 2px 8px;
+  grid-template-columns: ${({ $tight }) => ($tight ? "2.2em 1fr" : "3em 1fr")};
+  gap: 2px ${({ $tight }) => ($tight ? "6px" : "8px")};
   align-items: baseline;
   align-content: start;
   ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
+  /* Force values onto one line — at tiny widget sizes the formatted
+     distance ("85.0 km") wraps inside the 1fr column. Pair with the
+     11 px font tier below so the one-line value still fits ~80 px of
+     content width without clipping. */
+  & > span:nth-child(2n) {
+    white-space: nowrap;
+    ${({ $tight }) => ($tight ? "font-size: 11px;" : "")}
+  }
 `;
 
 const Label = styled.span`
@@ -238,9 +275,10 @@ const Label = styled.span`
 const accentColor = {
   ap: "var(--color-status-warning-bg)",
   pe: "var(--color-tag-blue-fg)",
+  alert: "var(--color-status-nogo-bg)",
 };
 
-const Value = styled.span<{ $accent?: "ap" | "pe" }>`
+const Value = styled.span<{ $accent?: "ap" | "pe" | "alert" }>`
   font-size: 13px;
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;

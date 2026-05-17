@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`KeplerPeriod DOM snapshots > kerbin-high-eccentric @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-high-eccentric @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-high-eccentric @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-high-eccentric @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-high-eccentric @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-lko @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-lko @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-lko @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-lko @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-lko @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-synchronous @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-synchronous @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-synchronous @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-synchronous @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > kerbin-synchronous @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > minmus-orbit @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > minmus-orbit @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > minmus-orbit @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > minmus-orbit @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > minmus-orbit @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > mun-orbit @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > mun-orbit @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > mun-orbit @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > mun-orbit @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > mun-orbit @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > no-body-data @ default-10x8 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > no-body-data @ min-5x4 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > no-body-data @ tall-6x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > no-body-data @ wide-14x6 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
+
+exports[`KeplerPeriod DOM snapshots > no-body-data @ xl-14x12 1`] = `"<div><div><div><div><div><h3>KEPLER PERIOD</h3></div></div><div></div></div></div></div>"`;
