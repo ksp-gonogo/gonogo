@@ -1,12 +1,10 @@
-import type { FogMaskStore } from "@gonogo/data";
+import { DEFAULT_PROFILE_ID, type FogMaskStore } from "@gonogo/data";
 import { logger } from "@gonogo/logger";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 interface Deps {
   peerHost: PeerHostService;
   fogStore: FogMaskStore;
-  /** Returns the currently-active save profile id at call time. */
-  getActiveProfileId: () => string;
 }
 
 /**
@@ -38,20 +36,19 @@ export class FogSyncHostService {
   }
 
   private async sendSnapshot(peerId: string): Promise<void> {
-    const profileId = this.deps.getActiveProfileId();
     try {
-      const masks = await this.deps.fogStore.loadAllForProfile(profileId);
+      const masks =
+        await this.deps.fogStore.loadAllForProfile(DEFAULT_PROFILE_ID);
       if (masks.length === 0) return;
-      // Per-type rework: keys are now `${profileId}:${bodyId}:${scanType}`.
-      // Slice off the profile prefix, then split on the last `:` to peel
-      // off the scanType. The mask record also carries scanType directly,
-      // which we forward to the station so it can route to the right
-      // per-type slot.
+      // Storage key shape is `${profileId}:${bodyId}:${scanType}`. The
+      // profile slot is always DEFAULT_PROFILE_ID now, so we slice it off
+      // and then split on the last `:` to peel off the scanType. The mask
+      // record also carries scanType directly, which we forward to the
+      // station so it can route to the right per-type slot.
       this.deps.peerHost.sendToPeer(peerId, {
         type: "fog-snapshot",
-        profileId,
         masks: masks.map((m) => {
-          const afterProfile = m.key.slice(profileId.length + 1);
+          const afterProfile = m.key.slice(DEFAULT_PROFILE_ID.length + 1);
           const lastColon = afterProfile.lastIndexOf(":");
           const bodyId =
             lastColon >= 0 ? afterProfile.slice(0, lastColon) : afterProfile;

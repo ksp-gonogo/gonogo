@@ -11,6 +11,7 @@ export {
   FogMaskCache,
 } from "./fog/FogMaskCache";
 export {
+  DEFAULT_PROFILE_ID,
   FogMaskCacheProvider,
   FogMaskStoreProvider,
   useBodyFogMask,

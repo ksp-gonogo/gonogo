@@ -1,5 +1,9 @@
 import { SCAN_TYPE, type SCANType } from "@gonogo/core";
-import type { FogMaskStore, StoredMask } from "@gonogo/data";
+import {
+  DEFAULT_PROFILE_ID,
+  type FogMaskStore,
+  type StoredMask,
+} from "@gonogo/data";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -38,7 +42,6 @@ function makeFakeHost(): FakeHost {
 }
 
 function makeStoredMask(
-  profileId: string,
   bodyId: string,
   data: number[],
   width = 2,
@@ -46,7 +49,7 @@ function makeStoredMask(
   scanType: SCANType = SCAN_TYPE.AltimetryHiRes,
 ): StoredMask {
   return {
-    key: `${profileId}:${bodyId}:${scanType}`,
+    key: `${DEFAULT_PROFILE_ID}:${bodyId}:${scanType}`,
     version: 2,
     scanType,
     width,
@@ -84,29 +87,14 @@ describe("FogSyncHostService", () => {
 
   it("sends a fog-snapshot routing each per-type mask to its slot", async () => {
     fogStore = makeFakeFogStore([
-      makeStoredMask(
-        "p1",
-        "Kerbin",
-        [1, 2, 3, 4],
-        2,
-        1,
-        SCAN_TYPE.AltimetryLoRes,
-      ),
-      makeStoredMask(
-        "p1",
-        "Kerbin",
-        [9, 9, 9, 9],
-        2,
-        1,
-        SCAN_TYPE.AltimetryHiRes,
-      ),
-      makeStoredMask("p1", "Mun", [5, 6], 2, 1, SCAN_TYPE.Biome),
+      makeStoredMask("Kerbin", [1, 2, 3, 4], 2, 1, SCAN_TYPE.AltimetryLoRes),
+      makeStoredMask("Kerbin", [9, 9, 9, 9], 2, 1, SCAN_TYPE.AltimetryHiRes),
+      makeStoredMask("Mun", [5, 6], 2, 1, SCAN_TYPE.Biome),
     ]);
 
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "p1",
     });
     sync.start();
 
@@ -118,7 +106,6 @@ describe("FogSyncHostService", () => {
     expect(sent.peerId).toBe("station-A");
     expect(sent.msg.type).toBe("fog-snapshot");
     if (sent.msg.type !== "fog-snapshot") throw new Error("type guard");
-    expect(sent.msg.profileId).toBe("p1");
     expect(sent.msg.masks).toHaveLength(3);
     // Each (bodyId, scanType) routes to its own payload entry; bytes
     // round-trip unchanged.
@@ -135,14 +122,13 @@ describe("FogSyncHostService", () => {
       9, 9, 9, 9,
     ]);
     expect(byKey.get(`Mun:${SCAN_TYPE.Biome}`)).toEqual([5, 6]);
-    expect(fogStore.loadAllForProfile).toHaveBeenCalledWith("p1");
+    expect(fogStore.loadAllForProfile).toHaveBeenCalledWith(DEFAULT_PROFILE_ID);
   });
 
-  it("sends nothing when the active profile has no stored masks", async () => {
+  it("sends nothing when the store has no masks", async () => {
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "fresh-profile",
     });
     sync.start();
 
@@ -153,11 +139,10 @@ describe("FogSyncHostService", () => {
   });
 
   it("targets only the connecting peer, not all connected peers", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("p1", "Kerbin", [1])]);
+    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "p1",
     });
     sync.start();
 
@@ -172,30 +157,11 @@ describe("FogSyncHostService", () => {
     ]);
   });
 
-  it("re-reads the active profile id on each connect (so a profile switch picks up the new masks)", async () => {
-    const profiles = ["p-old", "p-new"];
-    let i = 0;
-    const sync = new FogSyncHostService({
-      peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => profiles[i++],
-    });
-    sync.start();
-
-    host.firePeerConnect("station-A");
-    host.firePeerConnect("station-B");
-    await flushMacrotask();
-
-    expect(fogStore.loadAllForProfile).toHaveBeenNthCalledWith(1, "p-old");
-    expect(fogStore.loadAllForProfile).toHaveBeenNthCalledWith(2, "p-new");
-  });
-
   it("swallows fog-store errors so a transient persist failure can't crash the host", async () => {
     fogStore.loadAllForProfile.mockRejectedValueOnce(new Error("disk full"));
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "p1",
     });
     sync.start();
 
@@ -206,7 +172,7 @@ describe("FogSyncHostService", () => {
     // Still wired up afterwards — a one-off failure shouldn't poison
     // future connects.
     fogStore.loadAllForProfile.mockResolvedValueOnce([
-      makeStoredMask("p1", "Kerbin", [1]),
+      makeStoredMask("Kerbin", [1]),
     ]);
     host.firePeerConnect("station-B");
     await flushMacrotask();
@@ -216,11 +182,10 @@ describe("FogSyncHostService", () => {
   });
 
   it("stop() detaches from the host so later connects don't fire snapshots", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("p1", "Kerbin", [1])]);
+    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "p1",
     });
     sync.start();
     sync.stop();
@@ -233,11 +198,10 @@ describe("FogSyncHostService", () => {
   });
 
   it("start() is idempotent — double-start doesn't double-send", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("p1", "Kerbin", [1])]);
+    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
     const sync = new FogSyncHostService({
       peerHost: host.service,
       fogStore: fogStore as unknown as FogMaskStore,
-      getActiveProfileId: () => "p1",
     });
     sync.start();
     sync.start();

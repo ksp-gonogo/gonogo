@@ -67,12 +67,6 @@ import { peerHostService } from "../peer/PeerHostService";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
-import {
-  SaveProfileProvider,
-  SaveProfileService,
-  SaveProfilesFab,
-  useActiveProfile,
-} from "../saveProfiles";
 import { SettingsFab, SettingsProvider, SettingsService } from "../settings";
 import { DEMO_CONFIG } from "./demoConfig";
 
@@ -88,7 +82,6 @@ export function MainScreen() {
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: "main" }),
   );
-  const [saveProfileService] = useState(() => new SaveProfileService());
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService("main"));
   const [cpuRegistry] = useState(() => new CpuRegistryService("main"));
@@ -117,7 +110,6 @@ export function MainScreen() {
       new FogSyncHostService({
         peerHost: peerHostService,
         fogStore: fogMaskStore,
-        getActiveProfileId: () => saveProfileService.getActiveId(),
       }),
   );
   useEffect(() => {
@@ -189,74 +181,65 @@ export function MainScreen() {
             <ManeuverTriggerProvider service={maneuverTriggerHost}>
               <CpuRegistryProvider service={cpuRegistry}>
                 <MissionProfilesProvider service={missionProfiles}>
-                  <SaveProfileProvider service={saveProfileService}>
-                    <GoNoGoHostProvider service={goNoGoHost}>
-                      <PushHostProvider service={pushHost}>
-                        <ScopedFogMaskCache store={fogMaskStore}>
-                          <SerialDeviceProvider service={serialService}>
-                            <OverlayProvider
-                              addItem={dashboard.addItem}
-                              updateItemConfig={dashboard.updateItemConfig}
-                            >
-                              <MainAlarmsLauncherScope>
-                                <Layout as="main" aria-label="Mission control">
-                                  <Dashboard
-                                    items={dashboard.items}
-                                    layouts={dashboard.layouts}
+                  <GoNoGoHostProvider service={goNoGoHost}>
+                    <PushHostProvider service={pushHost}>
+                      <FogMaskCacheProvider store={fogMaskStore}>
+                        <SerialDeviceProvider service={serialService}>
+                          <OverlayProvider
+                            addItem={dashboard.addItem}
+                            updateItemConfig={dashboard.updateItemConfig}
+                          >
+                            <MainAlarmsLauncherScope>
+                              <Layout as="main" aria-label="Mission control">
+                                <Dashboard
+                                  items={dashboard.items}
+                                  layouts={dashboard.layouts}
+                                  currentLayouts={dashboard.currentLayouts}
+                                  breakpoint={dashboard.breakpoint}
+                                  onLayoutChange={dashboard.handleLayoutChange}
+                                  onBreakpointChange={
+                                    dashboard.handleBreakpointChange
+                                  }
+                                  updateItemConfig={dashboard.updateItemConfig}
+                                  updateItemMappings={
+                                    dashboard.updateItemMappings
+                                  }
+                                  updateItemMobileWidth={
+                                    dashboard.updateItemMobileWidth
+                                  }
+                                  updateItemMobileHeight={
+                                    dashboard.updateItemMobileHeight
+                                  }
+                                  removeItem={dashboard.removeItem}
+                                  moveItemUp={dashboard.moveItemUp}
+                                  moveItemDown={dashboard.moveItemDown}
+                                  lastAddedId={dashboard.lastAddedId}
+                                  clearLastAdded={dashboard.clearLastAdded}
+                                />
+                                <FabClusterProvider>
+                                  <ComponentOverlay
                                     currentLayouts={dashboard.currentLayouts}
-                                    breakpoint={dashboard.breakpoint}
-                                    onLayoutChange={
-                                      dashboard.handleLayoutChange
-                                    }
-                                    onBreakpointChange={
-                                      dashboard.handleBreakpointChange
-                                    }
-                                    updateItemConfig={
-                                      dashboard.updateItemConfig
-                                    }
-                                    updateItemMappings={
-                                      dashboard.updateItemMappings
-                                    }
-                                    updateItemMobileWidth={
-                                      dashboard.updateItemMobileWidth
-                                    }
-                                    updateItemMobileHeight={
-                                      dashboard.updateItemMobileHeight
-                                    }
-                                    removeItem={dashboard.removeItem}
-                                    moveItemUp={dashboard.moveItemUp}
-                                    moveItemDown={dashboard.moveItemDown}
-                                    lastAddedId={dashboard.lastAddedId}
-                                    clearLastAdded={dashboard.clearLastAdded}
                                   />
-                                  <FabClusterProvider>
-                                    <ComponentOverlay
-                                      currentLayouts={dashboard.currentLayouts}
-                                    />
-                                    <FlightsFab />
-                                    <SerialFab />
-                                    <SerialPortRecoveryWatcher />
-                                    <StationLinkFab />
-                                    <SaveProfilesFab />
-                                    <LogsFab />
-                                    <FullscreenFab />
-                                    <SettingsFab bottom={444} />
-                                    <MissionProfilesFab
-                                      bottom={504}
-                                      currentItems={dashboard.items}
-                                      currentLayouts={dashboard.layouts}
-                                      onLoad={(p) =>
-                                        dashboard.replaceState(
-                                          p.items,
-                                          p.layouts,
-                                        )
-                                      }
-                                    />
-                                    <MainAlarmsFab />
-                                  </FabClusterProvider>
-                                  <ReplayBanner />
-                                  <BannerStack>
-                                    {/* BannerStack is row-reverse —
+                                  <FlightsFab />
+                                  <SerialFab />
+                                  <SerialPortRecoveryWatcher />
+                                  <StationLinkFab />
+                                  <LogsFab bottom={264} />
+                                  <FullscreenFab bottom={324} />
+                                  <SettingsFab bottom={384} />
+                                  <MissionProfilesFab
+                                    bottom={444}
+                                    currentItems={dashboard.items}
+                                    currentLayouts={dashboard.layouts}
+                                    onLoad={(p) =>
+                                      dashboard.replaceState(p.items, p.layouts)
+                                    }
+                                  />
+                                  <MainAlarmsFab />
+                                </FabClusterProvider>
+                                <ReplayBanner />
+                                <BannerStack>
+                                  {/* BannerStack is row-reverse —
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -264,29 +247,28 @@ export function MainScreen() {
                                         unscheduled warp) stack to its
                                         left as separate single-row
                                         pills. */}
-                                    <AlarmBanner />
-                                    <SafetyMarginPill />
-                                    <FiredAlarmPills />
-                                    <UnscheduledWarpPill />
-                                    <SignalLossIndicator />
-                                    <SustainedFailureBanner />
-                                    <SceneChangeBanner />
-                                    <FlightOutcomeBanner />
-                                    <SceneSwitchPrompt
-                                      onLoad={(items, layouts) =>
-                                        dashboard.replaceState(items, layouts)
-                                      }
-                                    />
-                                  </BannerStack>
-                                  <PushedDashboardOverlay />
-                                </Layout>
-                              </MainAlarmsLauncherScope>
-                            </OverlayProvider>
-                          </SerialDeviceProvider>
-                        </ScopedFogMaskCache>
-                      </PushHostProvider>
-                    </GoNoGoHostProvider>
-                  </SaveProfileProvider>
+                                  <AlarmBanner />
+                                  <SafetyMarginPill />
+                                  <FiredAlarmPills />
+                                  <UnscheduledWarpPill />
+                                  <SignalLossIndicator />
+                                  <SustainedFailureBanner />
+                                  <SceneChangeBanner />
+                                  <FlightOutcomeBanner />
+                                  <SceneSwitchPrompt
+                                    onLoad={(items, layouts) =>
+                                      dashboard.replaceState(items, layouts)
+                                    }
+                                  />
+                                </BannerStack>
+                                <PushedDashboardOverlay />
+                              </Layout>
+                            </MainAlarmsLauncherScope>
+                          </OverlayProvider>
+                        </SerialDeviceProvider>
+                      </FogMaskCacheProvider>
+                    </PushHostProvider>
+                  </GoNoGoHostProvider>
                 </MissionProfilesProvider>
               </CpuRegistryProvider>
             </ManeuverTriggerProvider>
@@ -349,31 +331,13 @@ function MainAlarmsFab() {
   const bindings = useMainAlarmsBindings();
   return (
     <AlarmsFab
-      bottom={564}
+      bottom={504}
       useSnapshot={bindings.useSnapshot}
       onAdd={bindings.onAdd}
       onUpdate={bindings.onUpdate}
       onDelete={bindings.onDelete}
       ModalComponent={AlarmsModal}
     />
-  );
-}
-
-// Thin adapter that reads the active profile from the save-profile context
-// and re-binds the fog cache to it. Lives here rather than in @gonogo/data
-// so the data package stays ignorant of save-profile concerns.
-function ScopedFogMaskCache({
-  store,
-  children,
-}: {
-  store: FogMaskStore;
-  children: ReactNode;
-}) {
-  const profile = useActiveProfile();
-  return (
-    <FogMaskCacheProvider store={store} profileId={profile.id}>
-      {children}
-    </FogMaskCacheProvider>
   );
 }
 

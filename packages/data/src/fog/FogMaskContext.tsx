@@ -7,27 +7,31 @@ import type { FogMaskStore } from "./FogMaskStore";
 const FogMaskCacheContext = createContext<FogMaskCache | null>(null);
 const FogMaskStoreContext = createContext<FogMaskStore | null>(null);
 
+/** Shared bucket id used everywhere fog masks are stored or fanned out
+ *  over peers. Save-profile scoping was removed; the storage layer still
+ *  has a slot for it because the IndexedDB key shape encodes it. */
+export const DEFAULT_PROFILE_ID = "default";
+
 /**
- * Binds a FogMaskCache to the active save profile. Re-creates the cache
- * when `profileId` changes, flushing and disposing the previous one so
- * pending writes aren't lost across switches.
+ * Constructs a FogMaskCache and exposes it (plus the underlying store) via
+ * context. The cache is disposed on unmount and flushed on beforeunload so
+ * pending writes aren't lost.
  *
- * The app supplies `profileId` (sourced from its SaveProfileService). Keeping
- * the dependency flowing in via prop means this package stays ignorant of
- * save-profile concerns.
+ * Internally the cache still namespaces every entry under a constant
+ * "default" profile id — the storage layer was originally designed to
+ * support multiple save profiles, but that concept has been retired and
+ * there's only ever one bucket now.
  */
 export function FogMaskCacheProvider({
   store,
-  profileId,
   children,
 }: {
   store: FogMaskStore;
-  profileId: string;
   children: ReactNode;
 }) {
   const cache = useMemo(
-    () => new FogMaskCache(store, profileId),
-    [store, profileId],
+    () => new FogMaskCache(store, DEFAULT_PROFILE_ID),
+    [store],
   );
 
   useEffect(() => {
