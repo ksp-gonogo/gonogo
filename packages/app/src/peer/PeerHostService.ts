@@ -1126,6 +1126,20 @@ export class PeerHostService {
     }
   }
 
+  /**
+   * Close every live DataConnection while keeping the Peer (and its
+   * broker registration) alive. Each station's PeerClientService sees
+   * a close event and runs its retry policy — if this host is still
+   * reachable under the same id, the reconnect succeeds and the
+   * station's banner clears. Used by the host-disconnect Playwright
+   * recovery test; harmless in production but not wired to any UI.
+   */
+  closeAllConnections(): void {
+    for (const conn of this.connections) {
+      conn.close();
+    }
+  }
+
   stop() {
     this.kosSessions.closeAll();
     this.flightChangeUnsub?.();
