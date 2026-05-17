@@ -652,8 +652,41 @@ export class KosComputeSession {
     ws.addEventListener("close", () => {
       this.onClose();
     });
-    ws.addEventListener("error", () => {
-      logger.warn(`[kos] websocket error on CPU=${this.init.cpu}`);
+    ws.addEventListener("error", (event) => {
+      // Browser WS error events are intentionally information-sparse (a
+      // security restriction — the spec hides handshake-failure causes from
+      // page script). Capture what we can: readyState, url, the session
+      // state machine slot, and any payload that did sneak through. Better
+      // to record nothing-useful than to record nothing at all — future
+      // Axiom queries can at least slice by readyState + state.
+      const readyStateName =
+        ws.readyState === WebSocket.CONNECTING
+          ? "CONNECTING"
+          : ws.readyState === WebSocket.OPEN
+            ? "OPEN"
+            : ws.readyState === WebSocket.CLOSING
+              ? "CLOSING"
+              : "CLOSED";
+      const detail =
+        event && typeof event === "object"
+          ? {
+              eventType: (event as Event).type ?? "error",
+              hasError: "error" in (event as Event),
+              errorMessage:
+                "error" in (event as Event) &&
+                (event as ErrorEvent).error instanceof Error
+                  ? (event as ErrorEvent).error.message
+                  : undefined,
+              eventMessage: (event as ErrorEvent).message,
+            }
+          : {};
+      logger.tag("kos").warn(`[kos] websocket error on CPU=${this.init.cpu}`, {
+        cpu: this.init.cpu,
+        state: this.state,
+        readyState: readyStateName,
+        url,
+        ...detail,
+      });
     });
   }
 
