@@ -165,8 +165,6 @@ function MapViewComponent({
   const lon = useDataValue("data", "v.long");
   const altSea = useDataValue("data", "v.altitude");
   const bodyName = useDataValue("data", "v.body");
-  const shipPitch = useDataValue("data", "n.pitch");
-  const shipHeading = useDataValue("data", "n.heading");
   const q = useDataValue("data", "v.dynamicPressure");
   const mach = useDataValue("data", "v.mach");
   const speed = useDataValue("data", "v.surfaceSpeed");
@@ -327,6 +325,7 @@ function MapViewComponent({
     img.src = body.texture;
   }, [body?.texture]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: biomeDisplay.version / heightDisplay.version bump on canvas-bytes-changed; the canvas reference is stable across mutations, so we depend on the version to trigger a redraw
   useEffect(() => {
     const canvas = baseRef.current;
     if (!canvas || !containerSize || !textureReady) return;

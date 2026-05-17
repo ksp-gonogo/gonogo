@@ -335,7 +335,7 @@ const MinimapRoot = styled.div`
 const MinimapCanvas = styled.canvas`
   width: ${MINIMAP_PX}px;
   height: ${MINIMAP_PX}px;
-  background: #0a0a0a;
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   image-rendering: pixelated;
