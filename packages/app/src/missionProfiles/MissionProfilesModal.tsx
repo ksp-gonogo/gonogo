@@ -4,6 +4,7 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
+  Switch,
 } from "@gonogo/ui";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
@@ -45,6 +46,7 @@ export function MissionProfilesModal({
   const profiles = useMissionProfiles();
   const [newName, setNewName] = useState("");
   const [newBindings, setNewBindings] = useState<BindableScene[]>([]);
+  const [newAutoSwitch, setNewAutoSwitch] = useState(false);
   const [pendingLoad, setPendingLoad] = useState<MissionProfile | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
     null,
@@ -55,9 +57,16 @@ export function MissionProfilesModal({
   const handleSaveCurrent = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    svc.save(trimmed, currentItems, currentLayouts, newBindings);
+    svc.save(
+      trimmed,
+      currentItems,
+      currentLayouts,
+      newBindings,
+      newBindings.length > 0 && newAutoSwitch,
+    );
     setNewName("");
     setNewBindings([]);
+    setNewAutoSwitch(false);
   };
 
   const toggleBindingFor = (profile: MissionProfile, scene: BindableScene) => {
@@ -65,7 +74,16 @@ export function MissionProfilesModal({
     const next = current.includes(scene)
       ? current.filter((s) => s !== scene)
       : [...current, scene];
-    svc.update(profile.id, { sceneBindings: next });
+    // When bindings clear out, auto-switch becomes meaningless — drop it.
+    const nextAutoSwitch = next.length === 0 ? false : profile.autoSwitch;
+    svc.update(profile.id, {
+      sceneBindings: next,
+      autoSwitch: nextAutoSwitch,
+    });
+  };
+
+  const toggleAutoSwitchFor = (profile: MissionProfile) => {
+    svc.update(profile.id, { autoSwitch: !profile.autoSwitch });
   };
 
   const handleLoad = (profile: MissionProfile) => {
@@ -204,11 +222,26 @@ export function MissionProfilesModal({
               />
             ))}
           </BindingsRow>
+          <AutoSwitchRow
+            $disabled={newBindings.length === 0}
+            title={
+              newBindings.length === 0
+                ? "Pick at least one scene to enable auto-switch"
+                : "Skip the prompt and load this profile immediately on a matching scene"
+            }
+          >
+            <Switch
+              checked={newBindings.length > 0 && newAutoSwitch}
+              onChange={(v) => setNewAutoSwitch(v)}
+              label="Switch automatically"
+            />
+          </AutoSwitchRow>
         </BindingsField>
         <Hint>
           Captures the current widget layout. Load it back later to swap the
-          whole dashboard at once. Tagged scenes show a load prompt next to the
-          dashboard FAB when KSP enters that scene.
+          whole dashboard at once. Tagged scenes show a load prompt at the
+          bottom of the screen when KSP enters that scene — or auto-load if
+          "Switch automatically" is on.
         </Hint>
       </Section>
 
@@ -255,6 +288,20 @@ export function MissionProfilesModal({
                     />
                   ))}
                 </BindingsRow>
+                <AutoSwitchRow
+                  $disabled={(p.sceneBindings?.length ?? 0) === 0}
+                  title={
+                    (p.sceneBindings?.length ?? 0) === 0
+                      ? "Tag at least one scene to enable auto-switch"
+                      : "Skip the prompt and load this profile immediately on a matching scene"
+                  }
+                >
+                  <Switch
+                    checked={Boolean(p.autoSwitch)}
+                    onChange={() => toggleAutoSwitchFor(p)}
+                    label="Switch automatically"
+                  />
+                </AutoSwitchRow>
                 {pendingLoad?.id === p.id && (
                   <Warning role="alert">
                     Loading will replace the current dashboard with{" "}
@@ -397,4 +444,15 @@ const BindingsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+`;
+
+const AutoSwitchRow = styled.div<{ $disabled: boolean }>`
+  display: flex;
+  align-items: center;
+  /* The Switch primitive provides its own visual state; when bindings
+     are empty we dim the whole row + intercept pointer events with
+     pointer-events:none so the toggle reads as inert without needing
+     a new disabled mode on Switch. */
+  opacity: ${({ $disabled }) => ($disabled ? 0.4 : 1)};
+  pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
 `;
