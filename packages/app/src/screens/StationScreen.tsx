@@ -55,6 +55,7 @@ import {
   MissionProfilesService,
   SceneSwitchPrompt,
 } from "../missionProfiles";
+import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
 import { KosPeerConnection } from "../peer/KosPeerConnection";
 import { PeerClientProvider } from "../peer/PeerClientContext";
@@ -514,6 +515,7 @@ export function StationScreen() {
                                       alarmClient.acknowledgeAlarm(id)
                                     }
                                   />
+                                  <HostDisconnectBanner client={client} />
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
