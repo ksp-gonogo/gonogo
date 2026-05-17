@@ -746,4 +746,16 @@ const StationNameChip = styled.div`
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;
   z-index: 800;
+  /*
+   * The chip's padding / background area used to intercept clicks on
+   * widgets beneath it (operator at LFV-1b test, 2026-05-17 session).
+   * Pass pointer events through the wrapper but keep the interactive
+   * children (rename button, input) clickable.
+   */
+  pointer-events: none;
+
+  button,
+  input {
+    pointer-events: auto;
+  }
 `;

@@ -281,6 +281,7 @@ function StrategiesComponent({
                   <CardTitle>{s.title}</CardTitle>
                   <CardDept>{s.departmentName}</CardDept>
                 </CardHeader>
+                {s.description && <Description>{s.description}</Description>}
                 <EffectList>
                   {parseEffectLines(s.effect).map((line) => (
                     <EffectLine key={line}>{line}</EffectLine>
@@ -450,7 +451,10 @@ function AvailableRow({
         </ExpandToggle>
         <CardDept>{s.departmentName}</CardDept>
       </CardHeader>
-      {expanded && s.description && <Description>{s.description}</Description>}
+      {/* Always show the short description so the operator can pick a
+          strategy without clicking expand; expand still reveals the full
+          effect breakdown. */}
+      {s.description && <Description>{s.description}</Description>}
       {expanded && (
         <EffectList>
           {parseEffectLines(s.effect).map((line) => (

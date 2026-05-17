@@ -139,6 +139,18 @@ function pickTWR(s: StageInfo, mode: DeltaVMode): number {
   }
 }
 
+/**
+ * Telemachus occasionally hands us a stage row where TWR / ΔV is missing
+ * (engine-less stage, decoupler-only, post-staging frame where the engine
+ * has been ejected). The fix at 21:08 BST on 2026-05-17 was the absence
+ * of this guard — `twr.toFixed` crashed the whole widget when twr was
+ * undefined for one row.
+ */
+function fmtFixed(value: unknown, digits: number): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return value.toFixed(digits);
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function FuelStatusComponent({
@@ -175,7 +187,14 @@ function FuelStatusComponent({
   // count, no hardcoded cap, no hook-per-stage. Entries arrive high → low
   // (stage 3 first, stage 0 last) matching the stack-top-down render order.
   const stages = useDataValue("data", "dv.stages") ?? [];
-  const maxStageDv = Math.max(...stages.map((s) => pickDeltaV(s, mode)), 0.001);
+  // Filter to finite values before Math.max — a single NaN/undefined entry
+  // would propagate NaN through every BarFill width and render a row of
+  // invisible bars.
+  const finiteDvs = stages
+    .map((s) => pickDeltaV(s, mode))
+    .filter((v): v is number => Number.isFinite(v));
+  const maxStageDv =
+    finiteDvs.length > 0 ? Math.max(...finiteDvs, 0.001) : 0.001;
 
   const totalDv =
     mode === "vac" ? totalDVVac : mode === "asl" ? totalDVASL : totalDVActual;
@@ -202,7 +221,7 @@ function FuelStatusComponent({
 
       {showHeroDv && (
         <BigReadout $tone="alert">
-          {`${(totalDv as number).toFixed(0)} m/s`}
+          {`${fmtFixed(totalDv, 0)} m/s`}
           <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
         </BigReadout>
       )}
@@ -220,7 +239,7 @@ function FuelStatusComponent({
           <TotalsBlock>
             <TotalsLabel>Total ΔV</TotalsLabel>
             <TotalsValue>
-              {totalDv !== undefined ? `${totalDv.toFixed(0)} m/s` : "—"}
+              {totalDv !== undefined ? `${fmtFixed(totalDv, 0)} m/s` : "—"}
               <TotalsModeTag>{DELTA_V_MODE_SHORT[mode]}</TotalsModeTag>
             </TotalsValue>
           </TotalsBlock>
@@ -279,7 +298,7 @@ function FuelStatusComponent({
                 <Bar>
                   <BarFill
                     style={{
-                      width: `${clampPct((dv / maxStageDv) * 100)}%`,
+                      width: `${clampPct(((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100)}%`,
                       background: active
                         ? "var(--color-status-warning-bg)"
                         : "var(--color-text-faint)",
@@ -287,9 +306,9 @@ function FuelStatusComponent({
                   />
                 </Bar>
                 <StageReadout>
-                  <StageDv>{dv.toFixed(0)} m/s</StageDv>
+                  <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
                   <StageMeta>
-                    {formatDuration(s.burnTime)} · TWR {twr.toFixed(2)}
+                    {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
                   </StageMeta>
                 </StageReadout>
               </StageRow>

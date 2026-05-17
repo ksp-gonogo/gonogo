@@ -132,8 +132,19 @@
   }
 }
 
+/*
+ * Set the document background on html (Safari/iOS overscroll uses the
+ * root element's color, not body's). Without this, pulling past the
+ * bottom of the dashboard exposes the browser's default white. Picked
+ * `--color-surface-app` so the bounce-zone matches the panel grid.
+ */
+html {
+  background-color: var(--color-surface-app);
+}
+
 body {
   margin: 0;
+  background-color: var(--color-surface-app);
   /*
    * Without this, every element whose styled-components rule omits a
    * font-family inherits the browser default — Times New Roman on most
