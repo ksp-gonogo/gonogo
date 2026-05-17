@@ -1,7 +1,12 @@
 export const SCREENSHOT_MAX_EDGE_PX = 1600;
 export const SCREENSHOT_JPEG_QUALITY = 0.8;
-export const SCREENSHOT_WARN_BYTES = 700 * 1024;
-export const SCREENSHOT_REFUSE_BYTES = 1.5 * 1024 * 1024;
+// Axiom's per-event payload limit is ~1 MB. A JPEG encoded as base64
+// inflates ~1.33×, so a 500 KB image becomes a ~670 KB log entry and
+// fits comfortably under the cap. The user's 2026-05-17 21:08 BST
+// bug-report attempt stalled forever because a larger screenshot was
+// queued for ingest, rejected, and silently retried by the SDK.
+export const SCREENSHOT_WARN_BYTES = 256 * 1024;
+export const SCREENSHOT_REFUSE_BYTES = 500 * 1024;
 
 export interface EncodedScreenshot {
   mimeType: "image/jpeg";
