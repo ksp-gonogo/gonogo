@@ -32,9 +32,9 @@ test.describe("widget DOM mirror — DataSourceStatus", () => {
     });
 
     for (const page of [pair.main, pair.station]) {
-      await expect(
-        page.getByText("Data Sources", { exact: true }),
-      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("Data Sources", { exact: true })).toBeVisible(
+        { timeout: 15_000 },
+      );
 
       // Scope to the row that owns the `data` source name so we don't
       // accidentally match another source's status label.
@@ -42,9 +42,9 @@ test.describe("widget DOM mirror — DataSourceStatus", () => {
         .locator("li")
         .filter({ hasText: "Buffered Telemachus Reborn" });
       await expect(dataRow).toBeVisible({ timeout: 30_000 });
-      await expect(
-        dataRow.getByText("connected", { exact: true }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expect(dataRow.getByText("connected", { exact: true })).toBeVisible(
+        { timeout: 30_000 },
+      );
     }
 
     await teardownPair(pair);

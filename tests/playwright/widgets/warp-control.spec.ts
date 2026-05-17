@@ -22,9 +22,7 @@ import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror — WarpControl", () => {
-  test("rate readout mirrors across host and station", async ({
-    browser,
-  }) => {
+  test("rate readout mirrors across host and station", async ({ browser }) => {
     const pair = await bootstrapPair(browser, "warp-control", {
       waitForMain: async (page) => {
         await expect(page.getByText("WARP", { exact: true })).toBeVisible({

@@ -40,9 +40,11 @@ test.describe("widget DOM mirror — ThermalStatus", () => {
       await expect(page.getByText("THERMAL", { exact: true })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByText("Hottest part", { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(page.getByText("Hottest part", { exact: true })).toBeVisible(
+        {
+          timeout: 15_000,
+        },
+      );
       await expect(
         page.getByText("Mk1 Command Pod", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });

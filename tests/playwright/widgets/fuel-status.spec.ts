@@ -26,16 +26,16 @@ test.describe("widget DOM mirror — FuelStatus", () => {
     const pair = await bootstrapPair(browser, "fuel-status", {
       widget: { size: { w: 8, h: 14 } },
       waitForMain: async (page) => {
-        await expect(
-          page.getByText("FUEL · ΔV", { exact: true }),
-        ).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByText("FUEL · ΔV", { exact: true })).toBeVisible({
+          timeout: 30_000,
+        });
       },
     });
 
     for (const page of [pair.main, pair.station]) {
-      await expect(
-        page.getByText("FUEL · ΔV", { exact: true }),
-      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("FUEL · ΔV", { exact: true })).toBeVisible({
+        timeout: 15_000,
+      });
     }
 
     await teardownPair(pair);

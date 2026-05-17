@@ -8,8 +8,8 @@ import type {
 import { KosScriptError, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
-import { peerBrokerOptions } from "./peerOptions";
 import { MessageDispatcher } from "./MessageDispatcher";
+import { peerBrokerOptions } from "./peerOptions";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";

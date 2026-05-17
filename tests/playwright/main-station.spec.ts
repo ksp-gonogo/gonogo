@@ -9,7 +9,7 @@
  * mirrors widget values) layer on top of this once we have a way to
  * inject a test data source per page — TODO in a follow-up.
  */
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const MAIN_URL = "/";
 const STATION_URL = "/station";
@@ -57,7 +57,9 @@ test.describe("main + station co-resident", () => {
     // Main eventually opens its PeerJS connection — the dashboard renders
     // first (so the assertion isn't gated on widgets that might take time
     // to mount), then the StationLink FAB is reachable.
-    await expect(main.getByRole("button", { name: /add component/i })).toBeVisible({
+    await expect(
+      main.getByRole("button", { name: /add component/i }),
+    ).toBeVisible({
       timeout: 30_000,
     });
 
