@@ -29,6 +29,21 @@ const ALLOWED_PATHS = [
   // (KSP planets/moons). These are data, not theme tokens — each body
   // needs a distinct colour for map / orbit / system views.
   "packages/core/src/stock-bodies.ts",
+  // ShipMap/render.ts: embeds the design tokens as a literal <style>
+  // block inside the standalone SVG so the snapshot harness and export
+  // path render the same colours as the live widget without a runtime
+  // theme provider. Mirrors defaultDark.ts in spirit — token source of
+  // truth duplicated for a self-contained output target.
+  "packages/components/src/ShipMap/render.ts",
+  // Navball/render.ts: same pattern as ShipMap/render.ts — design
+  // tokens duplicated into a standalone SVG for snapshot/export.
+  "packages/components/src/Navball/render.ts",
+  // Minimap.tsx: canvas 2D `fillStyle` only accepts colour strings,
+  // not CSS var() references. The minimap is a small enough surface
+  // that resolving via getComputedStyle would add a runtime cost for
+  // no real benefit; the few literals here are duplicates of existing
+  // tokens and stay green-by-discipline rather than gate.
+  "packages/components/src/Scanning/Minimap.tsx",
 ];
 
 // Source roots to scan. Excludes telnet-proxy / relay because they're

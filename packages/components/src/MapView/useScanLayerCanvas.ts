@@ -6,7 +6,7 @@ import {
   useScanBiomeGrid,
   useScanHeightGrid,
 } from "@gonogo/data";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const BIOME_CANVAS_W = 2048;
 const BIOME_CANVAS_H = 1024;
