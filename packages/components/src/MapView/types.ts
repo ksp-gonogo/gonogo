@@ -1,5 +1,20 @@
 export type MapBaseLayer = "altimetry" | "biome";
 
+/**
+ * Per-scan-type fog-layer visibility. Operators tick which scan types
+ * contribute to the fog reveal — useful when running a single-type
+ * survey (e.g. "only show AltimetryHiRes coverage so I can see how much
+ * detail-mapping is left"). When undefined for any key, that layer
+ * defaults to on.
+ */
+export interface FogLayerToggles {
+  altimetryLoRes?: boolean;
+  altimetryHiRes?: boolean;
+  biome?: boolean;
+  resourceLoRes?: boolean;
+  resourceHiRes?: boolean;
+}
+
 export interface MapViewConfig {
   /** Number of trajectory history points to keep. Default: 2000. */
   trajectoryLength?: number;
@@ -30,4 +45,13 @@ export interface MapViewConfig {
    * shown brighter than discovered-without-name.
    */
   showAnomalies?: boolean;
+  /**
+   * Per-scan-type fog-layer visibility. Each toggle controls whether
+   * that type's coverage contributes to the fog reveal. Unset = on.
+   *
+   * The display canvas composites enabled layers with HiRes-over-LoRes
+   * precedence within each channel (AltHiRes-covered tiles reveal
+   * brighter than AltLoRes-only tiles, same for ResourceHiRes vs LoRes).
+   */
+  fogLayers?: FogLayerToggles;
 }

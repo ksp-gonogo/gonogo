@@ -4,6 +4,7 @@ import {
   KosProxyContext,
   registerDataSource,
   registerStreamSource,
+  type SCANType,
   ScreenProvider,
 } from "@gonogo/core";
 import {
@@ -224,14 +225,25 @@ export function StationScreen() {
       client.onFogSnapshot((msg) => {
         const stationProfileId = saveProfileService.getActiveId();
         logger.info(
-          `[fog-sync] snapshot received — bodies=${msg.masks.length} hostProfileId=${msg.profileId} stationProfileId=${stationProfileId}`,
+          `[fog-sync] snapshot received — masks=${msg.masks.length} hostProfileId=${msg.profileId} stationProfileId=${stationProfileId}`,
         );
         for (const m of msg.masks) {
+          // Per-type mask routing: each mask carries its scanType (SCANsat's
+          // SCANtype enum bit). The station persists each into its own
+          // per-type slot so the local MapView composes the same per-channel
+          // precedence the host renders.
           fogMaskStore
-            .save(stationProfileId, m.bodyId, m.data, m.width, m.height)
+            .save(
+              stationProfileId,
+              m.bodyId,
+              m.scanType as SCANType,
+              m.data,
+              m.width,
+              m.height,
+            )
             .catch((err) => {
               logger.error(
-                `[fog-sync] failed to persist mask — body=${m.bodyId}`,
+                `[fog-sync] failed to persist mask — body=${m.bodyId} scanType=${m.scanType}`,
                 err instanceof Error ? err : undefined,
               );
             });

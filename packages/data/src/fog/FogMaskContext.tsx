@@ -1,3 +1,4 @@
+import type { SCANType } from "@gonogo/core";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { FogMaskCache } from "./FogMaskCache";
@@ -90,13 +91,18 @@ export function useFogMaskCache(): FogMaskCache | null {
 }
 
 /**
- * Acquire the mask for a single body and re-render on mutation. Returns
- * the mask plus a monotonically-increasing version counter so effects that
- * depend on "mask changed" can key off it without comparing bytes.
+ * Acquire the mask for a single (body, scanType) and re-render on mutation.
+ * Returns the mask plus a monotonically-increasing version counter so
+ * effects that depend on "mask changed" can key off it without comparing
+ * bytes.
  *
- * When there is no provider, or no body id, `mask` is undefined.
+ * When there is no provider, no body id, or no scan type, `mask` is
+ * undefined.
  */
-export function useBodyFogMask(bodyId: string | undefined): {
+export function useBodyFogMask(
+  bodyId: string | undefined,
+  scanType: SCANType | undefined,
+): {
   mask: import("./FogMaskCache").BodyMask | undefined;
   version: number;
 } {
@@ -105,22 +111,25 @@ export function useBodyFogMask(bodyId: string | undefined): {
     mask: import("./FogMaskCache").BodyMask | undefined;
     version: number;
   }>(() => ({
-    mask: cache && bodyId ? cache.get(bodyId) : undefined,
+    mask:
+      cache && bodyId && scanType !== undefined
+        ? cache.get(bodyId, scanType)
+        : undefined,
     version: 0,
   }));
 
   useEffect(() => {
-    if (!cache || !bodyId) {
+    if (!cache || !bodyId || scanType === undefined) {
       setState({ mask: undefined, version: 0 });
       return;
     }
     let cancelled = false;
-    const initial = cache.get(bodyId);
+    const initial = cache.get(bodyId, scanType);
     setState({ mask: initial, version: 0 });
-    const unsub = cache.onChange(bodyId, (m) =>
+    const unsub = cache.onChange(bodyId, scanType, (m) =>
       setState((prev) => ({ mask: m, version: prev.version + 1 })),
     );
-    cache.acquire(bodyId).then((m) => {
+    cache.acquire(bodyId, scanType).then((m) => {
       if (cancelled) return;
       setState((prev) => ({ mask: m, version: prev.version + 1 }));
     });
@@ -128,7 +137,7 @@ export function useBodyFogMask(bodyId: string | undefined): {
       cancelled = true;
       unsub();
     };
-  }, [cache, bodyId]);
+  }, [cache, bodyId, scanType]);
 
   return state;
 }

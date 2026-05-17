@@ -1,19 +1,23 @@
 /**
  * In-memory cache of fog-of-war masks, backed by `FogMaskStore`.
  *
- * Masks are allocated lazily — a body only consumes memory once the ship has
- * actually visited it. First-view loads from IndexedDB are async; callers
- * subscribe via `onChange` and redraw when the mask arrives.
+ * Masks are allocated lazily — a (body, scanType) pair only consumes memory
+ * once it actually gets data. First-view loads from IndexedDB are async;
+ * callers subscribe via `onChange` and redraw when the mask arrives.
  *
  * Mutations are cheap (direct byte writes on the caller's side); persistence
  * is debounced so rapid consecutive paints coalesce into a single IDB write.
+ *
+ * One mask per (bodyId, scanType). The MapView reads each scan type's mask
+ * independently and composes them with precedence rules at paint time.
  */
 
-import { safeRandomUuid } from "@gonogo/core";
+import { type SCANType, safeRandomUuid } from "@gonogo/core";
 import type { FogMaskStore } from "./FogMaskStore";
 
 export interface BodyMask {
   readonly bodyId: string;
+  readonly scanType: SCANType;
   readonly width: number;
   readonly height: number;
   /** Alpha bytes, row-major. Mutable — caller writes directly. */
@@ -38,6 +42,10 @@ interface CacheOptions {
 export const DEFAULT_MASK_WIDTH = 2048;
 export const DEFAULT_MASK_HEIGHT = 1024;
 const DEFAULT_DEBOUNCE_MS = 10_000;
+
+function makeCacheKey(bodyId: string, scanType: SCANType): string {
+  return `${bodyId}:${scanType}`;
+}
 
 export class FogMaskCache {
   private entries = new Map<string, CacheEntry>();
@@ -69,57 +77,63 @@ export class FogMaskCache {
     // bypassing this cache's own mutate/flush path). Without this hook
     // the in-memory mask stays empty after the snapshot lands and
     // every UI subscriber misses it until a refresh.
-    this.storeUnsub = store.onChange((pid, bodyId, origin) => {
+    this.storeUnsub = store.onChange((pid, bodyId, scanType, origin) => {
       if (origin === this.originTag) return;
       if (pid !== this.profileId) return;
-      void this.reloadFromStore(bodyId);
+      void this.reloadFromStore(bodyId, scanType);
     });
   }
 
   /**
-   * Load a mask for the given body. First call per body hits IDB; subsequent
-   * calls return the cached instance synchronously (via a resolved promise).
-   * Concurrent first-calls dedupe via an in-flight promise map.
+   * Load a mask for the given (body, scanType) pair. First call per pair
+   * hits IDB; subsequent calls return the cached instance synchronously
+   * (via a resolved promise). Concurrent first-calls dedupe via an
+   * in-flight promise map.
    *
    * Note: a zeroed stub entry may already exist if `onChange` was called
    * first (e.g. from `useBodyFogMask` subscribing before kicking off the
    * async load). We must still hit IDB in that case — check `loading`, not
    * just presence.
    */
-  async acquire(bodyId: string): Promise<BodyMask> {
-    const existing = this.entries.get(bodyId);
+  async acquire(bodyId: string, scanType: SCANType): Promise<BodyMask> {
+    const key = makeCacheKey(bodyId, scanType);
+    const existing = this.entries.get(key);
     if (existing && !existing.loading) return existing.mask;
-    const pending = this.inflight.get(bodyId);
+    const pending = this.inflight.get(key);
     if (pending) return pending;
 
-    const load = this.loadOrAllocate(bodyId);
-    this.inflight.set(bodyId, load);
+    const load = this.loadOrAllocate(bodyId, scanType);
+    this.inflight.set(key, load);
     try {
       return await load;
     } finally {
-      this.inflight.delete(bodyId);
+      this.inflight.delete(key);
     }
   }
 
   /** Synchronous accessor — returns undefined if not yet acquired. */
-  get(bodyId: string): BodyMask | undefined {
-    return this.entries.get(bodyId)?.mask;
+  get(bodyId: string, scanType: SCANType): BodyMask | undefined {
+    return this.entries.get(makeCacheKey(bodyId, scanType))?.mask;
   }
 
   /**
-   * Mark the given body's mask as dirty and notify subscribers. Also schedules
-   * a debounced flush.
+   * Mark the (body, scanType) mask as dirty and notify subscribers. Also
+   * schedules a debounced flush.
    */
-  markDirty(bodyId: string): void {
-    const entry = this.entries.get(bodyId);
+  markDirty(bodyId: string, scanType: SCANType): void {
+    const entry = this.entries.get(makeCacheKey(bodyId, scanType));
     if (!entry) return;
     entry.dirty = true;
     for (const listener of entry.listeners) listener(entry.mask);
     this.scheduleFlush();
   }
 
-  onChange(bodyId: string, listener: (mask: BodyMask) => void): () => void {
-    const entry = this.ensureEntryShell(bodyId);
+  onChange(
+    bodyId: string,
+    scanType: SCANType,
+    listener: (mask: BodyMask) => void,
+  ): () => void {
+    const entry = this.ensureEntryShell(bodyId, scanType);
     entry.listeners.add(listener);
     return () => entry.listeners.delete(listener);
   }
@@ -131,13 +145,14 @@ export class FogMaskCache {
       this.flushTimer = null;
     }
     const writes: Array<Promise<void>> = [];
-    for (const [bodyId, entry] of this.entries) {
+    for (const entry of this.entries.values()) {
       if (!entry.dirty) continue;
       entry.dirty = false;
       writes.push(
         this.store.save(
           this.profileId,
-          bodyId,
+          entry.mask.bodyId,
+          entry.mask.scanType,
           entry.mask.data,
           entry.mask.width,
           entry.mask.height,
@@ -149,14 +164,14 @@ export class FogMaskCache {
   }
 
   /** Zero the mask in memory and remove it from IDB. */
-  async clear(bodyId: string): Promise<void> {
-    const entry = this.entries.get(bodyId);
+  async clear(bodyId: string, scanType: SCANType): Promise<void> {
+    const entry = this.entries.get(makeCacheKey(bodyId, scanType));
     if (entry) {
       entry.mask.data.fill(0);
       entry.dirty = false;
       for (const listener of entry.listeners) listener(entry.mask);
     }
-    await this.store.clear(this.profileId, bodyId, this.originTag);
+    await this.store.clear(this.profileId, bodyId, scanType, this.originTag);
   }
 
   async dispose(): Promise<void> {
@@ -168,22 +183,25 @@ export class FogMaskCache {
   }
 
   /**
-   * Re-read a body's mask from the store and notify subscribers. Called
-   * automatically on `store.onChange` for external writes (snapshots,
+   * Re-read a (body, scanType) mask from the store and notify subscribers.
+   * Called automatically on `store.onChange` for external writes (snapshots,
    * direct saves from peer protocols) — not part of the public API.
    *
    * Skips when no entry exists yet (no UI subscribers, so nothing to
    * notify) and when the entry's flush is mid-flight (the cache is
    * about to write the same data back, so a re-load would race).
    */
-  private async reloadFromStore(bodyId: string): Promise<void> {
-    const entry = this.entries.get(bodyId);
+  private async reloadFromStore(
+    bodyId: string,
+    scanType: SCANType,
+  ): Promise<void> {
+    const entry = this.entries.get(makeCacheKey(bodyId, scanType));
     if (!entry) return;
     // Avoid clobbering local mutations that haven't hit the store yet.
     // The local writer already owns the canonical bytes; an external
     // write is presumed older.
     if (entry.dirty) return;
-    const stored = await this.store.load(this.profileId, bodyId);
+    const stored = await this.store.load(this.profileId, bodyId, scanType);
     if (!stored) return;
     if (
       stored.width === entry.mask.width &&
@@ -198,6 +216,7 @@ export class FogMaskCache {
       // mask object. Subscribers re-key off the new reference.
       entry.mask = {
         bodyId,
+        scanType,
         width: stored.width,
         height: stored.height,
         data: new Uint8Array(stored.data),
@@ -215,12 +234,14 @@ export class FogMaskCache {
    * Ensure an entry shell exists so subscribers can attach before the async
    * load finishes. The shell is replaced in place by `loadOrAllocate`.
    */
-  private ensureEntryShell(bodyId: string): CacheEntry {
-    let entry = this.entries.get(bodyId);
+  private ensureEntryShell(bodyId: string, scanType: SCANType): CacheEntry {
+    const key = makeCacheKey(bodyId, scanType);
+    let entry = this.entries.get(key);
     if (entry) return entry;
     entry = {
       mask: {
         bodyId,
+        scanType,
         width: this.width,
         height: this.height,
         data: new Uint8Array(this.width * this.height),
@@ -229,13 +250,16 @@ export class FogMaskCache {
       loading: true,
       listeners: new Set(),
     };
-    this.entries.set(bodyId, entry);
+    this.entries.set(key, entry);
     return entry;
   }
 
-  private async loadOrAllocate(bodyId: string): Promise<BodyMask> {
-    const entry = this.ensureEntryShell(bodyId);
-    const stored = await this.store.load(this.profileId, bodyId);
+  private async loadOrAllocate(
+    bodyId: string,
+    scanType: SCANType,
+  ): Promise<BodyMask> {
+    const entry = this.ensureEntryShell(bodyId, scanType);
+    const stored = await this.store.load(this.profileId, bodyId, scanType);
     if (
       stored &&
       stored.width === this.width &&

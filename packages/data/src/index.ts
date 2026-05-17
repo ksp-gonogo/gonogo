@@ -25,7 +25,7 @@ export {
   SCAN_BITMAP_HEIGHT,
   SCAN_BITMAP_WIDTH,
 } from "./fog/scanCoverageSync";
-export { useScanSatFogSync } from "./fog/useScanSatFogSync";
+export { FOG_SCAN_TYPES, useScanSatFogSync } from "./fog/useScanSatFogSync";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";

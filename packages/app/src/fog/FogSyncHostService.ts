@@ -42,18 +42,30 @@ export class FogSyncHostService {
     try {
       const masks = await this.deps.fogStore.loadAllForProfile(profileId);
       if (masks.length === 0) return;
+      // Per-type rework: keys are now `${profileId}:${bodyId}:${scanType}`.
+      // Slice off the profile prefix, then split on the last `:` to peel
+      // off the scanType. The mask record also carries scanType directly,
+      // which we forward to the station so it can route to the right
+      // per-type slot.
       this.deps.peerHost.sendToPeer(peerId, {
         type: "fog-snapshot",
         profileId,
-        masks: masks.map((m) => ({
-          bodyId: m.key.slice(profileId.length + 1),
-          width: m.width,
-          height: m.height,
-          data: m.data,
-        })),
+        masks: masks.map((m) => {
+          const afterProfile = m.key.slice(profileId.length + 1);
+          const lastColon = afterProfile.lastIndexOf(":");
+          const bodyId =
+            lastColon >= 0 ? afterProfile.slice(0, lastColon) : afterProfile;
+          return {
+            bodyId,
+            scanType: m.scanType,
+            width: m.width,
+            height: m.height,
+            data: m.data,
+          };
+        }),
       });
       logger.info(
-        `[fog-sync] snapshot sent — peer=${peerId} bodies=${masks.length}`,
+        `[fog-sync] snapshot sent — peer=${peerId} masks=${masks.length}`,
       );
     } catch (err) {
       logger.error(
