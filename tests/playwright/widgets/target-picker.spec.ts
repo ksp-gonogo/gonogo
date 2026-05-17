@@ -36,15 +36,15 @@ test.describe("widget DOM mirror — TargetPicker", () => {
       await expect(
         page.getByText("TARGET PICKER", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        page.getByRole("tab", { name: "Bodies" }),
-      ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        page.getByRole("tab", { name: "Vessels" }),
-      ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        page.getByRole("tab", { name: "Current" }),
-      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole("tab", { name: "Bodies" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByRole("tab", { name: "Vessels" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByRole("tab", { name: "Current" })).toBeVisible({
+        timeout: 15_000,
+      });
       await expect(
         page.getByLabel(
           "Current target: No Target Selected.. Open Current tab.",

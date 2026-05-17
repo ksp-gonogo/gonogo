@@ -16,7 +16,7 @@
  * two real devices. The pages still find each other on the local
  * PeerJS broker the moment the host's peer id is propagated.
  */
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 
 const MAIN_URL = "/";
@@ -85,7 +85,11 @@ async function waitForValue(
         lookup(key).then((value) => {
           clearTimeout(timer);
           if (shape === "number") {
-            resolve(typeof value === "number" && Number.isFinite(value) ? value : null);
+            resolve(
+              typeof value === "number" && Number.isFinite(value)
+                ? value
+                : null,
+            );
           } else {
             resolve(typeof value === shape ? value : null);
           }

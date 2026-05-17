@@ -7,11 +7,11 @@ import type {
 import { isScriptable, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
-import { peerBrokerOptions } from "./peerOptions";
 import { BUILD_TIME, VERSION } from "../version";
 import { fetchHostIceServers } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
+import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
 
 const PEER_ID_KEY = "gonogo-host-peer-id";

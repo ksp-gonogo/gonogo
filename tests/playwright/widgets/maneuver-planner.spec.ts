@@ -35,9 +35,9 @@ test.describe("widget DOM mirror — ManeuverPlanner", () => {
       await expect(
         page.getByText("Planned nodes", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        page.getByText("New maneuver", { exact: true }),
-      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("New maneuver", { exact: true })).toBeVisible(
+        { timeout: 15_000 },
+      );
     }
 
     await teardownPair(pair);

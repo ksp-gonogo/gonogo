@@ -14,7 +14,7 @@
  * station mutates via NotesClientService which sends action messages
  * the host applies and re-broadcasts.
  */
-import { type BrowserContext, type Page, expect, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 
 const MAIN_URL = "/";
@@ -52,7 +52,11 @@ async function seedContext(
 ): Promise<void> {
   const dashboard = JSON.stringify(dashboardWithNotes());
   await context.addInitScript(
-    ({ teleCfg, dashboardKey, dashboard }: {
+    ({
+      teleCfg,
+      dashboardKey,
+      dashboard,
+    }: {
       teleCfg: string;
       dashboardKey: string;
       dashboard: string;

@@ -16,9 +16,7 @@ import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror — ActionGroup", () => {
-  test("SAS OFF state mirrors across host and station", async ({
-    browser,
-  }) => {
+  test("SAS OFF state mirrors across host and station", async ({ browser }) => {
     const pair = await bootstrapPair(browser, "action-group", {
       widget: { config: { actionGroupId: "SAS" } },
       waitForMain: async (page) => {

@@ -17,7 +17,12 @@
  * Don't add widget-specific logic here — keep this generic so a new
  * widget test is "import bootstrapPair; read DOM on both sides; assert".
  */
-import { type Browser, type BrowserContext, type Page, expect } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContext,
+  expect,
+  type Page,
+} from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 
 const MAIN_URL = "/";
@@ -52,7 +57,11 @@ export interface DashboardLayout {
  */
 export function dashboardWithWidget(
   componentId: string,
-  opts: { i?: string; size?: { w: number; h: number }; config?: Record<string, unknown> } = {},
+  opts: {
+    i?: string;
+    size?: { w: number; h: number };
+    config?: Record<string, unknown>;
+  } = {},
 ): { items: DashboardItem[]; layouts: Record<string, DashboardLayout[]> } {
   const i = opts.i ?? `widget-${componentId}`;
   const { w, h } = opts.size ?? { w: 8, h: 6 };
@@ -60,7 +69,9 @@ export function dashboardWithWidget(
     { i, x: 0, y: 0, w: Math.min(w, cw), h, moved: false, static: false },
   ];
   return {
-    items: [{ i, componentId, ...(opts.config ? { config: opts.config } : {}) }],
+    items: [
+      { i, componentId, ...(opts.config ? { config: opts.config } : {}) },
+    ],
     layouts: {
       lg: layoutAt(12),
       md: layoutAt(10),
@@ -78,7 +89,11 @@ export async function seedContext(
 ): Promise<void> {
   const dashboardJson = JSON.stringify(dashboard);
   await context.addInitScript(
-    ({ teleCfg, dashboardKey, dashboard }: {
+    ({
+      teleCfg,
+      dashboardKey,
+      dashboard,
+    }: {
       teleCfg: string;
       dashboardKey: string;
       dashboard: string;
@@ -157,7 +172,11 @@ export async function bootstrapPair(
   opts: {
     waitForMain: (page: Page) => Promise<void>;
     waitForStation?: (page: Page) => Promise<void>;
-    widget?: { i?: string; size?: { w: number; h: number }; config?: Record<string, unknown> };
+    widget?: {
+      i?: string;
+      size?: { w: number; h: number };
+      config?: Record<string, unknown>;
+    };
   },
 ): Promise<BootstrappedPair> {
   const dashboard = dashboardWithWidget(componentId, opts.widget);
@@ -205,7 +224,12 @@ export async function readPanelLabelValue(
   opts: { panelTitle: string; label: string; valuePattern: RegExp },
 ): Promise<string> {
   const handle = await page.waitForFunction(
-    ({ panelTitle, label, valuePatternSource, valuePatternFlags }: {
+    ({
+      panelTitle,
+      label,
+      valuePatternSource,
+      valuePatternFlags,
+    }: {
       panelTitle: string;
       label: string;
       valuePatternSource: string;
