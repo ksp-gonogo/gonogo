@@ -252,12 +252,6 @@ export function MainScreen() {
                                         )
                                       }
                                     />
-                                    <SceneSwitchPrompt
-                                      bottom={504}
-                                      onLoad={(items, layouts) =>
-                                        dashboard.replaceState(items, layouts)
-                                      }
-                                    />
                                     <MainAlarmsFab />
                                   </FabClusterProvider>
                                   <ReplayBanner />
@@ -278,6 +272,11 @@ export function MainScreen() {
                                     <SustainedFailureBanner />
                                     <SceneChangeBanner />
                                     <FlightOutcomeBanner />
+                                    <SceneSwitchPrompt
+                                      onLoad={(items, layouts) =>
+                                        dashboard.replaceState(items, layouts)
+                                      }
+                                    />
                                   </BannerStack>
                                   <PushedDashboardOverlay />
                                 </Layout>

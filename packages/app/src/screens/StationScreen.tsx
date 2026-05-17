@@ -518,12 +518,6 @@ export function StationScreen() {
                                         )
                                       }
                                     />
-                                    <SceneSwitchPrompt
-                                      bottom={504}
-                                      onLoad={(items, layouts) =>
-                                        dashboard.replaceState(items, layouts)
-                                      }
-                                    />
                                     <AlarmsFab
                                       bottom={564}
                                       useSnapshot={useStationAlarmSnapshot}
@@ -553,6 +547,11 @@ export function StationScreen() {
                                     <SustainedFailureBanner />
                                     <HostVersionBanner client={client} />
                                     <FlightOutcomeBanner />
+                                    <SceneSwitchPrompt
+                                      onLoad={(items, layouts) =>
+                                        dashboard.replaceState(items, layouts)
+                                      }
+                                    />
                                   </BannerStack>
                                 </Layout>
                               </AlarmsLauncherBridge>

@@ -1,9 +1,13 @@
 import { useEffect } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 interface FabPromptProps {
-  /** Distance from the bottom of the viewport in px. Use to align with FAB stack. */
-  bottom: number;
+  /**
+   * Distance from the bottom of the viewport in px, when the prompt is
+   * rendered standalone. Omit to render in-flow (e.g. as a child of
+   * BannerStack) so the parent owns positioning.
+   */
+  bottom?: number;
   /** Main label — what the action will do. */
   label: string;
   /** Tap-target action. */
@@ -26,9 +30,11 @@ interface FabPromptProps {
  * with a stuck UI element. Uses role="status" + aria-live so screen
  * readers pick it up without interrupting urgent alerts.
  *
- * Positioning is fixed bottom-right, offset enough to clear a 40px
- * (or 48px coarse-pointer) FAB at the same `bottom`. The caller picks
- * the bottom value to align with whichever FAB they want to anchor to.
+ * Positioning is fixed bottom-right when `bottom` is supplied, offset
+ * enough to clear a 40px (or 48px coarse-pointer) FAB at the same
+ * `bottom`. Omit `bottom` to render in-flow — the prompt becomes a
+ * regular flex child and the parent (e.g. `BannerStack`) owns
+ * positioning.
  */
 export function FabPrompt({
   bottom,
@@ -65,10 +71,16 @@ export function FabPrompt({
   );
 }
 
-const Wrap = styled.div<{ $bottom: number }>`
-  position: fixed;
-  bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));
-  right: calc(72px + env(safe-area-inset-right, 0px));
+const Wrap = styled.div<{ $bottom: number | undefined }>`
+  ${({ $bottom }) =>
+    $bottom !== undefined
+      ? css`
+          position: fixed;
+          bottom: calc(${$bottom}px + env(safe-area-inset-bottom, 0px));
+          right: calc(72px + env(safe-area-inset-right, 0px));
+          z-index: 900;
+        `
+      : ""}
   height: 40px;
   display: inline-flex;
   align-items: stretch;
@@ -76,7 +88,6 @@ const Wrap = styled.div<{ $bottom: number }>`
   border: 1px solid var(--color-status-info-fg);
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  z-index: 900;
   overflow: hidden;
   font-family: inherit;
   animation: fabPromptIn 0.18s ease-out both;

@@ -168,6 +168,27 @@ describe("MissionProfilesService", () => {
       expect(svc.list()[0].sceneBindings).toEqual(["Flight", "Editor"]);
     });
 
+    it("persists autoSwitch when set via save() and surfaces it via list()", () => {
+      const svc = new MissionProfilesService("main", storage);
+      svc.save("AutoFlight", ITEMS, LAYOUTS, ["Flight"], true);
+      expect(svc.list()[0].autoSwitch).toBe(true);
+    });
+
+    it("normalises autoSwitch=false on save() to undefined", () => {
+      const svc = new MissionProfilesService("main", storage);
+      svc.save("Manual", ITEMS, LAYOUTS, ["Flight"], false);
+      expect(svc.list()[0].autoSwitch).toBeUndefined();
+    });
+
+    it("can toggle autoSwitch via update()", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const p = svc.save("Mission", ITEMS, LAYOUTS, ["Flight"]);
+      svc.update(p.id, { autoSwitch: true });
+      expect(svc.list()[0].autoSwitch).toBe(true);
+      svc.update(p.id, { autoSwitch: false });
+      expect(svc.list()[0].autoSwitch).toBeUndefined();
+    });
+
     it("normalises an all-bogus sceneBindings to undefined on load()", () => {
       storage.setItem(
         "gonogo.missionProfiles.main",

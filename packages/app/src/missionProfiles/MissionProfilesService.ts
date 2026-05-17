@@ -46,6 +46,12 @@ export interface MissionProfile {
    * are tagged for the same scene, the most recently updated wins.
    */
   sceneBindings?: BindableScene[];
+  /**
+   * When true, a matching scene transition loads this profile
+   * immediately instead of showing the "Switch to X?" prompt. Only
+   * meaningful when `sceneBindings` is non-empty.
+   */
+  autoSwitch?: boolean;
   /** ms — lets the UI sort by recency and detect "did I change this?". */
   updatedAt: number;
 }
@@ -92,6 +98,7 @@ export class MissionProfilesService {
     items: DashboardItem[],
     layouts: Layouts,
     sceneBindings: BindableScene[] = [],
+    autoSwitch = false,
   ): MissionProfile {
     const trimmed = name.trim() || "Untitled profile";
     const profile: MissionProfile = {
@@ -101,6 +108,7 @@ export class MissionProfilesService {
       items,
       layouts,
       sceneBindings: sceneBindings.length > 0 ? [...sceneBindings] : undefined,
+      autoSwitch: autoSwitch || undefined,
       updatedAt: Date.now(),
     };
     this.profiles.push(profile);
@@ -112,7 +120,10 @@ export class MissionProfilesService {
   update(
     id: string,
     patch: Partial<
-      Pick<MissionProfile, "name" | "items" | "layouts" | "sceneBindings">
+      Pick<
+        MissionProfile,
+        "name" | "items" | "layouts" | "sceneBindings" | "autoSwitch"
+      >
     >,
   ): void {
     const idx = this.profiles.findIndex((p) => p.id === id);
@@ -127,6 +138,7 @@ export class MissionProfilesService {
     if (Array.isArray(next.sceneBindings) && next.sceneBindings.length === 0) {
       next.sceneBindings = undefined;
     }
+    if (next.autoSwitch !== true) next.autoSwitch = undefined;
     this.profiles[idx] = next;
     this.persist();
     this.emit();
