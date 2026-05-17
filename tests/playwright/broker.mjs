@@ -7,7 +7,7 @@
  * VITE_PEER_HOST / VITE_PEER_PORT env vars consumed by peerOptions.ts.
  *
  * Run standalone for local debug:
- *   node tests/multiscreen/broker.mjs
+ *   node tests/playwright/broker.mjs
  *
  * Or via Playwright's `webServer` config — auto-started/torn-down per
  * test run.

@@ -1,22 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Multi-screen Playwright tests. Boots peerjs-server + Vite dev server
- * automatically via webServer. Each spec opens two browser contexts
- * (main + station) and exercises the real PeerJS handshake against the
- * local broker — no calls out to 0.peerjs.com, no fakes.
+ * Playwright tests covering the browser-level surface — multi-screen
+ * peer handshake, replay-driven telemetry mirror, widget-DOM mirrors,
+ * notes round-trip. Boots peerjs-server + a fake Telemachus replay
+ * server + the Vite dev server automatically via webServer.
  *
  * The Vite dev server is launched with VITE_PEER_HOST/PORT/PATH set so
- * peerOptions.ts redirects the broker target. The KsP-side data sources
- * are auto-registered as normal; tests inject a replay-backed `data`
- * source after-the-fact via window injection (see specs).
+ * peerOptions.ts redirects the broker target. The KSP-side data sources
+ * are auto-registered as normal; specs that need deterministic
+ * telemetry seed the test endpoint via context.addInitScript.
  */
 const BROKER_PORT = 9999;
 const APP_PORT = 5173;
 const TELEMACHUS_REPLAY_PORT = 8086;
 
 export default defineConfig({
-  testDir: "./tests/multiscreen",
+  testDir: "./tests/playwright",
   testMatch: /.*\.spec\.ts$/,
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -40,7 +40,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "node ./tests/multiscreen/broker.mjs",
+      command: "node ./tests/playwright/broker.mjs",
       port: BROKER_PORT,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -48,7 +48,7 @@ export default defineConfig({
       timeout: 15_000,
     },
     {
-      command: "node ./tests/multiscreen/telemachus-replay-server.mjs",
+      command: "node ./tests/playwright/telemachus-replay-server.mjs",
       url: `http://localhost:${TELEMACHUS_REPLAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
