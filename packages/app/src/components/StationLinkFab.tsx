@@ -102,7 +102,7 @@ function StationLinkPanel() {
     <Wrap>
       <Row>
         <Label>Host ID</Label>
-        <Code>{peerId}</Code>
+        <Code data-testid="host-share-code">{peerId}</Code>
       </Row>
       <UrlRow>
         <Label>Link</Label>

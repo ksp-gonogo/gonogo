@@ -10,3 +10,5 @@ coverage/
 memory/
 local_docs/
 .claude/
+/test-results/
+/playwright-report/

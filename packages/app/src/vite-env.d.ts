@@ -15,6 +15,25 @@ interface ImportMetaEnv {
    * station URL for local-dev origins (localhost, LAN IP).
    */
   readonly VITE_STATION_URL?: string;
+  /**
+   * Override PeerJS broker host. Production defaults to PeerJS's public
+   * broker (0.peerjs.com); tests + self-hosted deploys can point at a
+   * private broker instead. Set together with VITE_PEER_PORT — both
+   * unset means "use the public broker" (PeerJS's library default).
+   */
+  readonly VITE_PEER_HOST?: string;
+  readonly VITE_PEER_PORT?: string;
+  /**
+   * Override PeerJS broker path. Defaults to "/" on PeerJS's public
+   * broker. peerjs-server typically serves under "/myapp" or similar.
+   */
+  readonly VITE_PEER_PATH?: string;
+  /**
+   * Override PeerJS broker secure flag. Public broker is wss; self-hosted
+   * local brokers (e.g. Playwright tests) are usually ws. Defaults to
+   * true when unset.
+   */
+  readonly VITE_PEER_SECURE?: string;
 }
 
 interface ImportMeta {
