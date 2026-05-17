@@ -57,7 +57,12 @@ test.describe("recorded launch — main + station mirror", () => {
       main.getByRole("button", { name: /add component/i }),
     ).toBeVisible({ timeout: 30_000 });
 
-    // Wait for the host's PeerJS open event, then derive the share code.
+    // Wait for the host's PeerJS open event AND for the id to be stable.
+    // The local broker can hold a stale id from a prior test run for
+    // ~30-60s; the host detects the conflict and auto-rotates, which
+    // would race with the test if we grabbed the first id we saw. Poll
+    // until the id hasn't changed for 500ms, then take that as final.
+    //
     // NOTE: Playwright's waitForFunction signature is
     // (pageFunction, arg, options) — the third positional is options.
     // Passing `{ timeout: ... }` as the second arg makes it the `arg`
@@ -66,13 +71,32 @@ test.describe("recorded launch — main + station mirror", () => {
       .waitForFunction(
         () => {
           const w = window as unknown as {
-            peerHostService?: { peerId?: string | null };
+            peerHostService?: {
+              peerId?: string | null;
+              __lastIdSeen?: string | null;
+              __lastIdSeenAt?: number;
+            };
           };
-          const id = w.peerHostService?.peerId;
-          return typeof id === "string" && /^[A-Z0-9]{4,}$/.test(id) ? id : null;
+          const svc = w.peerHostService;
+          if (!svc) return null;
+          const id = svc.peerId;
+          if (typeof id !== "string" || !/^[A-Z0-9]{4,}$/.test(id)) {
+            svc.__lastIdSeen = null;
+            return null;
+          }
+          if (svc.__lastIdSeen !== id) {
+            svc.__lastIdSeen = id;
+            svc.__lastIdSeenAt = Date.now();
+            return null;
+          }
+          // Same id for >= 500ms — broker has settled, no pending rotation.
+          if (Date.now() - (svc.__lastIdSeenAt ?? 0) >= 500) {
+            return id;
+          }
+          return null;
         },
         undefined,
-        { timeout: 30_000 },
+        { timeout: 30_000, polling: 100 },
       )
       .then((handle) => handle.jsonValue())) as string;
 
@@ -81,10 +105,10 @@ test.describe("recorded launch — main + station mirror", () => {
     // Minmus depending on the fixture). The recorded launch starts on
     // Kerbin; the replay completes before the SOI changes.
     //
-    // Use the lookup helper: subscribes via the "data" source and
-    // resolves with the first callback fire. BufferedDataSource replays
-    // last-known synchronously, so once a sample has been received the
-    // resolve happens on the next microtask.
+    // The fake server emits its snapshot frame on subscribe and then
+    // every 250ms — matches Telemachus Reborn's `rate` behaviour and
+    // makes BufferedDataSource's async-IDB-hydrate-then-subscribe race
+    // safe (the next tick re-delivers values to the late subscriber).
     const mainBody = await main.waitForFunction(
       () => {
         return new Promise<unknown>((resolve) => {
@@ -96,9 +120,6 @@ test.describe("recorded launch — main + station mirror", () => {
           const timer = setTimeout(() => resolve(null), 500);
           lookup("v.body").then((value) => {
             clearTimeout(timer);
-            // Resolve with any non-null value; the test inspects the
-            // shape after the wait so we can see real-world payloads
-            // when the assertion drifts.
             resolve(value ?? null);
           });
         });
