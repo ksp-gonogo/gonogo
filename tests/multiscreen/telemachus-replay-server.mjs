@@ -1,26 +1,44 @@
 #!/usr/bin/env node
 /**
  * Fake Telemachus Reborn WebSocket server for multi-screen Playwright
- * tests. Replays a recorded FlightFixture against any client that
- * connects, so a real `<TelemachusDataSource>` in a real Chromium tab
- * can drive its dashboard widgets without needing KSP running.
+ * tests. Replays the *final state* of a recorded FlightFixture to any
+ * client that connects, so a real `<TelemachusDataSource>` in a real
+ * Chromium tab can drive its dashboard widgets without needing KSP
+ * running.
+ *
+ * Snapshot model (chosen over timed playback after the first version):
+ *   - At startup, pre-compute the LAST sample value for every key in
+ *     the fixture. This is the "as of end of recording" view.
+ *   - On each WebSocket subscribe message, immediately send a single
+ *     JSON frame containing the latest value for every key the client
+ *     is currently subscribed to.
+ *   - Then poll: every 250ms re-send the same snapshot to every open
+ *     client. This mimics real Telemachus Reborn (which streams the
+ *     current values of subscribed keys every `rate` ms regardless of
+ *     whether they've changed), and crucially covers the race where
+ *     BufferedDataSource subscribes to its upstream after the very
+ *     first frame has already been delivered — the next 250ms tick
+ *     re-delivers values to the late subscriber.
+ *
+ * Why snapshot, not timed playback:
+ *   - Earlier draft walked cursors forward at 50× wall-clock and
+ *     emitted frames every 100ms. Cursors lived in module-scope state,
+ *     so repeat runs of the same spec (e.g. `--ui` re-runs, or
+ *     reuseExistingServer leaving the process up between invocations)
+ *     would find cursors stuck at `replayDone = true` and never emit
+ *     fresh frames. The "first run passes, second fails" symptom.
+ *   - Tests asserting "main and station see matching telemetry" don't
+ *     need to observe time-varying values — they just need every
+ *     subscriber to see the same canonical value. Snapshot delivers
+ *     that with no statefulness.
  *
  * Protocol contract (matches the real Telemachus Reborn):
  *   - Client subscribes by sending a JSON message:
  *       { "+": ["v.altitude", ...], "rate": 250 }   add subscriptions
  *       { "-": ["v.altitude"] }                     remove
  *       { "run": [...keys], rate: N }               replace
- *     (gonogo uses the "+" form via sendSubscription.)
  *   - Server emits frames as JSON objects:
  *       { "v.altitude": 12345.6, "v.body": "Kerbin", ... }
- *     Only keys with new values since the last frame need to appear,
- *     but full snapshots are fine — clients dedup internally.
- *
- * Replay strategy: walk the fixture's per-key sample timeline in
- * wall-clock-compressed time. Each frame emits the *latest* value for
- * every subscribed key whose sample at-or-before the current cursor
- * time advanced. Time compression is configurable via TELE_REPLAY_RATE
- * (default 50× realtime — a 60s fixture finishes in ~1.2s).
  *
  * Endpoint shape: ws://localhost:<port>/datalink — matches what the
  * gonogo TelemachusDataSource expects when its config is
@@ -38,11 +56,6 @@ const PORT = Number.parseInt(process.env.TELE_REPLAY_PORT ?? "8086", 10);
 const FIXTURE_PATH =
   process.env.TELE_REPLAY_FIXTURE ??
   resolve(HERE, "../../test/recorded_fixtures/launch_to_apoapsis_10000.json");
-const REPLAY_RATE = Number.parseFloat(process.env.TELE_REPLAY_RATE ?? "50");
-const FRAME_INTERVAL_MS = Number.parseInt(
-  process.env.TELE_REPLAY_FRAME_MS ?? "100",
-  10,
-);
 
 async function loadFixture(path) {
   const raw = await readFile(path, "utf8");
@@ -56,100 +69,28 @@ async function loadFixture(path) {
 }
 
 /**
- * Build per-key cursors: each cursor holds the sample list + the
- * index of the latest sample <= current cursor time. Advancing the
- * cursor walks forward in O(advance-count).
+ * Build a Record<key, latestValue> snapshot from a FlightFixture. Each
+ * per-key sample series is sorted ascending by `t`, so the last entry
+ * is the canonical "end-of-recording" value.
  */
-function makeCursors(fixture) {
-  const cursors = new Map();
+function buildSnapshot(fixture) {
+  const snapshot = {};
   for (const [key, samples] of Object.entries(fixture.samples)) {
-    cursors.set(key, { samples, idx: -1, lastEmittedIdx: -1 });
+    if (Array.isArray(samples) && samples.length > 0) {
+      const last = samples[samples.length - 1];
+      snapshot[key] = last[1];
+    }
   }
-  return cursors;
+  return snapshot;
 }
 
 const fixture = await loadFixture(FIXTURE_PATH);
-const cursors = makeCursors(fixture);
-const fixtureStart = fixture.flight.launchedAt;
-const fixtureEnd = fixture.flight.lastSampleAt;
-const fixtureDurationMs = fixtureEnd - fixtureStart;
+const snapshot = buildSnapshot(fixture);
 
 process.stdout.write(
   `[tele-replay] fixture ${fixture.flight.vesselName} loaded — ` +
-    `${fixture.flight.sampleCount} samples across ` +
-    `${Object.keys(fixture.samples).length} keys over ` +
-    `${Math.round(fixtureDurationMs / 1000)}s\n`,
+    `${Object.keys(snapshot).length} keys (snapshot model)\n`,
 );
-
-/** All currently-connected clients, each with its own subscription set. */
-const clients = new Set();
-
-function emitFrame(cursorTimeMs, force = false) {
-  const frame = {};
-  let any = false;
-  for (const [key, cursor] of cursors) {
-    // Advance idx to the latest sample at or before cursorTimeMs.
-    while (
-      cursor.idx + 1 < cursor.samples.length &&
-      cursor.samples[cursor.idx + 1][0] <= cursorTimeMs
-    ) {
-      cursor.idx += 1;
-    }
-    if (cursor.idx < 0) continue;
-    // Emit only when the cursor advanced since last emit, or on force
-    // (used at subscribe time to seed the client with the current
-    // snapshot).
-    if (cursor.idx === cursor.lastEmittedIdx && !force) continue;
-    cursor.lastEmittedIdx = cursor.idx;
-    frame[key] = cursor.samples[cursor.idx][1];
-    any = true;
-  }
-  if (!any) return;
-  const payload = JSON.stringify(frame);
-  // Per-client filter: only send keys the client actually subscribed to.
-  for (const client of clients) {
-    if (client.ws.readyState !== client.ws.OPEN) continue;
-    const filtered = {};
-    let send = false;
-    for (const key of Object.keys(frame)) {
-      if (client.subs.has(key)) {
-        filtered[key] = frame[key];
-        send = true;
-      }
-    }
-    if (send) {
-      client.ws.send(JSON.stringify(filtered));
-    } else if (client.subs.size === 0) {
-      // No subs yet — drop. Avoids flooding the client during the
-      // window between connect and subscribe.
-    }
-  }
-  // Suppress unused-var lint when no client matched.
-  void payload;
-}
-
-let cursorTimeMs = fixtureStart;
-let replayInterval = null;
-let replayDone = false;
-
-function startReplay() {
-  if (replayInterval !== null) return;
-  if (replayDone) return;
-  replayInterval = setInterval(() => {
-    cursorTimeMs += FRAME_INTERVAL_MS * REPLAY_RATE;
-    if (cursorTimeMs >= fixtureEnd) {
-      cursorTimeMs = fixtureEnd;
-      replayDone = true;
-      clearInterval(replayInterval);
-      replayInterval = null;
-      // Final emit at the very end so clients see the terminal state.
-      emitFrame(cursorTimeMs, false);
-      process.stdout.write("[tele-replay] replay complete\n");
-      return;
-    }
-    emitFrame(cursorTimeMs, false);
-  }, FRAME_INTERVAL_MS);
-}
 
 function parseSubscribeMessage(text) {
   try {
@@ -161,11 +102,6 @@ function parseSubscribeMessage(text) {
   }
 }
 
-// Plain HTTP server + WebSocket upgrade — matches Telemachus's surface
-// shape. The /version probe is handled too so the KosDataSource's
-// `refreshRemoteVersion` HTTP probe doesn't 404 (it's not strictly
-// needed for the Telemachus path but the test rig may share the port
-// if we ever fold the kOS proxy too).
 const http = createServer((req, res) => {
   if (req.url === "/version") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -183,60 +119,82 @@ const http = createServer((req, res) => {
 
 const wss = new WebSocketServer({ server: http, path: "/datalink" });
 
+let connectCount = 0;
+
+function buildFrame(subs) {
+  const frame = {};
+  let any = false;
+  for (const key of subs) {
+    if (key in snapshot) {
+      frame[key] = snapshot[key];
+      any = true;
+    }
+  }
+  return any ? frame : null;
+}
+
 wss.on("connection", (ws) => {
-  const client = { ws, subs: new Set() };
-  clients.add(client);
-  process.stdout.write(`[tele-replay] connect (${clients.size} total)\n`);
+  connectCount += 1;
+  const myId = connectCount;
+  process.stdout.write(`[tele-replay] connect (#${myId})\n`);
+  const subs = new Set();
+
+  // Periodic re-emit, mirroring Telemachus Reborn's `rate` behaviour.
+  // Late subscribers (e.g. BufferedDataSource wiring upstream after an
+  // async IDB hydrate) catch the next tick instead of the dropped
+  // first-frame.
+  const ticker = setInterval(() => {
+    if (subs.size === 0 || ws.readyState !== ws.OPEN) return;
+    const frame = buildFrame(subs);
+    if (frame) ws.send(JSON.stringify(frame));
+  }, 250);
 
   ws.on("message", (raw) => {
-    const data = parseSubscribeMessage(raw.toString("utf8"));
+    const text = raw.toString("utf8");
+    const data = parseSubscribeMessage(text);
+    process.stdout.write(
+      `[tele-replay] msg from #${myId}: ${text.slice(0, 120)}${text.length > 120 ? "..." : ""}\n`,
+    );
     if (!data) return;
     if (Array.isArray(data["+"])) {
-      for (const k of data["+"]) client.subs.add(k);
+      for (const k of data["+"]) subs.add(k);
     }
     if (Array.isArray(data["-"])) {
-      for (const k of data["-"]) client.subs.delete(k);
+      for (const k of data["-"]) subs.delete(k);
     }
     if (Array.isArray(data.run)) {
-      client.subs.clear();
-      for (const k of data.run) client.subs.add(k);
+      subs.clear();
+      for (const k of data.run) subs.add(k);
     }
-    // Seed the new subscriber with the current snapshot. emitFrame
-    // with force=true on first subscribe would re-send the whole
-    // history to every client — instead, send a one-shot snapshot
-    // just to *this* client.
-    if (client.subs.size > 0) {
-      const snapshot = {};
-      let any = false;
-      for (const [key, cursor] of cursors) {
-        if (!client.subs.has(key)) continue;
-        if (cursor.idx < 0) continue;
-        snapshot[key] = cursor.samples[cursor.idx][1];
-        any = true;
-      }
-      if (any && ws.readyState === ws.OPEN) {
-        ws.send(JSON.stringify(snapshot));
-      }
+    if (subs.size === 0) return;
+    const frame = buildFrame(subs);
+    if (frame && ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(frame));
+      process.stdout.write(
+        `[tele-replay] sent frame to #${myId}: ${Object.keys(frame).length} keys (v.body=${JSON.stringify(frame["v.body"])})\n`,
+      );
+    } else {
+      process.stdout.write(
+        `[tele-replay] no frame sent — frame=${frame ? "obj" : "null"}, subs.size=${subs.size}\n`,
+      );
     }
-    startReplay();
   });
 
   ws.on("close", () => {
-    clients.delete(client);
-    process.stdout.write(`[tele-replay] disconnect (${clients.size} total)\n`);
+    clearInterval(ticker);
+    process.stdout.write(`[tele-replay] disconnect (was #${myId})\n`);
   });
 });
 
 http.listen(PORT, () => {
   process.stdout.write(
-    `[tele-replay] listening on ws://localhost:${PORT}/datalink (rate=${REPLAY_RATE}× frame=${FRAME_INTERVAL_MS}ms)\n`,
+    `[tele-replay] listening on ws://localhost:${PORT}/datalink (snapshot model)\n`,
   );
 });
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
     process.stdout.write(`[tele-replay] received ${sig}, shutting down\n`);
-    if (replayInterval !== null) clearInterval(replayInterval);
     http.close(() => process.exit(0));
   });
 }
