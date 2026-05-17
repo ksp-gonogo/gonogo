@@ -26,16 +26,22 @@ const STATION_URL = "/station";
  * matches the longest realistic local-broker handshake.
  */
 async function getMainPeerId(page: Page): Promise<string> {
-  return await page.waitForFunction(
-    () => {
-      const w = window as unknown as {
-        peerHostService?: { peerId?: string | null };
-      };
-      const id = w.peerHostService?.peerId;
-      return typeof id === "string" && /^[A-Z0-9]{4,}$/.test(id) ? id : null;
-    },
-    { timeout: 20_000 },
-  ).then((handle) => handle.jsonValue() as Promise<string>);
+  // Playwright's waitForFunction is `(fn, arg, options)` — passing the
+  // options object as the second arg makes it `arg` and silently
+  // inherits the default 10s actionTimeout.
+  return await page
+    .waitForFunction(
+      () => {
+        const w = window as unknown as {
+          peerHostService?: { peerId?: string | null };
+        };
+        const id = w.peerHostService?.peerId;
+        return typeof id === "string" && /^[A-Z0-9]{4,}$/.test(id) ? id : null;
+      },
+      undefined,
+      { timeout: 30_000 },
+    )
+    .then((handle) => handle.jsonValue() as Promise<string>);
 }
 
 test.describe("main + station co-resident", () => {

@@ -13,6 +13,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const BROKER_PORT = 9999;
 const APP_PORT = 5173;
+const TELEMACHUS_REPLAY_PORT = 8086;
 
 export default defineConfig({
   testDir: "./tests/multiscreen",
@@ -39,12 +40,23 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `node ${"./tests/multiscreen/broker.mjs"}`,
+      command: "node ./tests/multiscreen/broker.mjs",
       port: BROKER_PORT,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 15_000,
+    },
+    {
+      command: "node ./tests/multiscreen/telemachus-replay-server.mjs",
+      url: `http://localhost:${TELEMACHUS_REPLAY_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 15_000,
+      env: {
+        TELE_REPLAY_PORT: String(TELEMACHUS_REPLAY_PORT),
+      },
     },
     {
       command: "pnpm --filter @gonogo/app dev",
@@ -62,3 +74,10 @@ export default defineConfig({
     },
   ],
 });
+
+/** Exported so specs can reference them without re-defining ports. */
+export const PORTS = {
+  app: APP_PORT,
+  broker: BROKER_PORT,
+  telemachusReplay: TELEMACHUS_REPLAY_PORT,
+} as const;

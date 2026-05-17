@@ -1,5 +1,6 @@
 import {
   ErrorBoundary,
+  getDataSource,
   getTheme,
   registerStockBodies,
   setAppVersion,
@@ -40,6 +41,45 @@ if (axiomToken) {
 }
 
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
+
+// Test + console-debug helper. Subscribes once to a key on the
+// "data" source, resolves with the first received value, then unsubs.
+// If the cached subscriber already had a value the resolve is
+// synchronous-ish (next microtask). Used by the multi-screen Playwright
+// tests to read live telemetry without driving widget DOM; also handy
+// from the browser console for quick "what's v.body right now?" checks.
+if (typeof window !== "undefined") {
+  (
+    window as unknown as {
+      __gonogo_get_value__?: (key: string) => Promise<unknown>;
+    }
+  ).__gonogo_get_value__ = (key: string) =>
+    new Promise((resolve) => {
+      const source = getDataSource("data");
+      if (!source) {
+        resolve(undefined);
+        return;
+      }
+      let settled = false;
+      // `unsub` is declared as a let so the callback below can call it
+      // without a TDZ — `source.subscribe()` may fire the callback
+      // *synchronously* when the buffered wrapper replays a cached
+      // value, which would reference the unsub binding before it's
+      // assigned if we tried `const unsub = source.subscribe(...)`.
+      let unsub: (() => void) | null = null;
+      const cb = (value: unknown) => {
+        if (settled) return;
+        settled = true;
+        unsub?.();
+        resolve(value);
+      };
+      unsub = source.subscribe(key, cb);
+      // If subscribe fired the callback synchronously (cached replay),
+      // unsub was null at the time; call it now that it's set so we
+      // don't leak the subscriber.
+      if (settled) unsub();
+    });
+}
 
 // Pass the Vite base URL so texture paths resolve correctly under sub-path
 // deployments (e.g. /gonogo/bodies/ on GitHub Pages).
