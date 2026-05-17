@@ -1262,16 +1262,12 @@ export class KosMenuPeekSession {
     this.init = init;
   }
 
-  onStatusChange(
-    cb: (status: DataSourceStatus) => void,
-  ): () => void {
+  onStatusChange(cb: (status: DataSourceStatus) => void): () => void {
     this.statusListeners.add(cb);
     return () => this.statusListeners.delete(cb);
   }
 
-  private setStatus(
-    next: DataSourceStatus,
-  ): void {
+  private setStatus(next: DataSourceStatus): void {
     if (this.status === next) return;
     this.status = next;
     for (const cb of this.statusListeners) cb(next);
