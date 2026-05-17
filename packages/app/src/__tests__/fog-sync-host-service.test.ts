@@ -1,3 +1,4 @@
+import { SCAN_TYPE, type SCANType } from "@gonogo/core";
 import type { FogMaskStore, StoredMask } from "@gonogo/data";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
@@ -42,10 +43,12 @@ function makeStoredMask(
   data: number[],
   width = 2,
   height = 1,
+  scanType: SCANType = SCAN_TYPE.AltimetryHiRes,
 ): StoredMask {
   return {
-    key: `${profileId}:${bodyId}`,
-    version: 1,
+    key: `${profileId}:${bodyId}:${scanType}`,
+    version: 2,
+    scanType,
     width,
     height,
     data: new Uint8Array(data),
@@ -79,10 +82,25 @@ describe("FogSyncHostService", () => {
     fogStore = makeFakeFogStore();
   });
 
-  it("sends a fog-snapshot to the connecting peer with all stored masks", async () => {
+  it("sends a fog-snapshot routing each per-type mask to its slot", async () => {
     fogStore = makeFakeFogStore([
-      makeStoredMask("p1", "Kerbin", [1, 2, 3, 4]),
-      makeStoredMask("p1", "Mun", [5, 6]),
+      makeStoredMask(
+        "p1",
+        "Kerbin",
+        [1, 2, 3, 4],
+        2,
+        1,
+        SCAN_TYPE.AltimetryLoRes,
+      ),
+      makeStoredMask(
+        "p1",
+        "Kerbin",
+        [9, 9, 9, 9],
+        2,
+        1,
+        SCAN_TYPE.AltimetryHiRes,
+      ),
+      makeStoredMask("p1", "Mun", [5, 6], 2, 1, SCAN_TYPE.Biome),
     ]);
 
     const sync = new FogSyncHostService({
@@ -101,12 +119,22 @@ describe("FogSyncHostService", () => {
     expect(sent.msg.type).toBe("fog-snapshot");
     if (sent.msg.type !== "fog-snapshot") throw new Error("type guard");
     expect(sent.msg.profileId).toBe("p1");
-    expect(sent.msg.masks).toHaveLength(2);
-    const byBody = new Map(
-      sent.msg.masks.map((m) => [m.bodyId, Array.from(m.data)]),
+    expect(sent.msg.masks).toHaveLength(3);
+    // Each (bodyId, scanType) routes to its own payload entry; bytes
+    // round-trip unchanged.
+    const byKey = new Map(
+      sent.msg.masks.map((m) => [
+        `${m.bodyId}:${m.scanType}`,
+        Array.from(m.data),
+      ]),
     );
-    expect(byBody.get("Kerbin")).toEqual([1, 2, 3, 4]);
-    expect(byBody.get("Mun")).toEqual([5, 6]);
+    expect(byKey.get(`Kerbin:${SCAN_TYPE.AltimetryLoRes}`)).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(byKey.get(`Kerbin:${SCAN_TYPE.AltimetryHiRes}`)).toEqual([
+      9, 9, 9, 9,
+    ]);
+    expect(byKey.get(`Mun:${SCAN_TYPE.Biome}`)).toEqual([5, 6]);
     expect(fogStore.loadAllForProfile).toHaveBeenCalledWith("p1");
   });
 

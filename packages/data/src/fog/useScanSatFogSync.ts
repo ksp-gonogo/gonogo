@@ -7,57 +7,94 @@ import {
   useDataValue,
 } from "@gonogo/core";
 import { useEffect } from "react";
-import { useBodyFogMask, useFogMaskCache } from "./FogMaskContext";
-import { applyScanCoverageToMask, DEFAULT_SCAN_TYPE } from "./scanCoverageSync";
+import { useFogMaskCache } from "./FogMaskContext";
+import { applyScanCoverageToMask } from "./scanCoverageSync";
 
 /**
- * When SCANsat is installed and the active body is known, subscribe to
- * `scan.maskBitmap[bodyName, scanType]` and merge every push into the
- * gonogo fog mask. SCANsat's coverage is per-program (cross-vessel,
- * persists with the save), so this layer is *additive* to the painter
- * — both write the same `BodyMask` via max-lighten, and the painter's
- * per-vessel imaging continues to fill in tiles SCANsat hasn't reached
- * yet (low altitude / no scanner / un-mapped FOV).
+ * Scan types we keep per-body fog masks for. Each type ends up with its
+ * own `BodyMask` keyed by `(bodyId, scanType)`. The MapView composes
+ * these at paint time with precedence rules (AltimetryHiRes overrides
+ * AltimetryLoRes within the altimetry channel; Biome and Resource
+ * channels are independent).
  *
- * The scan-type defaults to AltimetryHiRes (the densest stock-style
- * scan); callers can pass a different bit if they want biome / anomaly
- * / resource layers as the truth source instead.
+ * Visual (LoRes/HiRes) and Anomaly are deliberately excluded:
+ *   - Visual* are deprecated in modern KSP / SCANsat — no stock parts emit
+ *     them.
+ *   - Anomaly markers are surfaced via `scan.anomalies[body]` directly
+ *     (point-based, not area-based fog).
+ */
+export const FOG_SCAN_TYPES: readonly SCANType[] = [
+  SCAN_TYPE.AltimetryLoRes,
+  SCAN_TYPE.AltimetryHiRes,
+  SCAN_TYPE.Biome,
+  SCAN_TYPE.ResourceLoRes,
+  SCAN_TYPE.ResourceHiRes,
+];
+
+/**
+ * Subscribe to one `scan.maskBitmap[body, scanType]` per relevant scan
+ * type and merge each push into its own per-type fog mask. SCANsat's
+ * coverage is per-program (cross-vessel, persists with the save), so
+ * each per-type mask reflects the union of every scanner of that type
+ * that has ever flown over the body.
+ *
+ * Pre-rework: this hook subscribed to a single scan type (defaulting to
+ * AltimetryHiRes) and wrote into one combined per-body mask. That meant
+ * a craft with only RADAR (AltimetryLoRes) scanners never thinned the
+ * fog — only AltHiRes coverage was tracked. Per-type masks fix that and
+ * preserve channel granularity for the precedence merge in the display
+ * canvas.
  */
 export function useScanSatFogSync(
   body: BodyDefinition | undefined,
-  scanType: SCANType = DEFAULT_SCAN_TYPE,
   dataSourceId = "data",
 ): void {
   const scanAvailable = useDataValue<boolean>(dataSourceId, "scan.available");
   const cache = useFogMaskCache();
-  const { mask } = useBodyFogMask(body?.id);
 
   useEffect(() => {
     if (!scanAvailable) return;
-    if (!body || !mask || !cache) return;
+    if (!body || !cache) return;
     const source = getDataSource(dataSourceId);
     if (!source) return;
 
-    const key = `scan.maskBitmap[${body.name},${scanType}]`;
-    const unsub = source.subscribe(key, (value) => {
-      if (!value || typeof value !== "object") return;
-      const bitmap = value as Partial<SCANCoverageBitmap>;
-      if (
-        typeof bitmap.width !== "number" ||
-        typeof bitmap.height !== "number" ||
-        typeof bitmap.bits !== "string"
-      ) {
-        return;
-      }
-      const changed = applyScanCoverageToMask(
-        bitmap as SCANCoverageBitmap,
-        mask,
-        body,
-      );
-      if (changed) cache.markDirty(body.id);
-    });
-    return unsub;
-  }, [scanAvailable, body, mask, cache, scanType, dataSourceId]);
+    const unsubs: Array<() => void> = [];
+    let cancelled = false;
+
+    // Eagerly acquire each per-type mask so the subscribe handler can
+    // write into a real buffer the first time SCANsat pushes a frame.
+    // Without the acquire, the cache has no entry → markDirty no-ops →
+    // the first push silently drops on the floor.
+    for (const scanType of FOG_SCAN_TYPES) {
+      void cache.acquire(body.id, scanType).then((mask) => {
+        if (cancelled) return;
+        const key = `scan.maskBitmap[${body.name},${scanType}]`;
+        const unsub = source.subscribe(key, (value) => {
+          if (!value || typeof value !== "object") return;
+          const bitmap = value as Partial<SCANCoverageBitmap>;
+          if (
+            typeof bitmap.width !== "number" ||
+            typeof bitmap.height !== "number" ||
+            typeof bitmap.bits !== "string"
+          ) {
+            return;
+          }
+          const changed = applyScanCoverageToMask(
+            bitmap as SCANCoverageBitmap,
+            mask,
+            body,
+          );
+          if (changed) cache.markDirty(body.id, scanType);
+        });
+        unsubs.push(unsub);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      for (const u of unsubs) u();
+    };
+  }, [scanAvailable, body, cache, dataSourceId]);
 }
 
 // Re-export for callers — keeps the SCAN_TYPE constants reachable without

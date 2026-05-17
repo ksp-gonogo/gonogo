@@ -10,6 +10,7 @@ import {
   latLonToMap,
   predictGroundTrack,
   registerComponent,
+  SCAN_TYPE,
   splitOnLongitudeWrap,
   useActionInput,
   useDataValue,
@@ -143,6 +144,19 @@ function MapViewComponent({
   const baseLayer = config?.baseLayer ?? "altimetry";
   const showHeightShading = config?.showHeightShading ?? false;
   const showAnomalies = config?.showAnomalies ?? false;
+  // Resolve per-type fog visibility once per render. Each toggle defaults
+  // to "on" (undefined === unset === visible) so a fresh widget sees
+  // every layer compose; operators narrow it down via the config tab.
+  const fogLayerVisibility = useMemo(() => {
+    const cfg = config?.fogLayers ?? {};
+    return {
+      [SCAN_TYPE.AltimetryLoRes]: cfg.altimetryLoRes !== false,
+      [SCAN_TYPE.AltimetryHiRes]: cfg.altimetryHiRes !== false,
+      [SCAN_TYPE.Biome]: cfg.biome !== false,
+      [SCAN_TYPE.ResourceLoRes]: cfg.resourceLoRes !== false,
+      [SCAN_TYPE.ResourceHiRes]: cfg.resourceHiRes !== false,
+    };
+  }, [config?.fogLayers]);
 
   const schema = useDataSchema("data");
   const labelMap = new Map(schema.map((k) => [k.key, k.label]));
@@ -258,7 +272,7 @@ function MapViewComponent({
   const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
   const heightDisplay = useHeightCanvas(body, showHeightShading);
   const anomalies = useScanAnomalies(showAnomalies ? body?.name : undefined);
-  const fogDisplay = useFogDisplayCanvas(targetBodyId);
+  const fogDisplay = useFogDisplayCanvas(targetBodyId, fogLayerVisibility);
 
   // Per-body coordinate offsets — applied in both world canvas and screen space
   const adjustedMap = useCallback(

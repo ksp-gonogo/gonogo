@@ -6,37 +6,61 @@
  * as a Uint8Array — IndexedDB structured-clone handles typed arrays natively,
  * so there's no encode/decode cost on read or write.
  *
- * Keys are `${profileId}:${bodyId}` so all masks for a profile share a prefix
- * for bulk deletion on profile removal.
+ * Keys are `${profileId}:${bodyId}:${scanType}` so each (profile, body,
+ * scan-type) triple has its own mask. All masks for a profile share the
+ * `${profileId}:` prefix for bulk deletion on profile removal; all masks
+ * for a (profile, body) share `${profileId}:${bodyId}:` for body-level
+ * resets.
+ *
+ * Per-type masks let the display compose precedence rules at paint time
+ * (AltimetryHiRes overrides AltimetryLoRes; Biome and Resource layers stay
+ * independent) without losing per-channel granularity. PeerJS sync also
+ * routes per-type so stations can render the same layers the host sees.
  */
 
+import type { SCANType } from "@gonogo/core";
+
 const DB_NAME = "gonogo-fog";
-const DB_VERSION = 1;
+/**
+ * DB version bumped from 1 → 2 to drop the old single-mask-per-body
+ * schema. onupgradeneeded recreates the object store, which wipes any
+ * pre-existing keys. SCANsat regenerates the underlying coverage cheaply
+ * (it's persisted in the save's SCANcontroller), so the wipe is recoverable
+ * by flying over already-scanned regions again.
+ */
+const DB_VERSION = 2;
 const STORE = "masks";
 
-/** Incremented if the on-disk shape changes. Lets us migrate/skip old masks. */
-export const MASK_SCHEMA_VERSION = 1;
+/** Incremented if the per-record on-disk shape changes. Independent from
+ *  DB_VERSION — the IDB version controls store-level migrations; the
+ *  record version controls per-row migrations. */
+export const MASK_SCHEMA_VERSION = 2;
 
 export interface StoredMask {
   key: string;
   version: number;
+  scanType: SCANType;
   width: number;
   height: number;
   data: Uint8Array;
   updatedAt: number;
 }
 
-function makeKey(profileId: string, bodyId: string): string {
-  return `${profileId}:${bodyId}`;
+function makeKey(
+  profileId: string,
+  bodyId: string,
+  scanType: SCANType,
+): string {
+  return `${profileId}:${bodyId}:${scanType}`;
 }
 
 /**
  * Fires whenever the store's contents change for a specific
- * `(profileId, bodyId)`. The listener is *not* given the new bytes —
- * it should `load(...)` if it needs them. Used by `FogMaskCache` to
- * detect external writes (e.g. a fog snapshot from the host arriving
- * via PeerJS, written straight to the store, bypassing the cache's
- * own mutate-then-flush path).
+ * `(profileId, bodyId, scanType)` triple. The listener is *not* given the
+ * new bytes — it should `load(...)` if it needs them. Used by
+ * `FogMaskCache` to detect external writes (e.g. a fog snapshot from the
+ * host arriving via PeerJS, written straight to the store, bypassing the
+ * cache's own mutate-then-flush path).
  *
  * `origin` lets the cache skip its own writes — if the cache itself
  * called `save(..., origin: this.tag)`, the listener fires with that
@@ -46,6 +70,7 @@ function makeKey(profileId: string, bodyId: string): string {
 export type FogMaskChangeListener = (
   profileId: string,
   bodyId: string,
+  scanType: SCANType,
   origin: string | undefined,
 ) => void;
 
@@ -66,18 +91,24 @@ export class FogMaskStore {
   private fireChange(
     profileId: string,
     bodyId: string,
+    scanType: SCANType,
     origin: string | undefined,
   ): void {
-    for (const l of this.changeListeners) l(profileId, bodyId, origin);
+    for (const l of this.changeListeners)
+      l(profileId, bodyId, scanType, origin);
   }
 
-  async load(profileId: string, bodyId: string): Promise<StoredMask | null> {
+  async load(
+    profileId: string,
+    bodyId: string,
+    scanType: SCANType,
+  ): Promise<StoredMask | null> {
     const db = await this.open();
     return new Promise<StoredMask | null>((resolve, reject) => {
       const req = db
         .transaction(STORE)
         .objectStore(STORE)
-        .get(makeKey(profileId, bodyId));
+        .get(makeKey(profileId, bodyId, scanType));
       req.onsuccess = () => {
         const value = req.result as StoredMask | undefined;
         if (!value) {
@@ -99,6 +130,7 @@ export class FogMaskStore {
   async save(
     profileId: string,
     bodyId: string,
+    scanType: SCANType,
     data: Uint8Array,
     width: number,
     height: number,
@@ -106,8 +138,9 @@ export class FogMaskStore {
   ): Promise<void> {
     const db = await this.open();
     const record: StoredMask = {
-      key: makeKey(profileId, bodyId),
+      key: makeKey(profileId, bodyId, scanType),
       version: MASK_SCHEMA_VERSION,
+      scanType,
       width,
       height,
       data,
@@ -120,14 +153,15 @@ export class FogMaskStore {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
-    this.fireChange(profileId, bodyId, origin);
+    this.fireChange(profileId, bodyId, scanType, origin);
   }
 
   /**
    * Load every mask for a profile in one transaction. Used by the host
    * peer service to send a fog snapshot to a newly-connected station so
    * the station's map mirrors the host's exploration state. The list is
-   * unordered; callers shouldn't depend on insertion order.
+   * unordered; callers shouldn't depend on insertion order. Each row
+   * carries its `scanType` so receivers route to the right per-type slot.
    */
   async loadAllForProfile(profileId: string): Promise<StoredMask[]> {
     const db = await this.open();
@@ -156,17 +190,53 @@ export class FogMaskStore {
   async clear(
     profileId: string,
     bodyId: string,
+    scanType: SCANType,
     origin?: string,
   ): Promise<void> {
     const db = await this.open();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).delete(makeKey(profileId, bodyId));
+      tx.objectStore(STORE).delete(makeKey(profileId, bodyId, scanType));
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
-    this.fireChange(profileId, bodyId, origin);
+    this.fireChange(profileId, bodyId, scanType, origin);
+  }
+
+  /**
+   * Clear every per-type mask for a (profile, body). Used when the user
+   * resets a body's exploration state via the save-profile UI.
+   */
+  async clearBody(
+    profileId: string,
+    bodyId: string,
+    origin?: string,
+  ): Promise<void> {
+    const db = await this.open();
+    const cleared: SCANType[] = [];
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      const store = tx.objectStore(STORE);
+      const lower = `${profileId}:${bodyId}:`;
+      const upper = `${profileId}:${bodyId}:￿`;
+      const cursorReq = store.openCursor(IDBKeyRange.bound(lower, upper));
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (!cursor) return;
+        const value = cursor.value as StoredMask;
+        cleared.push(value.scanType);
+        cursor.delete();
+        cursor.continue();
+      };
+      cursorReq.onerror = () => reject(cursorReq.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    for (const scanType of cleared) {
+      this.fireChange(profileId, bodyId, scanType, origin);
+    }
   }
 
   async clearProfile(profileId: string): Promise<void> {
@@ -197,8 +267,20 @@ export class FogMaskStore {
     if (this.dbPromise) return this.dbPromise;
     this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open(this.dbName, DB_VERSION);
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = (event) => {
         const db = req.result;
+        const oldVersion = event.oldVersion;
+        // v1 → v2: schema added scanType to the key shape. Old single-mask-
+        // per-body rows can't be migrated to per-type rows without inventing
+        // the type, so drop the store and let SCANsat repopulate from its
+        // own persisted coverage.
+        if (
+          oldVersion > 0 &&
+          oldVersion < 2 &&
+          db.objectStoreNames.contains(STORE)
+        ) {
+          db.deleteObjectStore(STORE);
+        }
         if (!db.objectStoreNames.contains(STORE)) {
           db.createObjectStore(STORE, { keyPath: "key" });
         }

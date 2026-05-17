@@ -34,6 +34,7 @@ import {
   PerfBudget,
   registerDataSource,
   registerStockBodies,
+  SCAN_TYPE,
 } from "@gonogo/core";
 import "@gonogo/components"; // self-register every built-in widget
 // We deliberately do NOT import `../dataSources` here. That module's
@@ -672,7 +673,14 @@ describe("recorded launch — full mission control flow", () => {
       const data = new Uint8Array([0, 255, 0, 0, 255, 0, 0, 0]);
 
       const hostFog = new FogMaskStore({ dbName: "fog-test-host" });
-      await hostFog.save(HOST_PROFILE, BODY, data, 4, 2);
+      await hostFog.save(
+        HOST_PROFILE,
+        BODY,
+        SCAN_TYPE.AltimetryHiRes,
+        data,
+        4,
+        2,
+      );
 
       // Seed the station's SaveProfileService — it boots from
       // localStorage and reads "active" + the matching list entry.
@@ -717,7 +725,11 @@ describe("recorded launch — full mission control flow", () => {
       const stationFog = new FogMaskStore();
       await waitFor(
         async () => {
-          const mask = await stationFog.load(STATION_PROFILE, BODY);
+          const mask = await stationFog.load(
+            STATION_PROFILE,
+            BODY,
+            SCAN_TYPE.AltimetryHiRes,
+          );
           expect(mask).not.toBeNull();
           expect(Array.from(mask?.data ?? [])).toEqual(Array.from(data));
           expect(mask?.width).toBe(4);
@@ -725,7 +737,11 @@ describe("recorded launch — full mission control flow", () => {
         },
         { timeout: 5000 },
       );
-      const hostKeyOnStation = await stationFog.load(HOST_PROFILE, BODY);
+      const hostKeyOnStation = await stationFog.load(
+        HOST_PROFILE,
+        BODY,
+        SCAN_TYPE.AltimetryHiRes,
+      );
       expect(hostKeyOnStation).toBeNull();
 
       fogSync.stop();
