@@ -26,54 +26,49 @@ describe("StationIdentityService", () => {
     storage = makeStorage();
   });
 
-  it("seeds a generated name on first run for a profile", () => {
-    const svc = new StationIdentityService("profile-A", storage);
+  it("seeds a generated name on first run", () => {
+    const svc = new StationIdentityService(storage);
     expect(svc.getName()).toMatch(/^Station [A-Z0-9]{4}$/);
-    expect(storage.getItem("gonogo.station.name.profile-A")).toBe(
-      svc.getName(),
-    );
+    expect(storage.getItem("gonogo.station.name")).toBe(svc.getName());
   });
 
-  it("preserves a saved name across instances for the same profile", () => {
-    storage.setItem("gonogo.station.name.profile-A", "Capsule Komm");
-    const svc = new StationIdentityService("profile-A", storage);
+  it("preserves a saved name across instances", () => {
+    storage.setItem("gonogo.station.name", "Capsule Komm");
+    const svc = new StationIdentityService(storage);
     expect(svc.getName()).toBe("Capsule Komm");
   });
 
-  it("isolates names between profiles", () => {
-    storage.setItem("gonogo.station.name.profile-A", "Alpha");
-    storage.setItem("gonogo.station.name.profile-B", "Bravo");
-    expect(new StationIdentityService("profile-A", storage).getName()).toBe(
-      "Alpha",
-    );
-    expect(new StationIdentityService("profile-B", storage).getName()).toBe(
-      "Bravo",
-    );
+  it("migrates a legacy save-profile-scoped name into the flat key on first run", () => {
+    // Pre-migration shape: the active-profile id was stored separately and
+    // the station name was suffixed with it.
+    storage.setItem("gonogo.saveProfiles.active", "profile-A");
+    storage.setItem("gonogo.station.name.profile-A", "Old Capcom");
+
+    const svc = new StationIdentityService(storage);
+    expect(svc.getName()).toBe("Old Capcom");
+    expect(storage.getItem("gonogo.station.name")).toBe("Old Capcom");
+    expect(storage.getItem("gonogo.station.name.profile-A")).toBeNull();
   });
 
-  it("migrates a legacy unscoped name into the first profile that asks for one", () => {
-    storage.setItem("gonogo.station.name", "Old Name");
-    const svc = new StationIdentityService("profile-A", storage);
-    expect(svc.getName()).toBe("Old Name");
-    expect(storage.getItem("gonogo.station.name.profile-A")).toBe("Old Name");
-    expect(storage.getItem("gonogo.station.name")).toBeNull();
-    // A second profile doesn't inherit the migrated name — it gets its own.
-    const svc2 = new StationIdentityService("profile-B", storage);
-    expect(svc2.getName()).not.toBe("Old Name");
+  it("does not run the save-profile migration when no legacy active-profile pointer exists", () => {
+    storage.setItem("gonogo.station.name.profile-A", "Orphan");
+    const svc = new StationIdentityService(storage);
+    expect(svc.getName()).not.toBe("Orphan");
+    expect(storage.getItem("gonogo.station.name.profile-A")).toBe("Orphan");
   });
 
   it("setName persists, trims, and notifies listeners", () => {
-    const svc = new StationIdentityService("profile-A", storage);
+    const svc = new StationIdentityService(storage);
     const spy = vi.fn();
     svc.onChange(spy);
     svc.setName("  CAPCOM  ");
     expect(svc.getName()).toBe("CAPCOM");
-    expect(storage.getItem("gonogo.station.name.profile-A")).toBe("CAPCOM");
+    expect(storage.getItem("gonogo.station.name")).toBe("CAPCOM");
     expect(spy).toHaveBeenCalledWith("CAPCOM");
   });
 
   it("ignores empty or unchanged names", () => {
-    const svc = new StationIdentityService("profile-A", storage);
+    const svc = new StationIdentityService(storage);
     const original = svc.getName();
     const spy = vi.fn();
     svc.onChange(spy);

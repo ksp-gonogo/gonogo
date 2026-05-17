@@ -114,14 +114,13 @@ export type PeerMessage =
   // closes → station's retry kicks in against the freshly-cached id.
   | { type: "host-id-rotation"; newPeerId: string; reason: string }
   // Host → station, fired once per connection right after schema. Carries
-  // every fog mask the host has stored for the active save profile so a
-  // station's map starts populated with whatever the operator has already
-  // explored. Stations keep their own copy and continue computing fresh
-  // tiles from telemetry afterwards — there's no delta sync, so a
-  // station refresh is the way to pick up later host-side discoveries.
+  // every fog mask the host has stored so a station's map starts populated
+  // with whatever the operator has already explored. Stations keep their
+  // own copy and continue computing fresh tiles from telemetry afterwards —
+  // there's no delta sync, so a station refresh is the way to pick up later
+  // host-side discoveries.
   | {
       type: "fog-snapshot";
-      profileId: string;
       masks: Array<{
         bodyId: string;
         // Per-type scan-coverage bitfield (e.g. 1=AltLoRes, 2=AltHiRes,
