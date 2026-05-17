@@ -156,6 +156,11 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   // Long-lived menu-peek session — populates discovery without needing a
   // widget. Re-created in configure() against the new endpoint.
   private peekSession: KosMenuPeekSession | null = null;
+  private peekSessionStatusUnsub: (() => void) | null = null;
+  // Cached menu-peek status so recomputeStatus can factor in "kOS proxy
+  // is reachable even if no compute session is mid-cycle" — matches the
+  // KosTerminal widget's lived experience that the proxy is up.
+  private peekSessionStatus: DataSourceStatus = "disconnected";
 
   /**
    * Subscribers notified every time a session has a fresh CPU menu —
@@ -188,7 +193,7 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
 
   private startPeekSession(): void {
     if (this.peekSession) return;
-    this.peekSession = new KosMenuPeekSession({
+    const peek = new KosMenuPeekSession({
       proxyHost: this.cfg.host,
       proxyPort: this.cfg.port,
       kosHost: this.cfg.kosHost,
@@ -197,13 +202,24 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
         for (const cb of this.cpuDiscoveryListeners) cb(cpus);
       },
     });
-    this.peekSession.open();
+    this.peekSession = peek;
+    this.peekSessionStatusUnsub = peek.onStatusChange((status) => {
+      this.peekSessionStatus = status;
+      this.recomputeStatus();
+    });
+    this.peekSessionStatus = peek.status;
+    peek.open();
+    this.recomputeStatus();
   }
 
   private stopPeekSession(): void {
     if (!this.peekSession) return;
     this.peekSession.close();
     this.peekSession = null;
+    this.peekSessionStatusUnsub?.();
+    this.peekSessionStatusUnsub = null;
+    this.peekSessionStatus = "disconnected";
+    this.recomputeStatus();
   }
 
   /**
@@ -475,14 +491,26 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   private recomputeStatus(): void {
-    if (this.sessions.size === 0) {
-      this.setStatus("disconnected");
-      return;
-    }
-    const states = [...this.sessions.values()].map((s) => s.status);
-    if (states.some((s) => s === "connected")) {
+    // Aggregate across BOTH the menu-peek session (long-lived, no CPU
+    // attached — proves "proxy reachable") AND every per-CPU compute
+    // session. The KosTerminal widget connects via KosProxyContext
+    // independently of this aggregation; its working state is reflected
+    // here through the menu-peek which talks to the same proxy/URL.
+    //
+    // Pre-rework: status was driven only by `this.sessions` (compute
+    // sessions). Every compute-session close flipped the source to
+    // "disconnected" between the WS close and the next executeScript-
+    // triggered ensureOpen ~5s later, so the data-source banner spent
+    // most of its life lying about a working kOS connection. Including
+    // the menu-peek's connected state holds the banner stable while
+    // compute sessions cycle through reconnects in the background.
+    const statuses: Array<DataSourceStatus> = [
+      this.peekSessionStatus,
+      ...[...this.sessions.values()].map((s) => s.status),
+    ];
+    if (statuses.some((s) => s === "connected")) {
       this.setStatus("connected");
-    } else if (states.some((s) => s === "reconnecting")) {
+    } else if (statuses.some((s) => s === "reconnecting")) {
       this.setStatus("reconnecting");
     } else {
       this.setStatus("disconnected");
@@ -1218,9 +1246,35 @@ export class KosMenuPeekSession {
   private closed = false;
   /** Last menu text we acted on — debounce identical re-renders. */
   private lastMenuKey = "";
+  /**
+   * Connection status surfaced to KosDataSource so the data-source pill
+   * reflects "kOS proxy reachable" even when no widget has an active
+   * compute session. Without this, the pill would flicker to
+   * "disconnected" between compute-session cycles even though the
+   * menu-peek WS is wide open.
+   */
+  status: DataSourceStatus = "disconnected";
+  private readonly statusListeners = new Set<
+    (status: DataSourceStatus) => void
+  >();
 
   constructor(init: KosMenuPeekInit) {
     this.init = init;
+  }
+
+  onStatusChange(
+    cb: (status: DataSourceStatus) => void,
+  ): () => void {
+    this.statusListeners.add(cb);
+    return () => this.statusListeners.delete(cb);
+  }
+
+  private setStatus(
+    next: DataSourceStatus,
+  ): void {
+    if (this.status === next) return;
+    this.status = next;
+    for (const cb of this.statusListeners) cb(next);
   }
 
   open(): void {
@@ -1242,11 +1296,13 @@ export class KosMenuPeekSession {
       logger.tag("kos").debug("menu peek ws construction failed; will retry", {
         error: err instanceof Error ? err.message : String(err),
       });
+      this.setStatus("reconnecting");
       this.scheduleRetry();
       return;
     }
     this.ws = ws;
     this.buffer = "";
+    this.setStatus("reconnecting");
     ws.addEventListener("message", (e) => {
       const text =
         typeof (e as MessageEvent).data === "string"
@@ -1257,14 +1313,22 @@ export class KosMenuPeekSession {
     ws.addEventListener("open", () => {
       // Reset backoff once we've successfully connected.
       this.retryDelayMs = INITIAL_RETRY_DELAY_MS;
+      this.setStatus("connected");
     });
     ws.addEventListener("close", () => {
       this.ws = null;
-      if (!this.closed) this.scheduleRetry();
+      if (this.closed) {
+        this.setStatus("disconnected");
+      } else {
+        this.setStatus("reconnecting");
+        this.scheduleRetry();
+      }
     });
     ws.addEventListener("error", () => {
-      // Stay quiet — proxy down is the steady state for users without it
-      // running, and per-session reconnects would surface anything else.
+      // Stay quiet on the log front — proxy down is the steady state
+      // for users without it running, and per-session reconnects would
+      // surface anything else. The close event that follows handles
+      // the status transition.
     });
   }
 
@@ -1279,6 +1343,7 @@ export class KosMenuPeekSession {
       }
       this.ws = null;
     }
+    this.setStatus("disconnected");
   }
 
   private onMessage(text: string): void {
