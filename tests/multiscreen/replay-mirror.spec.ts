@@ -16,7 +16,7 @@
  * two real devices. The pages still find each other on the local
  * PeerJS broker the moment the host's peer id is propagated.
  */
-import { expect, test } from "@playwright/test";
+import { type Page, expect, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 
 const MAIN_URL = "/";
@@ -26,6 +26,27 @@ const TELEMACHUS_CONFIG = JSON.stringify({
   host: "localhost",
   port: PORTS.telemachusReplay,
 });
+
+/**
+ * Keys we expect to mirror host→station, with the predicate that proves
+ * the value has arrived (and isn't an "undefined / null / NaN" placeholder
+ * the lookup helper sometimes returns mid-warmup). Each is sampled from
+ * the recorded fixture's final state so the assertion is concrete.
+ *
+ * Keep this small — one key per shape (string, number, object, boolean).
+ * The point is to exercise PBDS's wire format, not to re-test
+ * Telemachus's key surface.
+ */
+const MIRRORED_KEYS: ReadonlyArray<{
+  key: string;
+  shape: "string" | "number" | "boolean";
+}> = [
+  { key: "v.body", shape: "string" }, // string identity
+  { key: "v.name", shape: "string" }, // string identity
+  { key: "o.ApA", shape: "number" }, // number, drifts across ticks
+  { key: "r.resource[ElectricCharge]", shape: "number" }, // indexed key
+  { key: "comm.connected", shape: "boolean" }, // boolean, exercises the signal-loss gate path
+];
 
 /**
  * Run before any module on the page evaluates so the TelemachusDataSource
@@ -42,8 +63,43 @@ const initScript = (config: string) => `
   }
 `;
 
+/**
+ * Wait until `__gonogo_get_value__(key)` returns a value matching `shape`,
+ * then return it. Wrapper around waitForFunction with the right
+ * signature (passing options as the third positional, not the second).
+ */
+async function waitForValue(
+  page: Page,
+  key: string,
+  shape: "string" | "number" | "boolean",
+): Promise<unknown> {
+  const handle = await page.waitForFunction(
+    ({ key, shape }) => {
+      return new Promise<unknown>((resolve) => {
+        const w = window as unknown as {
+          __gonogo_get_value__?: (key: string) => Promise<unknown>;
+        };
+        const lookup = w.__gonogo_get_value__;
+        if (!lookup) return resolve(null);
+        const timer = setTimeout(() => resolve(null), 500);
+        lookup(key).then((value) => {
+          clearTimeout(timer);
+          if (shape === "number") {
+            resolve(typeof value === "number" && Number.isFinite(value) ? value : null);
+          } else {
+            resolve(typeof value === shape ? value : null);
+          }
+        });
+      });
+    },
+    { key, shape },
+    { timeout: 60_000 },
+  );
+  return await handle.jsonValue();
+}
+
 test.describe("recorded launch — main + station mirror", () => {
-  test("station mirrors apoapsis + body from main's replay", async ({
+  test("station mirrors a representative slice of host telemetry", async ({
     browser,
   }) => {
     const mainContext = await browser.newContext();
@@ -100,35 +156,23 @@ test.describe("recorded launch — main + station mirror", () => {
       )
       .then((handle) => handle.jsonValue())) as string;
 
-    // Wait until the replay-driven Telemachus data has settled on the
-    // host. v.body should resolve to a known body name (Kerbin / Mun /
-    // Minmus depending on the fixture). The recorded launch starts on
-    // Kerbin; the replay completes before the SOI changes.
-    //
-    // The fake server emits its snapshot frame on subscribe and then
-    // every 250ms — matches Telemachus Reborn's `rate` behaviour and
-    // makes BufferedDataSource's async-IDB-hydrate-then-subscribe race
-    // safe (the next tick re-delivers values to the late subscriber).
-    const mainBody = await main.waitForFunction(
-      () => {
-        return new Promise<unknown>((resolve) => {
-          const w = window as unknown as {
-            __gonogo_get_value__?: (key: string) => Promise<unknown>;
-          };
-          const lookup = w.__gonogo_get_value__;
-          if (!lookup) return resolve(null);
-          const timer = setTimeout(() => resolve(null), 500);
-          lookup("v.body").then((value) => {
-            clearTimeout(timer);
-            resolve(value ?? null);
-          });
-        });
-      },
-      undefined,
-      { timeout: 60_000 },
-    );
-    const mainBodyValue = await mainBody.jsonValue();
-    expect(typeof mainBodyValue).toBe("string");
+    // Wait for the host's view to settle: every key in MIRRORED_KEYS
+    // resolves to a value of the expected shape. The fake server emits
+    // its snapshot frame on subscribe and then every 250ms — matches
+    // Telemachus Reborn's `rate` behaviour and makes
+    // BufferedDataSource's async-IDB-hydrate-then-subscribe race safe
+    // (the next tick re-delivers values to the late subscriber).
+    const mainValues: Record<string, unknown> = {};
+    for (const { key, shape } of MIRRORED_KEYS) {
+      mainValues[key] = await waitForValue(main, key, shape);
+    }
+    for (const { key, shape } of MIRRORED_KEYS) {
+      if (shape === "number") {
+        expect(Number.isFinite(mainValues[key])).toBe(true);
+      } else {
+        expect(typeof mainValues[key]).toBe(shape);
+      }
+    }
 
     // Now boot the station, point at the host, wait for schema arrival.
     const station = await stationContext.newPage();
@@ -137,30 +181,24 @@ test.describe("recorded launch — main + station mirror", () => {
       station.getByRole("button", { name: /add component/i }),
     ).toBeVisible({ timeout: 30_000 });
 
-    // Read the same v.body via the station's "data" source — the
-    // PeerClientDataSource mirroring the host. Note the station does
-    // NOT connect to the fake Telemachus server directly; everything
-    // flows over PeerJS from the host.
-    const stationBody = await station.waitForFunction(
-      () => {
-        return new Promise<string | null>((resolve) => {
-          const w = window as unknown as {
-            __gonogo_get_value__?: (key: string) => Promise<unknown>;
-          };
-          const lookup = w.__gonogo_get_value__;
-          if (!lookup) return resolve(null);
-          const timer = setTimeout(() => resolve(null), 500);
-          lookup("v.body").then((value) => {
-            clearTimeout(timer);
-            resolve(typeof value === "string" ? value : null);
-          });
-        });
-      },
-      undefined,
-      { timeout: 60_000 },
-    );
-    const stationBodyValue = await stationBody.jsonValue();
-    expect(stationBodyValue).toBe(mainBodyValue);
+    // Mirror assertions: each key's station value matches the host's.
+    // The station does NOT connect to the fake Telemachus server
+    // directly; values flow over PeerJS from the host's PBDS.
+    //
+    // Numeric keys (e.g. o.ApA) drift between host-read and station-read
+    // because the replay server re-emits every 250ms — so we accept any
+    // finite number on the station side rather than strict equality. The
+    // shape match is what proves PBDS handled the wire format; exact
+    // value equality is asserted only for stable identity keys (string,
+    // boolean).
+    for (const { key, shape } of MIRRORED_KEYS) {
+      const stationValue = await waitForValue(station, key, shape);
+      if (shape === "number") {
+        expect(Number.isFinite(stationValue)).toBe(true);
+      } else {
+        expect(stationValue).toBe(mainValues[key]);
+      }
+    }
 
     await main.close();
     await station.close();
