@@ -160,6 +160,77 @@ describe("FuelStatusComponent", () => {
     expect(stageTexts).toEqual(["  S2", "▶ S1", "  S0"]);
   });
 
+  // Regression: at 21:08 BST on 2026-05-17 the widget crashed with
+  // `twr.toFixed is not a function`. Telemachus had emitted a stage row
+  // mid-staging where TWR/ΔV fields were null instead of numbers. The
+  // crash took the entire widget down behind an error boundary.
+  it("survives a stage row with non-numeric TWR / ΔV", () => {
+    const { container, queryAllByText } = render(
+      <FuelStatusComponent config={{}} id="fuel-test" />,
+    );
+
+    act(() => {
+      primeFlight();
+      source.emit("v.currentStage", 1);
+      source.emit("dv.stageCount", 2);
+      source.emit("dv.totalDVActual", 4200);
+      source.emit("dv.totalBurnTime", 125);
+      source.emit("dv.stages", [
+        {
+          stage: 1,
+          stageMass: 8,
+          dryMass: 2,
+          fuelMass: 6,
+          startMass: 8,
+          endMass: 2,
+          burnTime: 60,
+          deltaVVac: 2000,
+          deltaVASL: 1800,
+          deltaVActual: 1900,
+          TWRVac: 1.4,
+          TWRASL: 1.2,
+          TWRActual: 1.3,
+          ispVac: 320,
+          ispASL: 270,
+          ispActual: 280,
+          thrustVac: 400,
+          thrustASL: 340,
+          thrustActual: 360,
+        },
+        {
+          stage: 0,
+          stageMass: 2,
+          dryMass: 2,
+          fuelMass: 0,
+          startMass: 2,
+          endMass: 2,
+          burnTime: 0,
+          // Telemachus emitted these as null during a mid-staging frame.
+          // Cast to `unknown as number` so the test mirrors the real
+          // runtime payload while satisfying the TS shape.
+          deltaVVac: null as unknown as number,
+          deltaVASL: null as unknown as number,
+          deltaVActual: null as unknown as number,
+          TWRVac: null as unknown as number,
+          TWRASL: null as unknown as number,
+          TWRActual: null as unknown as number,
+          ispVac: 0,
+          ispASL: 0,
+          ispActual: 0,
+          thrustVac: 0,
+          thrustASL: 0,
+          thrustActual: 0,
+        },
+      ]);
+    });
+
+    // No error boundary fallback — the panel rendered.
+    expect(container.textContent).toContain("FUEL · ΔV");
+    // The non-numeric stage falls back to "—" rather than crashing.
+    expect(queryAllByText("— m/s").length).toBeGreaterThan(0);
+    expect(queryAllByText(/TWR\s+—/).length).toBeGreaterThan(0);
+  });
+
   it("displays totals and per-stage ΔV for the selected reference mode", () => {
     const { queryByText, container } = render(
       <FuelStatusComponent config={{ deltaVMode: "vac" }} id="fuel-test" />,

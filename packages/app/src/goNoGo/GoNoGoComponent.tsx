@@ -519,6 +519,13 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   gap: 6px;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
   transition: transform 0.1s ease;
+  /*
+   * Establish a CSS containment context so ButtonLabel can size its text
+   * relative to the button itself (cqmin), not the viewport. The old
+   * 10vw rule made giant buttons keep tiny text on small viewports and
+   * vice versa — reported as a session-2026-05-17 bug.
+   */
+  container-type: size;
 
   &:active {
     transform: scale(0.98);
@@ -526,7 +533,12 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
 `;
 
 const ButtonLabel = styled.span`
-  font-size: clamp(28px, 10vw, 120px);
+  /*
+   * 22cqmin = 22% of the smaller of the button's width/height. clamp
+   * keeps the text legible on a 3x3 grid cell (~min 28px) without
+   * exceeding a sensible ceiling on huge wallboard layouts.
+   */
+  font-size: clamp(28px, 22cqmin, 120px);
   line-height: 1;
 `;
 
