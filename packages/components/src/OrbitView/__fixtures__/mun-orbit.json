@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "mun-orbit",
+    "notes": "Stable low orbit around the Mun (no atmosphere). Exercises getBody() color/radius for a non-Kerbin body. argPe=270° places periapsis on the right side of the diagram, exercising the bbox rotation math for a near-vertical apsis line."
+  },
+  "v.body": "Mun",
+  "o.sma": 215000,
+  "o.eccentricity": 0.06,
+  "o.trueAnomaly": 180,
+  "o.argumentOfPeriapsis": 270,
+  "o.ApR": 227900,
+  "o.PeR": 202100,
+  "o.ApA": 27900,
+  "o.PeA": 2100,
+  "b.number": 0
+}

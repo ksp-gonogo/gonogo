@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "scenario": "no-vessel-data",
+    "notes": "Empty / loading state — no body, no position telemetry yet."
+  }
+}

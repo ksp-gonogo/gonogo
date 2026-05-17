@@ -588,9 +588,11 @@ const ConfirmDeclineButton = styled(ActionButton)`
   background: var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   border-color: transparent;
-  animation: declinePulse 1s ease-in-out infinite;
-
+  /* The animation property must live inside the same media guard as
+     the keyframes — wrapping only the keyframes leaves the animation
+     active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
+    animation: declinePulse 1s ease-in-out infinite;
     @keyframes declinePulse {
       0%,
       100% {
@@ -621,7 +623,11 @@ const ConfirmCancelButton = styled(ActionButton)`
   border-color: transparent;
   font-size: 10px;
   padding: 2px 8px;
-  animation: declinePulse 1s ease-in-out infinite;
+  /* Reuses the declinePulse @keyframes from ConfirmDeclineButton above
+     (declared inside the same media guard). */
+  @media (prefers-reduced-motion: no-preference) {
+    animation: declinePulse 1s ease-in-out infinite;
+  }
 `;
 
 const ContractCard = styled.div`
@@ -857,6 +863,10 @@ registerComponent<MissionDirectorConfig>({
     "contracts.offered",
     "contracts.completedRecent",
     "t.universalTime",
+    // Consumed by AltitudeProgress on altitude-bounded contract
+    // parameters. Without listing it here the orchestrator never
+    // subscribes and the bar stays empty in production.
+    "v.altitude",
   ],
   defaultConfig: {},
   actions: [],

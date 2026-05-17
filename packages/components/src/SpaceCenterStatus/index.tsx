@@ -417,6 +417,11 @@ const UpgradeRow = styled.div`
   justify-content: space-between;
   gap: 6px;
   margin-top: 4px;
+  /* Allow the Upgrade button to wrap to a new line when the grid cell
+     is too narrow for cost + button side-by-side (default-6x7 at
+     3-col grid gives ~62 px per cell, not enough for both). The
+     button keeps its full label and stacks below the cost label. */
+  flex-wrap: wrap;
 `;
 
 const UpgradeCost = styled.span<{ $afford: boolean }>`
@@ -476,6 +481,11 @@ const UpgradeButtonStyled = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
+  /* "Upgrade" label clipped to "Upgr" at default-6x7 because flex
+     squeezed the button into the 1fr cost column's leftover space.
+     Keep the label whole and the button at its intrinsic width. */
+  white-space: nowrap;
+  flex-shrink: 0;
 
   &:hover:not(:disabled) {
     color: var(--color-accent-fg);
@@ -492,9 +502,11 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   border-color: transparent;
-  animation: upgradePulse 1s ease-in-out infinite;
-
+  /* The animation property must live inside the same media guard as
+     the keyframes — the bare property outside the guard fires for
+     reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
+    animation: upgradePulse 1s ease-in-out infinite;
     @keyframes upgradePulse {
       0%,
       100% {

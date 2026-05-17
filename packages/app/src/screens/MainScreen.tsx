@@ -32,6 +32,9 @@ import {
   AlarmsLauncherBridge,
   AlarmsModal,
   createAlarmHost,
+  FiredAlarmPills,
+  SafetyMarginPill,
+  UnscheduledWarpPill,
   useAlarmHost,
 } from "../alarms";
 import type { AlarmSnapshot } from "../alarms/types";
@@ -259,7 +262,18 @@ export function MainScreen() {
                                   </FabClusterProvider>
                                   <ReplayBanner />
                                   <BannerStack>
+                                    {/* BannerStack is row-reverse —
+                                        first DOM child sits closest
+                                        to the FAB. AlarmBanner stays
+                                        adjacent; per-concern pills
+                                        (safety margin, fired alarms,
+                                        unscheduled warp) stack to its
+                                        left as separate single-row
+                                        pills. */}
                                     <AlarmBanner />
+                                    <SafetyMarginPill />
+                                    <FiredAlarmPills />
+                                    <UnscheduledWarpPill />
                                     <SignalLossIndicator />
                                     <SustainedFailureBanner />
                                     <SceneChangeBanner />

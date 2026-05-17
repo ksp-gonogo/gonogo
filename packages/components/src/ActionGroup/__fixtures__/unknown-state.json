@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "unknown-state",
+    "notes": "Widget configured for Brake group but v.brakeValue not yet received from telemetry. StateIndicator should show '—' in faint colour.",
+    "widgetConfig": { "actionGroupId": "Brake" }
+  },
+  "t.isPaused": false,
+  "comm.connected": true
+}

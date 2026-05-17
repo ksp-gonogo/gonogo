@@ -101,9 +101,14 @@ function CommSignalComponent({
   const rows = h ?? 5;
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
+  // "LOS" (loss of signal) vs "—" (no telemetry) — both render zero
+  // bars, so the headline label is the only differentiator at tiny
+  // sizes where subtitle + detail grid are suppressed. Without this
+  // split, an occluded vessel and a connection-lost probe looked
+  // identical in the min-3x3 mode.
   const headline =
     connected === false
-      ? "—"
+      ? "LOS"
       : pct !== null
         ? `${(pct * 100).toFixed(0)}%`
         : control.label;
@@ -127,7 +132,9 @@ function CommSignalComponent({
               <Bar key={i} $lit={i <= bars} $tone={control.tone} />
             ))}
           </Bars>
-          <StrengthPct>{headline}</StrengthPct>
+          <StrengthPct $tone={connected === false ? "lost" : undefined}>
+            {headline}
+          </StrengthPct>
         </Readout>
 
         {showDetailGrid && (
@@ -195,10 +202,14 @@ const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
   }
 `;
 
-const StrengthPct = styled.span`
+const StrengthPct = styled.span<{ $tone?: Tone }>`
   font-size: 15px;
-  color: var(--color-text-primary);
+  color: ${({ $tone }) =>
+    $tone === "lost"
+      ? "var(--color-status-nogo-fg)"
+      : "var(--color-text-primary)"};
   letter-spacing: 0.04em;
+  font-weight: ${({ $tone }) => ($tone === "lost" ? 700 : 400)};
 `;
 
 const Grid = styled.div`

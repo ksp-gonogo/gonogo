@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "scenario": "pending-time-alarm",
+    "notes": "Pending time-based alarm 5min out, warp 1x. Warp-to button visible (time alarm = warpable)."
+  },
+  "alarms": [
+    {
+      "id": "a1",
+      "name": "MNV burn start",
+      "state": "pending",
+      "trigger": { "kind": "time", "ut": 1300, "leadSeconds": 10 },
+      "fireActions": ["beep"],
+      "createdAtUT": 800
+    }
+  ],
+  "ut": 1000,
+  "warp": { "index": 0, "rate": 1, "mode": "HIGH" },
+  "unscheduledWarp": null,
+  "warpTo": null,
+  "warpSafetyMarginSeconds": 10
+}

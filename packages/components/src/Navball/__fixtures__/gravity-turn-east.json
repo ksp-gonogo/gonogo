@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Mid-ascent gravity turn — 45° pitch climbing east, wings level. Horizon should drop ~halfway toward the dial bottom. SAS holding prograde, throttle at 80%, no RCS.",
+    "scenario": "gravity-turn-east"
+  },
+  "n.heading": 90,
+  "n.pitch": 45,
+  "n.roll": 0,
+  "f.sasMode": "Prograde",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0.8,
+  "v.isControllable": true
+}

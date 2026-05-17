@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "scenario": "kerbin-reentry",
+    "notes": "Re-entry over the equator with predicted impact downrange."
+  },
+  "v.body": "Kerbin",
+  "v.lat": -2.5,
+  "v.long": -45.2,
+  "v.altitude": 28000,
+  "n.pitch": -8,
+  "n.heading": 280,
+  "v.dynamicPressure": 4500,
+  "v.mach": 6.2,
+  "v.surfaceSpeed": 1820,
+  "v.verticalSpeed": -210,
+  "t.universalTime": 9876543,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "land.predictedLat": 0.4,
+  "land.predictedLon": -65.8,
+  "a.physicsMode": "Atmospheric"
+}

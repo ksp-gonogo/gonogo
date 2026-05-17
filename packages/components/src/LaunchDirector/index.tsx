@@ -580,13 +580,20 @@ function ArmedButton({
         onClick={onConfirm}
         $kind={kind}
         disabled={disabled}
+        data-launch-action={`confirm-${kind}`}
       >
         {confirmLabel}
       </ConfirmButton>
     );
   }
   return (
-    <ArmButton type="button" onClick={onArm} $kind={kind} disabled={disabled}>
+    <ArmButton
+      type="button"
+      onClick={onArm}
+      $kind={kind}
+      disabled={disabled}
+      data-launch-action={`arm-${kind}`}
+    >
       {label}
     </ArmButton>
   );
@@ -613,10 +620,11 @@ const SectionLabel = styled.div`
   margin-top: 2px;
 `;
 
-const ShipList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Was `styled.ul` but `<button>` is not a valid child of `<ul>` (only
+   `<li>` is). The list-of-buttons UI doesn't benefit from list
+   semantics here — screen readers don't typically need a length count
+   for a craft picker. Use `div` and keep the same flex layout. */
+const ShipList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -904,9 +912,11 @@ const ConfirmButton = styled.button<{
       ? "var(--color-status-go-fg)"
       : "var(--color-status-nogo-fg)"};
   border-color: transparent;
-  animation: armedPulse 1s ease-in-out infinite;
-
+  /* The animation property lives inside the same media guard as the
+     keyframes — wrapping only the keyframes leaves the animation
+     active for reduced-motion users (CLAUDE.md a11y rule). */
   @media (prefers-reduced-motion: no-preference) {
+    animation: armedPulse 1s ease-in-out infinite;
     @keyframes armedPulse {
       0%,
       100% {

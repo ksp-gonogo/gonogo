@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "reentry-critical",
+    "notes": "Deep reentry — hottest part is at 98% of its max temperature limit. CRITICAL band. Shield is under massive ablative flux. Engine remains cool."
+  },
+  "therm.hottestPartName": "Heat Shield (2.5m)",
+  "therm.hottestPartTemp": 2230.0,
+  "therm.hottestPartMaxTemp": 2400,
+  "therm.hottestPartTempRatio": 0.98,
+  "therm.hottestEngineTemp": 310.0,
+  "therm.hottestEngineMaxTemp": 2273,
+  "therm.hottestEngineTempRatio": 0.14,
+  "therm.anyEnginesOverheating": false,
+  "therm.heatShieldTempCelsius": 2230.0,
+  "therm.heatShieldFlux": 18750.0
+}

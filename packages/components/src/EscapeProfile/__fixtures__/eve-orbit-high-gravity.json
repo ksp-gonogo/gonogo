@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "eve-orbit-high-gravity",
+    "notes": "Eve orbit at 100 km (just above atmosphere ceiling at 90 km). Eve escape velocity at this altitude ~4526 m/s. Orbital speed ~2500 m/s — well below. High-gravity body with thick atmosphere: large scale and wide reference curve."
+  },
+  "v.body": "Eve",
+  "v.altitude": 100000,
+  "v.orbitalVelocity": 2500
+}

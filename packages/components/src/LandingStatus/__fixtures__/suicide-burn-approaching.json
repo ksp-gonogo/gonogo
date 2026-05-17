@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "suicide-burn-approaching",
+    "notes": "Descending toward Mun at speed, suicide burn in ~15s. Full metric grid visible — impact time, impact speed with 'best' inline, altitude, descent rate, slope, predicted coords. Status row shows T−15.0s in warning colour."
+  },
+  "v.body": "Mun",
+  "v.heightFromTerrain": 2800,
+  "v.verticalSpeed": -42.5,
+  "v.atmosphericDensity": 0,
+  "v.atmosphericTemperature": 0,
+  "v.externalTemperature": 0,
+  "land.timeToImpact": 38,
+  "land.speedAtImpact": 120,
+  "land.bestSpeedAtImpact": 9,
+  "land.suicideBurnCountdown": 15,
+  "land.predictedLat": 1.234,
+  "land.predictedLon": -72.456,
+  "land.slopeAngle": 4.2
+}

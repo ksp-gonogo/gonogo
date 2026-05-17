@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "scenario": "firing-alarm",
+    "notes": "Alarm currently firing — red banner with Acknowledge button."
+  },
+  "alarms": [
+    {
+      "id": "f1",
+      "name": "Pe < 70km",
+      "state": "firing",
+      "trigger": {
+        "kind": "threshold",
+        "dataKey": "o.PeA",
+        "op": "<",
+        "value": 70000,
+        "leadSeconds": 0,
+        "sustainSeconds": 0
+      },
+      "fireActions": ["beep"],
+      "createdAtUT": 800,
+      "firedAtUT": 1000
+    }
+  ],
+  "ut": 1001,
+  "warp": { "index": 0, "rate": 1, "mode": "HIGH" },
+  "unscheduledWarp": null,
+  "warpTo": null,
+  "warpSafetyMarginSeconds": 10
+}

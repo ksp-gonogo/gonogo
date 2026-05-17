@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "cold-pad-all-off",
+    "notes": "Vehicle on the pad before launch. SAS off, RCS off, gear up (retracted), brakes off, lights off. Default group shown is SAS (v.sasValue)."
+  },
+  "v.sasValue": false,
+  "t.isPaused": false,
+  "comm.connected": true
+}

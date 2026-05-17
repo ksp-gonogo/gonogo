@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "scenario": "multi-fired",
+    "notes": "Multiple fired alarms — banner shows the headline + a FiredList below. Plus unscheduled-warp WarnRow. Tests vertical stack growth + tone escalation."
+  },
+  "alarms": [
+    {
+      "id": "f1",
+      "name": "MNV burn start",
+      "state": "fired",
+      "trigger": { "kind": "time", "ut": 1000, "leadSeconds": 0 },
+      "fireActions": ["beep"],
+      "createdAtUT": 500,
+      "firedAtUT": 1000
+    },
+    {
+      "id": "f2",
+      "name": "Pe < 70km",
+      "state": "fired",
+      "trigger": {
+        "kind": "threshold",
+        "dataKey": "o.PeA",
+        "op": "<",
+        "value": 70000,
+        "leadSeconds": 0,
+        "sustainSeconds": 0
+      },
+      "fireActions": ["beep"],
+      "createdAtUT": 800,
+      "firedAtUT": 1010
+    },
+    {
+      "id": "f3",
+      "name": "Apoapsis altitude reached",
+      "state": "fired",
+      "trigger": {
+        "kind": "threshold",
+        "dataKey": "o.ApA",
+        "op": ">=",
+        "value": 100000,
+        "leadSeconds": 0,
+        "sustainSeconds": 0
+      },
+      "fireActions": ["beep"],
+      "createdAtUT": 900,
+      "firedAtUT": 1020
+    }
+  ],
+  "ut": 1030,
+  "warp": { "index": 2, "rate": 10, "mode": "HIGH" },
+  "unscheduledWarp": { "index": 2, "detectedAtUT": 1020 },
+  "warpTo": null,
+  "warpSafetyMarginSeconds": 10
+}

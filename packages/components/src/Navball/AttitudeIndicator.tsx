@@ -158,8 +158,12 @@ export function AttitudeIndicator({
 
       <HeadingStrip>
         <HeadingTicker
+          // The ticker shares the strip's width (inset:0), so translateX(50%)
+          // shifts the whole tick row right by stripWidth/2 — combined with
+          // the per-degree shift this puts the current-heading tick directly
+          // under the centred pointer instead of at the strip's left edge.
           style={{
-            transform: `translateX(${-safeHeading * headingPxPerDeg}px)`,
+            transform: `translateX(calc(50% - ${safeHeading * headingPxPerDeg}px))`,
           }}
         >
           {headingMarkers(headingTickEvery).map((deg) => (
@@ -244,6 +248,13 @@ const HeadingTick = styled.div`
   position: absolute;
   top: 0;
   bottom: 0;
+  /* The tick container shrinks to fit its label, so anchoring with just a
+     left:Xpx style puts the LEFT EDGE at that position and the visible
+     tick + label end up offset by half the container's intrinsic width.
+     translateX(-50%) centres the visible content on the anchor so the
+     current-heading tick lines up under the fixed pointer at strip
+     centre. */
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;

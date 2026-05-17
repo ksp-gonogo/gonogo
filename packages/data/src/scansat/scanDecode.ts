@@ -27,6 +27,7 @@ export interface DecodedCoverage {
 export function decodeCoverage(
   bitmap: SCANCoverageBitmap,
 ): DecodedCoverage | null {
+  if (typeof bitmap.bits !== "string") return null;
   const bits = base64ToBytes(bitmap.bits);
   if (bits.length < (bitmap.width * bitmap.height + 7) >> 3) return null;
   return {
@@ -47,6 +48,7 @@ export interface DecodedHeights {
 }
 
 export function decodeHeightGrid(grid: SCANHeightGrid): DecodedHeights | null {
+  if (typeof grid.heights !== "string") return null;
   const bytes = base64ToBytes(grid.heights);
   const expected = grid.width * grid.height * 2;
   if (bytes.length < expected) return null;
@@ -72,6 +74,7 @@ export interface DecodedBiomes {
 }
 
 export function decodeBiomeGrid(grid: SCANBiomeGrid): DecodedBiomes | null {
+  if (typeof grid.indices !== "string") return null;
   const indices = base64ToBytes(grid.indices);
   if (indices.length < grid.width * grid.height) return null;
   return {

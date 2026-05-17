@@ -111,11 +111,13 @@ function KeplerPeriodComponent({
 
   return (
     <Wrap>
-      <GraphView
-        config={graphConfig}
-        referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-        title="KEPLER PERIOD"
-      />
+      <GraphSlot>
+        <GraphView
+          config={graphConfig}
+          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+          title="KEPLER PERIOD"
+        />
+      </GraphSlot>
       {showNoGmNotice && body && (
         <Notice role="status">
           No reference data for {body.name} — plotting trace only.
@@ -130,6 +132,13 @@ function KeplerPeriodComponent({
   );
 }
 
+const GraphSlot = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
 const Wrap = styled.div`
   position: relative;
   display: flex;
@@ -139,16 +148,22 @@ const Wrap = styled.div`
   min-height: 0;
 `;
 
+/* Notice sits below the chart as a normal flow row rather than an
+   absolute overlay — the absolute version covered the x-axis tick
+   labels at narrow heights. Shrinking the chart by ~24px is a fair
+   trade for keeping the axis legible while the degraded-state message
+   is visible. */
 const Notice = styled.div`
-  position: absolute;
-  bottom: 4px;
-  left: 8px;
+  flex: 0 0 auto;
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 2px;
   pointer-events: none;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 4px;
 `;
 
 registerComponent<KeplerPeriodConfig>({

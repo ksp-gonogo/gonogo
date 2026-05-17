@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Heading discriminator for the strip-alignment fix. With heading=0 the only label near the pointer is '0' (next labels are 30° away in either direction), so any residual offset between pointer and current-heading tick is unambiguous at a glance. Wings level, pitch level.",
+    "scenario": "north-level"
+  },
+  "n.heading": 0,
+  "n.pitch": 0,
+  "n.roll": 0,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0,
+  "v.isControllable": true
+}

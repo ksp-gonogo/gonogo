@@ -101,6 +101,12 @@ function DistanceToTargetComponent({
     );
   }
 
+  // Size-aware degrades: docking + approach modes ignore widget size when
+  // choosing which view to enter (distance-driven) but the rendered chrome
+  // needs to back off when the slot is small.
+  const rows = h ?? 5;
+  const cols = w ?? 6;
+
   if (mode === "docking-hud") {
     return (
       <DockingHud
@@ -114,6 +120,8 @@ function DistanceToTargetComponent({
         y={dockY}
         showCamera={hudMode === "hud-with-camera"}
         cameraId={config?.cameraId}
+        cols={cols}
+        rows={rows}
       />
     );
   }
@@ -128,13 +136,12 @@ function DistanceToTargetComponent({
           typeof closestApproachUT === "number" ? closestApproachUT : null
         }
         universalTime={typeof universalTime === "number" ? universalTime : null}
+        cols={cols}
       />
     );
   }
 
   // Tracking mode — selectively render auxiliary readouts as height shrinks.
-  const rows = h ?? 5;
-  const cols = w ?? 6;
   const showSubReadout =
     rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
   const showTargetName = rows >= 4 || cols >= 5;
@@ -165,6 +172,7 @@ interface ApproachHudProps {
   relVel: number | undefined;
   closestApproachUT: number | null;
   universalTime: number | null;
+  cols: number;
 }
 
 /**
@@ -183,7 +191,12 @@ function ApproachHud({
   relVel,
   closestApproachUT,
   universalTime,
+  cols,
 }: ApproachHudProps) {
+  // Narrow widget: the "Closing rate" label wraps and the TCA value
+  // ("T−02:05") clips at the right edge in the auto/1fr grid. Stack
+  // labels above values so each value gets the full inner width.
+  const stack = cols < 5;
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
   const closingMagnitude =
     relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
@@ -201,7 +214,7 @@ function ApproachHud({
     <Panel>
       <PanelTitle>APPROACH</PanelTitle>
       <TargetName>{name}</TargetName>
-      <ApproachGrid>
+      <ApproachGrid $stack={stack}>
         <ApproachLabel>Distance</ApproachLabel>
         <ApproachValue>
           {distance === undefined ? "—" : formatDistance(distance)}
@@ -245,6 +258,8 @@ interface DockingHudProps {
   y: number | undefined;
   showCamera: boolean;
   cameraId: string | undefined;
+  cols: number;
+  rows: number;
 }
 
 /**
@@ -254,8 +269,35 @@ interface DockingHudProps {
  * are visible but extreme misalignment clamps instead of sailing off-screen.
  */
 function DockingHud(props: DockingHudProps) {
-  const { name, distance, relVel, ax, ay, az, x, y, showCamera, cameraId } =
-    props;
+  const {
+    name,
+    distance,
+    relVel,
+    ax,
+    ay,
+    az,
+    x,
+    y,
+    showCamera,
+    cameraId,
+    cols,
+    rows,
+  } = props;
+
+  // Tiny widget: the viewport collapses to near-zero height after the
+  // overlay takes its share, so the reticle clips at the top edge and
+  // becomes useless. Drop it entirely and let the numeric readouts fill
+  // the slot.
+  const showViewport = rows >= 6 && cols >= 4;
+  // Narrow widget: HudGrid auto/1fr columns can't hold "0.12 m / -0.07 m"
+  // or "0.3° · -0.2° · 0.8°" without wrapping. Stack so each readout
+  // owns the row width.
+  const stackReadouts = cols < 5;
+  // Tiniest reachable size (3×4 minSize): even stacked, "0.12 m / -0.07 m"
+  // still overflows a ~70 px content area. Drop the X/Y and α/β/γ
+  // detail rows here — Δv alone is the headline closing/opening cue and
+  // the precision-instruments view is reserved for compact and above.
+  const showAlignmentDetail = cols >= 4;
 
   // Angular mapping to HUD coords. Clamp beyond ±8° so the reticle stays
   // inside the visible box — past that the pilot isn't docking, they're
@@ -280,28 +322,30 @@ function DockingHud(props: DockingHudProps) {
 
   return (
     <HudPanel role="region" aria-label={`Docking HUD for ${name}`}>
-      {showCamera && <HudCamera cameraId={cameraId} />}
-      <Viewport>
-        {/* Fixed centre crosshair */}
-        <Crosshair />
-        {/* Reticle driven by alignment angles */}
-        <Reticle
-          $aligned={aligned}
-          style={{
-            left: `${50 + dx * 40}%`,
-            top: `${50 + dy * 40}%`,
-          }}
-        />
-        {/* Axis ticks — give the pilot a sense of scale */}
-        <HorizTick style={{ left: "10%" }} />
-        <HorizTick style={{ left: "30%" }} />
-        <HorizTick style={{ left: "70%" }} />
-        <HorizTick style={{ left: "90%" }} />
-        <VertTick style={{ top: "10%" }} />
-        <VertTick style={{ top: "30%" }} />
-        <VertTick style={{ top: "70%" }} />
-        <VertTick style={{ top: "90%" }} />
-      </Viewport>
+      {showCamera && showViewport && <HudCamera cameraId={cameraId} />}
+      {showViewport && (
+        <Viewport>
+          {/* Fixed centre crosshair */}
+          <Crosshair />
+          {/* Reticle driven by alignment angles */}
+          <Reticle
+            $aligned={aligned}
+            style={{
+              left: `${50 + dx * 40}%`,
+              top: `${50 + dy * 40}%`,
+            }}
+          />
+          {/* Axis ticks — give the pilot a sense of scale */}
+          <HorizTick style={{ left: "10%" }} />
+          <HorizTick style={{ left: "30%" }} />
+          <HorizTick style={{ left: "70%" }} />
+          <HorizTick style={{ left: "90%" }} />
+          <VertTick style={{ top: "10%" }} />
+          <VertTick style={{ top: "30%" }} />
+          <VertTick style={{ top: "70%" }} />
+          <VertTick style={{ top: "90%" }} />
+        </Viewport>
+      )}
 
       <HudOverlay>
         <HudHeader>
@@ -310,7 +354,7 @@ function DockingHud(props: DockingHudProps) {
             {distance === undefined ? "—" : formatDistance(distance)}
           </HudRange>
         </HudHeader>
-        <HudGrid>
+        <HudGrid $stack={stackReadouts}>
           <HudLabel>Δv</HudLabel>
           <HudValue $tone={closing ? "ok" : "warn"}>
             {relVel === undefined || !Number.isFinite(relVel)
@@ -318,18 +362,22 @@ function DockingHud(props: DockingHudProps) {
               : `${relVel.toFixed(2)} m/s`}
           </HudValue>
 
-          <HudLabel>X/Y</HudLabel>
-          <HudValue>
-            {x === undefined ? "—" : `${x.toFixed(2)} m`} /{" "}
-            {y === undefined ? "—" : `${y.toFixed(2)} m`}
-          </HudValue>
+          {showAlignmentDetail && (
+            <>
+              <HudLabel>X/Y</HudLabel>
+              <HudValue>
+                {x === undefined ? "—" : `${x.toFixed(2)} m`} /{" "}
+                {y === undefined ? "—" : `${y.toFixed(2)} m`}
+              </HudValue>
 
-          <HudLabel>α/β/γ</HudLabel>
-          <HudValue>
-            {ax === undefined ? "—" : `${ax.toFixed(1)}°`} ·{" "}
-            {ay === undefined ? "—" : `${ay.toFixed(1)}°`} ·{" "}
-            {az === undefined ? "—" : `${az.toFixed(1)}°`}
-          </HudValue>
+              <HudLabel>α/β/γ</HudLabel>
+              <HudValue>
+                {ax === undefined ? "—" : `${ax.toFixed(1)}°`} ·{" "}
+                {ay === undefined ? "—" : `${ay.toFixed(1)}°`} ·{" "}
+                {az === undefined ? "—" : `${az.toFixed(1)}°`}
+              </HudValue>
+            </>
+          )}
         </HudGrid>
       </HudOverlay>
     </HudPanel>
@@ -510,11 +558,14 @@ const SubReadout = styled.div`
 
 // ── Styles — approach mode ────────────────────────────────────────────────────
 
-const ApproachGrid = styled.div`
+const ApproachGrid = styled.div<{ $stack: boolean }>`
   display: grid;
-  grid-template-columns: auto 1fr;
+  /* Wide widgets get a paired label/value row; narrow widgets stack so
+     the value claims the full inner width — fixes the auto/1fr collapse
+     where "Closing rate" wrapped to two lines and "T−02:05" clipped. */
+  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
   column-gap: 12px;
-  row-gap: 4px;
+  row-gap: ${({ $stack }) => ($stack ? "0" : "4px")};
   margin-top: 6px;
 `;
 
@@ -524,12 +575,14 @@ const ApproachLabel = styled.span`
   text-transform: uppercase;
   color: var(--color-text-muted);
   align-self: baseline;
+  white-space: nowrap;
 `;
 
 const ApproachValue = styled.span<{ $tone?: "ok" | "warn" }>`
   font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: ${({ $tone }) =>
     $tone === "ok"
       ? "var(--color-accent-fg)"
@@ -663,9 +716,11 @@ const HudRange = styled.span`
   color: var(--color-accent-fg);
 `;
 
-const HudGrid = styled.div`
+const HudGrid = styled.div<{ $stack: boolean }>`
   display: grid;
-  grid-template-columns: auto 1fr;
+  /* Narrow widgets stack so X/Y and α/β/γ values aren't squeezed into a
+     1fr column that can't hold them on one line. */
+  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
   gap: 1px 8px;
   margin-top: 4px;
 `;
@@ -675,10 +730,12 @@ const HudLabel = styled.span`
   color: var(--color-status-go-fg);
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  white-space: nowrap;
 `;
 
 const HudValue = styled.span<{ $tone?: "ok" | "warn" }>`
   font-size: 11px;
+  white-space: nowrap;
   color: ${({ $tone }) =>
     $tone === "warn"
       ? "var(--color-status-warning-bg)"

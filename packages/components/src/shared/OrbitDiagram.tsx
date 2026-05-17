@@ -150,6 +150,19 @@ export function OrbitDiagram({
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
+  // Hyperbolic orbits — Telemachus emits `sma < 0` and `ecc ≥ 1` on
+  // escape trajectories. The ellipse representation collapses (negative
+  // rx + zero ry from b = sma·√(1-e²) when e²>1) so we render a sampled
+  // hyperbolic path instead. Apoapsis is meaningless on a hyperbola so
+  // we suppress the marker and base scale-ref on periapsis.
+  const isHyperbolic = ecc >= 1 || sma <= 0;
+  const projIsHyperbolic = projected
+    ? projected.ecc >= 1 || projected.sma <= 0
+    : false;
+  const sec2IsHyperbolic = secondaryProjected
+    ? secondaryProjected.ecc >= 1 || secondaryProjected.sma <= 0
+    : false;
+
   // Orbital geometry — semi-minor axis and focus offset
   const b = sma * Math.sqrt(Math.max(0, 1 - ecc * ecc));
   const c = sma * ecc;
@@ -174,11 +187,23 @@ export function OrbitDiagram({
   const sec2ArgPe = secondaryProjected?.argPe ?? argPe;
 
   // Scale reference: expand to contain whichever orbit reaches furthest.
-  const scaleRef = Math.max(
-    apoapsis,
-    projected?.apoapsis ?? 0,
-    secondaryProjected?.apoapsis ?? 0,
-  );
+  // For hyperbolic trajectories, apoapsis is meaningless (Telemachus
+  // emits a huge sentinel — using it would zoom the diagram out to
+  // dwarf the body); fall back to a multiple of periapsis so the
+  // trajectory + body have visual breathing room.
+  const HYPERBOLIC_SCALE = 5;
+  const mainExtent = isHyperbolic ? periapsis * HYPERBOLIC_SCALE : apoapsis;
+  const projExtent = projected
+    ? projIsHyperbolic
+      ? projected.periapsis * HYPERBOLIC_SCALE
+      : projected.apoapsis
+    : 0;
+  const sec2Extent = secondaryProjected
+    ? sec2IsHyperbolic
+      ? secondaryProjected.periapsis * HYPERBOLIC_SCALE
+      : secondaryProjected.apoapsis
+    : 0;
+  const scaleRef = Math.max(mainExtent, projExtent, sec2Extent);
   const padding = scaleRef * cfg.padding;
   const strokeW = scaleRef * cfg.strokeW;
   const dotR = scaleRef * cfg.dotR;
@@ -216,8 +241,16 @@ export function OrbitDiagram({
   // orbit segment that crosses through it — for normal orbits the
   // orbit shows as a ring around the body, for sub-orbital the orbit
   // disappears into the body indicating impact.
+  //
+  // Floor at 4% of scaleRef so highly-eccentric orbits (apoapsis ≫
+  // bodyRadius — e.g. Kerbin 600 km against a 7 Mm Ap puts the body at
+  // <2% of the visible extent) still render a visible body. This
+  // exaggerates proportions in the corner case but the alternative is
+  // a body that's literally invisible.
+  const MIN_BODY_DISC_RATIO = 0.04;
+  const minDisc = scaleRef * MIN_BODY_DISC_RATIO;
   const bodyDisc = bodyRadius
-    ? bodyRadius
+    ? Math.max(bodyRadius, minDisc)
     : scaleRef * cfg.defaultBodyDiscRatio;
 
   // Bbox pipeline shared by both variants:
@@ -229,12 +262,18 @@ export function OrbitDiagram({
   // bbox covers sub-orbital trajectories where the body is much larger
   // than the orbit — without it, the body extends past the viewBox and
   // renders as a uniform colour across the whole frame.
-  const mainBox = orbitBoundingBox(sma, b, c, argPe);
+  const mainBox = isHyperbolic
+    ? hyperbolicBoundingBox(periapsis * HYPERBOLIC_SCALE)
+    : orbitBoundingBox(sma, b, c, argPe);
   const projBox = projected
-    ? orbitBoundingBox(projected.sma, projB, projC, projArgPe)
+    ? projIsHyperbolic
+      ? hyperbolicBoundingBox(projected.periapsis * HYPERBOLIC_SCALE)
+      : orbitBoundingBox(projected.sma, projB, projC, projArgPe)
     : null;
   const sec2Box = secondaryProjected
-    ? orbitBoundingBox(secondaryProjected.sma, sec2B, sec2C, sec2ArgPe)
+    ? sec2IsHyperbolic
+      ? hyperbolicBoundingBox(secondaryProjected.periapsis * HYPERBOLIC_SCALE)
+      : orbitBoundingBox(secondaryProjected.sma, sec2B, sec2C, sec2ArgPe)
     : null;
   const bodyBox = {
     xMin: -bodyDisc,
@@ -323,16 +362,30 @@ export function OrbitDiagram({
           the live trajectory stays visually dominant. */}
         {projected && (
           <g transform={`rotate(${-projArgPe})`}>
-            <ellipse
-              cx={-projC}
-              cy={0}
-              rx={projected.sma}
-              ry={projB}
-              fill="none"
-              stroke="rgba(255,180,40,0.75)"
-              strokeWidth={strokeW}
-              strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
-            />
+            {projIsHyperbolic ? (
+              <path
+                d={buildHyperbolicPath(
+                  projected.sma,
+                  projected.ecc,
+                  projected.periapsis * HYPERBOLIC_SCALE,
+                )}
+                fill="none"
+                stroke="rgba(255,180,40,0.75)"
+                strokeWidth={strokeW}
+                strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+              />
+            ) : (
+              <ellipse
+                cx={-projC}
+                cy={0}
+                rx={projected.sma}
+                ry={projB}
+                fill="none"
+                stroke="rgba(255,180,40,0.75)"
+                strokeWidth={strokeW}
+                strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+              />
+            )}
           </g>
         )}
 
@@ -341,29 +394,51 @@ export function OrbitDiagram({
           the intermediate transfer ellipse. */}
         {secondaryProjected && (
           <g transform={`rotate(${-sec2ArgPe})`}>
-            <ellipse
-              cx={-sec2C}
-              cy={0}
-              rx={secondaryProjected.sma}
-              ry={sec2B}
-              fill="none"
-              stroke="rgba(255,180,40,0.95)"
-              strokeWidth={strokeW}
-            />
+            {sec2IsHyperbolic ? (
+              <path
+                d={buildHyperbolicPath(
+                  secondaryProjected.sma,
+                  secondaryProjected.ecc,
+                  secondaryProjected.periapsis * HYPERBOLIC_SCALE,
+                )}
+                fill="none"
+                stroke="rgba(255,180,40,0.95)"
+                strokeWidth={strokeW}
+              />
+            ) : (
+              <ellipse
+                cx={-sec2C}
+                cy={0}
+                rx={secondaryProjected.sma}
+                ry={sec2B}
+                fill="none"
+                stroke="rgba(255,180,40,0.95)"
+                strokeWidth={strokeW}
+              />
+            )}
           </g>
         )}
 
         {/* Trajectory first so the body overdraws it at the focus */}
         <g transform={`rotate(${-argPe})`}>
-          <ellipse
-            cx={-c}
-            cy={0}
-            rx={sma}
-            ry={b}
-            fill="none"
-            stroke={orbitStroke}
-            strokeWidth={strokeW}
-          />
+          {isHyperbolic ? (
+            <path
+              d={buildHyperbolicPath(sma, ecc, periapsis * HYPERBOLIC_SCALE)}
+              fill="none"
+              stroke={orbitStroke}
+              strokeWidth={strokeW}
+            />
+          ) : (
+            <ellipse
+              cx={-c}
+              cy={0}
+              rx={sma}
+              ry={b}
+              fill="none"
+              stroke={orbitStroke}
+              strokeWidth={strokeW}
+            />
+          )}
         </g>
 
         {/* Atmosphere band — soft radial gradient from body surface to
@@ -418,18 +493,24 @@ export function OrbitDiagram({
         <g transform={`rotate(${-argPe})`}>
           {showMarkers && (
             <>
-              <ApsisMarker
-                cx={-apoapsis}
-                cy={0}
-                r={dotR}
-                fill="var(--color-status-warning-bg)"
-                aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
-                onMouseEnter={() => setHoveredMarker("ap")}
-                onMouseLeave={() => setHoveredMarker(null)}
-                onFocus={() => setHoveredMarker("ap")}
-                onBlur={() => setHoveredMarker(null)}
-                tabIndex={0}
-              />
+              {/* Apoapsis is undefined on a hyperbolic trajectory — skip
+                  the marker rather than placing it at the sentinel value
+                  Telemachus emits, which would land it off-screen and
+                  point a "tab to focus" target at empty space. */}
+              {!isHyperbolic && (
+                <ApsisMarker
+                  cx={-apoapsis}
+                  cy={0}
+                  r={dotR}
+                  fill="var(--color-status-warning-bg)"
+                  aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
+                  onMouseEnter={() => setHoveredMarker("ap")}
+                  onMouseLeave={() => setHoveredMarker(null)}
+                  onFocus={() => setHoveredMarker("ap")}
+                  onBlur={() => setHoveredMarker(null)}
+                  tabIndex={0}
+                />
+              )}
               <ApsisMarker
                 cx={periapsis}
                 cy={0}
@@ -471,18 +552,20 @@ export function OrbitDiagram({
             corresponding marker. */}
         {showMarkers && cfg.showLabels && (
           <g pointerEvents="none">
-            <ApsisLabel
-              x={apoLabelPos.x}
-              y={apoLabelPos.y}
-              fill="var(--color-status-warning-bg)"
-              fontSizePx={labelPxSize}
-              vbPerPx={vbPerPx}
-              text={
-                hoveredMarker === "ap"
-                  ? formatAltitude(apoapsis, bodyRadius)
-                  : "Ap"
-              }
-            />
+            {!isHyperbolic && (
+              <ApsisLabel
+                x={apoLabelPos.x}
+                y={apoLabelPos.y}
+                fill="var(--color-status-warning-bg)"
+                fontSizePx={labelPxSize}
+                vbPerPx={vbPerPx}
+                text={
+                  hoveredMarker === "ap"
+                    ? formatAltitude(apoapsis, bodyRadius)
+                    : "Ap"
+                }
+              />
+            )}
             <ApsisLabel
               x={periLabelPos.x}
               y={periLabelPos.y}
@@ -594,6 +677,53 @@ interface BBox {
 }
 
 /** Bbox of one orbit (focus at origin, rotated by argPe). */
+/** Bounding box for a hyperbolic trajectory rendered out to `rMax`.
+ *  We render the trajectory symmetrically around the focus so a square
+ *  box of ±rMax covers the visible extent. The body sits at origin
+ *  inside this box; periapsis sits on the +x axis at `periapsis` units. */
+function hyperbolicBoundingBox(rMax: number): BBox {
+  return { xMin: -rMax, xMax: rMax, yMin: -rMax, yMax: rMax };
+}
+
+/** Sample points along a hyperbolic trajectory and emit an SVG path `d`
+ *  string. Walks true anomaly from -180° to +180° in 2° steps, skipping
+ *  the asymptote (r ≤ 0) and any point past `rMax` so the path doesn't
+ *  shoot off-screen. */
+function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
+  const points: string[] = [];
+  for (let theta = -180; theta <= 180; theta += 2) {
+    const r = trueAnomalyToRadius(sma, ecc, theta);
+    if (!Number.isFinite(r) || r <= 0 || r > rMax) {
+      // Discontinuity / clipped — emit a path break so we don't draw a
+      // straight line across the missing arc.
+      if (points.length > 0 && !points[points.length - 1].startsWith("__")) {
+        points.push("__BREAK__");
+      }
+      continue;
+    }
+    const { x, y } = orbitalToCartesian(r, theta);
+    points.push(`${x.toFixed(1)},${(-y).toFixed(1)}`);
+  }
+  // Build path segments — each consecutive run of points becomes one
+  // `M … L …` chain; `__BREAK__` tokens split runs.
+  const segments: string[] = [];
+  let current: string[] = [];
+  for (const p of points) {
+    if (p === "__BREAK__") {
+      if (current.length > 0) {
+        segments.push(`M ${current[0]} L ${current.slice(1).join(" L ")}`);
+        current = [];
+      }
+    } else {
+      current.push(p);
+    }
+  }
+  if (current.length > 0) {
+    segments.push(`M ${current[0]} L ${current.slice(1).join(" L ")}`);
+  }
+  return segments.join(" ");
+}
+
 function orbitBoundingBox(
   sma: number,
   b: number,

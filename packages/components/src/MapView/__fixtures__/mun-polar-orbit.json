@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "scenario": "mun-polar-orbit",
+    "notes": "Polar orbit around Mun — useful for testing the equirectangular projection at high latitudes."
+  },
+  "v.body": "Mun",
+  "v.lat": 65.0,
+  "v.long": 30.0,
+  "v.altitude": 35000,
+  "n.pitch": 0,
+  "n.heading": 0,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 632,
+  "v.verticalSpeed": 0,
+  "t.universalTime": 5555555,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "a.physicsMode": "Orbital"
+}

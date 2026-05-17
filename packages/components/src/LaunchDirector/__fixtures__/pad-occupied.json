@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "pad-occupied",
+    "notes": "A vessel is on the pad but not in flight (SpaceCenter scene, padOccupied=true). Shows Recover and Revert to VAB arm-buttons. Funds readout visible."
+  },
+  "kc.savedShips": [],
+  "kc.crewRoster": [],
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Kerbal X",
+  "kc.launchSite": "LaunchPad",
+  "kc.scene": "SpaceCenter",
+  "career.funds": 289848
+}

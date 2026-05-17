@@ -26,8 +26,18 @@ function SemiMajorAxisComponent({
 
   const cols = w ?? 4;
   const rows = h ?? 4;
-  const showSubtitle = rows >= 4;
+  // Subtitle is "what is this widget" elaboration — suppress when there's
+  // no room without crowding the readout. At default 4×4 the PanelTitle
+  // ("SMA") + value already cover the operator's read-at-a-glance need.
+  const showSubtitle = rows >= 5 && cols >= 4;
   const showSparkline = rows >= 4 && cols >= 3;
+
+  // Readout font scales with available width so the value (e.g.
+  // "2.87 Mm", "680.0 km") doesn't wrap onto two lines at narrow column
+  // counts. Wrap was the underlying cause of the readout overlapping the
+  // subtitle on small widgets — keep it on one line and the layout
+  // resolves itself.
+  const readoutFontPx = cols <= 3 ? 18 : cols <= 4 ? 22 : 28;
 
   // Sparkline width tracks its slot via ResizeObserver so a narrow column
   // doesn't paint a 120-px sparkline across the title row.
@@ -62,7 +72,11 @@ function SemiMajorAxisComponent({
         </PanelSubtitle>
       )}
       <Body>
-        <Readout role="status" aria-live="polite">
+        <Readout
+          role="status"
+          aria-live="polite"
+          style={{ fontSize: `${readoutFontPx}px` }}
+        >
           {formatDistance(sma)}
         </Readout>
         {showSparkline && (
@@ -95,6 +109,7 @@ const Readout = styled.div`
   letter-spacing: 0.04em;
   color: var(--color-text-primary);
   text-align: center;
+  white-space: nowrap;
 `;
 
 const SparkSlot = styled.div`

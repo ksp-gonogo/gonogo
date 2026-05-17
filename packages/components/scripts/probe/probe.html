@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Widget probe</title>
+    <style id="probe-theme">/* injected by render-widget driver from packages/app/src/styles/global.css */</style>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-surface-app);
+        color: var(--color-text-primary);
+        font-family: var(--font-family-mono);
+      }
+      /* The probe sizes #root explicitly per call; the wrapper centres it
+         in the viewport so screenshots have a clean dark margin around the
+         widget rather than the widget being flush against the viewport
+         edge (helpful when the widget has any outer drop-shadow or hover
+         affordance). */
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #root {
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./probe-entry.bundle.js"></script>
+  </body>
+</html>

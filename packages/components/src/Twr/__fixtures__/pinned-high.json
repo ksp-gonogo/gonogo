@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "scenario": "pinned-high",
+    "notes": "Light probe or upper stage, TWR 4.5 — exceeds GAUGE_MAX=3, should render with the needle pinned at the maximum arc end. Tests clamping behaviour."
+  },
+  "dv.currentTWR": 4.5
+}

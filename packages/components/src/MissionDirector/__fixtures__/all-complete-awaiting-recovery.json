@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "scenario": "all-complete-awaiting-recovery",
+    "notes": "All parameters complete on the active contract — vessel has done everything, contract still 'Active' waiting for KSP to confirm completion (recovery or final parameter check). Shows all checkmarks. Also one recently completed contract in the recent section. Tight deadline — 2h left."
+  },
+  "contracts.active": [
+    {
+      "id": "55",
+      "title": "Land on the Mun and return",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 8000,
+      "fundsCompletion": 40000,
+      "scienceCompletion": 20,
+      "repCompletion": 8,
+      "deadlineUt": 132540,
+      "parameters": [
+        {
+          "title": "Reach Mun orbit",
+          "state": "Complete",
+          "optional": false
+        },
+        {
+          "title": "Land on the Mun",
+          "state": "Complete",
+          "optional": false
+        },
+        {
+          "title": "Return to Kerbin and recover",
+          "state": "Complete",
+          "optional": false
+        },
+        {
+          "title": "Collect surface samples",
+          "state": "Complete",
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [],
+  "contracts.completedRecent": [
+    {
+      "id": "31",
+      "title": "First Crewed Orbit",
+      "agency": "Kerbin Space Program",
+      "state": "Completed",
+      "fundsAdvance": 0,
+      "fundsCompletion": 15000,
+      "scienceCompletion": 5,
+      "repCompletion": 10,
+      "deadlineUt": 0,
+      "parameters": []
+    }
+  ],
+  "t.universalTime": 125340,
+  "v.altitude": 85000
+}

@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "mun-orbit",
+    "notes": "Low Mun orbit at ~15 km. Mun radius 200 km, SMA ≈ 215 km, period ≈ 54 min. Tests body switching: the Kepler curve should re-render for Mun's GM."
+  },
+  "v.body": "Mun",
+  "o.referenceBody": "Mun",
+  "o.sma": 215000,
+  "o.period": 3242.0
+}

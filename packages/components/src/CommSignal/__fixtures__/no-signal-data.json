@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "scenario": "no-signal-data",
+    "notes": "Telemachus not yet publishing comm.* keys — widget should fall through to the EmptyState placeholder. All comm keys absent (only underscore-prefixed metadata)."
+  }
+}

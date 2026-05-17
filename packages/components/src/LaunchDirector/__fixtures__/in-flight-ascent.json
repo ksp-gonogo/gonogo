@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "scenario": "in-flight-ascent",
+    "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible."
+  },
+  "kc.savedShips": [],
+  "kc.crewRoster": [],
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Mun Hopper I",
+  "kc.launchSite": "LaunchPad",
+  "kc.scene": "Flight",
+  "career.funds": 42500,
+  "v.name": "Mun Hopper I",
+  "v.missionTime": 263,
+  "v.altitude": 12450,
+  "ksp.canRevertToLaunch": true,
+  "ksp.canRevertToEditor": true,
+  "crash.hasRecent": false,
+  "tar.availableVessels": [
+    {
+      "index": 1,
+      "name": "Stayputnik I",
+      "type": "Probe",
+      "body": "Kerbin",
+      "situation": "ORBITING",
+      "position": [500000, 0, 0]
+    },
+    {
+      "index": 2,
+      "name": "Relay Sat A",
+      "type": "Probe",
+      "body": "Kerbin",
+      "situation": "ORBITING",
+      "position": [800000, 200000, 0]
+    }
+  ]
+}

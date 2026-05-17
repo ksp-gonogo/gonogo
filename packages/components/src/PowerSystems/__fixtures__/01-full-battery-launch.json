@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "scenario": "full-battery-launch",
+    "notes": "On the launchpad. Battery at 100%. Solar panel deployed, RTG running. Small net positive from solar+RTG minus probe draw. Good baseline showing all sections populated."
+  },
+  "v.topologySeq": 1,
+  "v.topology": {
+    "topologySeq": 1,
+    "rootFlightId": 1001,
+    "parts": [
+      {
+        "flightId": 1001,
+        "name": "mk1pod.v2",
+        "title": "Mk1 Command Pod",
+        "parentFlightId": null,
+        "modules": ["ModuleCommand", "ModuleReactionWheel"],
+        "dryMass": 0.8,
+        "orgPos": [0, 0, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+        "category": "Pods",
+        "crewCapacity": 1,
+        "inverseStage": -1,
+        "crashTolerance": 14,
+        "maxTemp": 1200,
+        "persistentId": 1001001
+      },
+      {
+        "flightId": 1002,
+        "name": "solarPanels1",
+        "title": "OX-STAT Photovoltaic Panels",
+        "parentFlightId": 1001,
+        "modules": ["ModuleDeployableSolarPanel"],
+        "dryMass": 0.005,
+        "orgPos": [0.6, 0, 0],
+        "up": [1, 0, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.1, "z": 0.5 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1002001
+      },
+      {
+        "flightId": 1003,
+        "name": "rtg",
+        "title": "PB-NUK Radioisotope Thermoelectric Generator",
+        "parentFlightId": 1001,
+        "modules": ["ModuleGenerator"],
+        "dryMass": 0.08,
+        "orgPos": [-0.6, 0, 0],
+        "up": [-1, 0, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 1003001
+      },
+      {
+        "flightId": 1004,
+        "name": "batteryBankLarge",
+        "title": "Z-4K Rechargeable Battery Bank",
+        "parentFlightId": 1001,
+        "modules": [],
+        "dryMass": 0.1,
+        "orgPos": [0, -0.6, 0],
+        "up": [0, -1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.5, "z": 0.625 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1004001
+      },
+      {
+        "flightId": 1005,
+        "name": "probeCoreCube",
+        "title": "OKTO Probe Core",
+        "parentFlightId": 1001,
+        "modules": ["ModuleCommand", "ModuleReactionWheel"],
+        "dryMass": 0.1,
+        "orgPos": [0, 0.8, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.4, "z": 0.625 } },
+        "category": "Pods",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 9,
+        "maxTemp": 1200,
+        "persistentId": 1005001
+      }
+    ]
+  },
+  "r.resourceFor[1001]": {
+    "ElectricCharge": {
+      "amount": 50.0,
+      "maxAmount": 50.0,
+      "flow": -0.12,
+      "nominalFlow": -0.18
+    }
+  },
+  "r.resourceFor[1002]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.35,
+      "nominalFlow": 0.35
+    }
+  },
+  "r.resourceFor[1003]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.75,
+      "nominalFlow": 0.75
+    }
+  },
+  "r.resourceFor[1004]": {
+    "ElectricCharge": {
+      "amount": 4000.0,
+      "maxAmount": 4000.0
+    }
+  },
+  "r.resourceFor[1005]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": -0.05
+    }
+  }
+}

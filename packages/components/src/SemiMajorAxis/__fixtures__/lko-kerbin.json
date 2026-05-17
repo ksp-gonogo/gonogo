@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "lko-kerbin",
+    "notes": "Low Kerbin Orbit. Kerbin radius 600 km + ~80 km altitude = 680 km SMA. Sparkline shows the last 5 minutes of station-keeping nudging the SMA up by ~600 m."
+  },
+  "_series": {
+    "o.sma": [
+      { "t": -300000, "v": 679400 },
+      { "t": -250000, "v": 679550 },
+      { "t": -200000, "v": 679680 },
+      { "t": -150000, "v": 679800 },
+      { "t": -100000, "v": 679900 },
+      { "t": -50000, "v": 679960 },
+      { "t": 0, "v": 680000 }
+    ]
+  },
+  "o.sma": 680000,
+  "o.referenceBody": "Kerbin"
+}

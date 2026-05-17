@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "eve-thick-atmosphere",
+    "notes": "Low altitude over Eve at 2000 m. Eve has ~5 atm at sea level (506 625 Pa) — tests the extreme high-pressure end of the log scale and density formatting in kg/m³ (density ~6 kg/m³). Threshold line sits near the top."
+  },
+  "v.body": "Eve",
+  "v.altitude": 2000,
+  "v.atmosphericDensity": 5.98,
+  "v.atmosphericTemperature": 370.0,
+  "v.externalTemperature": 375.0
+}

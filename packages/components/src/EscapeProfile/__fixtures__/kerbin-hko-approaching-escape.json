@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "scenario": "kerbin-hko-approaching-escape",
+    "notes": "High Kerbin orbit at 500 km. Orbital speed ~1950 m/s; escape velocity at this altitude ~2250 m/s. Trace dot is close to the curve — craft near escape."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 500000,
+  "v.orbitalVelocity": 1950
+}

@@ -1,4 +1,9 @@
-export { AlarmBanner } from "./AlarmBanner";
+export {
+  AlarmBanner,
+  FiredAlarmPills,
+  SafetyMarginPill,
+  UnscheduledWarpPill,
+} from "./AlarmBanner";
 export { AlarmClientService } from "./AlarmClientService";
 export {
   AlarmHostProvider,

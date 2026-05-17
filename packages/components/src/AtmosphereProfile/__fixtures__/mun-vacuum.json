@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "mun-vacuum",
+    "notes": "Orbiting the Mun at 15 000 m. No atmosphere — should show the airless notice overlay and suppress the live chip (density=0). Tests the showAirlessNotice path and chip suppression gate."
+  },
+  "v.body": "Mun",
+  "v.altitude": 15000,
+  "v.atmosphericDensity": 0,
+  "v.atmosphericTemperature": 3.0,
+  "v.externalTemperature": 3.0
+}

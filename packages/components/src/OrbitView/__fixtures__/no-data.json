@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "no-data",
+    "notes": "No orbital data emitted. Widget should show the 'No orbital data' fallback text. All orbit keys omitted so hasOrbit stays false. Used to verify the empty-state renders cleanly at every size."
+  },
+  "v.body": "Kerbin",
+  "b.number": 0
+}

@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "scenario": "kerbin-upper-atmosphere",
+    "notes": "High-altitude cruise at 40 km on Kerbin. Pressure ~1.5 Pa (very thin). Threshold line sits near the bottom of the log chart. Skin temp slightly elevated from aerobraking friction."
+  },
+  "v.body": "Kerbin",
+  "v.altitude": 40000,
+  "v.atmosphericDensity": 0.00392,
+  "v.atmosphericTemperature": 230.0,
+  "v.externalTemperature": 245.0
+}

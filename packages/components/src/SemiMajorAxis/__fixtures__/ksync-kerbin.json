@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "ksync-kerbin",
+    "notes": "Kerbosynchronous orbit around Kerbin. SMA ~2868.75 km from body centre (well-known KSP value). Period matches Kerbin's rotation."
+  },
+  "o.sma": 2868750,
+  "o.referenceBody": "Kerbin"
+}

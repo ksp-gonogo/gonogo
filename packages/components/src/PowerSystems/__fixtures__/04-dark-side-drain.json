@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "scenario": "dark-side-drain",
+    "notes": "On the night side of Kerbin — solar panels deployed but shaded, producing zero. RTG still running. Shows the idle section (solar panels with nominalFlow but flow=0). Net negative from RTG-only production minus base draw."
+  },
+  "v.topologySeq": 4,
+  "v.topology": {
+    "topologySeq": 4,
+    "rootFlightId": 1001,
+    "parts": [
+      {
+        "flightId": 1001,
+        "name": "mk1pod.v2",
+        "title": "Mk1 Command Pod",
+        "parentFlightId": null,
+        "modules": ["ModuleCommand", "ModuleReactionWheel"],
+        "dryMass": 0.8,
+        "orgPos": [0, 0, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+        "category": "Pods",
+        "crewCapacity": 1,
+        "inverseStage": -1,
+        "crashTolerance": 14,
+        "maxTemp": 1200,
+        "persistentId": 1001001
+      },
+      {
+        "flightId": 1002,
+        "name": "largeSolarPanel",
+        "title": "Gigantor XL Solar Array",
+        "parentFlightId": 1001,
+        "modules": ["ModuleDeployableSolarPanel"],
+        "dryMass": 0.3,
+        "orgPos": [2.0, 0, 0],
+        "up": [1, 0, 0],
+        "bounds": { "size": { "x": 0.4, "y": 0.1, "z": 6.5 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1002002
+      },
+      {
+        "flightId": 1003,
+        "name": "largeSolarPanel",
+        "title": "Gigantor XL Solar Array",
+        "parentFlightId": 1001,
+        "modules": ["ModuleDeployableSolarPanel"],
+        "dryMass": 0.3,
+        "orgPos": [-2.0, 0, 0],
+        "up": [-1, 0, 0],
+        "bounds": { "size": { "x": 0.4, "y": 0.1, "z": 6.5 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1003002
+      },
+      {
+        "flightId": 1004,
+        "name": "rtg",
+        "title": "PB-NUK Radioisotope Thermoelectric Generator",
+        "parentFlightId": 1001,
+        "modules": ["ModuleGenerator"],
+        "dryMass": 0.08,
+        "orgPos": [0, -0.8, 0],
+        "up": [0, -1, 0],
+        "bounds": { "size": { "x": 0.2, "y": 0.5, "z": 0.2 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 12,
+        "maxTemp": 2000,
+        "persistentId": 1004002
+      },
+      {
+        "flightId": 1005,
+        "name": "batteryBankLarge",
+        "title": "Z-4K Rechargeable Battery Bank",
+        "parentFlightId": 1001,
+        "modules": [],
+        "dryMass": 0.1,
+        "orgPos": [0, 0.8, 0],
+        "up": [0, 1, 0],
+        "bounds": { "size": { "x": 0.625, "y": 0.5, "z": 0.625 } },
+        "category": "Electrical",
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "crashTolerance": 8,
+        "maxTemp": 1200,
+        "persistentId": 1005003
+      }
+    ]
+  },
+  "r.resourceFor[1001]": {
+    "ElectricCharge": {
+      "amount": 50.0,
+      "maxAmount": 50.0,
+      "flow": -0.05
+    }
+  },
+  "r.resourceFor[1002]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0,
+      "nominalFlow": 24.4
+    }
+  },
+  "r.resourceFor[1003]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0,
+      "nominalFlow": 24.4
+    }
+  },
+  "r.resourceFor[1004]": {
+    "ElectricCharge": {
+      "amount": 0,
+      "maxAmount": 0,
+      "flow": 0.75,
+      "nominalFlow": 0.75
+    }
+  },
+  "r.resourceFor[1005]": {
+    "ElectricCharge": {
+      "amount": 2850.0,
+      "maxAmount": 4000.0
+    }
+  }
+}

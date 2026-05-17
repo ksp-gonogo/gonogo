@@ -27,10 +27,19 @@ describe("SemiMajorAxisComponent", () => {
     teardownMockDataSource(fixture);
   });
 
-  function renderSma() {
+  function renderSma(size: { w: number; h: number } = { w: 5, h: 6 }) {
+    // Default render size meets the subtitle threshold (rows≥5, cols≥4)
+    // so tests that assert on the "Semi-major axis · Kerbin" subtitle
+    // continue to exercise it. Below the threshold the widget hides the
+    // subtitle to keep the value readout from crowding.
     return render(
       <DashboardItemContext.Provider value={{ instanceId: "sma-test" }}>
-        <SemiMajorAxisComponent config={{}} id="sma-test" />
+        <SemiMajorAxisComponent
+          config={{}}
+          id="sma-test"
+          w={size.w}
+          h={size.h}
+        />
       </DashboardItemContext.Provider>,
     );
   }

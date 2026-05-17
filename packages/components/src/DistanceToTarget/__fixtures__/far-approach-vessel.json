@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "scenario": "far-approach-vessel",
+    "notes": "Target vessel at 48 Mm — long-range tracking mode. dockable=true (Vessel) but distance >> 5500m threshold so mode stays 'tracking'. relVel positive (opening gap) gives a sub-readout when rows>=5."
+  },
+  "tar.name": "Minmus Station Alpha",
+  "tar.type": "Vessel",
+  "tar.distance": 48000000,
+  "tar.o.relativeVelocity": 312.5,
+  "o.closestTgtApprUT": 2567890,
+  "t.universalTime": 2500000,
+  "dock.ax": 0,
+  "dock.ay": 0,
+  "dock.az": 0,
+  "dock.x": 0,
+  "dock.y": 0
+}

@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "notes": "Player has just enough funds for some cheap upgrades but not the major ones. Runway and admin upgrades are affordable; R&D and SPH upgrades are not. Tests cost colour coding: affordable = accent-fg, unaffordable = nogo-fg.",
+    "scenario": "low-funds-expensive-upgrade"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "runway": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 20000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "vab": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 25000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "sph": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 175000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "mission": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 45000,
+      "currentLevelText": "* Active contracts: 2",
+      "nextLevelText": "* Active contracts: 7"
+    },
+    "tracking": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 45000,
+      "currentLevelText": "* No maneuver nodes",
+      "nextLevelText": "* Maneuver nodes enabled"
+    },
+    "admin": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 18000,
+      "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+      "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+    },
+    "rd": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 250000,
+      "currentLevelText": "* Science archive: 500 pts",
+      "nextLevelText": "* Science archive: 2500 pts"
+    },
+    "astronaut": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "* Max crew: 1",
+      "nextLevelText": "* Max crew: 12"
+    }
+  },
+  "kc.partsAvailable": 30,
+  "kc.launchSite": "LaunchPad",
+  "kc.padOccupied": false,
+  "kc.padVesselTitle": null,
+  "kc.scene": "SpaceCenter",
+  "career.funds": 22000
+}

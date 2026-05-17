@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "retrograde-orbit",
+    "notes": "Retrograde equatorial Kerbin orbit. Inclination = 178°. Near-circular at 90 km. Exercises the inclination label at near-180° — confirms the display doesn't wrap or overflow."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 92000,
+  "o.PeA": 88000,
+  "o.ApR": 692000,
+  "o.PeR": 688000,
+  "o.sma": 690000,
+  "o.eccentricity": 0.0029,
+  "o.trueAnomaly": 90.0,
+  "o.argumentOfPeriapsis": 0.0,
+  "o.inclination": 178.0,
+  "o.period": 1839.6,
+  "o.timeToAp": 460.5,
+  "o.timeToPe": 1379.1
+}

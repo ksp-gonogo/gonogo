@@ -36,13 +36,19 @@ const KEYS: DataKey[] = [
 
 function renderNavball(
   config: Parameters<typeof NavballComponent>[0]["config"] = {},
+  size: { w: number; h: number } = { w: 8, h: 11 },
 ) {
   return render(
     <DashboardItemContext.Provider value={{ instanceId: "nav" }}>
-      <NavballComponent config={config} id="nav" />
+      <NavballComponent config={config} id="nav" w={size.w} h={size.h} />
     </DashboardItemContext.Provider>,
   );
 }
+
+// Size large enough to meet the control-surface threshold (rows≥18,
+// cols≥7). Keeps the control-mode tests close to the live wide-open
+// dashboard slot.
+const CONTROL_SIZE = { w: 9, h: 20 };
 
 describe("NavballComponent", () => {
   let source: MockDataSource;
@@ -98,7 +104,7 @@ describe("NavballComponent", () => {
   });
 
   it("displays the control surface and fires Telemachus actions", async () => {
-    renderNavball({ controlMode: true });
+    renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);
     });
@@ -109,7 +115,7 @@ describe("NavballComponent", () => {
   });
 
   it("disables control buttons when v.isControllable is false", () => {
-    renderNavball({ controlMode: true });
+    renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", false);
     });
@@ -119,7 +125,7 @@ describe("NavballComponent", () => {
   });
 
   it("arms FBW on click and disarms on unmount", async () => {
-    const { unmount } = renderNavball({ controlMode: true });
+    const { unmount } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);
     });
@@ -136,7 +142,7 @@ describe("NavballComponent", () => {
   });
 
   it("formats throttle slider input as f.setThrottle[…]", async () => {
-    renderNavball({ controlMode: true });
+    renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);
       source.emit("f.throttle", 0.25);

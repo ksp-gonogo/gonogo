@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "scenario": "standard-launch-ok",
+    "notes": "Standard rocket at lift-off, TWR 1.82 — well into the green zone. Sparkline shows mass-burn climb from 1.32 → 1.82 across the last minute as the engine burns through propellant."
+  },
+  "_series": {
+    "dv.currentTWR": [
+      { "t": -60000, "v": 1.32 },
+      { "t": -54000, "v": 1.38 },
+      { "t": -48000, "v": 1.43 },
+      { "t": -42000, "v": 1.49 },
+      { "t": -36000, "v": 1.55 },
+      { "t": -30000, "v": 1.6 },
+      { "t": -24000, "v": 1.66 },
+      { "t": -18000, "v": 1.71 },
+      { "t": -12000, "v": 1.77 },
+      { "t": -6000, "v": 1.8 },
+      { "t": 0, "v": 1.82 }
+    ]
+  },
+  "dv.currentTWR": 1.82
+}

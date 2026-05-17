@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "notes": "Sandbox mode. No career funds. Facility upgrades have upgradeFunds 0 — no upgrade buttons shown. partsAvailable may be 0 (the fork emits zeroed entries for sandbox). scene is SpaceCenter.",
+    "scenario": "sandbox-no-career"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "runway": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "vab": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "sph": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "mission": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "tracking": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "admin": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "rd": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    },
+    "astronaut": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "",
+      "nextLevelText": ""
+    }
+  },
+  "kc.partsAvailable": 0,
+  "kc.launchSite": null,
+  "kc.padOccupied": false,
+  "kc.padVesselTitle": null,
+  "kc.scene": "SpaceCenter",
+  "career.funds": null
+}

@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Pre-burn alignment for a manoeuvre node. SAS holding the manoeuvre vector, RCS armed for fine attitude. Throttle armed at 60% awaiting MNV ignition. Exercises the SAS-mode badge with a non-trivial mode label, plus RCS badge and partial throttle.",
+    "scenario": "maneuver-burn"
+  },
+  "n.heading": 120,
+  "n.pitch": 5,
+  "n.roll": 0,
+  "f.sasMode": "Maneuver",
+  "f.sasEnabled": true,
+  "f.precisionControl": false,
+  "v.rcsValue": true,
+  "f.throttle": 0.6,
+  "v.isControllable": true
+}

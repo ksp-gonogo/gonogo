@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "kerbin-synchronous",
+    "notes": "Kerbostationary orbit. SMA ≈ 2863.33 km, period exactly 1 Kerbin day (6 hours = 21600 s). Dot should land exactly on the Kepler curve at the synchronous crossing."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.sma": 2863330,
+  "o.period": 21600
+}

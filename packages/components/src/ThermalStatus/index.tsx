@@ -47,9 +47,13 @@ function bandFromRatio(ratio: number | undefined): Band {
   return "nominal";
 }
 
+// Heat escalation: green → yellow → orange → red. Pre-fix, both warm
+// and hot mapped to the same orange — operator at 94% saw the same
+// colour as 80% and couldn't tell they were approaching critical. The
+// distinct yellow/orange split gives a visible step at the 90% gate.
 const BAND_COLOR: Record<Band, string> = {
   nominal: "var(--color-accent-fg)",
-  warm: "var(--color-status-warning-bg)",
+  warm: "var(--color-tag-yellow-fg)",
   hot: "var(--color-status-warning-bg)",
   critical: "var(--color-status-nogo-bg)",
 };
@@ -63,6 +67,9 @@ const BAND_LABEL: Record<Band, string> = {
 
 const BAND_TONE: Record<Band, ReadoutTone> = {
   nominal: "go",
+  // `warm` keeps `warning` tone for the StatusPill / inline alert layer
+  // even though its bar colour is yellow — the alert taxonomy stays
+  // binary (go/warning/alert) while the colour gradient is finer.
   warm: "warning",
   hot: "warning",
   critical: "alert",
@@ -159,9 +166,13 @@ function ThermalStatusComponent({
   const showEngineRow = rows >= 6;
   const hasShieldData = shieldTempC !== undefined || shieldFluxKw !== undefined;
   const showShieldRow = rows >= 7 && hasShieldData;
-  // On wider widgets we can afford a critical-state explainer next to the
-  // pill rather than burning a whole row on the alert banner.
-  const showInlineAlert = anyCritical && cols >= 6;
+  // Inline alert fires at hot (90-97%) and critical (≥97%) — the
+  // hot band is the "still time to act" warning; without an alert at
+  // 94% the operator only got the colour change in the bar and a
+  // small "hot" tag, no headline cue. Critical keeps the louder
+  // wording and aria-live.
+  const anyHotOrAbove = worstBand === "hot" || worstBand === "critical";
+  const showInlineAlert = anyHotOrAbove && cols >= 6;
 
   return (
     <Panel>
@@ -181,7 +192,9 @@ function ThermalStatusComponent({
               <CriticalNote>
                 {engineOverheat
                   ? "Engine overheating (>90% max)"
-                  : "Part approaching max temperature"}
+                  : anyCritical
+                    ? "Part at max temperature"
+                    : "Part approaching max temperature"}
               </CriticalNote>
             )}
           </PillRow>

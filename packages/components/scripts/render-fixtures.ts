@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Render every Ship Map fixture under `src/ShipMap/__fixtures__/` to an
- * SVG file in `local_docs/ship-map-renders/`. Used for visually iterating
+ * SVG file in `local_docs/renders/ship-map/`. Used for visually iterating
  * on the diagram without running KSP / the dashboard.
  *
  * Run with `pnpm --filter @gonogo/components render-ship-map`.
@@ -20,7 +20,7 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = resolve(HERE, "../src/ShipMap/__fixtures__");
-const OUT_DIR = resolve(HERE, "../../../local_docs/ship-map-renders");
+const OUT_DIR = resolve(HERE, "../../../local_docs/renders/ship-map");
 
 interface Fixture {
   "v.topology": VesselTopology;

@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "scenario": "awaiting-telemetry",
+    "notes": "No contract telemetry received yet. contracts.active is null (absent from fixture), so the widget renders the 'Awaiting contract telemetry' placeholder. This is the first-connect state before Telemachus emits any contract data."
+  }
+}

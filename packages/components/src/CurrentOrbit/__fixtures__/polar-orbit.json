@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "polar-orbit",
+    "notes": "Polar Kerbin orbit. Inclination = 90°. Near-circular at 100 km altitude. isOrbiting=true. Exercises inclination display at an extreme value."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 102000,
+  "o.PeA": 98000,
+  "o.ApR": 702000,
+  "o.PeR": 698000,
+  "o.sma": 700000,
+  "o.eccentricity": 0.00286,
+  "o.trueAnomaly": 180.0,
+  "o.argumentOfPeriapsis": 45.0,
+  "o.inclination": 90.0,
+  "o.period": 1871.3,
+  "o.timeToAp": 938.7,
+  "o.timeToPe": 45.2
+}

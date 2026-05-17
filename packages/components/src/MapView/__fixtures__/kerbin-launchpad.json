@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "scenario": "kerbin-launchpad",
+    "notes": "Pre-launch on KSC pad — vessel sitting at the launchpad coordinates."
+  },
+  "v.body": "Kerbin",
+  "v.lat": -0.0972,
+  "v.long": -74.5577,
+  "v.altitude": 80,
+  "n.pitch": 90,
+  "n.heading": 90,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 0,
+  "v.verticalSpeed": 0,
+  "t.universalTime": 100,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "a.physicsMode": "Atmospheric"
+}

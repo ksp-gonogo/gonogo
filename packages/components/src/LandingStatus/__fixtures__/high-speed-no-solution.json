@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "scenario": "high-speed-no-solution",
+    "notes": "High vertical speed downward on Mun but no trajectory solution — impact solver returned NaN for timeToImpact. Widget shows 'Waiting for a landing prediction' because vessel is descending with no prediction."
+  },
+  "v.body": "Mun",
+  "v.heightFromTerrain": 12000,
+  "v.verticalSpeed": -350.0,
+  "v.atmosphericDensity": 0,
+  "v.atmosphericTemperature": 0,
+  "v.externalTemperature": 0,
+  "land.timeToImpact": null,
+  "land.speedAtImpact": null,
+  "land.bestSpeedAtImpact": null,
+  "land.suicideBurnCountdown": null,
+  "land.predictedLat": 0,
+  "land.predictedLon": 0,
+  "land.slopeAngle": null
+}

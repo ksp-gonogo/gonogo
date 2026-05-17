@@ -1,0 +1,70 @@
+{
+  "_meta": {
+    "scenario": "mixed-failed-parameters",
+    "notes": "Contract with mixed parameter states: one complete, one failed (part test destroyed), one incomplete. Shows the red failed styling and strikethrough. The part-test parameter has a parameterType and partName. Contract also has expired deadline so formatDeadline shows 'expired'."
+  },
+  "contracts.active": [
+    {
+      "id": "88",
+      "title": "Test the Impact Sensor in flight",
+      "agency": "Experimental Engineering Group",
+      "state": "Active",
+      "fundsAdvance": 2000,
+      "fundsCompletion": 12000,
+      "scienceCompletion": 0,
+      "repCompletion": 3,
+      "deadlineUt": 90000,
+      "parameters": [
+        {
+          "title": "Activate a sensorAccelerometer while Flying over Kerbin",
+          "state": "Complete",
+          "optional": false,
+          "parameterType": "PartTest",
+          "partName": "sensorAccelerometer",
+          "situation": "Flying"
+        },
+        {
+          "title": "Run the Barometer in Suborbital",
+          "state": "Failed",
+          "optional": false,
+          "parameterType": "PartTest",
+          "partName": "sensorBarometer",
+          "situation": "SubOrbital"
+        },
+        {
+          "title": "Recover the vessel",
+          "state": "Incomplete",
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [
+    {
+      "id": "91",
+      "title": "Rescue Jebediah from Low Kerbin Orbit",
+      "agency": "Kerbin Space Program",
+      "state": "Offered",
+      "fundsAdvance": 20000,
+      "fundsCompletion": 75000,
+      "scienceCompletion": 0,
+      "repCompletion": 15,
+      "deadlineUt": 500000,
+      "parameters": [
+        {
+          "title": "Board Jebediah Kerman",
+          "state": "Incomplete",
+          "optional": false
+        },
+        {
+          "title": "Return to Kerbin",
+          "state": "Incomplete",
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "contracts.completedRecent": [],
+  "t.universalTime": 125340,
+  "v.altitude": 0
+}

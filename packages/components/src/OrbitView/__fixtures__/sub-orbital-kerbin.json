@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "sub-orbital-kerbin",
+    "notes": "Sub-orbital arc over Kerbin. Periapsis is below the surface (PeR < Kerbin radius 600000 m), so the trajectory dips into the body. The body disc should occlude the part of the orbit below the surface. Widget should show StatusPill 'Sub-orbital' or orange orbit stroke (isOrbiting=false, PeA<0)."
+  },
+  "v.body": "Kerbin",
+  "o.sma": 820000,
+  "o.eccentricity": 0.27,
+  "o.trueAnomaly": 320,
+  "o.argumentOfPeriapsis": 0,
+  "o.ApR": 1040400,
+  "o.PeR": 599600,
+  "o.ApA": 440400,
+  "o.PeA": -400,
+  "b.number": 0
+}

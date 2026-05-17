@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "kerbin-high-eccentric",
+    "notes": "Highly eccentric Kerbin orbit (Ap ≈ 10 Mm, Pe ≈ 100 km). SMA ≈ 5 Mm, period ≈ 5.5 hours. Dot sits in the upper-right portion of the curve. Tests that SMA, not altitude, is the x-axis."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.sma": 5050000,
+  "o.period": 20010.0
+}

@@ -92,7 +92,11 @@ export interface LineChartProps {
 }
 
 const MARGIN = { top: 10, right: 50, bottom: 28, left: 50 };
-const TICK_COUNT = 5;
+// Approximate pixels per tick label — used to scale tick count with plot
+// dimensions so narrow charts don't stamp 5 labels into 100 px of x-axis
+// (collides) and short charts don't stamp 5 labels into 80 px of y-axis.
+const PX_PER_X_TICK = 70;
+const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
 const DEFAULT_BAND_OPACITY = 0.2;
 
@@ -156,16 +160,24 @@ export function LineChart({
       ? makeLogScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0)
       : makeScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0);
 
-  const xTicks = niceTicks(xDomain[0], xDomain[1], TICK_COUNT);
+  const xTickCount = Math.max(
+    2,
+    Math.min(8, Math.round(plotW / PX_PER_X_TICK)),
+  );
+  const yTickCount = Math.max(
+    2,
+    Math.min(7, Math.round(plotH / PX_PER_Y_TICK)),
+  );
+  const xTicks = niceTicks(xDomain[0], xDomain[1], xTickCount);
   const yTicksPrimary =
     yScalePrimary === "log"
-      ? niceLogTicks(primaryDomain[0], primaryDomain[1], TICK_COUNT)
-      : niceTicks(primaryDomain[0], primaryDomain[1], TICK_COUNT);
+      ? niceLogTicks(primaryDomain[0], primaryDomain[1], yTickCount)
+      : niceTicks(primaryDomain[0], primaryDomain[1], yTickCount);
   const yTicksSecondary = !hasSecondary
     ? []
     : yScaleSecondary === "log"
-      ? niceLogTicks(secondaryDomain[0], secondaryDomain[1], TICK_COUNT)
-      : niceTicks(secondaryDomain[0], secondaryDomain[1], TICK_COUNT);
+      ? niceLogTicks(secondaryDomain[0], secondaryDomain[1], yTickCount)
+      : niceTicks(secondaryDomain[0], secondaryDomain[1], yTickCount);
 
   // Per-series renderable. Dispatch on type — line/step/scatter share the
   // stroked-path render block; band gets a filled closed path.
@@ -487,8 +499,20 @@ function computeYDomain(
 }
 
 function formatYTick(n: number): string {
+  if (n === 0) return "0";
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   if (Number.isInteger(n)) return String(n);
+  // Sub-precision values would round to "0.00" via toFixed(2). Log axes
+  // can pull ticks well below 0.01 (atmospheric profile drops into the
+  // µPa range past 60 km), so fall back to scientific notation so each
+  // tick gets a distinct label instead of three copies of "0.00".
+  if (Math.abs(n) < 0.01) {
+    const exp = Math.floor(Math.log10(Math.abs(n)));
+    const mantissa = n / 10 ** exp;
+    return Math.abs(mantissa - 1) < 1e-9
+      ? `1e${exp}`
+      : `${mantissa.toFixed(1)}e${exp}`;
+  }
   return n.toFixed(2);
 }

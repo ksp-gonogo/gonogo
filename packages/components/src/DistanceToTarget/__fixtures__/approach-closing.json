@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "scenario": "approach-closing",
+    "notes": "Vessel target at 1800m in the approach band (100m–5km). Negative relVel = closing gap — closing rate should render in green/accent tone. TCA provides a T-minus countdown. Exercises ApproachHud with TCA."
+  },
+  "tar.name": "Test Station",
+  "tar.type": "Vessel",
+  "tar.distance": 1800,
+  "tar.o.relativeVelocity": -4.7,
+  "o.closestTgtApprUT": 5125,
+  "t.universalTime": 5000,
+  "dock.ax": 0,
+  "dock.ay": 0,
+  "dock.az": 0,
+  "dock.x": 0,
+  "dock.y": 0
+}

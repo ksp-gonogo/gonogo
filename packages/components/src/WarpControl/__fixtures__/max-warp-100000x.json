@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "scenario": "max-warp-100000x",
+    "notes": "Maximum on-rails warp at 100000× (index 7 = '100k×'). Rate label formats as '100k×'. The 100k× button highlighted. Typically used for long interplanetary transfers."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 100000,
+  "t.timeWarp": 7,
+  "t.warpMode": "High",
+  "t.isPaused": false
+}

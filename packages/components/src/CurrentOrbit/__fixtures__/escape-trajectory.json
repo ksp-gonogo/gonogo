@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "scenario": "escape-trajectory",
+    "notes": "Hyperbolic escape trajectory from Kerbin. Eccentricity > 1, sma negative (Telemachus convention for hyperbolic orbits). ApA is large/undefined in-game; Telemachus often reports a very large positive value. hasOrbit checks sma/ecc/ApR/PeR — all present, so diagram may render. isOrbiting=false (PeA < atmosphere threshold or the orbit doesn't close). Tests whether OrbitDiagram handles ecc>1 without throwing."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 999999999,
+  "o.PeA": 85000,
+  "o.ApR": 999999999,
+  "o.PeR": 685000,
+  "o.sma": -2400000,
+  "o.eccentricity": 1.283,
+  "o.trueAnomaly": 35.0,
+  "o.argumentOfPeriapsis": 20.0,
+  "o.inclination": 4.7,
+  "o.period": 0,
+  "o.timeToAp": 0,
+  "o.timeToPe": 620.5
+}

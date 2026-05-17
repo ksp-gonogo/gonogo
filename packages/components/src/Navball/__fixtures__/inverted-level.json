@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "notes": "Inverted, wings level — 180° roll. Sky and ground swap: warm/ground band on top, cool/sky band below. SAS off, manual flight.",
+    "scenario": "inverted-level"
+  },
+  "n.heading": 90,
+  "n.pitch": 0,
+  "n.roll": 180,
+  "f.sasMode": "StabilityAssist",
+  "f.sasEnabled": false,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0.5,
+  "v.isControllable": true
+}

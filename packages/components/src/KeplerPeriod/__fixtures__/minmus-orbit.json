@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "scenario": "minmus-orbit",
+    "notes": "Orbit around Minmus at ~30 km. Minmus radius 60 km, SMA ≈ 90 km, period ≈ 38 min. Tests a smaller moon body with its own Kepler curve."
+  },
+  "v.body": "Minmus",
+  "o.referenceBody": "Minmus",
+  "o.sma": 90000,
+  "o.period": 2307.0
+}
