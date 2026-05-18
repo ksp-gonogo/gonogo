@@ -14,6 +14,14 @@ import { defineConfig, devices } from "@playwright/test";
 const BROKER_PORT = 9999;
 const APP_PORT = 5173;
 const TELEMACHUS_REPLAY_PORT = 8086;
+// Relay (OCISLY camera fan-out) + a fake OCISLY gRPC backend so the
+// media-stream test exercises the real WebRTC pipe without needing a
+// linux/amd64-only OCISLY container. Ports match production defaults
+// for the relay (3002) so the app's default discovery works without
+// extra env vars; the fake OCISLY uses 5078 (one above the production
+// 5077) to leave room for a real OCISLY in docker to run alongside.
+const RELAY_PORT = 3002;
+const FAKE_OCISLY_PORT = 5078;
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -59,6 +67,34 @@ export default defineConfig({
       },
     },
     {
+      command: "node ./tests/playwright/ocisly-fake.mjs",
+      // ocisly-fake doesn't expose an HTTP port — use a short tcp-port
+      // wait via the underlying gRPC port. Playwright's `port` field
+      // matches that pattern.
+      port: FAKE_OCISLY_PORT,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 10_000,
+      env: {
+        FAKE_OCISLY_PORT: String(FAKE_OCISLY_PORT),
+      },
+    },
+    {
+      command: "pnpm --filter @gonogo/relay exec tsx src/index.ts",
+      url: `http://localhost:${RELAY_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 30_000,
+      env: {
+        PORT: String(RELAY_PORT),
+        OCISLY_HOST: "localhost",
+        OCISLY_PORT: String(FAKE_OCISLY_PORT),
+        SKIP_COTURN: "1",
+      },
+    },
+    {
       command: "pnpm --filter @gonogo/app dev",
       port: APP_PORT,
       reuseExistingServer: !process.env.CI,
@@ -80,4 +116,6 @@ export const PORTS = {
   app: APP_PORT,
   broker: BROKER_PORT,
   telemachusReplay: TELEMACHUS_REPLAY_PORT,
+  relay: RELAY_PORT,
+  fakeOcisly: FAKE_OCISLY_PORT,
 } as const;
