@@ -31,6 +31,14 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top.
   const externalTemperature = useDataValue("data", "v.externalTemperature");
+  // Current throttle — gates the engine-flame overlay so a staged-but-
+  // idle engine doesn't render thrust. Forwarded through ShipDiagram
+  // to ShipDiagramSvg.
+  const throttleRaw = useDataValue<number>("data", "f.throttle");
+  const throttle =
+    typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
+      ? throttleRaw
+      : 0;
 
   // Subscribe to per-part live data (resources + thermal). Dynamic over
   // the topology's part list — the hook re-subscribes when the set of
@@ -159,6 +167,7 @@ function renderBody(
           highlight={highlight}
           width={size.w}
           height={size.h}
+          throttle={throttle}
         />
       </DiagramWrap>
     </>
@@ -275,6 +284,7 @@ registerComponent<ShipMapConfig>({
     "v.topology",
     "therm.hottestPartName",
     "v.externalTemperature",
+    "f.throttle",
   ],
   defaultConfig: {},
   actions: [],
