@@ -92,6 +92,13 @@ export default defineConfig({
         OCISLY_HOST: "localhost",
         OCISLY_PORT: String(FAKE_OCISLY_PORT),
         SKIP_COTURN: "1",
+        // Same broker as the app — without this the relay would
+        // register on peerjs.com and the host running on
+        // localhost:9999 couldn't find it.
+        PEER_HOST: "localhost",
+        PEER_PORT: String(BROKER_PORT),
+        PEER_PATH: "/myapp",
+        PEER_SECURE: "0",
       },
     },
     {

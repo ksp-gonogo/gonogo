@@ -60,29 +60,51 @@ const definition = protoLoader.loadSync(PROTO_PATH, {
 const proto = grpc.loadPackageDefinition(definition);
 const service = proto.CameraStream.CameraStream.service;
 
-// Frame generator — 64x64 RGBA with a vertical stripe whose x position
-// shifts with each call. 64×64 is large enough for any reasonable
-// WebRTC encoder to accept and small enough to keep the per-poll
-// allocation cheap.
-const WIDTH = 64;
-const HEIGHT = 64;
+// Frame generator — 128×128 RGBA with two channels of information:
+//   1. A 32×32 grey block in the top-left whose intensity encodes
+//      `frameCounter mod 256`. JPEG-quality=85 preserves the average
+//      pixel value of a uniform 32-px block within a few units of the
+//      source, which is good enough for the multi-screen Playwright
+//      assertion: each page captures its own video element, samples
+//      that corner block, and confirms both screens see the same
+//      frame index (within a small tolerance for one-frame skew).
+//   2. A vertical stripe whose x position shifts every call so the
+//      image is visibly animating — handy when running the test
+//      headed for debug, and reassures the encoder/decoder that the
+//      input isn't a constant flat image (which some codecs special-
+//      case in ways that would skip the frame).
+const WIDTH = 128;
+const HEIGHT = 128;
+const BLOCK_SIZE = 32;
 let frameCounter = 0;
 
 function makeJpegFrame() {
-  const stripeX = frameCounter % WIDTH;
+  const idx = frameCounter & 0xff; // 0..255, the value we encode
   frameCounter += 1;
+  const stripeX = (frameCounter * 3) % WIDTH;
   const pixels = Buffer.alloc(WIDTH * HEIGHT * 4);
   for (let y = 0; y < HEIGHT; y += 1) {
     for (let x = 0; x < WIDTH; x += 1) {
       const i = (y * WIDTH + x) * 4;
-      const stripe = Math.abs(x - stripeX) <= 1;
-      pixels[i] = stripe ? 255 : 32; // R
-      pixels[i + 1] = stripe ? 200 : 48; // G
-      pixels[i + 2] = stripe ? 80 : 64; // B
+      const inBlock = x < BLOCK_SIZE && y < BLOCK_SIZE;
+      if (inBlock) {
+        // Grey block — R=G=B=idx so any channel works for the readback.
+        pixels[i] = idx;
+        pixels[i + 1] = idx;
+        pixels[i + 2] = idx;
+      } else {
+        const stripe = Math.abs(x - stripeX) <= 1;
+        pixels[i] = stripe ? 255 : 32; // R
+        pixels[i + 1] = stripe ? 200 : 48; // G
+        pixels[i + 2] = stripe ? 80 : 64; // B
+      }
       pixels[i + 3] = 255; // A
     }
   }
-  const encoded = jpeg.encode({ data: pixels, width: WIDTH, height: HEIGHT }, 80);
+  const encoded = jpeg.encode(
+    { data: pixels, width: WIDTH, height: HEIGHT },
+    85,
+  );
   return encoded.data;
 }
 
