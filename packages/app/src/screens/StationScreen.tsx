@@ -46,6 +46,7 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
+import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
 import { downloadLogs } from "../logs/downloadLogs";
 import { LogsFab } from "../logs/LogsFab";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
@@ -517,6 +518,7 @@ export function StationScreen() {
                                   />
                                   <HostDisconnectBanner client={client} />
                                   <SignalLossIndicator />
+                                  <TelemachusAntennaBanner />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
                                   <FlightOutcomeBanner />
