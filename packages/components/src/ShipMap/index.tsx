@@ -100,7 +100,15 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
 
   return (
     <Panel>
-      {renderBody(topology, parts, highlight, size, setWrapEl, ambientTint)}
+      {renderBody(
+        topology,
+        parts,
+        highlight,
+        size,
+        setWrapEl,
+        ambientTint,
+        throttle,
+      )}
     </Panel>
   );
 }
@@ -142,6 +150,7 @@ function renderBody(
   size: { w: number; h: number },
   setWrapEl: (el: HTMLDivElement | null) => void,
   ambientTint: string | null,
+  throttle: number,
 ) {
   if (!topology) {
     return (

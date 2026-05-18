@@ -188,12 +188,24 @@ const TELEMACHUS_KEYS: DataKey[] = [
   { key: "therm.heatShieldTemp" },
   { key: "therm.heatShieldTempCelsius" },
   { key: "therm.heatShieldFlux" },
-  // CommNet (for signal-loss gating)
+  // CommNet — vanilla KSP mission-control link. NOT the Telemachus
+  // antenna link; comm.connected reports green even when the Telemachus
+  // antenna is missing/powered-down (verified live 2026-05-18). Useful
+  // for showing mission-control connectivity but DO NOT use it as the
+  // telemetry trust gate — that's `p.paused` (see below).
   { key: "comm.connected" },
   { key: "comm.signalStrength" },
   { key: "comm.controlState" },
   { key: "comm.controlStateName" },
   { key: "comm.signalDelay" },
+  // Telemachus antenna status. The canonical trust gate: BufferedData-
+  // Source drops vessel-required samples when p.paused !== 0 (and !== 1
+  // for the legitimate game-pause case). When the Telemachus antenna is
+  // missing / unpowered / toggled off, many vessel-required keys collapse
+  // to the literal value 2 — verified live 2026-05-18.
+  // Codes: 0 = active, 1 = game paused, 2 = no power (or fork-bug
+  // collapse of 3/4), 3 = off, 4 = not found, 5 = not in flight.
+  { key: "p.paused" },
   // Target
   { key: "tar.name" },
   { key: "tar.type" },

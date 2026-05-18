@@ -447,6 +447,12 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     group: "Landing",
   },
 
+  // --- Telemachus antenna status ---
+  // p.paused: 0=active, 1=game paused, 2=no power (or fork-bug collapse
+  // for off / not found), 3=off, 4=not found, 5=not in flight. Drives
+  // the trust gate in BufferedDataSource.
+  "p.paused": { label: "Telemachus antenna", unit: "raw", group: "CommNet" },
+
   // --- CommNet signal state ---
   "comm.connected": {
     label: "CommNet connected",
