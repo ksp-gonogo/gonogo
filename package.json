@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
+    "@grpc/grpc-js": "^1.12.2",
+    "@grpc/proto-loader": "^0.7.13",
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -28,6 +30,7 @@
     "@types/ws": "^8.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-v8": "^4.1.4",
+    "jpeg-js": "^0.4.4",
     "jsdom": "^29.0.2",
     "peer": "^1.0.2",
     "react": "^18.0.0",

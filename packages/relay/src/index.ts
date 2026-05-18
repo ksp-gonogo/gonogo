@@ -117,23 +117,29 @@ const poller = new CameraPoller({
 // ──────────────────────────────────────────────────────────────────────
 
 let coturnHandle: CoturnHandle | null = null;
-try {
-  const externalIp = await discoverPublicIp({
-    override: config.turnExternalIp ?? undefined,
-  });
-  bridgeInfo(`relay public IP for TURN: ${externalIp}`);
-  coturnHandle = startCoturn({
-    externalIp,
-    logger: {
-      info: (msg, ...args) => bridgeInfo(msg, { args }),
-      error: (msg, ...args) => bridgeError(msg, undefined, { args }),
-    },
-  });
-} catch (err) {
-  bridgeError(
-    "failed to discover public IP / start coturn — TURN unavailable until fixed",
-    err,
+if (config.skipCoturn) {
+  bridgeInfo(
+    "SKIP_COTURN set — relay will run without TURN (intended for localhost tests)",
   );
+} else {
+  try {
+    const externalIp = await discoverPublicIp({
+      override: config.turnExternalIp ?? undefined,
+    });
+    bridgeInfo(`relay public IP for TURN: ${externalIp}`);
+    coturnHandle = startCoturn({
+      externalIp,
+      logger: {
+        info: (msg, ...args) => bridgeInfo(msg, { args }),
+        error: (msg, ...args) => bridgeError(msg, undefined, { args }),
+      },
+    });
+  } catch (err) {
+    bridgeError(
+      "failed to discover public IP / start coturn — TURN unavailable until fixed",
+      err,
+    );
+  }
 }
 
 const proxyPeerId = `ocisly-${randomUUID()}`;
