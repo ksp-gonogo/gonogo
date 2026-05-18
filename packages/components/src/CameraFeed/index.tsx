@@ -354,6 +354,11 @@ registerComponent<CameraFeedConfig>({
   configComponent: CameraFeedConfigComponent,
   defaultConfig: { mode: "single", showOverlay: true, showMetadata: false },
   actions: cameraFeedActions,
+  // Mobile: 6 * ROW_HEIGHT (150 px) was rendering at ~2:0.5 aspect on
+  // portrait phones — far flatter than a hullcam's natural 16:9. 240 px
+  // at ~360 px full-mobile width gives ~3:2, a reasonable balance of
+  // visible area + vertical room for the dashboard below.
+  mobileHeight: 240,
 });
 
 export { CameraFeedComponent };
