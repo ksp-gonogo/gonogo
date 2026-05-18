@@ -4,7 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@gonogo/core";
 import { registerComponent, useActionInput } from "@gonogo/core";
-import { usePartsLive, useTopology } from "@gonogo/data";
+import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -16,9 +16,18 @@ import {
   PrimaryButton,
   ScrollArea,
   Select,
+  Sparkline,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+
+/**
+ * Sparkline window in seconds. Two minutes is enough to see a real
+ * EC drain trend on a typical probe (sun-side → shadow transitions
+ * land inside this window) without becoming a graph widget in
+ * disguise.
+ */
+const SPARKLINE_WINDOW_SEC = 120;
 
 interface PowerSystemsConfig {
   /**
@@ -174,6 +183,28 @@ function PowerSystemsComponent({
     return { amount: amt, maxAmount: max };
   }, [liveByFlightId, resource]);
 
+  // Time-series of the vessel-wide resource level for the sparkline.
+  // r.resource[<Name>] is the base-Telemachus vessel-wide reservoir
+  // (sum-of-parts) and is already buffered, so 120s of history is
+  // available without extra subscriptions. Reading numeric values out
+  // of the SeriesRange is the standard pattern.
+  const seriesKey = `r.resource[${resource}]`;
+  const series = useDataSeries("data", seriesKey, SPARKLINE_WINDOW_SEC);
+  const sparkValues = useMemo(
+    () =>
+      series.v
+        .filter((v): v is number => typeof v === "number" && Number.isFinite(v)),
+    [series.v],
+  );
+  // Anchor the sparkline's Y range to the storage capacity so a half-
+  // full battery reads as half-full at a glance, not "level is flat
+  // relative to itself". Falls back to autoscale on the rare ticks
+  // before max arrives.
+  const sparkDomain = useMemo<[number, number] | undefined>(
+    () => (storage.maxAmount > 0 ? [0, storage.maxAmount] : undefined),
+    [storage.maxAmount],
+  );
+
   // Selective rendering. Compact mode collapses to the net rate + the
   // resource name; pre-data state shows a single hint line.
   const cols = w ?? 8;
@@ -268,6 +299,34 @@ function PowerSystemsComponent({
           </TotalsCell>
         )}
       </Totals>
+
+      {storage.maxAmount > 0 && sparkValues.length >= 2 && (
+        <SparklineRow
+          role="img"
+          aria-label={`${splitCamel(resource)} level over the last ${SPARKLINE_WINDOW_SEC}s`}
+        >
+          <SparklineLabel>
+            Trend
+            <SparklineSub>· {SPARKLINE_WINDOW_SEC}s</SparklineSub>
+          </SparklineLabel>
+          <SparklineSlot>
+            <Sparkline
+              values={sparkValues}
+              width={240}
+              height={36}
+              color={
+                netTone === "warn"
+                  ? "var(--color-status-warning-bg)"
+                  : netTone === "go"
+                    ? "var(--color-status-go-fg)"
+                    : "var(--color-text-primary)"
+              }
+              yDomain={sparkDomain}
+              ariaLabel={`${splitCamel(resource)} level trend`}
+            />
+          </SparklineSlot>
+        </SparklineRow>
+      )}
 
       <SectionsScroll>
         <Section>
@@ -474,6 +533,44 @@ const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
         : "var(--color-text-primary)"};
 `;
 
+const SparklineRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-raised);
+  border-radius: 2px;
+`;
+
+const SparklineLabel = styled.span`
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+`;
+
+const SparklineSub = styled.span`
+  color: var(--color-text-dim);
+`;
+
+const SparklineSlot = styled.div`
+  flex: 1;
+  min-width: 0;
+  /* Sparkline renders a fixed 240×36 SVG. The slot lets it ride at
+     its intrinsic size on the left; the unused space on wider widgets
+     keeps the row from looking truncated without forcing a responsive
+     SVG. The future "click to expand into Graph widget" affordance
+     would naturally live here. */
+  display: flex;
+  align-items: center;
+`;
+
 const SectionsScroll = styled(ScrollArea)`
   flex: 1;
   [data-scroll-area-inner] {
@@ -606,8 +703,13 @@ registerComponent<PowerSystemsConfig>({
   // Subscribes via useTopology + usePartsLive — same chain as ShipMap.
   // No explicit list of per-part keys here; the hook walks the topology
   // and opens r.resourceFor[fid] / therm.part[fid] subscriptions
-  // dynamically.
-  dataRequirements: ["v.topologySeq", "v.topology"],
+  // dynamically. The sparkline reads r.resource[<defaultResource>]
+  // from the base-Telemachus vessel-wide reservoir.
+  dataRequirements: [
+    "v.topologySeq",
+    "v.topology",
+    "r.resource[ElectricCharge]",
+  ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
   pushable: true,
