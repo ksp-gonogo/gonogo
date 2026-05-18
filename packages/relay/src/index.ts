@@ -148,6 +148,12 @@ const proxyPeerId = `ocisly-${randomUUID()}`;
 // other peers see on the broker side.
 logger.setIdentity({ role: "relay", id: proxyPeerId, peerId: proxyPeerId });
 
+if (config.peerBroker) {
+  bridgeInfo(
+    `peer broker override active: ${config.peerBroker.secure ? "wss" : "ws"}://${config.peerBroker.host}:${config.peerBroker.port}${config.peerBroker.path}`,
+  );
+}
+
 peerHost = new PeerHost({
   peerId: proxyPeerId,
   client: ocisly,
@@ -166,6 +172,14 @@ peerHost = new PeerHost({
   // SDP signalling, so they still get TURN coverage for restrictive
   // networks — the relay itself doesn't need to relay.
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  peerOptions: config.peerBroker
+    ? {
+        host: config.peerBroker.host,
+        port: config.peerBroker.port,
+        path: config.peerBroker.path,
+        secure: config.peerBroker.secure,
+      }
+    : undefined,
   logger: {
     info: (msg, ...args) => bridgeInfo(msg, { args }),
     error: (msg, ...args) => bridgeError(msg, undefined, { args }),
