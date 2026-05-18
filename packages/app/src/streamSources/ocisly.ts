@@ -107,6 +107,21 @@ export class OcislyStreamSource implements StreamSource {
   private remoteVersionListeners = new Set<
     (info: { version: string; buildTime: string } | null) => void
   >();
+  /**
+   * Per-camera stream-change listeners. Fires when the underlying
+   * MediaStream is replaced (new call after a close) or torn down
+   * (call.on("close") with no auto-replace). The 2026-05-18 host
+   * camera freeze was a ~3-minute black-screen window where the
+   * call had closed but neither the source nor the widget knew —
+   * the video element kept its dead srcObject. With these listeners
+   * useStream can observe the death, swap in `null` (or a fresh
+   * stream when auto-resubscribe lands a new call), and the widget
+   * re-renders rather than freezing.
+   */
+  private streamChangeListeners = new Map<
+    string,
+    Set<(stream: MediaStream | null) => void>
+  >();
 
   private readonly onIncomingCall = (call: MediaConnection) => {
     this.handleIncomingCall(call);
@@ -399,6 +414,40 @@ export class OcislyStreamSource implements StreamSource {
     return () => this.streamsListeners.delete(cb);
   }
 
+  /**
+   * Subscribe to MediaStream changes for a single camera. Fires on
+   * every stream replacement — initial track arrival, post-close
+   * auto-resubscribe, or `null` when the relay tears down. Callers
+   * MUST also call `subscribe()` separately to register their interest
+   * with refCount; this method only delivers updates, it does not
+   * keep the camera alive.
+   *
+   * Returns an unsubscribe function.
+   */
+  onStreamChange(
+    streamId: string,
+    cb: (stream: MediaStream | null) => void,
+  ): () => void {
+    let set = this.streamChangeListeners.get(streamId);
+    if (!set) {
+      set = new Set();
+      this.streamChangeListeners.set(streamId, set);
+    }
+    set.add(cb);
+    return () => {
+      const s = this.streamChangeListeners.get(streamId);
+      if (!s) return;
+      s.delete(cb);
+      if (s.size === 0) this.streamChangeListeners.delete(streamId);
+    };
+  }
+
+  private fireStreamChange(streamId: string, stream: MediaStream | null): void {
+    const set = this.streamChangeListeners.get(streamId);
+    if (!set) return;
+    for (const cb of set) cb(stream);
+  }
+
   /** Latest proxy version captured from the peer-channel hello, or null. */
   getRemoteVersion(): { version: string; buildTime: string } | null {
     return this.remoteVersion;
@@ -551,11 +600,29 @@ export class OcislyStreamSource implements StreamSource {
       sub.stream = stream;
       for (const p of sub.pending) p(stream);
       sub.pending = [];
+      this.fireStreamChange(cameraId, stream);
     });
     call.on("close", () => {
       cameraLog.info(`media call closed for ${cameraId}`);
       sub.stream = null;
       sub.call = null;
+      // Tell any onStreamChange listeners the stream is gone — without
+      // this the CameraFeed widget's <video> keeps its old srcObject
+      // and renders the last frozen frame indefinitely (the 2026-05-18
+      // 12:24 BST "main screen feed froze ~3 minutes" symptom).
+      this.fireStreamChange(cameraId, null);
+      // Auto-resubscribe so the relay calls us back with a fresh
+      // media track. Without this the only way to recover was a
+      // manual camera-pick toggle on the widget. Gate on refCount>0
+      // so we don't ask for a stream nobody's watching anymore, and
+      // on `status==="connected"` so a teardown-induced close doesn't
+      // bounce a subscribe at a closing data channel.
+      if (sub.refCount > 0 && this.status === "connected") {
+        cameraLog.info(
+          `auto-resubscribing to ${cameraId} after call close (refCount=${sub.refCount})`,
+        );
+        this.send({ type: "subscribe", cameraId });
+      }
     });
     call.on("error", (err: unknown) => {
       logger.error(

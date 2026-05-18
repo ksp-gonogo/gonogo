@@ -59,9 +59,24 @@ export function useStream(
       setStream(s);
     });
 
+    // Long-lived listener so a track that dies mid-flight (relay
+    // dropped, peer reconnect, etc.) actually re-renders the widget —
+    // the one-shot subscribe() promise above resolves once and
+    // doesn't tell us about subsequent replacements. Sources without
+    // the optional `onStreamChange` method silently keep one-shot
+    // semantics, which is fine for sources that don't have a
+    // mid-life replacement mode (e.g. a synthetic test source).
+    let unsubStream: (() => void) | null = null;
+    if (typeof source.onStreamChange === "function") {
+      unsubStream = source.onStreamChange(streamId, (next) => {
+        if (!cancelled) setStream(next);
+      });
+    }
+
     return () => {
       cancelled = true;
       unsubStatus();
+      unsubStream?.();
       source.unsubscribe(streamId);
       setStream(null);
     };
