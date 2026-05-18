@@ -18,9 +18,7 @@ test.describe("relay + fake OCISLY", () => {
   test("relay /health reports the fake OCISLY target and a peer id", async ({
     request,
   }) => {
-    const res = await request.get(
-      `http://localhost:${PORTS.relay}/health`,
-    );
+    const res = await request.get(`http://localhost:${PORTS.relay}/health`);
     expect(res.ok()).toBe(true);
     const body = (await res.json()) as {
       status: string;
@@ -39,9 +37,7 @@ test.describe("relay + fake OCISLY", () => {
   test("relay /ice-config reports 503 when coturn is skipped", async ({
     request,
   }) => {
-    const res = await request.get(
-      `http://localhost:${PORTS.relay}/ice-config`,
-    );
+    const res = await request.get(`http://localhost:${PORTS.relay}/ice-config`);
     expect(res.status()).toBe(503);
   });
 });

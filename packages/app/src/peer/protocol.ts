@@ -103,7 +103,20 @@ export type PeerMessage =
   // for camera streams. Sent on initial station connect (if known) and again
   // whenever the relay is re-resolved. null means the main screen no longer
   // has a live relay connection.
-  | { type: "relay-peer-id"; peerId: string | null }
+  //
+  // `iceServers` carries the relay's TURN credentials (the same payload
+  // the host fetched from /ice-config). Stations need this for their
+  // station→relay peer connection — without it the station's Peer
+  // gathers only host-LAN candidates and the relay's container-bridge
+  // candidates are unreachable from the LAN, causing every
+  // negotiation-failed event in the 2026-05-17 evening session. Older
+  // station builds that don't read this field still work, just only
+  // when the router supports NAT-hairpin to the relay container.
+  | {
+      type: "relay-peer-id";
+      peerId: string | null;
+      iceServers?: RTCIceServer[];
+    }
   // Host → station, sent over the existing data channel a beat before the
   // host rotates its share code. Stations update their reconnect target
   // *before* the host's `peer.destroy()` closes the channel, so their

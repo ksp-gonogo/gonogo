@@ -1,5 +1,10 @@
-import { bootstrapPair, expect, teardownPair, type BootstrappedPair } from "./helpers";
 import { test } from "@playwright/test";
+import {
+  type BootstrappedPair,
+  bootstrapPair,
+  expect,
+  teardownPair,
+} from "./helpers";
 
 /**
  * End-to-end media-stream test. Boots the full stack via
@@ -39,7 +44,9 @@ interface FrameSample {
   reason: string | null;
 }
 
-async function sampleVideo(page: import("@playwright/test").Page): Promise<FrameSample> {
+async function sampleVideo(
+  page: import("@playwright/test").Page,
+): Promise<FrameSample> {
   return await page.evaluate(async (blockPx) => {
     const video = document.querySelector("video") as HTMLVideoElement | null;
     if (!video) {
