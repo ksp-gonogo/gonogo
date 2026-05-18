@@ -646,6 +646,18 @@ const GATED_KEYS: DataKey[] = [
   { key: "v.missionTime" },
   { key: "v.altitude" },
   { key: "comm.connected" },
+  { key: "career.science" },
+  // Scene-level / KSC-global / outcome keys that must flow through the
+  // CommNet gate. See the 2026-05-18 12:28 BST regression below.
+  { key: "kc.scene" },
+  { key: "kc.padOccupied" },
+  { key: "ksp.canRevertToLaunch" },
+  { key: "crash.hasRecent" },
+  { key: "recovery.hasRecent" },
+  { key: "flight.events" },
+  { key: "tech.nodes" },
+  { key: "strategies.all" },
+  { key: "tar.availableVessels" },
 ];
 
 describe("BufferedDataSource — affectedBySignalLoss gate", () => {
@@ -733,6 +745,31 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
 
     expect(spy).toHaveBeenCalledWith(100);
     expect(spy).toHaveBeenCalledWith(60);
+  });
+
+  // 2026-05-18 12:28 BST regression: switching from Flight to SpaceCenter
+  // dropped comm.connected to false (no active vessel), and the host
+  // stopped broadcasting any `kc.*` / `ksp.*` / `crash.*` / `recovery.*`
+  // / `flight.*` / `tech.*` / `strategies.*` keys — so stations'
+  // SceneSwitchPrompt never fired and various scene-aware widgets stayed
+  // on stale Flight-scene values. None of those prefixes describe vessel
+  // telemetry; they're scene / career / outcome state.
+  it.each([
+    ["kc.scene", "SpaceCenter"],
+    ["kc.padOccupied", true],
+    ["ksp.canRevertToLaunch", false],
+    ["crash.hasRecent", true],
+    ["recovery.hasRecent", true],
+    ["flight.events", []],
+    ["tech.nodes", []],
+    ["strategies.all", []],
+    ["tar.availableVessels", []],
+  ])("always lets %s through during blackout (scene-level / KSC-global state)", (key, value) => {
+    const spy = vi.fn();
+    buffered.subscribe(key, spy);
+    source.emit("comm.connected", false); // gate is active
+    source.emit(key, value);
+    expect(spy).toHaveBeenCalledWith(value);
   });
 
   it("does NOT gate on a cold-start comm.connected=false (no confirmed link yet)", async () => {

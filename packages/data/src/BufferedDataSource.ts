@@ -667,21 +667,43 @@ export class BufferedDataSource extends DataSourceWrapper {
 
     // CommNet blackout gate. When the wrapped source is signal-affected
     // (Telemachus) and we've confirmed a prior live link that has since
-    // dropped, drop anything that isn't a `comm.*` key — not persisted to
-    // the store, not fanned out to live or sample subscribers, doesn't
-    // update lastEmittedValue. Widgets freeze at their pre-blackout value;
-    // historical queries show a clean gap.
+    // dropped, drop everything except keys that are *meaningful without
+    // an active vessel*. Vessel-bound keys (v.*, f.*, r.*, o.*, etc.)
+    // would freeze at their pre-blackout value, which is what we want:
+    // the operator sees stale data marked unreliable rather than zeros.
     //
-    // `career.*` is KSP-global (funds / rep / science points come from KSC,
-    // not the vessel) so it must always flow through — otherwise the
-    // ScienceBench freezes the moment the player opens R&D from KSC and
-    // never sees their science points decrement after spending.
+    // Always-evaluable prefixes flow through regardless:
+    // - `comm.*` — needed to detect the signal-restore event itself.
+    // - `career.*` — KSC-global (funds / rep / sci); a player opening R&D
+    //   from Space Center would otherwise see ScienceBench freeze.
+    // - `kc.*` — Kerbin Center / scene state (kc.scene, kc.padOccupied,
+    //   kc.savedShips, etc.). 2026-05-18 12:28 BST regression: a scene
+    //   transition to SpaceCenter put `comm.connected` to false, which
+    //   meant the host stopped broadcasting `kc.scene="SpaceCenter"`
+    //   and stations' SceneSwitchPrompt never fired.
+    // - `ksp.*` — scene-level game state (canRevertToLaunch, etc.).
+    // - `crash.*` / `recovery.*` — session-wide flight outcome snapshots.
+    // - `flight.*` — flight-history accessor keys; valid in any scene.
+    // - `tech.*` — research tree state; KSC-global like `career.*`.
+    // - `strategies.*` — Admin Building strategies; KSC-global.
+    // - `tar.availableVessels` — list-from-FlightGlobals, no active
+    //   vessel required.
+    const isAlwaysEvaluable =
+      key.startsWith("comm.") ||
+      key.startsWith("career.") ||
+      key.startsWith("kc.") ||
+      key.startsWith("ksp.") ||
+      key.startsWith("crash.") ||
+      key.startsWith("recovery.") ||
+      key.startsWith("flight.") ||
+      key.startsWith("tech.") ||
+      key.startsWith("strategies.") ||
+      key === "tar.availableVessels";
     if (
       this.source.affectedBySignalLoss &&
       this.hasConfirmedConnection &&
       !this.signalConnected &&
-      !key.startsWith("comm.") &&
-      !key.startsWith("career.")
+      !isAlwaysEvaluable
     ) {
       return;
     }

@@ -915,6 +915,15 @@ export class PeerClientService {
     "relay-peer-id": (msg) => {
       this.relayPeerId = msg.peerId;
       this.relayPeerIdListeners.fire(msg.peerId);
+      // Carry the host's TURN credentials into the station's own Peer.
+      // The station→relay camera channel is a separate peer.connect()
+      // call from the station's Peer instance; without TURN the relay's
+      // container-bridge candidates can't be reached from the LAN. See
+      // the 2026-05-17 evening session — every camera attempt fired
+      // `negotiation-failed` for this exact reason.
+      if (msg.iceServers && msg.iceServers.length > 0) {
+        this.applyRelayIceServers(msg.iceServers);
+      }
     },
     "host-id-rotation": (msg) => {
       logger.info(
@@ -960,6 +969,30 @@ export class PeerClientService {
 
   private handleMessage(msg: PeerMessage) {
     this.dispatcher.dispatch(msg, undefined);
+  }
+
+  /**
+   * Inject the host's relay iceServers into this station's Peer config.
+   * Mirrors `PeerHostService.refreshIceConfig` — PeerJS doesn't expose a
+   * public setter for `iceServers`, but `_options.config` is read every
+   * time the Peer constructs an underlying RTCPeerConnection, so a fresh
+   * `peer.connect()` for the camera channel picks up the new value.
+   * Existing connections (the station→host data channel) keep their
+   * already-negotiated ICE pair and aren't disturbed.
+   */
+  private applyRelayIceServers(iceServers: RTCIceServer[]): void {
+    if (!this.peer) return;
+    const opts = (
+      this.peer as unknown as {
+        _options?: { config?: { iceServers: RTCIceServer[] } };
+      }
+    )._options;
+    if (opts) {
+      opts.config = { iceServers };
+      logger.info(
+        `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast — station→relay camera channel can now use TURN`,
+      );
+    }
   }
 
   /** Latest relay peer id the host has announced, or null if none. */

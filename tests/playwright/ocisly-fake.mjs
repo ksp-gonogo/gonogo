@@ -115,7 +115,10 @@ const impl = {
   GetCameraTexture(call, callback) {
     const cameraId = call.request?.cameraId ?? CAMERA_ID;
     if (cameraId !== CAMERA_ID) {
-      callback({ code: grpc.status.NOT_FOUND, message: `unknown camera ${cameraId}` });
+      callback({
+        code: grpc.status.NOT_FOUND,
+        message: `unknown camera ${cameraId}`,
+      });
       return;
     }
     callback(null, {

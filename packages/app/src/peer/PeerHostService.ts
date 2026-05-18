@@ -319,10 +319,15 @@ export class PeerHostService {
         this.sendSchema(conn);
         // Station needs this to reach the relay directly — resend whenever
         // a new station connects so latecomers aren't stuck in "disconnected".
+        // Bundles iceServers so the station's Peer can configure TURN for
+        // the station→relay camera channel (without TURN the relay's
+        // container-bridge candidates are unreachable from the LAN).
         if (this.relayPeerId !== null) {
           conn.send({
             type: "relay-peer-id",
             peerId: this.relayPeerId,
+            iceServers:
+              this.iceServers.length > 0 ? this.iceServers : undefined,
           } satisfies PeerMessage);
         }
         // Latecomer's initial flight snapshot. The host's flight-change
@@ -563,7 +568,21 @@ export class PeerHostService {
 
   setRelayPeerId(peerId: string | null) {
     this.relayPeerId = peerId;
-    this.broadcast({ type: "relay-peer-id", peerId });
+    this.broadcastRelayInfo();
+  }
+
+  /**
+   * Broadcast the current relay peerId + iceServers to every connected
+   * station. Called whenever EITHER changes — without iceServers, stations
+   * can't traverse the relay's container bridge for camera streams and
+   * every WebRTC negotiation dies with `negotiation-failed`.
+   */
+  private broadcastRelayInfo(): void {
+    this.broadcast({
+      type: "relay-peer-id",
+      peerId: this.relayPeerId,
+      iceServers: this.iceServers.length > 0 ? this.iceServers : undefined,
+    });
   }
 
   /**
@@ -1207,6 +1226,11 @@ export class PeerHostService {
     logger.info(
       "[PeerHost] ice-config refreshed — new TURN creds active for future connections",
     );
+    // Push the refresh to every connected station so their station→relay
+    // peer connections can pick up the new credentials too. Without this,
+    // a coturn secret rotation (relay restart) would silently break
+    // station camera streams until each station refreshes.
+    this.broadcastRelayInfo();
   }
 
   /**
