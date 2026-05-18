@@ -142,7 +142,29 @@ export class PeerHostService {
   // forwards to the real source's cache.
   private readonly backfillSources = new Map<
     string,
-    { getLatestValue?: (key: string) => unknown }
+    {
+      getLatestValue?: (key: string) => unknown;
+      schema?: () => Array<{ key: string }>;
+      subscribe?: (key: string, cb: (value: unknown) => void) => () => void;
+    }
+  >();
+  // Refcounted upstream subscribes for demand-only keys (`v.topology`,
+  // `v.topologySeq`, `v.partState[…]`, `b.name[…]`, etc.) — keys that
+  // aren't in a source's static schema, so PeerBroadcastingDataSource
+  // never subscribes to them at construction. Without this, a station's
+  // `peer-data-subscribe` would only ever get a single back-fill of the
+  // last cached value (which is whatever a host-side widget happened to
+  // pull most recently), then go silent on subsequent updates. That's
+  // the 2026-05-17 ShipMap-sluggish-on-stations bug: stations froze on
+  // the topology snapshot from the moment of subscribe and only
+  // refreshed after a full reload re-armed the subscribe.
+  //
+  // Map<sourceId, Map<key, { refCount, unsub }>> — refCount is the
+  // number of peer connections that have asked for this (sourceId, key)
+  // pair. When it hits zero we tear the upstream sub down.
+  private readonly peerDrivenSubs = new Map<
+    string,
+    Map<string, { refCount: number; unsub: () => void }>
   >();
   private kosSessions = new KosSessionManager({
     getKosConfig: async () => {
@@ -357,6 +379,19 @@ export class PeerHostService {
         this.connections.delete(conn);
         this.peerIdToStationKey.delete(conn.peer);
         this.kosSessions.closeAllForConn(conn);
+        // Release any demand-only upstream subscribes held on behalf
+        // of this peer. WeakMap-keyed by `conn`, so we must read it
+        // before the conn drops out of scope. Without this, leaving
+        // stations leak the per-key refCount and the upstream
+        // subscribe stays pinned forever.
+        const subs = this.peerSubs.get(conn);
+        if (subs) {
+          for (const [sourceId, keys] of subs) {
+            for (const key of keys) {
+              this.releasePeerDrivenSub(sourceId, key);
+            }
+          }
+        }
         logger.info(
           `[PeerHost] connection closed — peer=${conn.peer}, total=${this.connections.size}`,
         );
@@ -527,9 +562,65 @@ export class PeerHostService {
    */
   registerSourceForBackfill(
     sourceId: string,
-    source: { getLatestValue?: (key: string) => unknown },
+    source: {
+      getLatestValue?: (key: string) => unknown;
+      schema?: () => Array<{ key: string }>;
+      subscribe?: (key: string, cb: (value: unknown) => void) => () => void;
+    },
   ): void {
     this.backfillSources.set(sourceId, source);
+  }
+
+  /**
+   * Ensure an upstream subscribe is active for a demand-only key on
+   * behalf of one or more peer connections. Schema keys are skipped —
+   * `PeerBroadcastingDataSource` already broadcasts them from its
+   * constructor-time subscribe loop, and adding a second subscriber
+   * would double every broadcast (one PBDS-driven, one peer-driven).
+   *
+   * Refcount tracks how many peer connections have asked. The actual
+   * upstream subscribe lives on the wrapped source; the broadcast
+   * callback fires `this.broadcast` so the per-peer `peerSubs` filter
+   * inside `broadcastData` delivers the sample only to peers that
+   * subscribed.
+   */
+  private retainPeerDrivenSub(sourceId: string, key: string): void {
+    const source = this.backfillSources.get(sourceId);
+    if (!source?.subscribe) return;
+    const schemaKeys = source.schema?.() ?? [];
+    if (schemaKeys.some((k) => k.key === key)) return;
+    let perSource = this.peerDrivenSubs.get(sourceId);
+    if (!perSource) {
+      perSource = new Map();
+      this.peerDrivenSubs.set(sourceId, perSource);
+    }
+    const existing = perSource.get(key);
+    if (existing) {
+      existing.refCount += 1;
+      return;
+    }
+    const unsub = source.subscribe(key, (value) => {
+      this.broadcast({
+        type: "data",
+        sourceId,
+        key,
+        value,
+        t: Date.now(),
+      });
+    });
+    perSource.set(key, { refCount: 1, unsub });
+  }
+
+  private releasePeerDrivenSub(sourceId: string, key: string): void {
+    const perSource = this.peerDrivenSubs.get(sourceId);
+    const entry = perSource?.get(key);
+    if (!entry || !perSource) return;
+    entry.refCount -= 1;
+    if (entry.refCount <= 0) {
+      entry.unsub();
+      perSource.delete(key);
+      if (perSource.size === 0) this.peerDrivenSubs.delete(sourceId);
+    }
   }
 
   /**
@@ -860,12 +951,23 @@ export class PeerHostService {
       // directly to this conn instead of going through `broadcast` so
       // other peers don't receive a duplicate sample.
       this.backfillLatest(conn, msg.sourceId, fresh);
+      // For demand-only keys (not in the source's static schema, so
+      // PBDS hasn't subscribed to them), bring up a peer-driven upstream
+      // subscribe so subsequent samples actually flow. Schema keys are
+      // already handled by PBDS; retainPeerDrivenSub is a no-op for them.
+      for (const k of fresh) {
+        this.retainPeerDrivenSub(msg.sourceId, k);
+      }
     },
     "peer-data-unsubscribe": (msg, conn) => {
       const subs = this.peerSubs.get(conn);
       const bucket = subs?.get(msg.sourceId);
       if (!bucket) return;
-      for (const k of msg.keys) bucket.delete(k);
+      for (const k of msg.keys) {
+        if (bucket.delete(k)) {
+          this.releasePeerDrivenSub(msg.sourceId, k);
+        }
+      }
     },
   });
 

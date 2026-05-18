@@ -443,6 +443,215 @@ describe("PeerHostService — selective subscription", () => {
   });
 });
 
+describe("PeerHostService — peer-driven subscribe forwarding", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  // 2026-05-18 — root cause of the "ship map sluggish on stations" bug.
+  // Demand-only keys (`v.topology`, `v.topologySeq`, indexed keys like
+  // `b.name[1]`, `v.partState[<flightId>]`) aren't in any source's
+  // static schema, so PeerBroadcastingDataSource never subscribes to
+  // them at construction time. Before this fix, a station that called
+  // `peer-data-subscribe` for those keys got exactly one back-fill of
+  // whatever was cached and then went silent. Stations needed a full
+  // page-reload to see a fresh topology after staging.
+  //
+  // The fix: `peer-data-subscribe` on a non-schema key triggers an
+  // upstream subscribe via the registered back-fill source's
+  // `subscribe()` method, refcounted across all interested peers. Each
+  // upstream sample broadcasts via the standard per-peer filter, so
+  // only subscribed peers receive it.
+  it("forwards demand-only keys to subscribed peers", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    // Register a fake "data" source that owns `v.topology` (demand-only —
+    // not in its schema). The host should subscribe through this source
+    // when a peer asks for the key.
+    let upstreamCb: ((v: unknown) => void) | null = null;
+    let unsubCalls = 0;
+    service.registerSourceForBackfill("data", {
+      getLatestValue: () => undefined,
+      schema: () => [{ key: "v.altitude" }], // intentionally excludes v.topology
+      subscribe: (key, cb) => {
+        if (key === "v.topology") upstreamCb = cb;
+        return () => {
+          if (key === "v.topology") {
+            upstreamCb = null;
+            unsubCalls += 1;
+          }
+        };
+      },
+    });
+
+    const conn = new FakeDataConnection();
+    conn.peer = "station-1";
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await new Promise((r) => setTimeout(r, 0));
+
+    conn.emit("data", { type: "peer-data-mode", mode: "selective" });
+    conn.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+
+    // Subscribe should have triggered an upstream subscribe.
+    expect(upstreamCb).not.toBeNull();
+
+    const base = conn.sent.length;
+    upstreamCb?.({ parts: [{ flightId: 1 }], topologySeq: 7 });
+
+    const dataMsgs = conn.sent
+      .slice(base)
+      .filter((m): m is { type: string; key: string } => m.type === "data");
+    expect(dataMsgs).toHaveLength(1);
+    expect(dataMsgs[0].key).toBe("v.topology");
+
+    // Unsubscribe — the upstream sub should tear down (only peer was this one).
+    conn.emit("data", {
+      type: "peer-data-unsubscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+    expect(unsubCalls).toBe(1);
+    expect(upstreamCb).toBeNull();
+  });
+
+  it("refcounts demand-only subs across multiple peers", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    let subscribeCalls = 0;
+    let unsubCalls = 0;
+    service.registerSourceForBackfill("data", {
+      schema: () => [],
+      subscribe: (_key, _cb) => {
+        subscribeCalls += 1;
+        return () => {
+          unsubCalls += 1;
+        };
+      },
+    });
+
+    const connA = new FakeDataConnection();
+    connA.peer = "station-A";
+    FakePeer.last.emit("connection", connA);
+    connA.emit("open");
+    const connB = new FakeDataConnection();
+    connB.peer = "station-B";
+    FakePeer.last.emit("connection", connB);
+    connB.emit("open");
+    await new Promise((r) => setTimeout(r, 0));
+
+    connA.emit("data", { type: "peer-data-mode", mode: "selective" });
+    connB.emit("data", { type: "peer-data-mode", mode: "selective" });
+    connA.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+    connB.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+
+    // Only one upstream subscribe even with two subscribers.
+    expect(subscribeCalls).toBe(1);
+    expect(unsubCalls).toBe(0);
+
+    // One peer drops out — the other still holds.
+    connA.emit("data", {
+      type: "peer-data-unsubscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+    expect(unsubCalls).toBe(0);
+
+    // Last peer drops — upstream tears down.
+    connB.emit("data", {
+      type: "peer-data-unsubscribe",
+      sourceId: "data",
+      keys: ["v.topology"],
+    });
+    expect(unsubCalls).toBe(1);
+  });
+
+  it("skips peer-driven subs for keys already in the schema (no double-broadcast)", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    // Schema includes `v.altitude` — PBDS already subscribes to it at
+    // construction, so a peer-driven sub would double every broadcast.
+    let subscribeCalls = 0;
+    service.registerSourceForBackfill("data", {
+      schema: () => [{ key: "v.altitude" }],
+      subscribe: () => {
+        subscribeCalls += 1;
+        return () => {};
+      },
+    });
+
+    const conn = new FakeDataConnection();
+    conn.peer = "station-1";
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await new Promise((r) => setTimeout(r, 0));
+
+    conn.emit("data", { type: "peer-data-mode", mode: "selective" });
+    conn.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "data",
+      keys: ["v.altitude"],
+    });
+
+    expect(subscribeCalls).toBe(0);
+  });
+
+  it("releases peer-driven subs when a station's conn closes", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+
+    let unsubCalls = 0;
+    service.registerSourceForBackfill("data", {
+      schema: () => [],
+      subscribe: () => () => {
+        unsubCalls += 1;
+      },
+    });
+
+    const conn = new FakeDataConnection();
+    conn.peer = "station-1";
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await new Promise((r) => setTimeout(r, 0));
+
+    conn.emit("data", { type: "peer-data-mode", mode: "selective" });
+    conn.emit("data", {
+      type: "peer-data-subscribe",
+      sourceId: "data",
+      keys: ["v.topology", "v.partState[1]"],
+    });
+
+    // Station refresh / network drop — conn closes without an explicit
+    // peer-data-unsubscribe. The host must still release the upstream subs
+    // or we leak forever.
+    conn.emit("close");
+    expect(unsubCalls).toBe(2);
+  });
+});
+
 describe("PeerHostService — schema broadcast", () => {
   beforeEach(() => {
     FakePeer.last = null;
