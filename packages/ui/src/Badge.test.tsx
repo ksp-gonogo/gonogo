@@ -10,33 +10,17 @@ describe("Badge", () => {
   });
 
   it("applies a different class for different tones", () => {
-    const { rerender } = render(
-      <Badge tone="neutral" data-testid="b">
-        N
-      </Badge>,
-    );
-    const neutralClass = screen.getByTestId("b").className;
-    rerender(
-      <Badge tone="warn" data-testid="b">
-        N
-      </Badge>,
-    );
-    expect(screen.getByTestId("b").className).not.toBe(neutralClass);
+    const { rerender } = render(<Badge tone="neutral">N</Badge>);
+    const neutralClass = screen.getByText("N").className;
+    rerender(<Badge tone="warn">N</Badge>);
+    expect(screen.getByText("N").className).not.toBe(neutralClass);
   });
 
   it("applies a different class for different sizes", () => {
-    const { rerender } = render(
-      <Badge size="md" data-testid="b">
-        N
-      </Badge>,
-    );
-    const mdClass = screen.getByTestId("b").className;
-    rerender(
-      <Badge size="sm" data-testid="b">
-        N
-      </Badge>,
-    );
-    expect(screen.getByTestId("b").className).not.toBe(mdClass);
+    const { rerender } = render(<Badge size="md">N</Badge>);
+    const mdClass = screen.getByText("N").className;
+    rerender(<Badge size="sm">N</Badge>);
+    expect(screen.getByText("N").className).not.toBe(mdClass);
   });
 
   it("forwards arbitrary attributes (e.g. aria-label, title)", () => {
