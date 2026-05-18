@@ -94,6 +94,98 @@ NEXT
 * Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div>"
 `;
 
+exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ mobile-9x8 1`] = `
+"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 12,500f</span></div><div><div><div><div title="Launch Pad — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Launch Pad</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="Runway — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Runway</span><span><span>1</span><span>/</span><span>3</span></span><div><span>30.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="VAB — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>VAB</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="SPH — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>SPH</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="Mission Control — tier 1 of 3
+
+NOW
+* Active contracts: 2
+
+NEXT
+* Active contracts: 7"><span>Mission Control</span><span><span>1</span><span>/</span><span>3</span></span><div><span>45.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Active contracts: 7">Upgrade</button></div><div><div><span>Now</span><pre>* Active contracts: 2</pre></div><div><span>Next</span><pre>* Active contracts: 7</pre></div></div></div><div title="Tracking — tier 1 of 3
+
+NOW
+* No maneuver nodes
+
+NEXT
+* Maneuver nodes enabled"><span>Tracking</span><span><span>1</span><span>/</span><span>3</span></span><div><span>45.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Maneuver nodes enabled">Upgrade</button></div><div><div><span>Now</span><pre>* No maneuver nodes</pre></div><div><span>Next</span><pre>* Maneuver nodes enabled</pre></div></div></div><div title="Admin — tier 1 of 3
+
+NOW
+* Max Active Strategies: 1
+* Max Commitment: 25.0%
+
+NEXT
+* Max Active Strategies: 3
+* Max Commitment: 60.0%"><span>Admin</span><span><span>1</span><span>/</span><span>3</span></span><div><span>55.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Active Strategies: 3
+* Max Commitment: 60.0%">Upgrade</button></div><div><div><span>Now</span><pre>* Max Active Strategies: 1
+* Max Commitment: 25.0%</pre></div><div><span>Next</span><pre>* Max Active Strategies: 3
+* Max Commitment: 60.0%</pre></div></div></div><div title="R&amp;D — tier 1 of 3
+
+NOW
+* Science archive: 500 pts
+
+NEXT
+* Science archive: 2500 pts"><span>R&amp;D</span><span><span>1</span><span>/</span><span>3</span></span><div><span>45.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Science archive: 2500 pts">Upgrade</button></div><div><div><span>Now</span><pre>* Science archive: 500 pts</pre></div><div><span>Next</span><pre>* Science archive: 2500 pts</pre></div></div></div><div title="Astronaut — tier 1 of 3
+
+NOW
+* Max crew: 1
+
+NEXT
+* Max crew: 12"><span>Astronaut</span><span><span>1</span><span>/</span><span>3</span></span><div><span>30.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div>"
+`;
+
 exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ tall-6x14 1`] = `
 "<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 12,500f</span></div><div><div><div><div title="Launch Pad — tier 1 of 3
 
@@ -283,6 +375,98 @@ NEXT
 exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ compact-4x7 1`] = `"<div><h3>KSC</h3><div><div>500,000<span>f</span></div><span title="On pad: Kerbal X" aria-label="On pad: Kerbal X">PAD ACTIVE</span></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ default-6x7 1`] = `
+"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">On pad: Kerbal X<span title="Available funds">· 500,000f</span></div><div><div><div><div title="Launch Pad — tier 2 of 3
+
+NOW
+* Max Size: 140t
+* Max Parts: 255
+
+NEXT
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>Launch Pad</span><span><span>2</span><span>/</span><span>3</span></span><div><span>150.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Max Size: Unlimited
+* Max Parts: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div><div><span>Next</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="Runway — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Runway</span><span><span>1</span><span>/</span><span>3</span></span><div><span>30.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="VAB — tier 2 of 3
+
+NOW
+* Max Size: 140t
+* Max Parts: 255
+
+NEXT
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>VAB</span><span><span>2</span><span>/</span><span>3</span></span><div><span>175.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Max Size: Unlimited
+* Max Parts: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div><div><span>Next</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="SPH — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>SPH</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="Mission Control — tier 2 of 3
+
+NOW
+* Active contracts: 7
+
+NEXT
+* Active contracts: Unlimited"><span>Mission Control</span><span><span>2</span><span>/</span><span>3</span></span><div><span>120.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Active contracts: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Active contracts: 7</pre></div><div><span>Next</span><pre>* Active contracts: Unlimited</pre></div></div></div><div title="Tracking — tier 2 of 3
+
+NOW
+* Maneuver nodes enabled
+
+NEXT
+* Patched conics (full)"><span>Tracking</span><span><span>2</span><span>/</span><span>3</span></span><div><span>115.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Patched conics (full)">Upgrade</button></div><div><div><span>Now</span><pre>* Maneuver nodes enabled</pre></div><div><span>Next</span><pre>* Patched conics (full)</pre></div></div></div><div title="Admin — tier 1 of 3
+
+NOW
+* Max Active Strategies: 1
+* Max Commitment: 25.0%
+
+NEXT
+* Max Active Strategies: 3
+* Max Commitment: 60.0%"><span>Admin</span><span><span>1</span><span>/</span><span>3</span></span><div><span>55.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Active Strategies: 3
+* Max Commitment: 60.0%">Upgrade</button></div><div><div><span>Now</span><pre>* Max Active Strategies: 1
+* Max Commitment: 25.0%</pre></div><div><span>Next</span><pre>* Max Active Strategies: 3
+* Max Commitment: 60.0%</pre></div></div></div><div title="R&amp;D — tier 2 of 3
+
+NOW
+* Science archive: 2500 pts
+
+NEXT
+* Science archive: Unlimited"><span>R&amp;D</span><span><span>2</span><span>/</span><span>3</span></span><div><span>225.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Science archive: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Science archive: 2500 pts</pre></div><div><span>Next</span><pre>* Science archive: Unlimited</pre></div></div></div><div title="Astronaut — tier 2 of 3
+
+NOW
+* Max crew: 12
+
+NEXT
+* Max crew: Unlimited"><span>Astronaut</span><span><span>2</span><span>/</span><span>3</span></span><div><span>65.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div>"
+`;
+
+exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ mobile-9x8 1`] = `
 "<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">On pad: Kerbal X<span title="Available funds">· 500,000f</span></div><div><div><div><div title="Launch Pad — tier 2 of 3
 
 NOW
@@ -603,6 +787,47 @@ NOW
 * Max crew: Unlimited"><span>Astronaut</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>489</span></div></div></div><div></div><div></div></div></div>"
 `;
 
+exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ mobile-9x8 1`] = `
+"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 1,289,848f</span></div><div><div><div><div title="Launch Pad — tier 3 of 3
+
+NOW
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>Launch Pad</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="Runway — tier 3 of 3
+
+NOW
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>Runway</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="VAB — tier 3 of 3
+
+NOW
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>VAB</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="SPH — tier 3 of 3
+
+NOW
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>SPH</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="Mission Control — tier 3 of 3
+
+NOW
+* Active contracts: Unlimited"><span>Mission Control</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Active contracts: Unlimited</pre></div></div></div><div title="Tracking — tier 3 of 3
+
+NOW
+* Patched conics (full)"><span>Tracking</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Patched conics (full)</pre></div></div></div><div title="Admin — tier 3 of 3
+
+NOW
+* Max Active Strategies: Unlimited
+* Max Commitment: 100.0%"><span>Admin</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Active Strategies: Unlimited
+* Max Commitment: 100.0%</pre></div></div></div><div title="R&amp;D — tier 3 of 3
+
+NOW
+* Science archive: Unlimited"><span>R&amp;D</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Science archive: Unlimited</pre></div></div></div><div title="Astronaut — tier 3 of 3
+
+NOW
+* Max crew: Unlimited"><span>Astronaut</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>489</span></div></div></div><div></div><div></div></div></div>"
+`;
+
 exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ tall-6x14 1`] = `
 "<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 1,289,848f</span></div><div><div><div><div title="Launch Pad — tier 3 of 3
 
@@ -690,6 +915,98 @@ NOW
 exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ compact-4x7 1`] = `"<div><h3>KSC</h3><div><div>22,000<span>f</span></div><span title="Last site: LaunchPad" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ default-6x7 1`] = `
+"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 22,000f</span></div><div><div><div><div title="Launch Pad — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Launch Pad</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="Runway — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Runway</span><span><span>1</span><span>/</span><span>3</span></span><div><span>20.0k</span><button type="button" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="VAB — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>VAB</span><span><span>1</span><span>/</span><span>3</span></span><div><span>25.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="SPH — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>SPH</span><span><span>1</span><span>/</span><span>3</span></span><div><span>175.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="Mission Control — tier 1 of 3
+
+NOW
+* Active contracts: 2
+
+NEXT
+* Active contracts: 7"><span>Mission Control</span><span><span>1</span><span>/</span><span>3</span></span><div><span>45.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Active contracts: 7">Upgrade</button></div><div><div><span>Now</span><pre>* Active contracts: 2</pre></div><div><span>Next</span><pre>* Active contracts: 7</pre></div></div></div><div title="Tracking — tier 1 of 3
+
+NOW
+* No maneuver nodes
+
+NEXT
+* Maneuver nodes enabled"><span>Tracking</span><span><span>1</span><span>/</span><span>3</span></span><div><span>45.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Maneuver nodes enabled">Upgrade</button></div><div><div><span>Now</span><pre>* No maneuver nodes</pre></div><div><span>Next</span><pre>* Maneuver nodes enabled</pre></div></div></div><div title="Admin — tier 1 of 3
+
+NOW
+* Max Active Strategies: 1
+* Max Commitment: 25.0%
+
+NEXT
+* Max Active Strategies: 3
+* Max Commitment: 60.0%"><span>Admin</span><span><span>1</span><span>/</span><span>3</span></span><div><span>18.0k</span><button type="button" title="Upgrade to tier 2:
+* Max Active Strategies: 3
+* Max Commitment: 60.0%">Upgrade</button></div><div><div><span>Now</span><pre>* Max Active Strategies: 1
+* Max Commitment: 25.0%</pre></div><div><span>Next</span><pre>* Max Active Strategies: 3
+* Max Commitment: 60.0%</pre></div></div></div><div title="R&amp;D — tier 1 of 3
+
+NOW
+* Science archive: 500 pts
+
+NEXT
+* Science archive: 2500 pts"><span>R&amp;D</span><span><span>1</span><span>/</span><span>3</span></span><div><span>250.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Science archive: 2500 pts">Upgrade</button></div><div><div><span>Now</span><pre>* Science archive: 500 pts</pre></div><div><span>Next</span><pre>* Science archive: 2500 pts</pre></div></div></div><div title="Astronaut — tier 1 of 3
+
+NOW
+* Max crew: 1
+
+NEXT
+* Max crew: 12"><span>Astronaut</span><span><span>1</span><span>/</span><span>3</span></span><div><span>30.0k</span><button type="button" disabled="" title="Upgrade to tier 2:
+* Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div>"
+`;
+
+exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ mobile-9x8 1`] = `
 "<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· 22,000f</span></div><div><div><div><div title="Launch Pad — tier 1 of 3
 
 NOW
@@ -1050,6 +1367,87 @@ NEXT
 * Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div>"
 `;
 
+exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ mobile-9x8 1`] = `
+"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">On pad: Mun Shot III<span title="Available funds">· 78,400f</span></div><div><div><div><div title="Launch Pad — tier 2 of 3
+
+NOW
+* Max Size: 140t
+* Max Parts: 255
+
+NEXT
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>Launch Pad</span><span><span>2</span><span>/</span><span>3</span></span><div><span>150.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Max Size: Unlimited
+* Max Parts: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div><div><span>Next</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="Runway — tier 1 of 3
+
+NOW
+* Max Size: 18t
+* Max Parts: 30
+
+NEXT
+* Max Size: 140t
+* Max Parts: 255"><span>Runway</span><span><span>1</span><span>/</span><span>3</span></span><div><span>30.0k</span><button type="button" title="Upgrade to tier 2:
+* Max Size: 140t
+* Max Parts: 255">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 18t
+* Max Parts: 30</pre></div><div><span>Next</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div></div></div><div title="VAB — tier 3 of 3
+
+NOW
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>VAB</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="SPH — tier 2 of 3
+
+NOW
+* Max Size: 140t
+* Max Parts: 255
+
+NEXT
+* Max Size: Unlimited
+* Max Parts: Unlimited"><span>SPH</span><span><span>2</span><span>/</span><span>3</span></span><div><span>175.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Max Size: Unlimited
+* Max Parts: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max Size: 140t
+* Max Parts: 255</pre></div><div><span>Next</span><pre>* Max Size: Unlimited
+* Max Parts: Unlimited</pre></div></div></div><div title="Mission Control — tier 3 of 3
+
+NOW
+* Active contracts: Unlimited"><span>Mission Control</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Active contracts: Unlimited</pre></div></div></div><div title="Tracking — tier 2 of 3
+
+NOW
+* Maneuver nodes enabled
+
+NEXT
+* Patched conics (full)"><span>Tracking</span><span><span>2</span><span>/</span><span>3</span></span><div><span>115.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Patched conics (full)">Upgrade</button></div><div><div><span>Now</span><pre>* Maneuver nodes enabled</pre></div><div><span>Next</span><pre>* Patched conics (full)</pre></div></div></div><div title="Admin — tier 1 of 3
+
+NOW
+* Max Active Strategies: 1
+* Max Commitment: 25.0%
+
+NEXT
+* Max Active Strategies: 3
+* Max Commitment: 60.0%"><span>Admin</span><span><span>1</span><span>/</span><span>3</span></span><div><span>55.0k</span><button type="button" title="Upgrade to tier 2:
+* Max Active Strategies: 3
+* Max Commitment: 60.0%">Upgrade</button></div><div><div><span>Now</span><pre>* Max Active Strategies: 1
+* Max Commitment: 25.0%</pre></div><div><span>Next</span><pre>* Max Active Strategies: 3
+* Max Commitment: 60.0%</pre></div></div></div><div title="R&amp;D — tier 2 of 3
+
+NOW
+* Science archive: 2500 pts
+
+NEXT
+* Science archive: Unlimited"><span>R&amp;D</span><span><span>2</span><span>/</span><span>3</span></span><div><span>225.0k</span><button type="button" disabled="" title="Upgrade to tier 3:
+* Science archive: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Science archive: 2500 pts</pre></div><div><span>Next</span><pre>* Science archive: Unlimited</pre></div></div></div><div title="Astronaut — tier 2 of 3
+
+NOW
+* Max crew: 12
+
+NEXT
+* Max crew: Unlimited"><span>Astronaut</span><span><span>2</span><span>/</span><span>3</span></span><div><span>65.0k</span><button type="button" title="Upgrade to tier 3:
+* Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div>"
+`;
+
 exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ tall-6x14 1`] = `
 "<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">On pad: Mun Shot III<span title="Available funds">· 78,400f</span></div><div><div><div><div title="Launch Pad — tier 2 of 3
 
@@ -1217,6 +1615,8 @@ NEXT
 exports[`SpaceCenterStatus DOM snapshots > sandbox-no-career @ compact-4x7 1`] = `"<div><h3>KSC</h3><div><div>—</div><span title="No vehicle on pad" aria-label="No vehicle on pad">PAD CLEAR</span></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > sandbox-no-career @ default-6x7 1`] = `"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">No vehicle on pad</div><div><div><div><div title="Launch Pad (older Telemachus DLL — no level descriptions)"><span>Launch Pad</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Runway (older Telemachus DLL — no level descriptions)"><span>Runway</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="VAB (older Telemachus DLL — no level descriptions)"><span>VAB</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="SPH (older Telemachus DLL — no level descriptions)"><span>SPH</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Mission Control (older Telemachus DLL — no level descriptions)"><span>Mission Control</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Tracking (older Telemachus DLL — no level descriptions)"><span>Tracking</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Admin (older Telemachus DLL — no level descriptions)"><span>Admin</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="R&amp;D (older Telemachus DLL — no level descriptions)"><span>R&amp;D</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Astronaut (older Telemachus DLL — no level descriptions)"><span>Astronaut</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>0</span></div></div></div><div></div><div></div></div></div>"`;
+
+exports[`SpaceCenterStatus DOM snapshots > sandbox-no-career @ mobile-9x8 1`] = `"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">No vehicle on pad</div><div><div><div><div title="Launch Pad (older Telemachus DLL — no level descriptions)"><span>Launch Pad</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Runway (older Telemachus DLL — no level descriptions)"><span>Runway</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="VAB (older Telemachus DLL — no level descriptions)"><span>VAB</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="SPH (older Telemachus DLL — no level descriptions)"><span>SPH</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Mission Control (older Telemachus DLL — no level descriptions)"><span>Mission Control</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Tracking (older Telemachus DLL — no level descriptions)"><span>Tracking</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Admin (older Telemachus DLL — no level descriptions)"><span>Admin</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="R&amp;D (older Telemachus DLL — no level descriptions)"><span>R&amp;D</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Astronaut (older Telemachus DLL — no level descriptions)"><span>Astronaut</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>0</span></div></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > sandbox-no-career @ tall-6x14 1`] = `"<div><h3>SPACE CENTER</h3><div role="status" aria-live="polite">No vehicle on pad</div><div><div><div><div title="Launch Pad (older Telemachus DLL — no level descriptions)"><span>Launch Pad</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Runway (older Telemachus DLL — no level descriptions)"><span>Runway</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="VAB (older Telemachus DLL — no level descriptions)"><span>VAB</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="SPH (older Telemachus DLL — no level descriptions)"><span>SPH</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Mission Control (older Telemachus DLL — no level descriptions)"><span>Mission Control</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Tracking (older Telemachus DLL — no level descriptions)"><span>Tracking</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Admin (older Telemachus DLL — no level descriptions)"><span>Admin</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="R&amp;D (older Telemachus DLL — no level descriptions)"><span>R&amp;D</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div><div title="Astronaut (older Telemachus DLL — no level descriptions)"><span>Astronaut</span><span><span>3</span><span>/</span><span>3</span></span><span>MAX</span></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>0</span></div></div></div><div></div><div></div></div></div>"`;
 

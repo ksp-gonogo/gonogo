@@ -808,9 +808,7 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
       // empty array, the station would lose any local TURN config it
       // had set elsewhere. Assert we leave it alone.
       config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-        ],
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       },
     };
     const fakePeer = { _options: fakeOptions };

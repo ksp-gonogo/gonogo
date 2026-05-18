@@ -4,6 +4,8 @@ exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ default-4x4 1`] = `"<div>
 
 exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">-5.00 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
+exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">-5.00 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
+
 exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">-5.00 Mm</div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ tiny-3x3 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">-5.00 Mm</div></div></div>"`;
@@ -13,6 +15,8 @@ exports[`SemiMajorAxis DOM snapshots > escape-kerbin @ wide-8x8 1`] = `"<div><h3
 exports[`SemiMajorAxis DOM snapshots > jool-system @ default-4x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 22px;">26.00 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > jool-system @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Jool</div><div><div role="status" aria-live="polite" style="font-size: 28px;">26.00 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
+
+exports[`SemiMajorAxis DOM snapshots > jool-system @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Jool</div><div><div role="status" aria-live="polite" style="font-size: 28px;">26.00 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > jool-system @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">26.00 Mm</div></div></div>"`;
 
@@ -24,6 +28,8 @@ exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ default-4x4 1`] = `"<div><
 
 exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">2.87 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
+exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">2.87 Mm</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
+
 exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">2.87 Mm</div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ tiny-3x3 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">2.87 Mm</div></div></div>"`;
@@ -33,6 +39,8 @@ exports[`SemiMajorAxis DOM snapshots > ksync-kerbin @ wide-8x8 1`] = `"<div><h3>
 exports[`SemiMajorAxis DOM snapshots > lko-kerbin @ default-4x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 22px;">680.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > lko-kerbin @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">680.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
+
+exports[`SemiMajorAxis DOM snapshots > lko-kerbin @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Kerbin</div><div><div role="status" aria-live="polite" style="font-size: 28px;">680.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > lko-kerbin @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">680.0 km</div></div></div>"`;
 
@@ -44,6 +52,8 @@ exports[`SemiMajorAxis DOM snapshots > mun-orbit @ default-4x4 1`] = `"<div><h3>
 
 exports[`SemiMajorAxis DOM snapshots > mun-orbit @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Mun</div><div><div role="status" aria-live="polite" style="font-size: 28px;">215.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
 
+exports[`SemiMajorAxis DOM snapshots > mun-orbit @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>Semi-major axis · Mun</div><div><div role="status" aria-live="polite" style="font-size: 28px;">215.0 km</div><div><svg width="120" height="28" role="img" aria-label="SMA trend" style="display: block;"><title>SMA trend</title></svg></div></div></div>"`;
+
 exports[`SemiMajorAxis DOM snapshots > mun-orbit @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">215.0 km</div></div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > mun-orbit @ tiny-3x3 1`] = `"<div><h3>SMA</h3><div><div role="status" aria-live="polite" style="font-size: 18px;">215.0 km</div></div></div>"`;
@@ -53,6 +63,8 @@ exports[`SemiMajorAxis DOM snapshots > mun-orbit @ wide-8x8 1`] = `"<div><h3>SMA
 exports[`SemiMajorAxis DOM snapshots > no-data @ default-4x4 1`] = `"<div><h3>SMA</h3><div>No orbit data</div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > no-data @ medium-5x6 1`] = `"<div><h3>SMA</h3><div>No orbit data</div></div>"`;
+
+exports[`SemiMajorAxis DOM snapshots > no-data @ mobile-9x8 1`] = `"<div><h3>SMA</h3><div>No orbit data</div></div>"`;
 
 exports[`SemiMajorAxis DOM snapshots > no-data @ subtitle-2x4 1`] = `"<div><h3>SMA</h3><div>No orbit data</div></div>"`;
 
