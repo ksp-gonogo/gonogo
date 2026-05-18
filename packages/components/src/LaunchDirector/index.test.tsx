@@ -202,6 +202,39 @@ describe("LaunchDirectorComponent", () => {
     expect(recoverBtn).toBeDisabled();
   });
 
+  // 2026-05-17 23:12 BST: tapping "Tracking Station" mid-flight took the
+  // operator to the TS scene but reverted the flight because KSP can't
+  // save in that scene. Telemachus has no equivalent of the in-game
+  // warning dialog, so the gonogo button now requires an arm-then-confirm
+  // step so a casual mis-tap doesn't lose progress.
+  it("requires a confirm step before firing ksp.toTrackingStation", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "Probe X");
+      source.emit("v.missionTime", 30);
+      source.emit("v.altitude", 2000);
+      source.emit("ksp.canRevertToLaunch", true);
+      source.emit("ksp.canRevertToEditor", true);
+      source.emit("crash.hasRecent", false);
+    });
+
+    // First click arms the confirm — no execute fired yet.
+    fireEvent.click(screen.getByText("Tracking Station"));
+    expect(onExecute).not.toHaveBeenCalledWith("ksp.toTrackingStation");
+    // Confirm step is visible.
+    const confirm = screen.getByText(/Confirm — flight may revert/i);
+    fireEvent.click(confirm);
+    expect(onExecute).toHaveBeenCalledWith("ksp.toTrackingStation");
+  });
+
   // Regression from 2026-05-17 (21:15, 23:12 BST): debris from a previous
   // flight crashed and the session-wide `crash.hasRecent` blocked recovery
   // on a successful landing. The scoped gate compares against the active

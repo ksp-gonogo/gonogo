@@ -135,9 +135,9 @@ function LaunchDirectorComponent({
 
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
-  const [armed, setArmed] = useState<"launch" | "recover" | "revert" | null>(
-    null,
-  );
+  const [armed, setArmed] = useState<
+    "launch" | "recover" | "revert" | "tracking-station" | null
+  >(null);
   // While the launch RPC is in flight (and until the scene flips to Flight
   // or a 10s safety timeout elapses), suppress the launch button so an
   // impatient double-click doesn't fire two `ksp.launch` actions.
@@ -428,8 +428,8 @@ function InFlightPanel({
   canRevertToLaunch: boolean;
   canRevertToEditor: boolean;
   crashBlocked: boolean;
-  armed: "launch" | "recover" | "revert" | null;
-  onArm: (k: "recover" | "revert" | null) => void;
+  armed: "launch" | "recover" | "revert" | "tracking-station" | null;
+  onArm: (k: "recover" | "revert" | "tracking-station" | null) => void;
   availableVessels: AvailableVesselEntry[] | undefined;
   onRecover: () => void;
   onRevertToLaunch: () => void;
@@ -495,9 +495,26 @@ function InFlightPanel({
           confirmLabel="Revert to VAB"
           disabled={!canRevertToEditor}
         />
-        <TrackingStationButton type="button" onClick={onToTrackingStation}>
-          Tracking Station
-        </TrackingStationButton>
+        {armed === "tracking-station" ? (
+          <TrackingStationConfirm
+            type="button"
+            onClick={() => {
+              onArm(null);
+              onToTrackingStation();
+            }}
+            title="KSP may revert this flight to its last save if it can't save here (Telemachus has no equivalent of the in-game warning dialog)."
+          >
+            Confirm — flight may revert
+          </TrackingStationConfirm>
+        ) : (
+          <TrackingStationButton
+            type="button"
+            onClick={() => onArm("tracking-station")}
+            title="Tracking Station — KSP may revert this flight if it can't save here"
+          >
+            Tracking Station
+          </TrackingStationButton>
+        )}
         <TrackingStationButton
           type="button"
           disabled={switchableVessels.length === 0}
@@ -853,6 +870,17 @@ const TrackingStationButton = styled.button`
   &:hover {
     filter: brightness(1.1);
     border-color: var(--color-status-info-fg);
+  }
+`;
+
+const TrackingStationConfirm = styled.button`
+  ${armButtonBase}
+  background: var(--color-status-warning-bg-muted);
+  color: var(--color-status-warning-fg-muted);
+  border-color: var(--color-status-warning-border-muted);
+
+  &:hover {
+    filter: brightness(1.1);
   }
 `;
 
