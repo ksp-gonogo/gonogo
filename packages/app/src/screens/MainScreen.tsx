@@ -50,6 +50,7 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
+import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
@@ -252,6 +253,7 @@ export function MainScreen() {
                                   <FiredAlarmPills />
                                   <UnscheduledWarpPill />
                                   <SignalLossIndicator />
+                                  <TelemachusAntennaBanner />
                                   <SustainedFailureBanner />
                                   <SceneChangeBanner />
                                   <FlightOutcomeBanner />
