@@ -645,7 +645,13 @@ const GATED_KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
   { key: "v.altitude" },
+  // `f.throttle` is on the blocklist (`isAntennaOnlyKey` in
+  // BufferedDataSource); we use it to exercise the gate's drop path.
+  // `v.altitude` / `v.surfaceSpeed` / most other keys flow honestly
+  // even with the Telemachus antenna down — verified live 2026-05-18.
+  { key: "f.throttle" },
   { key: "comm.connected" },
+  { key: "p.paused" },
   { key: "career.science" },
   // Scene-level / KSC-global / outcome keys that must flow through the
   // CommNet gate. See the 2026-05-18 12:28 BST regression below.
@@ -688,36 +694,36 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     buffered.disconnect();
   });
 
-  it("drops non-comm.* samples while signal is down", async () => {
+  it("drops antenna-only samples while signal is down", async () => {
     const spy = vi.fn();
-    buffered.subscribe("v.altitude", spy);
+    buffered.subscribe("f.throttle", spy);
 
     clock = 2000;
-    source.emit("v.altitude", 100); // before blackout — stored + emitted
-    expect(spy).toHaveBeenLastCalledWith(100);
+    source.emit("f.throttle", 0.5); // before blackout — stored + emitted
+    expect(spy).toHaveBeenLastCalledWith(0.5);
 
     source.emit("comm.connected", false); // signal loss
 
     clock = 3000;
-    source.emit("v.altitude", 999); // during blackout — dropped
-    expect(spy).toHaveBeenLastCalledWith(100); // subscriber still sees pre-blackout value
+    source.emit("f.throttle", 2); // during blackout — dropped (sentinel)
+    expect(spy).toHaveBeenLastCalledWith(0.5); // subscriber still sees pre-blackout value
 
-    const range = await buffered.queryRange("v.altitude", 0, 10_000);
-    expect(range.v).toEqual([100]); // persisted data has a clean gap
+    const range = await buffered.queryRange("f.throttle", 0, 10_000);
+    expect(range.v).toEqual([0.5]); // persisted data has a clean gap
   });
 
   it("resumes on signal restore", async () => {
     source.emit("comm.connected", false);
 
     clock = 2000;
-    source.emit("v.altitude", 500); // dropped
+    source.emit("f.throttle", 2); // dropped (blackout + sentinel)
     source.emit("comm.connected", true);
 
     clock = 3000;
-    source.emit("v.altitude", 600); // flows again
+    source.emit("f.throttle", 0.6); // flows again
 
-    const range = await buffered.queryRange("v.altitude", 0, 10_000);
-    expect(range.v).toEqual([600]);
+    const range = await buffered.queryRange("f.throttle", 0, 10_000);
+    expect(range.v).toEqual([0.6]);
   });
 
   it("always lets comm.* keys through during blackout (so we detect restore)", () => {
@@ -789,6 +795,88 @@ describe("BufferedDataSource — affectedBySignalLoss gate", () => {
     source.emit("v.altitude", 42);
     const range = await buffered.queryRange("v.altitude", 0, 10_000);
     expect(range.v).toContain(42);
+  });
+
+  // ------------------- p.paused (Telemachus antenna) gate -------------------
+
+  it("drops antenna-only samples when p.paused goes non-zero (antenna lost)", () => {
+    // Confirm a prior p.paused=0 so cold-start protection allows the
+    // gate to activate on a later non-zero. The beforeEach primes only
+    // comm.connected; this test primes p.paused too.
+    source.emit("p.paused", 0);
+
+    const spy = vi.fn();
+    buffered.subscribe("f.throttle", spy);
+    source.emit("f.throttle", 0.5);
+    expect(spy).toHaveBeenLastCalledWith(0.5);
+
+    source.emit("p.paused", 2); // "no power" — fork-bug collapse for any antenna-bad state
+    source.emit("f.throttle", 2); // sentinel, dropped
+    expect(spy).toHaveBeenLastCalledWith(0.5);
+  });
+
+  it("treats p.paused=1 (game paused) as trusted — values still flow", () => {
+    source.emit("p.paused", 0);
+    source.emit("p.paused", 1); // game paused, values frozen but real
+
+    const spy = vi.fn();
+    buffered.subscribe("f.throttle", spy);
+    source.emit("f.throttle", 0.42);
+    expect(spy).toHaveBeenLastCalledWith(0.42);
+  });
+
+  it("requires confirmed-good p.paused before a non-zero activates the gate", () => {
+    // Fresh wrapper without any p.paused=0 — only comm.connected was
+    // confirmed in beforeEach. A non-zero p.paused arriving cold should
+    // NOT activate the p.paused half of the gate (the comm half still
+    // gates independently if comm.connected goes false).
+    const spy = vi.fn();
+    buffered.subscribe("f.throttle", spy);
+    source.emit("p.paused", 4); // cold-start non-zero — ignored by p.paused gate
+    source.emit("f.throttle", 0.7);
+    expect(spy).toHaveBeenLastCalledWith(0.7);
+  });
+
+  it("resumes when p.paused returns to 0", () => {
+    source.emit("p.paused", 0);
+    source.emit("p.paused", 2); // gate active
+    source.emit("p.paused", 0); // restore
+
+    const spy = vi.fn();
+    buffered.subscribe("f.throttle", spy);
+    source.emit("f.throttle", 0.88);
+    expect(spy).toHaveBeenLastCalledWith(0.88);
+  });
+
+  it.each([
+    ["v.altitude", 100],
+    ["v.name", "Throttle Test"],
+  ])("always lets %s through during a Telemachus antenna outage (tracking-station observable)", (key, value) => {
+    source.emit("p.paused", 0);
+    source.emit("p.paused", 2); // gate active
+
+    const spy = vi.fn();
+    buffered.subscribe(key, spy);
+    source.emit(key, value);
+    expect(spy).toHaveBeenCalledWith(value);
+  });
+
+  it.each([
+    "land.timeToImpact",
+    "therm.heatShieldTemp",
+    "v.sasValue",
+    "v.gearValue",
+    "v.ag1Value",
+    "v.currentStage",
+    "dv.stageCount",
+  ])("drops antenna-only key %s during a Telemachus antenna outage", (key) => {
+    source.emit("p.paused", 0);
+    source.emit("p.paused", 2); // gate active
+
+    const spy = vi.fn();
+    buffered.subscribe(key, spy);
+    source.emit(key, 2); // the Telemachus sentinel
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it("does not gate sources that leave affectedBySignalLoss false", async () => {

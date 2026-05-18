@@ -176,18 +176,33 @@ export class BufferedDataSource extends DataSourceWrapper {
   >();
 
   /**
-   * CommNet signal state tracked internally off `comm.connected` samples.
-   * The gate only activates after we've observed a `comm.connected: true`
-   * AT LEAST ONCE and then seen it flip to `false`. Cold-start `false`
-   * values (Telemachus on a vessel with no antenna, CommNet disabled in
-   * difficulty, or transient null-deref responses) must NOT be trusted as
-   * a signal-loss event — otherwise widgets freeze the moment the station
-   * connects. Only a confirmed live-to-dead transition counts.
+   * Trust gate state. Tracks TWO independent signals — telemetry is
+   * trusted only when BOTH are good:
    *
-   * Default `true` so non-signal-affected sources (`kos`) aren't held back.
+   * 1. **Telemachus antenna** via `p.paused`. `0` = active + powered;
+   *    `1` = game paused (frozen values still real). Anything else
+   *    (2/3/4/5) means the antenna is gone / unpowered / off and
+   *    vessel-required keys collapse to the literal value `2` —
+   *    verified live 2026-05-18 (see `local_docs/2026-05-18/_decisions.md`).
+   * 2. **Vanilla CommNet** via `comm.connected`. Mission-control
+   *    link; independent of the Telemachus antenna. Widgets like
+   *    LaunchDirector need this too — even with a live Telemachus
+   *    link, no CommNet means the operator shouldn't be acting on
+   *    the data.
+   *
+   * Each signal has its own "ever confirmed good?" guard so cold-start
+   * `false` / non-zero values don't freeze widgets the moment a station
+   * connects. The combined gate activates when EITHER signal has been
+   * confirmed good and is now bad.
+   *
+   * Defaults are `true` so non-signal-affected sources (`kos`) aren't
+   * held back, and so a Telemachus source that hasn't reported either
+   * key yet doesn't freeze every widget on cold-start.
    */
-  private signalConnected = true;
-  private hasConfirmedConnection = false;
+  private commGate = true;
+  private hasConfirmedComm = false;
+  private pPausedGate = true;
+  private hasConfirmedPPaused = false;
 
   // Idempotence keys for outcome annotation. Telemachus's
   // recovery.lastSummary / crash.lastCrash are sticky — they emit the same
@@ -649,61 +664,68 @@ export class BufferedDataSource extends DataSourceWrapper {
 
   private handleSample(key: string, value: unknown): void {
     BUFFERED_SAMPLE_BUDGET.record();
-    // Signal-state tracker: `comm.connected` updates our gate regardless of
-    // the gate's current state (this is the one key that must always flow
-    // through, otherwise we'd never see the restore event). We require a
-    // confirmed `true` at least once before a later `false` activates the
-    // gate — otherwise widgets would freeze on any cold-start scenario
-    // where Telemachus reports `false` before the vessel has a link.
+    // Trust-gate trackers: BOTH `comm.connected` (vanilla CommNet) and
+    // `p.paused` (Telemachus antenna) must be good for the source to
+    // be trusted. Cold-start guards on each — only a confirmed-good
+    // then bad transition activates that signal's half of the gate.
     if (key === "comm.connected") {
       if (value === true) {
-        this.signalConnected = true;
-        this.hasConfirmedConnection = true;
-      } else if (value === false && this.hasConfirmedConnection) {
-        this.signalConnected = false;
+        this.commGate = true;
+        this.hasConfirmedComm = true;
+      } else if (value === false && this.hasConfirmedComm) {
+        this.commGate = false;
       }
-      // Any other value (null, undefined, transient) leaves the gate alone.
+    }
+    if (key === "p.paused") {
+      if (value === 0 || value === 1) {
+        this.pPausedGate = true;
+        this.hasConfirmedPPaused = true;
+      } else if (
+        typeof value === "number" &&
+        this.hasConfirmedPPaused &&
+        value !== 0 &&
+        value !== 1
+      ) {
+        this.pPausedGate = false;
+      }
     }
 
-    // CommNet blackout gate. When the wrapped source is signal-affected
-    // (Telemachus) and we've confirmed a prior live link that has since
-    // dropped, drop everything except keys that are *meaningful without
-    // an active vessel*. Vessel-bound keys (v.*, f.*, r.*, o.*, etc.)
-    // would freeze at their pre-blackout value, which is what we want:
-    // the operator sees stale data marked unreliable rather than zeros.
+    // Telemachus-antenna-down gate. When the wrapped source is
+    // signal-affected (Telemachus) and we've confirmed a prior live
+    // link that has since dropped, drop ONLY the specific keys that
+    // collapse to the literal value `2` in this state. Everything
+    // else stays — tracking-station-observable (vessel position +
+    // basic orbital elements + resource quantities + crew + atmosphere
+    // readings) and KSC-global state remain trustworthy whether or
+    // not the Telemachus antenna is up.
     //
-    // Always-evaluable prefixes flow through regardless:
-    // - `comm.*` — needed to detect the signal-restore event itself.
-    // - `career.*` — KSC-global (funds / rep / sci); a player opening R&D
-    //   from Space Center would otherwise see ScienceBench freeze.
-    // - `kc.*` — Kerbin Center / scene state (kc.scene, kc.padOccupied,
-    //   kc.savedShips, etc.). 2026-05-18 12:28 BST regression: a scene
-    //   transition to SpaceCenter put `comm.connected` to false, which
-    //   meant the host stopped broadcasting `kc.scene="SpaceCenter"`
-    //   and stations' SceneSwitchPrompt never fired.
-    // - `ksp.*` — scene-level game state (canRevertToLaunch, etc.).
-    // - `crash.*` / `recovery.*` — session-wide flight outcome snapshots.
-    // - `flight.*` — flight-history accessor keys; valid in any scene.
-    // - `tech.*` — research tree state; KSC-global like `career.*`.
-    // - `strategies.*` — Admin Building strategies; KSC-global.
-    // - `tar.availableVessels` — list-from-FlightGlobals, no active
-    //   vessel required.
-    const isAlwaysEvaluable =
-      key.startsWith("comm.") ||
-      key.startsWith("career.") ||
-      key.startsWith("kc.") ||
-      key.startsWith("ksp.") ||
-      key.startsWith("crash.") ||
-      key.startsWith("recovery.") ||
-      key.startsWith("flight.") ||
-      key.startsWith("tech.") ||
-      key.startsWith("strategies.") ||
-      key === "tar.availableVessels";
+    // The blocklist was built from the 2026-05-18 live test: with the
+    // data-link disabled in-game, ~42 keys collapse to `2`; 131 keys
+    // continue to report real values. Rather than try to enumerate the
+    // honest set (a moving target), we enumerate the broken set.
+    //
+    // Special-cases handled outside the blocklist:
+    //  - `p.paused` itself: returns the literal `2` here (it IS the
+    //    "no power" status code), but must always flow so we can
+    //    detect the gate-lift event. Excluded from the blocklist.
+    //  - `comm.controlState`: returns `2` here but legitimately —
+    //    `2` means "full control" in the vanilla CommNet enum and
+    //    CommNet is independent of the Telemachus antenna. Flows.
+    const isAntennaOnlyKey =
+      key.startsWith("land.") ||
+      key.startsWith("therm.") ||
+      (key.startsWith("v.") && key.endsWith("Value")) ||
+      key === "f.throttle" ||
+      key === "v.currentStage" ||
+      key === "dv.stageCount";
+    const signalConnected = this.commGate && this.pPausedGate;
+    const hasConfirmedConnection =
+      this.hasConfirmedComm || this.hasConfirmedPPaused;
     if (
       this.source.affectedBySignalLoss &&
-      this.hasConfirmedConnection &&
-      !this.signalConnected &&
-      !isAlwaysEvaluable
+      hasConfirmedConnection &&
+      !signalConnected &&
+      isAntennaOnlyKey
     ) {
       return;
     }

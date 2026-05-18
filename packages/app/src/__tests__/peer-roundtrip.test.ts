@@ -109,6 +109,12 @@ const TELEMACHUS_KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
   { key: "v.altitude" },
+  // f.throttle is on BufferedDataSource's antenna-only blocklist
+  // (collapses to literal 2 when the Telemachus antenna is down —
+  // see 2026-05-18 live test). Use it for the gate drop-path
+  // assertion; v.altitude flows honestly regardless of antenna
+  // state so it can't exercise the drop.
+  { key: "f.throttle" },
   { key: "comm.connected" },
 ];
 
@@ -180,19 +186,23 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
 
   it("gates samples after a confirmed true → false transition and resumes on true", () => {
     const received: unknown[] = [];
-    ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
+    // f.throttle is on the antenna-only blocklist — when the gate is
+    // active it drops samples (replacing the prior allowlist behaviour
+    // that gated nearly every vessel-required key). See the 2026-05-18
+    // live test in local_docs/2026-05-18/_decisions.md.
+    ctx.stationSide.subscribe("f.throttle", (v) => received.push(v));
 
     primeFlight(ctx.telemachus);
     ctx.telemachus.emit("comm.connected", true); // confirm link
-    ctx.telemachus.emit("v.altitude", 100); // flows
+    ctx.telemachus.emit("f.throttle", 0.5); // flows
 
     ctx.telemachus.emit("comm.connected", false); // blackout
-    ctx.telemachus.emit("v.altitude", 999); // dropped at the gate
+    ctx.telemachus.emit("f.throttle", 2); // dropped at the gate (sentinel)
 
     ctx.telemachus.emit("comm.connected", true); // restore
-    ctx.telemachus.emit("v.altitude", 200); // flows again
+    ctx.telemachus.emit("f.throttle", 0.7); // flows again
 
-    expect(received).toEqual([100, 200]);
+    expect(received).toEqual([0.5, 0.7]);
   });
 
   it("routes by sourceId — other-source broadcasts don't bleed into the station subscriber", () => {
