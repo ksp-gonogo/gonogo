@@ -15,6 +15,9 @@ interface Props {
   highlightColor?: string;
   width: number;
   height: number;
+  /** Current `f.throttle` (0..1+). Forwarded to ShipDiagramSvg so
+   *  engine-flame overlays gate on actual thrust. */
+  throttle?: number;
 }
 
 export function ShipDiagram({
@@ -23,6 +26,7 @@ export function ShipDiagram({
   highlightColor,
   width,
   height,
+  throttle,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -56,6 +60,7 @@ export function ShipDiagram({
         highlight={highlight}
         highlightColor={highlightColor}
         cam={cam}
+        throttle={throttle}
         onPartHover={setHovered}
         onPartFocus={(_, center) => setMouse(center)}
       />

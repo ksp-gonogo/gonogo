@@ -52,6 +52,11 @@ export interface ShipDiagramSvgProps {
   /** Fired on keyboard focus with the focused part's pre-transform centre,
    *  so the parent can position a tooltip near it. */
   onPartFocus?: (part: ShipMapPart, center: { x: number; y: number }) => void;
+  /** Current `f.throttle` (0..1+). Gates engine-flame overlays so a
+   *  staged-but-idle engine doesn't render thrust. Defaults to 1 so
+   *  snapshot fixtures + the harness keep rendering engine flames
+   *  exactly as before. */
+  throttle?: number;
 }
 
 /** Lateral offset under which a child counts as "stack-attached" rather
@@ -74,6 +79,7 @@ export function ShipDiagramSvg({
   cam = IDENTITY,
   onPartHover,
   onPartFocus,
+  throttle = 1,
 }: Readonly<ShipDiagramSvgProps>) {
   const { projected, bounds, stages, edges } = useMemo(
     () => project(parts),
@@ -243,7 +249,7 @@ export function ShipDiagramSvg({
                 cam.zoom,
                 outerSign,
               )}
-              {renderPartStateOverlays(p.partState, box, cam.zoom)}
+              {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
               {tint && (
                 <rect
                   data-role="heat-tint"
@@ -420,11 +426,12 @@ function renderPartStateOverlays(
   partState: readonly PartStateModule[] | undefined,
   box: ScreenBox,
   zoom: number,
+  throttle: number,
 ): React.ReactNode {
   if (!partState || partState.length === 0) return null;
   const overlays: React.ReactNode[] = [];
   for (const m of partState) {
-    const overlay = overlayFor(m, box, zoom);
+    const overlay = overlayFor(m, box, zoom, throttle);
     if (overlay) overlays.push(overlay);
   }
   return overlays;
@@ -434,10 +441,19 @@ function overlayFor(
   m: PartStateModule,
   box: ScreenBox,
   zoom: number,
+  throttle: number,
 ): React.ReactNode {
   switch (m.type) {
     case "engine":
-      return m.state === "active" ? renderEngineFlame(box, zoom) : null;
+      // PartStateModule.state==="active" means the engine is staged
+      // and *ready* to fire — not that it's currently thrusting. A
+      // staged engine at throttle=0 is idle, not firing. Gate the
+      // flame on actual thrust (throttle > 0). Reported as "engines
+      // permanently firing regardless of throttle" in the
+      // 2026-05-18 BST self-test.
+      return m.state === "active" && throttle > 0
+        ? renderEngineFlame(box, zoom)
+        : null;
     case "parachute":
       return renderParachuteCanopy(box, m.state);
     case "solarPanel":
