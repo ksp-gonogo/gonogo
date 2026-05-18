@@ -274,11 +274,29 @@ export class OcislyStreamSource implements StreamSource {
       const elapsedMs = Date.now() - startedAt;
       const attempt = this.retryAttempt;
       const next = backoffMs(attempt);
-      logger.error(
-        `[ocisly] connect failed (attempt ${attempt}) — retrying in ${next}ms`,
-        err instanceof Error ? err : new Error(String(err)),
-        { elapsedMs, attempt },
-      );
+      // Only the first failure logs at error level — the rest are
+      // expected retry noise that filled the ring buffer (and Axiom)
+      // during the 2026-05-17 session: dozens of identical "connect
+      // failed (attempt N)" rows per minute when the relay was
+      // unreachable. Subsequent attempts warn so the diagnostic trail
+      // stays visible in the buffer without flooding it.
+      const errObj = err instanceof Error ? err : new Error(String(err));
+      if (attempt === 0) {
+        logger.error(
+          `[ocisly] connect failed (attempt ${attempt}) — retrying in ${next}ms`,
+          errObj,
+          { elapsedMs, attempt },
+        );
+      } else {
+        logger.warn(
+          `[ocisly] connect failed (attempt ${attempt}) — retrying in ${next}ms`,
+          {
+            elapsedMs,
+            attempt,
+            errorMessage: errObj.message,
+          },
+        );
+      }
       this.setStatus("error");
       this.scheduleRetry(next);
     }
