@@ -12,16 +12,27 @@ import { defineConfig, devices } from "@playwright/test";
  * telemetry seed the test endpoint via context.addInitScript.
  */
 const BROKER_PORT = 9999;
-const APP_PORT = 5173;
+// Offset the app port from the production-default 5173 so a running
+// `pnpm dev` doesn't satisfy Playwright's `reuseExistingServer` — the
+// reused vite would have stale env (no VITE_RELAY_URL override, no
+// VITE_PEER_HOST override) and the test would silently target the
+// developer's actual host stack instead of the test-launched one.
+const APP_PORT = 15173;
 const TELEMACHUS_REPLAY_PORT = 8086;
 // Relay (OCISLY camera fan-out) + a fake OCISLY gRPC backend so the
 // media-stream test exercises the real WebRTC pipe without needing a
-// linux/amd64-only OCISLY container. Ports match production defaults
-// for the relay (3002) so the app's default discovery works without
-// extra env vars; the fake OCISLY uses 5078 (one above the production
-// 5077) to leave room for a real OCISLY in docker to run alongside.
-const RELAY_PORT = 3002;
-const FAKE_OCISLY_PORT = 5078;
+// linux/amd64-only OCISLY container.
+//
+// Ports deliberately offset from production defaults (3002, 5077) so
+// the test stack coexists with a developer-side `podman compose up`
+// running their own relay. Without this offset `reuseExistingServer`
+// would pick up the dev relay (pointed at the user's real OCISLY
+// target) instead of launching ours, and the smoke spec asserted
+// against the wrong target after the 2026-05-18 mid-day live test.
+// The app's `DEFAULT_RELAY_URL` is overridden to match via
+// `VITE_RELAY_URL` on the vite dev server below.
+const RELAY_PORT = 13002;
+const FAKE_OCISLY_PORT = 15078;
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -102,7 +113,14 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm --filter @gonogo/app dev",
+      // --strictPort forces vite to bind exactly APP_PORT or fail —
+      // without it vite happily falls back to the next free port when
+      // a dev server is already on 5173, and Playwright then waits on
+      // APP_PORT until timeout. --port pins the binding.
+      // `pnpm exec vite` (instead of `pnpm dev -- …`) skips pnpm's
+      // arg-forwarding rules — the latter delivered `--` to vite as a
+      // literal positional, which made vite treat --port as a no-op.
+      command: `pnpm --filter @gonogo/app exec vite --port ${APP_PORT} --strictPort`,
       port: APP_PORT,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -113,6 +131,14 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
+        // Override BOTH relay URL env vars — iceServers.ts uses
+        // VITE_RELAY_URL (for /ice-config polling) and ocisly.ts uses
+        // VITE_OCISLY_PROXY_URL (for /peer-id discovery). They happen
+        // to point at the same relay in production but each reads its
+        // own env, so missing either leaves part of the camera flow
+        // hitting localhost:3002 (the developer's dev relay).
+        VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+        VITE_OCISLY_PROXY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
   ],

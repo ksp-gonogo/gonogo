@@ -41,6 +41,20 @@ export interface StreamSource {
   unsubscribe(streamId: string): void;
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
   onStreamsChange(cb: (streams: StreamInfo[]) => void): () => void;
+  /**
+   * Optional: subscribe to MediaStream changes for a single camera.
+   * Fires on every stream replacement — new track after a relay
+   * reconnect, or `null` when the call closes and no auto-recovery
+   * is in flight. Consumers that need to detect track death (e.g.
+   * the CameraFeed widget after an upstream blip) listen here in
+   * addition to the initial `subscribe()` promise. Sources that
+   * predate this method may omit it; consumers should treat it as
+   * "subscribe-once" semantics in that case.
+   */
+  onStreamChange?(
+    streamId: string,
+    cb: (stream: MediaStream | null) => void,
+  ): () => void;
 }
 
 const streamSources = new Map<string, StreamSource>();
