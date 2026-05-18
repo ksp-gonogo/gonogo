@@ -192,8 +192,9 @@ function PowerSystemsComponent({
   const series = useDataSeries("data", seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
     () =>
-      series.v
-        .filter((v): v is number => typeof v === "number" && Number.isFinite(v)),
+      series.v.filter(
+        (v): v is number => typeof v === "number" && Number.isFinite(v),
+      ),
     [series.v],
   );
   // Anchor the sparkline's Y range to the storage capacity so a half-
