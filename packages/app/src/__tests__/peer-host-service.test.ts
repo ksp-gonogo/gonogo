@@ -597,3 +597,153 @@ describe("PeerHostService — broker reconnect backoff", () => {
     expect(peer.reconnectCount).toBe(4);
   });
 });
+
+// ---------------------------------------------------------------------------
+// relay-peer-id broadcast carries iceServers — regression for the
+// 2026-05-17 evening session where every station→relay camera
+// negotiation died with `type: "negotiation-failed"` because the
+// station's Peer had no TURN config and couldn't reach the relay's
+// container-bridge ICE candidates. Fix shipped 2026-05-18 (commit
+// 10d8698): bundle the host's iceServers into the relay-peer-id
+// message so the station can apply them to its own Peer before
+// calling the relay.
+// ---------------------------------------------------------------------------
+
+describe("PeerHostService — relay-peer-id iceServers propagation", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  // Drain pending microtasks + macrotasks. PeerHostService.start() awaits
+  // `fetchHostIceServers()` inside; the FakePeer "open" microtask fires
+  // first, then schema dispatch (which awaits a dynamic import). The
+  // helper flushes both so the test interacts with a settled service.
+  async function flush(): Promise<void> {
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  it("includes the host's iceServers in the broadcast relay-peer-id message", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    void service.start();
+    await flush();
+
+    // Connect a station so there's somebody for `broadcast()` to send to.
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await flush();
+
+    // Pre-existing connection messages (hello, schema, etc.) cleared so
+    // the assertion below only looks at the relay-peer-id we trigger.
+    conn.sent.length = 0;
+
+    const turnConfig: RTCIceServer[] = [
+      {
+        urls: ["turn:relay.example.com:3478?transport=udp"],
+        username: "test-user",
+        credential: "test-secret",
+      },
+    ];
+    // PeerHostService.iceServers is a public field assigned by
+    // `refreshIceConfig()` in production. Setting it directly skips the
+    // network fetch; what we want to test is the broadcast carrying it,
+    // not the fetch.
+    (service as unknown as { iceServers: RTCIceServer[] }).iceServers =
+      turnConfig;
+
+    service.setRelayPeerId("relay-peer-123");
+
+    const relayMessages = conn.sent.filter(
+      (m): m is {
+        type: string;
+        peerId: string;
+        iceServers?: RTCIceServer[];
+      } =>
+        typeof m === "object" &&
+        m !== null &&
+        "type" in m &&
+        (m as { type: string }).type === "relay-peer-id",
+    );
+    expect(relayMessages).toHaveLength(1);
+    expect(relayMessages[0].peerId).toBe("relay-peer-123");
+    expect(relayMessages[0].iceServers).toEqual(turnConfig);
+  });
+
+  it("omits iceServers when the host hasn't fetched any TURN credentials yet", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    void service.start();
+    await flush();
+
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await flush();
+    conn.sent.length = 0;
+
+    // Default state: iceServers is `[]` (host's /ice-config fetch
+    // hasn't returned creds yet, or relay's coturn is down). The
+    // broadcast should leave the field undefined so older stations
+    // don't blow up on an empty-array config and so the wire stays
+    // compact in the no-TURN case.
+    service.setRelayPeerId("relay-peer-456");
+    const relayMessages = conn.sent.filter(
+      (m): m is { type: string; iceServers?: unknown } =>
+        typeof m === "object" &&
+        m !== null &&
+        "type" in m &&
+        (m as { type: string }).type === "relay-peer-id",
+    );
+    expect(relayMessages).toHaveLength(1);
+    expect(relayMessages[0].iceServers).toBeUndefined();
+  });
+
+  it("includes iceServers in the latecomer-station send on a fresh connection", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    void service.start();
+    await flush();
+
+    // Set up the relay state BEFORE the station connects — simulates
+    // a station refresh mid-flight.
+    const turnConfig: RTCIceServer[] = [
+      {
+        urls: "turn:relay.example.com:3478",
+        username: "u",
+        credential: "p",
+      },
+    ];
+    (service as unknown as { iceServers: RTCIceServer[] }).iceServers =
+      turnConfig;
+    service.setRelayPeerId("relay-peer-789");
+
+    // Now a fresh station connects. PeerHostService should send the
+    // current relay-peer-id (with iceServers) as part of the
+    // latecomer-bootstrap sequence.
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await flush();
+
+    const relayMessages = conn.sent.filter(
+      (m): m is {
+        type: string;
+        peerId: string;
+        iceServers?: RTCIceServer[];
+      } =>
+        typeof m === "object" &&
+        m !== null &&
+        "type" in m &&
+        (m as { type: string }).type === "relay-peer-id",
+    );
+    expect(relayMessages.length).toBeGreaterThanOrEqual(1);
+    const latecomer = relayMessages.at(-1);
+    expect(latecomer?.peerId).toBe("relay-peer-789");
+    expect(latecomer?.iceServers).toEqual(turnConfig);
+  });
+});
