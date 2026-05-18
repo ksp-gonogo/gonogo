@@ -657,7 +657,9 @@ describe("PeerHostService — relay-peer-id iceServers propagation", () => {
     service.setRelayPeerId("relay-peer-123");
 
     const relayMessages = conn.sent.filter(
-      (m): m is {
+      (
+        m,
+      ): m is {
         type: string;
         peerId: string;
         iceServers?: RTCIceServer[];
@@ -731,7 +733,9 @@ describe("PeerHostService — relay-peer-id iceServers propagation", () => {
     await flush();
 
     const relayMessages = conn.sent.filter(
-      (m): m is {
+      (
+        m,
+      ): m is {
         type: string;
         peerId: string;
         iceServers?: RTCIceServer[];

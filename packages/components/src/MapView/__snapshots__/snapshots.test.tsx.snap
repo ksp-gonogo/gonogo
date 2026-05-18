@@ -2,6 +2,8 @@
 
 exports[`MapView DOM snapshots > kerbin-launchpad @ default-12x18 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>TOO LOW</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
+exports[`MapView DOM snapshots > kerbin-launchpad @ mobile-9x8 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>TOO LOW</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
+
 exports[`MapView DOM snapshots > kerbin-launchpad @ square-6x6 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > kerbin-launchpad @ tiny-3x4 1`] = `"<div><div><h3>MAP VIEW</h3></div><div><div><span>Lat</span><span>-0.097°</span></div><div><span>Lon</span><span>-74.558°</span></div></div></div>"`;
@@ -9,6 +11,8 @@ exports[`MapView DOM snapshots > kerbin-launchpad @ tiny-3x4 1`] = `"<div><div><
 exports[`MapView DOM snapshots > kerbin-launchpad @ wide-18x10 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>TOO LOW</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > kerbin-lko-equator @ default-12x18 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>IMAGING</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
+
+exports[`MapView DOM snapshots > kerbin-lko-equator @ mobile-9x8 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>IMAGING</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > kerbin-lko-equator @ square-6x6 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
@@ -18,6 +22,8 @@ exports[`MapView DOM snapshots > kerbin-lko-equator @ wide-18x10 1`] = `"<div><d
 
 exports[`MapView DOM snapshots > kerbin-reentry @ default-12x18 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>TOO LOW</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
+exports[`MapView DOM snapshots > kerbin-reentry @ mobile-9x8 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span><span>TOO LOW</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
+
 exports[`MapView DOM snapshots > kerbin-reentry @ square-6x6 1`] = `"<div><div><h3>MAP VIEW</h3><span>Kerbin</span></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > kerbin-reentry @ tiny-3x4 1`] = `"<div><div><h3>MAP VIEW</h3></div><div><div><span>Lat</span><span>-2.500°</span></div><div><span>Lon</span><span>-45.200°</span></div></div></div>"`;
@@ -26,6 +32,8 @@ exports[`MapView DOM snapshots > kerbin-reentry @ wide-18x10 1`] = `"<div><div><
 
 exports[`MapView DOM snapshots > mun-polar-orbit @ default-12x18 1`] = `"<div><div><h3>MAP VIEW</h3><span>Mun</span><span>IMAGING</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
+exports[`MapView DOM snapshots > mun-polar-orbit @ mobile-9x8 1`] = `"<div><div><h3>MAP VIEW</h3><span>Mun</span><span>IMAGING</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
+
 exports[`MapView DOM snapshots > mun-polar-orbit @ square-6x6 1`] = `"<div><div><h3>MAP VIEW</h3><span>Mun</span></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > mun-polar-orbit @ tiny-3x4 1`] = `"<div><div><h3>MAP VIEW</h3></div><div><div><span>Lat</span><span>65.000°</span></div><div><span>Lon</span><span>30.000°</span></div></div></div>"`;
@@ -33,6 +41,8 @@ exports[`MapView DOM snapshots > mun-polar-orbit @ tiny-3x4 1`] = `"<div><div><h
 exports[`MapView DOM snapshots > mun-polar-orbit @ wide-18x10 1`] = `"<div><div><h3>MAP VIEW</h3><span>Mun</span><span>IMAGING</span><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas></div></div></div>"`;
 
 exports[`MapView DOM snapshots > no-vessel-data @ default-12x18 1`] = `"<div><div><h3>MAP VIEW</h3><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><div>Waiting for telemetry…</div></div></div></div>"`;
+
+exports[`MapView DOM snapshots > no-vessel-data @ mobile-9x8 1`] = `"<div><div><h3>MAP VIEW</h3><label><input type="checkbox"><div><div></div></div><span>Follow</span></label></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><div>Waiting for telemetry…</div></div></div></div>"`;
 
 exports[`MapView DOM snapshots > no-vessel-data @ square-6x6 1`] = `"<div><div><h3>MAP VIEW</h3></div><div><div><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><canvas></canvas><div>Waiting for telemetry…</div></div></div></div>"`;
 

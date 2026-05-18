@@ -6,6 +6,8 @@ exports[`CommSignal DOM snapshots > deep-space-delay @ large-8x8 1`] = `"<div><h
 
 exports[`CommSignal DOM snapshots > deep-space-delay @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div><div role="status" aria-live="polite"><div aria-label="Signal 2 of 4"><span></span><span></span><span></span><span></span></div><span>31%</span></div></div></div>"`;
 
+exports[`CommSignal DOM snapshots > deep-space-delay @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 2 of 4"><span></span><span></span><span></span><span></span></div><span>31%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>8m 7s</span></div></div></div>"`;
+
 exports[`CommSignal DOM snapshots > deep-space-delay @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 2 of 4"><span></span><span></span><span></span><span></span></div><span>31%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>8m 7s</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > deep-space-delay @ wide-9x4 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 2 of 4"><span></span><span></span><span></span><span></span></div><span>31%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>8m 7s</span></div></div></div>"`;
@@ -15,6 +17,8 @@ exports[`CommSignal DOM snapshots > no-signal-data @ default-6x5 1`] = `"<div><h
 exports[`CommSignal DOM snapshots > no-signal-data @ large-8x8 1`] = `"<div><h3>COMMNET</h3><div>No signal data</div></div>"`;
 
 exports[`CommSignal DOM snapshots > no-signal-data @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div>No signal data</div></div>"`;
+
+exports[`CommSignal DOM snapshots > no-signal-data @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>No signal data</div></div>"`;
 
 exports[`CommSignal DOM snapshots > no-signal-data @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>No signal data</div></div>"`;
 
@@ -26,6 +30,8 @@ exports[`CommSignal DOM snapshots > no-signal-occluded @ large-8x8 1`] = `"<div>
 
 exports[`CommSignal DOM snapshots > no-signal-occluded @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div><div role="status" aria-live="polite"><div aria-label="Signal 0 of 4"><span></span><span></span><span></span><span></span></div><span>LOS</span></div></div></div>"`;
 
+exports[`CommSignal DOM snapshots > no-signal-occluded @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>No signal</div><div><div role="status" aria-live="polite"><div aria-label="Signal 0 of 4"><span></span><span></span><span></span><span></span></div><span>LOS</span></div><div><span>Control</span><span>None</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
+
 exports[`CommSignal DOM snapshots > no-signal-occluded @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>No signal</div><div><div role="status" aria-live="polite"><div aria-label="Signal 0 of 4"><span></span><span></span><span></span><span></span></div><span>LOS</span></div><div><span>Control</span><span>None</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > no-signal-occluded @ wide-9x4 1`] = `"<div><h3>COMMNET</h3><div>No signal</div><div><div role="status" aria-live="polite"><div aria-label="Signal 0 of 4"><span></span><span></span><span></span><span></span></div><span>LOS</span></div><div><span>Control</span><span>None</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
@@ -35,6 +41,8 @@ exports[`CommSignal DOM snapshots > relay-probe-network @ default-6x5 1`] = `"<d
 exports[`CommSignal DOM snapshots > relay-probe-network @ large-8x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 3 of 4"><span></span><span></span><span></span><span></span></div><span>63%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>4.7 s</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > relay-probe-network @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div><div role="status" aria-live="polite"><div aria-label="Signal 3 of 4"><span></span><span></span><span></span><span></span></div><span>63%</span></div></div></div>"`;
+
+exports[`CommSignal DOM snapshots > relay-probe-network @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 3 of 4"><span></span><span></span><span></span><span></span></div><span>63%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>4.7 s</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > relay-probe-network @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 3 of 4"><span></span><span></span><span></span><span></span></div><span>63%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>4.7 s</span></div></div></div>"`;
 
@@ -46,6 +54,8 @@ exports[`CommSignal DOM snapshots > strong-direct-ksc @ large-8x8 1`] = `"<div><
 
 exports[`CommSignal DOM snapshots > strong-direct-ksc @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div><div role="status" aria-live="polite"><div aria-label="Signal 4 of 4"><span></span><span></span><span></span><span></span></div><span>87%</span></div></div></div>"`;
 
+exports[`CommSignal DOM snapshots > strong-direct-ksc @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 4 of 4"><span></span><span></span><span></span><span></span></div><span>87%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
+
 exports[`CommSignal DOM snapshots > strong-direct-ksc @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 4 of 4"><span></span><span></span><span></span><span></span></div><span>87%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > strong-direct-ksc @ wide-9x4 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 4 of 4"><span></span><span></span><span></span><span></span></div><span>87%</span></div><div><span>Control</span><span>Full</span><span>Delay</span><span>0 ms</span></div></div></div>"`;
@@ -55,6 +65,8 @@ exports[`CommSignal DOM snapshots > weak-fading-occlusion @ default-6x5 1`] = `"
 exports[`CommSignal DOM snapshots > weak-fading-occlusion @ large-8x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 1 of 4"><span></span><span></span><span></span><span></span></div><span>23%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>12 ms</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > weak-fading-occlusion @ min-3x3 1`] = `"<div><h3>COMMNET</h3><div><div role="status" aria-live="polite"><div aria-label="Signal 1 of 4"><span></span><span></span><span></span><span></span></div><span>23%</span></div></div></div>"`;
+
+exports[`CommSignal DOM snapshots > weak-fading-occlusion @ mobile-9x8 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 1 of 4"><span></span><span></span><span></span><span></span></div><span>23%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>12 ms</span></div></div></div>"`;
 
 exports[`CommSignal DOM snapshots > weak-fading-occlusion @ tall-4x7 1`] = `"<div><h3>COMMNET</h3><div>Signal to KSC</div><div><div role="status" aria-live="polite"><div aria-label="Signal 1 of 4"><span></span><span></span><span></span><span></span></div><span>23%</span></div><div><span>Control</span><span>Partial</span><span>Delay</span><span>12 ms</span></div></div></div>"`;
 

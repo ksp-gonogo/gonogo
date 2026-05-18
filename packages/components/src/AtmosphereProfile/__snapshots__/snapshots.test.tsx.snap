@@ -6,6 +6,8 @@ exports[`AtmosphereProfile DOM snapshots > duna-thin-atmosphere @ medium-6x8 1`]
 
 exports[`AtmosphereProfile DOM snapshots > duna-thin-atmosphere @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
+exports[`AtmosphereProfile DOM snapshots > duna-thin-atmosphere @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>67.00 g/m³</span></div><div><span>Air</span><span>-63 °C</span></div><div><span>Skin</span><span>-60 °C</span></div></div></div>"`;
+
 exports[`AtmosphereProfile DOM snapshots > duna-thin-atmosphere @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > duna-thin-atmosphere @ wide-ceiling-12x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>67.00 g/m³</span></div><div><span>Air</span><span>-63 °C</span></div><div><span>Skin</span><span>-60 °C</span></div></div></div>"`;
@@ -15,6 +17,8 @@ exports[`AtmosphereProfile DOM snapshots > eve-thick-atmosphere @ default-8x8 1`
 exports[`AtmosphereProfile DOM snapshots > eve-thick-atmosphere @ medium-6x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > eve-thick-atmosphere @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
+
+exports[`AtmosphereProfile DOM snapshots > eve-thick-atmosphere @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>5.980 kg/m³</span></div><div><span>Air</span><span>97 °C</span></div><div><span>Skin</span><span>102 °C</span></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > eve-thick-atmosphere @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
@@ -26,6 +30,8 @@ exports[`AtmosphereProfile DOM snapshots > kerbin-reentry @ medium-6x8 1`] = `"<
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-reentry @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
+exports[`AtmosphereProfile DOM snapshots > kerbin-reentry @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>18.40 g/m³</span></div><div><span>Air</span><span>-53 °C</span></div><div><span>Skin</span><span>1227 °C</span></div></div></div>"`;
+
 exports[`AtmosphereProfile DOM snapshots > kerbin-reentry @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-reentry @ wide-ceiling-12x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>18.40 g/m³</span></div><div><span>Air</span><span>-53 °C</span></div><div><span>Skin</span><span>1227 °C</span></div></div></div>"`;
@@ -35,6 +41,8 @@ exports[`AtmosphereProfile DOM snapshots > kerbin-sea-level @ default-8x8 1`] = 
 exports[`AtmosphereProfile DOM snapshots > kerbin-sea-level @ medium-6x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-sea-level @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
+
+exports[`AtmosphereProfile DOM snapshots > kerbin-sea-level @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>1.217 kg/m³</span></div><div><span>Air</span><span>16 °C</span></div><div><span>Skin</span><span>18 °C</span></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-sea-level @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
@@ -46,6 +54,8 @@ exports[`AtmosphereProfile DOM snapshots > kerbin-upper-atmosphere @ medium-6x8 
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-upper-atmosphere @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
+exports[`AtmosphereProfile DOM snapshots > kerbin-upper-atmosphere @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>3.92 g/m³</span></div><div><span>Air</span><span>-43 °C</span></div><div><span>Skin</span><span>-28 °C</span></div></div></div>"`;
+
 exports[`AtmosphereProfile DOM snapshots > kerbin-upper-atmosphere @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > kerbin-upper-atmosphere @ wide-ceiling-12x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div></div></div></div><div role="status" aria-live="polite"><div><span>ρ</span><span>3.92 g/m³</span></div><div><span>Air</span><span>-43 °C</span></div><div><span>Skin</span><span>-28 °C</span></div></div></div>"`;
@@ -55,6 +65,8 @@ exports[`AtmosphereProfile DOM snapshots > mun-vacuum @ default-8x8 1`] = `"<div
 exports[`AtmosphereProfile DOM snapshots > mun-vacuum @ medium-6x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div><div>No atmosphere on Mun.</div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > mun-vacuum @ min-5x4 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div><div>No atmosphere on Mun.</div></div></div></div></div>"`;
+
+exports[`AtmosphereProfile DOM snapshots > mun-vacuum @ mobile-9x8 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div><div>No atmosphere on Mun.</div></div></div></div></div>"`;
 
 exports[`AtmosphereProfile DOM snapshots > mun-vacuum @ tall-6x12 1`] = `"<div><div><div><div><div><h3>ATMOSPHERE PROFILE</h3></div></div><div><div>No atmosphere on Mun.</div></div></div></div></div>"`;
 

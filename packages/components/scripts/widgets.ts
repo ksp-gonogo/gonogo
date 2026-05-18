@@ -12,7 +12,7 @@
  *   dashboard's COL_WIDTH / ROW_HEIGHT / GRID_MARGIN constants.
  * - `config` overrides the widget's defaultConfig for that mode only.
  */
-import type { WidgetRenderConfig } from "./widgetRenderHarness";
+import type { SizeMode, WidgetRenderConfig } from "./widgetRenderHarness";
 
 const WIDGETS: WidgetRenderConfig[] = [
   {
@@ -438,10 +438,47 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
 ];
 
+/**
+ * Mobile portrait approximation in grid units. 9w × 8h converts to
+ * roughly 352 × 256 px via the harness's COL_WIDTH=32 / ROW_HEIGHT=25
+ * / GRID_MARGIN=8 constants — close to a typical phone width (375 px
+ * minus chrome) and an aspect ratio that matches the
+ * `mobileHeight: 240`-shaped widgets the MobileDashboard renders.
+ *
+ * Appended automatically to every widget's `modes` array via
+ * `withAutoMobileMode` below. New widgets get mobile DOM-snapshot +
+ * PNG coverage without remembering to add an entry. Widgets with
+ * mobile-specific layout quirks can opt out by declaring their own
+ * `mobile-*` mode in WIDGETS — the helper skips appending when any
+ * existing mode name starts with `mobile-`.
+ *
+ * Reported as needed in the 2026-05-18 self-test: the CameraFeed
+ * `mobileHeight: 240` regression (gone unnoticed because no test
+ * exercised mobile sizing) prompted this scaffolding addition.
+ */
+const AUTO_MOBILE_MODE: SizeMode = {
+  name: "mobile-9x8",
+  w: 9,
+  h: 8,
+};
+
+function hasMobileMode(modes: readonly SizeMode[]): boolean {
+  return modes.some((m) => m.name.startsWith("mobile-"));
+}
+
+function withAutoMobileMode(config: WidgetRenderConfig): WidgetRenderConfig {
+  if (hasMobileMode(config.modes)) return config;
+  return {
+    ...config,
+    modes: [...config.modes, AUTO_MOBILE_MODE],
+  };
+}
+
 export function listWidgets(): readonly WidgetRenderConfig[] {
-  return WIDGETS;
+  return WIDGETS.map(withAutoMobileMode);
 }
 
 export function getWidget(id: string): WidgetRenderConfig | undefined {
-  return WIDGETS.find((w) => w.widgetId === id);
+  const found = WIDGETS.find((w) => w.widgetId === id);
+  return found ? withAutoMobileMode(found) : undefined;
 }
