@@ -22,6 +22,8 @@ const KEYS: DataKey[] = [
   { key: "ksp.canRevertToLaunch" },
   { key: "ksp.canRevertToEditor" },
   { key: "crash.hasRecent" },
+  { key: "crash.lastCrash" },
+  { key: "tar.availableVessels" },
 ];
 
 describe("LaunchDirectorComponent", () => {
@@ -173,7 +175,7 @@ describe("LaunchDirectorComponent", () => {
     expect(onExecute).toHaveBeenCalledWith("ksp.revertToLaunch");
   });
 
-  it("surfaces a crash chip and disables recover when crash.hasRecent is true", async () => {
+  it("surfaces a crash chip and disables recover when the active vessel itself crashed", async () => {
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -190,6 +192,7 @@ describe("LaunchDirectorComponent", () => {
       source.emit("ksp.canRevertToLaunch", false);
       source.emit("ksp.canRevertToEditor", false);
       source.emit("crash.hasRecent", true);
+      source.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
     });
 
     expect(
@@ -197,6 +200,38 @@ describe("LaunchDirectorComponent", () => {
     ).toBeInTheDocument();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).toBeDisabled();
+  });
+
+  // Regression from 2026-05-17 (21:15, 23:12 BST): debris from a previous
+  // flight crashed and the session-wide `crash.hasRecent` blocked recovery
+  // on a successful landing. The scoped gate compares against the active
+  // vessel's name, so debris no longer interferes.
+  it("does not block recovery when crash.hasRecent is for a different vessel (debris)", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "LFV-1 Lander");
+      source.emit("v.missionTime", 530);
+      source.emit("v.altitude", 80);
+      source.emit("ksp.canRevertToLaunch", false);
+      source.emit("ksp.canRevertToEditor", false);
+      source.emit("crash.hasRecent", true);
+      // Debris from a different vessel earlier in the session.
+      source.emit("crash.lastCrash", { vesselName: "Booster A Debris" });
+    });
+
+    expect(
+      screen.queryByText(/Crash in progress — return to Space Center/i),
+    ).toBeNull();
+    const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
+    expect(recoverBtn).not.toBeDisabled();
   });
 
   it("greys out unavailable crew chips and ignores clicks", async () => {

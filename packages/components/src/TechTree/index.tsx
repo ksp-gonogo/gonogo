@@ -278,6 +278,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                     void execute(`tech.unlock[${n.id}]`);
                   }}
                   canUnlock={canUnlock}
+                  canAfford={canAfford}
                   isPending={isPending}
                   affordTooltip={
                     !canAfford
@@ -319,6 +320,7 @@ interface NodeRowProps {
   onArm: () => void;
   onConfirm: () => void;
   canUnlock: boolean;
+  canAfford: boolean;
   isPending: boolean;
   affordTooltip?: string;
 }
@@ -331,6 +333,7 @@ function NodeRow({
   onArm,
   onConfirm,
   canUnlock,
+  canAfford,
   isPending,
   affordTooltip,
 }: Readonly<NodeRowProps>) {
@@ -340,9 +343,14 @@ function NodeRow({
       : node.state === "Researchable"
         ? "accent"
         : "muted";
+  // Researchable + unaffordable used to render identically to an affordable
+  // node; the user had to read the disabled Unlock tooltip to learn why a
+  // row was inert. Grey the row and recolour the cost so the scan is
+  // immediate (2026-05-17 session feedback).
+  const unaffordable = node.state === "Researchable" && !canAfford;
 
   return (
-    <NodeRowWrap $state={node.state}>
+    <NodeRowWrap $state={node.state} $unaffordable={unaffordable}>
       <NodeHeader
         type="button"
         onClick={onToggleExpand}
@@ -353,7 +361,9 @@ function NodeRow({
           <NodeId>({node.id})</NodeId>
         </NodeTitle>
         <NodeMeta>
-          {node.state !== "Available" && <Cost>{node.scienceCost} sci</Cost>}
+          {node.state !== "Available" && (
+            <Cost $insufficient={unaffordable}>{node.scienceCost} sci</Cost>
+          )}
           <StateBadge $tone={stateBadgeTone}>{node.state}</StateBadge>
         </NodeMeta>
       </NodeHeader>
@@ -487,7 +497,10 @@ const NodeList = styled.ul`
   gap: 4px;
 `;
 
-const NodeRowWrap = styled.li<{ $state: TechNodeState }>`
+const NodeRowWrap = styled.li<{
+  $state: TechNodeState;
+  $unaffordable?: boolean;
+}>`
   display: flex;
   flex-direction: column;
   background: var(--color-surface-panel);
@@ -496,10 +509,13 @@ const NodeRowWrap = styled.li<{ $state: TechNodeState }>`
       p.$state === "Available"
         ? "var(--color-status-go-fg)"
         : p.$state === "Researchable"
-          ? "var(--color-accent-fg)"
+          ? p.$unaffordable
+            ? "var(--color-text-faint)"
+            : "var(--color-accent-fg)"
           : "var(--color-text-faint)"};
   border-radius: 2px;
-  opacity: ${(p) => (p.$state === "Unavailable" ? 0.65 : 1)};
+  opacity: ${(p) =>
+    p.$state === "Unavailable" ? 0.65 : p.$unaffordable ? 0.7 : 1};
 `;
 
 const NodeHeader = styled.button`
@@ -552,9 +568,10 @@ const NodeMeta = styled.span`
   flex-shrink: 0;
 `;
 
-const Cost = styled.span`
+const Cost = styled.span<{ $insufficient?: boolean }>`
   font-size: 11px;
-  color: var(--color-accent-fg);
+  color: ${(p) =>
+    p.$insufficient ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
   font-variant-numeric: tabular-nums;
 `;
 

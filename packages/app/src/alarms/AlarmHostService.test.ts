@@ -737,6 +737,7 @@ describe("AlarmHostService", () => {
     ) => void;
     type IdCb = (peerId: string, id: string) => void;
     type VoidCb = (peerId: string) => void;
+    type PeerConnectCb = (peerId: string) => void;
     interface CapturedHost {
       addCb: AddCb | null;
       updateCb: UpdateCb | null;
@@ -744,7 +745,10 @@ describe("AlarmHostService", () => {
       ackCb: IdCb | null;
       ackUnscheduledCb: VoidCb | null;
       warpIntentCb: VoidCb | null;
+      peerConnectCb: PeerConnectCb | null;
       broadcasts: unknown[];
+      // Targeted sendToPeer messages keyed by peerId.
+      sentToPeer: Array<{ peerId: string; msg: unknown }>;
     }
 
     function makeHost(): {
@@ -758,7 +762,9 @@ describe("AlarmHostService", () => {
         ackCb: null,
         ackUnscheduledCb: null,
         warpIntentCb: null,
+        peerConnectCb: null,
         broadcasts: [],
+        sentToPeer: [],
       };
       const host = {
         onAlarmAdd: (cb: AddCb) => {
@@ -785,8 +791,15 @@ describe("AlarmHostService", () => {
           captured.warpIntentCb = cb;
           return () => {};
         },
+        onPeerConnect: (cb: PeerConnectCb) => {
+          captured.peerConnectCb = cb;
+          return () => {};
+        },
         broadcast: (msg: unknown) => {
           captured.broadcasts.push(msg);
+        },
+        sendToPeer: (peerId: string, msg: unknown) => {
+          captured.sentToPeer.push({ peerId, msg });
         },
       } as unknown as import("../peer/PeerHostService").PeerHostService;
       return { host, captured };
@@ -924,6 +937,29 @@ describe("AlarmHostService", () => {
         { kind: "action-group", action: "f.ag1" },
       ]);
       expect(telemetry.calls).toContain("f.ag1");
+    });
+
+    // Regression from 2026-05-17 21:11 BST: stations that connected (or
+    // refreshed) after the operator added an alarm on main had to wait
+    // up to one tick before the snapshot arrived. If the alarm fired in
+    // that gap the banner could race the fire event. The bridge now
+    // sends the current snapshot directly to each new peer immediately.
+    it("sends the current alarm snapshot to a station as soon as it connects", () => {
+      const { svc, captured } = makeServiceWithHost();
+      svc.addAlarm({
+        name: "Test alarm",
+        trigger: { kind: "time", ut: 9999, leadSeconds: 10 },
+      });
+      captured.sentToPeer.length = 0;
+      captured.peerConnectCb?.("station-late");
+      expect(captured.sentToPeer).toHaveLength(1);
+      expect(captured.sentToPeer[0].peerId).toBe("station-late");
+      const msg = captured.sentToPeer[0].msg as {
+        type: string;
+        snapshot: { alarms: Array<{ name: string }> };
+      };
+      expect(msg.type).toBe("alarm-snapshot");
+      expect(msg.snapshot.alarms[0].name).toBe("Test alarm");
     });
 
     it("updates onFire via alarm-update and clears it when the patch carries an empty array", () => {

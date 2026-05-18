@@ -116,6 +116,14 @@ function LaunchDirectorComponent({
     "ksp.canRevertToEditor",
   );
   const crashHasRecent = useDataValue<boolean>("data", "crash.hasRecent");
+  // crash.hasRecent is session-wide — a debris crash from a previous flight
+  // would block recovery of a successfully landed craft. Pull the most
+  // recent crash snapshot too so we can scope the gate to the active
+  // vessel only. User reported this twice on 2026-05-17 (21:15, 23:12 BST).
+  const lastCrash = useDataValue<{
+    vesselName?: string;
+    vesselId?: number;
+  } | null>("data", "crash.lastCrash");
   const availableVessels = useDataValue<AvailableVesselEntry[]>(
     "data",
     "tar.availableVessels",
@@ -183,6 +191,19 @@ function LaunchDirectorComponent({
 
   const inFlight = scene === "Flight";
   const activeName = vesselName ?? padVesselTitle ?? "(unnamed)";
+  // Only treat recovery as "crash-blocked" when the most recent crash is
+  // for the active vessel — otherwise a debris crash from earlier in the
+  // session would stop the operator recovering a successful landing.
+  // Falls back to the session-wide flag if the snapshot hasn't arrived
+  // yet (rare; the host emits both keys in the same WS tick) so the gate
+  // is fail-safe rather than fail-open.
+  const crashBlocked =
+    crashHasRecent === true &&
+    (lastCrash == null
+      ? true
+      : typeof lastCrash.vesselName === "string" &&
+        lastCrash.vesselName.length > 0 &&
+        lastCrash.vesselName === vesselName);
 
   return (
     <Panel>
@@ -208,7 +229,7 @@ function LaunchDirectorComponent({
             altitudeMeters={altitudeMeters ?? null}
             canRevertToLaunch={canRevertToLaunch ?? false}
             canRevertToEditor={canRevertToEditor ?? false}
-            crashBlocked={crashHasRecent === true}
+            crashBlocked={crashBlocked}
             armed={armed}
             onArm={setArmed}
             availableVessels={availableVessels}
@@ -954,6 +975,7 @@ registerComponent<LaunchDirectorConfig>({
     "ksp.canRevertToLaunch",
     "ksp.canRevertToEditor",
     "crash.hasRecent",
+    "crash.lastCrash",
     "tar.availableVessels",
   ],
   defaultConfig: {},

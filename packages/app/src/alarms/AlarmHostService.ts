@@ -128,6 +128,7 @@ export class AlarmHostService {
       acknowledgeAlarm: (id) => this.acknowledgeAlarm(id),
       acknowledgeUnscheduledWarp: () => this.acknowledgeUnscheduledWarp(),
       registerStationWarpIntent: () => this.registerStationWarpIntent(),
+      getSnapshot: () => this.snapshot(),
     });
 
     this.loadAlarms();
