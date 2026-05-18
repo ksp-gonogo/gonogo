@@ -32,7 +32,7 @@ describe("TelemachusAntennaBanner", () => {
     act(() => {
       source.emit("p.paused", 2); // antenna missing, but never saw a good
     });
-    expect(screen.queryByText(/TELEMACHUS ANTENNA/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("renders nothing when p.paused === 0", () => {
@@ -41,7 +41,7 @@ describe("TelemachusAntennaBanner", () => {
     act(() => {
       source.emit("p.paused", 0);
     });
-    expect(screen.queryByText(/TELEMACHUS ANTENNA/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("renders nothing for game-paused (p.paused === 1)", () => {
@@ -51,7 +51,7 @@ describe("TelemachusAntennaBanner", () => {
       source.emit("p.paused", 0);
       source.emit("p.paused", 1);
     });
-    expect(screen.queryByText(/TELEMACHUS ANTENNA/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("renders nothing outside the flight scene (p.paused === 5)", () => {
@@ -61,7 +61,7 @@ describe("TelemachusAntennaBanner", () => {
       source.emit("p.paused", 0);
       source.emit("p.paused", 5);
     });
-    expect(screen.queryByText(/TELEMACHUS ANTENNA/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -81,8 +81,11 @@ describe("TelemachusAntennaBanner", () => {
     act(() => {
       source.emit("p.paused", code);
     });
-    const banner = screen.getByText(copyPattern);
-    expect(banner).toBeInTheDocument();
+    // role="status" — what assistive tech announces. There's only one
+    // status banner in this isolated render, so we identify the
+    // element by role then assert its visible copy.
+    const banner = screen.getByRole("status");
+    expect(banner).toHaveTextContent(copyPattern);
   });
 
   it("clears when p.paused returns to 0", () => {
@@ -94,10 +97,10 @@ describe("TelemachusAntennaBanner", () => {
     act(() => {
       source.emit("p.paused", 2);
     });
-    expect(screen.getByText(/TELEMACHUS ANTENNA/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
     act(() => {
       source.emit("p.paused", 0);
     });
-    expect(screen.queryByText(/TELEMACHUS ANTENNA/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
