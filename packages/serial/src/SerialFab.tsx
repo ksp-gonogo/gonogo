@@ -43,11 +43,7 @@ export function SerialFab() {
     >
       <JoystickIcon />
       {(aggregate === "partial" || aggregate === "error") && (
-        <StatusDot
-          $tone={aggregate}
-          aria-hidden="true"
-          data-testid="serial-fab-status-dot"
-        />
+        <StatusDot $tone={aggregate} aria-hidden="true" />
       )}
     </Fab>
   );

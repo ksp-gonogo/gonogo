@@ -48,18 +48,16 @@ describe("ToggleButton", () => {
   });
 
   it("active variant applies different inline styling than inactive", () => {
-    const { rerender } = render(
-      <ToggleButton tone="go" data-testid="t">
-        Go
-      </ToggleButton>,
-    );
-    const inactiveClass = screen.getByTestId("t").className;
+    const { rerender } = render(<ToggleButton tone="go">Go</ToggleButton>);
+    const inactiveClass = screen.getByRole("button", { name: "Go" }).className;
     rerender(
-      <ToggleButton active tone="go" data-testid="t">
+      <ToggleButton active tone="go">
         Go
       </ToggleButton>,
     );
-    expect(screen.getByTestId("t").className).not.toBe(inactiveClass);
+    expect(screen.getByRole("button", { name: "Go" }).className).not.toBe(
+      inactiveClass,
+    );
   });
 
   it("does not fire onClick when disabled", async () => {

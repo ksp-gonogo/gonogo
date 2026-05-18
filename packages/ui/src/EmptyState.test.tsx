@@ -10,25 +10,15 @@ describe("EmptyState", () => {
   });
 
   it("applies different classes for inline vs fill layouts", () => {
-    const { rerender } = render(
-      <EmptyState data-testid="e">No data</EmptyState>,
-    );
-    const inlineClass = screen.getByTestId("e").className;
-    rerender(
-      <EmptyState data-testid="e" layout="fill">
-        No data
-      </EmptyState>,
-    );
-    expect(screen.getByTestId("e").className).not.toBe(inlineClass);
+    const { rerender } = render(<EmptyState>No data</EmptyState>);
+    const inlineClass = screen.getByText("No data").className;
+    rerender(<EmptyState layout="fill">No data</EmptyState>);
+    expect(screen.getByText("No data").className).not.toBe(inlineClass);
   });
 
   it("forwards arbitrary div attributes", () => {
-    render(
-      <EmptyState data-testid="e" role="status">
-        Awaiting telemetry
-      </EmptyState>,
-    );
-    expect(screen.getByTestId("e")).toHaveAttribute("role", "status");
+    render(<EmptyState role="status">Awaiting telemetry</EmptyState>);
+    expect(screen.getByRole("status")).toHaveTextContent("Awaiting telemetry");
   });
 
   it("has no axe violations in either layout", async () => {
