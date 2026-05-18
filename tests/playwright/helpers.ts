@@ -177,12 +177,23 @@ export async function bootstrapPair(
       size?: { w: number; h: number };
       config?: Record<string, unknown>;
     };
+    /**
+     * Per-context overrides applied to both main and station. Use for
+     * mobile testing: `{ viewport: { width: 375, height: 667 },
+     * hasTouch: true }` triggers the MobileDashboard rendering path
+     * (Dashboard/index.tsx:83 — `if (isTouch) return <MobileDashboard
+     * .../>;`). Without this every spec runs at the default desktop
+     * viewport with no touch, so mobile-only sizing regressions (e.g.
+     * the CameraFeed 2x0.5 squish reported 2026-05-18) never surface
+     * in CI.
+     */
+    contextOptions?: Parameters<Browser["newContext"]>[0];
   },
 ): Promise<BootstrappedPair> {
   const dashboard = dashboardWithWidget(componentId, opts.widget);
-  const mainContext = await browser.newContext();
+  const mainContext = await browser.newContext(opts.contextOptions);
   await seedContext(mainContext, "gonogo:dashboard:main", dashboard);
-  const stationContext = await browser.newContext();
+  const stationContext = await browser.newContext(opts.contextOptions);
   await seedContext(stationContext, "gonogo:dashboard:station", dashboard);
 
   const main = await mainContext.newPage();
