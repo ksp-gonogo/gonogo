@@ -471,16 +471,19 @@ describe("PeerHostService — peer-driven subscribe forwarding", () => {
     // Register a fake "data" source that owns `v.topology` (demand-only —
     // not in its schema). The host should subscribe through this source
     // when a peer asks for the key.
-    let upstreamCb: ((v: unknown) => void) | null = null;
+    //
+    // Holder object so TS doesn't narrow the callback ref to its initial
+    // `null` value — it can't flow-analyse through the subscribe closure.
+    const upstreamCb: { value: ((v: unknown) => void) | null } = { value: null };
     let unsubCalls = 0;
     service.registerSourceForBackfill("data", {
       getLatestValue: () => undefined,
       schema: () => [{ key: "v.altitude" }], // intentionally excludes v.topology
       subscribe: (key, cb) => {
-        if (key === "v.topology") upstreamCb = cb;
+        if (key === "v.topology") upstreamCb.value = cb;
         return () => {
           if (key === "v.topology") {
-            upstreamCb = null;
+            upstreamCb.value = null;
             unsubCalls += 1;
           }
         };
@@ -501,14 +504,14 @@ describe("PeerHostService — peer-driven subscribe forwarding", () => {
     });
 
     // Subscribe should have triggered an upstream subscribe.
-    expect(upstreamCb).not.toBeNull();
+    expect(upstreamCb.value).not.toBeNull();
 
     const base = conn.sent.length;
-    upstreamCb?.({ parts: [{ flightId: 1 }], topologySeq: 7 });
+    if (!upstreamCb.value) throw new Error("upstreamCb was not assigned by subscribe");
+    upstreamCb.value({ parts: [{ flightId: 1 }], topologySeq: 7 });
 
-    const dataMsgs = conn.sent
-      .slice(base)
-      .filter((m): m is { type: string; key: string } => m.type === "data");
+    const dataMsgs = (conn.sent.slice(base) as Array<{ type: string; key: string }>)
+      .filter((m) => m.type === "data");
     expect(dataMsgs).toHaveLength(1);
     expect(dataMsgs[0].key).toBe("v.topology");
 
@@ -519,7 +522,7 @@ describe("PeerHostService — peer-driven subscribe forwarding", () => {
       keys: ["v.topology"],
     });
     expect(unsubCalls).toBe(1);
-    expect(upstreamCb).toBeNull();
+    expect(upstreamCb.value).toBeNull();
   });
 
   it("refcounts demand-only subs across multiple peers", async () => {
