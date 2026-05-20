@@ -52,6 +52,21 @@
 #       and copy the resulting Telemachus.dll into the synced
 #       kspdata GameData/Telemachus/Plugins/ directory.
 #
+#   build ocisly [--baseline]
+#       Build the OCISLY fork at ~/personal/OfCourseIStillLoveYou/
+#       and copy OfCourseIStillLoveYou.dll into the synced
+#       kspdata GameData/OfCourseIStillLoveYou/Plugins/ directory.
+#       With --baseline, defines KERBCAM_BASELINE to enable per-frame
+#       capture-timing CSV output + KSP-timestamp piggybacked on the
+#       Altitude metadata field. See local_docs/kerbcam/baseline_harness_plan.md.
+#
+#   build kerbcam
+#       Build the kerbcam KSP plugin at ~/personal/kerbcam/Plugin/
+#       and install it into the synced kspdata at
+#       GameData/Kerbcam/Plugins/. Also seeds the yangrc native
+#       AsyncGPUReadback .so from the existing OCISLY install if not
+#       already present.
+#
 #   tele read <key1> [<key2>...]
 #       GET /telemachus/datalink with each key as a `?k=k` pair against
 #       the running KSP install. Pretty-prints JSON when possible. The
@@ -437,6 +452,100 @@ findtype() {
   done
 }
 
+build_ocisly() {
+  # The Mac-friendly SDK-style csproj lives in the syncthing fork dir;
+  # source-of-truth .cs files live in ~/personal/OfCourseIStillLoveYou/.
+  # The .Mac.csproj points <Compile Include> at those .cs files via $ForkRoot.
+  local mac_proj_dir="$ROOT/local_docs/syncthing/ocisly-fork"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins"
+  local baseline=""
+  if [ "${1:-}" = "--baseline" ]; then
+    baseline="/p:KerbCamBaseline=true"
+    echo "=== building OCISLY fork (KERBCAM_BASELINE enabled) ==="
+  else
+    echo "=== building OCISLY fork ==="
+  fi
+  if [ ! -f "$mac_proj_dir/OfCourseIStillLoveYou.Mac.csproj" ]; then
+    echo "OfCourseIStillLoveYou.Mac.csproj not found at $mac_proj_dir"
+    return 3
+  fi
+  if [ ! -d "$install_dir" ]; then
+    echo "kspdata GameData/OfCourseIStillLoveYou/Plugins not found at $install_dir"
+    return 3
+  fi
+  (
+    cd "$mac_proj_dir"
+    perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+      dotnet build OfCourseIStillLoveYou.Mac.csproj -c Release --nologo -v minimal $baseline
+  )
+  local out_dll="$mac_proj_dir/bin/Release/OfCourseIStillLoveYou.dll"
+  if [ ! -f "$out_dll" ]; then
+    echo "OfCourseIStillLoveYou.dll not produced at $out_dll"
+    return 4
+  fi
+  cp "$out_dll" "$install_dir/OfCourseIStillLoveYou.dll"
+  echo "=== installed ==="
+  ls -la "$install_dir/OfCourseIStillLoveYou.dll"
+}
+
+build_kerbcam() {
+  local proj="$HOME/personal/kerbcam/Plugin/Kerbcam.csproj"
+  local ksp_root="$ROOT/local_docs/syncthing/kspdata"
+  local managed="$ksp_root/KSP_Data/Managed"
+  local gamedata="$ksp_root/GameData"
+  local install_dir="$gamedata/Kerbcam/Plugins"
+  local install_native="$install_dir/x86_64"
+  local seed_so="$gamedata/OfCourseIStillLoveYou/Plugins/x86_64/libAsyncGPUReadbackPlugin.so"
+
+  if [ ! -f "$proj" ]; then
+    echo "kerbcam csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$managed" ]; then
+    echo "kspdata Managed/ not found at $managed"
+    return 3
+  fi
+
+  mkdir -p "$install_dir" "$install_native"
+
+  echo "=== building kerbcam plugin ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal \
+      "/p:KspManaged=$managed" \
+      "/p:KspGameData=$gamedata"
+
+  local out_dll="$HOME/personal/kerbcam/Plugin/bin/Release/Kerbcam.dll"
+  if [ ! -f "$out_dll" ]; then
+    echo "Kerbcam.dll not produced at $out_dll"
+    return 4
+  fi
+  cp "$out_dll" "$install_dir/Kerbcam.dll"
+
+  # Seed the native AsyncGPUReadback .so on first install. Reuses the
+  # copy already living in the OCISLY mod's tree; once kerbcam ships
+  # its own download path, this fallback drops away.
+  if [ ! -f "$install_native/libAsyncGPUReadbackPlugin.so" ]; then
+    if [ -f "$seed_so" ]; then
+      cp "$seed_so" "$install_native/libAsyncGPUReadbackPlugin.so"
+      echo "seeded libAsyncGPUReadbackPlugin.so from OCISLY install"
+    else
+      echo "warning: libAsyncGPUReadbackPlugin.so not found at $seed_so"
+      echo "         place it at $install_native/ before launching KSP"
+    fi
+  fi
+
+  # Seed settings.cfg on first install only — never clobber user edits.
+  local settings_dest="$gamedata/Kerbcam/settings.cfg"
+  local settings_src="$HOME/personal/kerbcam/Plugin/settings.cfg"
+  if [ ! -f "$settings_dest" ] && [ -f "$settings_src" ]; then
+    cp "$settings_src" "$settings_dest"
+    echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 768x768)"
+  fi
+
+  echo "=== installed ==="
+  ls -la "$install_dir/Kerbcam.dll" "$install_native/libAsyncGPUReadbackPlugin.so" "$settings_dest" 2>&1 || true
+}
+
 build_telemachus() {
   local fork="$ROOT/local_docs/telemachus-fork/Telemachus"
   local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/Telemachus/Plugins"
@@ -625,9 +734,14 @@ case "${1:-help}" in
     shift
     case "${1:-}" in
       telemachus) build_telemachus ;;
+      ocisly)
+        shift
+        build_ocisly "$@"
+        ;;
+      kerbcam) build_kerbcam ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcam"
         exit 2
         ;;
     esac
