@@ -61,11 +61,13 @@
 #       Altitude metadata field. See local_docs/kerbcam/baseline_harness_plan.md.
 #
 #   build kerbcam
-#       Build the kerbcam KSP plugin at ~/personal/kerbcam/Plugin/
-#       and install it into the synced kspdata at
-#       GameData/Kerbcam/Plugins/. Also seeds the yangrc native
-#       AsyncGPUReadback .so from the existing OCISLY install if not
-#       already present.
+#       Build the kerbcam KSP plugin at ~/personal/kerbcam/Plugin/,
+#       install it into the synced kspdata at GameData/Kerbcam/Plugins/,
+#       seed libAsyncGPUReadbackPlugin.so + settings.cfg on first
+#       install, and (best-effort) pull the latest CI-built sidecar
+#       binary into GameData/Kerbcam/sidecar/ via `gh run download`.
+#       Sidecar fetch is best-effort: skips silently if gh isn't
+#       installed / not authed / no successful run found.
 #
 #   tele read <key1> [<key2>...]
 #       GET /telemachus/datalink with each key as a `?k=k` pair against
@@ -542,8 +544,81 @@ build_kerbcam() {
     echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 768x768)"
   fi
 
+  # Pull the latest CI-built sidecar binary if gh is available + auth'd.
+  # The sidecar is Rust + cross-compiles to Linux x86_64 in CI (QEMU on
+  # the Mac is a non-starter — rustc segfaults under amd64 emulation).
+  # Best-effort: a failure here doesn't abort the helper; the existing
+  # binary in place still works.
+  local sidecar_dest="$gamedata/Kerbcam/sidecar/kerbcam-sidecar"
+  mkdir -p "$gamedata/Kerbcam/sidecar"
+  fetch_kerbcam_sidecar "$sidecar_dest"
+
   echo "=== installed ==="
-  ls -la "$install_dir/Kerbcam.dll" "$install_native/libAsyncGPUReadbackPlugin.so" "$settings_dest" 2>&1 || true
+  ls -la \
+    "$install_dir/Kerbcam.dll" \
+    "$install_native/libAsyncGPUReadbackPlugin.so" \
+    "$settings_dest" \
+    "$sidecar_dest" 2>&1 || true
+}
+
+# Best-effort fetch of the latest successful sidecar-ci artefact from
+# github.com/jonpepler/kerbcam. Skips silently if `gh` isn't installed
+# / not authed / no successful run yet, so first-time-on-a-fresh-clone
+# users with no gh setup just keep the existing binary (or get a
+# "place it manually" warning from build_kerbcam's caller).
+fetch_kerbcam_sidecar() {
+  local dest="$1"
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "gh CLI not installed — skipping sidecar fetch"
+    return 0
+  fi
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "gh CLI not authed — skipping sidecar fetch (run 'gh auth login')"
+    return 0
+  fi
+
+  local kerbcam_repo="$HOME/personal/kerbcam"
+  if [ ! -d "$kerbcam_repo/.git" ]; then
+    echo "kerbcam repo not at $kerbcam_repo — skipping sidecar fetch"
+    return 0
+  fi
+
+  echo "=== fetching latest sidecar-ci artefact ==="
+  local run_id
+  # Most recent successful sidecar-ci run on main, JSON-pluck the id.
+  run_id="$(
+    perl -e 'alarm shift; exec @ARGV' 30 \
+      gh -R jonpepler/kerbcam run list \
+        --workflow=sidecar-ci.yml \
+        --branch main \
+        --status success \
+        --limit 1 \
+        --json databaseId \
+        --jq '.[0].databaseId' 2>/dev/null
+  )"
+  if [ -z "$run_id" ]; then
+    echo "no successful sidecar-ci run found — skipping fetch"
+    return 0
+  fi
+  echo "fetching from run $run_id"
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  if perl -e 'alarm shift; exec @ARGV' 90 \
+       gh -R jonpepler/kerbcam run download "$run_id" \
+         -n kerbcam-sidecar-linux-x64-dev \
+         -D "$tmpdir" >/dev/null 2>&1; then
+    if [ -f "$tmpdir/kerbcam-sidecar" ]; then
+      cp "$tmpdir/kerbcam-sidecar" "$dest"
+      chmod +x "$dest"
+      echo "deployed sidecar from CI run $run_id"
+    else
+      echo "warning: artefact downloaded but no kerbcam-sidecar inside"
+    fi
+  else
+    echo "warning: sidecar artefact download failed; keeping existing binary"
+  fi
+  rm -rf "$tmpdir"
 }
 
 build_telemachus() {
