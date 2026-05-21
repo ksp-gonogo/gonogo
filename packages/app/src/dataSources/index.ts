@@ -5,6 +5,7 @@ import "./telemachus";
 import "./kos";
 import { attachKosCaptureToBuffered } from "./buffered";
 import "./buffered";
+import "@gonogo/kerbcam";
 
 // Pipe the kOS centralised-compute fanout into the buffered store so its
 // samples land in the flight history alongside Telemachus telemetry. Done
