@@ -474,7 +474,9 @@ describe("PeerHostService — peer-driven subscribe forwarding", () => {
     //
     // Holder object so TS doesn't narrow the callback ref to its initial
     // `null` value — it can't flow-analyse through the subscribe closure.
-    const upstreamCb: { value: ((v: unknown) => void) | null } = { value: null };
+    const upstreamCb: { value: ((v: unknown) => void) | null } = {
+      value: null,
+    };
     let unsubCalls = 0;
     service.registerSourceForBackfill("data", {
       getLatestValue: () => undefined,
@@ -507,11 +509,13 @@ describe("PeerHostService — peer-driven subscribe forwarding", () => {
     expect(upstreamCb.value).not.toBeNull();
 
     const base = conn.sent.length;
-    if (!upstreamCb.value) throw new Error("upstreamCb was not assigned by subscribe");
+    if (!upstreamCb.value)
+      throw new Error("upstreamCb was not assigned by subscribe");
     upstreamCb.value({ parts: [{ flightId: 1 }], topologySeq: 7 });
 
-    const dataMsgs = (conn.sent.slice(base) as Array<{ type: string; key: string }>)
-      .filter((m) => m.type === "data");
+    const dataMsgs = (
+      conn.sent.slice(base) as Array<{ type: string; key: string }>
+    ).filter((m) => m.type === "data");
     expect(dataMsgs).toHaveLength(1);
     expect(dataMsgs[0].key).toBe("v.topology");
 

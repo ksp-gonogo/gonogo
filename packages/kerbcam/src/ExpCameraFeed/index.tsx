@@ -22,5 +22,5 @@ registerComponent<ExpCameraFeedConfig>({
   pushable: true,
 });
 
-export { ExpCameraFeed };
 export type { ExpCameraFeedConfig };
+export { ExpCameraFeed };

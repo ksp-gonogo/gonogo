@@ -14,12 +14,11 @@
 // during app bootstrap (alongside the existing telemachus / kos
 // data-source imports in app/src/dataSources/index.ts).
 
-export * from "./KerbcamConnection";
-export * from "./KerbcamDataSource";
+export type { ExpCameraFeedConfig } from "./ExpCameraFeed";
+export { ExpCameraFeed } from "./ExpCameraFeed";
 export { useKerbcamCameras } from "./hooks/useKerbcamCameras";
 export { useKerbcamStream } from "./hooks/useKerbcamStream";
-export { ExpCameraFeed } from "./ExpCameraFeed";
-export type { ExpCameraFeedConfig } from "./ExpCameraFeed";
+export * from "./KerbcamDataSource";
 
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps

@@ -5,26 +5,23 @@ import type {
   DataSourceStatus,
 } from "@gonogo/core";
 import { registerDataSource } from "@gonogo/core";
-import type { CameraState } from "@jonpepler/kerbcam";
 import {
-  type ConnectionStatus,
-  KerbcamConnection,
-  type KerbcamConnectionConfig,
-} from "./KerbcamConnection";
+  type CameraState,
+  KerbcamClient,
+  type KerbcamConnectionState,
+  type KerbcamTransport,
+  type Layer,
+} from "@jonpepler/kerbcam";
 
 /**
- * gonogo `DataSource` wrapper around the kerbcam sidecar.
+ * gonogo `DataSource` wrapper around `KerbcamClient`. Surfaces the
+ * sidecar connection in the Data Sources widget and re-exposes the
+ * cached camera registry under the `kerbcam.cameras` data key.
  *
- * Surfaces in the Data Sources widget so the operator can see at a
- * glance whether kerbcam is reachable and edit the sidecar host/port
- * from the same config UI as every other source.
- *
- * Doesn't expose telemetry-style data keys — kerbcam streams video,
- * which doesn't fit the scalar `subscribe(key, cb)` shape — but does
- * cache the per-camera registry from the sidecar's `camera-snapshot`
- * pushes so other widgets can read it via {@link useKerbcamCameras}.
  * Video frames bind via {@link useKerbcamStream} (returns a
- * `MediaStream` directly; not a value channel).
+ * `MediaStream` directly — not a value channel) and the camera list
+ * via {@link useKerbcamCameras}, both of which reach into the
+ * underlying client via {@link getClient}.
  */
 
 export interface KerbcamConfig extends Record<string, unknown> {
@@ -67,90 +64,79 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   /**
    * Kerbcam streams are independent of CommNet — losing the in-game
    * antenna doesn't affect the WebRTC connection to the sidecar.
+   * Camera widgets visualise signal loss via `set-degrade` instead.
    */
   affectedBySignalLoss = false;
 
   private cfg: KerbcamConfig;
-  private connection: KerbcamConnection;
+  private transport: KerbcamTransport | undefined;
+  private client: KerbcamClient;
+  private clientUnsubs: Array<() => void> = [];
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
   private camerasKeySubs = new Set<(value: unknown) => void>();
 
-  constructor(config?: KerbcamConfig) {
+  constructor(config?: KerbcamConfig, transport?: KerbcamTransport) {
     this.cfg = config ?? loadConfig();
-    this.connection = new KerbcamConnection(this.cfg);
-    this.connection.onStatusChange((s) => this.setStatus(mapStatus(s)));
-    this.connection.onCamerasChange((cams) => {
-      this.camerasKeySubs.forEach((cb) => cb(cams));
-    });
+    this.transport = transport;
+    this.client = this.buildClient();
   }
 
-  /** Underlying connection (hooks reach in directly via this). */
-  getConnection(): KerbcamConnection {
-    return this.connection;
+  /** Underlying client (hooks reach in directly via this). */
+  getClient(): KerbcamClient {
+    return this.client;
   }
 
   // -- DataSource contract --
 
   async connect(): Promise<void> {
-    await this.connection.connect();
+    await this.client.connect();
   }
 
   disconnect(): void {
-    this.connection.disconnect();
+    this.client.disconnect();
   }
 
   schema(): DataKey[] {
-    return [
-      {
-        key: "kerbcam.cameras",
-      },
-    ];
+    return [{ key: "kerbcam.cameras" }];
   }
 
   subscribe(key: string, cb: (value: unknown) => void): () => void {
-    if (key !== "kerbcam.cameras") {
-      // Unknown key — no-op so callers don't crash on typos, matching
-      // the other sources' tolerance.
-      return () => {};
-    }
+    if (key !== "kerbcam.cameras") return () => {};
     this.camerasKeySubs.add(cb);
-    // Replay the cached snapshot on the next tick so subscribers don't
-    // need to wait for the next sidecar push to render.
-    queueMicrotask(() => cb(this.connection.getCameras()));
+    queueMicrotask(() => cb(this.client.cameras));
     return () => this.camerasKeySubs.delete(cb);
   }
 
   async execute(action: string): Promise<void> {
-    // Action grammar: `kerbcam.set-layers[flightId,NEAR,SCALED]` etc.
-    // Parsing is intentionally tiny — the hooks layer is the
-    // ergonomic surface; this exists for parity with how the alarms
-    // widget actions get triggered via the action-dispatch system.
     const [name, args] = parseAction(action);
+    const [flightIdRaw, ...rest] = args;
+    if (!flightIdRaw) return;
+    const cam = this.client.camera(Number(flightIdRaw));
     switch (name) {
-      case "set-layers": {
-        const [flightId, ...layers] = args;
-        if (!flightId) return;
-        this.connection.sendSetLayers(Number(flightId), layers);
+      case "set-layers":
+        await cam.setLayers(rest as Layer[]);
         break;
-      }
       case "set-render-size": {
-        const [flightId, w, h] = args;
-        if (!flightId || !w || !h) return;
-        this.connection.sendSetRenderSize(Number(flightId), Number(w), Number(h));
+        const [w, h] = rest;
+        if (!w || !h) return;
+        await cam.setRenderSize(Number(w), Number(h));
         break;
       }
       case "set-fov": {
-        const [flightId, fov] = args;
-        if (!flightId || !fov) return;
-        this.connection.sendSetFov(Number(flightId), Number(fov));
+        const [fov] = rest;
+        if (!fov) return;
+        await cam.setFov(Number(fov));
         break;
       }
-      case "request-keyframe": {
-        const [flightId] = args;
-        if (!flightId) return;
-        this.connection.sendRequestKeyframe(Number(flightId));
+      case "set-degrade": {
+        const [level] = rest;
+        if (!level) return;
+        await cam.setDegrade(Number(level));
         break;
       }
+      case "request-keyframe":
+        await cam.requestKeyframe();
+        break;
     }
   }
 
@@ -161,8 +147,18 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
 
   configSchema(): ConfigField[] {
     return [
-      { key: "host", label: "Sidecar host", type: "text", placeholder: "127.0.0.1" },
-      { key: "port", label: "Sidecar port", type: "number", placeholder: "8088" },
+      {
+        key: "host",
+        label: "Sidecar host",
+        type: "text",
+        placeholder: "127.0.0.1",
+      },
+      {
+        key: "port",
+        label: "Sidecar port",
+        type: "number",
+        placeholder: "8088",
+      },
     ];
   }
 
@@ -179,23 +175,45 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
           : Number(config.port) || this.cfg.port,
     };
     persistConfig(this.cfg);
-    this.connection.disconnect();
-    this.connection = new KerbcamConnection(this.cfg);
-    this.connection.onStatusChange((s) => this.setStatus(mapStatus(s)));
-    this.connection.onCamerasChange((cams) => {
-      this.camerasKeySubs.forEach((cb) => cb(cams));
-    });
+    this.teardownClient();
+    this.client = this.buildClient();
   }
 
   // -- private --
 
+  private buildClient(): KerbcamClient {
+    const client = new KerbcamClient(
+      { host: this.cfg.host, port: this.cfg.port },
+      this.transport,
+    );
+    this.clientUnsubs.push(
+      client.on("state-change", (s) => this.setStatus(mapStatus(s))),
+      client.on("cameras-change", (cams) => {
+        this.camerasKeySubs.forEach((cb) => {
+          cb(cams);
+        });
+      }),
+    );
+    return client;
+  }
+
+  private teardownClient(): void {
+    this.client.disconnect();
+    this.clientUnsubs.forEach((off) => {
+      off();
+    });
+    this.clientUnsubs = [];
+  }
+
   private setStatus(status: DataSourceStatus): void {
     this.status = status;
-    this.statusListeners.forEach((cb) => cb(status));
+    this.statusListeners.forEach((cb) => {
+      cb(status);
+    });
   }
 }
 
-function mapStatus(s: ConnectionStatus): DataSourceStatus {
+function mapStatus(s: KerbcamConnectionState): DataSourceStatus {
   switch (s) {
     case "connected":
       return "connected";
