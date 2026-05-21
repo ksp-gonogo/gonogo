@@ -10,6 +10,9 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # @jonpepler/kerbcam comes from GitHub Packages; pnpm install needs
+  # read:packages even though the package is public.
+  packages: read
 
 concurrency:
   group: pages
@@ -45,7 +48,11 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
-      - run: pnpm install --frozen-lockfile
+      - name: pnpm install
+        env:
+          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
 
       - name: Confirm Axiom token presence
         env:
