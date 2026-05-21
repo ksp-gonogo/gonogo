@@ -303,6 +303,46 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
 
+  packages/kerbcam:
+    dependencies:
+      '@gonogo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@gonogo/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@jonpepler/kerbcam':
+        specifier: ^0.1.0
+        version: 0.1.0
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@vitest/coverage-v8':
+        specifier: ^4.1.4
+        version: 4.1.4(vitest@4.1.4)
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
   packages/logger:
     dependencies:
       '@axiomhq/js':
@@ -1289,6 +1329,9 @@ packages:
   '@jest/types@30.3.0':
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jonpepler/kerbcam@0.1.0':
+    resolution: {integrity: sha512-yLw9nXqJghCQZ2URoNHrH8iVmJaWrzhOx+6SyTLVJX9u2uQtQgjvc9HvnCn9OZAyGNS82FzjThIQfqpzQ2lxbA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.1.0/f0e9ab275837d437ee21222d6cfe88c1473a8c77}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3627,6 +3670,8 @@ snapshots:
       '@types/node': 22.19.17
       '@types/yargs': 17.0.35
       chalk: 4.1.2
+
+  '@jonpepler/kerbcam@0.1.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
