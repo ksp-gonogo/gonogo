@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Sister project
+
+**`~/personal/kerbcam/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo will eventually consume in place of the current OCISLY+relay path. When working on anything that touches camera feeds, the WebRTC stream-source code, or the relay's gRPC/jpeg-js path, check `~/personal/kerbcam/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
+
 ## Project Vision
 
 **gonogo** is a mission control SPA for Kerbal Space Program. It operates in two modes within the same app:
