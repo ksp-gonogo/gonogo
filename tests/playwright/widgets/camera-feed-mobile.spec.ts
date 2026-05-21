@@ -71,9 +71,12 @@ test.describe("CameraFeed mobile sizing", () => {
       waitForMain: async (page) => {
         // Wait for the dashboard scaffold; the widget specifically
         // renders inside a list item the MobileDashboard creates.
-        await page.waitForSelector("[data-testid='mobile-widget'], video, [role='img']", {
-          timeout: 30_000,
-        });
+        await page.waitForSelector(
+          "[data-testid='mobile-widget'], video, [role='img']",
+          {
+            timeout: 30_000,
+          },
+        );
       },
     });
 
@@ -105,10 +108,7 @@ test.describe("CameraFeed mobile sizing", () => {
           // 200px tall whose width spans most of the viewport. That
           // skips the inner overlay/canvas wrappers (which fill the
           // parent but match the parent's dimensions exactly).
-          if (
-            rect.height >= 200 &&
-            rect.width >= window.innerWidth * 0.8
-          ) {
+          if (rect.height >= 200 && rect.width >= window.innerWidth * 0.8) {
             return rect.height;
           }
           cursor = cursor.parentElement;

@@ -1,3 +1,4 @@
+import { recordStage, recordTimestampPair } from "../baseline/sampler.js";
 import {
   type CameraVideoSource,
   createCameraVideoSource,
@@ -80,7 +81,7 @@ export class CameraPoller {
     if (!entry) {
       entry = {
         subscribers: 0,
-        source: createCameraVideoSource(),
+        source: createCameraVideoSource({ cameraId }),
         timer: null,
         latestMetadata: null,
         inFlight: false,
@@ -144,12 +145,24 @@ export class CameraPoller {
       if (entry.inFlight) return; // skip if the previous poll hasn't resolved
       entry.inFlight = true;
       try {
+        const grpcStart = performance.now();
         const frame: CameraFrame = await this.client.getCameraTexture(cameraId);
+        const grpcEnd = performance.now();
+        recordStage(cameraId, "grpc_get_texture_ms", grpcEnd - grpcStart);
         if (!entry.timer) return; // released while we were awaiting
         entry.pollsTotal += 1;
         if (frame.texture && frame.texture.length > 0) {
           entry.pollsWithTexture += 1;
           entry.lastTextureBytes = frame.texture.length;
+          // KERBCAM_BASELINE: the OCISLY-side baseline patch repurposes the
+          // altitude string to carry Time.unscaledTime*1000 (ms). When that's
+          // active, the value parses as a number and we record the pair for
+          // wire-latency analysis. Otherwise it's a normal altitude string
+          // and parseFloat returns NaN — silent no-op.
+          const kspMs = Number.parseFloat(frame.altitude);
+          if (Number.isFinite(kspMs)) {
+            recordTimestampPair(cameraId, kspMs, grpcEnd);
+          }
           try {
             entry.source.pushJpeg(frame.texture);
           } catch (err) {

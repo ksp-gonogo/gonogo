@@ -1,5 +1,6 @@
 import type { MediaStreamTrack as WrtcMediaStreamTrack } from "@roamhq/wrtc";
 import wrtc from "@roamhq/wrtc";
+import { recordStage } from "../baseline/sampler.js";
 import { decodeJpeg } from "../decode/jpegDecoder.js";
 
 const { RTCVideoSource, rgbaToI420 } = wrtc.nonstandard;
@@ -28,11 +29,19 @@ export interface CameraVideoSource {
   readonly frameCount: number;
 }
 
+export interface CreateCameraVideoSourceOptions {
+  /** Optional camera id; required for kerbcam baseline stage timing. */
+  cameraId?: string;
+}
+
 /**
  * Creates a video source backed by JPEG frames pushed via pushJpeg().
  * Returns a single MediaStreamTrack that any number of peers can receive.
  */
-export function createCameraVideoSource(): CameraVideoSource {
+export function createCameraVideoSource(
+  opts: CreateCameraVideoSourceOptions = {},
+): CameraVideoSource {
+  const cameraId = opts.cameraId ?? "";
   const source = new RTCVideoSource();
   const track = source.createTrack() as unknown as WrtcMediaStreamTrack;
 
@@ -56,7 +65,15 @@ export function createCameraVideoSource(): CameraVideoSource {
     pushJpeg(bytes) {
       if (closed) return;
 
+      const decodeStart = performance.now();
       const decoded = decodeJpeg(bytes);
+      if (cameraId) {
+        recordStage(
+          cameraId,
+          "jpeg_decode_ms",
+          performance.now() - decodeStart,
+        );
+      }
 
       if (!isI420Compatible(decoded.width, decoded.height)) {
         throw new Error(
@@ -75,10 +92,14 @@ export function createCameraVideoSource(): CameraVideoSource {
         i420Buffer = new Uint8Array(i420BufferSize(bufferWidth, bufferHeight));
       }
 
+      const i420Start = performance.now();
       rgbaToI420(
         { width: decoded.width, height: decoded.height, data: decoded.rgba },
         { width: bufferWidth, height: bufferHeight, data: i420Buffer },
       );
+      if (cameraId) {
+        recordStage(cameraId, "rgba_to_i420_ms", performance.now() - i420Start);
+      }
 
       source.onFrame({
         width: bufferWidth,
