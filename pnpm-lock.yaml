@@ -88,6 +88,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
+      '@gonogo/kerbcam':
+        specifier: workspace:*
+        version: link:../kerbcam
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -315,8 +318,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcam':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.3.1
+        version: 0.3.1
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1330,8 +1333,8 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcam@0.1.0':
-    resolution: {integrity: sha512-yLw9nXqJghCQZ2URoNHrH8iVmJaWrzhOx+6SyTLVJX9u2uQtQgjvc9HvnCn9OZAyGNS82FzjThIQfqpzQ2lxbA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.1.0/f0e9ab275837d437ee21222d6cfe88c1473a8c77}
+  '@jonpepler/kerbcam@0.3.1':
+    resolution: {integrity: sha512-RMOhc6pVW3+ih8fU7OAP1y+4267F6moX2YHPmJtIg5qv3eOrvIj9kypqgKGS2ofKObGaDd5RGzlFnWKp9KBXcA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.3.1/b5b9b5fa97cc3469c62fd8f352ca6720cc85764d}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3671,7 +3674,7 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcam@0.1.0': {}
+  '@jonpepler/kerbcam@0.3.1': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

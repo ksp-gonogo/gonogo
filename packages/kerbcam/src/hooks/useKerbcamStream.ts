@@ -8,15 +8,14 @@ import type { KerbcamDataSource } from "../KerbcamDataSource";
  * after a disconnect). Components bind the stream to a `<video>`'s
  * `srcObject` directly.
  *
- * The `getDataSource()` reach-around is intentional and matches the
- * @gonogo/data pattern for non-value channels — `useDataValue` is
- * scalar-only.
+ * Reaches into the `KerbcamClient` via `getDataSource` because the
+ * default `useDataValue` channel is scalar-only.
  */
 export function useKerbcamStream(flightId: number | null): MediaStream | null {
   const [stream, setStream] = useState<MediaStream | null>(() => {
     if (flightId === null) return null;
     const ds = getDataSource("kerbcam") as KerbcamDataSource | undefined;
-    return ds?.getConnection().getStream(flightId) ?? null;
+    return ds?.getClient().camera(flightId).mediaStream ?? null;
   });
 
   useEffect(() => {
@@ -26,9 +25,9 @@ export function useKerbcamStream(flightId: number | null): MediaStream | null {
     }
     const ds = getDataSource("kerbcam") as KerbcamDataSource | undefined;
     if (!ds) return;
-    const conn = ds.getConnection();
-    setStream(conn.getStream(flightId));
-    return conn.onStreamChange(flightId, setStream);
+    const cam = ds.getClient().camera(flightId);
+    setStream(cam.mediaStream);
+    return cam.on("stream", setStream);
   }, [flightId]);
 
   return stream;
