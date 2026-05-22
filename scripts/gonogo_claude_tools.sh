@@ -549,9 +549,16 @@ build_kerbcam() {
   # the Mac is a non-starter — rustc segfaults under amd64 emulation).
   # Best-effort: a failure here doesn't abort the helper; the existing
   # binary in place still works.
-  local sidecar_dest="$gamedata/Kerbcam/sidecar/kerbcam-sidecar"
-  mkdir -p "$gamedata/Kerbcam/sidecar"
-  fetch_kerbcam_sidecar "$sidecar_dest"
+  #
+  # The CI artefact now contains both the binary and a sibling lib/
+  # directory with bundled ffmpeg .so files (SteamOS doesn't ship
+  # libavutil.so.58 etc). fetch_kerbcam_sidecar takes the sidecar dir
+  # and writes both pieces in the layout the plugin's LD_LIBRARY_PATH
+  # prepend expects.
+  local sidecar_dir="$gamedata/Kerbcam/sidecar"
+  local sidecar_dest="$sidecar_dir/kerbcam-sidecar"
+  mkdir -p "$sidecar_dir"
+  fetch_kerbcam_sidecar "$sidecar_dir"
 
   echo "=== installed ==="
   ls -la \
@@ -559,6 +566,10 @@ build_kerbcam() {
     "$install_native/libAsyncGPUReadbackPlugin.so" \
     "$settings_dest" \
     "$sidecar_dest" 2>&1 || true
+  if [ -d "$sidecar_dir/lib" ]; then
+    echo "bundled ffmpeg libs:"
+    ls -la "$sidecar_dir/lib/" 2>&1 || true
+  fi
 }
 
 # Best-effort fetch of the latest successful sidecar-ci artefact from
@@ -567,7 +578,10 @@ build_kerbcam() {
 # users with no gh setup just keep the existing binary (or get a
 # "place it manually" warning from build_kerbcam's caller).
 fetch_kerbcam_sidecar() {
-  local dest="$1"
+  # Takes the sidecar *directory* (not the binary path) — the CI artefact
+  # is a binary + sibling lib/ with bundled ffmpeg .so files, and the
+  # plugin's LD_LIBRARY_PATH prepend expects them as siblings on disk.
+  local dest_dir="$1"
   if ! command -v gh >/dev/null 2>&1; then
     echo "gh CLI not installed — skipping sidecar fetch"
     return 0
@@ -609,9 +623,21 @@ fetch_kerbcam_sidecar() {
          -n kerbcam-sidecar-linux-x64-dev \
          -D "$tmpdir" >/dev/null 2>&1; then
     if [ -f "$tmpdir/kerbcam-sidecar" ]; then
-      cp "$tmpdir/kerbcam-sidecar" "$dest"
-      chmod +x "$dest"
-      echo "deployed sidecar from CI run $run_id"
+      mkdir -p "$dest_dir"
+      cp "$tmpdir/kerbcam-sidecar" "$dest_dir/kerbcam-sidecar"
+      chmod +x "$dest_dir/kerbcam-sidecar"
+
+      # Replace the bundled lib/ wholesale so stale .so files from a
+      # previous run don't accumulate (e.g. ffmpeg minor-version bump
+      # leaving libavcodec.so.60 alongside .so.61).
+      if [ -d "$tmpdir/lib" ]; then
+        rm -rf "$dest_dir/lib"
+        cp -R "$tmpdir/lib" "$dest_dir/lib"
+        echo "deployed sidecar + lib/ from CI run $run_id"
+      else
+        echo "warning: artefact has kerbcam-sidecar but no lib/ — older CI run before bundling landed?"
+        echo "deployed sidecar (no lib/) from CI run $run_id"
+      fi
     else
       echo "warning: artefact downloaded but no kerbcam-sidecar inside"
     fi
