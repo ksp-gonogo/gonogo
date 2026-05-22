@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# kerbcam baseline harness — current OCISLY+gonogo performance measurement.
+# kerbcam baseline harness — current OCISLY+gonogo performance measurement,
+# plus the kerbcam comparison condition.
 #
 # See local_docs/kerbcam/baseline_harness_plan.md for the full design.
 #
-# Model: 3 conditions x 1 kOS-piloted flight profile (~120s each).
+# Conditions × the same kOS-piloted flight profile (~120s each):
 #
-#   A. no-mods         OCISLY DLL renamed out of GameData
-#   B. mods-attached   OCISLY loaded, cameras placed, StreamingEnabled = false
-#   C. mods-streaming  OCISLY loaded, cameras placed, StreamingEnabled = true
-#                      (set AutoStream=true in settings.cfg for auto-enable on
-#                      vessel load, or click "Enable streaming" per camera)
+#   A. no-mods            OCISLY DLL renamed out of GameData
+#   B. mods-attached      OCISLY loaded, cameras placed, StreamingEnabled = false
+#   C. mods-streaming     OCISLY loaded, cameras placed, StreamingEnabled = true
+#                         (set AutoStream=true in settings.cfg for auto-enable on
+#                         vessel load, or click "Enable streaming" per camera)
+#   D. kerbcam-streaming  Kerbcam DLL loaded, sidecar reachable, operator has
+#                         subscribed all cameras (typically via the sidecar test
+#                         page at http://<sidecar-host>:8088/). OCISLY may be
+#                         loaded or not — not checked by this condition.
 #
 # No relay, no OCISLY server, no gonogo browser needed. The expensive KSP-side
 # work (ReadPixels + EncodeToJPG) runs every frame when StreamingEnabled = true
@@ -42,9 +47,11 @@ set -euo pipefail
 
 # --- config ---
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TELE_HOST="${TELE_HOST:-http://192.168.1.74:8085}"
+TELE_HOST="${TELE_HOST:-http://192.168.86.33:8085}"
 OCISLY_CSV="${OCISLY_CSV:-$ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/baseline.csv}"
 OCISLY_DLL="${OCISLY_DLL:-$ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins/OfCourseIStillLoveYou.dll}"
+KERBCAM_DLL="${KERBCAM_DLL:-$ROOT/local_docs/syncthing/kspdata/GameData/Kerbcam/Plugins/Kerbcam.dll}"
+KERBCAM_SIDECAR_HOST="${KERBCAM_SIDECAR_HOST:-http://192.168.86.33:8088}"
 KOS_LOG="${KOS_LOG:-$ROOT/local_docs/syncthing/kspdata/Ships/Script/baseline.log}"
 BASELINES_DIR="$ROOT/local_docs/kerbcam/perf_baselines"
 TELE_POLL_MS=250
@@ -193,8 +200,29 @@ cmd_setup() {
         log "OCISLY CSV is being written (cameras streaming)"
       fi
       ;;
+    kerbcam-streaming)
+      if [ ! -f "$KERBCAM_DLL" ]; then
+        err "kerbcam-streaming requires Kerbcam DLL at $KERBCAM_DLL — confirm the plugin is deployed and KSP restarted"
+        return 4
+      fi
+      log "Kerbcam DLL present — OK"
+      local cams_json
+      cams_json="$(curl -sf "$KERBCAM_SIDECAR_HOST/cameras" || echo '')"
+      if [ -z "$cams_json" ]; then
+        err "kerbcam sidecar not reachable at $KERBCAM_SIDECAR_HOST/cameras"
+        return 4
+      fi
+      local cam_count
+      cam_count="$(echo "$cams_json" | jq -r '.cameras | length')"
+      if [ "$cam_count" -lt 1 ]; then
+        err "kerbcam sidecar reachable but reports zero cameras"
+        return 4
+      fi
+      log "kerbcam sidecar reachable, $cam_count cameras attached"
+      log "(operator: confirm all $cam_count cameras are subscribed via $KERBCAM_SIDECAR_HOST/ before firing)"
+      ;;
     *)
-      err "unknown condition: $condition (use no-mods|mods-attached|mods-streaming)"
+      err "unknown condition: $condition (use no-mods|mods-attached|mods-streaming|kerbcam-streaming)"
       return 2
       ;;
   esac
@@ -234,7 +262,7 @@ wait_for_kos_done() {
 cmd_run() {
   local condition="${1:-}"
   if [ -z "$condition" ]; then
-    echo "usage: kerbcam_baseline.sh run <no-mods|mods-idle|mods-streaming>"
+    echo "usage: kerbcam_baseline.sh run <no-mods|mods-attached|mods-streaming|kerbcam-streaming>"
     exit 2
   fi
 
@@ -242,7 +270,7 @@ cmd_run() {
 
   local stamp
   stamp="$(date +%Y-%m-%d-%H%M)"
-  local scene="${SCENE:-launchpad-6cam-v1}"
+  local scene="${SCENE:-launchpad-5cam-v1}"
   local outdir
   outdir="$(mktemp -d)"
   # Expand $outdir at trap-definition time so the cleanup works after the
@@ -262,8 +290,22 @@ cmd_run() {
   tele_sample_to "$outdir/tele.jsonl" "$KOS_TIMEOUT_S" &
   local tele_pid=$!
 
+  # Kerbcam-only: clear the sidecar's in-memory status-log ring so the
+  # post-run /dumpLogs returns exactly this run's snapshots. Other
+  # conditions skip silently (sidecar may not even be running).
+  if [ "$condition" = "kerbcam-streaming" ]; then
+    log "resetting sidecar /dumpLogs buffer"
+    perl -e 'alarm shift; exec @ARGV' 5 \
+      curl -sf -X POST "$KERBCAM_SIDECAR_HOST/dumpLogs/reset" >/dev/null \
+      || log "WARNING: /dumpLogs/reset failed; status log may include pre-run state"
+  fi
+
   log "firing AG1 to start kOS script"
-  tele_action "f.ag1"
+  # Explicit True (not bare f.ag1 which is a toggle) — idempotent
+  # regardless of whether a prior run left ag1 latched. The kOS
+  # script only WAITS UNTIL AG1, so re-firing True when it's already
+  # True is a no-op anyway.
+  tele_action "f.ag1[True]"
 
   log "sampling until [BASELINE-DONE] (timeout ${KOS_TIMEOUT_S}s)..."
   wait_for_kos_done "$KOS_TIMEOUT_S" || true
@@ -271,6 +313,16 @@ cmd_run() {
   sleep 2
   kill "$tele_pid" 2>/dev/null || true
   wait "$tele_pid" 2>/dev/null || true
+
+  # Kerbcam-only: pull the sidecar's buffered status log AFTER
+  # BASELINE-DONE so we get the full kspFps / shedLevel / per-camera
+  # render-size timeline without polling during the measurement window.
+  if [ "$condition" = "kerbcam-streaming" ]; then
+    log "fetching sidecar /dumpLogs"
+    perl -e 'alarm shift; exec @ARGV' 10 \
+      curl -sf "$KERBCAM_SIDECAR_HOST/dumpLogs" > "$outdir/kerbcam-status.json" \
+      || log "WARNING: /dumpLogs fetch failed; sidecar status log absent"
+  fi
 
   # Slice the kOS log to this run's events.
   tail -n +"$((kos_start + 1))" "$KOS_LOG" > "$outdir/kos.log"
@@ -370,6 +422,7 @@ cmd_run() {
   cp "$outdir/kos.log" "${report_base}.kos.log" 2>/dev/null || true
   [ -s "$outdir/ocisly.csv" ] && cp "$outdir/ocisly.csv" "${report_base}.ocisly.csv"
   [ -s "$outdir/tele.jsonl" ] && cp "$outdir/tele.jsonl" "${report_base}.tele.jsonl"
+  [ -s "$outdir/kerbcam-status.json" ] && cp "$outdir/kerbcam-status.json" "${report_base}.kerbcam-status.json"
 
   log "report written: $report_file"
   echo "$report_file"
@@ -397,21 +450,24 @@ print_help() {
   cat <<EOF
 kerbcam_baseline.sh — current OCISLY+gonogo baseline harness
 
-  setup <condition>          Verify prereqs for one of: no-mods, mods-idle, mods-streaming.
+  setup <condition>          Verify prereqs for one of: no-mods, mods-attached,
+                             mods-streaming, kerbcam-streaming.
   toggle-ocisly off|on       Rename the syncthing-tree OCISLY DLL for no-mods runs.
   run <condition>            Fire AG1, sample until [BASELINE-DONE], write JSON.
   diff <fileA> <fileB>       Compare two reports.
 
 Env:
-  TELE_HOST          KSP+Telemachus host. Default: http://192.168.1.74:8085
-  OCISLY_DLL         Syncthing-tree OCISLY DLL path. Default under local_docs/syncthing/.
-  OCISLY_CSV         Path to OCISLY-side baseline.csv. Default under syncthing tree.
-  KOS_LOG            kOS log path inside syncthing tree.
-  KOS_TIMEOUT_S      Hard cap waiting for [BASELINE-DONE]. Default: 180.
-  SCENE              Tag for report file. Default: launchpad-6cam-v1
+  TELE_HOST              KSP+Telemachus host. Default: http://192.168.86.33:8085
+  OCISLY_DLL             Syncthing-tree OCISLY DLL path. Default under local_docs/syncthing/.
+  OCISLY_CSV             Path to OCISLY-side baseline.csv. Default under syncthing tree.
+  KERBCAM_DLL            Syncthing-tree Kerbcam DLL path. Default under local_docs/syncthing/.
+  KERBCAM_SIDECAR_HOST   Sidecar HTTP base URL. Default: http://192.168.86.33:8088
+  KOS_LOG                kOS log path inside syncthing tree.
+  KOS_TIMEOUT_S          Hard cap waiting for [BASELINE-DONE]. Default: 420.
+  SCENE                  Tag for report file. Default: launchpad-5cam-v1
 
 Prereqs:
-  * KSP running on Deck with kerbcam-baseline rocket on launchpad, kOS booted.
+  * KSP running on Deck with the baseline rocket on launchpad, kOS booted.
   * Boot script local_docs/kerbcam/test_assets/baseline.ks copied into KSP's
     Ships/Script/ as boot_baseline.ks (or any name beginning with 'boot_').
   * For mods-* conditions: gonogo_claude_tools.sh build ocisly --baseline,
@@ -419,7 +475,13 @@ Prereqs:
   * For mods-streaming: AutoStream=true in settings.cfg, OR click "Enable
     streaming" on each camera in OCISLY's in-game GUI before running. The
     setup subcommand checks the OCISLY CSV is being written.
-  * No relay, no OCISLY server, no browser needed.
+  * For kerbcam-streaming: Kerbcam DLL deployed, sidecar running on Deck,
+    operator has the sidecar test page (KERBCAM_SIDECAR_HOST/) open with
+    every camera subscribed (Connect button) before firing. The setup
+    subcommand verifies the sidecar is reachable and reports the camera
+    count but cannot tell whether the test page is actually consuming
+    the streams — that's on the operator to confirm visually.
+  * No relay, no OCISLY server needed.
 EOF
 }
 
