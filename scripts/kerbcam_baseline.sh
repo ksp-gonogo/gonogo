@@ -270,7 +270,7 @@ cmd_run() {
 
   local stamp
   stamp="$(date +%Y-%m-%d-%H%M)"
-  local scene="${SCENE:-launchpad-5cam-v1}"
+  local scene="${SCENE:-launchpad-6cam-v1}"
   local outdir
   outdir="$(mktemp -d)"
   # Expand $outdir at trap-definition time so the cleanup works after the
@@ -464,7 +464,7 @@ Env:
   KERBCAM_SIDECAR_HOST   Sidecar HTTP base URL. Default: http://192.168.86.33:8088
   KOS_LOG                kOS log path inside syncthing tree.
   KOS_TIMEOUT_S          Hard cap waiting for [BASELINE-DONE]. Default: 420.
-  SCENE                  Tag for report file. Default: launchpad-5cam-v1
+  SCENE                  Tag for report file. Default: launchpad-6cam-v1
 
 Prereqs:
   * KSP running on Deck with the baseline rocket on launchpad, kOS booted.

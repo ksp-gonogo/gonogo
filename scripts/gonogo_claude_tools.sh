@@ -544,6 +544,19 @@ build_kerbcam() {
     echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 768x768)"
   fi
 
+  # ALWAYS overwrite the bundled TUFX profile — kerbcam-curated content
+  # that needs to update across kerbcam versions, unlike settings.cfg
+  # which is operator-owned. KSP loads .cfg files anywhere under
+  # GameData/ that have a TUFX_PROFILE node, so path is cosmetic.
+  local profile_src="$HOME/personal/kerbcam/Plugin/Kerbcam/TUFXProfiles/kerbcam.cfg"
+  local profile_dest_dir="$gamedata/Kerbcam/TUFXProfiles"
+  local profile_dest="$profile_dest_dir/kerbcam.cfg"
+  if [ -f "$profile_src" ]; then
+    mkdir -p "$profile_dest_dir"
+    cp "$profile_src" "$profile_dest"
+    echo "installed TUFX profile: $profile_dest"
+  fi
+
   # Pull the latest CI-built sidecar binary if gh is available + auth'd.
   # The sidecar is Rust + cross-compiles to Linux x86_64 in CI (QEMU on
   # the Mac is a non-starter — rustc segfaults under amd64 emulation).
@@ -565,6 +578,7 @@ build_kerbcam() {
     "$install_dir/Kerbcam.dll" \
     "$install_native/libAsyncGPUReadbackPlugin.so" \
     "$settings_dest" \
+    "$profile_dest" \
     "$sidecar_dest" 2>&1 || true
   if [ -d "$sidecar_dir/lib" ]; then
     echo "bundled ffmpeg libs:"
@@ -633,7 +647,9 @@ fetch_kerbcam_sidecar() {
       if [ -d "$tmpdir/lib" ]; then
         rm -rf "$dest_dir/lib"
         cp -R "$tmpdir/lib" "$dest_dir/lib"
+        [ -f "$tmpdir/build-info.txt" ] && cp "$tmpdir/build-info.txt" "$dest_dir/build-info.txt"
         echo "deployed sidecar + lib/ from CI run $run_id"
+        [ -f "$dest_dir/build-info.txt" ] && cat "$dest_dir/build-info.txt"
       else
         echo "warning: artefact has kerbcam-sidecar but no lib/ — older CI run before bundling landed?"
         echo "deployed sidecar (no lib/) from CI run $run_id"
