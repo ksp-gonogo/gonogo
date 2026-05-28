@@ -1,7 +1,26 @@
-import { copyFileSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type PluginOption } from "vite";
+
+// Resolve every @gonogo/* workspace package to its TypeScript source so
+// Vite compiles it on-the-fly rather than serving pre-built dist files.
+// This eliminates the stale-dist problem: the source is always current,
+// no separate build step is needed before starting the dev server, and
+// changes to any package are hot-reloaded exactly like app-local files.
+const packagesDir = resolve(__dirname, "..");
+const workspaceAlias = Object.fromEntries(
+  readdirSync(packagesDir)
+    .flatMap((dir) => {
+      const pkgJsonPath = resolve(packagesDir, dir, "package.json");
+      const srcIndex = resolve(packagesDir, dir, "src/index.ts");
+      if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
+      const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
+        name: string;
+      };
+      return [[name, srcIndex]];
+    }),
+);
 
 const pkg = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf-8"),
@@ -36,6 +55,7 @@ const versionMeta = (): PluginOption => ({
 
 export default defineConfig({
   plugins: [react(), versionMeta(), spaFallback()],
+  resolve: { alias: workspaceAlias },
   base: process.env.VITE_BASE_PATH ?? "/",
   // Bind to 0.0.0.0 so phones / second laptops on the same LAN can hit the
   // dev server at http://<host-lan-ip>:5173. Vite prints both the local and
