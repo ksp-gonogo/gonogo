@@ -4,11 +4,14 @@ import type {
   DataSource,
   DataSourceStatus,
 } from "@gonogo/core";
-import { registerDataSource } from "@gonogo/core";
+import { PerfBudget, registerDataSource } from "@gonogo/core";
 import {
   type CameraState,
+  type ClientMessage,
   KerbcamClient,
   type KerbcamConnectionState,
+  type KerbcamDataChannel,
+  type KerbcamPeer,
   type KerbcamTransport,
   type Layer,
 } from "@jonpepler/kerbcam";
@@ -32,6 +35,17 @@ export interface KerbcamConfig extends Record<string, unknown> {
 const DEFAULT_CONFIG: KerbcamConfig = { host: "127.0.0.1", port: 8088 };
 
 const STORAGE_KEY = "gonogo.datasource.kerbcam";
+
+const PING_WATCHDOG_MS = 15_000;
+const RECONNECT_BASE_MS = 2_000;
+const RECONNECT_MAX_MS = 30_000;
+
+const KERBCAM_CAMERAS_BUDGET = new PerfBudget({
+  name: "KerbcamDataSource cameras updates/sec",
+  threshold: 50,
+  windowMs: 1000,
+  unit: "updates",
+});
 
 function loadConfig(): KerbcamConfig {
   if (typeof localStorage === "undefined") return DEFAULT_CONFIG;
@@ -57,6 +71,176 @@ function persistConfig(cfg: KerbcamConfig): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// BrowserRTCTransport — mirrors the SDK's private BrowserKerbcamTransport.
+// Copied from @jonpepler/kerbcam/dist/client.js so KeepaliveTransport can
+// wrap it without depending on the SDK's unexported class.
+// ---------------------------------------------------------------------------
+
+function mapRTCState(state: RTCPeerConnectionState): KerbcamConnectionState {
+  switch (state) {
+    case "new":
+    case "connecting":
+      return "connecting";
+    case "connected":
+      return "connected";
+    case "failed":
+      return "failed";
+    case "disconnected":
+    case "closed":
+      return "disconnected";
+  }
+}
+
+function wrapRTCDataChannel(dc: RTCDataChannel): KerbcamDataChannel {
+  let onOpen: (() => void) | null = null;
+  let onMessage: ((raw: string) => void) | null = null;
+  let onClose: (() => void) | null = null;
+  dc.onopen = () => onOpen?.();
+  dc.onclose = () => onClose?.();
+  dc.onmessage = (ev) => {
+    if (typeof ev.data === "string") onMessage?.(ev.data);
+  };
+  return {
+    send: (s) => {
+      dc.send(s);
+    },
+    onOpen: (h) => {
+      onOpen = h;
+    },
+    onMessage: (h) => {
+      onMessage = h;
+    },
+    onClose: (h) => {
+      onClose = h;
+    },
+  };
+}
+
+export class BrowserRTCTransport implements KerbcamTransport {
+  createPeer(iceServers: RTCIceServer[]): KerbcamPeer {
+    const pc = new RTCPeerConnection({ iceServers });
+    let trackIdx = 0;
+    let onTrack: ((track: MediaStreamTrack, idx: number) => void) | null = null;
+    let onStateChange: ((state: KerbcamConnectionState) => void) | null = null;
+    pc.ontrack = (ev) => {
+      onTrack?.(ev.track, trackIdx++);
+    };
+    pc.onconnectionstatechange = () => {
+      onStateChange?.(mapRTCState(pc.connectionState));
+    };
+    return {
+      addRecvOnlyTransceiver: () => {
+        pc.addTransceiver("video", { direction: "recvonly" });
+      },
+      createDataChannel: (label) =>
+        wrapRTCDataChannel(pc.createDataChannel(label)),
+      onTrack: (h) => {
+        onTrack = h;
+      },
+      onStateChange: (h) => {
+        onStateChange = h;
+      },
+      createOffer: async () => {
+        const offer = await pc.createOffer();
+        return offer.sdp ?? "";
+      },
+      setLocalDescription: async (sdp) => {
+        await pc.setLocalDescription({ type: "offer", sdp });
+      },
+      setRemoteAnswer: async (sdp) => {
+        await pc.setRemoteDescription({ type: "answer", sdp });
+      },
+      waitForIceComplete: () =>
+        new Promise<void>((resolve) => {
+          if (pc.iceGatheringState === "complete") return resolve();
+          const check = () => {
+            if (pc.iceGatheringState === "complete") {
+              pc.removeEventListener("icegatheringstatechange", check);
+              resolve();
+            }
+          };
+          pc.addEventListener("icegatheringstatechange", check);
+        }),
+      localSdp: () => pc.localDescription?.sdp ?? "",
+      close: () => {
+        pc.close();
+      },
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KeepaliveTransport — wraps any inner KerbcamTransport and intercepts
+// ping messages on the data channel, responding with pong automatically.
+// Non-ping messages pass through to the SDK handler unchanged.
+//
+// TODO: ping→pong handling belongs in @jonpepler/kerbcam itself — move here
+// once the SDK supports a reconnect policy hook.
+// ---------------------------------------------------------------------------
+
+export class KeepaliveTransport implements KerbcamTransport {
+  constructor(
+    private readonly inner: KerbcamTransport,
+    private readonly onPingReceived: (
+      sendFn: (msg: ClientMessage) => void,
+    ) => void,
+  ) {}
+
+  createPeer(iceServers: RTCIceServer[]): KerbcamPeer {
+    const peer = this.inner.createPeer(iceServers);
+    const wrapChannel = (ch: KerbcamDataChannel): KerbcamDataChannel => {
+      let sdkHandler: ((raw: string) => void) | null = null;
+
+      // Install our ping filter on the inner channel immediately so
+      // the test's captured.onMessage points at this filter, not the SDK.
+      ch.onMessage((raw: string) => {
+        let msg: { type?: string } | null = null;
+        try {
+          msg = JSON.parse(raw) as { type?: string };
+        } catch {
+          sdkHandler?.(raw);
+          return;
+        }
+        if (msg?.type === "ping") {
+          this.onPingReceived((pongMsg) => {
+            ch.send(JSON.stringify(pongMsg));
+          });
+          // Do NOT forward ping to SDK handler.
+          return;
+        }
+        sdkHandler?.(raw);
+      });
+
+      return {
+        send: (s) => ch.send(s),
+        onOpen: (h) => ch.onOpen(h),
+        onMessage: (h) => {
+          sdkHandler = h;
+        },
+        onClose: (h) => ch.onClose(h),
+      };
+    };
+
+    return {
+      addRecvOnlyTransceiver: () => peer.addRecvOnlyTransceiver(),
+      createDataChannel: (label) => wrapChannel(peer.createDataChannel(label)),
+      onTrack: (h) => peer.onTrack(h),
+      onStateChange: (h) => peer.onStateChange(h),
+      createOffer: async () => peer.createOffer(),
+      setLocalDescription: async (sdp) => peer.setLocalDescription(sdp),
+      setRemoteAnswer: async (sdp) => peer.setRemoteAnswer(sdp),
+      waitForIceComplete: async () => peer.waitForIceComplete(),
+      localSdp: () => peer.localSdp(),
+      close: () => peer.close(),
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KerbcamDataSource
+// ---------------------------------------------------------------------------
+
 export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   id = "kerbcam";
   name = "Kerbcam";
@@ -69,15 +253,20 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   affectedBySignalLoss = false;
 
   private cfg: KerbcamConfig;
-  private transport: KerbcamTransport | undefined;
+  private baseTransport: KerbcamTransport | undefined;
   private client: KerbcamClient;
   private clientUnsubs: Array<() => void> = [];
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
   private camerasKeySubs = new Set<(value: unknown) => void>();
 
+  private pingWatchdog: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private reconnectEnabled = false;
+
   constructor(config?: KerbcamConfig, transport?: KerbcamTransport) {
     this.cfg = config ?? loadConfig();
-    this.transport = transport;
+    this.baseTransport = transport;
     this.client = this.buildClient();
   }
 
@@ -89,10 +278,18 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   // -- DataSource contract --
 
   async connect(): Promise<void> {
-    await this.client.connect();
+    this.reconnectEnabled = true;
+    try {
+      await this.client.connect();
+    } catch (err) {
+      this.scheduleReconnect();
+      throw err;
+    }
   }
 
   disconnect(): void {
+    this.reconnectEnabled = false;
+    this.clearTimers();
     this.client.disconnect();
   }
 
@@ -175,6 +372,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
           : Number(config.port) || this.cfg.port,
     };
     persistConfig(this.cfg);
+    this.reconnectEnabled = false;
     this.teardownClient();
     this.client = this.buildClient();
   }
@@ -182,13 +380,35 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   // -- private --
 
   private buildClient(): KerbcamClient {
+    const keepaliveTransport = new KeepaliveTransport(
+      this.baseTransport ?? new BrowserRTCTransport(),
+      (sendFn) => {
+        sendFn({ type: "pong" });
+        this.startWatchdog();
+      },
+    );
+
     const client = new KerbcamClient(
       { host: this.cfg.host, port: this.cfg.port },
-      this.transport,
+      keepaliveTransport,
     );
     this.clientUnsubs.push(
-      client.on("state-change", (s) => this.setStatus(mapStatus(s))),
+      client.on("state-change", (s) => {
+        const status = mapStatus(s);
+        this.setStatus(status);
+        if (s === "connected") {
+          this.reconnectAttempts = 0;
+          if (this.reconnectTimer !== null) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+          }
+          this.startWatchdog();
+        } else if (s === "failed" && this.reconnectEnabled) {
+          this.scheduleReconnect();
+        }
+      }),
       client.on("cameras-change", (cams) => {
+        KERBCAM_CAMERAS_BUDGET.record();
         this.camerasKeySubs.forEach((cb) => {
           cb(cams);
         });
@@ -198,6 +418,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   private teardownClient(): void {
+    this.clearTimers();
     this.client.disconnect();
     this.clientUnsubs.forEach((off) => {
       off();
@@ -210,6 +431,56 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     this.statusListeners.forEach((cb) => {
       cb(status);
     });
+  }
+
+  private clearTimers(): void {
+    if (this.pingWatchdog !== null) {
+      clearTimeout(this.pingWatchdog);
+      this.pingWatchdog = null;
+    }
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  private startWatchdog(): void {
+    if (this.pingWatchdog !== null) {
+      clearTimeout(this.pingWatchdog);
+      this.pingWatchdog = null;
+    }
+    this.pingWatchdog = setTimeout(() => {
+      this.pingWatchdog = null;
+      if (this.reconnectEnabled) {
+        void this.attemptReconnect();
+      }
+    }, PING_WATCHDOG_MS);
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    const delay = Math.min(
+      RECONNECT_BASE_MS * 2 ** this.reconnectAttempts,
+      RECONNECT_MAX_MS,
+    );
+    this.reconnectAttempts++;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.reconnectEnabled) {
+        void this.attemptReconnect();
+      }
+    }, delay);
+  }
+
+  private async attemptReconnect(): Promise<void> {
+    try {
+      await this.client.connect();
+    } catch {
+      this.scheduleReconnect();
+    }
   }
 }
 

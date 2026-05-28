@@ -19,7 +19,7 @@ export { ExpCameraFeed } from "./ExpCameraFeed";
 export { useKerbcamCameras } from "./hooks/useKerbcamCameras";
 export { useKerbcamStream } from "./hooks/useKerbcamStream";
 export * from "./KerbcamDataSource";
-export type { CameraLifecycle, CameraStateWithLifecycle } from "./lifecycle";
+export type { CameraLifecycle } from "./lifecycle";
 export { getCameraLifecycle } from "./lifecycle";
 
 // Side-effect registrations happen at the module-load points below.

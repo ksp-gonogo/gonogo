@@ -66,7 +66,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       turbo:
         specifier: latest
-        version: 2.9.14
+        version: 2.9.15
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -90,7 +90,7 @@ importers:
         version: link:../data
       '@gonogo/kerbcam':
         specifier: workspace:*
-        version: link:../kerbcam
+        version: file:packages/kerbcam(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -318,8 +318,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcam':
-        specifier: ^0.3.1
-        version: 0.3.1
+        specifier: ^0.5.2
+        version: 0.5.2
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1252,6 +1252,26 @@ packages:
   '@fastify/websocket@11.2.0':
     resolution: {integrity: sha512-3HrDPbAG1CzUCqnslgJxppvzaAZffieOVbLp1DAy1huCSynUWPifSvfdEDUR8HlJLp3sp1A36uOM2tJogADS8w==}
 
+  '@gonogo/core@file:packages/core':
+    resolution: {directory: packages/core, type: directory}
+    peerDependencies:
+      react: ^18.0.0
+      styled-components: ^6.0.0
+
+  '@gonogo/kerbcam@file:packages/kerbcam':
+    resolution: {directory: packages/kerbcam, type: directory}
+    peerDependencies:
+      react: ^18.0.0
+
+  '@gonogo/logger@file:packages/logger':
+    resolution: {directory: packages/logger, type: directory}
+
+  '@gonogo/ui@file:packages/ui':
+    resolution: {directory: packages/ui, type: directory}
+    peerDependencies:
+      react: ^18.0.0
+      styled-components: ^6.0.0
+
   '@grpc/grpc-js@1.14.3':
     resolution: {integrity: sha512-Iq8QQQ/7X3Sac15oB6p0FmUg/klxQvXLeileoqrTRGJYLV+/9tubbr9ipz0GKHjmXVsgFPo/+W+2cA8eNcR+XA==}
     engines: {node: '>=12.10.0'}
@@ -1335,6 +1355,9 @@ packages:
 
   '@jonpepler/kerbcam@0.3.1':
     resolution: {integrity: sha512-RMOhc6pVW3+ih8fU7OAP1y+4267F6moX2YHPmJtIg5qv3eOrvIj9kypqgKGS2ofKObGaDd5RGzlFnWKp9KBXcA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.3.1/b5b9b5fa97cc3469c62fd8f352ca6720cc85764d}
+
+  '@jonpepler/kerbcam@0.5.2':
+    resolution: {integrity: sha512-iFn66PWgvUFTcYbZqrAt9TxkCJlMo4KncHpTt7dRafRHTNHCSQCLdijBmJ5jJ6DP47jw0PYDWqQ8q1QsaAdVwQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.5.2/d8f29eb53479f3bf60e4f770d92f1d652c633a00}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -1612,33 +1635,33 @@ packages:
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
 
-  '@turbo/darwin-64@2.9.14':
-    resolution: {integrity: sha512-t7QiPflaEyBE4oayeZtSmu4mEfjgIrcNlNNl1z1dmIVPqEdtA7+CfTf8d7KXsOGPh6aNgWjKxyvQg9uGfDQF+A==}
+  '@turbo/darwin-64@2.9.15':
+    resolution: {integrity: sha512-nnDo9R1Df+s2x6jxlERtbg7xRpuicf8p4J2krcnjeaMBt3q9V41pGXa4t9YM2Y4ozozsVJ+CH405CJUrWIQK4Q==}
     cpu: [x64]
     os: [darwin]
 
-  '@turbo/darwin-arm64@2.9.14':
-    resolution: {integrity: sha512-d23147mC9BsCPA9mJ0h/ubcpbRgcJBXbcG3+Vq7YLhjz3IXuvQsJ1UXH8f4MD76ZjJ4m/E4aRdJV+MW88CDfbw==}
+  '@turbo/darwin-arm64@2.9.15':
+    resolution: {integrity: sha512-fDSx56oqoFuS+yUQw7hqjQTkjrSLdMcplhuLC8HcSkWC6YrpwEmUUYsPYHPxy4ALvLxnmPQuk6XoSD8tdkjP+g==}
     cpu: [arm64]
     os: [darwin]
 
-  '@turbo/linux-64@2.9.14':
-    resolution: {integrity: sha512-P3ZKB5tuUDdDQWuAsACGUR1qv9W7BNWxdxqVJ0kZNuNNPRaVYTPPikLcp79+GiEcW3npsR+KyP38lnQiBc5aSA==}
+  '@turbo/linux-64@2.9.15':
+    resolution: {integrity: sha512-/bmxn+x/xE+oh0VzEXt/zf2zsORAYZPrL3db5/VrXzYt0Z4wxcvffwJBGlSfla2smfS1BLGBiyWldJlWDXJVXA==}
     cpu: [x64]
     os: [linux]
 
-  '@turbo/linux-arm64@2.9.14':
-    resolution: {integrity: sha512-ZRTlzcUMrrPv9ZuDzRF9n60Ym13bKeG9jDB8WjxyLhWNzV+AJQN+zdpIk3NJYf2zQsGUm1mNar2P0elRzLw25g==}
+  '@turbo/linux-arm64@2.9.15':
+    resolution: {integrity: sha512-cbOaDe1ijz5As+mimOOHgmRMolZZZO7miNBHHp5xdiYMm2Q/Dwu1JVLx/Kw4s7xjocG/oEoHrpHrxpEAIEfNiw==}
     cpu: [arm64]
     os: [linux]
 
-  '@turbo/windows-64@2.9.14':
-    resolution: {integrity: sha512-exanwN6sIduZwykYeiTQj8kCmOhazP5WOz3bvXMcYtjhL6Z3iRWLewKrXCBq0bqwSP3iBMb/AerRCnHI4lx46A==}
+  '@turbo/windows-64@2.9.15':
+    resolution: {integrity: sha512-/Fzm7afui7uK7dFBwrTXKuDhBBTiHk5I+hMVAPMR7cqQyDo2norCNUsN9PdNuYcmzYbhSOxzz498wQYvSAz29w==}
     cpu: [x64]
     os: [win32]
 
-  '@turbo/windows-arm64@2.9.14':
-    resolution: {integrity: sha512-fVdCsnmYoKICsycbWuuGp6Jvi51/3G/UluFWuAUCvR8PIW5IJkAk5BM9UF8PSm0Q2IphWHFZjYEgjHsh3B9y/g==}
+  '@turbo/windows-arm64@2.9.15':
+    resolution: {integrity: sha512-fOHEsLcqVdFXLw2ApWv4gxwfHzkUnpo9rHGml+9+dyHj148m/Bc+556kEvb5+4u6prI1LMd8zEZE2HcO6Jn2VQ==}
     cpu: [arm64]
     os: [win32]
 
@@ -2901,8 +2924,8 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  turbo@2.9.14:
-    resolution: {integrity: sha512-BQqXRr4UoWI3UPFrtznCLykYHxwxWh53iCB57x092jPMjIlW1wnm3N895g5irpiXmnxUhREBB0n6+y8BHhs4nw==}
+  turbo@2.9.15:
+    resolution: {integrity: sha512-VpKvD9Z0Hu/xrGUAYX1wnhfpqv835wIwGqeKfulvBPTOcDap0E3nFwyzCAVV85fB1sBcBDEfTP+7FSW7GzwWSQ==}
     hasBin: true
 
   type-fest@5.5.0:
@@ -3594,6 +3617,36 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@gonogo/core@file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+    dependencies:
+      '@gonogo/logger': file:packages/logger
+      react: 18.3.1
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
+  '@gonogo/kerbcam@file:packages/kerbcam(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@gonogo/core': file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@gonogo/logger': file:packages/logger
+      '@gonogo/ui': file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@jonpepler/kerbcam': 0.3.1
+      react: 18.3.1
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - css-to-react-native
+      - react-dom
+      - react-native
+
+  '@gonogo/logger@file:packages/logger':
+    dependencies:
+      '@axiomhq/js': 1.6.1
+
+  '@gonogo/ui@file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+    dependencies:
+      '@gonogo/core': file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      lucide-react: 1.14.0(react@18.3.1)
+      react: 18.3.1
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
   '@grpc/grpc-js@1.14.3':
     dependencies:
       '@grpc/proto-loader': 0.8.0
@@ -3675,6 +3728,8 @@ snapshots:
       chalk: 4.1.2
 
   '@jonpepler/kerbcam@0.3.1': {}
+
+  '@jonpepler/kerbcam@0.5.2': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -3894,22 +3949,22 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
-  '@turbo/darwin-64@2.9.14':
+  '@turbo/darwin-64@2.9.15':
     optional: true
 
-  '@turbo/darwin-arm64@2.9.14':
+  '@turbo/darwin-arm64@2.9.15':
     optional: true
 
-  '@turbo/linux-64@2.9.14':
+  '@turbo/linux-64@2.9.15':
     optional: true
 
-  '@turbo/linux-arm64@2.9.14':
+  '@turbo/linux-arm64@2.9.15':
     optional: true
 
-  '@turbo/windows-64@2.9.14':
+  '@turbo/windows-64@2.9.15':
     optional: true
 
-  '@turbo/windows-arm64@2.9.14':
+  '@turbo/windows-arm64@2.9.15':
     optional: true
 
   '@types/aria-query@5.0.4': {}
@@ -5356,14 +5411,14 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-  turbo@2.9.14:
+  turbo@2.9.15:
     optionalDependencies:
-      '@turbo/darwin-64': 2.9.14
-      '@turbo/darwin-arm64': 2.9.14
-      '@turbo/linux-64': 2.9.14
-      '@turbo/linux-arm64': 2.9.14
-      '@turbo/windows-64': 2.9.14
-      '@turbo/windows-arm64': 2.9.14
+      '@turbo/darwin-64': 2.9.15
+      '@turbo/darwin-arm64': 2.9.15
+      '@turbo/linux-64': 2.9.15
+      '@turbo/linux-arm64': 2.9.15
+      '@turbo/windows-64': 2.9.15
+      '@turbo/windows-arm64': 2.9.15
 
   type-fest@5.5.0:
     dependencies:

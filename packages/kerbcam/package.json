@@ -22,7 +22,7 @@
     "@gonogo/core": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/ui": "workspace:*",
-    "@jonpepler/kerbcam": "^0.3.1",
+    "@jonpepler/kerbcam": "^0.5.2",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
