@@ -501,6 +501,175 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
   });
 });
 
+describe("ExpCameraFeed — pan reticle", () => {
+  it("pan pad appears when camera supportsPan", async () => {
+    const { ds, captured } = await buildConnectedSource();
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // Flip supportsPan on via a state-changed event.
+    await act(async () => {
+      pushServerMessage(captured, {
+        type: "camera-state-changed",
+        content: {
+          state: {
+            flightId: 42,
+            lifecycle: "active",
+            partName: "mumech.MuMechModuleHullCamera",
+            partTitle: "Hullcam Mk1",
+            cameraName: "Starboard Cam",
+            vesselName: "Kerbal X",
+            layers: ["NEAR"],
+            operatorLayers: ["NEAR"],
+            renderWidth: 384,
+            renderHeight: 384,
+            operatorWidth: 384,
+            operatorHeight: 384,
+            supportsZoom: false,
+            fov: 60,
+            fovMin: 10,
+            fovMax: 90,
+            supportsPan: true,
+            panYaw: 0,
+            panPitch: 0,
+            panYawMin: -45,
+            panYawMax: 45,
+            panPitchMin: -30,
+            panPitchMax: 30,
+            encoderBitrateBps: 0,
+            targetBitrateBps: 0,
+            degradeLevel: 0,
+          },
+        },
+      });
+    });
+
+    const pad = screen.getByRole("slider", { name: /pan camera/i });
+    expect(pad).toBeTruthy();
+
+    ds.disconnect();
+  });
+
+  it("pan pad absent when camera does not support pan", async () => {
+    const { ds } = await buildConnectedSource();
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // buildConnectedSource() fixture has supportsPan: false
+    expect(screen.queryByRole("slider", { name: /pan camera/i })).toBeNull();
+
+    ds.disconnect();
+  });
+
+  it("drag on pan pad sends set-pan", async () => {
+    vi.useFakeTimers();
+
+    // jsdom doesn't implement pointer capture — stub it so pointerdown doesn't throw.
+    const origSetPointerCapture = Element.prototype.setPointerCapture;
+    Element.prototype.setPointerCapture = vi.fn();
+
+    const { ds, captured } = await buildConnectedSource();
+
+    // Enable pan with known bounds
+    await act(async () => {
+      pushServerMessage(captured, {
+        type: "camera-state-changed",
+        content: {
+          state: {
+            flightId: 42,
+            lifecycle: "active",
+            partName: "mumech.MuMechModuleHullCamera",
+            partTitle: "Hullcam Mk1",
+            cameraName: "Starboard Cam",
+            vesselName: "Kerbal X",
+            layers: ["NEAR"],
+            operatorLayers: ["NEAR"],
+            renderWidth: 384,
+            renderHeight: 384,
+            operatorWidth: 384,
+            operatorHeight: 384,
+            supportsZoom: false,
+            fov: 60,
+            fovMin: 10,
+            fovMax: 90,
+            supportsPan: true,
+            panYaw: 0,
+            panPitch: 0,
+            panYawMin: -45,
+            panYawMax: 45,
+            panPitchMin: -30,
+            panPitchMax: 30,
+            encoderBitrateBps: 0,
+            targetBitrateBps: 0,
+            degradeLevel: 0,
+          },
+        },
+      });
+    });
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    const pad = screen.getByRole("slider", { name: /pan camera/i });
+
+    // Mock getBoundingClientRect so the component's delta math uses a known size.
+    vi.spyOn(pad, "getBoundingClientRect").mockReturnValue({
+      width: 80,
+      height: 80,
+      left: 0,
+      top: 0,
+      right: 80,
+      bottom: 80,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    } as DOMRect);
+
+    // Pointerdown at center, then move 40px right (half pad = 45° yaw from 0).
+    await act(async () => {
+      pad.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          clientX: 40,
+          clientY: 40,
+          bubbles: true,
+        }),
+      );
+    });
+    await act(async () => {
+      pad.dispatchEvent(
+        new PointerEvent("pointermove", {
+          clientX: 80,
+          clientY: 40,
+          bubbles: true,
+        }),
+      );
+    });
+
+    // Advance past the 50ms throttle
+    await act(async () => {
+      vi.advanceTimersByTime(51);
+    });
+
+    const sent = captured.dc?.sent ?? [];
+    const parsed = sent.map(
+      (s) =>
+        JSON.parse(s) as {
+          type: string;
+          content: { flightId?: number; yaw?: number; pitch?: number };
+        },
+    );
+    const panMsg = parsed.find((m) => m.type === "set-pan");
+    expect(panMsg).toBeTruthy();
+    expect(panMsg?.content.flightId).toBe(42);
+    // 40px / 80px * 90° range = 45° from yaw=0
+    expect(panMsg?.content.yaw).toBeCloseTo(45, 1);
+    expect(panMsg?.content.pitch).toBeCloseTo(0, 1);
+
+    Element.prototype.setPointerCapture = origSetPointerCapture;
+    ds.disconnect();
+    vi.useRealTimers();
+  });
+});
+
 describe("ExpCameraFeed — CommNet degrade", () => {
   beforeEach(() => {
     vi.useFakeTimers();
