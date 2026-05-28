@@ -9,14 +9,10 @@
 
 import type { DataSource, DataSourceStatus } from "@gonogo/core";
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import type {
-  KerbcamDataChannel,
-  KerbcamPeer,
-  KerbcamTransport,
-} from "@jonpepler/kerbcam";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "../KerbcamDataSource";
+import { createMockKerbcamSession } from "../test/MockKerbcamSession";
 import { ExpCameraFeed } from "./ExpCameraFeed";
 
 // Note: importing KerbcamDataSource class directly (not the barrel index)
@@ -24,74 +20,36 @@ import { ExpCameraFeed } from "./ExpCameraFeed";
 // their own instance explicitly via registerDataSource() in each fixture.
 
 // ---------------------------------------------------------------------------
-// Fake transport — reused from KerbcamDataSource.test.ts pattern
+// Global ResizeObserver stub — jsdom doesn't ship one. The resize-observer
+// describe block installs a controllable version in its own beforeEach; all
+// other tests just need a no-op stub so the component mounts without error.
 // ---------------------------------------------------------------------------
 
-type CapturedChannel = KerbcamDataChannel & {
-  sent: string[];
-  _open: () => void;
-};
-
-function makeFakeTransport() {
-  const captured: {
-    dc?: CapturedChannel;
-    onState?: (
-      s: "disconnected" | "connecting" | "connected" | "failed",
-    ) => void;
-    onMessage?: (raw: string) => void;
-    closed: boolean;
-  } = { closed: false };
-
-  const transport: KerbcamTransport = {
-    createPeer: (_iceServers) => {
-      const ch: CapturedChannel = {
-        sent: [],
-        send: (s: string) => ch.sent.push(s),
-        onOpen: (h: () => void) => {
-          ch._open = h;
-        },
-        onMessage: (h: (raw: string) => void) => {
-          captured.onMessage = h;
-        },
-        onClose: () => {},
-        _open: () => {},
-      };
-      const peer: KerbcamPeer = {
-        addRecvOnlyTransceiver: () => {},
-        createDataChannel: () => {
-          captured.dc = ch;
-          return ch;
-        },
-        onTrack: () => {},
-        onStateChange: (h) => {
-          captured.onState = h;
-        },
-        createOffer: async () => "v=0\r\n",
-        setLocalDescription: async () => {},
-        setRemoteAnswer: async () => {},
-        waitForIceComplete: async () => {},
-        localSdp: () => "v=0\r\n",
-        close: () => {
-          captured.closed = true;
-        },
-      };
-      return peer;
-    },
-  };
-
-  return { transport, captured };
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
 }
 
 // ---------------------------------------------------------------------------
-// Helper: push a server message through the fake data channel.
+// Test setup / teardown
 // ---------------------------------------------------------------------------
 
-function pushServerMessage(
-  captured: ReturnType<typeof makeFakeTransport>["captured"],
-  msg: object,
-) {
-  captured.onMessage?.(JSON.stringify(msg));
-}
+beforeEach(() => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42] }), {
+      status: 200,
+    }),
+  );
+});
+
+afterEach(() => {
+  cleanup();
+  clearRegistry(); // resets all registries — tests register their own instance
+  vi.restoreAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Test fixture: builds and registers a KerbcamDataSource with a fake
@@ -99,8 +57,8 @@ function pushServerMessage(
 // ---------------------------------------------------------------------------
 
 async function buildConnectedSource() {
-  const { transport, captured } = makeFakeTransport();
-  const ds = new KerbcamDataSource({ host: "h", port: 1 }, transport);
+  const session = createMockKerbcamSession();
+  const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
 
   registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
 
@@ -110,14 +68,14 @@ async function buildConnectedSource() {
 
   // Open the control channel and complete the Hello handshake.
   await act(async () => {
-    captured.dc?._open();
-    captured.onState?.("connected");
+    session.openChannel();
+    session.setState("connected");
     // Simulate sidecar hello + initial camera snapshot with one active camera.
-    pushServerMessage(captured, {
+    session.sendServerMessage({
       type: "hello",
       content: { sidecarVersion: "0.3.2", encoderBackend: "openh264" },
     });
-    pushServerMessage(captured, {
+    session.sendServerMessage({
       type: "camera-snapshot",
       content: {
         cameras: [
@@ -154,7 +112,7 @@ async function buildConnectedSource() {
     });
   });
 
-  return { ds, captured };
+  return { ds, session };
 }
 
 // ---------------------------------------------------------------------------
@@ -202,38 +160,6 @@ function makeDataSource(
 }
 
 // ---------------------------------------------------------------------------
-// Global ResizeObserver stub — jsdom doesn't ship one. The resize-observer
-// describe block installs a controllable version in its own beforeEach; all
-// other tests just need a no-op stub so the component mounts without error.
-// ---------------------------------------------------------------------------
-
-if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
-}
-
-// ---------------------------------------------------------------------------
-// Test setup / teardown
-// ---------------------------------------------------------------------------
-
-beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42] }), {
-      status: 200,
-    }),
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  clearRegistry(); // resets all registries — tests register their own instance
-  vi.restoreAllMocks();
-});
-
-// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -249,7 +175,7 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
   });
 
   it("renders SIGNAL LOST overlay when camera lifecycle transitions to destroyed", async () => {
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     render(<ExpCameraFeed config={{ flightId: 42 }} />);
 
@@ -258,7 +184,7 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
 
     // Simulate the sidecar broadcasting camera-state-changed with destroyed lifecycle.
     await act(async () => {
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "camera-state-changed",
         content: {
           state: {
@@ -302,8 +228,8 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
   });
 
   it("renders SIGNAL LOST overlay from initial snapshot when camera starts destroyed", async () => {
-    const { transport, captured } = makeFakeTransport();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, transport);
+    const session = createMockKerbcamSession();
+    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
     registerDataSource(
       ds as unknown as Parameters<typeof registerDataSource>[0],
     );
@@ -319,15 +245,15 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
     });
 
     await act(async () => {
-      captured.dc?._open();
-      captured.onState?.("connected");
+      session.openChannel();
+      session.setState("connected");
       // Snapshot where the camera arrives already destroyed (sidecar restarted
       // after the part was destroyed but before the tombstone was acknowledged).
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "hello",
         content: { sidecarVersion: "0.3.2", encoderBackend: "openh264" },
       });
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "camera-snapshot",
         content: {
           cameras: [
@@ -380,13 +306,13 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
 
 describe("ExpCameraFeed — zoom controls", () => {
   it("zoom controls appear when camera supportsZoom", async () => {
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     render(<ExpCameraFeed config={{ flightId: 42 }} />);
 
     // Initially supportsZoom is false — fire a camera-state-changed to flip it.
     await act(async () => {
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "camera-state-changed",
         content: {
           state: {
@@ -466,7 +392,7 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
   });
 
   it("render-size observer fires set-render-size command", async () => {
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     render(<ExpCameraFeed config={{ flightId: 42 }} />);
 
@@ -483,7 +409,7 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
       vi.advanceTimersByTime(501);
     });
 
-    const sent = captured.dc?.sent ?? [];
+    const sent = session.sentMessages;
     const parsed = sent.map(
       (s) =>
         JSON.parse(s) as {
@@ -503,13 +429,13 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
 
 describe("ExpCameraFeed — pan reticle", () => {
   it("pan pad appears when camera supportsPan", async () => {
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     render(<ExpCameraFeed config={{ flightId: 42 }} />);
 
     // Flip supportsPan on via a state-changed event.
     await act(async () => {
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "camera-state-changed",
         content: {
           state: {
@@ -568,11 +494,11 @@ describe("ExpCameraFeed — pan reticle", () => {
     const origSetPointerCapture = Element.prototype.setPointerCapture;
     Element.prototype.setPointerCapture = vi.fn();
 
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     // Enable pan with known bounds
     await act(async () => {
-      pushServerMessage(captured, {
+      session.sendServerMessage({
         type: "camera-state-changed",
         content: {
           state: {
@@ -649,7 +575,7 @@ describe("ExpCameraFeed — pan reticle", () => {
       vi.advanceTimersByTime(51);
     });
 
-    const sent = captured.dc?.sent ?? [];
+    const sent = session.sentMessages;
     const parsed = sent.map(
       (s) =>
         JSON.parse(s) as {
@@ -680,7 +606,7 @@ describe("ExpCameraFeed — CommNet degrade", () => {
   });
 
   it("CommNet degrade 0 when signal is full strength", async () => {
-    const { ds, captured } = await buildConnectedSource();
+    const { ds, session } = await buildConnectedSource();
 
     // Register a fake "data" source with comm values pre-set
     const dataSource = makeDataSource("data", {
@@ -703,7 +629,7 @@ describe("ExpCameraFeed — CommNet degrade", () => {
       vi.advanceTimersByTime(501);
     });
 
-    const sent = captured.dc?.sent ?? [];
+    const sent = session.sentMessages;
     const parsed = sent.map(
       (s) =>
         JSON.parse(s) as {
