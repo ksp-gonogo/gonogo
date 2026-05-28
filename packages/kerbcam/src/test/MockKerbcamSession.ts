@@ -11,9 +11,10 @@ import type {
  * KerbcamDataSource.test.ts and ExpCameraFeed.test.tsx so all test
  * files share a single canonical mock.
  *
- * TODO: candidate to port to @jonpepler/kerbcam as a
- * `@jonpepler/kerbcam/testing` sub-path export so any consumer
- * of the SDK gets a first-class test helper.
+ * TODO: once the next @jonpepler/kerbcam release is published, migrate
+ * gonogo tests to use `MockSidecar` from `@jonpepler/kerbcam/testing`
+ * instead — it is the protocol-level canonical fake and already ships in
+ * kerbcam commit d6103cd.
  */
 export interface MockKerbcamSession {
   /** Pass to KerbcamDataSource or KerbcamClient constructor. */
