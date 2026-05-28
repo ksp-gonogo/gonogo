@@ -150,11 +150,7 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   const adaptiveLabel =
     camera && camera.renderWidth < camera.operatorWidth ? " · adaptive" : "";
 
-  const showZoom =
-    camera !== null &&
-    camera !== undefined &&
-    camera.supportsZoom &&
-    !isDestroyed;
+  const showZoom = camera?.supportsZoom && !isDestroyed;
 
   return (
     <Panel>
