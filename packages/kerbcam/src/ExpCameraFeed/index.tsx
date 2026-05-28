@@ -10,11 +10,11 @@ registerComponent<ExpCameraFeedConfig>({
   defaultSize: { w: 5, h: 5 },
   minSize: { w: 2, h: 2 },
   component: ExpCameraFeed,
-  // No data keys — the widget pulls its camera registry + stream
-  // direct from the kerbcam DataSource via custom hooks. Listing
-  // kerbcam.cameras here would push the orchestrator to schedule
-  // a subscription that the hook already owns.
-  dataRequirements: [],
+  // kerbcam.cameras is pulled direct from the kerbcam DataSource via
+  // custom hooks — not listed here to avoid a duplicate subscription.
+  // CommNet keys are listed so the orchestrator knows to subscribe
+  // the "data" source for signal strength / connection status.
+  dataRequirements: ["comm.signalStrength", "comm.connected"],
   defaultConfig: {
     flightId: null,
   },

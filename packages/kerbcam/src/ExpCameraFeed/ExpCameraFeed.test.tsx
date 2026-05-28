@@ -7,6 +7,7 @@
  * in a jsdom environment where no real video decoding runs).
  */
 
+import type { DataSource, DataSourceStatus } from "@gonogo/core";
 import { clearRegistry, registerDataSource } from "@gonogo/core";
 import type {
   KerbcamDataChannel,
@@ -154,6 +155,64 @@ async function buildConnectedSource() {
   });
 
   return { ds, captured };
+}
+
+// ---------------------------------------------------------------------------
+// Minimal in-memory DataSource for "data" (CommNet) source stub
+// ---------------------------------------------------------------------------
+
+function makeDataSource(
+  id: string,
+  initialValues: Record<string, unknown> = {},
+): DataSource & { emit: (key: string, value: unknown) => void } {
+  const dataListeners = new Map<string, Set<(v: unknown) => void>>();
+  const statusListeners = new Set<(s: DataSourceStatus) => void>();
+
+  const source: DataSource & { emit: (key: string, value: unknown) => void } = {
+    id,
+    name: id,
+    status: "connected" as DataSourceStatus,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    execute: async () => {},
+    configSchema: () => [],
+    configure: () => {},
+    getConfig: () => ({}),
+    subscribe(key, cb) {
+      if (!dataListeners.has(key)) dataListeners.set(key, new Set());
+      dataListeners.get(key)?.add(cb);
+      // Deliver initial value synchronously if available
+      if (key in initialValues) {
+        queueMicrotask(() => cb(initialValues[key]));
+      }
+      return () => dataListeners.get(key)?.delete(cb);
+    },
+    onStatusChange(cb) {
+      statusListeners.add(cb);
+      return () => statusListeners.delete(cb);
+    },
+    emit(key, value) {
+      dataListeners.get(key)?.forEach((cb) => {
+        cb(value);
+      });
+    },
+  };
+  return source;
+}
+
+// ---------------------------------------------------------------------------
+// Global ResizeObserver stub — jsdom doesn't ship one. The resize-observer
+// describe block installs a controllable version in its own beforeEach; all
+// other tests just need a no-op stub so the component mounts without error.
+// ---------------------------------------------------------------------------
+
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +369,184 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
     const overlay = await screen.findByRole("status", { name: /signal lost/i });
     expect(overlay).toBeTruthy();
     expect(overlay.textContent).toMatch(/SIGNAL LOST/i);
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// New feature tests
+// ---------------------------------------------------------------------------
+
+describe("ExpCameraFeed — zoom controls", () => {
+  it("zoom controls appear when camera supportsZoom", async () => {
+    const { ds, captured } = await buildConnectedSource();
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // Initially supportsZoom is false — fire a camera-state-changed to flip it.
+    await act(async () => {
+      pushServerMessage(captured, {
+        type: "camera-state-changed",
+        content: {
+          state: {
+            flightId: 42,
+            lifecycle: "active",
+            partName: "mumech.MuMechModuleHullCameraZoom",
+            partTitle: "Hullcam Mk1 Zoom",
+            cameraName: "Starboard Cam",
+            vesselName: "Kerbal X",
+            layers: ["NEAR", "SCALED"],
+            operatorLayers: ["NEAR", "SCALED"],
+            renderWidth: 384,
+            renderHeight: 384,
+            operatorWidth: 384,
+            operatorHeight: 384,
+            supportsZoom: true,
+            fov: 60,
+            fovMin: 10,
+            fovMax: 90,
+            supportsPan: false,
+            panYaw: 0,
+            panPitch: 0,
+            panYawMin: 0,
+            panYawMax: 0,
+            panPitchMin: 0,
+            panPitchMax: 0,
+            encoderBitrateBps: 1500000,
+            targetBitrateBps: 0,
+            degradeLevel: 0,
+          },
+        },
+      });
+    });
+
+    const slider = screen.getByRole("slider", { name: /field of view/i });
+    expect(slider).toBeTruthy();
+
+    ds.disconnect();
+  });
+
+  it("zoom controls absent when camera does not support zoom", async () => {
+    const { ds } = await buildConnectedSource();
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // buildConnectedSource() fixture creates a camera with supportsZoom: false
+    expect(screen.queryByRole("slider", { name: /field of view/i })).toBeNull();
+
+    ds.disconnect();
+  });
+});
+
+describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
+  let resizeCallback:
+    | ((entries: ResizeObserverEntry[], observer: ResizeObserver) => void)
+    | undefined;
+  const originalResizeObserver = globalThis.ResizeObserver;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    globalThis.ResizeObserver = class {
+      constructor(
+        cb: (entries: ResizeObserverEntry[], observer: ResizeObserver) => void,
+      ) {
+        resizeCallback = cb;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    globalThis.ResizeObserver = originalResizeObserver;
+    resizeCallback = undefined;
+  });
+
+  it("render-size observer fires set-render-size command", async () => {
+    const { ds, captured } = await buildConnectedSource();
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // Fire the resize observer callback with a 400×400 contentRect
+    await act(async () => {
+      resizeCallback?.(
+        [{ contentRect: { width: 400, height: 400 } }] as ResizeObserverEntry[],
+        {} as ResizeObserver,
+      );
+    });
+
+    // Advance fake timers past the 500ms debounce
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const sent = captured.dc?.sent ?? [];
+    const parsed = sent.map(
+      (s) =>
+        JSON.parse(s) as {
+          type: string;
+          content: { width?: number; height?: number };
+        },
+    );
+    const renderSizeMsg = parsed.find((m) => m.type === "set-render-size");
+    expect(renderSizeMsg).toBeTruthy();
+    // 400 is already even
+    expect(renderSizeMsg?.content.width).toBe(400);
+    expect(renderSizeMsg?.content.height).toBe(400);
+
+    ds.disconnect();
+  });
+});
+
+describe("ExpCameraFeed — CommNet degrade", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("CommNet degrade 0 when signal is full strength", async () => {
+    const { ds, captured } = await buildConnectedSource();
+
+    // Register a fake "data" source with comm values pre-set
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": true,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    render(<ExpCameraFeed config={{ flightId: 42 }} />);
+
+    // Allow queueMicrotask-delivered initial values to land
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Advance past the 500ms debounce
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const sent = captured.dc?.sent ?? [];
+    const parsed = sent.map(
+      (s) =>
+        JSON.parse(s) as {
+          type: string;
+          content: { flightId?: number; level?: number };
+        },
+    );
+    const degradeMsg = parsed.find((m) => m.type === "set-degrade");
+    expect(degradeMsg).toBeTruthy();
+    expect(degradeMsg?.content.flightId).toBe(42);
+    // 1 - 1.0 = 0
+    expect(degradeMsg?.content.level).toBe(0);
 
     ds.disconnect();
   });
