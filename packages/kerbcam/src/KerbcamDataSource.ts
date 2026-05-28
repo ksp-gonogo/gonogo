@@ -325,6 +325,12 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
         await cam.setFov(Number(fov));
         break;
       }
+      case "set-pan": {
+        const [yaw, pitch] = rest;
+        if (!yaw || !pitch) return;
+        await cam.setPan(Number(yaw), Number(pitch));
+        break;
+      }
       case "set-degrade": {
         const [level] = rest;
         if (!level) return;

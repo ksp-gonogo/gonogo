@@ -1,6 +1,6 @@
 import { useDataValue, useExecuteAction } from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
@@ -141,6 +141,113 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   );
 
   // --------------------------------------------------------------------------
+  // Feature 4: Pan reticle — drag pad for yaw/pitch
+  // --------------------------------------------------------------------------
+
+  // Display position tracks camera state; overridden locally during a drag so
+  // the dot moves immediately without waiting for the sidecar round-trip.
+  const [displayYaw, setDisplayYaw] = useState(0);
+  const [displayPitch, setDisplayPitch] = useState(0);
+  const panDragRef = useRef<{
+    active: boolean;
+    startClientX: number;
+    startClientY: number;
+    startYaw: number;
+    startPitch: number;
+  }>({
+    active: false,
+    startClientX: 0,
+    startClientY: 0,
+    startYaw: 0,
+    startPitch: 0,
+  });
+  const panThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panPadRef = useRef<HTMLDivElement>(null);
+
+  // Sync display from camera state when not mid-drag.
+  useEffect(() => {
+    if (!panDragRef.current.active && camera) {
+      setDisplayYaw(camera.panYaw);
+      setDisplayPitch(camera.panPitch);
+    }
+  }, [camera]);
+
+  const handlePanPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!camera || flightId === null) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      panDragRef.current = {
+        active: true,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startYaw: camera.panYaw,
+        startPitch: camera.panPitch,
+      };
+    },
+    [camera, flightId],
+  );
+
+  const handlePanPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (
+        !panDragRef.current.active ||
+        !camera ||
+        !panPadRef.current ||
+        flightId === null
+      )
+        return;
+      const { width, height } = panPadRef.current.getBoundingClientRect();
+      const dx = e.clientX - panDragRef.current.startClientX;
+      const dy = e.clientY - panDragRef.current.startClientY;
+      const yawRange = camera.panYawMax - camera.panYawMin || 1;
+      const pitchRange = camera.panPitchMax - camera.panPitchMin || 1;
+      const newYaw = Math.max(
+        camera.panYawMin,
+        Math.min(
+          camera.panYawMax,
+          panDragRef.current.startYaw + (dx / width) * yawRange,
+        ),
+      );
+      const newPitch = Math.max(
+        camera.panPitchMin,
+        Math.min(
+          camera.panPitchMax,
+          panDragRef.current.startPitch - (dy / height) * pitchRange,
+        ),
+      );
+      setDisplayYaw(newYaw);
+      setDisplayPitch(newPitch);
+      if (panThrottleRef.current === null) {
+        panThrottleRef.current = setTimeout(() => {
+          panThrottleRef.current = null;
+          void executeKerbcam(
+            `kerbcam.set-pan[${flightId},${newYaw},${newPitch}]`,
+          );
+        }, 50);
+      }
+    },
+    [camera, flightId, executeKerbcam],
+  );
+
+  const handlePanPointerUp = useCallback(() => {
+    panDragRef.current.active = false;
+  }, []);
+
+  const showPan = camera?.supportsPan && !isDestroyed;
+
+  // Dot position within the 80×80 pad. Pitch Y is inverted (up = positive pitch).
+  const panDotX = camera
+    ? ((displayYaw - camera.panYawMin) /
+        (camera.panYawMax - camera.panYawMin || 1)) *
+      70
+    : 35;
+  const panDotY = camera
+    ? ((camera.panPitchMax - displayPitch) /
+        (camera.panPitchMax - camera.panPitchMin || 1)) *
+      70
+    : 35;
+
+  // --------------------------------------------------------------------------
   // Derived subtitle parts
   // --------------------------------------------------------------------------
   const bitrateLabel =
@@ -213,6 +320,21 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
                 </button>
               </ZoomControlsWrap>
             )}
+            {showPan && (
+              <PanPadWrap
+                ref={panPadRef}
+                role="slider"
+                aria-label="Pan camera"
+                aria-valuenow={displayYaw}
+                tabIndex={0}
+                onPointerDown={handlePanPointerDown}
+                onPointerMove={handlePanPointerMove}
+                onPointerUp={handlePanPointerUp}
+                onPointerCancel={handlePanPointerUp}
+              >
+                <PanDot style={{ left: panDotX, top: panDotY }} />
+              </PanPadWrap>
+            )}
           </>
         )}
       </VideoWrap>
@@ -220,8 +342,64 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   );
 }
 
-// ZoomControlsWrap defined BEFORE VideoWrap so VideoWrap can reference it
-// in hover/focus-within selectors.
+// ZoomControlsWrap and PanPadWrap defined BEFORE VideoWrap so VideoWrap
+// can reference them in hover/focus-within selectors.
+
+const PanDot = styled.div`
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 4px rgba(0, 255, 136, 0.7);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+`;
+
+const PanPadWrap = styled.div`
+  position: absolute;
+  bottom: 44px; /* sits above the zoom bar */
+  right: 8px;
+  width: 80px;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
+  }
+
+  /* Crosshair reference lines */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: rgba(255, 255, 255, 0.2);
+  }
+  &::before {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+  }
+  &::after {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+  }
+`;
+
 const ZoomControlsWrap = styled.div`
   position: absolute;
   bottom: 0;
@@ -277,7 +455,9 @@ const VideoWrap = styled.div`
   justify-content: center;
 
   &:hover ${ZoomControlsWrap},
-  &:focus-within ${ZoomControlsWrap} {
+  &:hover ${PanPadWrap},
+  &:focus-within ${ZoomControlsWrap},
+  &:focus-within ${PanPadWrap} {
     opacity: 1;
   }
 `;
