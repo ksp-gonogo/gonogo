@@ -1,5 +1,6 @@
+import { useDataValue, useExecuteAction } from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import styled, { css } from "styled-components";
 import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
@@ -17,6 +18,11 @@ export interface ExpCameraFeedConfig extends Record<string, unknown> {
 
 export interface ExpCameraFeedProps {
   config?: ExpCameraFeedConfig;
+}
+
+/** Round n to the nearest even integer, minimum 2 (H.264 chroma requirement). */
+function toEvenPx(n: number): number {
+  return Math.max(2, Math.round(n / 2) * 2);
 }
 
 export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
@@ -57,17 +63,112 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   const lifecycle = camera ? getCameraLifecycle(camera) : "active";
   const isDestroyed = lifecycle === "destroyed";
 
+  const executeKerbcam = useExecuteAction("kerbcam");
+
+  // --------------------------------------------------------------------------
+  // Feature 1: Render-size feedback (ResizeObserver, 500ms debounce)
+  // --------------------------------------------------------------------------
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (flightId === null) return;
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (resizeTimerRef.current !== null) clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = setTimeout(() => {
+        const w = toEvenPx(width);
+        const h = toEvenPx(height);
+        void executeKerbcam(`kerbcam.set-render-size[${flightId},${w},${h}]`);
+      }, 500);
+    });
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      if (resizeTimerRef.current !== null) clearTimeout(resizeTimerRef.current);
+    };
+  }, [flightId, executeKerbcam]);
+
+  // --------------------------------------------------------------------------
+  // Feature 2: CommNet signal degrade (500ms debounce)
+  // --------------------------------------------------------------------------
+  const signalStrength = useDataValue<number>("data", "comm.signalStrength");
+  const commConnected = useDataValue<boolean>("data", "comm.connected");
+  const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (flightId === null) return;
+    // If both values are undefined, CommNet data isn't available — skip
+    if (signalStrength === undefined && commConnected === undefined) return;
+
+    let level: number;
+    if (commConnected === false) {
+      level = 1.0;
+    } else if (typeof signalStrength === "number") {
+      level = Math.max(0, Math.min(1, 1 - signalStrength));
+    } else {
+      return;
+    }
+
+    if (degradeTimerRef.current !== null) clearTimeout(degradeTimerRef.current);
+    degradeTimerRef.current = setTimeout(() => {
+      void executeKerbcam(`kerbcam.set-degrade[${flightId},${level}]`);
+    }, 500);
+
+    return () => {
+      if (degradeTimerRef.current !== null)
+        clearTimeout(degradeTimerRef.current);
+    };
+  }, [flightId, signalStrength, commConnected, executeKerbcam]);
+
+  // --------------------------------------------------------------------------
+  // Feature 3: Zoom controls (FoV) — handler
+  // --------------------------------------------------------------------------
+  const onFovChange = useCallback(
+    (newFov: number) => {
+      if (flightId === null || !camera) return;
+      const clamped = Math.max(camera.fovMin, Math.min(camera.fovMax, newFov));
+      void executeKerbcam(`kerbcam.set-fov[${flightId},${clamped}]`);
+    },
+    [flightId, camera, executeKerbcam],
+  );
+
+  // --------------------------------------------------------------------------
+  // Derived subtitle parts
+  // --------------------------------------------------------------------------
+  const bitrateLabel =
+    camera && camera.encoderBitrateBps > 0
+      ? ` · ${Math.round(camera.encoderBitrateBps / 1000)}kbps`
+      : "";
+  const adaptiveLabel =
+    camera && camera.renderWidth < camera.operatorWidth ? " · adaptive" : "";
+
+  const showZoom =
+    camera !== null &&
+    camera !== undefined &&
+    camera.supportsZoom &&
+    !isDestroyed;
+
   return (
     <Panel>
       <PanelTitle>{camera?.cameraName ?? "Camera Feed (exp)"}</PanelTitle>
       {camera ? (
         <PanelSubtitle>
           {camera.vesselName} · {camera.renderWidth}×{camera.renderHeight}
+          {bitrateLabel}
+          {adaptiveLabel}
         </PanelSubtitle>
       ) : (
         <PanelSubtitle>waiting for sidecar handshake…</PanelSubtitle>
       )}
-      <VideoWrap>
+      <VideoWrap ref={wrapRef}>
         {flightId === null ? (
           <Empty>
             {cameras.length === 0
@@ -89,12 +190,85 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
                 <SignalLostText>SIGNAL LOST</SignalLostText>
               </SignalLostOverlay>
             )}
+            {showZoom && (
+              <ZoomControlsWrap>
+                <button
+                  type="button"
+                  aria-label="Zoom out"
+                  onClick={() => onFovChange(camera.fov + 5)}
+                >
+                  −
+                </button>
+                <input
+                  type="range"
+                  min={camera.fovMin}
+                  max={camera.fovMax}
+                  step={1}
+                  value={camera.fov}
+                  aria-label={`Field of view: ${camera.fov}°`}
+                  onChange={(e) => onFovChange(Number(e.target.value))}
+                />
+                <button
+                  type="button"
+                  aria-label="Zoom in"
+                  onClick={() => onFovChange(camera.fov - 5)}
+                >
+                  +
+                </button>
+              </ZoomControlsWrap>
+            )}
           </>
         )}
       </VideoWrap>
     </Panel>
   );
 }
+
+// ZoomControlsWrap defined BEFORE VideoWrap so VideoWrap can reference it
+// in hover/focus-within selectors.
+const ZoomControlsWrap = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  button {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px 7px;
+
+    &:focus-visible {
+      outline: 2px solid #00ff88;
+      outline-offset: 2px;
+    }
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: #00ff88;
+
+    &:focus-visible {
+      outline: 2px solid #00ff88;
+      outline-offset: 2px;
+    }
+  }
+`;
 
 const VideoWrap = styled.div`
   position: relative;
@@ -105,6 +279,11 @@ const VideoWrap = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &:hover ${ZoomControlsWrap},
+  &:focus-within ${ZoomControlsWrap} {
+    opacity: 1;
+  }
 `;
 
 const Empty = styled.div`
