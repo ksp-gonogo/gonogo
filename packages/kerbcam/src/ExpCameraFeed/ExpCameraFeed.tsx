@@ -1,6 +1,25 @@
-import { useDataValue, useExecuteAction } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import {
+  useActionInput,
+  useDataSources,
+  useDataValue,
+  useExecuteAction,
+} from "@gonogo/core";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  StatusIndicator,
+  type StatusTone,
+} from "@gonogo/ui";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styled, { css } from "styled-components";
 import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
@@ -10,44 +29,100 @@ export interface ExpCameraFeedConfig extends Record<string, unknown> {
   /**
    * KSP `Part.flightID` of the camera to stream. `null` (the
    * default) auto-picks the first available — handy for "drop the
-   * widget on a dashboard and it just works" during early testing,
-   * fragile once the operator wants a specific camera.
+   * widget on a dashboard and it just works", and the natural state
+   * before the operator has explicitly picked one. Once the operator
+   * selects a camera (via the in-widget picker or a Next/Previous
+   * input) the chosen flightId is persisted here.
    */
   flightId: number | null;
 }
 
-export interface ExpCameraFeedProps {
-  config?: ExpCameraFeedConfig;
-}
+/** Component actions exposed to the serial-input platform. */
+export const expCameraFeedActions = [
+  {
+    id: "nextCamera",
+    label: "Next camera",
+    accepts: ["button"],
+    description:
+      "Switch to the next available camera, persisting the choice to the widget config (wraps round at the end of the list).",
+  },
+  {
+    id: "prevCamera",
+    label: "Previous camera",
+    accepts: ["button"],
+    description: "Switch to the previous available camera (wraps round).",
+  },
+] as const satisfies readonly ActionDefinition[];
+
+export type ExpCameraFeedActions = typeof expCameraFeedActions;
 
 /** Round n to the nearest even integer, minimum 2 (H.264 chroma requirement). */
 function toEvenPx(n: number): number {
   return Math.max(2, Math.round(n / 2) * 2);
 }
 
-export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
+function statusTone(status: string | undefined): StatusTone {
+  switch (status) {
+    case "connected":
+      return "go";
+    case "reconnecting":
+      return "warn";
+    case "error":
+    case "disconnected":
+      return "nogo";
+    default:
+      return "neutral";
+  }
+}
+
+function statusLabel(status: string | undefined): string {
+  switch (status) {
+    case "connected":
+      return "Sidecar connected";
+    case "reconnecting":
+      return "Connecting to sidecar…";
+    case "error":
+      return "Sidecar error";
+    case "disconnected":
+      return "Sidecar disconnected";
+    default:
+      return "Sidecar status unknown";
+  }
+}
+
+export function ExpCameraFeed({
+  config,
+  onConfigChange,
+}: Readonly<ComponentProps<ExpCameraFeedConfig>>) {
   const cameras = useKerbcamCameras();
   const requested = config?.flightId ?? null;
 
-  // Auto-pick the first available camera when no explicit flight ID
-  // is configured. Locks in the first one we see so subsequent
-  // camera list updates (vessel changes adding/removing cameras)
-  // don't churn the stream — but flips to the new first if the
-  // current selection disappears.
-  const autoPickedRef = useRef<number | null>(null);
-  if (requested === null && cameras.length > 0) {
-    if (
-      autoPickedRef.current === null ||
-      !cameras.find((c) => c.flightId === autoPickedRef.current)
-    ) {
-      autoPickedRef.current = cameras[0]?.flightId ?? null;
-    }
-  } else if (requested !== null) {
-    autoPickedRef.current = requested;
-  } else {
-    autoPickedRef.current = null;
-  }
-  const flightId = autoPickedRef.current;
+  // --------------------------------------------------------------------------
+  // Selection model — pure derivation, no render-time refs.
+  //
+  // `config.flightId` is the single source of truth. `null` means
+  // "auto": fall back to the first available camera. If the operator
+  // explicitly picked a camera that has since disappeared (vessel
+  // change, part destroyed), we also fall back to the first available
+  // so the widget never wedges on a dead id.
+  // --------------------------------------------------------------------------
+  const firstFlightId = cameras[0]?.flightId ?? null;
+  const requestedStillPresent =
+    requested !== null && cameras.some((c) => c.flightId === requested);
+  const flightId = requestedStillPresent ? requested : firstFlightId;
+
+  const camera =
+    flightId !== null
+      ? (cameras.find((c) => c.flightId === flightId) ?? null)
+      : null;
+
+  // --------------------------------------------------------------------------
+  // Connection status — surfaced from the kerbcam DataSource itself, so the
+  // operator can tell "no cameras because the sidecar is down" apart from
+  // "connected but the vessel has no Hullcams".
+  // --------------------------------------------------------------------------
+  const dataSources = useDataSources();
+  const kerbcamStatus = dataSources.find((s) => s.id === "kerbcam")?.status;
 
   const stream = useKerbcamStream(flightId);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -57,16 +132,53 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
     }
   }, [stream]);
 
-  const camera =
-    flightId !== null ? cameras.find((c) => c.flightId === flightId) : null;
-
   const lifecycle = camera ? getCameraLifecycle(camera) : "active";
   const isDestroyed = lifecycle === "destroyed";
 
   const executeKerbcam = useExecuteAction("kerbcam");
 
   // --------------------------------------------------------------------------
-  // Feature 1: Render-size feedback (ResizeObserver, 500ms debounce)
+  // Camera selection — picker + Next/Prev. All paths persist through
+  // onConfigChange so the choice survives a remount, mirroring CameraFeed.
+  // --------------------------------------------------------------------------
+  const selectCamera = useCallback(
+    (nextFlightId: number | null) => {
+      onConfigChange?.({ ...(config ?? {}), flightId: nextFlightId });
+    },
+    [config, onConfigChange],
+  );
+
+  const currentIndex = useMemo(
+    () =>
+      flightId !== null
+        ? cameras.findIndex((c) => c.flightId === flightId)
+        : -1,
+    [cameras, flightId],
+  );
+
+  const stepCamera = useCallback(
+    (delta: number) => {
+      if (cameras.length === 0) return;
+      const base = currentIndex >= 0 ? currentIndex : 0;
+      const next = (base + delta + cameras.length) % cameras.length;
+      selectCamera(cameras[next]?.flightId ?? null);
+    },
+    [cameras, currentIndex, selectCamera],
+  );
+
+  useActionInput<ExpCameraFeedActions>({
+    nextCamera: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return;
+      stepCamera(1);
+    },
+    prevCamera: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return;
+      stepCamera(-1);
+    },
+  });
+
+  // --------------------------------------------------------------------------
+  // Feature: Render-size feedback (ResizeObserver, 500ms debounce)
   // --------------------------------------------------------------------------
   const wrapRef = useRef<HTMLDivElement>(null);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,7 +209,7 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   }, [flightId, executeKerbcam]);
 
   // --------------------------------------------------------------------------
-  // Feature 2: CommNet signal degrade (500ms debounce)
+  // Feature: CommNet signal degrade (500ms debounce)
   // --------------------------------------------------------------------------
   const signalStrength = useDataValue<number>("data", "comm.signalStrength");
   const commConnected = useDataValue<boolean>("data", "comm.connected");
@@ -129,7 +241,7 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   }, [flightId, signalStrength, commConnected, executeKerbcam]);
 
   // --------------------------------------------------------------------------
-  // Feature 3: Zoom controls (FoV) — handler
+  // Feature: Zoom controls (FoV) — handler
   // --------------------------------------------------------------------------
   const onFovChange = useCallback(
     (newFov: number) => {
@@ -141,7 +253,7 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
   );
 
   // --------------------------------------------------------------------------
-  // Feature 4: Pan reticle — drag pad for yaw/pitch
+  // Feature: Pan reticle — drag pad for yaw/pitch
   // --------------------------------------------------------------------------
 
   // Display position tracks camera state; overridden locally during a drag so
@@ -258,6 +370,12 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
     camera && camera.renderWidth < camera.operatorWidth ? " · adaptive" : "";
 
   const showZoom = camera?.supportsZoom && !isDestroyed;
+  const hasCameras = cameras.length > 0;
+  const canStep = cameras.length > 1;
+
+  // Unique per widget instance so two ExpCameraFeeds on one dashboard don't
+  // produce duplicate ids (which would break the label→select association).
+  const selectId = useId();
 
   return (
     <Panel>
@@ -269,14 +387,64 @@ export function ExpCameraFeed({ config }: ExpCameraFeedProps) {
           {adaptiveLabel}
         </PanelSubtitle>
       ) : (
-        <PanelSubtitle>waiting for sidecar handshake…</PanelSubtitle>
+        <PanelSubtitle>
+          {kerbcamStatus === "connected"
+            ? "no cameras on this vessel"
+            : "waiting for sidecar handshake…"}
+        </PanelSubtitle>
       )}
+
+      <StatusIndicator
+        tone={statusTone(kerbcamStatus)}
+        live
+        aria-label={statusLabel(kerbcamStatus)}
+      >
+        {statusLabel(kerbcamStatus)}
+      </StatusIndicator>
+
+      {hasCameras && (
+        <SelectionBar>
+          <CameraPickerLabel htmlFor={selectId}>Camera</CameraPickerLabel>
+          <CameraSelect
+            id={selectId}
+            value={flightId ?? ""}
+            onChange={(e) =>
+              selectCamera(
+                e.target.value === "" ? null : Number(e.target.value),
+              )
+            }
+          >
+            {cameras.map((c) => (
+              <option key={c.flightId} value={c.flightId}>
+                {c.cameraName} ({c.vesselName})
+              </option>
+            ))}
+          </CameraSelect>
+          <StepButton
+            type="button"
+            aria-label="Previous camera"
+            disabled={!canStep}
+            onClick={() => stepCamera(-1)}
+          >
+            ‹
+          </StepButton>
+          <StepButton
+            type="button"
+            aria-label="Next camera"
+            disabled={!canStep}
+            onClick={() => stepCamera(1)}
+          >
+            ›
+          </StepButton>
+        </SelectionBar>
+      )}
+
       <VideoWrap ref={wrapRef}>
         {flightId === null ? (
           <Empty>
-            {cameras.length === 0
-              ? "no cameras detected — is the kerbcam sidecar running?"
-              : "pick a camera in widget settings"}
+            {kerbcamStatus === "connected"
+              ? "no cameras detected — start a vessel with Hullcams installed"
+              : "no cameras detected — is the kerbcam sidecar running?"}
           </Empty>
         ) : (
           <>
@@ -468,6 +636,57 @@ const Empty = styled.div`
   font-style: italic;
   padding: 1rem;
   text-align: center;
+`;
+
+const SelectionBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+`;
+
+const CameraPickerLabel = styled.label`
+  font-size: 11px;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+`;
+
+const CameraSelect = styled.select`
+  flex: 1;
+  min-width: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 12px;
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
+  }
+`;
+
+const StepButton = styled.button`
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px 9px;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
+  }
 `;
 
 const StyledVideo = styled.video<{ $destroyed: boolean }>`
