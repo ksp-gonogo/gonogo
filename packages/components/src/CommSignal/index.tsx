@@ -1,5 +1,9 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import {
+  getWidgetShape,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
 
@@ -99,6 +103,9 @@ function CommSignalComponent({
   // detail grid drop as height shrinks.
   const cols = w ?? 6;
   const rows = h ?? 5;
+  // Wide-short: put the bars/headline cluster and the detail grid side-by-side
+  // so the width is used instead of clustering top-left.
+  const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
   // "LOS" (loss of signal) vs "—" (no telemetry) — both render zero
@@ -140,7 +147,7 @@ function CommSignalComponent({
         {liveAnnouncement}
       </LiveStatus>
 
-      <Body>
+      <Body $row={isLandscape}>
         <Readout>
           <Bars aria-label={`Signal ${bars} of 4`}>
             {[1, 2, 3, 4].map((i) => (
@@ -189,13 +196,18 @@ const LiveStatus = styled.span`
   border: 0;
 `;
 
-const Body = styled.div`
+const Body = styled.div<{ $row?: boolean }>`
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: ${(p) => (p.$row ? "row" : "column")};
+  gap: ${(p) => (p.$row ? "24px" : "8px")};
   min-height: 0;
   align-content: center;
+  /* Wide-short: bars/headline cluster left, detail grid right. */
+  ${(p) =>
+    p.$row &&
+    `align-items: center;
+     & > * { flex: 1 1 0; min-width: 0; }`}
 `;
 
 const Readout = styled.div`
