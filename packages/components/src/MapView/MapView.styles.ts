@@ -48,6 +48,20 @@ export const CompactValue = styled.span`
 `;
 
 /**
+ * Row container for the map + the optional anomaly side-panel: panel
+ * beside the map. The panel is gated off below 8 cols (see index.tsx
+ * `showAnomalySide`), so at the narrow sizes where a column reflow would
+ * help, the side-panel isn't rendered at all and the map keeps the full
+ * width.
+ */
+export const MapBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 8px;
+`;
+
+/**
  * Fills leftover space. The ResizeObserver measures this element's actual
  * content rect and computes letterboxed pixel dimensions for CanvasContainer.
  */
@@ -58,6 +72,123 @@ export const MapOuter = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
+`;
+
+// ── Anomaly side-panel (C) ──────────────────────────────────────────────────
+
+export const AnomalyPanel = styled.aside`
+  flex: 0 0 auto;
+  width: 140px;
+  max-width: 40%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  min-height: 0;
+`;
+
+export const AnomalyPanelTitle = styled.h3`
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+`;
+
+export const AnomalyPanelList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+`;
+
+export const AnomalyPanelItem = styled.li`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name dist"
+    "name bearing";
+  align-items: baseline;
+  column-gap: 6px;
+  padding: 3px 6px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+`;
+
+export const AnomalyPanelName = styled.span`
+  grid-area: name;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+  align-self: center;
+`;
+
+export const AnomalyPanelDist = styled.span`
+  grid-area: dist;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+`;
+
+export const AnomalyPanelBearing = styled.span`
+  grid-area: bearing;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+`;
+
+// ── Coverage readout (B) ─────────────────────────────────────────────────────
+
+export const CoveragePanel = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px solid var(--color-surface-raised);
+`;
+
+export const CoverageScanner = styled.div`
+  display: grid;
+  grid-template-columns: 48px 1fr 40px auto;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const CoverageTrack = styled.div<{ $pct: number }>`
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: ${({ $pct }) => `${Math.max(0, Math.min(100, $pct))}%`};
+    background: var(--color-accent-fg);
+  }
+`;
+
+export const CoverageChip = styled.span<{ $variant: "best" | "in" | "idle" }>`
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: right;
+  min-width: 4ch;
+  color: ${({ $variant }) =>
+    $variant === "best"
+      ? "var(--color-status-go-fg)"
+      : $variant === "in"
+        ? "var(--color-status-info-fg)"
+        : "var(--color-text-faint)"};
 `;
 
 /**

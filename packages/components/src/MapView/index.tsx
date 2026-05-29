@@ -2,6 +2,8 @@ import type {
   ActionDefinition,
   ComponentProps,
   DataSourceRegistry,
+  SCANScanningVessel,
+  SCANType,
   TrackSample,
 } from "@gonogo/core";
 import {
@@ -18,6 +20,7 @@ import {
 import {
   useDataSchema,
   useScanAnomalies,
+  useScanningVessels,
   useScanSatFogSync,
 } from "@gonogo/data";
 import { Panel, PanelTitle, Switch } from "@gonogo/ui";
@@ -34,6 +37,13 @@ import {
   zoomBounds,
 } from "./camera";
 import {
+  AnomalyPanel,
+  AnomalyPanelBearing,
+  AnomalyPanelDist,
+  AnomalyPanelItem,
+  AnomalyPanelList,
+  AnomalyPanelName,
+  AnomalyPanelTitle,
   BaseCanvas,
   BodyLabel,
   CanvasContainer,
@@ -41,9 +51,14 @@ import {
   CompactReadout,
   CompactRow,
   CompactValue,
+  CoverageChip,
+  CoveragePanel,
+  CoverageScanner,
+  CoverageTrack,
   DataCanvas,
   Header,
   ImagingChip,
+  MapBody,
   MapOuter,
   NoSignal,
   OverlayCanvas,
@@ -57,6 +72,11 @@ import {
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
 import { quantiseUt } from "./predictionThrottle";
+import {
+  compassPoint,
+  drawScanningFootprints,
+  rankAnomaliesByDistance,
+} from "./scanOverlay";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { useFogDisplayCanvas } from "./useFogMask";
@@ -160,6 +180,10 @@ function MapViewComponent({
   const baseLayer = config?.baseLayer ?? "altimetry";
   const showHeightShading = config?.showHeightShading ?? false;
   const showAnomalies = config?.showAnomalies ?? false;
+  const bodyOverride = config?.bodyOverride;
+  const showFootprints = config?.showFootprints ?? false;
+  const showCoverage = config?.showCoverage ?? false;
+  const showAnomalyPanel = config?.showAnomalyPanel ?? false;
   // Resolve per-type fog visibility once per render. Each toggle defaults
   // to "on" (undefined === unset === visible) so a fresh widget sees
   // every layer compose; operators narrow it down via the config tab.
@@ -206,8 +230,19 @@ function MapViewComponent({
   // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction && !isNBody;
 
-  const targetBodyId = bodyName;
+  // The body picker (config.bodyOverride) decouples MapView from the
+  // active vessel's body so the operator can inspect ANY body's scan
+  // layers while orbiting elsewhere. Unset (the default) follows v.body.
+  const targetBodyId = bodyOverride ?? bodyName;
   const body = targetBodyId ? getBody(targetBodyId) : undefined;
+  // True when the map is showing the active vessel's body — i.e. there's
+  // no override, OR the override happens to equal the vessel's body. When
+  // false (an override DIVERGES from the vessel's body), the
+  // vessel-relative draws (marker, trail, prediction, anomaly distances)
+  // and the follow chrome are suppressed — plotting a Kerbin craft onto
+  // the Mun map would be misleading. With no override set, behaviour is
+  // unchanged from before the picker existed.
+  const vesselOnThisBody = !bodyOverride || bodyOverride === bodyName;
 
   const { outerRef, containerSize } = useMapResize();
   const {
@@ -285,8 +320,23 @@ function MapViewComponent({
   useScanSatFogSync(body);
   const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
   const heightDisplay = useHeightCanvas(body, showHeightShading);
-  const anomalies = useScanAnomalies(showAnomalies ? body?.name : undefined);
+  // Anomalies feed both the on-map markers (showAnomalies) and the
+  // bearing/distance side-panel (showAnomalyPanel), so fetch when either
+  // is enabled.
+  const anomalies = useScanAnomalies(
+    showAnomalies || showAnomalyPanel ? body?.name : undefined,
+  );
   const fogDisplay = useFogDisplayCanvas(targetBodyId, fogLayerVisibility);
+  // Cross-vessel footprint overlay (B). The list is global (every body);
+  // the draw filters to the mapped body. Only fetched when enabled.
+  const scanningVessels = useScanningVessels();
+  const scanningVesselList = Array.isArray(scanningVessels)
+    ? scanningVessels
+    : undefined;
+  const footprintVessels =
+    showFootprints && body && scanningVesselList
+      ? scanningVesselList
+      : undefined;
 
   // Per-body coordinate offsets — applied in both world canvas and screen space
   const adjustedMap = useCallback(
@@ -459,6 +509,12 @@ function MapViewComponent({
     if (fogDisplay.canvas) {
       ctx.drawImage(fogDisplay.canvas, 0, 0, WORLD_W, WORLD_H);
     }
+    // Scanning-vessel footprints — every tracked vessel on the mapped
+    // body, drawn under the anomaly markers so a marker on a footprint
+    // stays legible. Extents + tint come straight off the wire.
+    if (footprintVessels && body) {
+      drawScanningFootprints(ctx, body, footprintVessels, camera.zoom);
+    }
     // Anomaly markers — only render the discovered ones (known = true).
     // `detail = true` parts get a brighter ring + label-ready hit area;
     // discovered-without-detail render dimmer. Undiscovered anomalies
@@ -494,6 +550,7 @@ function MapViewComponent({
     showAnomalies,
     anomalies,
     body,
+    footprintVessels,
   ]);
 
   // ── Trajectory layer: blit world canvas through camera ────────────────────
@@ -511,10 +568,15 @@ function MapViewComponent({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.setTransform(...cameraTransform(camera, w, h));
-    ctx.drawImage(worldCanvas, 0, 0);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [containerSize, camera, trajectoryCount]);
+    // The trajectory trail is the active vessel's track. When a
+    // bodyOverride maps a body the vessel isn't at, suppress it — the
+    // trail's lat/lon would be projected through the wrong body's frame.
+    if (vesselOnThisBody) {
+      ctx.setTransform(...cameraTransform(camera, w, h));
+      ctx.drawImage(worldCanvas, 0, 0);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+  }, [containerSize, camera, trajectoryCount, vesselOnThisBody]);
 
   // ── Prediction: forward-propagated ground track from o.orbitPatches ───────
   // Kept as a memoised pure computation so the render effect only fires when
@@ -738,7 +800,9 @@ function MapViewComponent({
 
     ctx.clearRect(0, 0, w, h);
 
-    if (lat !== undefined && lon !== undefined) {
+    // The vessel marker is only meaningful when the mapped body is the
+    // one the vessel is at — under a divergent bodyOverride, suppress it.
+    if (vesselOnThisBody && lat !== undefined && lon !== undefined) {
       const { x: wx, y: wy } = adjustedMap(WORLD_W, WORLD_H, lat, lon);
       const { x, y } = worldToScreen(wx, wy, camera, w, h);
 
@@ -757,7 +821,7 @@ function MapViewComponent({
       ctx.lineTo(x, y + cross);
       ctx.stroke();
     }
-  }, [containerSize, camera, lat, lon, adjustedMap]);
+  }, [containerSize, camera, lat, lon, adjustedMap, vesselOnThisBody]);
 
   const displayName = body?.name ?? targetBodyId;
 
@@ -776,6 +840,21 @@ function MapViewComponent({
     return { label: "IMAGING", variant: "on" };
   }, [body, altSea]);
 
+  // Anomaly side-panel (C): discovered anomalies ranked by great-circle
+  // distance from the vessel sub-point. Distance/bearing are only
+  // meaningful when the vessel is at the mapped body — otherwise the
+  // list is name-only (rankAnomaliesByDistance returns NaN distances
+  // and sorts by name).
+  const rankedAnomalies = useMemo(() => {
+    if (!showAnomalyPanel || !body || !Array.isArray(anomalies)) return [];
+    return rankAnomaliesByDistance(
+      anomalies,
+      vesselOnThisBody ? lat : undefined,
+      vesselOnThisBody ? lon : undefined,
+      body.radius,
+    );
+  }, [showAnomalyPanel, body, anomalies, vesselOnThisBody, lat, lon]);
+
   // Selective rendering — at small sizes the canvas isn't readable, so
   // collapse to a lat/lon text readout. Header chrome (imaging chip, follow
   // toggle) drops at narrow widths.
@@ -785,6 +864,12 @@ function MapViewComponent({
   const showImagingChip = showMap && cols >= 8;
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
+  // The scan side-panels (coverage readout, anomaly list) and the body
+  // label live below / beside the map. They need a sensible minimum
+  // footprint so they don't crowd the canvas at tight sizes.
+  const showCoveragePanel = showMap && showCoverage && cols >= 7 && rows >= 8;
+  const showAnomalySide =
+    showMap && showAnomalyPanel && rankedAnomalies.length > 0 && cols >= 8;
 
   if (!showMap) {
     return (
@@ -821,54 +906,104 @@ function MapViewComponent({
     <Panel>
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
-        {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
-        {showImagingChip && imagingStatus && (
+        {showBodyLabel && displayName && (
+          <BodyLabel>
+            {displayName}
+            {bodyOverride ? " (pinned)" : ""}
+          </BodyLabel>
+        )}
+        {showImagingChip && vesselOnThisBody && imagingStatus && (
           <ImagingChip $variant={imagingStatus.variant}>
             {imagingStatus.label}
           </ImagingChip>
         )}
-        {showFollowToggle && (
+        {showFollowToggle && vesselOnThisBody && (
           <Switch
             checked={viewMode === "follow"}
             onChange={(on) => setViewMode(on ? "follow" : "global")}
             label="Follow"
           />
         )}
-        {showImagingChip && <OrbitalEventChips />}
+        {showImagingChip && vesselOnThisBody && <OrbitalEventChips />}
       </Header>
 
-      <MapOuter ref={outerRef}>
-        <CanvasContainer
-          ref={interactionRef}
-          style={
-            containerSize
-              ? { width: containerSize.w, height: containerSize.h }
-              : undefined
-          }
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
-        >
-          <BaseCanvas ref={baseRef} />
-          <OverlayCanvas ref={overlayRef} />
-          <PersistentDataCanvas ref={persistentDataRef} />
-          <PredictionCanvas ref={predictionRef} />
-          <DataCanvas ref={dataRef} />
-          {(lat === undefined || lon === undefined) && (
-            <NoSignal>
-              {targetBodyId === undefined
-                ? "Waiting for telemetry…"
-                : "No position data"}
-            </NoSignal>
-          )}
-          {showPrediction && isNBody && (
-            <PredictionChip title="Principia's N-body integrator invalidates patched-conic prediction.">
-              Prediction unavailable · N-body
-            </PredictionChip>
-          )}
-        </CanvasContainer>
-      </MapOuter>
+      <MapBody>
+        <MapOuter ref={outerRef}>
+          <CanvasContainer
+            ref={interactionRef}
+            style={
+              containerSize
+                ? { width: containerSize.w, height: containerSize.h }
+                : undefined
+            }
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
+          >
+            <BaseCanvas ref={baseRef} />
+            <OverlayCanvas ref={overlayRef} />
+            <PersistentDataCanvas ref={persistentDataRef} />
+            <PredictionCanvas ref={predictionRef} />
+            <DataCanvas ref={dataRef} />
+            {(lat === undefined || lon === undefined) && (
+              <NoSignal>
+                {targetBodyId === undefined
+                  ? "Waiting for telemetry…"
+                  : "No position data"}
+              </NoSignal>
+            )}
+            {showPrediction && vesselOnThisBody && isNBody && (
+              <PredictionChip title="Principia's N-body integrator invalidates patched-conic prediction.">
+                Prediction unavailable · N-body
+              </PredictionChip>
+            )}
+          </CanvasContainer>
+        </MapOuter>
+        {showAnomalySide && (
+          <AnomalyPanel
+            role="region"
+            aria-label={`Anomalies near ${displayName ?? "body"}`}
+          >
+            <AnomalyPanelTitle>Anomalies</AnomalyPanelTitle>
+            <AnomalyPanelList>
+              {rankedAnomalies.map(
+                ({ anomaly, distanceMetres, bearingDeg }) => (
+                  <AnomalyPanelItem key={`${anomaly.name}-${anomaly.latitude}`}>
+                    <AnomalyPanelName>
+                      {anomaly.detail ? anomaly.name : "(unknown)"}
+                    </AnomalyPanelName>
+                    {Number.isFinite(distanceMetres) ? (
+                      <>
+                        <AnomalyPanelDist>
+                          {distanceMetres >= 1000
+                            ? `${(distanceMetres / 1000).toFixed(0)} km`
+                            : `${distanceMetres.toFixed(0)} m`}
+                        </AnomalyPanelDist>
+                        <AnomalyPanelBearing>
+                          {compassPoint(bearingDeg)} {bearingDeg.toFixed(0)}°
+                        </AnomalyPanelBearing>
+                      </>
+                    ) : (
+                      <AnomalyPanelDist>
+                        {anomaly.latitude.toFixed(1)},{" "}
+                        {anomaly.longitude.toFixed(1)}
+                      </AnomalyPanelDist>
+                    )}
+                  </AnomalyPanelItem>
+                ),
+              )}
+            </AnomalyPanelList>
+          </AnomalyPanel>
+        )}
+      </MapBody>
+
+      {showCoveragePanel && body && (
+        <CoveragePanelView
+          bodyName={body.name}
+          scanningVessels={vesselOnThisBody ? scanningVesselList : undefined}
+        />
+      )}
 
       {showTelemetry && (
         <TelemetryPanel>
@@ -926,6 +1061,97 @@ function TelemetryRow({
 }
 
 // ---------------------------------------------------------------------------
+// Coverage readout (B) — per-scan-type % + live in-range scanner summary
+// ---------------------------------------------------------------------------
+
+const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
+  { type: SCAN_TYPE.AltimetryHiRes, label: "Alt Hi" },
+  { type: SCAN_TYPE.AltimetryLoRes, label: "Alt Lo" },
+  { type: SCAN_TYPE.Biome, label: "Biome" },
+  { type: SCAN_TYPE.ResourceHiRes, label: "Res Hi" },
+  { type: SCAN_TYPE.ResourceLoRes, label: "Res Lo" },
+];
+
+/**
+ * Compact per-scan-type coverage readout for the mapped body, plus a
+ * summary of which scan types currently have an in-range / best-range
+ * scanner. Driven entirely by `scan.coverage[body,type]` and the
+ * sensors on `scan.scanningVessels` for this body.
+ */
+function CoveragePanelView({
+  bodyName,
+  scanningVessels,
+}: Readonly<{
+  bodyName: string;
+  scanningVessels: readonly SCANScanningVessel[] | null | undefined;
+}>) {
+  // Aggregate per-type range state across every scanning vessel on this
+  // body: a type is "best" if any sensor is bestRange, "scanning" if any
+  // is inRange. Vessels on other bodies are excluded.
+  const rangeByType = useMemo(() => {
+    const map = new Map<number, { inRange: boolean; bestRange: boolean }>();
+    if (!scanningVessels) return map;
+    for (const v of scanningVessels) {
+      if (v.body !== bodyName) continue;
+      for (const s of v.sensors) {
+        const cur = map.get(s.type) ?? { inRange: false, bestRange: false };
+        map.set(s.type, {
+          inRange: cur.inRange || s.inRange,
+          bestRange: cur.bestRange || s.bestRange,
+        });
+      }
+    }
+    return map;
+  }, [scanningVessels, bodyName]);
+
+  return (
+    <CoveragePanel role="region" aria-label={`Scan coverage for ${bodyName}`}>
+      {COVERAGE_TYPES.map(({ type, label }) => (
+        <CoverageRow
+          key={type}
+          bodyName={bodyName}
+          scanType={type}
+          label={label}
+          range={rangeByType.get(type)}
+        />
+      ))}
+    </CoveragePanel>
+  );
+}
+
+function CoverageRow({
+  bodyName,
+  scanType,
+  label,
+  range,
+}: Readonly<{
+  bodyName: string;
+  scanType: SCANType;
+  label: string;
+  range: { inRange: boolean; bestRange: boolean } | undefined;
+}>) {
+  const pct = useDataValue<number>(
+    "data",
+    `scan.coverage[${bodyName},${scanType}]`,
+  );
+  const value = typeof pct === "number" ? pct : 0;
+  return (
+    <CoverageScanner>
+      <CompactLabel>{label}</CompactLabel>
+      <CoverageTrack $pct={value} />
+      <CompactValue>{value.toFixed(0)}%</CompactValue>
+      {range?.bestRange ? (
+        <CoverageChip $variant="best">best</CoverageChip>
+      ) : range?.inRange ? (
+        <CoverageChip $variant="in">scan</CoverageChip>
+      ) : (
+        <CoverageChip $variant="idle">—</CoverageChip>
+      )}
+    </CoverageScanner>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -933,7 +1159,7 @@ registerComponent<MapViewConfig>({
   id: "map-view",
   name: "Map View",
   description:
-    "Equirectangular map of the current body with vessel position and trajectory trail.",
+    "Equirectangular map of the current body with vessel position and trajectory trail. Optional SCANsat layers: pin any body, overlay scanning-vessel footprints + coverage, and list anomalies by distance.",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },
@@ -953,6 +1179,10 @@ registerComponent<MapViewConfig>({
     "t.universalTime",
     "n.pitch",
     "n.heading",
+    // Body-parametric scan.* keys (heightGrid / biomeGrid / maskBitmap /
+    // coverage / anomalies) can't be declared statically — they're
+    // resolved per mapped body at runtime. scanningVessels is global.
+    "scan.scanningVessels",
   ],
   defaultConfig: {
     trajectoryLength: 2000,

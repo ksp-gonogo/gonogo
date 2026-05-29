@@ -54,4 +54,39 @@ export interface MapViewConfig {
    * brighter than AltLoRes-only tiles, same for ResourceHiRes vs LoRes).
    */
   fogLayers?: FogLayerToggles;
+  /**
+   * Body to map. When set, MapView renders this body's scan layers
+   * (texture / biome / height / fog / anomalies / coverage / footprints)
+   * regardless of where the active vessel is — so you can check the Mun's
+   * coverage while orbiting Kerbin. Unset = follow the active vessel's
+   * `v.body` (the default). Every `scan.*` key is parametric by body, so
+   * this needs no data-source or fork change.
+   *
+   * When the override differs from the active vessel's body, the vessel
+   * marker, trajectory trail and prediction are suppressed — plotting a
+   * Kerbin craft onto the Mun map would be misleading.
+   */
+  bodyOverride?: string;
+  /**
+   * Overlay every `scan.scanningVessels` entry's ground-track footprint
+   * for the mapped body (using the SCANsat-supplied `groundTrackWidthDeg`
+   * / `groundTrackLonHalfDeg` extents + `trackColor` tint). Lets you watch
+   * an unloaded mapping sat fill in coverage. Default: off.
+   */
+  showFootprints?: boolean;
+  /**
+   * Show a compact per-scan-type coverage readout (from
+   * `scan.coverage[body,type]`) plus which scanners are currently
+   * in-range / best-range, below the map. Default: off.
+   */
+  showCoverage?: boolean;
+  /**
+   * Show a side list of discovered anomalies (`scan.anomalies[body]`,
+   * `known` only) sorted by great-circle distance from the active
+   * vessel, each with bearing + distance. Distance/bearing are only
+   * meaningful when the mapped body is the vessel's body — when a
+   * `bodyOverride` diverges, the panel lists names without distances.
+   * Default: off.
+   */
+  showAnomalyPanel?: boolean;
 }

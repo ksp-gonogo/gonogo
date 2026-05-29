@@ -35,6 +35,84 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-12x18", w: 12, h: 18 },
       // Wide landscape — equirectangular projection reads best here.
       { name: "wide-18x10", w: 18, h: 10 },
+      // ── SCANsat extension showcase (scoped to the synthetic scansat
+      //    fixture). Each mode isolates one of the three new capabilities
+      //    so an orientation / layer / panel regression is visible. ──────
+      // Base scan layers: biome base + elevation shading + anomaly
+      // markers. Confirms N-up / E-right orientation against the known
+      // fixture features (KSC near prime meridian, NE + SW mountain
+      // ranges, south ice cap > north, centred ocean).
+      {
+        name: "scansat-layers-18x12",
+        w: 18,
+        h: 12,
+        config: {
+          baseLayer: "biome",
+          showHeightShading: true,
+          showAnomalies: true,
+        },
+        forFixtures: ["kerbin-scansat"],
+      },
+      // B — scanning-vessel footprint overlay + coverage readout. Two
+      // Kerbin vessels (cyan + amber) draw footprints; a third on Mun is
+      // filtered out. Coverage readout sits below the map.
+      {
+        name: "scansat-footprints-18x14",
+        w: 18,
+        h: 14,
+        config: {
+          baseLayer: "biome",
+          showFootprints: true,
+          showCoverage: true,
+          showAnomalies: true,
+        },
+        forFixtures: ["kerbin-scansat"],
+      },
+      // C — anomaly distance/bearing side-panel beside the map.
+      {
+        name: "scansat-anomaly-panel-14x12",
+        w: 14,
+        h: 12,
+        config: {
+          baseLayer: "biome",
+          showAnomalies: true,
+          showAnomalyPanel: true,
+        },
+        forFixtures: ["kerbin-scansat"],
+      },
+      // A — body picker pinned to a NON-active body (Mun). Kerbin layers,
+      // footprints, vessel marker + trail + prediction all vanish; the
+      // label reads "Mun (pinned)". Proves the picker decouples from
+      // v.body. (Mun has no fixture grids, so the base is the body wash.)
+      {
+        name: "scansat-pin-mun-14x12",
+        w: 14,
+        h: 12,
+        config: {
+          baseLayer: "biome",
+          bodyOverride: "Mun",
+          showFootprints: true,
+          showAnomalies: true,
+          showAnomalyPanel: true,
+        },
+        forFixtures: ["kerbin-scansat"],
+      },
+      // Everything on, at the default registered size, so the showcase
+      // also exercises the panels at the common operator placement.
+      {
+        name: "scansat-all-12x18",
+        w: 12,
+        h: 18,
+        config: {
+          baseLayer: "biome",
+          showHeightShading: true,
+          showAnomalies: true,
+          showFootprints: true,
+          showCoverage: true,
+          showAnomalyPanel: true,
+        },
+        forFixtures: ["kerbin-scansat"],
+      },
     ],
   },
   {
