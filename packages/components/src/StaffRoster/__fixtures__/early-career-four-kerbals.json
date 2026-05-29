@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "vessel": "tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "Orbiting ~87km",
+    "notes": "Astronaut complex roster: Jeb/Bill/Bob/Valentina; Val assigned, others available/missing."
+  },
+  "kc.crewRoster": [
+    {
+      "trait": "Pilot",
+      "experienceLevel": 0,
+      "name": "Jebediah Kerman",
+      "unavailableReason": "Missing",
+      "stupidity": 0.5,
+      "careerEntries": 4,
+      "gender": "Male",
+      "currentVesselId": "",
+      "experience": 0,
+      "courage": 0.5,
+      "currentVesselName": "",
+      "available": false,
+      "careerFlights": 3,
+      "type": "Crew",
+      "veteran": true,
+      "isBadass": true
+    },
+    {
+      "trait": "Engineer",
+      "experienceLevel": 0,
+      "name": "Bill Kerman",
+      "unavailableReason": "",
+      "stupidity": 0.8,
+      "careerEntries": 0,
+      "gender": "Male",
+      "currentVesselId": "",
+      "experience": 0,
+      "courage": 0.5,
+      "currentVesselName": "",
+      "available": true,
+      "careerFlights": 0,
+      "type": "Crew",
+      "veteran": true,
+      "isBadass": false
+    },
+    {
+      "trait": "Scientist",
+      "experienceLevel": 0,
+      "name": "Bob Kerman",
+      "unavailableReason": "",
+      "stupidity": 0.1,
+      "careerEntries": 1,
+      "gender": "Male",
+      "currentVesselId": "",
+      "experience": 0,
+      "courage": 0.3,
+      "currentVesselName": "",
+      "available": true,
+      "careerFlights": 1,
+      "type": "Crew",
+      "veteran": true,
+      "isBadass": false
+    },
+    {
+      "trait": "Pilot",
+      "experienceLevel": 0,
+      "name": "Valentina Kerman",
+      "unavailableReason": "Assigned",
+      "stupidity": 0.4,
+      "careerEntries": 10,
+      "gender": "Female",
+      "currentVesselId": "914fb63b-9e65-4dd7-b438-d87f1d0e0d81",
+      "experience": 0,
+      "courage": 0.55,
+      "currentVesselName": "tester",
+      "available": false,
+      "careerFlights": 4,
+      "type": "Crew",
+      "veteran": true,
+      "isBadass": true
+    }
+  ]
+}

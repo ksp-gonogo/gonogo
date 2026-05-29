@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "vessel": "tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "Orbiting ~87km",
+    "notes": "Crew Report + Mystery Goo + PresMat Barometer, none run yet."
+  },
+  "sci.instruments": [
+    {
+      "inoperable": false,
+      "hasData": false,
+      "deployed": false,
+      "rerunnable": true,
+      "partTitle": "Mk1 Command Pod",
+      "expId": "crewReport",
+      "partId": 3960381880
+    },
+    {
+      "inoperable": false,
+      "hasData": false,
+      "deployed": false,
+      "rerunnable": false,
+      "partTitle": "Mystery Goo™ Containment Unit",
+      "expId": "mysteryGoo",
+      "partId": 1071315383
+    },
+    {
+      "inoperable": false,
+      "hasData": false,
+      "deployed": false,
+      "rerunnable": true,
+      "partTitle": "PresMat Barometer",
+      "expId": "barometerScan",
+      "partId": 342573834
+    }
+  ],
+  "sci.dataAmount": 0
+}
