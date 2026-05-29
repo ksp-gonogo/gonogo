@@ -80,16 +80,30 @@ describe("TechTreeComponent", () => {
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
   });
 
-  it("filters to Researchable by default", () => {
+  it("shows all nodes by default (no empty first paint)", () => {
     render(<TechTreeComponent config={{}} id="tt" />);
     act(() => {
       source.emit("tech.nodes", SAMPLE_NODES);
       source.emit("career.science", 100);
       source.emit("kc.scene", "SpaceCenter");
     });
-    // Basic Rocketry (Researchable) is visible.
+    // Default filter is "All" — every node is present on first paint.
+    expect(screen.getByText("Start")).toBeInTheDocument();
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
-    // Start (Available) and Advanced Rocketry (Unavailable) are filtered out.
+    expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
+  });
+
+  it("filters to Researchable on demand", () => {
+    render(<TechTreeComponent config={{}} id="tt" />);
+    act(() => {
+      source.emit("tech.nodes", SAMPLE_NODES);
+      source.emit("career.science", 100);
+      source.emit("kc.scene", "SpaceCenter");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Researchable" }));
+    // Basic Rocketry (parent unlocked, affordable) is researchable-now.
+    expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
+    // Start (owned) and Advanced Rocketry (parent locked) are filtered out.
     expect(screen.queryByText("Start")).toBeNull();
     expect(screen.queryByText("Advanced Rocketry")).toBeNull();
   });
@@ -125,6 +139,25 @@ describe("TechTreeComponent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
     fireEvent.click(screen.getByRole("button", { name: /Confirm unlock/i }));
     expect(onExecute).toHaveBeenCalledWith("tech.unlock[basicRocketry]");
+  });
+
+  it("renders the tiered graph at wide sizes and opens a detail dialog on click", () => {
+    render(<TechTreeComponent config={{}} id="tt" w={16} h={12} />);
+    act(() => {
+      source.emit("tech.nodes", SAMPLE_NODES);
+      source.emit("career.science", 100);
+      source.emit("kc.scene", "SpaceCenter");
+    });
+    // Graph cards are buttons labelled with title + state + cost.
+    const card = screen.getByRole("button", { name: /Basic Rocketry/ });
+    fireEvent.click(card);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    // Detail surfaces the description and the unlock control.
+    expect(
+      screen.getByText("How hard can Rocket Science be anyway?"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unlock" })).toBeInTheDocument();
   });
 
   it("disables Unlock when science is insufficient", () => {
