@@ -1,6 +1,7 @@
 import type { BodyDefinition, ComponentProps } from "@gonogo/core";
 import {
   getBody,
+  kelvinToCelsius,
   pressureAtAltitude,
   registerComponent,
   useDataValue,
@@ -213,7 +214,7 @@ function formatDensity(d: number): string {
 }
 
 function formatTempC(k: number): string {
-  return `${(k - 273.15).toFixed(0)} °C`;
+  return `${kelvinToCelsius(k).toFixed(0)} °C`;
 }
 
 function formatPressure(p: number): string {

@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@gonogo/core";
-import { clampSafe, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  clampSafe,
+  kelvinToCelsius,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import {
   EmptyState,
   Panel,
@@ -21,7 +26,7 @@ type ThermalStatusConfig = Record<string, never>;
 // 50 K is well below any operational KSP part max (parts melt at thousands
 // of K) and well below any meaningful in-game temperature.
 const THERMAL_SENTINEL_K = 50;
-const THERMAL_SENTINEL_C = THERMAL_SENTINEL_K - 273.15;
+const THERMAL_SENTINEL_C = kelvinToCelsius(THERMAL_SENTINEL_K);
 
 const isSentinelK = (k: number | undefined): boolean =>
   typeof k === "number" && Number.isFinite(k) && k < THERMAL_SENTINEL_K;
@@ -138,10 +143,11 @@ function ThermalStatusComponent({
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
   const engineTempC =
-    engineTempK === undefined ? undefined : engineTempK - 273.15;
-  const engineMaxC = engineMaxK === undefined ? undefined : engineMaxK - 273.15;
+    engineTempK === undefined ? undefined : kelvinToCelsius(engineTempK);
+  const engineMaxC =
+    engineMaxK === undefined ? undefined : kelvinToCelsius(engineMaxK);
   const hottestMaxC =
-    hottestMaxK === undefined ? undefined : hottestMaxK - 273.15;
+    hottestMaxK === undefined ? undefined : kelvinToCelsius(hottestMaxK);
 
   const hottestBand = bandFromRatio(hottestRatio);
   const engineBand = engineOverheat ? "critical" : bandFromRatio(engineRatio);

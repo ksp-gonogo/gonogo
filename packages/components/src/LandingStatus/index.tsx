@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@gonogo/core";
-import { getBody, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  getBody,
+  kelvinToCelsius,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
 
@@ -52,7 +57,7 @@ function formatDegrees(d: number | undefined): string {
 /** Kelvin → Celsius, for readability on the LandingStatus readout. */
 function formatTempC(k: number | undefined): string {
   if (k === undefined || !Number.isFinite(k)) return "—";
-  const c = k - 273.15;
+  const c = kelvinToCelsius(k);
   return `${c.toFixed(0)} °C`;
 }
 

@@ -220,3 +220,16 @@ export function formatDistance(metres: number): string {
   if (abs >= 1e3) return `${(metres / 1e3).toFixed(1)} km`;
   return `${Math.round(metres)} m`;
 }
+
+/**
+ * Absolute zero expressed in degrees Celsius — the Kelvin→Celsius offset.
+ * Several widgets receive part/ambient temperatures from Telemachus in Kelvin
+ * and display them in Celsius; this keeps the conversion from being a bare
+ * `- 273.15` magic literal sprinkled across the component library.
+ */
+export const ABSOLUTE_ZERO_C = -273.15;
+
+/** Convert a temperature in Kelvin to degrees Celsius. */
+export function kelvinToCelsius(kelvin: number): number {
+  return kelvin + ABSOLUTE_ZERO_C;
+}
