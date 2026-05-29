@@ -125,7 +125,15 @@ function SpaceCenterStatusComponent({
   const cols = w ?? 6;
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  const compactGrid = cols < 5;
+  // 3-col grid only when the widget is wide enough for each cell to hold a
+  // facility name + tier + the multi-line tier text without clipping. At
+  // width 5 (e.g. the tall-narrow portrait aspect) three columns squeeze
+  // each cell to ~115px and the full-text bodies overflow horizontally
+  // ("* Max Size: Unlimit…", "Maneuve nodes"). Reflow those to 2 columns
+  // and drop the verbose tier text — the same affordance `compact` already
+  // gives the (tiny-bucketed) narrow grid. cols>=6 keeps the reviewed
+  // default-6x7 / wide / mobile layouts unchanged.
+  const compactGrid = cols < 6;
   const sizeBucket = getSizeBucket(w, h);
 
   const padLine = padOccupied

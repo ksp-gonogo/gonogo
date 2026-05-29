@@ -97,7 +97,15 @@ function CurrentOrbitComponent({
   const showInclinationRow = rows >= 5;
   const showApProgressRows = rows >= 6;
   const showEccentricityRows = rows >= 8;
-  const showDiagramSlot = showDiagram && hasOrbit && rows >= 8 && cols >= 5;
+  // The diagram slot is gated on real area, but the axis that matters
+  // differs by orientation: stacked above the values it eats height
+  // (rows >= 8), but in the wide-short landscape case it sits *beside*
+  // them and eats width instead. Gating purely on height locked the
+  // diagram out of exactly the wide-short mode (e.g. 12×6) the flex-flip
+  // was built for, leaving ~60% dead space. Allow either a tall panel
+  // or a wide one.
+  const showDiagramSlot =
+    showDiagram && hasOrbit && cols >= 5 && (rows >= 8 || cols >= 10);
   // Tiny widget: at minSize 3×4 the formatted "85.0 km" wraps to two
   // lines inside the 1fr value column. Drop the label column to 2.2em
   // and the value font to 11 px so a one-line value fits inside ~80 px
