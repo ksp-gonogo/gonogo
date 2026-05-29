@@ -6,7 +6,7 @@ import {
   useExecuteAction,
 } from "@gonogo/core";
 import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
 type TechTreeConfig = Record<string, never>;
@@ -91,6 +91,173 @@ function notNull<T>(x: T | null): x is T {
 
 const ARM_TIMEOUT_MS = 4000;
 
+// Switch to the tiered dependency graph only once the widget is wide enough
+// for columns + connectors to be legible. The KSP R&D tree is inherently
+// landscape; below this we keep the compact list. `mobile-9x8` (w=9) and the
+// `default-6x9` view both stay on the list. Undefined dims (e.g. the unit-test
+// render path, before the grid measures) also fall through to the list, which
+// keeps the behavioural tests exercising the unchanged list UI.
+const GRAPH_MIN_COLS = 10;
+
+// ── Researchable derivation ─────────────────────────────────────────────────
+
+/**
+ * A node is *researchable-now* when it is not yet owned, every parent is
+ * already unlocked, and its science cost is affordable. The plugin only emits
+ * `Available` / `Unavailable`, so this status is computed here rather than read
+ * off `state` (the old default filter matched a `state === "Researchable"`
+ * that real saves never produce — hence the empty first paint). Test fixtures
+ * that set an explicit `"Researchable"` state are also honoured.
+ */
+function computeResearchable(
+  nodes: TechNode[],
+  science: number | null,
+): Set<string> {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const out = new Set<string>();
+  for (const n of nodes) {
+    if (n.state === "Available") continue;
+    if (n.state === "Researchable") {
+      // Explicit state from a fixture / older payload — trust it.
+      out.add(n.id);
+      continue;
+    }
+    const parentsUnlocked = n.parents.every(
+      (p) => byId.get(p)?.state === "Available",
+    );
+    if (!parentsUnlocked) continue;
+    if (science !== null && n.scienceCost > science) continue;
+    out.add(n.id);
+  }
+  return out;
+}
+
+/**
+ * Longest-path depth from a root (a parentless node is tier 0). Variable-span
+ * edges are fine — a tier-5 node may have a tier-0 parent. Cycle-guarded.
+ */
+function computeTiers(nodes: TechNode[]): Map<string, number> {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const memo = new Map<string, number>();
+  const visiting = new Set<string>();
+  function tier(id: string): number {
+    const cached = memo.get(id);
+    if (cached !== undefined) return cached;
+    const n = byId.get(id);
+    if (!n || n.parents.length === 0) {
+      memo.set(id, 0);
+      return 0;
+    }
+    if (visiting.has(id)) return 0; // cycle guard
+    visiting.add(id);
+    let t = 0;
+    for (const p of n.parents) {
+      if (byId.has(p)) t = Math.max(t, tier(p) + 1);
+    }
+    visiting.delete(id);
+    memo.set(id, t);
+    return t;
+  }
+  for (const n of nodes) tier(n.id);
+  return memo;
+}
+
+type DisplayState = "owned" | "researchable" | "locked";
+
+function displayState(node: TechNode, researchable: Set<string>): DisplayState {
+  if (node.state === "Available") return "owned";
+  if (researchable.has(node.id)) return "researchable";
+  return "locked";
+}
+
+// ── Graph layout ────────────────────────────────────────────────────────────
+
+interface PlacedNode {
+  node: TechNode;
+  tier: number;
+  row: number; // vertical slot within the column
+  x: number;
+  y: number;
+}
+
+const COL_W = 134; // px between column left edges
+const CARD_W = 118;
+const CARD_H = 48; // fits a 2-line clamped title + the cost/owned row
+const ROW_GAP = 12;
+const CANVAS_PAD = 16;
+
+/**
+ * Assign each node a (tier, row) slot, then run a single barycenter pass to
+ * order rows within a column by the mean row of their parents. This kills the
+ * bulk of edge crossings without a full Sugiyama layout.
+ */
+function layoutGraph(
+  nodes: TechNode[],
+  tiers: Map<string, number>,
+): { placed: PlacedNode[]; width: number; height: number } {
+  const maxTier = Math.max(0, ...nodes.map((n) => tiers.get(n.id) ?? 0));
+  const columns: TechNode[][] = Array.from({ length: maxTier + 1 }, () => []);
+  for (const n of nodes) columns[tiers.get(n.id) ?? 0].push(n);
+
+  // Initial within-column order: by science cost then title (stable, readable).
+  for (const col of columns) {
+    col.sort(
+      (a, b) =>
+        a.scienceCost - b.scienceCost || a.title.localeCompare(b.title),
+    );
+  }
+
+  // Row index per node, seeded from the initial order.
+  const rowOf = new Map<string, number>();
+  for (const col of columns) {
+    col.forEach((n, i) => rowOf.set(n.id, i));
+  }
+
+  // Barycenter sweep: order each column (left→right) by mean parent row.
+  for (let pass = 0; pass < 4; pass++) {
+    for (let t = 1; t < columns.length; t++) {
+      const col = columns[t];
+      const bary = new Map<string, number>();
+      for (const n of col) {
+        const parentRows = n.parents
+          .map((p) => rowOf.get(p))
+          .filter((r): r is number => r !== undefined);
+        bary.set(
+          n.id,
+          parentRows.length
+            ? parentRows.reduce((s, r) => s + r, 0) / parentRows.length
+            : (rowOf.get(n.id) ?? 0),
+        );
+      }
+      col.sort(
+        (a, b) =>
+          (bary.get(a.id) ?? 0) - (bary.get(b.id) ?? 0) ||
+          a.scienceCost - b.scienceCost,
+      );
+      col.forEach((n, i) => rowOf.set(n.id, i));
+    }
+  }
+
+  const placed: PlacedNode[] = [];
+  let maxRows = 0;
+  for (let t = 0; t < columns.length; t++) {
+    maxRows = Math.max(maxRows, columns[t].length);
+    columns[t].forEach((n, row) => {
+      placed.push({
+        node: n,
+        tier: t,
+        row,
+        x: CANVAS_PAD + t * COL_W,
+        y: CANVAS_PAD + row * (CARD_H + ROW_GAP),
+      });
+    });
+  }
+
+  const width = CANVAS_PAD * 2 + maxTier * COL_W + CARD_W;
+  const height = CANVAS_PAD * 2 + Math.max(1, maxRows) * (CARD_H + ROW_GAP);
+  return { placed, width, height };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
@@ -101,13 +268,14 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
   const allNodes = parseTechNodes(nodesRaw);
 
-  const [filter, setFilter] = useState<"researchable" | "all" | "unlocked">(
-    "researchable",
+  const [filter, setFilter] = useState<"all" | "researchable" | "unlocked">(
+    "all",
   );
   const [query, setQuery] = useState("");
   const [armed, setArmed] = useState<string | null>(null);
   const [pendingUnlock, setPendingUnlock] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Drop the arm after the user-facing timeout so a half-committed Unlock
   // doesn't sit there indefinitely.
@@ -135,6 +303,15 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const showSubtitle = rows >= 4;
   const sciAvailable = typeof careerScience === "number" ? careerScience : null;
 
+  const researchable = useMemo(
+    () => computeResearchable(allNodes ?? [], sciAvailable),
+    [allNodes, sciAvailable],
+  );
+  const tiers = useMemo(
+    () => computeTiers(allNodes ?? []),
+    [allNodes],
+  );
+
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
@@ -154,16 +331,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   }
 
   // ── Counts (drive tiny mode + subtitle) ───────────────────────────────
-  const counts = {
-    unlocked: 0,
-    researchable: 0,
-    unavailable: 0,
-  };
-  for (const n of allNodes) {
-    if (n.state === "Available") counts.unlocked++;
-    else if (n.state === "Researchable") counts.researchable++;
-    else counts.unavailable++;
-  }
+  const counts = { unlocked: 0, researchable: researchable.size };
+  for (const n of allNodes) if (n.state === "Available") counts.unlocked++;
 
   // ── Tiny mode — single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
@@ -183,11 +352,108 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  // ── Filtering ─────────────────────────────────────────────────────────
+  const upgradesEnabled = scene === undefined || scene === "SpaceCenter";
+
+  const unlockHandlersFor = (n: TechNode) => {
+    const isResearchable = researchable.has(n.id);
+    const canAfford = sciAvailable === null || sciAvailable >= n.scienceCost;
+    const canUnlock = isResearchable && canAfford && upgradesEnabled;
+    return {
+      isResearchable,
+      canAfford,
+      canUnlock,
+      isPending: pendingUnlock === n.id,
+      affordTooltip: !canAfford
+        ? `Need ${n.scienceCost} sci (have ${sciAvailable})`
+        : !upgradesEnabled
+          ? "Unlock from the Space Center scene"
+          : undefined,
+      onArm: () => setArmed(n.id),
+      onConfirm: () => {
+        setArmed(null);
+        setPendingUnlock(n.id);
+        void execute(`tech.unlock[${n.id}]`);
+      },
+    };
+  };
+
+  const subtitle = showSubtitle ? (
+    <PanelSubtitle role="status" aria-live="polite">
+      {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
+      researchable
+      {sciAvailable !== null && (
+        <SciReadout title="Available science">
+          · {Math.round(sciAvailable)} sci
+        </SciReadout>
+      )}
+    </PanelSubtitle>
+  ) : null;
+
+  // ── Graph mode — tiered dependency view (wide enough only) ────────────
+  const useGraph = w !== undefined && w >= GRAPH_MIN_COLS;
+  if (useGraph) {
+    const q = query.trim().toLowerCase();
+    const matches = (n: TechNode) =>
+      !q ||
+      n.title.toLowerCase().includes(q) ||
+      n.id.toLowerCase().includes(q) ||
+      n.description.toLowerCase().includes(q);
+
+    return (
+      <Panel>
+        <PanelTitle>TECH TREE</PanelTitle>
+        {subtitle}
+        <GraphToolbar>
+          <Legend aria-hidden="true">
+            <LegendItem>
+              <Swatch $kind="owned" /> Owned
+            </LegendItem>
+            <LegendItem>
+              <Swatch $kind="researchable" /> Researchable
+            </LegendItem>
+            <LegendItem>
+              <Swatch $kind="locked" /> Locked
+            </LegendItem>
+          </Legend>
+          <SearchInput
+            type="search"
+            placeholder="Highlight by name…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Highlight tech nodes by text"
+          />
+        </GraphToolbar>
+        <TechGraph
+          nodes={allNodes}
+          tiers={tiers}
+          researchable={researchable}
+          matches={matches}
+          query={q}
+          selectedId={selectedId}
+          onSelect={(id) =>
+            setSelectedId((cur) => (cur === id ? null : id))
+          }
+        />
+        {selectedId && (
+          <DetailPanel
+            node={allNodes.find((n) => n.id === selectedId) ?? null}
+            onClose={() => setSelectedId(null)}
+            armed={armed === selectedId}
+            unlock={(() => {
+              const n = allNodes.find((x) => x.id === selectedId);
+              return n ? unlockHandlersFor(n) : null;
+            })()}
+          />
+        )}
+      </Panel>
+    );
+  }
+
+  // ── List mode (default + small + mobile) ──────────────────────────────
   const q = query.trim().toLowerCase();
   const filtered = allNodes
     .filter((n) => {
-      if (filter === "researchable") return n.state === "Researchable";
+      if (filter === "researchable") return researchable.has(n.id);
       if (filter === "unlocked") return n.state === "Available";
       return true;
     })
@@ -200,37 +466,27 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       );
     });
 
-  const sorted = sortNodes(filtered);
+  const sorted = sortNodes(filtered, researchable);
 
   return (
     <Panel>
       <PanelTitle>TECH TREE</PanelTitle>
-      {showSubtitle && (
-        <PanelSubtitle role="status" aria-live="polite">
-          {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
-          researchable
-          {sciAvailable !== null && (
-            <SciReadout title="Available science">
-              · {Math.round(sciAvailable)} sci
-            </SciReadout>
-          )}
-        </PanelSubtitle>
-      )}
+      {subtitle}
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
-          <FilterBtn
-            type="button"
-            $active={filter === "researchable"}
-            onClick={() => setFilter("researchable")}
-          >
-            Researchable
-          </FilterBtn>
           <FilterBtn
             type="button"
             $active={filter === "all"}
             onClick={() => setFilter("all")}
           >
             All
+          </FilterBtn>
+          <FilterBtn
+            type="button"
+            $active={filter === "researchable"}
+            onClick={() => setFilter("researchable")}
+          >
+            Researchable
           </FilterBtn>
           <FilterBtn
             type="button"
@@ -254,39 +510,25 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
             <Empty>No nodes match</Empty>
           ) : (
             sorted.map((n) => {
-              const isExpanded = expandedId === n.id;
-              const canAfford =
-                sciAvailable === null || sciAvailable >= n.scienceCost;
-              const isUnlockable = n.state === "Researchable";
-              const upgradesEnabled =
-                scene === undefined || scene === "SpaceCenter";
-              const canUnlock = isUnlockable && canAfford && upgradesEnabled;
-              const isPending = pendingUnlock === n.id;
+              const u = unlockHandlersFor(n);
               return (
                 <NodeRow
                   key={n.id}
                   node={n}
-                  expanded={isExpanded}
+                  display={displayState(n, researchable)}
+                  expanded={expandedId === n.id}
                   onToggleExpand={() =>
-                    setExpandedId((current) => (current === n.id ? null : n.id))
+                    setExpandedId((current) =>
+                      current === n.id ? null : n.id,
+                    )
                   }
                   armed={armed === n.id}
-                  onArm={() => setArmed(n.id)}
-                  onConfirm={() => {
-                    setArmed(null);
-                    setPendingUnlock(n.id);
-                    void execute(`tech.unlock[${n.id}]`);
-                  }}
-                  canUnlock={canUnlock}
-                  canAfford={canAfford}
-                  isPending={isPending}
-                  affordTooltip={
-                    !canAfford
-                      ? `Need ${n.scienceCost} sci (have ${sciAvailable})`
-                      : !upgradesEnabled
-                        ? "Unlock from the Space Center scene"
-                        : undefined
-                  }
+                  onArm={u.onArm}
+                  onConfirm={u.onConfirm}
+                  canUnlock={u.canUnlock}
+                  canAfford={u.canAfford}
+                  isPending={u.isPending}
+                  affordTooltip={u.affordTooltip}
                 />
               );
             })
@@ -297,23 +539,246 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   );
 }
 
-// Sort: Researchable first, then by science cost ascending, then alphabetically.
-// Within a tier the cheapest gives the operator a clear next-purchase.
-function sortNodes(nodes: TechNode[]): TechNode[] {
-  const STATE_RANK: Record<TechNodeState, number> = {
-    Researchable: 0,
-    Available: 1,
-    Unavailable: 2,
-  };
+// Sort: researchable-now first, then owned, then locked; within a group by
+// science cost ascending then alphabetically. The cheapest researchable node
+// surfaces as the clear next-purchase.
+function sortNodes(nodes: TechNode[], researchable: Set<string>): TechNode[] {
+  const rank = (n: TechNode) =>
+    researchable.has(n.id) ? 0 : n.state === "Available" ? 1 : 2;
   return [...nodes].sort((a, b) => {
-    if (a.state !== b.state) return STATE_RANK[a.state] - STATE_RANK[b.state];
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra - rb;
     if (a.scienceCost !== b.scienceCost) return a.scienceCost - b.scienceCost;
     return a.title.localeCompare(b.title);
   });
 }
 
+// ── Graph view ──────────────────────────────────────────────────────────────
+
+interface TechGraphProps {
+  nodes: TechNode[];
+  tiers: Map<string, number>;
+  researchable: Set<string>;
+  matches: (n: TechNode) => boolean;
+  query: string;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}
+
+function TechGraph({
+  nodes,
+  tiers,
+  researchable,
+  matches,
+  query,
+  selectedId,
+  onSelect,
+}: Readonly<TechGraphProps>) {
+  const { placed, width, height } = useMemo(
+    () => layoutGraph(nodes, tiers),
+    [nodes, tiers],
+  );
+  const posById = useMemo(() => {
+    const m = new Map<string, PlacedNode>();
+    for (const p of placed) m.set(p.node.id, p);
+    return m;
+  }, [placed]);
+
+  // Edges: parent → child, drawn from actual positions (variable span).
+  const edges = useMemo(() => {
+    const list: {
+      key: string;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      highlit: boolean;
+    }[] = [];
+    for (const p of placed) {
+      const child = p;
+      for (const parentId of p.node.parents) {
+        const parent = posById.get(parentId);
+        if (!parent) continue;
+        const highlit =
+          selectedId !== null &&
+          (selectedId === child.node.id || selectedId === parentId);
+        list.push({
+          key: `${parentId}->${child.node.id}`,
+          x1: parent.x + CARD_W,
+          y1: parent.y + CARD_H / 2,
+          x2: child.x,
+          y2: child.y + CARD_H / 2,
+          highlit,
+        });
+      }
+    }
+    return list;
+  }, [placed, posById, selectedId]);
+
+  return (
+    <GraphScroll>
+      <GraphCanvas style={{ width, height }}>
+        <EdgeLayer
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          aria-hidden="true"
+        >
+          {edges.map((e) => {
+            const midX = (e.x1 + e.x2) / 2;
+            return (
+              <path
+                key={e.key}
+                d={`M ${e.x1} ${e.y1} C ${midX} ${e.y1}, ${midX} ${e.y2}, ${e.x2} ${e.y2}`}
+                fill="none"
+                stroke={
+                  e.highlit
+                    ? "var(--color-accent-fg)"
+                    : "var(--color-border-strong)"
+                }
+                strokeWidth={e.highlit ? 2 : 1}
+                opacity={e.highlit ? 0.9 : 0.5}
+              />
+            );
+          })}
+        </EdgeLayer>
+        {placed.map((p) => {
+          const ds = displayState(p.node, researchable);
+          const dimmed = query !== "" && !matches(p.node);
+          return (
+            <GraphCard
+              key={p.node.id}
+              type="button"
+              $ds={ds}
+              $selected={selectedId === p.node.id}
+              $dimmed={dimmed}
+              style={{ left: p.x, top: p.y, width: CARD_W, height: CARD_H }}
+              onClick={() => onSelect(p.node.id)}
+              aria-pressed={selectedId === p.node.id}
+              aria-label={`${p.node.title}, ${ds}, ${p.node.scienceCost} science`}
+            >
+              <GraphCardTitle>{p.node.title}</GraphCardTitle>
+              <GraphCardMeta>
+                {ds === "owned" ? (
+                  <GraphOwned>✓ owned</GraphOwned>
+                ) : (
+                  <GraphCost $ds={ds}>{p.node.scienceCost} sci</GraphCost>
+                )}
+              </GraphCardMeta>
+            </GraphCard>
+          );
+        })}
+      </GraphCanvas>
+    </GraphScroll>
+  );
+}
+
+interface UnlockHandlers {
+  isResearchable: boolean;
+  canAfford: boolean;
+  canUnlock: boolean;
+  isPending: boolean;
+  affordTooltip?: string;
+  onArm: () => void;
+  onConfirm: () => void;
+}
+
+interface DetailPanelProps {
+  node: TechNode | null;
+  onClose: () => void;
+  armed: boolean;
+  unlock: UnlockHandlers | null;
+}
+
+function DetailPanel({
+  node,
+  onClose,
+  armed,
+  unlock,
+}: Readonly<DetailPanelProps>) {
+  if (!node) return null;
+  return (
+    <Detail role="dialog" aria-label={`${node.title} details`}>
+      <DetailHead>
+        <DetailTitle>
+          {node.title}
+          <NodeId>({node.id})</NodeId>
+        </DetailTitle>
+        <CloseBtn type="button" onClick={onClose} aria-label="Close details">
+          ✕
+        </CloseBtn>
+      </DetailHead>
+      {node.description && <Description>{node.description}</Description>}
+      <DetailMeta>
+        {node.state !== "Available" && <Cost>{node.scienceCost} sci</Cost>}
+        {node.parents.length > 0 && (
+          <ParentsInline>
+            requires{" "}
+            {node.parents.map((p, i) => (
+              <span key={p}>
+                {i > 0 && ", "}
+                <ParentChip>{p}</ParentChip>
+              </span>
+            ))}
+          </ParentsInline>
+        )}
+      </DetailMeta>
+      {node.parts.length > 0 && (
+        <Parts>
+          <PartsLabel>Parts ({node.parts.length})</PartsLabel>
+          <PartsList>
+            {node.parts.slice(0, 6).map((p) => (
+              <PartRow key={p.name} $purchased={p.purchased}>
+                <PartTitle title={p.manufacturer || undefined}>
+                  {p.title}
+                </PartTitle>
+                <PartMeta>
+                  {p.category && <PartCategory>{p.category}</PartCategory>}
+                  {p.purchased && <PartPurchased>✓</PartPurchased>}
+                </PartMeta>
+              </PartRow>
+            ))}
+            {node.parts.length > 6 && (
+              <PartRow $purchased={false}>
+                <PartTitle>+{node.parts.length - 6} more…</PartTitle>
+                <PartMeta />
+              </PartRow>
+            )}
+          </PartsList>
+        </Parts>
+      )}
+      {unlock?.isResearchable && (
+        <UnlockRow>
+          {unlock.isPending ? (
+            <PendingBtn type="button" disabled aria-busy="true">
+              Unlocking…
+            </PendingBtn>
+          ) : armed ? (
+            <ConfirmBtn type="button" onClick={unlock.onConfirm}>
+              Confirm unlock — {node.scienceCost} sci
+            </ConfirmBtn>
+          ) : (
+            <ArmBtn
+              type="button"
+              onClick={unlock.onArm}
+              disabled={!unlock.canUnlock}
+              title={unlock.affordTooltip}
+            >
+              Unlock
+            </ArmBtn>
+          )}
+        </UnlockRow>
+      )}
+    </Detail>
+  );
+}
+
+// ── List node row ─────────────────────────────────────────────────────────
+
 interface NodeRowProps {
   node: TechNode;
+  display: DisplayState;
   expanded: boolean;
   onToggleExpand: () => void;
   armed: boolean;
@@ -327,6 +792,7 @@ interface NodeRowProps {
 
 function NodeRow({
   node,
+  display,
   expanded,
   onToggleExpand,
   armed,
@@ -338,19 +804,19 @@ function NodeRow({
   affordTooltip,
 }: Readonly<NodeRowProps>) {
   const stateBadgeTone =
-    node.state === "Available"
-      ? "go"
-      : node.state === "Researchable"
-        ? "accent"
-        : "muted";
-  // Researchable + unaffordable used to render identically to an affordable
-  // node; the user had to read the disabled Unlock tooltip to learn why a
-  // row was inert. Grey the row and recolour the cost so the scan is
-  // immediate (2026-05-17 session feedback).
-  const unaffordable = node.state === "Researchable" && !canAfford;
+    display === "owned" ? "go" : display === "researchable" ? "accent" : "muted";
+  const badgeLabel =
+    display === "owned"
+      ? "Owned"
+      : display === "researchable"
+        ? "Researchable"
+        : "Locked";
+  // Researchable but unaffordable: grey the row and recolour the cost so the
+  // scan is immediate (2026-05-17 session feedback).
+  const unaffordable = display === "researchable" && !canAfford;
 
   return (
-    <NodeRowWrap $state={node.state} $unaffordable={unaffordable}>
+    <NodeRowWrap $display={display} $unaffordable={unaffordable}>
       <NodeHeader
         type="button"
         onClick={onToggleExpand}
@@ -361,10 +827,10 @@ function NodeRow({
           <NodeId>({node.id})</NodeId>
         </NodeTitle>
         <NodeMeta>
-          {node.state !== "Available" && (
+          {display !== "owned" && (
             <Cost $insufficient={unaffordable}>{node.scienceCost} sci</Cost>
           )}
-          <StateBadge $tone={stateBadgeTone}>{node.state}</StateBadge>
+          <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
         </NodeMeta>
       </NodeHeader>
       {expanded && (
@@ -401,7 +867,7 @@ function NodeRow({
               </PartsList>
             </Parts>
           )}
-          {node.state === "Researchable" && (
+          {display === "researchable" && (
             <UnlockRow>
               {isPending ? (
                 <PendingBtn type="button" disabled aria-busy="true">
@@ -427,6 +893,16 @@ function NodeRow({
       )}
     </NodeRowWrap>
   );
+}
+
+// ── Shared colour helpers ───────────────────────────────────────────────────
+
+function dsBorder(ds: DisplayState): string {
+  return ds === "owned"
+    ? "var(--color-status-go-fg)"
+    : ds === "researchable"
+      ? "var(--color-accent-fg)"
+      : "var(--color-text-faint)";
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────
@@ -461,6 +937,11 @@ const FilterBtn = styled.button<{ $active: boolean }>`
   &:hover {
     color: var(--color-text-primary);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -474,6 +955,11 @@ const SearchInput = styled.input`
 
   &:focus {
     border-color: var(--color-accent-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
   }
 `;
 
@@ -498,24 +984,17 @@ const NodeList = styled.ul`
 `;
 
 const NodeRowWrap = styled.li<{
-  $state: TechNodeState;
+  $display: DisplayState;
   $unaffordable?: boolean;
 }>`
   display: flex;
   flex-direction: column;
   background: var(--color-surface-panel);
   border-left: 2px solid
-    ${(p) =>
-      p.$state === "Available"
-        ? "var(--color-status-go-fg)"
-        : p.$state === "Researchable"
-          ? p.$unaffordable
-            ? "var(--color-text-faint)"
-            : "var(--color-accent-fg)"
-          : "var(--color-text-faint)"};
+    ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
   border-radius: 2px;
   opacity: ${(p) =>
-    p.$state === "Unavailable" ? 0.65 : p.$unaffordable ? 0.7 : 1};
+    p.$display === "locked" ? 0.65 : p.$unaffordable ? 0.7 : 1};
 `;
 
 const NodeHeader = styled.button`
@@ -588,11 +1067,7 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
         ? "var(--color-accent-fg)"
         : "var(--color-text-faint)"};
   background: ${(p) =>
-    p.$tone === "go"
-      ? "var(--color-status-go-bg)"
-      : p.$tone === "accent"
-        ? "transparent"
-        : "transparent"};
+    p.$tone === "go" ? "var(--color-status-go-bg)" : "transparent"};
 `;
 
 const NodeBody = styled.div`
@@ -728,6 +1203,11 @@ const armButtonBase = `
     cursor: not-allowed;
     opacity: 0.6;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
 const ArmBtn = styled.button`
@@ -781,6 +1261,205 @@ const SciReadout = styled.span`
   margin-left: 2px;
 `;
 
+// ── Graph styles ────────────────────────────────────────────────────────────
+
+const GraphToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+`;
+
+const Legend = styled.div`
+  display: inline-flex;
+  gap: 12px;
+`;
+
+const LegendItem = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+`;
+
+const Swatch = styled.span<{ $kind: DisplayState }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 2px solid ${(p) => dsBorder(p.$kind)};
+  background: ${(p) =>
+    p.$kind === "owned"
+      ? "var(--color-status-go-bg)"
+      : "var(--color-surface-sunken)"};
+`;
+
+const GraphScroll = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  background: var(--color-surface-sunken);
+  scrollbar-width: thin;
+`;
+
+const GraphCanvas = styled.div`
+  position: relative;
+`;
+
+const EdgeLayer = styled.svg`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+`;
+
+const GraphCard = styled.button<{
+  $ds: DisplayState;
+  $selected: boolean;
+  $dimmed: boolean;
+}>`
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid ${(p) => dsBorder(p.$ds)};
+  border-left-width: 3px;
+  background: ${(p) =>
+    p.$ds === "owned"
+      ? "var(--color-status-go-bg)"
+      : p.$ds === "researchable"
+        ? "var(--color-surface-raised)"
+        : "var(--color-surface-panel)"};
+  opacity: ${(p) => (p.$dimmed ? 0.3 : p.$ds === "locked" ? 0.7 : 1)};
+  box-shadow: ${(p) =>
+    p.$selected ? "0 0 0 2px var(--color-accent-fg)" : "none"};
+  transition: opacity 120ms ease;
+
+  &:hover {
+    filter: brightness(1.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const GraphCardTitle = styled.span`
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+`;
+
+const GraphCardMeta = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+`;
+
+const GraphCost = styled.span<{ $ds: DisplayState }>`
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: ${(p) =>
+    p.$ds === "researchable"
+      ? "var(--color-accent-fg)"
+      : "var(--color-text-muted)"};
+`;
+
+const GraphOwned = styled.span`
+  font-size: 10px;
+  color: var(--color-status-go-fg);
+  letter-spacing: 0.04em;
+`;
+
+// ── Detail panel ─────────────────────────────────────────────────────────────
+
+const Detail = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 3px;
+  max-height: 40%;
+  overflow: auto;
+`;
+
+const DetailHead = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+`;
+
+const DetailTitle = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+`;
+
+const CloseBtn = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: inherit;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const DetailMeta = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--color-text-muted);
+`;
+
+const ParentsInline = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+`;
+
 // ── Tiny mode ──────────────────────────────────────────────────────────────
 
 const TinyBody = styled.div`
@@ -823,7 +1502,7 @@ registerComponent<TechTreeConfig>({
   id: "tech-tree",
   name: "Tech Tree",
   description:
-    "Browse and unlock career-mode tech nodes. Filterable by state (researchable / unlocked / all), searchable by name or description, with the full part list each node unlocks visible on click.",
+    "Browse and unlock career-mode tech nodes. At wide sizes it renders the in-game-style tiered dependency graph (columns by longest-path depth, connectors from each parent to its children, colour-coded owned / researchable / locked); at narrow sizes it falls back to a filterable, searchable list with the full part manifest per node.",
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 2, h: 2 },
