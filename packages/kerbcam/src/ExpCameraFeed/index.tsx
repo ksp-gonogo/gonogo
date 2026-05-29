@@ -1,11 +1,15 @@
 import { registerComponent } from "@gonogo/core";
-import { ExpCameraFeed, type ExpCameraFeedConfig } from "./ExpCameraFeed";
+import {
+  ExpCameraFeed,
+  type ExpCameraFeedConfig,
+  expCameraFeedActions,
+} from "./ExpCameraFeed";
 
 registerComponent<ExpCameraFeedConfig>({
   id: "exp-camera-feed",
   name: "Camera Feed (exp)",
   description:
-    "Experimental — single Hullcam VDS stream from the kerbcam sidecar via WebRTC. Replaces the OCISLY camera feed once the architecture is proven; both can coexist on a dashboard during the migration.",
+    "Experimental — Hullcam VDS streams from the kerbcam sidecar via WebRTC, with an in-widget camera picker and Next/Previous switching. Replaces the OCISLY camera feed once the architecture is proven; both can coexist on a dashboard during the migration.",
   tags: ["camera", "experimental"],
   defaultSize: { w: 5, h: 5 },
   minSize: { w: 2, h: 2 },
@@ -18,9 +22,9 @@ registerComponent<ExpCameraFeedConfig>({
   defaultConfig: {
     flightId: null,
   },
-  actions: [],
+  actions: expCameraFeedActions,
   pushable: true,
 });
 
 export type { ExpCameraFeedConfig };
-export { ExpCameraFeed };
+export { ExpCameraFeed, expCameraFeedActions };
