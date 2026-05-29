@@ -370,6 +370,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   configure(config: Record<string, unknown>): void {
+    const wasEnabled = this.reconnectEnabled;
     this.cfg = {
       host: typeof config.host === "string" ? config.host : this.cfg.host,
       port:
@@ -381,6 +382,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     this.reconnectEnabled = false;
     this.teardownClient();
     this.client = this.buildClient();
+    if (wasEnabled) void this.connect();
   }
 
   // -- private --
