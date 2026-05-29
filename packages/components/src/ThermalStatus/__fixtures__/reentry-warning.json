@@ -1,10 +1,10 @@
 {
   "_meta": {
     "scenario": "reentry-warning",
-    "notes": "Atmospheric reentry — skin heating up to warning band (80% of max). Heat shield carrying significant flux. Engine is cool (throttled off for reentry)."
+    "notes": "Atmospheric reentry \u2014 skin heating up to warning band (80% of max). Heat shield carrying significant flux. Engine is cool (throttled off for reentry)."
   },
   "therm.hottestPartName": "Heat Shield (2.5m)",
-  "therm.hottestPartTemp": 1280.0,
+  "therm.hottestPartTemp": 1670.9,
   "therm.hottestPartMaxTemp": 2400,
   "therm.hottestPartTempRatio": 0.81,
   "therm.hottestEngineTemp": 350.0,
