@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "vessel": "tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "Orbiting ~87km",
+    "notes": "In Kerbin orbit, no target/encounter selected."
+  },
+  "b.number": 17,
+  "v.body": "Kerbin",
+  "tar.name": "No Target Selected.",
+  "o.encounterExists": 0,
+  "o.encounterBody": "",
+  "o.encounterTime": -1,
+  "o.nextApsisType": -1,
+  "o.timeToNextApsis": 294.113503036311
+}

@@ -436,6 +436,64 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-9x12", w: 9, h: 12 },
     ],
   },
+  // ── Wave 2 (2026-05-29): widgets fixtured from a live career capture
+  //    (Kerbin orbit, Mk1 pod). See local_docs/.../captures/. ─────────────
+  {
+    widgetId: "crew-manifest",
+    fixturesPath: "CrewManifest/__fixtures__",
+    outPath: "renders/crew-manifest-widget",
+    modes: [
+      // minSize 3×3 — single-crew row, tightest placement.
+      { name: "tiny-3x3", w: 3, h: 3 },
+      // defaultSize 6×8 — the common operator view.
+      { name: "default-6x8", w: 6, h: 8 },
+      // wide/tall — roomy crew list.
+      { name: "wide-9x10", w: 9, h: 10 },
+    ],
+  },
+  {
+    widgetId: "staff-roster",
+    fixturesPath: "StaffRoster/__fixtures__",
+    outPath: "renders/staff-roster-widget",
+    modes: [
+      // minSize 2×2 — compact tally.
+      { name: "tiny-2x3", w: 2, h: 3 },
+      // defaultSize 5×7 — roster list with traits/availability.
+      { name: "default-5x7", w: 5, h: 7 },
+      // tall — full four-kerbal roster without scrolling.
+      { name: "tall-6x14", w: 6, h: 14 },
+      // wide — trait/level/availability columns have room.
+      { name: "wide-9x10", w: 9, h: 10 },
+    ],
+  },
+  {
+    widgetId: "science-officer",
+    fixturesPath: "ScienceOfficer/__fixtures__",
+    outPath: "renders/science-officer-widget",
+    modes: [
+      // minSize 3×4 — instrument list, tight.
+      { name: "min-3x4", w: 3, h: 4 },
+      // defaultSize 6×7 — the common view.
+      { name: "default-6x7", w: 6, h: 7 },
+      // wide — instrument rows + status have room.
+      { name: "wide-9x10", w: 9, h: 10 },
+    ],
+  },
+  {
+    widgetId: "system-view",
+    fixturesPath: "SystemView/__fixtures__",
+    outPath: "renders/system-view-widget",
+    modes: [
+      // minSize 3×4 — smallest diagram.
+      { name: "min-3x4", w: 3, h: 4 },
+      // square — confirms the system diagram doesn't squish.
+      { name: "square-6x6", w: 6, h: 6 },
+      // defaultSize 10×12 — the common operator view.
+      { name: "default-10x12", w: 10, h: 12 },
+      // wide landscape.
+      { name: "wide-14x10", w: 14, h: 10 },
+    ],
+  },
 ];
 
 /**

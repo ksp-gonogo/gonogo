@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "vessel": "tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "Orbiting ~87km",
+    "notes": "Single pilot (Valentina) in a 1-seat Mk1 pod, in orbit."
+  },
+  "v.crew": [
+    "Valentina Kerman"
+  ],
+  "v.crewCount": 1,
+  "v.crewCapacity": 1,
+  "v.isEVA": false
+}
