@@ -750,11 +750,19 @@ const CardFooter = styled.div`
   justify-content: space-between;
   gap: 6px;
   margin-top: 4px;
+  /* At very narrow widths (portrait-5x18) the FactorTag + action button
+     can't sit side by side — wrap the button onto its own line instead of
+     letting it overflow the card's right edge (was clipping "DEACTIVATE"
+     to "DEACTIVAT"). */
+  flex-wrap: wrap;
 `;
 
 const ConfirmRow = styled.div`
   display: flex;
   gap: 6px;
+  /* Confirm + Cancel are wider than a single action button; let them stack
+     rather than overflow the card at narrow widths. */
+  flex-wrap: wrap;
 `;
 
 const BlockedNote = styled.p`
