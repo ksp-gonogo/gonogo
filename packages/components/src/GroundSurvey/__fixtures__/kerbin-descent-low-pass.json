@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "body": "Kerbin",
+    "notes": "Descending ~2km over Water with impact prediction populated."
+  },
+  "v.heightFromTerrain": 2011.38623046875,
+  "v.biome": "Water",
+  "v.altitude": 2011.38619201363,
+  "v.splashed": false,
+  "land.predictedLon": -55.6193604471985,
+  "land.predictedLat": 2.9619135737313,
+  "v.landedAt": "",
+  "v.situationString": "In flight",
+  "v.surfaceSpeed": 128.044919938789,
+  "v.body": "Kerbin",
+  "v.verticalSpeed": -218.491265755072
+}
