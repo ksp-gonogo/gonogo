@@ -87,6 +87,13 @@ export interface LineChartProps {
   yScaleSecondary?: AxisScale;
   /** Horizontal reference lines drawn across the plot. */
   thresholds?: ReadonlyArray<ThresholdRule>;
+  /**
+   * Series-label legend. `"overlay"` (default) stamps labels top-left inside
+   * the plot, each on a translucent backing chip so they stay legible over
+   * curves and gridlines; `"none"` suppresses it for charts whose title or
+   * threshold label already names the series.
+   */
+  legend?: "overlay" | "none";
   width: number;
   height: number;
 }
@@ -118,6 +125,7 @@ export function LineChart({
   yScalePrimary = "linear",
   yScaleSecondary = "linear",
   thresholds,
+  legend = "overlay",
   width,
   height,
 }: Readonly<LineChartProps>) {
@@ -463,18 +471,33 @@ export function LineChart({
         </React.Fragment>
       ))}
 
-      {/* Series labels (top-left legend) */}
-      {series.map((s, i) => (
-        <text
-          key={s.id}
-          x={plotX0 + 6}
-          y={plotY0 + 14 + i * 16}
-          fill={s.color}
-          fontSize={10}
-        >
-          {s.label}
-        </text>
-      ))}
+      {/* Series labels (top-left legend), each on a translucent backing chip
+          so the text stays legible over curves/gridlines. Labels that would
+          fall into the x-axis tick band are dropped rather than overlapping. */}
+      {legend !== "none" &&
+        series.map((s, i) => {
+          const rowY = plotY0 + 6 + i * 16;
+          // Don't stamp a label where it would collide with the x-axis ticks.
+          if (rowY + 13 > plotY1) return null;
+          // Approximate text width (≈6 px per glyph at fontSize 10); clamp so
+          // the chip never runs past the plot's right edge on narrow charts.
+          const chipW = Math.min(s.label.length * 6 + 8, plotW - 6);
+          return (
+            <React.Fragment key={s.id}>
+              <rect
+                x={plotX0 + 3}
+                y={rowY}
+                width={chipW}
+                height={13}
+                rx={2}
+                fill="rgba(0, 0, 0, 0.55)"
+              />
+              <text x={plotX0 + 6} y={rowY + 10} fill={s.color} fontSize={10}>
+                {s.label}
+              </text>
+            </React.Fragment>
+          );
+        })}
     </svg>
   );
 }
