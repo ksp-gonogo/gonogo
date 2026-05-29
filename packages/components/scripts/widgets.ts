@@ -673,7 +673,12 @@ const WIDGETS: WidgetRenderConfig[] = [
             windowSec: WINDOW,
             variant: "readout",
             series: [
-              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude",
+                axis: "primary",
+              },
             ],
           },
         },
@@ -686,7 +691,12 @@ const WIDGETS: WidgetRenderConfig[] = [
             windowSec: WINDOW,
             variant: "auto",
             series: [
-              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude",
+                axis: "primary",
+              },
             ],
           },
         },
@@ -700,7 +710,12 @@ const WIDGETS: WidgetRenderConfig[] = [
             windowSec: WINDOW,
             variant: "chart",
             series: [
-              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude",
+                axis: "primary",
+              },
             ],
           },
         },
@@ -736,7 +751,12 @@ const WIDGETS: WidgetRenderConfig[] = [
             windowSec: WINDOW,
             variant: "chart",
             series: [
-              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude",
+                axis: "primary",
+              },
             ],
             thresholds: [
               {
@@ -804,6 +824,45 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-16x6", w: 16, h: 6 },
     ],
   },
+  {
+    widgetId: "maneuver-planner",
+    fixturesPath: "ManeuverPlanner/__fixtures__",
+    outPath: "renders/maneuver-planner-widget",
+    modes: [
+      // minSize 6×9 — node editor at its tightest.
+      { name: "min-6x9", w: 6, h: 9 },
+      // defaultSize 10×18 — the common operator view.
+      { name: "default-10x18", w: 10, h: 18 },
+      // wide landscape.
+      { name: "wide-14x12", w: 14, h: 12 },
+    ],
+  },
+  {
+    widgetId: "science-bench",
+    fixturesPath: "ScienceBench/__fixtures__",
+    outPath: "renders/science-bench-widget",
+    modes: [
+      // minSize 4×4 — compact experiment list.
+      { name: "min-4x4", w: 4, h: 4 },
+      { name: "compact-5x7", w: 5, h: 7 },
+      // defaultSize 8×10 — the common operator view.
+      { name: "default-8x10", w: 8, h: 10 },
+      { name: "wide-12x10", w: 12, h: 10 },
+    ],
+  },
+  {
+    widgetId: "ground-survey",
+    fixturesPath: "GroundSurvey/__fixtures__",
+    outPath: "renders/ground-survey-widget",
+    modes: [
+      // minSize 3×3 — readout-only.
+      { name: "tiny-3x3", w: 3, h: 3 },
+      { name: "compact-5x5", w: 5, h: 5 },
+      // defaultSize 8×7 — the common operator view.
+      { name: "default-8x7", w: 8, h: 7 },
+      { name: "wide-12x8", w: 12, h: 8 },
+    ],
+  },
 ];
 
 /**
@@ -824,29 +883,46 @@ const WIDGETS: WidgetRenderConfig[] = [
  * `mobileHeight: 240` regression (gone unnoticed because no test
  * exercised mobile sizing) prompted this scaffolding addition.
  */
-const AUTO_MOBILE_MODE: SizeMode = {
-  name: "mobile-9x8",
-  w: 9,
-  h: 8,
-};
+/**
+ * Auto-appended modes every widget gets unless it already defines a mode with
+ * the same name-prefix. Beyond `mobile-`, two ASPECT-EXTREME modes force the
+ * portrait-vs-landscape reflow decisions that ordinary near-square modes never
+ * exercise — a widget that docks a detail panel, legend, or secondary readout
+ * has to flow it to the *bottom* in tall-narrow and to the *side* in
+ * wide-short, and these catch when it doesn't.
+ *
+ * - `portrait-5x18`  — tall + narrow (aspect ≈ 0.28): single-column, panel below
+ * - `landscape-18x5` — wide + short (aspect ≈ 3.6): row layout, panel beside
+ *
+ * A widget with genuine aspect-specific layout can opt a given auto-mode out by
+ * declaring its own mode with that name-prefix (`mobile-`/`portrait-`/`landscape-`).
+ */
+const AUTO_MODES: readonly SizeMode[] = [
+  { name: "mobile-9x8", w: 9, h: 8 },
+  { name: "portrait-5x18", w: 5, h: 18 },
+  { name: "landscape-18x5", w: 18, h: 5 },
+];
 
-function hasMobileMode(modes: readonly SizeMode[]): boolean {
-  return modes.some((m) => m.name.startsWith("mobile-"));
+function autoModePrefix(name: string): string {
+  return name.split("-")[0];
 }
 
-function withAutoMobileMode(config: WidgetRenderConfig): WidgetRenderConfig {
-  if (hasMobileMode(config.modes)) return config;
-  return {
-    ...config,
-    modes: [...config.modes, AUTO_MOBILE_MODE],
-  };
+function withAutoModes(config: WidgetRenderConfig): WidgetRenderConfig {
+  const existingPrefixes = new Set(
+    config.modes.map((m) => autoModePrefix(m.name)),
+  );
+  const toAppend = AUTO_MODES.filter(
+    (m) => !existingPrefixes.has(autoModePrefix(m.name)),
+  );
+  if (toAppend.length === 0) return config;
+  return { ...config, modes: [...config.modes, ...toAppend] };
 }
 
 export function listWidgets(): readonly WidgetRenderConfig[] {
-  return WIDGETS.map(withAutoMobileMode);
+  return WIDGETS.map(withAutoModes);
 }
 
 export function getWidget(id: string): WidgetRenderConfig | undefined {
   const found = WIDGETS.find((w) => w.widgetId === id);
-  return found ? withAutoMobileMode(found) : undefined;
+  return found ? withAutoModes(found) : undefined;
 }
