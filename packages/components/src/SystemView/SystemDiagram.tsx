@@ -235,9 +235,10 @@ export function SystemDiagram({
       onPointerLeave={() => setHover(null)}
     >
       <svg
-        width={width}
-        height={height}
+        width="100%"
+        height="100%"
         viewBox={vbStr}
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`System view around ${parentName}`}
       >
