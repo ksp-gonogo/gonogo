@@ -62,13 +62,34 @@ function AtmosphereProfileComponent({
   const liveAirTemp = useDataValue<number>("data", "v.atmosphericTemperature");
   const liveSkinTemp = useDataValue<number>("data", "v.externalTemperature");
 
+  const cols = w ?? 8;
+  const rows = h ?? 8;
+  // At extreme tall-narrow aspects (portrait-5x18) the plot is only a few
+  // columns wide. The shared LineChart stamps the series legend top-left and
+  // right-anchors the threshold label at the plot's right edge; on a wide
+  // chart they sit at opposite ends, but on a narrow plot the right-anchored
+  // threshold label sweeps left across the whole plot and collides with both
+  // the legend chip and the Y-axis tick labels. We can't reposition either
+  // element (that's shared LineChart chrome), but both *strings* are
+  // widget-owned — shortening them pulls the right-anchored label's left edge
+  // back toward the right edge and shrinks the legend chip, clearing the
+  // overlap. Same responsive trick already used for the panel title.
+  const narrow = cols < 6;
+
   const referenceCurve = useMemo(() => {
     if (!body) return null;
     // Plot a bit beyond the atmosphere ceiling so the curve clearly bottoms
     // out before the chart edge; airless bodies short-circuit above.
     const ceiling = config?.altitudeCeiling ?? body.maxAtmosphere * 1.1;
-    return buildPressureCurve(body, ceiling);
-  }, [body, config?.altitudeCeiling]);
+    const curve = buildPressureCurve(body, ceiling);
+    if (curve && narrow) {
+      // Drop the "Pressure (Body)" framing to just the body name so the
+      // top-left legend chip collapses to a few glyphs instead of spanning
+      // the narrow plot. The panel title already says "ATMOSPHERE".
+      return { ...curve, label: body.name };
+    }
+    return curve;
+  }, [body, config?.altitudeCeiling, narrow]);
 
   // Vertical "current altitude" markers don't exist in the engine; fake the
   // marker by sampling the curve at the live altitude and dropping a
@@ -82,17 +103,22 @@ function AtmosphereProfileComponent({
   const thresholds: GraphThresholdConfig[] | undefined = useMemo(() => {
     if (currentPressure === undefined || currentPressure <= 0) return undefined;
     if (altitude === undefined) return undefined;
+    // Narrow aspect: drop the " @ N km" suffix so the right-anchored label
+    // stays short and its left edge can't run into the legend / Y-ticks.
+    const label = narrow
+      ? formatPressure(currentPressure)
+      : `${formatPressure(currentPressure)} @ ${(altitude / 1000).toFixed(0)} km`;
     return [
       {
         id: "current-pressure",
         value: currentPressure,
         axis: "primary",
-        label: `${formatPressure(currentPressure)} @ ${(altitude / 1000).toFixed(0)} km`,
+        label,
         color: "var(--color-status-warning-bg)",
         dashed: false,
       },
     ];
-  }, [currentPressure, altitude]);
+  }, [currentPressure, altitude, narrow]);
 
   const graphConfig: GraphConfig = useMemo(
     () => ({
@@ -114,13 +140,11 @@ function AtmosphereProfileComponent({
   // (density picks up). Outside it, density reads ~0 / NaN and the chip is
   // noise. Also suppress on very small widgets where the chip would
   // obscure most of the chart it's annotating.
-  const cols = w ?? 8;
-  const rows = h ?? 8;
   const chipFits = cols >= 7 && rows >= 6;
   // At narrow widths the full title wraps to two lines inside the panel
   // header, stealing a row from the already-short chart. Drop to a single
   // word so the header stays one line and the plot keeps its height.
-  const title = cols < 6 ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
+  const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
     chipFits &&
     typeof liveDensity === "number" &&
