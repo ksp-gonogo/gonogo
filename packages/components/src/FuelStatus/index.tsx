@@ -3,7 +3,12 @@ import type {
   ConfigComponentProps,
   StageInfo,
 } from "@gonogo/core";
-import { clampSafe, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  clampSafe,
+  getWidgetShape,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import {
   BigReadout,
   ConfigForm,
@@ -203,10 +208,14 @@ function FuelStatusComponent({
   // per-stage stack drop bottom-up as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 14;
+  // Wide-short: width compensates for the height-gates, so show the resource
+  // list + stage stack side-by-side beneath the totals row instead of leaving
+  // the box sparse.
+  const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 5;
   const showTotals = rows >= 4;
-  const showResourceList = rows >= 7 && cols >= 5;
-  const showStageStack = rows >= 10 && cols >= 5;
+  const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
+  const showStageStack = cols >= 5 && (rows >= 10 || isLandscape);
   const showHeroDv = !showTotals && totalDv !== undefined;
 
   return (
@@ -254,68 +263,70 @@ function FuelStatusComponent({
         </TotalsRow>
       )}
 
-      {showResourceList && (
-        <ResourceList>
-          {readings
-            .filter(({ max }) => max > 0)
-            .map(({ def, value, max }) => (
-              <ResourceRow key={def.name}>
-                <ResourceLabel>
-                  {def.label}
-                  {def.scope === "current" && <ScopeHint> · stage</ScopeHint>}
-                  {def.scope === "vessel" && <ScopeHint> · vessel</ScopeHint>}
-                </ResourceLabel>
-                <Bar>
-                  <BarFill
-                    style={{
-                      width: `${clampPct((value / max) * 100)}%`,
-                      background: def.color,
-                    }}
-                  />
-                </Bar>
-                <ResourceReadout>
-                  {formatAmount(value)} / {formatAmount(max)}
-                </ResourceReadout>
-              </ResourceRow>
-            ))}
-        </ResourceList>
-      )}
+      <Sections $row={isLandscape}>
+        {showResourceList && (
+          <ResourceList>
+            {readings
+              .filter(({ max }) => max > 0)
+              .map(({ def, value, max }) => (
+                <ResourceRow key={def.name}>
+                  <ResourceLabel>
+                    {def.label}
+                    {def.scope === "current" && <ScopeHint> · stage</ScopeHint>}
+                    {def.scope === "vessel" && <ScopeHint> · vessel</ScopeHint>}
+                  </ResourceLabel>
+                  <Bar>
+                    <BarFill
+                      style={{
+                        width: `${clampPct((value / max) * 100)}%`,
+                        background: def.color,
+                      }}
+                    />
+                  </Bar>
+                  <ResourceReadout>
+                    {formatAmount(value)} / {formatAmount(max)}
+                  </ResourceReadout>
+                </ResourceRow>
+              ))}
+          </ResourceList>
+        )}
 
-      {showStageStack && stages.length > 0 && (
-        <StageStack>
-          <StageHeader>
-            Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
-          </StageHeader>
-          {stages.map((s) => {
-            const dv = pickDeltaV(s, mode);
-            const twr = pickTWR(s, mode);
-            const active = s.stage === currentStage;
-            return (
-              <StageRow key={s.stage} $active={active}>
-                <StageLabel>
-                  {active ? "▶ " : "  "}S{s.stage}
-                </StageLabel>
-                <Bar>
-                  <BarFill
-                    style={{
-                      width: `${clampPct(((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100)}%`,
-                      background: active
-                        ? "var(--color-status-warning-bg)"
-                        : "var(--color-text-faint)",
-                    }}
-                  />
-                </Bar>
-                <StageReadout>
-                  <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
-                  <StageMeta>
-                    {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
-                  </StageMeta>
-                </StageReadout>
-              </StageRow>
-            );
-          })}
-        </StageStack>
-      )}
+        {showStageStack && stages.length > 0 && (
+          <StageStack>
+            <StageHeader>
+              Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
+            </StageHeader>
+            {stages.map((s) => {
+              const dv = pickDeltaV(s, mode);
+              const twr = pickTWR(s, mode);
+              const active = s.stage === currentStage;
+              return (
+                <StageRow key={s.stage} $active={active}>
+                  <StageLabel>
+                    {active ? "▶ " : "  "}S{s.stage}
+                  </StageLabel>
+                  <Bar>
+                    <BarFill
+                      style={{
+                        width: `${clampPct(((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100)}%`,
+                        background: active
+                          ? "var(--color-status-warning-bg)"
+                          : "var(--color-text-faint)",
+                      }}
+                    />
+                  </Bar>
+                  <StageReadout>
+                    <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
+                    <StageMeta>
+                      {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
+                    </StageMeta>
+                  </StageReadout>
+                </StageRow>
+              );
+            })}
+          </StageStack>
+        )}
+      </Sections>
     </Panel>
   );
 }
@@ -374,6 +385,17 @@ function formatDuration(s: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+// Wrapper around the resource list + stage stack. Transparent (`display:
+// contents`) by default so the normal vertical stack is unchanged; at
+// wide-short it becomes a row so the two sit side-by-side, each taking half.
+const Sections = styled.div<{ $row?: boolean }>`
+  display: ${(p) => (p.$row ? "flex" : "contents")};
+  ${(p) =>
+    p.$row &&
+    `flex-direction: row; gap: 16px; min-height: 0; align-items: flex-start;
+     & > * { flex: 1 1 0; min-width: 0; }`}
+`;
 
 const ResourceList = styled.div`
   display: flex;
