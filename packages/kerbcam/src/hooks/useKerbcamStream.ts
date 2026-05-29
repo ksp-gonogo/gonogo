@@ -8,8 +8,9 @@ import type { KerbcamDataSource } from "../KerbcamDataSource";
  * after a disconnect). Components bind the stream to a `<video>`'s
  * `srcObject` directly.
  *
- * Reaches into the `KerbcamClient` via `getDataSource` because the
- * default `useDataValue` channel is scalar-only.
+ * MediaStream objects can't cross PeerJS data channels, so this hook
+ * is inherently main-screen-only. Station-side camera access requires
+ * a dedicated relay (future work).
  */
 export function useKerbcamStream(flightId: number | null): MediaStream | null {
   const [stream, setStream] = useState<MediaStream | null>(() => {
