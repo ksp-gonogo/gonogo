@@ -113,9 +113,20 @@ function CommSignalComponent({
         ? `${(pct * 100).toFixed(0)}%`
         : control.label;
 
-  // Aria-live on the wrapper so a loss-of-signal transition gets announced
-  // once; loud role=alert is owned by the separate SignalLossBanner primitive
-  // at the page level — we don't duplicate it here.
+  // A11y: the visible readout updates on every telemetry tick (percentage,
+  // bar count), so it must NOT be a live region — that would flood the screen
+  // reader (see CLAUDE.md: "Don't live-region streaming telemetry"). Instead a
+  // dedicated visually-hidden status node announces only the connection-state
+  // transition: its text changes between "Signal connected" / "Signal lost",
+  // which fires at most once per LOS/regain. The loud role=alert is owned by
+  // the separate SignalLossBanner primitive at the page level — we don't
+  // duplicate it here.
+  const liveAnnouncement =
+    connected === false
+      ? "Signal lost"
+      : connected === true
+        ? "Signal connected"
+        : "";
   return (
     <Panel>
       <PanelTitle>COMMNET</PanelTitle>
@@ -125,8 +136,12 @@ function CommSignalComponent({
         </PanelSubtitle>
       )}
 
+      <LiveStatus role="status" aria-live="polite">
+        {liveAnnouncement}
+      </LiveStatus>
+
       <Body>
-        <Readout role="status" aria-live="polite">
+        <Readout>
           <Bars aria-label={`Signal ${bars} of 4`}>
             {[1, 2, 3, 4].map((i) => (
               <Bar key={i} $lit={i <= bars} $tone={control.tone} />
@@ -158,6 +173,21 @@ const TONE_COLOR: Record<Tone, string> = {
   warn: "var(--color-status-warning-bg)",
   lost: "var(--color-status-nogo-bg)",
 };
+
+// Visually hidden, but read by screen readers. Only its text content changes
+// (and only on a connection-state transition), so the polite live region
+// announces LOS / signal-restored without floating streaming telemetry.
+const LiveStatus = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 const Body = styled.div`
   flex: 1;

@@ -781,13 +781,13 @@ function MapViewComponent({
           <CompactRow>
             <CompactLabel>Lat</CompactLabel>
             <CompactValue>
-              {lat === undefined ? "—" : `${lat.toFixed(3)}°`}
+              {lat === undefined ? "—" : `${lat.toFixed(2)}°`}
             </CompactValue>
           </CompactRow>
           <CompactRow>
             <CompactLabel>Lon</CompactLabel>
             <CompactValue>
-              {lon === undefined ? "—" : `${lon.toFixed(3)}°`}
+              {lon === undefined ? "—" : `${lon.toFixed(2)}°`}
             </CompactValue>
           </CompactRow>
           {altSea !== undefined && rows >= 5 && (

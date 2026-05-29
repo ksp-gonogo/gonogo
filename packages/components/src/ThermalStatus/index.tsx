@@ -215,9 +215,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      {formatTempC(hottestTempC)}
+                      <TempValue>{formatTempC(hottestTempC)}</TempValue>
                       {hottestMaxC !== undefined && (
-                        <MaxTag> / {formatTempC(hottestMaxC)} max</MaxTag>
+                        <MaxTag>/ {formatTempC(hottestMaxC)} max</MaxTag>
                       )}
                       <BandTag $band={hottestBand}>
                         {BAND_LABEL[hottestBand]}
@@ -240,9 +240,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      {formatTempC(engineTempC)}
+                      <TempValue>{formatTempC(engineTempC)}</TempValue>
                       {engineMaxC !== undefined && (
-                        <MaxTag> / {formatTempC(engineMaxC)} max</MaxTag>
+                        <MaxTag>/ {formatTempC(engineMaxC)} max</MaxTag>
                       )}
                       <BandTag $band={engineBand}>
                         {BAND_LABEL[engineBand]}
@@ -257,8 +257,8 @@ function ThermalStatusComponent({
                   <RowLabel>Heat shield</RowLabel>
                   <RowBody>
                     <TempReadout>
-                      {formatTempC(shieldTempC)}
-                      <MaxTag> · flux {formatKw(shieldFluxKw)}</MaxTag>
+                      <TempValue>{formatTempC(shieldTempC)}</TempValue>
+                      <MaxTag>· flux {formatKw(shieldFluxKw)}</MaxTag>
                     </TempReadout>
                   </RowBody>
                 </Row>
@@ -281,7 +281,7 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
 `;
 
@@ -309,7 +309,7 @@ const Row = styled.div`
   gap: 2px;
 
   & + & {
-    margin-top: 8px;
+    margin-top: 6px;
   }
 `;
 
@@ -350,15 +350,22 @@ const TempBar = styled.div`
 
 const TempReadout = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 2px 6px;
   font-size: 11px;
   color: var(--color-text-primary);
+`;
+
+// Temp value stays intact rather than breaking "287.5°C" mid-token.
+const TempValue = styled.span`
+  white-space: nowrap;
 `;
 
 const MaxTag = styled.span`
   color: var(--color-text-faint);
   font-size: var(--font-size-xs);
+  white-space: nowrap;
 `;
 
 const BandTag = styled.span<{ $band: Band }>`
@@ -366,6 +373,7 @@ const BandTag = styled.span<{ $band: Band }>`
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: ${({ $band }) => BAND_COLOR[$band]};
 `;
 

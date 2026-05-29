@@ -283,7 +283,16 @@ function NavballComponent({
         // Reserve space for the throttle column when it's visible: ~32 px
         // bar + 10 px gap.
         const throttleReserve = showThrottleColumnRef.current ? 42 : 0;
-        const fit = Math.min(w - throttleReserve, h);
+        // The AttitudeIndicator renders its own heading strip (~22 px) and
+        // HDG/PIT/ROL readout row (~40 px) *below* the SVG in the same
+        // column. Reserve that vertical space so a wide-and-short box (e.g.
+        // mobile 9×8, where h is the limiting dimension) doesn't size the
+        // dial to the full column height and push the strip + readout past
+        // the Panel's bottom edge. In w-limited modes (medium/wide) and the
+        // cap=200 control modes this reserve doesn't bind, so they're
+        // unchanged.
+        const verticalReserve = 74;
+        const fit = Math.min(w - throttleReserve, h - verticalReserve);
         // In control mode the dial competes with the SAS / throttle / FBW
         // surface for vertical space — cap it so the buttons stay readable.
         // The display-only path keeps the full 600px ceiling so a dedicated

@@ -142,8 +142,8 @@ function SpaceCenterStatusComponent({
         <PanelTitle>KSC</PanelTitle>
         <TinyBody>
           {typeof careerFunds === "number" ? (
-            <TinyFunds>
-              {Math.round(careerFunds).toLocaleString()}
+            <TinyFunds title={`${Math.round(careerFunds).toLocaleString()}f`}>
+              {formatTinyFunds(Math.round(careerFunds))}
               <TinyFundsUnit>f</TinyFundsUnit>
             </TinyFunds>
           ) : (
@@ -346,6 +346,17 @@ function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   return parts.join("\n");
 }
 
+// Compact funds for the tiny (2x3) bucket where the box is only ~2 grid
+// columns wide. Drops to whole-number k/M so the string stays 3-4 chars
+// ("290k", "78k", "13k") — the decimal form ("289.8k") overflows the
+// narrowest box. The full value lives in the cell's `title` attribute.
+function formatTinyFunds(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${Math.round(value / 1_000_000)}M`;
+  if (abs >= 1_000) return `${Math.round(value / 1_000)}k`;
+  return value.toFixed(0);
+}
+
 function formatCost(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
@@ -368,7 +379,7 @@ const Body = styled(ScrollArea)`
 const FacilityGrid = styled.div<{ $compact: boolean }>`
   display: grid;
   grid-template-columns: ${(p) =>
-    p.$compact ? "repeat(2, 1fr)" : "repeat(3, 1fr)"};
+    p.$compact ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))"};
   gap: 6px;
 `;
 
@@ -559,14 +570,21 @@ const TinyBody = styled.div`
   justify-content: center;
   gap: 4px;
   padding: 4px;
+  overflow: hidden;
+  container-type: inline-size;
 `;
 
 const TinyFunds = styled.div`
-  font-size: 22px;
+  /* Fluid size: large in a roomy "tiny" box (e.g. compact-4x7) but small
+     enough that the abbreviated value (formatCost → "290k") still fits the
+     widget's 2x3 minSize floor (~110px wide) without clipping. */
+  font-size: clamp(12px, 13cqw, 22px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-status-go-fg);
   line-height: 1;
+  max-width: 100%;
+  white-space: nowrap;
 `;
 
 const TinyFundsUnit = styled.span`

@@ -145,7 +145,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             width={gaugeSize.w}
             height={gaugeSize.h}
             valueLabel={twr.toFixed(2)}
-            unitLabel="g"
             ariaLabel={`TWR ${twr.toFixed(2)}`}
           />
         </GaugeSlot>
@@ -171,7 +170,10 @@ const Body = styled.div`
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 4px;
+  /* The Gauge SVG draws its value label inside its own bottom strip, flush
+     with the SVG box edge. A generous gap keeps that label off the sparkline
+     below it — at the 4×5 default the two used to collide. */
+  gap: 20px;
   min-height: 0;
 `;
 

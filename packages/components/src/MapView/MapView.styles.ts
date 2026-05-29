@@ -37,10 +37,14 @@ export const CompactLabel = styled.span`
 `;
 
 export const CompactValue = styled.span`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+  /* Numeric readout — never truncate digits. Shrink to fit the row instead
+     of overflowing the panel edge at the 3-col minimum size. */
+  min-width: 0;
+  white-space: nowrap;
 `;
 
 /**

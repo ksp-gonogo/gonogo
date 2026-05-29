@@ -1018,6 +1018,33 @@ function heatTintFor(
   };
 }
 
+/** Metre-space margin to reserve below an engine for its flame overlay.
+ *  Mirrors `renderEngineFlame`'s `flameH = body.h * 0.4`, expressed as a
+ *  fraction of the part's axial extent. Only engines whose live state is
+ *  "active" draw a flame (gated further on throttle at render time), so
+ *  reserve nothing for idle / pre-push engines to avoid shrinking every
+ *  render. */
+function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
+  if (p.type !== "engine") return 0;
+  const firing = p.partState?.some(
+    (m) => m.type === "engine" && m.state === "active",
+  );
+  return firing ? axialExtent * 0.4 : 0;
+}
+
+/** Metre-space margin to reserve above a parachute for its canopy overlay.
+ *  Mirrors `renderParachuteCanopy`'s canopy height, expressed as a fraction
+ *  of the part's lateral extent. Reserves only for the state actually
+ *  rendered (armed/deploying/extended). */
+function parachuteCanopyReach(p: ShipMapPart, latExtent: number): number {
+  if (p.type !== "parachute") return 0;
+  const state = p.partState?.find((m) => m.type === "parachute")?.state;
+  if (state === "extended") return latExtent * 0.8;
+  if (state === "deploying") return latExtent * 0.45;
+  if (state === "armed") return latExtent * 0.08;
+  return 0;
+}
+
 function intrinsicSize(part: ShipMapPart): Intrinsic {
   const stretchy =
     part.type === "tank" || part.type === "booster" || part.type === "engine";
@@ -1073,8 +1100,18 @@ function project(parts: readonly ShipMapPart[]) {
   for (const p of projected) {
     minL = Math.min(minL, p.body.latMin);
     maxL = Math.max(maxL, p.body.latMax);
-    minA = Math.min(minA, p.body.axialMin);
-    maxA = Math.max(maxA, p.body.axialMax);
+    // Overlays drawn by renderPartStateOverlays escape the body box: an
+    // active engine's flame reaches ~0.4× the body height below it, and a
+    // deploying/extended parachute canopy balloons up to ~0.8× the body
+    // width above it. Bounds are in metres while those overlays are sized
+    // in screen px as a fraction of the body box, so reserve the same
+    // fraction of the part's metre-space extent here. Without this the
+    // bottom engine's flame and a deployed chute clip the viewbox at
+    // fit-zoom (the harness renders at zoom=1 with no pan to recover them).
+    const axialExtent = p.body.axialMax - p.body.axialMin;
+    const latExtent = p.body.latMax - p.body.latMin;
+    minA = Math.min(minA, p.body.axialMin - engineFlameReach(p, axialExtent));
+    maxA = Math.max(maxA, p.body.axialMax + parachuteCanopyReach(p, latExtent));
   }
   const w = Math.max(maxL - minL, 1);
   const h = Math.max(maxA - minA, 1);

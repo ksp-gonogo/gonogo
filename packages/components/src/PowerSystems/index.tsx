@@ -294,9 +294,9 @@ function PowerSystemsComponent({
         {storage.maxAmount > 0 && (
           <TotalsCell>
             <CellLabel>STORED</CellLabel>
-            <CellValue>
+            <StoredValue>
               {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
-            </CellValue>
+            </StoredValue>
           </TotalsCell>
         )}
       </Totals>
@@ -532,6 +532,18 @@ const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
       : $sign === "neg"
         ? "var(--color-status-warning-bg)"
         : "var(--color-text-primary)"};
+`;
+
+/* STORED can carry an "amount / max" pair (e.g. "2900 / 4050"). At the
+   default 8×12 size all four Totals cells pack into one row, leaving each
+   cell too narrow for the nowrap value — it used to overflow the cell and
+   get clipped at the panel's right border. Allow it to wrap within its cell
+   (there is vertical room) so the capacity stays fully legible at every
+   width. The break only ever lands at the " / " separator. */
+const StoredValue = styled(CellValue)`
+  /* Break only at the " / " separator (whitespace), never mid-number. */
+  white-space: normal;
+  line-height: 1.15;
 `;
 
 const SparklineRow = styled.div`

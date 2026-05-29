@@ -137,6 +137,7 @@ function DistanceToTargetComponent({
         }
         universalTime={typeof universalTime === "number" ? universalTime : null}
         cols={cols}
+        rows={rows}
       />
     );
   }
@@ -173,6 +174,7 @@ interface ApproachHudProps {
   closestApproachUT: number | null;
   universalTime: number | null;
   cols: number;
+  rows: number;
 }
 
 /**
@@ -192,6 +194,7 @@ function ApproachHud({
   closestApproachUT,
   universalTime,
   cols,
+  rows,
 }: ApproachHudProps) {
   // Narrow widget: the "Closing rate" label wraps and the TCA value
   // ("T−02:05") clips at the right edge in the auto/1fr grid. Stack
@@ -209,6 +212,34 @@ function ApproachHud({
     Number.isFinite(universalTime)
       ? closestApproachUT - universalTime
       : null;
+
+  // Tiniest reachable size (minSize h=4): the stacked label/value grid is
+  // six lines tall and overflows the box — the closing-rate value and TCA
+  // get clipped off the bottom edge. Mirror the tracking-tiny layout (the
+  // distance is the headline, since it's the widget's name) and fold
+  // closing rate into a one-line subreadout. TCA is the most derived value
+  // and is the cut space forces here.
+  if (rows < 5) {
+    return (
+      <Panel>
+        <PanelTitle>APPROACH</PanelTitle>
+        <TrackingBody>
+          <TargetName>{name}</TargetName>
+          {distance === undefined ? (
+            <Dash>—</Dash>
+          ) : (
+            <Distance>{formatDistance(distance)}</Distance>
+          )}
+          {closingMagnitude !== null && (
+            <SubReadout>
+              {closing ? "−" : "+"}
+              {closingMagnitude.toFixed(1)} m/s
+            </SubReadout>
+          )}
+        </TrackingBody>
+      </Panel>
+    );
+  }
 
   return (
     <Panel>
@@ -714,6 +745,7 @@ const HudRange = styled.span`
   font-size: 16px;
   font-weight: 700;
   color: var(--color-accent-fg);
+  white-space: nowrap;
 `;
 
 const HudGrid = styled.div<{ $stack: boolean }>`
