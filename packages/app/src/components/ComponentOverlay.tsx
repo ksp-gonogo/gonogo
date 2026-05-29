@@ -9,12 +9,14 @@ import {
   useFabCluster,
   useModal,
 } from "@gonogo/ui";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import styled from "styled-components";
@@ -78,6 +80,12 @@ export function ComponentOverlay({
   const [selectedTags, setSelectedTags] = useState<Set<string>>(
     () => new Set(),
   );
+  // Roving selection cursor for keyboard navigation of the results list. The
+  // search input keeps DOM focus (combobox pattern) and the active option is
+  // tracked via aria-activedescendant, so the user can keep typing to filter
+  // while arrows move the highlight.
+  const [activeIdx, setActiveIdx] = useState(0);
+  const activeOptionRef = useRef<HTMLButtonElement | null>(null);
 
   const { addItem, updateItemConfig } = useOverlay();
   const { open: openModal, close: closeModal } = useModal();
@@ -128,6 +136,21 @@ export function ComponentOverlay({
     });
   }, [allComponents, query, selectedTags]);
 
+  // Clamp the roving cursor whenever the filtered list shrinks below it —
+  // otherwise Enter would activate the wrong widget (or read undefined when
+  // the index points past the end of the array). Resets to the top when the
+  // list grows from empty, so a fresh query starts highlighting the first hit.
+  useEffect(() => {
+    setActiveIdx((i) => Math.min(i, Math.max(0, filtered.length - 1)));
+  }, [filtered.length]);
+
+  // Keep the highlighted option scrolled into view as arrows move past the
+  // visible edge of the scrolling List. Optional-call the method — jsdom (and
+  // any non-DOM host) doesn't implement scrollIntoView.
+  useEffect(() => {
+    activeOptionRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIdx]);
+
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) => {
       const next = new Set(prev);
@@ -141,6 +164,7 @@ export function ComponentOverlay({
     setOpen(false);
     setQuery("");
     setSelectedTags(new Set());
+    setActiveIdx(0);
   }, []);
 
   const nextY = useCallback(() => {
@@ -202,6 +226,50 @@ export function ComponentOverlay({
     ],
   );
 
+  // Combobox keyboard nav: arrows move the roving selection through the
+  // filtered results, Enter activates the highlighted widget. Clamps at the
+  // ends (APG-consistent for a search-filtered listbox — wrapping is jarring
+  // when you're scanning a list you filtered yourself). Escape still closes.
+  const handleSearchKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Escape") {
+        closeOverlay();
+        return;
+      }
+      if (filtered.length === 0) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.min(filtered.length - 1, i + 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.max(0, i - 1));
+        return;
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        setActiveIdx(0);
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        setActiveIdx(filtered.length - 1);
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const def = filtered[activeIdx] ?? filtered[0];
+        if (def) handleSelect(def);
+      }
+    },
+    [filtered, activeIdx, handleSelect, closeOverlay],
+  );
+
+  const listboxId = "component-overlay-listbox";
+  const optionId = (id: string) => `component-overlay-option-${id}`;
+  const activeDef = filtered[activeIdx];
+
   const cluster = useFabCluster();
 
   return (
@@ -231,9 +299,15 @@ export function ComponentOverlay({
                 placeholder="Search widgets…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") closeOverlay();
-                }}
+                onKeyDown={handleSearchKeyDown}
+                role="combobox"
+                aria-expanded
+                aria-controls={listboxId}
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  activeDef ? optionId(activeDef.id) : undefined
+                }
+                aria-label="Search widgets"
               />
               <CloseBtn onClick={closeOverlay} aria-label="Close">
                 <CloseIcon size={16} />
@@ -258,24 +332,38 @@ export function ComponentOverlay({
             <ResultsHeader>
               {filtered.length} of {allComponents.length} widgets
             </ResultsHeader>
-            <List>
+            <List id={listboxId} role="listbox" aria-label="Available widgets">
               {filtered.length === 0 && (
                 <Empty>
                   No widgets match "{query}"
                   {selectedTags.size > 0 && " in selected tags"}
                 </Empty>
               )}
-              {filtered.map((def) => (
-                <ListItem key={def.id} onClick={() => handleSelect(def)}>
-                  <ItemName>{def.name}</ItemName>
-                  <ItemDesc>{def.description}</ItemDesc>
-                  <TagRow>
-                    {def.tags.map((t) => (
-                      <Tag key={t} label={t} />
-                    ))}
-                  </TagRow>
-                </ListItem>
-              ))}
+              {filtered.map((def, i) => {
+                const active = i === activeIdx;
+                return (
+                  <ListItem
+                    key={def.id}
+                    id={optionId(def.id)}
+                    role="option"
+                    aria-selected={active}
+                    $active={active}
+                    ref={active ? activeOptionRef : undefined}
+                    // Pointer focus moves the roving cursor so a subsequent
+                    // keystroke continues from where the mouse last hovered.
+                    onMouseEnter={() => setActiveIdx(i)}
+                    onClick={() => handleSelect(def)}
+                  >
+                    <ItemName>{def.name}</ItemName>
+                    <ItemDesc>{def.description}</ItemDesc>
+                    <TagRow>
+                      {def.tags.map((t) => (
+                        <Tag key={t} label={t} />
+                      ))}
+                    </TagRow>
+                  </ListItem>
+                );
+              })}
             </List>
           </Panel>
         </Backdrop>
@@ -414,23 +502,33 @@ const List = styled.div`
   flex: 1;
 `;
 
-const ListItem = styled.button`
+const ListItem = styled.button<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
   text-align: left;
-  background: none;
+  background: ${(p) =>
+    p.$active ? "var(--color-surface-raised)" : "none"};
   border: none;
   border-bottom: 1px solid var(--color-surface-panel);
   padding: 12px 16px;
   cursor: pointer;
+  /* The roving highlight is the keyboard cursor; mirror it with an inset
+     accent rule so it reads as "selected" while DOM focus stays in the
+     search box (combobox + aria-activedescendant pattern). */
+  box-shadow: ${(p) =>
+    p.$active ? "inset 2px 0 0 0 var(--color-accent-fg)" : "none"};
 
   &:hover {
     background: var(--color-surface-raised);
   }
   &:last-child {
     border-bottom: none;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: -2px;
   }
 `;
 
