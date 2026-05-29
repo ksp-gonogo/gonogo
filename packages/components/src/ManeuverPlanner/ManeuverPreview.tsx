@@ -61,8 +61,14 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
   return (
     <PreviewSection>
       <SectionTitle>Preview</SectionTitle>
-      <PreviewBody {...props} />
-      <ManeuverDiagram {...props} />
+      <PreviewContainer>
+        <PreviewMain>
+          <PreviewReadouts>
+            <PreviewBody {...props} />
+          </PreviewReadouts>
+          <ManeuverDiagram {...props} />
+        </PreviewMain>
+      </PreviewContainer>
       {props.normal !== 0 && (
         <Note>
           Normal component tilts the plane; projection shows in-plane shape
@@ -134,9 +140,11 @@ function PreviewBody({
 
       <Label>Available</Label>
       <Value>
-        {vesselDeltaV.totalVac === 0
-          ? "—"
-          : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+        <ValueNum>
+          {vesselDeltaV.totalVac === 0
+            ? "—"
+            : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+        </ValueNum>
         {feasible !== null && (
           <FeasibilityChip $ok={feasible}>
             {feasible ? "OK" : "SHORT"}
@@ -174,9 +182,11 @@ function SequencePreview({
 
         <Label>Available</Label>
         <Value>
-          {vesselDeltaV.totalVac === 0
-            ? "—"
-            : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+          <ValueNum>
+            {vesselDeltaV.totalVac === 0
+              ? "—"
+              : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+          </ValueNum>
           {feasible !== null && (
             <FeasibilityChip $ok={feasible}>
               {feasible ? "OK" : "SHORT"}
@@ -397,18 +407,55 @@ const accentColor = {
 
 const Value = styled.dd<{ $accent?: "ap" | "pe" }>`
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px 6px;
   font-size: 13px;
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
   margin: 0;
 `;
 
+/** Number + unit stay glued together; only the trailing chip may wrap. */
+const ValueNum = styled.span`
+  white-space: nowrap;
+`;
+
+const PreviewContainer = styled.div`
+  container-type: inline-size;
+`;
+
+const PreviewMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  /* Wide-short: readouts and diagram share a row instead of stacking with a
+     large empty gutter. Narrow widths keep the natural single-column stack. */
+  @container (min-width: 460px) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+`;
+
+const PreviewReadouts = styled.div`
+  min-width: 0;
+
+  @container (min-width: 460px) {
+    flex: 0 0 auto;
+  }
+`;
+
 const DiagramWrap = styled.div`
   height: 180px;
   flex-shrink: 0;
   display: flex;
+
+  @container (min-width: 460px) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 `;
 
 const Note = styled.div`
