@@ -649,11 +649,22 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  /* At narrow widths (portrait 5-col ≈ 192px) the title + badge row can't sit
+     side by side. Let them wrap to stacked rows rather than letting the badge
+     row overflow the panel's right edge (Panel has overflow:hidden, so an
+     overflowing RCS/PRECISION badge was getting clipped). */
+  flex-wrap: wrap;
 `;
 
 const ModeBadgeRow = styled.div`
   display: flex;
   gap: 4px;
+  /* Wrap badges onto a second line at narrow widths instead of pushing the
+     trailing badge (RCS / PRECISION) past the clipped panel edge. Align right
+     so they stay grouped under the SAS badge. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 `;
 
 const ModeBadge = styled.span<{ $on: boolean }>`
