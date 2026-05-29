@@ -65,6 +65,22 @@ import { useBiomeCanvas, useHeightCanvas } from "./useScanLayerCanvas";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
 
+/**
+ * Resolve a CSS custom property to a concrete colour for use on a `<canvas>`
+ * 2D context, which (unlike the DOM) cannot resolve `var(--…)` and silently
+ * paints black when handed one. Reads the computed value off the canvas
+ * element so theme switches are respected; falls back to the token's default
+ * if the property isn't set (e.g. before the theme stylesheet is applied).
+ */
+function canvasColor(
+  el: HTMLElement,
+  varName: string,
+  fallback: string,
+): string {
+  const v = getComputedStyle(el).getPropertyValue(varName).trim();
+  return v || fallback;
+}
+
 const mapViewActions = [
   {
     id: "toggleFollow",
@@ -338,7 +354,7 @@ function MapViewComponent({
     const textureImage = textureImageRef.current;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "var(--color-surface-panel)";
+    ctx.fillStyle = canvasColor(canvas, "--color-surface-panel", "#0d0d0d");
     ctx.fillRect(0, 0, w, h);
 
     ctx.setTransform(...cameraTransform(camera, w, h));
@@ -370,7 +386,7 @@ function MapViewComponent({
     // lineWidth compensates for zoom so grid lines remain 1 screen pixel
     ctx.strokeStyle = textureImage
       ? "rgba(255,255,255,0.05)"
-      : "var(--color-surface-raised)";
+      : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
     ctx.lineWidth = 1 / camera.zoom;
     for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
       const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
@@ -389,7 +405,7 @@ function MapViewComponent({
 
     ctx.strokeStyle = textureImage
       ? "rgba(255,255,255,0.15)"
-      : "var(--color-border-subtle)";
+      : canvasColor(canvas, "--color-border-subtle", "#2a2a2a");
     ctx.lineWidth = 1.5 / camera.zoom;
     const { y: eqY } = latLonToMap(0, 0, WORLD_W, WORLD_H);
     ctx.beginPath();
@@ -728,7 +744,7 @@ function MapViewComponent({
 
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "var(--color-accent-fg)";
+      ctx.fillStyle = canvasColor(canvas, "--color-accent-fg", "#00ff88");
       ctx.fill();
 
       ctx.strokeStyle = "rgba(0,255,136,0.6)";
