@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  getWidgetShape,
   registerComponent,
   useDataValue,
   useExecuteAction,
@@ -190,6 +191,7 @@ export function formatDeadline(
 }
 
 function MissionDirectorComponent({
+  w,
   h,
 }: Readonly<ComponentProps<MissionDirectorConfig>>) {
   const activeRaw = useDataValue("data", "contracts.active");
@@ -209,6 +211,15 @@ function MissionDirectorComponent({
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
+  // Wide-short boxes (landscape-18x5) strand the single-column card list: one
+  // card fills the full width while the rest scroll off the short height, and
+  // the right ~75% sits empty. Only the shape signal can see this — the size
+  // bucket reads the same `normal` at 18x5 as at 5x18. Flow the cards into a
+  // width-following multi-column grid only when landscape; portrait and square
+  // keep the unchanged single column so those sizes can't regress. The section
+  // labels (Active / Offered) stay outside the grid so the grouping holds.
+  const { shape } = getWidgetShape(w, h);
+  const multiColumn = shape === "landscape";
 
   if (active === null) {
     return (
@@ -238,6 +249,7 @@ function MissionDirectorComponent({
           <Empty>No active contracts. Pick one up in Mission Control.</Empty>
         )}
         {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
+        <CardList $multiColumn={multiColumn}>
         {active.map((c) => (
           <ContractCard key={c.id}>
             <ContractHeader>
@@ -377,7 +389,9 @@ function MissionDirectorComponent({
             </ActiveActions>
           </ContractCard>
         ))}
+        </CardList>
         {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
+        <CardList $multiColumn={multiColumn}>
         {offered?.map((c) => (
           <ContractCard key={c.id}>
             <ContractHeader>
@@ -420,6 +434,7 @@ function MissionDirectorComponent({
             </OfferedActions>
           </ContractCard>
         ))}
+        </CardList>
       </Body>
     </Panel>
   );
@@ -530,6 +545,28 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: 12px;
   padding: 8px 0;
+`;
+
+// Single column by default (portrait / square). In landscape we switch to a
+// width-following grid: `auto-fill` + a min card width derives the column count
+// from the available width rather than hardcoding a fixed "2 columns", so the
+// same rule fills an 18-wide box with several columns and would scale up if the
+// widget were dropped wider. `align-content: start` keeps short lists from
+// stretching. The 8px gap matches the single-column flex spacing the Body
+// inner used to own between cards, so portrait/square are byte-for-byte
+// unchanged. Each Active / Offered section is its own CardList so the section
+// labels stay full-width and the grouping holds.
+const CARD_MIN_WIDTH = "240px";
+const CardList = styled.div<{ $multiColumn: boolean }>`
+  ${({ $multiColumn }) =>
+    $multiColumn
+      ? `display: grid;
+         grid-template-columns: repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr));
+         align-content: start;
+         gap: 8px;`
+      : `display: flex;
+         flex-direction: column;
+         gap: 8px;`}
 `;
 
 const SectionLabel = styled.div`

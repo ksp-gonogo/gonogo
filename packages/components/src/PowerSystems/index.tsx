@@ -3,7 +3,7 @@ import type {
   ComponentProps,
   ConfigComponentProps,
 } from "@gonogo/core";
-import { registerComponent, useActionInput } from "@gonogo/core";
+import { getWidgetShape, registerComponent, useActionInput } from "@gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
 import {
   ConfigForm,
@@ -210,7 +210,16 @@ function PowerSystemsComponent({
   // resource name; pre-data state shows a single hint line.
   const cols = w ?? 8;
   const rows = h ?? 10;
-  const showFullList = cols >= 6 && rows >= 8;
+  // Wide-short boxes (landscape-18x5) have plenty of *width* but too few
+  // *rows* to clear the normal `rows >= 8` height gate — so they used to
+  // drop into the near-empty compact path with ~80% of the width dead. When
+  // the grid box is genuinely landscape we instead flow the three sections
+  // side-by-side (see SectionsScroll/$landscape) so the full list fits in
+  // the short height by spending the spare width. Portrait/square keep the
+  // height-gated stacked layout untouched.
+  const { shape } = getWidgetShape(w, h);
+  const isLandscape = shape === "landscape";
+  const showFullList = cols >= 6 && (rows >= 8 || isLandscape);
   const showHeader = rows >= 4;
 
   if (!topology) {
@@ -329,8 +338,8 @@ function PowerSystemsComponent({
         </SparklineRow>
       )}
 
-      <SectionsScroll>
-        <Section>
+      <SectionsScroll $landscape={isLandscape}>
+        <Section $landscape={isLandscape}>
           <SectionTitle>
             Producers
             {producers.length > 0 && (
@@ -340,14 +349,14 @@ function PowerSystemsComponent({
           {producers.length === 0 ? (
             <SectionEmpty>Nothing producing.</SectionEmpty>
           ) : (
-            <ContribList>
+            <ContribList $landscape={isLandscape}>
               {producers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
             </ContribList>
           )}
         </Section>
-        <Section>
+        <Section $landscape={isLandscape}>
           <SectionTitle>
             Consumers
             {consumers.length > 0 && (
@@ -357,7 +366,7 @@ function PowerSystemsComponent({
           {consumers.length === 0 ? (
             <SectionEmpty>Nothing consuming.</SectionEmpty>
           ) : (
-            <ContribList>
+            <ContribList $landscape={isLandscape}>
               {consumers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
@@ -365,12 +374,12 @@ function PowerSystemsComponent({
           )}
         </Section>
         {idle.length > 0 && (
-          <Section>
+          <Section $landscape={isLandscape}>
             <SectionTitle>
               Idle
               <SectionCount>· {idle.length}</SectionCount>
             </SectionTitle>
-            <IdleList>
+            <IdleList $landscape={isLandscape}>
               {idle.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
@@ -584,19 +593,32 @@ const SparklineSlot = styled.div`
   align-items: center;
 `;
 
-const SectionsScroll = styled(ScrollArea)`
+const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   flex: 1;
   [data-scroll-area-inner] {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    /* Portrait/square: sections stack vertically and the whole area scrolls
+       (unchanged). Landscape (wide-short): sections sit side-by-side as
+       equal columns, each scrolling its own list, so the full producers /
+       consumers / idle breakdown fits in the short height by using the
+       spare width instead of dropping to the compact net-only readout. */
+    flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
+    gap: ${({ $landscape }) => ($landscape ? "12px" : "8px")};
+    ${({ $landscape }) =>
+      $landscape
+        ? "align-items: stretch; overflow: hidden;"
+        : ""}
   }
 `;
 
-const Section = styled.section`
+const Section = styled.section<{ $landscape?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 2px;
+  ${({ $landscape }) =>
+    $landscape
+      ? "flex: 1 1 0; min-width: 0; min-height: 0;"
+      : ""}
 `;
 
 const SectionTitle = styled.h3`
