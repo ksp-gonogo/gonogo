@@ -1,0 +1,4410 @@
+{
+  "_meta": {
+    "capturedAt": "2026-05-29",
+    "body": "Kerbin",
+    "situation": "Career flight",
+    "notes": "Live tech.nodes capture (63 nodes) from gonogo Telemachus fork TechTreeDataLinkHandler."
+  },
+  "tech.nodes": [
+    {
+      "scienceCost": 0,
+      "scienceCostEffective": 0,
+      "state": "Available",
+      "parents": [],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "hc.kazzelblad",
+          "title": "BoosterCam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "mumech.hullcam",
+          "title": "Basic Hull Camera Deluxe",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Multiversal Mechatronics"
+        },
+        {
+          "purchased": true,
+          "category": "Aero",
+          "name": "basicFin",
+          "title": "Basic Fin",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": true,
+          "category": "Cargo",
+          "name": "evaJetpack",
+          "title": "EVA Jetpack",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Reaction Systems Ltd"
+        },
+        {
+          "purchased": true,
+          "category": "Cargo",
+          "name": "evaChute",
+          "title": "Personal Parachute",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "FreeFall Parachutes"
+        },
+        {
+          "purchased": true,
+          "category": "Pods",
+          "name": "mk1pod.v2",
+          "title": "Mk1 Command Pod",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Engine",
+          "name": "solidBooster.sm.v2",
+          "title": "RT-5 \"Flea\" Solid Fuel Booster",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Periapsis Rocket Supplies Co"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "GooExperiment",
+          "title": "Mystery Goo™ Containment Unit",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": true,
+          "category": "Structural",
+          "name": "trussPiece1x",
+          "title": "Modular Girder Segment",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Maxo Construction Toys"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "parachuteSingle",
+          "title": "Mk16 Parachute",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "FreeFall Parachutes"
+        }
+      ],
+      "id": "start",
+      "title": "Start",
+      "description": "The technology we started out with."
+    },
+    {
+      "scienceCost": 5,
+      "scienceCostEffective": 5,
+      "state": "Available",
+      "parents": [
+        "start"
+      ],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Engine",
+          "name": "solidBooster.v2",
+          "title": "RT-10 \"Hammer\" Solid Fuel Booster",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Periapsis Rocket Supplies Co"
+        },
+        {
+          "purchased": true,
+          "category": "none",
+          "name": "liquidEngine2",
+          "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": true,
+          "category": "Engine",
+          "name": "liquidEngine2.v2",
+          "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+          "entryCostEffective": 3500,
+          "entryCost": 3500,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": true,
+          "category": "FuelTank",
+          "name": "fuelTankSmallFlat",
+          "title": "FL-T100 Fuel Tank",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        }
+      ],
+      "id": "basicRocketry",
+      "title": "Basic Rocketry",
+      "description": "How hard can Rocket Science be anyway?"
+    },
+    {
+      "scienceCost": 5,
+      "scienceCostEffective": 5,
+      "state": "Available",
+      "parents": [
+        "start"
+      ],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Coupling",
+          "name": "Decoupler.1",
+          "title": "TD-12 Decoupler",
+          "entryCostEffective": 1600,
+          "entryCost": 1600,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "sensorThermometer",
+          "title": "2HOT Thermometer",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Communication",
+          "name": "SurfAntenna",
+          "title": "Communotron 16-S",
+          "entryCostEffective": 750,
+          "entryCost": 750,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": true,
+          "category": "Communication",
+          "name": "longAntenna",
+          "title": "Communotron 16",
+          "entryCostEffective": 750,
+          "entryCost": 750,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        }
+      ],
+      "id": "engineering101",
+      "title": "Engineering 101",
+      "description": "How hard can Aerospace Engineering be anyway?"
+    },
+    {
+      "scienceCost": 15,
+      "scienceCostEffective": 15,
+      "state": "Available",
+      "parents": [
+        "engineering101"
+      ],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Thermal",
+          "name": "HeatShield0",
+          "title": "Heat Shield (0.625m)",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": true,
+          "category": "Thermal",
+          "name": "HeatShield1",
+          "title": "Heat Shield (1.25m)",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "sensorBarometer",
+          "title": "PresMat Barometer",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Thermal",
+          "name": "radPanelSm",
+          "title": "Radiator Panel (small)",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Payload",
+          "name": "ServiceBay.125.v2",
+          "title": "Service Bay (1.25m)",
+          "entryCostEffective": 1000,
+          "entryCost": 1000,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": true,
+          "category": "Ground",
+          "name": "miniLandingLeg",
+          "title": "LT-05 Micro Landing Strut",
+          "entryCostEffective": 820,
+          "entryCost": 820,
+          "manufacturer": "Moving Parts Experts Group"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "radialDrogue",
+          "title": "Mk12-R Radial-Mount Drogue Chute",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "FreeFall Parachutes"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "parachuteRadial",
+          "title": "Mk2-R Radial-Mount Parachute",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "FreeFall Parachutes"
+        }
+      ],
+      "id": "survivability",
+      "title": "Survivability",
+      "description": "The art and science of landing and walking away from it."
+    },
+    {
+      "scienceCost": 18,
+      "scienceCostEffective": 18,
+      "state": "Unavailable",
+      "parents": [
+        "engineering101",
+        "basicRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "noseCone",
+          "title": "Aerodynamic Nose Cone",
+          "entryCostEffective": 2000,
+          "entryCost": 2000,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "winglet",
+          "title": "AV-T1 Winglet",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "radialDecoupler",
+          "title": "TT-38K Radial Decoupler",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        }
+      ],
+      "id": "stability",
+      "title": "Stability",
+      "description": "Reaching for the stars starts with keeping our spacecraft pointed generally in the right direction."
+    },
+    {
+      "scienceCost": 20,
+      "scienceCostEffective": 20,
+      "state": "Unavailable",
+      "parents": [
+        "basicRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "liquidEngine",
+          "title": "LV-T30 \"Reliant\" Liquid Fuel Engine",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "liquidEngine.v2",
+          "title": "LV-T30 \"Reliant\" Liquid Fuel Engine",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "solidBooster1-1",
+          "title": "BACC \"Thumper\" Solid Fuel Booster",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "fuelTankSmall",
+          "title": "FL-T200 Fuel Tank",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        }
+      ],
+      "id": "generalRocketry",
+      "title": "General Rocketry",
+      "description": "More engines, more fuel, more ambitious ideas."
+    },
+    {
+      "scienceCost": 45,
+      "scienceCostEffective": 45,
+      "state": "Unavailable",
+      "parents": [
+        "stability"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "sweptWing",
+          "title": "Swept Wings",
+          "entryCostEffective": 3600,
+          "entryCost": 3600,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "tailfin",
+          "title": "Tail Fin",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airplaneTail",
+          "title": "Tail Connector A",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "miniIntake",
+          "title": "Small Circular Intake",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingConnector2",
+          "title": "Wing Connector Type B",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingConnector5",
+          "title": "Wing Connector Type E",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "StandardCtrlSrf",
+          "title": "Elevon 1",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "structuralWing3",
+          "title": "Structural Wing Type C",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "Mark1Cockpit",
+          "title": "Mk1 Cockpit",
+          "entryCostEffective": 2600,
+          "entryCost": 2600,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "miniJetEngine",
+          "title": "J-20 \"Juno\" Basic Jet Engine",
+          "entryCostEffective": 2000,
+          "entryCost": 2000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "miniFuselage",
+          "title": "Mk0 Liquid Fuel Fuselage",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "MK1Fuselage",
+          "title": "Mk1 Liquid Fuel Fuselage",
+          "entryCostEffective": 2600,
+          "entryCost": 2600,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "navLight1",
+          "title": "Navigation Light Mk1",
+          "entryCostEffective": 750,
+          "entryCost": 750,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "GearFixed",
+          "title": "LY-01 Fixed Landing Gear",
+          "entryCostEffective": 500,
+          "entryCost": 500,
+          "manufacturer": "LightYear Tire Company"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "GearFree",
+          "title": "LY-05 Steerable Landing Gear",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "LightYear Tire Company"
+        }
+      ],
+      "id": "aviation",
+      "title": "Aviation",
+      "description": "The art and science of keeping heavier-than-air objects aloft for extended periods of time."
+    },
+    {
+      "scienceCost": 45,
+      "scienceCostEffective": 45,
+      "state": "Available",
+      "parents": [
+        "survivability"
+      ],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "hc.booster",
+          "title": "BoosterCam",
+          "entryCostEffective": 130,
+          "entryCost": 130,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "hc.navcam",
+          "title": "NavCam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "DC.munCam",
+          "title": "MunCam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "scansat-multi-modis-1",
+          "title": "MS-1 Multispectral Scanner",
+          "entryCostEffective": 7500,
+          "entryCost": 7500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "scansat-radar-poseidon-3b-1",
+          "title": "R-3B Radar Altimeter",
+          "entryCostEffective": 5500,
+          "entryCost": 5500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": true,
+          "category": "Pods",
+          "name": "probeCoreSphere.v2",
+          "title": "Probodobodyne Stayputnik",
+          "entryCostEffective": 1400,
+          "entryCost": 1400,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Electrical",
+          "name": "batteryPack",
+          "title": "Z-100 Rechargeable Battery Pack",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "science.module",
+          "title": "SC-9001 Science Jr.",
+          "entryCostEffective": 5500,
+          "entryCost": 5500,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": true,
+          "category": "Science",
+          "name": "ScienceBox",
+          "title": "Experiment Storage Unit",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": true,
+          "category": "Thermal",
+          "name": "radPanelEdge",
+          "title": "Radiator Panel (edge)",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Thermal",
+          "name": "radPanelLg",
+          "title": "Radiator Panel (large)",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": true,
+          "category": "none",
+          "name": "HighGainAntenna5",
+          "title": "HG-5 High Gain Antenna",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": true,
+          "category": "Communication",
+          "name": "HighGainAntenna5.v2",
+          "title": "HG-5 High Gain Antenna",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": true,
+          "category": "Control",
+          "name": "Telemach.Blade",
+          "title": "Telemachus TeleBlade Antenna",
+          "entryCostEffective": 1000,
+          "entryCost": 1000,
+          "manufacturer": "Karmin Navigation"
+        },
+        {
+          "purchased": true,
+          "category": "Control",
+          "name": "Telemach.Fustek",
+          "title": "Telemachus FusTek Antenna",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "FusTek"
+        },
+        {
+          "purchased": true,
+          "category": "Control",
+          "name": "TeleMach.Yagi",
+          "title": "Telemachus Yagi Antenna",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "Borklund"
+        }
+      ],
+      "id": "basicScience",
+      "title": "Basic Science",
+      "description": "We are going to ask all the big questions of the Universe... eventually. For now, we're starting with these."
+    },
+    {
+      "scienceCost": 45,
+      "scienceCostEffective": 45,
+      "state": "Available",
+      "parents": [
+        "survivability",
+        "stability"
+      ],
+      "parts": [
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "DC.aerocam2",
+          "title": "Aerocam UP",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": true,
+          "category": "Utility",
+          "name": "DC.aerocam2.180",
+          "title": "Aerocam DN",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": true,
+          "category": "Aero",
+          "name": "R8winglet",
+          "title": "AV-R8 Winglet",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Aero",
+          "name": "winglet3",
+          "title": "Delta-Deluxe Winglet",
+          "entryCostEffective": 4600,
+          "entryCost": 4600,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": true,
+          "category": "Control",
+          "name": "sasModule",
+          "title": "Small Inline Reaction Wheel",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": true,
+          "category": "Control",
+          "name": "kOSMachine1m",
+          "title": "CX-4181 Scriptable Control System",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "Compotronix"
+        }
+      ],
+      "id": "flightControl",
+      "title": "Flight Control",
+      "description": "Tumbling out of control may be fun, but our engineers insist there's more to rocket science than that."
+    },
+    {
+      "scienceCost": 45,
+      "scienceCostEffective": 45,
+      "state": "Unavailable",
+      "parents": [
+        "generalRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "liquidEngine3.v2",
+          "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+          "entryCostEffective": 1600,
+          "entryCost": 1600,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "radialLiquidEngine1-2",
+          "title": "Mk-55 \"Thud\" Liquid Fuel Engine",
+          "entryCostEffective": 3500,
+          "entryCost": 3500,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "fuelTank",
+          "title": "FL-T400 Fuel Tank",
+          "entryCostEffective": 1600,
+          "entryCost": 1600,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "fireworksLauncherBig",
+          "title": "Starshot-32",
+          "entryCostEffective": 50,
+          "entryCost": 50,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "fireworksLauncherSmall",
+          "title": "Starshot-8",
+          "entryCostEffective": 400,
+          "entryCost": 400,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        }
+      ],
+      "id": "advRocketry",
+      "title": "Advanced Rocketry",
+      "description": "A new step ahead in rocket technology."
+    },
+    {
+      "scienceCost": 45,
+      "scienceCostEffective": 45,
+      "state": "Unavailable",
+      "parents": [
+        "stability",
+        "generalRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "MK1CrewCabin",
+          "title": "Mk1 Crew Cabin",
+          "entryCostEffective": 2600,
+          "entryCost": 2600,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "strutConnector",
+          "title": "EAS-4 Strut Connector",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Decoupler.2",
+          "title": "TD-25 Decoupler",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "Mk1FuselageStructural",
+          "title": "Structural Fuselage",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "flagPartSize1",
+          "title": "RFP-1 Flag (1.25m)",
+          "entryCostEffective": 500,
+          "entryCost": 500,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "launchClamp1",
+          "title": "TT18-A Launch Stability Enhancer",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "largeAdapter",
+          "title": "Rockomax Brand Adapter",
+          "entryCostEffective": 3300,
+          "entryCost": 3300,
+          "manufacturer": "Rockomax Conglomerate"
+        }
+      ],
+      "id": "generalConstruction",
+      "title": "General Construction",
+      "description": "New equipment to help out in keeping things stable, especially useful when the size of the spacecraft defies the current bounds of sanity."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "advRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Mite",
+          "title": "FM1 \"Mite\" Solid Fuel Booster",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "liquidEngineMini.v2",
+          "title": "48-7S \"Spark\" Liquid Fuel Engine",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "microEngine.v2",
+          "title": "LV-1 \"Ant\" Liquid Fuel Engine",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "externalTankCapsule",
+          "title": "R-11 'Baguette' External Tank",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "miniFuelTank",
+          "title": "Oscar-B Fuel Tank",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "propulsionSystems",
+      "title": "Propulsion Systems",
+      "description": "A positively different approach to existing trends in rocketry. These small, lightweight propulsion systems may not seem as exciting, but they might prove just as useful."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "basicScience"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-multi-abi-1",
+          "title": "MS-R Enhanced Multispectral Scanner",
+          "entryCostEffective": 13000,
+          "entryCost": 13000,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "smallCargoContainer",
+          "title": "SEQ-3 Cargo Storage Unit",
+          "entryCostEffective": 750,
+          "entryCost": 750,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "evaRepairKit",
+          "title": "EVA Repair Kit",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Kerbal Motion LLC"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "ConformalStorageUnit",
+          "title": "SEQ-3C Conformal Storage Unit",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "crewCabin",
+          "title": "PPD-10 Hitchhiker Storage Container",
+          "entryCostEffective": 12400,
+          "entryCost": 12400,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "groundLight1",
+          "title": "Work Lamp (Small)",
+          "entryCostEffective": 500,
+          "entryCost": 500,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "groundLight2",
+          "title": "Work Lamp (Stand)",
+          "entryCostEffective": 700,
+          "entryCost": 700,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "ladder1",
+          "title": "Pegasus I Mobility Enhancer",
+          "entryCostEffective": 500,
+          "entryCost": 500,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "roverWheel2",
+          "title": "RoveMax Model S2",
+          "entryCostEffective": 3100,
+          "entryCost": 3100,
+          "manufacturer": "Kerbal Motion LLC"
+        }
+      ],
+      "id": "spaceExploration",
+      "title": "Space Exploration",
+      "description": "To boldly go where no green man has gone before."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "flightControl"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "advSasModule",
+          "title": "Advanced Inline Stabilizer",
+          "entryCostEffective": 7200,
+          "entryCost": 7200,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "landerCabinSmall",
+          "title": "Mk1 Lander Can",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "Sean's Cannery"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "radialRCSTank",
+          "title": "Stratus-V Roundified Monopropellant Tank",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "Stratus Corporation"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "linearRcs",
+          "title": "Place-Anywhere 7 Linear RCS Port",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Reaction Systems Ltd"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "RCSblock.01.small",
+          "title": "RV-1X Variable Thruster Block",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "Reaction Systems Ltd"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "RCSBlock.v2",
+          "title": "RV-105 RCS Thruster Block",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "RCSLinearSmall",
+          "title": "Place Anywhere 1 Linear RCS Port",
+          "entryCostEffective": 400,
+          "entryCost": 400,
+          "manufacturer": "Reaction Systems Ltd"
+        }
+      ],
+      "id": "advFlightControl",
+      "title": "Advanced Flight Control",
+      "description": "The latest advancements in keeping the correct end of the ship pointing towards where you want it to go."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "flightControl",
+        "aviation"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "HeatShield2",
+          "title": "Heat Shield (2.5m)",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "landingLeg1",
+          "title": "LT-1 Landing Struts",
+          "entryCostEffective": 2900,
+          "entryCost": 2900,
+          "manufacturer": "Moving Parts Experts Group"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "LaunchEscapeSystem",
+          "title": "Launch Escape System",
+          "entryCostEffective": 4500,
+          "entryCost": 4500,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "parachuteLarge",
+          "title": "Mk16-XL Parachute",
+          "entryCostEffective": 4600,
+          "entryCost": 4600,
+          "manufacturer": "FreeFall Parachutes"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "SmallGearBay",
+          "title": "LY-10 Small Landing Gear",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "LightYear Tire Company"
+        }
+      ],
+      "id": "landing",
+      "title": "Landing",
+      "description": "Our Engineers are nothing if not optimistic."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "aviation",
+        "generalConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airScoop",
+          "title": "XM-G50 Radial Air Intake",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "Vac-Co Advanced Suction Systems"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "CircularIntake",
+          "title": "Circular Intake",
+          "entryCostEffective": 8800,
+          "entryCost": 8800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "noseConeAdapter",
+          "title": "NCS Adapter",
+          "entryCostEffective": 6500,
+          "entryCost": 6500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "standardNoseCone",
+          "title": "Small Nose Cone",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airplaneTailB",
+          "title": "Tail Connector B",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingConnector",
+          "title": "Wing Connector Type A",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingConnector3",
+          "title": "Wing Connector Type C",
+          "entryCostEffective": 4300,
+          "entryCost": 4300,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "structuralWing2",
+          "title": "Structural Wing Type B",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "sweptWing2",
+          "title": "Swept Wing Type B",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "Mark2Cockpit",
+          "title": "Mk1 Inline Cockpit",
+          "entryCostEffective": 5800,
+          "entryCost": 5800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "JetEngine",
+          "title": "J-33 \"Wheesley\" Turbofan Engine",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "nacelleBody",
+          "title": "Engine Nacelle",
+          "entryCostEffective": 6500,
+          "entryCost": 6500,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "aerodynamicSystems",
+      "title": "Aerodynamics",
+      "description": "New breakthroughs from C7 Aerospace allow for new types of craft to be built. We're looking into hiring some of their engineers as well."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "basicScience"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-radar-seasat-1",
+          "title": "R-EO-1 Radar Antenna",
+          "entryCostEffective": 6500,
+          "entryCost": 6500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeCoreOcto.v2",
+          "title": "Probodobodyne OKTO",
+          "entryCostEffective": 2800,
+          "entryCost": 2800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanels5",
+          "title": "OX-STAT Photovoltaic Panels",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "batteryBankMini",
+          "title": "Z-200 Rechargeable Battery Bank",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "foldingRadSmall",
+          "title": "Thermal Control System (small)",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "domeLight1",
+          "title": "Domelight Mk1",
+          "entryCostEffective": 700,
+          "entryCost": 700,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "spotLight3",
+          "title": "Spotlight Mk1",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "spotLight1",
+          "title": "Illuminator Mk1",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "spotLight1.v2",
+          "title": "Illuminator Mk1",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "spotLight2",
+          "title": "Illuminator Mk2",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "spotLight2.v2",
+          "title": "Illuminator Mk2",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "Rokea Inc"
+        }
+      ],
+      "id": "electrics",
+      "title": "Electrics",
+      "description": "We did know about electricity before inventing space flight. The big breakthrough here was combining the two."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "advRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "MassiveBooster",
+          "title": "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster",
+          "entryCostEffective": 8000,
+          "entryCost": 8000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "liquidEngine2-2.v2",
+          "title": "RE-L10 \"Poodle\" Liquid Fuel Engine",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "engineLargeSkipper.v2",
+          "title": "RE-I5 \"Skipper\" Liquid Fuel Engine",
+          "entryCostEffective": 14000,
+          "entryCost": 14000,
+          "manufacturer": "Rockomax Conglomerate"
+        }
+      ],
+      "id": "heavyRocketry",
+      "title": "Heavy Rocketry",
+      "description": "The next logical step for rocketry technology is to just go bigger."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "advRocketry",
+        "generalConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "fuelLine",
+          "title": "FTX-2 External Fuel Duct",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "Rockomax16.BW",
+          "title": "Rockomax X200-16 Fuel Tank",
+          "entryCostEffective": 8200,
+          "entryCost": 8200,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "Rockomax32.BW",
+          "title": "Rockomax X200-32 Fuel Tank",
+          "entryCostEffective": 14400,
+          "entryCost": 14400,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "Rockomax8BW",
+          "title": "Rockomax X200-8 Fuel Tank",
+          "entryCostEffective": 5200,
+          "entryCost": 5200,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "fuelTank.long",
+          "title": "FL-T800 Fuel Tank",
+          "entryCostEffective": 4800,
+          "entryCost": 4800,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "ReleaseValve",
+          "title": "FTE-1 Drain Valve",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        }
+      ],
+      "id": "fuelSystems",
+      "title": "Fuel Systems",
+      "description": "Advancements towards a better understanding of how fuel flows through a rocket."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "generalConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "pointyNoseConeA",
+          "title": "Advanced Nose Cone - Type A",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "rocketNoseCone.v2",
+          "title": "Protective Rocket Nose Cone Mk7",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "rocketNoseCone.v3",
+          "title": "Protective Rocket Nose Cone Mk7",
+          "entryCostEffective": 6500,
+          "entryCost": 6500,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "fairingSize1",
+          "title": "AE-FF1 Airstream Protective Shell (1.25m)",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Separator.1",
+          "title": "TS-12 Stack Separator",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "radialDecoupler1-2",
+          "title": "Hydraulic Detachment Manifold",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "radialDecoupler2",
+          "title": "TT-70 Radial Decoupler",
+          "entryCostEffective": 2300,
+          "entryCost": 2300,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "flagPartSize0",
+          "title": "RFP-0 Flag (.625m)",
+          "entryCostEffective": 750,
+          "entryCost": 750,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "largeAdapter2",
+          "title": "Rockomax Brand Adapter 02",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "stackTriCoupler.v2",
+          "title": "TVR-1180C Mk1 Stack Tri-Coupler",
+          "entryCostEffective": 2100,
+          "entryCost": 2100,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        }
+      ],
+      "id": "advConstruction",
+      "title": "Advanced Construction",
+      "description": "New advances in construction make it possible to build larger than ever before."
+    },
+    {
+      "scienceCost": 90,
+      "scienceCostEffective": 90,
+      "state": "Unavailable",
+      "parents": [
+        "basicScience"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "evaScienceKit",
+          "title": "EVA Experiments Kit",
+          "entryCostEffective": 1500,
+          "entryCost": 1500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Separator.0",
+          "title": "TS-06 Stack Separator",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterSmallMiniShort",
+          "title": "FL-A5 Adapter",
+          "entryCostEffective": 4800,
+          "entryCost": 4800,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterSmallMiniTall",
+          "title": "FL-A10 Adapter",
+          "entryCostEffective": 4400,
+          "entryCost": 4400,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "dockingPort3",
+          "title": "Clamp-O-Tron Docking Port Jr.",
+          "entryCostEffective": 7800,
+          "entryCost": 7800,
+          "manufacturer": "Clamp-O-Tron"
+        }
+      ],
+      "id": "miniaturization",
+      "title": "Miniaturization",
+      "description": "These aren't your standard hobby miniature models. We've been assured they look good enough to actually fly."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "advConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "GrapplingDevice",
+          "title": "Advanced Grabbing Unit",
+          "entryCostEffective": 5200,
+          "entryCost": 5200,
+          "manufacturer": "Kerbal Motion LLC"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "smallClaw",
+          "title": "Advanced Grabbing Unit Jr.",
+          "entryCostEffective": 4100,
+          "entryCost": 4100,
+          "manufacturer": "Kerbal Motion LLC"
+        }
+      ],
+      "id": "actuators",
+      "title": "Actuators",
+      "description": "Perfecting the art of making things mobile, without the explicit use of explosives. Our engineers assure us, this is actually a good thing."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "spaceExploration",
+        "advFlightControl"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk1-3pod",
+          "title": "Mk1-3 Command Pod",
+          "entryCostEffective": 7600,
+          "entryCost": 7600,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "cupola",
+          "title": "PPD-12 Cupola Module",
+          "entryCostEffective": 10200,
+          "entryCost": 10200,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "mk2LanderCabin",
+          "title": "Mk2 Lander Can",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Sean's Cannery"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk2LanderCabin.v2",
+          "title": "Mk2 Lander Can",
+          "entryCostEffective": 8200,
+          "entryCost": 8200,
+          "manufacturer": "Sean's Cannery"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "ServiceBay.250.v2",
+          "title": "Service Bay (2.5m)",
+          "entryCostEffective": 1000,
+          "entryCost": 1000,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        }
+      ],
+      "id": "commandModules",
+      "title": "Command Modules",
+      "description": "Flight control technology has evolved far enough that we feel we can honestly say pilots are in command now."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "heavyRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "Size2LFB",
+          "title": "LFB KR-1x2 \"Twin-Boar\" Liquid Fuel Engine",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Size2LFB.v2",
+          "title": "LFB KR-1x2 \"Twin-Boar\" Liquid Fuel Engine",
+          "entryCostEffective": 65000,
+          "entryCost": 65000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "liquidEngineMainsail.v2",
+          "title": "RE-M3 \"Mainsail\" Liquid Fuel Engine",
+          "entryCostEffective": 38000,
+          "entryCost": 38000,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Thoroughbred",
+          "title": "S2-17 \"Thoroughbred\" Solid Fuel Booster",
+          "entryCostEffective": 27000,
+          "entryCost": 27000,
+          "manufacturer": "Kerbodyne"
+        }
+      ],
+      "id": "heavierRocketry",
+      "title": "Heavier Rocketry",
+      "description": "There may be an upper limit to how large a rocket can be built, but we're not there yet."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "miniaturization",
+        "electrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "DC.smallCam",
+          "title": "HazCam",
+          "entryCostEffective": 100,
+          "entryCost": 100,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "DC.smallCam.Wide",
+          "title": "HazCam SuperWide",
+          "entryCostEffective": 100,
+          "entryCost": 100,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-recon-ikonos-1",
+          "title": "VS-1 High Resolution Imager",
+          "entryCostEffective": 12500,
+          "entryCost": 12500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "probeCoreHex",
+          "title": "Probodobodyne HECS",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeCoreHex.v2",
+          "title": "Probodobodyne HECS",
+          "entryCostEffective": 4900,
+          "entryCost": 4900,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Decoupler.0",
+          "title": "TD-06 Decoupler",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralMiniNode",
+          "title": "The Not-Rockomax Micronode",
+          "entryCostEffective": 9800,
+          "entryCost": 9800,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "strutCube",
+          "title": "Cubic Octagonal Strut",
+          "entryCostEffective": 5800,
+          "entryCost": 5800,
+          "manufacturer": "StrutCo"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "strutOcto",
+          "title": "Octagonal Strut",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "StrutCo"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "RelayAntenna5",
+          "title": "RA-2 Relay Antenna",
+          "entryCostEffective": 5000,
+          "entryCost": 5000,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "mediumDishAntenna",
+          "title": "Communotron DTS-M1",
+          "entryCostEffective": 4900,
+          "entryCost": 4900,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "KR-2042",
+          "title": "KR-2042 b Scriptable Control System",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "Compotronix"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "kOSMachine0m",
+          "title": "KR-2042 b Scriptable Control System",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "Compotronix"
+        }
+      ],
+      "id": "precisionEngineering",
+      "title": "Precision Engineering",
+      "description": "Precise engineering techniques allow for construction of ever smaller parts."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "spaceExploration"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-resources-crism-1",
+          "title": "SCAN-R Resource Mapper",
+          "entryCostEffective": 5500,
+          "entryCost": 5500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "cargoContainer",
+          "title": "SEQ-9 Container Module",
+          "entryCostEffective": 2200,
+          "entryCost": 2200,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "evaCylinder",
+          "title": "EVA Fuel Cylinders",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "Reaction Systems Ltd"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "CargoStorageUnit",
+          "title": "SEQ-24 Cargo Storage Unit",
+          "entryCostEffective": 3500,
+          "entryCost": 3500,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "Large.Crewed.Lab",
+          "title": "Mobile Processing Lab MPL-LG-2",
+          "entryCostEffective": 10400,
+          "entryCost": 10400,
+          "manufacturer": "Integrated Integrals"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "telescopicLadder",
+          "title": "Kelus Mobility Enhancer",
+          "entryCostEffective": 3100,
+          "entryCost": 3100,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "telescopicLadderBay",
+          "title": "Kelus-LV Bay Mobility Enhancer",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "Rokea Inc"
+        }
+      ],
+      "id": "advExploration",
+      "title": "Advanced Exploration",
+      "description": "They are Self-Deploying Astronaut Mobility Enhancement Devices, I don't know what you mean by \"ladders\"."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "advFlightControl"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "avionicsNoseCone",
+          "title": "CH-J3 Fly-By-Wire Avionics Hub",
+          "entryCostEffective": 10500,
+          "entryCost": 10500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "asasmodule1-2",
+          "title": "Advanced Reaction Wheel Module, Large",
+          "entryCostEffective": 11600,
+          "entryCost": 11600,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "rcsTankRadialLong",
+          "title": "Stratus-V Cylindrified Monopropellant Tank",
+          "entryCostEffective": 5400,
+          "entryCost": 5400,
+          "manufacturer": "Stratus Corporation"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "vernierEngine",
+          "title": "Vernor Engine",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "Reaction Systems Ltd"
+        }
+      ],
+      "id": "specializedControl",
+      "title": "Specialized Control",
+      "description": "A new state-of-the-art in control technology."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "landing"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "HeatShield3",
+          "title": "Heat Shield (3.75m)",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "landingLeg1-2",
+          "title": "LT-2 Landing Strut",
+          "entryCostEffective": 4100,
+          "entryCost": 4100,
+          "manufacturer": "Moving Parts Experts Group"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "parachuteDrogue",
+          "title": "Mk25 Parachute",
+          "entryCostEffective": 3500,
+          "entryCost": 3500,
+          "manufacturer": "FreeFall Parachutes"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "GearSmall",
+          "title": "LY-35 Medium Landing Gear",
+          "entryCostEffective": 4800,
+          "entryCost": 4800,
+          "manufacturer": "LightYear Tire Company"
+        }
+      ],
+      "id": "advLanding",
+      "title": "Advanced Landing",
+      "description": "Further advances in landing devices, allowing for more controlled descents and a much higher number of parts still attached to the ship after touchdown."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "aerodynamicSystems"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingStrake",
+          "title": "Wing Strake",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "structuralWing",
+          "title": "Structural Wing Type A",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk2Cockpit.Standard",
+          "title": "Mk2 Cockpit",
+          "entryCostEffective": 20000,
+          "entryCost": 20000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "turboJet",
+          "title": "J-404 \"Panther\" Afterburning Turbofan",
+          "entryCostEffective": 9000,
+          "entryCost": 9000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2.1m.Bicoupler",
+          "title": "Mk2 Bicoupler",
+          "entryCostEffective": 19800,
+          "entryCost": 19800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2SpacePlaneAdapter",
+          "title": "Mk2 to 1.25m Adapter",
+          "entryCostEffective": 14600,
+          "entryCost": 14600,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2FuselageShortLFO",
+          "title": "Mk2 Rocket Fuel Fuselage Short",
+          "entryCostEffective": 18500,
+          "entryCost": 18500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2FuselageShortLiquid",
+          "title": "Mk2 Liquid Fuel Fuselage Short",
+          "entryCostEffective": 18500,
+          "entryCost": 18500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk2CargoBayS",
+          "title": "Mk2 Cargo Bay CRG-04",
+          "entryCostEffective": 11500,
+          "entryCost": 11500,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "supersonicFlight",
+      "title": "Supersonic Flight",
+      "description": "A new line of aircraft parts that allow for unprecedented maneuverability and speed."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "propulsionSystems",
+        "fuelSystems"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "RCSTank1-2",
+          "title": "FL-R750 RCS Fuel Tank",
+          "entryCostEffective": 7600,
+          "entryCost": 7600,
+          "manufacturer": "Stratus Corporation"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "rcsTankMini",
+          "title": "FL-R20 RCS Fuel Tank",
+          "entryCostEffective": 4500,
+          "entryCost": 4500,
+          "manufacturer": "Stratus Corporation"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "RCSFuelTank",
+          "title": "FL-R120 RCS Fuel Tank",
+          "entryCostEffective": 4600,
+          "entryCost": 4600,
+          "manufacturer": "Stratus Corporation"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "Rockomax64.BW",
+          "title": "Rockomax Jumbo-64 Fuel Tank",
+          "entryCostEffective": 24200,
+          "entryCost": 24200,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterSize2-Size1",
+          "title": "C7 Brand Adapter - 2.5m to 1.25m",
+          "entryCostEffective": 18000,
+          "entryCost": 18000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterSize2-Size1Slant",
+          "title": "C7 Brand Adapter Slanted - 2.5m to 1.25m",
+          "entryCostEffective": 18000,
+          "entryCost": 18000,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "advFuelSystems",
+      "title": "Adv. Fuel Systems",
+      "description": "Advanced Advancements towards a better understanding of how fuel flows through a rocket."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "electrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "kerbpro",
+          "title": "KerbPro",
+          "entryCostEffective": 5200,
+          "entryCost": 5200,
+          "manufacturer": "Magic Smoke Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "aerocam180",
+          "title": "Aerocam 180",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "Magic Smoke Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "aerocam",
+          "title": "Aerocam",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "Magic Smoke Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "hc.launchcam",
+          "title": "KSC Launchpad Camera",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "hc.scicam",
+          "title": "ScienceCam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-sar-paz-1",
+          "title": "SAR-X Antenna",
+          "entryCostEffective": 6500,
+          "entryCost": 6500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanels2",
+          "title": "SP-L 1x6 Photovoltaic Panels",
+          "entryCostEffective": 4400,
+          "entryCost": 4400,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanels4",
+          "title": "OX-4L 1x6 Photovoltaic Panels",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanels1",
+          "title": "SP-W 3x2 Photovoltaic Panels",
+          "entryCostEffective": 4400,
+          "entryCost": 4400,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanels3",
+          "title": "OX-4W 3x2 Photovoltaic Panels",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "ksp.r.largeBatteryPack",
+          "title": "Z-400 Rechargeable Battery",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "LgRadialSolarPanel",
+          "title": "OX-STAT-XL Photovoltaic Panels",
+          "entryCostEffective": 6000,
+          "entryCost": 6000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "foldingRadMed",
+          "title": "Thermal Control System (medium)",
+          "entryCostEffective": 11000,
+          "entryCost": 11000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "stripLight1",
+          "title": "Lightstrip Mk1",
+          "entryCostEffective": 1000,
+          "entryCost": 1000,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "Cherry Light",
+          "title": "Cherry Light",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "kOS Peripherals"
+        }
+      ],
+      "id": "advElectrics",
+      "title": "Advanced Electrics",
+      "description": "We're fairly certain no one will ever need more than 64kw of power for anything."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "advConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "pointyNoseConeB",
+          "title": "Advanced Nose Cone - Type B",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "fairingSize2",
+          "title": "AE-FF2 Airstream Protective Shell (2.5m)",
+          "entryCostEffective": 6100,
+          "entryCost": 6100,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": false,
+          "category": "Cargo",
+          "name": "groundAnchor",
+          "title": "Stamp-O-Tron Ground Anchor",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Separator.2",
+          "title": "TS-25 Stack Separator",
+          "entryCostEffective": 3100,
+          "entryCost": 3100,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "trussAdapter",
+          "title": "Modular Girder Adapter",
+          "entryCostEffective": 4800,
+          "entryCost": 4800,
+          "manufacturer": "Maxo Construction Toys"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "dockingPort2",
+          "title": "Clamp-O-Tron Docking Port",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "Clamp-O-Tron"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "flagPartSize2",
+          "title": "RFP-2 Flag (2.5m)",
+          "entryCostEffective": 1300,
+          "entryCost": 1300,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "stackPoint1",
+          "title": "BZ-52 Radial Attachment Point",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Clamp-O-Tron"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "stackBiCoupler.v2",
+          "title": "TVR-200 Stack Bi-Coupler",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        }
+      ],
+      "id": "specializedConstruction",
+      "title": "Specialized Construction",
+      "description": "Specialized construction techniques provide new ways of attaching things together, and detaching things on purpose."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "propulsionSystems"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "omsEngine",
+          "title": "O-10 \"Puff\" MonoPropellant Fuel Engine",
+          "entryCostEffective": 2500,
+          "entryCost": 2500,
+          "manufacturer": "Reaction Systems Ltd"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Shrimp",
+          "title": "F3S0 \"Shrimp\" Solid Fuel Booster",
+          "entryCostEffective": 1600,
+          "entryCost": 1600,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "smallRadialEngine",
+          "title": "24-77 \"Twitch\" Liquid Fuel Engine",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "smallRadialEngine.v2",
+          "title": "24-77 \"Twitch\" Liquid Fuel Engine",
+          "entryCostEffective": 920,
+          "entryCost": 920,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "radialEngineMini.v2",
+          "title": "LV-1R \"Spider\" Liquid Fuel Engine",
+          "entryCostEffective": 1750,
+          "entryCost": 1750,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "sepMotor1",
+          "title": "Sepratron I",
+          "entryCostEffective": 1100,
+          "entryCost": 1100,
+          "manufacturer": "Periapsis Rocket Supplies Co"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "externalTankRound",
+          "title": "R-4 'Dumpling' External Tank",
+          "entryCostEffective": 1200,
+          "entryCost": 1200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "externalTankToroid",
+          "title": "R-12 'Doughnut' External Tank",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "precisionPropulsion",
+      "title": "Precision Propulsion",
+      "description": "Any level of precision achieved in controlling the sustained explosion inside a rocket engine is nothing short of remarkable. It might be quite expensive, too."
+    },
+    {
+      "scienceCost": 160,
+      "scienceCostEffective": 160,
+      "state": "Unavailable",
+      "parents": [
+        "aerodynamicSystems"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airbrake1",
+          "title": "A.I.R.B.R.A.K.E.S",
+          "entryCostEffective": 20000,
+          "entryCost": 20000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "CanardController",
+          "title": "Standard Canard",
+          "entryCostEffective": 11400,
+          "entryCost": 11400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingConnector4",
+          "title": "Wing Connector Type D",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "deltaWing",
+          "title": "Delta Wing",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "delta.small",
+          "title": "Small Delta Wing",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "elevon2",
+          "title": "Elevon 2",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "elevon3",
+          "title": "Elevon 3",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "smallCtrlSrf",
+          "title": "Elevon 4",
+          "entryCostEffective": 3200,
+          "entryCost": 3200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "elevon5",
+          "title": "Elevon 5",
+          "entryCostEffective": 4800,
+          "entryCost": 4800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "structuralWing4",
+          "title": "Structural Wing Type D",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "sweptWing1",
+          "title": "Swept Wing Type A",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "smallHardpoint",
+          "title": "Small Hardpoint",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "advAerodynamics",
+      "title": "Advanced Aerodynamics",
+      "description": "Advances in fluid dynamics research technology have allowed development of a new set of streamlined aircraft components, And also these parts here."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advLanding"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "InflatableHeatShield",
+          "title": "Heat Shield (10m)",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "GearLarge",
+          "title": "LY-99 Extra Large Landing Gear",
+          "entryCostEffective": 8000,
+          "entryCost": 8000,
+          "manufacturer": "LightYear Tire Company"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "GearMedium",
+          "title": "LY-60 Large Landing Gear",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "LightYear Tire Company"
+        }
+      ],
+      "id": "heavyLanding",
+      "title": "Heavy Landing",
+      "description": "A good landing is one where you walk away from it. A great landing is one where you get to use the aircraft again."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advExploration",
+        "precisionEngineering"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "DC.ChemCam",
+          "title": "ChemCam",
+          "entryCostEffective": 800,
+          "entryCost": 800,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-resources-mise-1",
+          "title": "SCAN-R2 Advanced Resource Mapper",
+          "entryCostEffective": 15500,
+          "entryCost": 15500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "InfraredTelescope",
+          "title": "SENTINEL Infrared Telescope",
+          "entryCostEffective": 9000,
+          "entryCost": 9000,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "SurfaceScanner",
+          "title": "Surface Scanning Module",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "SurveyScanner",
+          "title": "M700 Survey Scanner",
+          "entryCostEffective": 4500,
+          "entryCost": 4500,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "sensorAtmosphere",
+          "title": "Atmospheric Fluid Spectro-Variometer",
+          "entryCostEffective": 12200,
+          "entryCost": 12200,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "scienceTech",
+      "title": "Scanning Tech",
+      "description": "Why wonder about what's over the next hill when you can wonder about what's under it?"
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "precisionEngineering"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "Telescope",
+          "title": "Ordan Industrial Pictozoom 1000 Series",
+          "entryCostEffective": 4900,
+          "entryCost": 4900,
+          "manufacturer": "Ordan Industrial in association with Probodobodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "Pictozoom.2000",
+          "title": "Ordan Industrial KOMMAND-R Pictozoom 2000 Series Variable Aperture Spectograph Net",
+          "entryCostEffective": 4900,
+          "entryCost": 4900,
+          "manufacturer": "Ordan Industrial"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "DC.RoverCam",
+          "title": "NavCam",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "DC.TurretCam",
+          "title": "TurretCam",
+          "entryCostEffective": 600,
+          "entryCost": 600,
+          "manufacturer": "SciSense"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-recon-worldview-3-1",
+          "title": "VS-3 Advanced High Resolution Imager",
+          "entryCostEffective": 25500,
+          "entryCost": 25500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeCoreCube",
+          "title": "Probodobodyne QBE",
+          "entryCostEffective": 3800,
+          "entryCost": 3800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeCoreOcto2.v2",
+          "title": "Probodobodyne OKTO2",
+          "entryCostEffective": 7500,
+          "entryCost": 7500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "kOSMachineRad",
+          "title": "CompoMax Radial Tubeless",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "Squalid-State Devices Inc."
+        }
+      ],
+      "id": "unmannedTech",
+      "title": "Unmanned Tech",
+      "description": "Warning: May contain traces of sentience."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advFuelSystems",
+        "heavierRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "nuclearEngine",
+          "title": "LV-N \"Nerv\" Atomic Rocket Motor",
+          "entryCostEffective": 45000,
+          "entryCost": 45000,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        }
+      ],
+      "id": "nuclearPropulsion",
+      "title": "Nuclear Propulsion",
+      "description": "Nuclear engines don't burn fuel, they totally annihilate it. We just hope it doesn't begin any conflicts."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "specializedConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "trussPiece3x",
+          "title": "Modular Girder Segment XL",
+          "entryCostEffective": 7800,
+          "entryCost": 7800,
+          "manufacturer": "Maxo Construction Toys"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "dockingPort1",
+          "title": "Clamp-O-Tron Shielded Docking Port",
+          "entryCostEffective": 8400,
+          "entryCost": 8400,
+          "manufacturer": "Clamp-O-Tron"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "stackQuadCoupler",
+          "title": "TVR-2160C Mk2 Stack Quad-Coupler",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        }
+      ],
+      "id": "advMetalworks",
+      "title": "Advanced MetalWorks",
+      "description": "These new construction techniques allow for craft designs that were considered insane not too long ago... and still are. But they're now possible!"
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advLanding",
+        "advExploration"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-exomars-1",
+          "title": "SCAN Been There Done That®",
+          "entryCostEffective": 25000,
+          "entryCost": 25000,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "seatExternalCmd",
+          "title": "EAS-1 External Command Seat",
+          "entryCostEffective": 8100,
+          "entryCost": 8100,
+          "manufacturer": "Kerlington Model Rockets and Paper Products Inc"
+        },
+        {
+          "purchased": false,
+          "category": "none",
+          "name": "roverBody",
+          "title": "Probodobodyne RoveMate",
+          "entryCostEffective": 0,
+          "entryCost": 0,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "roverBody.v2",
+          "title": "Probodobodyne RoveMate",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "roverWheel1",
+          "title": "RoveMax Model M1",
+          "entryCostEffective": 5200,
+          "entryCost": 5200,
+          "manufacturer": "Kerbal Motion LLC"
+        }
+      ],
+      "id": "fieldScience",
+      "title": "Field Science",
+      "description": "Freedom to roam as far as curiosity will take you, or as long as batteries last."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "supersonicFlight"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "IntakeRadialLong",
+          "title": "Adjustable Ramp Intake (Radial)",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "ramAirIntake",
+          "title": "Adjustable Ramp Intake",
+          "entryCostEffective": 14000,
+          "entryCost": 14000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk2Cockpit.Inline",
+          "title": "Mk2 Inline Cockpit",
+          "entryCostEffective": 20000,
+          "entryCost": 20000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterSize2-Mk2",
+          "title": "2.5m to Mk2 Adapter",
+          "entryCostEffective": 18000,
+          "entryCost": 18000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2.1m.AdapterLong",
+          "title": "Mk2 to 1.25m Adapter Long",
+          "entryCostEffective": 17500,
+          "entryCost": 17500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2FuselageLongLFO",
+          "title": "Mk2 Rocket Fuel Fuselage",
+          "entryCostEffective": 18500,
+          "entryCost": 18500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2Fuselage",
+          "title": "Mk2 Liquid Fuel Fuselage",
+          "entryCostEffective": 18500,
+          "entryCost": 18500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "mk2FuselageShortMono",
+          "title": "Mk2 Monopropellant Tank",
+          "entryCostEffective": 18500,
+          "entryCost": 18500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "MK1IntakeFuselage",
+          "title": "Mk1 Diverterless Supersonic Intake",
+          "entryCostEffective": 4200,
+          "entryCost": 4200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralPylon",
+          "title": "Structural Pylon",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk2CargoBayL",
+          "title": "Mk2 Cargo Bay CRG-08",
+          "entryCostEffective": 17200,
+          "entryCost": 17200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "mk2CrewCabin",
+          "title": "MK2 Crew Cabin",
+          "entryCostEffective": 12000,
+          "entryCost": 12000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "mk2DockingPort",
+          "title": "Mk2 Clamp-O-Tron",
+          "entryCostEffective": 11000,
+          "entryCost": 11000,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "highAltitudeFlight",
+      "title": "High Altitude Flight",
+      "description": "New breakthroughs in engine and intake development to enable flying through the upper reaches of the atmosphere."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advFuelSystems",
+        "specializedConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Decoupler.3",
+          "title": "TD-37 Decoupler",
+          "entryCostEffective": 2400,
+          "entryCost": 2400,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "Size3MediumTank",
+          "title": "Kerbodyne S3-7200 Tank",
+          "entryCostEffective": 32600,
+          "entryCost": 32600,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "Size3SmallTank",
+          "title": "Kerbodyne S3-3600 Tank",
+          "entryCostEffective": 18800,
+          "entryCost": 18800,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "Size3To2Adapter.v2",
+          "title": "Kerbodyne ADTP-2-3",
+          "entryCostEffective": 12000,
+          "entryCost": 12000,
+          "manufacturer": "Kerbodyne"
+        }
+      ],
+      "id": "largeVolumeContainment",
+      "title": "Large Volume Containment",
+      "description": "Maximize the payload capacity of your spacecraft by maximizing the size of your spacecraft."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "specializedConstruction"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "rocketNoseConeSize3",
+          "title": "Protective Rocket Nose Cone Mk12A",
+          "entryCostEffective": 3500,
+          "entryCost": 3500,
+          "manufacturer": "Goliath National Products"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "fairingSize3",
+          "title": "AE-FF3 Airstream Protective Shell (3.75m)",
+          "entryCostEffective": 9200,
+          "entryCost": 9200,
+          "manufacturer": "FLOOYD Dynamics Research Labs"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "Separator.3",
+          "title": "TS-37 Stack Separator",
+          "entryCostEffective": 3600,
+          "entryCost": 3600,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralIBeam2",
+          "title": "M-Beam 200 I-Beam",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralIBeam3",
+          "title": "M-Beam 200 I-Beam Pocket Edition",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralIBeam1",
+          "title": "M-Beam 650 I-Beam",
+          "entryCostEffective": 7800,
+          "entryCost": 7800,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralPanel1",
+          "title": "M-1x1 Structural Panel",
+          "entryCostEffective": 7200,
+          "entryCost": 7200,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "structuralPanel2",
+          "title": "M-2x2 Structural Panel",
+          "entryCostEffective": 9800,
+          "entryCost": 9800,
+          "manufacturer": "Dinkelstein Kerman's Construction Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "dockingPortLateral",
+          "title": "Inline Clamp-O-Tron",
+          "entryCostEffective": 9800,
+          "entryCost": 9800,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "flagPartFlat",
+          "title": "RFP-F Flag Flat",
+          "entryCostEffective": 2000,
+          "entryCost": 2000,
+          "manufacturer": "Rokea Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "flagPartSize3",
+          "title": "RFP-3 Flag (3.75m)",
+          "entryCostEffective": 1800,
+          "entryCost": 1800,
+          "manufacturer": "Rokea Inc"
+        }
+      ],
+      "id": "composites",
+      "title": "Composites",
+      "description": "Lightweight and strong! and don't worry, we're sure the glue will dry off in no time."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "precisionEngineering",
+        "advElectrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "hc.nightvision",
+          "title": "Nightvisioncam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "hc.wideangle",
+          "title": "Wide Angle Cam",
+          "entryCostEffective": 10,
+          "entryCost": 10,
+          "manufacturer": "Maniacal Mallard Industries"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "HighGainAntenna",
+          "title": "Communotron HG-55",
+          "entryCostEffective": 7500,
+          "entryCost": 7500,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "Magnetometer",
+          "title": "Magnetometer Boom",
+          "entryCostEffective": 7500,
+          "entryCost": 7500,
+          "manufacturer": "Experimental Engineering Group"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "sensorAccelerometer",
+          "title": "Double-C Seismic Accelerometer",
+          "entryCostEffective": 8200,
+          "entryCost": 8200,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "RelayAntenna50",
+          "title": "RA-15 Relay Antenna",
+          "entryCostEffective": 45000,
+          "entryCost": 45000,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        }
+      ],
+      "id": "electronics",
+      "title": "Electronics",
+      "description": "Hopefully these won't become obsolete in the next couple of months."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advElectrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-sar-radarsat-2-1",
+          "title": "SAR-C Antenna",
+          "entryCostEffective": 25500,
+          "entryCost": 25500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanelOX10C",
+          "title": "OX-10C Photovoltaic Panels",
+          "entryCostEffective": 7000,
+          "entryCost": 7000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanelSP10C",
+          "title": "SP-10C Photovoltaic Panels",
+          "entryCostEffective": 7000,
+          "entryCost": 7000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanelOX10L",
+          "title": "OX-10L 1x5 Photovoltaic Panels",
+          "entryCostEffective": 6000,
+          "entryCost": 6000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "solarPanelSP10L",
+          "title": "SP-10L 1x5 Photovoltaic Panels",
+          "entryCostEffective": 6000,
+          "entryCost": 6000,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "largeSolarPanel",
+          "title": "Gigantor XL Solar Array",
+          "entryCostEffective": 14500,
+          "entryCost": 14500,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "batteryBank",
+          "title": "Z-1k Rechargeable Battery Bank",
+          "entryCostEffective": 8200,
+          "entryCost": 8200,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "FuelCell",
+          "title": "Fuel Cell",
+          "entryCostEffective": 2250,
+          "entryCost": 2250,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Thermal",
+          "name": "foldingRadLarge",
+          "title": "Thermal Control System (large)",
+          "entryCostEffective": 45000,
+          "entryCost": 45000,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "largeElectrics",
+      "title": "High-Power Electrics",
+      "description": "Maximize your energy production and storage potential by maximizing the size of the electrical components on your vessels."
+    },
+    {
+      "scienceCost": 300,
+      "scienceCostEffective": 300,
+      "state": "Unavailable",
+      "parents": [
+        "advAerodynamics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airlinerCtrlSrf",
+          "title": "FAT-455 Aeroplane Control Surface",
+          "entryCostEffective": 16400,
+          "entryCost": 16400,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airlinerMainWing",
+          "title": "FAT-455 Aeroplane Main Wing",
+          "entryCostEffective": 36400,
+          "entryCost": 36400,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "airlinerTailFin",
+          "title": "FAT-455 Aeroplane Tail Fin",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "WinterOwl Aircraft Emporium"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk3Cockpit.Shuttle",
+          "title": "Mk3 Cockpit",
+          "entryCostEffective": 50000,
+          "entryCost": 50000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "turboFanSize2",
+          "title": "J-90 \"Goliath\" Turbofan Engine",
+          "entryCostEffective": 15000,
+          "entryCost": 15000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterMk3-Size2",
+          "title": "Mk3 to 2.5m Adapter",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterMk3-Size2Slant",
+          "title": "Mk3 to 2.5m Adapter Slanted",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "mk3CrewCabin",
+          "title": "Mk3 Passenger Module",
+          "entryCostEffective": 120000,
+          "entryCost": 120000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLF.25",
+          "title": "Mk3 Liquid Fuel Fuselage Short",
+          "entryCostEffective": 21000,
+          "entryCost": 21000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLF.50",
+          "title": "Mk3 Liquid Fuel Fuselage",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk3CargoBayM",
+          "title": "Mk3 Cargo Bay CRG-50",
+          "entryCostEffective": 32000,
+          "entryCost": 32000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk3CargoRamp",
+          "title": "Mk3 Cargo Ramp",
+          "entryCostEffective": 32000,
+          "entryCost": 32000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk3CargoBayS",
+          "title": "Mk3 Cargo Bay CRG-25",
+          "entryCostEffective": 32000,
+          "entryCost": 32000,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "heavyAerodynamics",
+      "title": "Heavy Aerodynamics",
+      "description": "Advances in construction technology enabled new breakthroughs in aerospace materials."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "scienceTech",
+        "unmannedTech"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "ionEngine",
+          "title": "IX-6315 \"Dawn\" Electric Propulsion System",
+          "entryCostEffective": 16800,
+          "entryCost": 16800,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "xenonTank",
+          "title": "PB-X150 Xenon Container",
+          "entryCostEffective": 8800,
+          "entryCost": 8800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "xenonTankLarge",
+          "title": "PB-X750 Xenon Container",
+          "entryCostEffective": 9800,
+          "entryCost": 9800,
+          "manufacturer": "Probodobodyne Inc"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "xenonTankRadial",
+          "title": "PB-X50R Xenon Container",
+          "entryCostEffective": 7800,
+          "entryCost": 7800,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "ionPropulsion",
+      "title": "Ion Propulsion",
+      "description": "Turns out, it's not science fiction."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "highAltitudeFlight"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "AdvancedCanard",
+          "title": "Advanced Canard",
+          "entryCostEffective": 9200,
+          "entryCost": 9200,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "shockConeIntake",
+          "title": "Shock Cone Intake",
+          "entryCostEffective": 21000,
+          "entryCost": 21000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "turboFanEngine",
+          "title": "J-X4 \"Whiplash\" Turbo Ramjet Engine",
+          "entryCostEffective": 18000,
+          "entryCost": 18000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "toroidalAerospike",
+          "title": "T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine",
+          "entryCostEffective": 24500,
+          "entryCost": 24500,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "radialEngineBody",
+          "title": "Engine Pre-cooler",
+          "entryCostEffective": 6200,
+          "entryCost": 6200,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "hypersonicFlight",
+      "title": "Hypersonic Flight",
+      "description": "Push your aircraft to the upper limits of airspeed and sanity."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "advMetalworks"
+      ],
+      "parts": [],
+      "id": "nanolathing",
+      "title": "Nanolathing",
+      "description": "Despite the threatening appearance of the green metablobs shot out of the Nanolathing Injectors, none can argue the fact that Kerbals have indeed developed technologies at least just as dangerous as this one."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "unmannedTech"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-multi-msi-1",
+          "title": "MS-2A Advanced Multispectral Scanner",
+          "entryCostEffective": 35000,
+          "entryCost": 35000,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeStackSmall",
+          "title": "RC-001S Remote Guidance Unit",
+          "entryCostEffective": 17800,
+          "entryCost": 17800,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "HECS2.ProbeCore",
+          "title": "Probodobodyne HECS2",
+          "entryCostEffective": 52500,
+          "entryCost": 52500,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "advUnmanned",
+      "title": "Advanced Unmanned Tech",
+      "description": "Improvements in remote control technology for a new generation of probe designs."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "composites"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterLargeSmallBi",
+          "title": "TVR-200L Stack Bi-Adapter",
+          "entryCostEffective": 7800,
+          "entryCost": 7800,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterLargeSmallQuad",
+          "title": "TVR-400L Stack Quad-Adapter",
+          "entryCostEffective": 7000,
+          "entryCost": 7000,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterLargeSmallTri",
+          "title": "TVR-300L Stack Tri-Adapter",
+          "entryCostEffective": 6400,
+          "entryCost": 6400,
+          "manufacturer": "O.M.B. Demolition Enterprises"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "stationHub",
+          "title": "Rockomax HubMax Multi-Point Connector",
+          "entryCostEffective": 10800,
+          "entryCost": 10800,
+          "manufacturer": "Rockomax Conglomerate"
+        },
+        {
+          "purchased": false,
+          "category": "Coupling",
+          "name": "dockingPortLarge",
+          "title": "Clamp-O-Tron Docking Port Sr.",
+          "entryCostEffective": 12200,
+          "entryCost": 12200,
+          "manufacturer": "Clamp-O-Tron"
+        }
+      ],
+      "id": "metaMaterials",
+      "title": "Meta-Materials",
+      "description": "An advancement in spacecraft construction so revolutionary, you won't even mind that its naming was wildly inaccurate."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "largeVolumeContainment",
+        "heavierRocketry"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Size3AdvancedEngine",
+          "title": "Kerbodyne KR-2L+ \"Rhino\" Liquid Fuel Engine",
+          "entryCostEffective": 68000,
+          "entryCost": 68000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Size3EngineCluster",
+          "title": "S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine",
+          "entryCostEffective": 115000,
+          "entryCost": 115000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "SSME",
+          "title": "S3 KS-25 \"Vector\" Liquid Fuel Engine",
+          "entryCostEffective": 115000,
+          "entryCost": 115000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "Clydesdale",
+          "title": "S2-33 \"Clydesdale\" Solid Fuel Booster",
+          "entryCostEffective": 54000,
+          "entryCost": 54000,
+          "manufacturer": "Kerbodyne"
+        }
+      ],
+      "id": "veryHeavyRocketry",
+      "title": "Very Heavy Rocketry",
+      "description": "While ever-larger rockets may not be the answer every time, for all other times, we've developed these."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "scienceTech",
+        "fieldScience"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "ISRU",
+          "title": "Convert-O-Tron 250",
+          "entryCostEffective": 24000,
+          "entryCost": 24000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "MiniDrill",
+          "title": "'Drill-O-Matic Junior' Mining Excavator",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "MiniISRU",
+          "title": "Convert-O-Tron 125",
+          "entryCostEffective": 4000,
+          "entryCost": 4000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "Utility",
+          "name": "RadialDrill",
+          "title": "'Drill-O-Matic' Mining Excavator",
+          "entryCostEffective": 18000,
+          "entryCost": 18000,
+          "manufacturer": "Kerbodyne"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "RadialOreTank",
+          "title": "Radial Holding Tank",
+          "entryCostEffective": 1000,
+          "entryCost": 1000,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "SmallTank",
+          "title": "Small Holding Tank",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "sensorGravimeter",
+          "title": "GRAVMAX Negative Gravioli Detector",
+          "entryCostEffective": 12200,
+          "entryCost": 12200,
+          "manufacturer": "Probodobodyne Inc"
+        }
+      ],
+      "id": "advScienceTech",
+      "title": "Advanced Science Tech",
+      "description": "Scientific advancements allow new advanced technologies for advancing Science."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "fieldScience"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "wheelMed",
+          "title": "TR-2L Ruggedized Vehicular Wheel",
+          "entryCostEffective": 7000,
+          "entryCost": 7000,
+          "manufacturer": "Kerbal Motion LLC"
+        },
+        {
+          "purchased": false,
+          "category": "Ground",
+          "name": "roverWheel3",
+          "title": "RoveMax Model XL3",
+          "entryCostEffective": 11200,
+          "entryCost": 11200,
+          "manufacturer": "Kerbal Motion LLC"
+        }
+      ],
+      "id": "advancedMotors",
+      "title": "Advanced Motors",
+      "description": "Wheel technology is just rolling along now. You could even say our engineers are on a roll with it."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "largeElectrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "batteryBankLarge",
+          "title": "Z-4K Rechargeable Battery Bank",
+          "entryCostEffective": 12200,
+          "entryCost": 12200,
+          "manufacturer": "Zaltonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "FuelCellArray",
+          "title": "Fuel Cell Array",
+          "entryCostEffective": 13500,
+          "entryCost": 13500,
+          "manufacturer": "Zaltonic Electronics"
+        }
+      ],
+      "id": "specializedElectrics",
+      "title": "Specialized Electrics",
+      "description": "Experience the warm glow of the latest in electrical technology. Figuratively, of course, and maybe also quite literally as well. Actually, try to avoid direct exposure."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "largeVolumeContainment"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Propulsion",
+          "name": "Size3LargeTank",
+          "title": "Kerbodyne S3-14400 Tank",
+          "entryCostEffective": 46600,
+          "entryCost": 46600,
+          "manufacturer": "Kerbodyne"
+        }
+      ],
+      "id": "highPerformanceFuelSystems",
+      "title": "High-Performance Fuel Systems",
+      "description": "Massive engines require massive fuel storage solutions."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "heavyAerodynamics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingShuttleDelta",
+          "title": "Big-S Delta Wing",
+          "entryCostEffective": 36400,
+          "entryCost": 36400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingShuttleElevon1",
+          "title": "Big-S Elevon 1",
+          "entryCostEffective": 16400,
+          "entryCost": 16400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingShuttleElevon2",
+          "title": "Big-S Elevon 2",
+          "entryCostEffective": 16400,
+          "entryCost": 16400,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingShuttleRudder",
+          "title": "Big-S Spaceplane Tail Fin",
+          "entryCostEffective": 8000,
+          "entryCost": 8000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Aero",
+          "name": "wingShuttleStrake",
+          "title": "Big-S Wing Strake",
+          "entryCostEffective": 22000,
+          "entryCost": 22000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterMk3-Mk2",
+          "title": "Mk3 to Mk2 Adapter",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Structural",
+          "name": "adapterEngines",
+          "title": "Mk3 Engine Mount",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "adapterSize3-Mk3",
+          "title": "Mk3 to 3.75m Adapter",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLFO.100",
+          "title": "Mk3 Rocket Fuel Fuselage Long",
+          "entryCostEffective": 84000,
+          "entryCost": 84000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLFO.25",
+          "title": "Mk3 Rocket Fuel Fuselage Short",
+          "entryCostEffective": 21000,
+          "entryCost": 21000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLFO.50",
+          "title": "Mk3 Rocket Fuel Fuselage",
+          "entryCostEffective": 42000,
+          "entryCost": 42000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageLF.100",
+          "title": "Mk3 Liquid Fuel Fuselage Long",
+          "entryCostEffective": 84000,
+          "entryCost": 84000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "mk3FuselageMONO",
+          "title": "Mk3 Monopropellant Tank",
+          "entryCostEffective": 14000,
+          "entryCost": 14000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Payload",
+          "name": "mk3CargoBayL",
+          "title": "Mk3 Cargo Bay CRG-100",
+          "entryCostEffective": 32000,
+          "entryCost": 32000,
+          "manufacturer": "C7 Aerospace Division"
+        }
+      ],
+      "id": "experimentalAerodynamics",
+      "title": "Experimental Aerodynamics",
+      "description": "Winged flight technology is soaring to unprecedented heights. It could even be said that it's properly taking off now."
+    },
+    {
+      "scienceCost": 550,
+      "scienceCostEffective": 550,
+      "state": "Unavailable",
+      "parents": [
+        "unmannedTech",
+        "electronics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "mk2DroneCore",
+          "title": "MK2 Drone Core",
+          "entryCostEffective": 22000,
+          "entryCost": 22000,
+          "manufacturer": "C7 Aerospace Division"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "RelayAntenna100",
+          "title": "RA-100 Relay Antenna",
+          "entryCostEffective": 24000,
+          "entryCost": 24000,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Communication",
+          "name": "commDish",
+          "title": "Communotron 88-88",
+          "entryCostEffective": 20000,
+          "entryCost": 20000,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        },
+        {
+          "purchased": false,
+          "category": "Control",
+          "name": "KAL9000",
+          "title": "KAL9000 Scriptable Control System",
+          "entryCostEffective": 6800,
+          "entryCost": 6800,
+          "manufacturer": "Squalid State Devices"
+        }
+      ],
+      "id": "automation",
+      "title": "Automation",
+      "description": "We can't think of anything that could go wrong with letting an experimental AI handle every aspect of a mission."
+    },
+    {
+      "scienceCost": 1000,
+      "scienceCostEffective": 1000,
+      "state": "Unavailable",
+      "parents": [
+        "hypersonicFlight"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Engine",
+          "name": "RAPIER",
+          "title": "CR-7 R.A.P.I.E.R. Engine",
+          "entryCostEffective": 35000,
+          "entryCost": 35000,
+          "manufacturer": "C7 Aerospace Division and Rockomax Conglomerate"
+        }
+      ],
+      "id": "aerospaceTech",
+      "title": "Aerospace Tech",
+      "description": "The absolute cutting-edge in aerospace technology. Quite literally, some of those edges are very sharp. Handle with care."
+    },
+    {
+      "scienceCost": 1000,
+      "scienceCostEffective": 1000,
+      "state": "Unavailable",
+      "parents": [
+        "advUnmanned",
+        "automation"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-recon-kh11-1",
+          "title": "VS-11 Classified Reconnaissance Imager",
+          "entryCostEffective": 35500,
+          "entryCost": 35500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "MpoProbe",
+          "title": "MPO Probe",
+          "entryCostEffective": 34700,
+          "entryCost": 34700,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "MtmStage",
+          "title": "MTM Stage",
+          "entryCostEffective": 15000,
+          "entryCost": 15000,
+          "manufacturer": "STEADLER Engineering Corps"
+        },
+        {
+          "purchased": false,
+          "category": "Pods",
+          "name": "probeStackLarge",
+          "title": "RC-L01 Remote Guidance Unit",
+          "entryCostEffective": 24800,
+          "entryCost": 24800,
+          "manufacturer": "STEADLER Engineering Corps"
+        }
+      ],
+      "id": "largeUnmanned",
+      "title": "Large Probes",
+      "description": "The rumours of probe-led world domination are greatly exaggerated."
+    },
+    {
+      "scienceCost": 1000,
+      "scienceCostEffective": 1000,
+      "state": "Unavailable",
+      "parents": [
+        "advScienceTech"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-resources-hyperion-1",
+          "title": "SCAN-RX Hyperspectral Resource Mapper",
+          "entryCostEffective": 45500,
+          "entryCost": 45500,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "FuelTank",
+          "name": "LargeTank",
+          "title": "Large Holding Tank",
+          "entryCostEffective": 9000,
+          "entryCost": 9000,
+          "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co"
+        },
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "OrbitalScanner",
+          "title": "M4435 Narrow-Band Scanner",
+          "entryCostEffective": 3000,
+          "entryCost": 3000,
+          "manufacturer": "Experimental Engineering Group"
+        }
+      ],
+      "id": "experimentalScience",
+      "title": "Experimental Science",
+      "description": "Explore novel fields of science that we didn't even know were there."
+    },
+    {
+      "scienceCost": 1000,
+      "scienceCostEffective": 1000,
+      "state": "Unavailable",
+      "parents": [
+        "advancedMotors"
+      ],
+      "parts": [],
+      "id": "experimentalMotors",
+      "title": "Experimental Motors",
+      "description": "The latest breakthroughs that are driving motor technology forwards, and in reverse, and steering too."
+    },
+    {
+      "scienceCost": 1000,
+      "scienceCostEffective": 1000,
+      "state": "Unavailable",
+      "parents": [
+        "specializedElectrics"
+      ],
+      "parts": [
+        {
+          "purchased": false,
+          "category": "Science",
+          "name": "scansat-sar-tandem-l-1",
+          "title": "SAR-L Antenna",
+          "entryCostEffective": 55000,
+          "entryCost": 55000,
+          "manufacturer": "SCAN: Scientific Committee on Advanced Navigation"
+        },
+        {
+          "purchased": false,
+          "category": "Electrical",
+          "name": "rtg",
+          "title": "PB-NUK Radioisotope Thermoelectric Generator",
+          "entryCostEffective": 58000,
+          "entryCost": 58000,
+          "manufacturer": "Ionic Symphonic Protonic Electronics"
+        }
+      ],
+      "id": "experimentalElectrics",
+      "title": "Experimental Electrics",
+      "description": "The very latest in electrical systems technology. Our engineers are buzzing with excitement over it. They also seem to glow in the dark now. Fascinating!"
+    }
+  ],
+  "career.science": 4853.60009765625,
+  "kc.scene": "Flight"
+}

@@ -480,6 +480,23 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "tech-tree",
+    fixturesPath: "TechTree/__fixtures__",
+    outPath: "renders/tech-tree-widget",
+    modes: [
+      // minSize 2×2 — tightest; tally / degraded.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // defaultSize 6×9 — the common operator view.
+      { name: "default-6x9", w: 6, h: 9 },
+      // tall — more of the tree visible without scrolling.
+      { name: "tall-6x16", w: 6, h: 16 },
+      // wide landscape — closest to an in-game tech-tree aspect.
+      { name: "wide-16x10", w: 16, h: 10 },
+      // large — generous room for a node-graph layout.
+      { name: "xl-18x16", w: 18, h: 16 },
+    ],
+  },
+  {
     widgetId: "system-view",
     fixturesPath: "SystemView/__fixtures__",
     outPath: "renders/system-view-widget",
