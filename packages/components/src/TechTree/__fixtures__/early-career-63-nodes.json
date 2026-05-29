@@ -111,9 +111,7 @@
       "scienceCost": 5,
       "scienceCostEffective": 5,
       "state": "Available",
-      "parents": [
-        "start"
-      ],
+      "parents": ["start"],
       "parts": [
         {
           "purchased": true,
@@ -160,9 +158,7 @@
       "scienceCost": 5,
       "scienceCostEffective": 5,
       "state": "Available",
-      "parents": [
-        "start"
-      ],
+      "parents": ["start"],
       "parts": [
         {
           "purchased": true,
@@ -209,9 +205,7 @@
       "scienceCost": 15,
       "scienceCostEffective": 15,
       "state": "Available",
-      "parents": [
-        "engineering101"
-      ],
+      "parents": ["engineering101"],
       "parts": [
         {
           "purchased": true,
@@ -294,10 +288,7 @@
       "scienceCost": 18,
       "scienceCostEffective": 18,
       "state": "Unavailable",
-      "parents": [
-        "engineering101",
-        "basicRocketry"
-      ],
+      "parents": ["engineering101", "basicRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -335,9 +326,7 @@
       "scienceCost": 20,
       "scienceCostEffective": 20,
       "state": "Unavailable",
-      "parents": [
-        "basicRocketry"
-      ],
+      "parents": ["basicRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -384,9 +373,7 @@
       "scienceCost": 45,
       "scienceCostEffective": 45,
       "state": "Unavailable",
-      "parents": [
-        "stability"
-      ],
+      "parents": ["stability"],
       "parts": [
         {
           "purchased": false,
@@ -532,9 +519,7 @@
       "scienceCost": 45,
       "scienceCostEffective": 45,
       "state": "Available",
-      "parents": [
-        "survivability"
-      ],
+      "parents": ["survivability"],
       "parts": [
         {
           "purchased": true,
@@ -689,10 +674,7 @@
       "scienceCost": 45,
       "scienceCostEffective": 45,
       "state": "Available",
-      "parents": [
-        "survivability",
-        "stability"
-      ],
+      "parents": ["survivability", "stability"],
       "parts": [
         {
           "purchased": true,
@@ -757,9 +739,7 @@
       "scienceCost": 45,
       "scienceCostEffective": 45,
       "state": "Unavailable",
-      "parents": [
-        "generalRocketry"
-      ],
+      "parents": ["generalRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -815,10 +795,7 @@
       "scienceCost": 45,
       "scienceCostEffective": 45,
       "state": "Unavailable",
-      "parents": [
-        "stability",
-        "generalRocketry"
-      ],
+      "parents": ["stability", "generalRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -892,9 +869,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "advRocketry"
-      ],
+      "parents": ["advRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -950,9 +925,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "basicScience"
-      ],
+      "parents": ["basicScience"],
       "parts": [
         {
           "purchased": false,
@@ -1044,9 +1017,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "flightControl"
-      ],
+      "parents": ["flightControl"],
       "parts": [
         {
           "purchased": false,
@@ -1120,10 +1091,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "flightControl",
-        "aviation"
-      ],
+      "parents": ["flightControl", "aviation"],
       "parts": [
         {
           "purchased": false,
@@ -1179,10 +1147,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "aviation",
-        "generalConstruction"
-      ],
+      "parents": ["aviation", "generalConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -1301,9 +1266,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "basicScience"
-      ],
+      "parents": ["basicScience"],
       "parts": [
         {
           "purchased": false,
@@ -1413,9 +1376,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "advRocketry"
-      ],
+      "parents": ["advRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -1453,10 +1414,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "advRocketry",
-        "generalConstruction"
-      ],
+      "parents": ["advRocketry", "generalConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -1521,9 +1479,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "generalConstruction"
-      ],
+      "parents": ["generalConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -1624,9 +1580,7 @@
       "scienceCost": 90,
       "scienceCostEffective": 90,
       "state": "Unavailable",
-      "parents": [
-        "basicScience"
-      ],
+      "parents": ["basicScience"],
       "parts": [
         {
           "purchased": false,
@@ -1682,9 +1636,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "advConstruction"
-      ],
+      "parents": ["advConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -1713,10 +1665,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "spaceExploration",
-        "advFlightControl"
-      ],
+      "parents": ["spaceExploration", "advFlightControl"],
       "parts": [
         {
           "purchased": false,
@@ -1772,9 +1721,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "heavyRocketry"
-      ],
+      "parents": ["heavyRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -1821,10 +1768,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "miniaturization",
-        "electrics"
-      ],
+      "parents": ["miniaturization", "electrics"],
       "parts": [
         {
           "purchased": false,
@@ -1952,9 +1896,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "spaceExploration"
-      ],
+      "parents": ["spaceExploration"],
       "parts": [
         {
           "purchased": false,
@@ -2028,9 +1970,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "advFlightControl"
-      ],
+      "parents": ["advFlightControl"],
       "parts": [
         {
           "purchased": false,
@@ -2077,9 +2017,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "landing"
-      ],
+      "parents": ["landing"],
       "parts": [
         {
           "purchased": false,
@@ -2126,9 +2064,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "aerodynamicSystems"
-      ],
+      "parents": ["aerodynamicSystems"],
       "parts": [
         {
           "purchased": false,
@@ -2220,10 +2156,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "propulsionSystems",
-        "fuelSystems"
-      ],
+      "parents": ["propulsionSystems", "fuelSystems"],
       "parts": [
         {
           "purchased": false,
@@ -2288,9 +2221,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "electrics"
-      ],
+      "parents": ["electrics"],
       "parts": [
         {
           "purchased": false,
@@ -2436,9 +2367,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "advConstruction"
-      ],
+      "parents": ["advConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -2530,9 +2459,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "propulsionSystems"
-      ],
+      "parents": ["propulsionSystems"],
       "parts": [
         {
           "purchased": false,
@@ -2615,9 +2542,7 @@
       "scienceCost": 160,
       "scienceCostEffective": 160,
       "state": "Unavailable",
-      "parents": [
-        "aerodynamicSystems"
-      ],
+      "parents": ["aerodynamicSystems"],
       "parts": [
         {
           "purchased": false,
@@ -2736,9 +2661,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advLanding"
-      ],
+      "parents": ["advLanding"],
       "parts": [
         {
           "purchased": false,
@@ -2776,10 +2699,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advExploration",
-        "precisionEngineering"
-      ],
+      "parents": ["advExploration", "precisionEngineering"],
       "parts": [
         {
           "purchased": false,
@@ -2844,9 +2764,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "precisionEngineering"
-      ],
+      "parents": ["precisionEngineering"],
       "parts": [
         {
           "purchased": false,
@@ -2929,10 +2847,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advFuelSystems",
-        "heavierRocketry"
-      ],
+      "parents": ["advFuelSystems", "heavierRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -2952,9 +2867,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "specializedConstruction"
-      ],
+      "parents": ["specializedConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -2992,10 +2905,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advLanding",
-        "advExploration"
-      ],
+      "parents": ["advLanding", "advExploration"],
       "parts": [
         {
           "purchased": false,
@@ -3051,9 +2961,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "supersonicFlight"
-      ],
+      "parents": ["supersonicFlight"],
       "parts": [
         {
           "purchased": false,
@@ -3181,10 +3089,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advFuelSystems",
-        "specializedConstruction"
-      ],
+      "parents": ["advFuelSystems", "specializedConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -3231,9 +3136,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "specializedConstruction"
-      ],
+      "parents": ["specializedConstruction"],
       "parts": [
         {
           "purchased": false,
@@ -3343,10 +3246,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "precisionEngineering",
-        "advElectrics"
-      ],
+      "parents": ["precisionEngineering", "advElectrics"],
       "parts": [
         {
           "purchased": false,
@@ -3411,9 +3311,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advElectrics"
-      ],
+      "parents": ["advElectrics"],
       "parts": [
         {
           "purchased": false,
@@ -3505,9 +3403,7 @@
       "scienceCost": 300,
       "scienceCostEffective": 300,
       "state": "Unavailable",
-      "parents": [
-        "advAerodynamics"
-      ],
+      "parents": ["advAerodynamics"],
       "parts": [
         {
           "purchased": false,
@@ -3635,10 +3531,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "scienceTech",
-        "unmannedTech"
-      ],
+      "parents": ["scienceTech", "unmannedTech"],
       "parts": [
         {
           "purchased": false,
@@ -3685,9 +3578,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "highAltitudeFlight"
-      ],
+      "parents": ["highAltitudeFlight"],
       "parts": [
         {
           "purchased": false,
@@ -3743,9 +3634,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "advMetalworks"
-      ],
+      "parents": ["advMetalworks"],
       "parts": [],
       "id": "nanolathing",
       "title": "Nanolathing",
@@ -3755,9 +3644,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "unmannedTech"
-      ],
+      "parents": ["unmannedTech"],
       "parts": [
         {
           "purchased": false,
@@ -3795,9 +3682,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "composites"
-      ],
+      "parents": ["composites"],
       "parts": [
         {
           "purchased": false,
@@ -3853,10 +3738,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "largeVolumeContainment",
-        "heavierRocketry"
-      ],
+      "parents": ["largeVolumeContainment", "heavierRocketry"],
       "parts": [
         {
           "purchased": false,
@@ -3903,10 +3785,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "scienceTech",
-        "fieldScience"
-      ],
+      "parents": ["scienceTech", "fieldScience"],
       "parts": [
         {
           "purchased": false,
@@ -3980,9 +3859,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "fieldScience"
-      ],
+      "parents": ["fieldScience"],
       "parts": [
         {
           "purchased": false,
@@ -4011,9 +3888,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "largeElectrics"
-      ],
+      "parents": ["largeElectrics"],
       "parts": [
         {
           "purchased": false,
@@ -4042,9 +3917,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "largeVolumeContainment"
-      ],
+      "parents": ["largeVolumeContainment"],
       "parts": [
         {
           "purchased": false,
@@ -4064,9 +3937,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "heavyAerodynamics"
-      ],
+      "parents": ["heavyAerodynamics"],
       "parts": [
         {
           "purchased": false,
@@ -4203,10 +4074,7 @@
       "scienceCost": 550,
       "scienceCostEffective": 550,
       "state": "Unavailable",
-      "parents": [
-        "unmannedTech",
-        "electronics"
-      ],
+      "parents": ["unmannedTech", "electronics"],
       "parts": [
         {
           "purchased": false,
@@ -4253,9 +4121,7 @@
       "scienceCost": 1000,
       "scienceCostEffective": 1000,
       "state": "Unavailable",
-      "parents": [
-        "hypersonicFlight"
-      ],
+      "parents": ["hypersonicFlight"],
       "parts": [
         {
           "purchased": false,
@@ -4275,10 +4141,7 @@
       "scienceCost": 1000,
       "scienceCostEffective": 1000,
       "state": "Unavailable",
-      "parents": [
-        "advUnmanned",
-        "automation"
-      ],
+      "parents": ["advUnmanned", "automation"],
       "parts": [
         {
           "purchased": false,
@@ -4325,9 +4188,7 @@
       "scienceCost": 1000,
       "scienceCostEffective": 1000,
       "state": "Unavailable",
-      "parents": [
-        "advScienceTech"
-      ],
+      "parents": ["advScienceTech"],
       "parts": [
         {
           "purchased": false,
@@ -4365,9 +4226,7 @@
       "scienceCost": 1000,
       "scienceCostEffective": 1000,
       "state": "Unavailable",
-      "parents": [
-        "advancedMotors"
-      ],
+      "parents": ["advancedMotors"],
       "parts": [],
       "id": "experimentalMotors",
       "title": "Experimental Motors",
@@ -4377,9 +4236,7 @@
       "scienceCost": 1000,
       "scienceCostEffective": 1000,
       "state": "Unavailable",
-      "parents": [
-        "specializedElectrics"
-      ],
+      "parents": ["specializedElectrics"],
       "parts": [
         {
           "purchased": false,

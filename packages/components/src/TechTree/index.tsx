@@ -202,15 +202,16 @@ function layoutGraph(
   // Initial within-column order: by science cost then title (stable, readable).
   for (const col of columns) {
     col.sort(
-      (a, b) =>
-        a.scienceCost - b.scienceCost || a.title.localeCompare(b.title),
+      (a, b) => a.scienceCost - b.scienceCost || a.title.localeCompare(b.title),
     );
   }
 
   // Row index per node, seeded from the initial order.
   const rowOf = new Map<string, number>();
   for (const col of columns) {
-    col.forEach((n, i) => rowOf.set(n.id, i));
+    col.forEach((n, i) => {
+      rowOf.set(n.id, i);
+    });
   }
 
   // Barycenter sweep: order each column (left→right) by mean parent row.
@@ -234,7 +235,9 @@ function layoutGraph(
           (bary.get(a.id) ?? 0) - (bary.get(b.id) ?? 0) ||
           a.scienceCost - b.scienceCost,
       );
-      col.forEach((n, i) => rowOf.set(n.id, i));
+      col.forEach((n, i) => {
+        rowOf.set(n.id, i);
+      });
     }
   }
 
@@ -307,10 +310,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     () => computeResearchable(allNodes ?? [], sciAvailable),
     [allNodes, sciAvailable],
   );
-  const tiers = useMemo(
-    () => computeTiers(allNodes ?? []),
-    [allNodes],
-  );
+  const tiers = useMemo(() => computeTiers(allNodes ?? []), [allNodes]);
 
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
@@ -430,9 +430,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           matches={matches}
           query={q}
           selectedId={selectedId}
-          onSelect={(id) =>
-            setSelectedId((cur) => (cur === id ? null : id))
-          }
+          onSelect={(id) => setSelectedId((cur) => (cur === id ? null : id))}
         />
         {selectedId && (
           <DetailPanel
@@ -518,9 +516,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                   display={displayState(n, researchable)}
                   expanded={expandedId === n.id}
                   onToggleExpand={() =>
-                    setExpandedId((current) =>
-                      current === n.id ? null : n.id,
-                    )
+                    setExpandedId((current) => (current === n.id ? null : n.id))
                   }
                   armed={armed === n.id}
                   onArm={u.onArm}
@@ -804,7 +800,11 @@ function NodeRow({
   affordTooltip,
 }: Readonly<NodeRowProps>) {
   const stateBadgeTone =
-    display === "owned" ? "go" : display === "researchable" ? "accent" : "muted";
+    display === "owned"
+      ? "go"
+      : display === "researchable"
+        ? "accent"
+        : "muted";
   const badgeLabel =
     display === "owned"
       ? "Owned"
