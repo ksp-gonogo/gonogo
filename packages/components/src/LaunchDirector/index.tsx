@@ -671,7 +671,12 @@ const ShipList = styled.div`
 const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  /* Top-align the cost tag with the ship name. At wide widths the meta
+     column is a single line so this is a no-op; at narrow (5-col)
+     widths the name wraps to several lines and centering would float
+     the cost tag mid-block (beside "VAB · N parts" instead of the
+     name). flex-start keeps it pinned to the first line. */
+  align-items: flex-start;
   gap: 8px;
   padding: 6px 8px;
   background: ${(p) =>

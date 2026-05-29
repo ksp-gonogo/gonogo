@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "Suborbital Kerbin arc with a planted prograde node (ΔV 300 m/s at apoapsis). No target."
+    "notes": "Suborbital Kerbin arc with a planted prograde node (\u0394V 300 m/s at apoapsis). No target."
   },
   "o.argumentOfPeriapsis": 185.804298723466,
   "o.trueAnomaly": 178.272189124686,
@@ -13,7 +13,11 @@
       "inclination": 7.48656558210146,
       "eccentricity": 0.803788750928158,
       "referenceBody": "Kerbin",
-      "deltaV": [0, 0, 300],
+      "deltaV": [
+        0,
+        0,
+        300
+      ],
       "maae": 3.14362968912802,
       "argumentOfPeriapsis": 185.792710062224,
       "orbitPatches": [
@@ -127,6 +131,6 @@
   "o.timeToAp": 26.7890092605773,
   "o.ApA": 51472.672848284,
   "o.PeA": -566194.426928402,
-  "o.orbitalSpeed": 0,
+  "o.orbitalSpeed": 761.5,
   "v.body": "Kerbin"
 }

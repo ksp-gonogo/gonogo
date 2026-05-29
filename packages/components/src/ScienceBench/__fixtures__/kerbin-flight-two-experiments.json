@@ -4,6 +4,9 @@
     "body": "Kerbin",
     "notes": "In flight over Water; crew report + thermometer recorded, goo pending. 4 instruments."
   },
+  "kc.scene": "Flight",
+  "v.name": "tester",
+  "v.missionTime": 300,
   "sci.dataAmount": 13,
   "sci.experiments": [
     {
@@ -23,11 +26,32 @@
       "title": "Temperature Scan from Kerbin's upper atmosphere"
     }
   ],
-  "s.sensor.grav": [["No Sensors of the Appropriate Type"], [0]],
+  "s.sensor.grav": [
+    [
+      "No Sensors of the Appropriate Type"
+    ],
+    [
+      0
+    ]
+  ],
   "v.biome": "Water",
-  "s.sensor.temp": [["mk1pod.v2 (career-orbital-test)"], [1769.11865234375]],
+  "s.sensor.temp": [
+    [
+      "mk1pod.v2 (career-orbital-test)"
+    ],
+    [
+      1769.11865234375
+    ]
+  ],
   "v.situationString": "In flight",
-  "s.sensor.acc": [["No Sensors of the Appropriate Type"], [0]],
+  "s.sensor.acc": [
+    [
+      "No Sensors of the Appropriate Type"
+    ],
+    [
+      0
+    ]
+  ],
   "v.landedAt": "",
   "sci.count": 4,
   "sci.experimentBreakdown": [
@@ -98,6 +122,13 @@
       "partId": 2082413706
     }
   ],
-  "s.sensor.pres": [["No Sensors of the Appropriate Type"], [0]],
+  "s.sensor.pres": [
+    [
+      "No Sensors of the Appropriate Type"
+    ],
+    [
+      0
+    ]
+  ],
   "v.body": "Kerbin"
 }
