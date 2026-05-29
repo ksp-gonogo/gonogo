@@ -250,190 +250,194 @@ function MissionDirectorComponent({
         )}
         {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
         <CardList $multiColumn={multiColumn}>
-        {active.map((c) => (
-          <ContractCard key={c.id}>
-            <ContractHeader>
-              <ContractTitle>{c.title}</ContractTitle>
-              <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
-              </ContractDeadline>
-            </ContractHeader>
-            {c.agency && <Agency>{c.agency}</Agency>}
-            <Rewards>
-              {c.fundsCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>FUNDS</RewardLabel>
-                  <RewardValue>{formatCurrency(c.fundsCompletion)}</RewardValue>
-                </Reward>
-              )}
-              {c.scienceCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>SCI</RewardLabel>
-                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-              {c.repCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>REP</RewardLabel>
-                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-            </Rewards>
-            {c.parameters.length > 0 && (
-              <Parameters>
-                {c.parameters.map((p) => (
-                  <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
-                    <ParameterMark $state={p.state}>
-                      {p.state === "Complete"
-                        ? "✓"
-                        : p.state === "Failed"
-                          ? "✕"
-                          : "○"}
-                    </ParameterMark>
-                    <ParameterTitle>
-                      {p.title}
-                      {p.optional && <Optional> (optional)</Optional>}
+          {active.map((c) => (
+            <ContractCard key={c.id}>
+              <ContractHeader>
+                <ContractTitle>{c.title}</ContractTitle>
+                <ContractDeadline>
+                  {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                </ContractDeadline>
+              </ContractHeader>
+              {c.agency && <Agency>{c.agency}</Agency>}
+              <Rewards>
+                {c.fundsCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>FUNDS</RewardLabel>
+                    <RewardValue>
+                      {formatCurrency(c.fundsCompletion)}
+                    </RewardValue>
+                  </Reward>
+                )}
+                {c.scienceCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>SCI</RewardLabel>
+                    <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
+                  </Reward>
+                )}
+                {c.repCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>REP</RewardLabel>
+                    <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                  </Reward>
+                )}
+              </Rewards>
+              {c.parameters.length > 0 && (
+                <Parameters>
+                  {c.parameters.map((p) => (
+                    <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
+                      <ParameterMark $state={p.state}>
+                        {p.state === "Complete"
+                          ? "✓"
+                          : p.state === "Failed"
+                            ? "✕"
+                            : "○"}
+                      </ParameterMark>
+                      <ParameterTitle>
+                        {p.title}
+                        {p.optional && <Optional> (optional)</Optional>}
+                        {p.state === "Incomplete" &&
+                          p.parameterType === "ReachAltitudeEnvelope" &&
+                          p.minAltitude !== undefined &&
+                          p.maxAltitude !== undefined &&
+                          typeof vAltitude === "number" && (
+                            <AltitudeProgress
+                              min={p.minAltitude}
+                              max={p.maxAltitude}
+                              current={vAltitude}
+                            />
+                          )}
+                      </ParameterTitle>
                       {p.state === "Incomplete" &&
-                        p.parameterType === "ReachAltitudeEnvelope" &&
-                        p.minAltitude !== undefined &&
-                        p.maxAltitude !== undefined &&
-                        typeof vAltitude === "number" && (
-                          <AltitudeProgress
-                            min={p.minAltitude}
-                            max={p.maxAltitude}
-                            current={vAltitude}
-                          />
-                        )}
-                    </ParameterTitle>
-                    {p.state === "Incomplete" &&
-                      createAlarm &&
-                      contractIdToSafeNumber(c.id) !== null &&
-                      (() => {
-                        const numericId = contractIdToSafeNumber(c.id);
-                        if (numericId === null) return null;
-                        const existingId =
-                          alarmManager?.find((trigger) => {
-                            if (
-                              !trigger ||
-                              typeof trigger !== "object" ||
-                              Array.isArray(trigger)
-                            )
-                              return false;
-                            const t = trigger as Record<string, unknown>;
-                            return (
-                              t.kind === "contract-parameter" &&
-                              t.contractId === numericId &&
-                              t.parameterTitle === p.title
-                            );
-                          }) ?? null;
-                        const isSet = existingId !== null;
-                        return (
+                        createAlarm &&
+                        contractIdToSafeNumber(c.id) !== null &&
+                        (() => {
+                          const numericId = contractIdToSafeNumber(c.id);
+                          if (numericId === null) return null;
+                          const existingId =
+                            alarmManager?.find((trigger) => {
+                              if (
+                                !trigger ||
+                                typeof trigger !== "object" ||
+                                Array.isArray(trigger)
+                              )
+                                return false;
+                              const t = trigger as Record<string, unknown>;
+                              return (
+                                t.kind === "contract-parameter" &&
+                                t.contractId === numericId &&
+                                t.parameterTitle === p.title
+                              );
+                            }) ?? null;
+                          const isSet = existingId !== null;
+                          return (
+                            <ParameterAlarmButton
+                              type="button"
+                              $set={isSet}
+                              title={
+                                isSet
+                                  ? `Alarm set for "${p.title}" — click to clear`
+                                  : `Alarm me when "${p.title}" completes`
+                              }
+                              aria-label={
+                                isSet
+                                  ? `Clear alarm for ${p.title}`
+                                  : `Set alarm for ${p.title} completion`
+                              }
+                              aria-pressed={isSet}
+                              onClick={() => {
+                                if (isSet && existingId && alarmManager) {
+                                  alarmManager.remove(existingId);
+                                  return;
+                                }
+                                createAlarm({
+                                  name: `${p.title} → Complete`,
+                                  trigger: {
+                                    kind: "contract-parameter",
+                                    contractId: numericId,
+                                    parameterTitle: p.title,
+                                    targetState: "Complete",
+                                    sustainSeconds: 0,
+                                  },
+                                });
+                              }}
+                            >
+                              <BellIcon size={12} />
+                            </ParameterAlarmButton>
+                          );
+                        })()}
+                      {p.state === "Incomplete" &&
+                        createAlarm &&
+                        contractIdToSafeNumber(c.id) === null && (
+                          // Big-id contracts (KSP-generated longs above
+                          // Number.MAX_SAFE_INTEGER) can't be addressed by the
+                          // current alarm trigger shape (contractId: number).
+                          // Render a disabled icon with explanation rather
+                          // than hide — keeps the row layout consistent.
                           <ParameterAlarmButton
                             type="button"
-                            $set={isSet}
-                            title={
-                              isSet
-                                ? `Alarm set for "${p.title}" — click to clear`
-                                : `Alarm me when "${p.title}" completes`
-                            }
-                            aria-label={
-                              isSet
-                                ? `Clear alarm for ${p.title}`
-                                : `Set alarm for ${p.title} completion`
-                            }
-                            aria-pressed={isSet}
-                            onClick={() => {
-                              if (isSet && existingId && alarmManager) {
-                                alarmManager.remove(existingId);
-                                return;
-                              }
-                              createAlarm({
-                                name: `${p.title} → Complete`,
-                                trigger: {
-                                  kind: "contract-parameter",
-                                  contractId: numericId,
-                                  parameterTitle: p.title,
-                                  targetState: "Complete",
-                                  sustainSeconds: 0,
-                                },
-                              });
-                            }}
+                            disabled
+                            title="Cannot alarm — contract id exceeds JS safe-integer range. Fix tracked in feature_log."
+                            aria-label="Alarm unavailable for this contract"
                           >
                             <BellIcon size={12} />
                           </ParameterAlarmButton>
-                        );
-                      })()}
-                    {p.state === "Incomplete" &&
-                      createAlarm &&
-                      contractIdToSafeNumber(c.id) === null && (
-                        // Big-id contracts (KSP-generated longs above
-                        // Number.MAX_SAFE_INTEGER) can't be addressed by the
-                        // current alarm trigger shape (contractId: number).
-                        // Render a disabled icon with explanation rather
-                        // than hide — keeps the row layout consistent.
-                        <ParameterAlarmButton
-                          type="button"
-                          disabled
-                          title="Cannot alarm — contract id exceeds JS safe-integer range. Fix tracked in feature_log."
-                          aria-label="Alarm unavailable for this contract"
-                        >
-                          <BellIcon size={12} />
-                        </ParameterAlarmButton>
-                      )}
-                  </Parameter>
-                ))}
-              </Parameters>
-            )}
-            <ActiveActions>
-              <CancelButton contractId={c.id} execute={execute} />
-            </ActiveActions>
-          </ContractCard>
-        ))}
+                        )}
+                    </Parameter>
+                  ))}
+                </Parameters>
+              )}
+              <ActiveActions>
+                <CancelButton contractId={c.id} execute={execute} />
+              </ActiveActions>
+            </ContractCard>
+          ))}
         </CardList>
         {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
         <CardList $multiColumn={multiColumn}>
-        {offered?.map((c) => (
-          <ContractCard key={c.id}>
-            <ContractHeader>
-              <ContractTitle>{c.title}</ContractTitle>
-              <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
-              </ContractDeadline>
-            </ContractHeader>
-            {c.agency && <Agency>{c.agency}</Agency>}
-            <Rewards>
-              {c.fundsCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>FUNDS</RewardLabel>
-                  <RewardValue>{formatCurrency(c.fundsCompletion)}</RewardValue>
-                </Reward>
-              )}
-              {c.scienceCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>SCI</RewardLabel>
-                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-              {c.repCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>REP</RewardLabel>
-                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-            </Rewards>
-            <OfferedActions>
-              <AcceptButton
-                type="button"
-                onClick={() => {
-                  void execute(`contracts.accept[${c.id}]`);
-                }}
-              >
-                Accept
-              </AcceptButton>
-              <DeclineButton contractId={c.id} execute={execute} />
-            </OfferedActions>
-          </ContractCard>
-        ))}
+          {offered?.map((c) => (
+            <ContractCard key={c.id}>
+              <ContractHeader>
+                <ContractTitle>{c.title}</ContractTitle>
+                <ContractDeadline>
+                  {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                </ContractDeadline>
+              </ContractHeader>
+              {c.agency && <Agency>{c.agency}</Agency>}
+              <Rewards>
+                {c.fundsCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>FUNDS</RewardLabel>
+                    <RewardValue>
+                      {formatCurrency(c.fundsCompletion)}
+                    </RewardValue>
+                  </Reward>
+                )}
+                {c.scienceCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>SCI</RewardLabel>
+                    <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
+                  </Reward>
+                )}
+                {c.repCompletion > 0 && (
+                  <Reward>
+                    <RewardLabel>REP</RewardLabel>
+                    <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                  </Reward>
+                )}
+              </Rewards>
+              <OfferedActions>
+                <AcceptButton
+                  type="button"
+                  onClick={() => {
+                    void execute(`contracts.accept[${c.id}]`);
+                  }}
+                >
+                  Accept
+                </AcceptButton>
+                <DeclineButton contractId={c.id} execute={execute} />
+              </OfferedActions>
+            </ContractCard>
+          ))}
         </CardList>
       </Body>
     </Panel>

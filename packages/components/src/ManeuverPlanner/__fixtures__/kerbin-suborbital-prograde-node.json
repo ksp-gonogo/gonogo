@@ -13,11 +13,7 @@
       "inclination": 7.48656558210146,
       "eccentricity": 0.803788750928158,
       "referenceBody": "Kerbin",
-      "deltaV": [
-        0,
-        0,
-        300
-      ],
+      "deltaV": [0, 0, 300],
       "maae": 3.14362968912802,
       "argumentOfPeriapsis": 185.792710062224,
       "orbitPatches": [

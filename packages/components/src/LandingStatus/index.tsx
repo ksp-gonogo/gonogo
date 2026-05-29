@@ -275,9 +275,7 @@ const Body = styled.div<{ $row?: boolean }>`
   gap: ${(p) => (p.$row ? "16px" : "8px")};
   min-height: 0;
   /* Wide-short: headline and metric grid each take half the width. */
-  ${(p) =>
-    p.$row &&
-    `& > * { flex: 1 1 0; min-width: 0; }`}
+  ${(p) => p.$row && `& > * { flex: 1 1 0; min-width: 0; }`}
 `;
 
 const SuicideRow = styled.div<{

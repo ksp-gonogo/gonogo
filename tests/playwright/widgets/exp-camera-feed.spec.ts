@@ -23,9 +23,9 @@ test.describe("ExpCameraFeed — widget scaffold", () => {
         },
       },
       waitForMain: async (page) => {
-        await expect(
-          page.getByText("Camera Feed (exp)").first(),
-        ).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByText("Camera Feed (exp)").first()).toBeVisible({
+          timeout: 30_000,
+        });
       },
     });
 

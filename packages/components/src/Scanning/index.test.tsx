@@ -95,11 +95,29 @@ describe("ScanningComponent", () => {
       source.emit("scan.scanningVessels", []);
       source.emit("scan.anomalies[Kerbin]", [
         // detail=true → show the name
-        { name: "Monolith One", latitude: 10.5, longitude: 20.5, known: true, detail: true },
+        {
+          name: "Monolith One",
+          latitude: 10.5,
+          longitude: 20.5,
+          known: true,
+          detail: true,
+        },
         // known=true, detail=false → "(unknown)"
-        { name: "Hidden Site", latitude: 30.5, longitude: 40.5, known: true, detail: false },
+        {
+          name: "Hidden Site",
+          latitude: 30.5,
+          longitude: 40.5,
+          known: true,
+          detail: false,
+        },
         // known=false, detail=false → "(undetected)"
-        { name: "Mystery Spot", latitude: 50.5, longitude: 60.5, known: false, detail: false },
+        {
+          name: "Mystery Spot",
+          latitude: 50.5,
+          longitude: 60.5,
+          known: false,
+          detail: false,
+        },
       ]);
     });
     expect(screen.getByText("Monolith One")).toBeInTheDocument();

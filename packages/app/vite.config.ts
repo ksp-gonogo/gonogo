@@ -10,16 +10,15 @@ import { defineConfig, type PluginOption } from "vite";
 // changes to any package are hot-reloaded exactly like app-local files.
 const packagesDir = resolve(__dirname, "..");
 const workspaceAlias = Object.fromEntries(
-  readdirSync(packagesDir)
-    .flatMap((dir) => {
-      const pkgJsonPath = resolve(packagesDir, dir, "package.json");
-      const srcIndex = resolve(packagesDir, dir, "src/index.ts");
-      if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
-      const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
-        name: string;
-      };
-      return [[name, srcIndex]];
-    }),
+  readdirSync(packagesDir).flatMap((dir) => {
+    const pkgJsonPath = resolve(packagesDir, dir, "package.json");
+    const srcIndex = resolve(packagesDir, dir, "src/index.ts");
+    if (!existsSync(pkgJsonPath) || !existsSync(srcIndex)) return [];
+    const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as {
+      name: string;
+    };
+    return [[name, srcIndex]];
+  }),
 );
 
 const pkg = JSON.parse(

@@ -1,9 +1,5 @@
 import type { ComponentProps } from "@gonogo/core";
-import {
-  getWidgetShape,
-  registerComponent,
-  useDataValue,
-} from "@gonogo/core";
+import { getWidgetShape, registerComponent, useDataValue } from "@gonogo/core";
 import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
 
