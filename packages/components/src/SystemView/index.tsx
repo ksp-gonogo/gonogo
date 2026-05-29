@@ -200,7 +200,7 @@ function SystemViewComponent({
                 transferStatuses={transferStatuses}
                 onFocusBodyChange={setFocusedBody}
                 width={size.w}
-                height={Math.max(size.h, 200)}
+                height={size.h}
               />
             )}
           </DiagramWrap>

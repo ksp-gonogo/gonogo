@@ -207,7 +207,9 @@ export function AlmanacPanel({
           ))
         )}
       </Rows>
-      {body.description && <Description>{body.description}</Description>}
+      {body.description && !/^#autoLOC/i.test(body.description.trim()) && (
+        <Description>{body.description}</Description>
+      )}
     </Wrap>
   );
 }
