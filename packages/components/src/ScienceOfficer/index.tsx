@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  getWidgetShape,
   registerComponent,
   useDataValue,
   useExecuteAction,
@@ -53,6 +54,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
 }
 
 function ScienceOfficerComponent({
+  w,
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
   const instrumentsRaw = useDataValue("data", "sci.instruments");
@@ -66,6 +68,9 @@ function ScienceOfficerComponent({
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
+  // Wide-short: flow the instrument groups into columns so they use the width
+  // instead of a single stranded column.
+  const isLandscape = getWidgetShape(w, h).shape === "landscape";
 
   if (instruments === null) {
     return (
@@ -107,7 +112,7 @@ function ScienceOfficerComponent({
           )}
         </PanelSubtitle>
       )}
-      <Body>
+      <Body $row={isLandscape}>
         {grouped.map(({ expId, items }) => (
           <Group key={expId}>
             <GroupLabel>{expId || "(unknown)"}</GroupLabel>
@@ -261,7 +266,7 @@ function summarise(instruments: Instrument[]): {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled(ScrollArea)`
+const Body = styled(ScrollArea)<{ $row?: boolean }>`
   flex: 1;
   min-height: 0;
 
@@ -270,6 +275,15 @@ const Body = styled(ScrollArea)`
     flex-direction: column;
     gap: 8px;
   }
+
+  /* Wide-short: groups flow into width-following columns. */
+  ${(p) =>
+    p.$row &&
+    `[data-scroll-area-inner] {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      align-content: start;
+    }`}
 `;
 
 const Group = styled.div`
