@@ -8,7 +8,7 @@ import {
   PanelTitle,
   Sparkline,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
 type SemiMajorAxisConfig = Record<string, never>;
@@ -39,19 +39,35 @@ function SemiMajorAxisComponent({
   // resolves itself.
   const readoutFontPx = cols <= 3 ? 18 : cols <= 4 ? 22 : 28;
 
-  // Sparkline width tracks its slot via ResizeObserver so a narrow column
-  // doesn't paint a 120-px sparkline across the title row.
-  const sparkRef = useRef<HTMLDivElement>(null);
+  // Sparkline width tracks its slot. The Sparkline renders a fixed-width
+  // SVG (no intrinsic responsiveness), so we measure the slot and feed it
+  // an explicit pixel width. The measurement lives on a *callback ref*
+  // rather than a `[]`-deps effect: the sparkline only mounts once orbit
+  // data arrives (before that the widget shows the EmptyState branch and
+  // SparkSlot is absent from the tree). A mount-time effect would run
+  // against a null ref and never re-attach when the slot later appears,
+  // leaving the width pinned at its 120-px default. The callback ref fires
+  // exactly when the node attaches/detaches.
+  const roRef = useRef<ResizeObserver | null>(null);
   const [sparkWidth, setSparkWidth] = useState(120);
-  useEffect(() => {
-    const el = sparkRef.current;
+  const sparkRef = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
+    roRef.current = null;
     if (!el) return;
+    const measure = (width: number) => {
+      if (width > 0) {
+        setSparkWidth((prev) => {
+          const next = Math.max(40, Math.floor(width));
+          return prev === next ? prev : next;
+        });
+      }
+    };
+    measure(el.clientWidth);
     const ro = new ResizeObserver((entries) => {
-      const { width } = entries[0].contentRect;
-      if (width > 0) setSparkWidth(Math.max(40, Math.floor(width)));
+      measure(entries[0].contentRect.width);
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    roRef.current = ro;
   }, []);
 
   if (sma === undefined || !Number.isFinite(sma)) {

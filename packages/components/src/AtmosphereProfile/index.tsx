@@ -32,10 +32,14 @@ function buildPressureCurve(
     const altitude = (ceiling * i) / REFERENCE_SAMPLES;
     const p = pressureAtAltitude(body, altitude);
     if (p === undefined) continue;
-    // Log axis can't show zero — clamp to a tiny positive for the
-    // beyond-atmosphere tail so the curve still draws a finishing tick.
+    // The log axis can't show zero, and clamping the beyond-atmosphere tail
+    // to a tiny positive drew a long flat line at the chart floor that read
+    // as "constant residual pressure in vacuum". Once pressure reaches zero
+    // the atmosphere has ended — stop the curve there rather than dragging a
+    // misleading floor segment across the rest of the plot.
+    if (p <= 0) break;
     xs.push(altitude);
-    ys.push(p > 0 ? p : 1e-6);
+    ys.push(p);
   }
   return {
     id: "pressure",
@@ -113,6 +117,10 @@ function AtmosphereProfileComponent({
   const cols = w ?? 8;
   const rows = h ?? 8;
   const chipFits = cols >= 7 && rows >= 6;
+  // At narrow widths the full title wraps to two lines inside the panel
+  // header, stealing a row from the already-short chart. Drop to a single
+  // word so the header stays one line and the plot keeps its height.
+  const title = cols < 6 ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
     chipFits &&
     typeof liveDensity === "number" &&
@@ -126,7 +134,7 @@ function AtmosphereProfileComponent({
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-          title="ATMOSPHERE PROFILE"
+          title={title}
           emptyState={
             body
               ? `No atmosphere on ${body.name}.`

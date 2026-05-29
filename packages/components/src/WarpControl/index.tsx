@@ -330,6 +330,10 @@ const RateValue = styled.span`
 
 const FullLadder = styled.div`
   flex: 2 1 140px;
+  /* Without min-width:0 a flex child defaults to min-width:auto (min-content),
+     so the grid can't shrink below its 8-button min-content and Panel's
+     overflow:hidden clips the rightmost column. Observed at mobile-9x8. */
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: 4px;
@@ -338,6 +342,7 @@ const FullLadder = styled.div`
 
 const Stepper = styled.div`
   flex: 1 1 100px;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(28px, 1fr));
   gap: 4px;

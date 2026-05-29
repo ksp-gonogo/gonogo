@@ -384,12 +384,15 @@ const ResourceList = styled.div`
 
 const ResourceRow = styled.div`
   display: grid;
-  /* minmax(0, 5em) lets the label column shrink below its 5em
-     ideal when the cell is narrow, so the bar + readout don't get
-     pushed off the right edge. Was 7em fixed — at medium-5x7
-     (~120px inner) the label ate ~80px and clipped readouts like
-     "18.50 / 30.0". */
-  grid-template-columns: minmax(0, 5em) 1fr auto;
+  /* Label column: a fixed 13em ideal (fits the longest label,
+     "Liquid Fuel · STAGE") keeps every bar's left edge aligned so the
+     fills can be compared at a glance, while minmax(0, …) lets the
+     column shrink with an ellipsis when the cell is genuinely narrow.
+     The old 5em cap truncated "Liquid Fuel" → "Liquid …" even at
+     default/wide sizes. The bar keeps a hard min-width (see Bar) so it
+     never collapses to a sliver when the readout column claims its
+     space at narrow widths. */
+  grid-template-columns: minmax(0, 13em) minmax(28px, 1fr) auto;
   align-items: center;
   gap: 8px;
   font-size: 11px;
@@ -419,6 +422,7 @@ const ResourceReadout = styled.span`
 
 const Bar = styled.div`
   height: 8px;
+  min-width: 28px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   overflow: hidden;

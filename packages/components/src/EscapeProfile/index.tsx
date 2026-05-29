@@ -121,8 +121,8 @@ const Notice = styled.div`
   bottom: 4px;
   left: 8px;
   font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  background: rgba(0, 0, 0, 0.7);
+  color: var(--color-text-muted);
+  background: rgba(0, 0, 0, 0.85);
   padding: 2px 6px;
   border-radius: 2px;
   pointer-events: none;

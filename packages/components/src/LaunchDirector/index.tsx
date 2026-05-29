@@ -789,7 +789,11 @@ const FlightStatRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: 4px 8px;
+  /* When the widget is too narrow to fit label + value side by side,
+     drop the value onto its own line (right-aligned) instead of
+     clipping the digits off the edge. */
+  flex-wrap: wrap;
   padding: 4px 8px;
   border-radius: 2px;
   background: var(--color-surface-panel);
@@ -808,6 +812,12 @@ const StatValue = styled.dd`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   font-weight: 600;
+  /* Don't let a narrow widget split "T+04:23" mid-value; the label
+     column may wrap, the value should stay intact. */
+  white-space: nowrap;
+  /* Stay flush-right whether it shares the line with the label or
+     (when wrapped) sits on its own line. */
+  margin-left: auto;
 `;
 
 const CrashChip = styled.div`
@@ -823,6 +833,9 @@ const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   margin-left: 2px;
+  /* Keep the separator glued to the amount so a narrow subtitle wraps
+     "· 42,500f" as one unit instead of orphaning the middot. */
+  white-space: nowrap;
 `;
 
 const armButtonBase = `

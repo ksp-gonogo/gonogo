@@ -6,7 +6,7 @@ exports[`DistanceToTarget DOM snapshots > approach-closing @ default-6x9 1`] = `
 
 exports[`DistanceToTarget DOM snapshots > approach-closing @ mobile-9x8 1`] = `"<div><h3>APPROACH</h3><div>Test Station</div><div><span>Distance</span><span>1.8 km</span><span>Closing rate</span><span>−4.7 m/s</span><span>TCA</span><span>T−02:05</span></div></div>"`;
 
-exports[`DistanceToTarget DOM snapshots > approach-closing @ tiny-3x4 1`] = `"<div><h3>APPROACH</h3><div>Test Station</div><div><span>Distance</span><span>1.8 km</span><span>Closing rate</span><span>−4.7 m/s</span><span>TCA</span><span>T−02:05</span></div></div>"`;
+exports[`DistanceToTarget DOM snapshots > approach-closing @ tiny-3x4 1`] = `"<div><h3>APPROACH</h3><div><div>Test Station</div><div>1.8 km</div><div>−4.7 m/s</div></div></div>"`;
 
 exports[`DistanceToTarget DOM snapshots > approach-closing @ wide-8x12 1`] = `"<div><h3>APPROACH</h3><div>Test Station</div><div><span>Distance</span><span>1.8 km</span><span>Closing rate</span><span>−4.7 m/s</span><span>TCA</span><span>T−02:05</span></div></div>"`;
 

@@ -124,12 +124,18 @@ function LandingStatusComponent({
   // operator how thick the air is and how hot the skin is during a reentry
   // burn. On vacuum landings the values are all ~0/ambient and add noise.
   const showAmbient = atmospheric && rows >= 9;
-  // At narrow widths the SuicideRow's label + 28px value won't fit
+  // At narrow widths the SuicideRow's label + headline value won't fit
   // side-by-side (label "SUICIDE BURN" alone takes ~95px before adding
   // the value). Stack vertically — label on top, value on its own line —
-  // so the value can use the full inner width. cols 4 (minSize) is the
-  // first reachable width and triggers stacking.
-  const stackSuicide = cols < 6;
+  // so the value can use the full inner width. cols 4 (minSize) and
+  // cols 6 are the reachable narrow widths and both trigger stacking.
+  const stackSuicide = cols < 8;
+  // The countdown is the headline, but "T−40.0s" at 28px overflows the
+  // inner width at narrow column counts even when stacked (the grid track
+  // is shrink-resistant — see minmax(0,1fr) below — but the glyphs still
+  // need to fit). Step the font down by available width. cols present are
+  // 4, 6, 8, 9; 28px is the intended size at the default/wide sizes.
+  const suicideFontPx = cols >= 8 ? 28 : cols >= 6 ? 24 : 20;
 
   return (
     <Panel>
@@ -160,7 +166,11 @@ function LandingStatusComponent({
             $stack={stackSuicide}
           >
             <SuicideLabel>Suicide burn</SuicideLabel>
-            <SuicideValue $urgent={urgent} $stack={stackSuicide}>
+            <SuicideValue
+              $urgent={urgent}
+              $stack={stackSuicide}
+              $fontPx={suicideFontPx}
+            >
               {suicideBurn === undefined || !Number.isFinite(suicideBurn)
                 ? "—"
                 : suicideBurn <= 0
@@ -278,8 +288,11 @@ const SuicideRow = styled.div<{
   display: grid;
   /* Wide widgets use a two-column layout (label · value) for a single
      scannable row; narrow widgets stack so the value can claim the full
-     width and stay at the headline 28 px font size without clipping. */
-  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
+     width. minmax(0, …) lets the flexible track shrink below the value's
+     min-content width — without it, the nowrap headline forces the track
+     (and the whole row) wider than the container and the value clips. */
+  grid-template-columns: ${({ $stack }) =>
+    $stack ? "minmax(0, 1fr)" : "auto minmax(0, 1fr)"};
   align-items: baseline;
   gap: 4px 12px;
   opacity: ${({ $muted, $urgent }) => ($muted && !$urgent ? 0.8 : 1)};
@@ -293,14 +306,19 @@ const SuicideLabel = styled.span`
   white-space: nowrap;
 `;
 
-const SuicideValue = styled.span<{ $urgent: boolean; $stack: boolean }>`
-  font-size: 28px;
+const SuicideValue = styled.span<{
+  $urgent: boolean;
+  $stack: boolean;
+  $fontPx: number;
+}>`
+  font-size: ${({ $fontPx }) => `${$fontPx}px`};
   font-weight: 700;
   color: ${({ $urgent }) => ($urgent ? "var(--color-status-nogo-fg)" : "var(--color-status-warning-bg)")};
   letter-spacing: 0.04em;
   justify-self: ${({ $stack }) => ($stack ? "start" : "end")};
   text-align: ${({ $stack }) => ($stack ? "left" : "right")};
   white-space: nowrap;
+  min-width: 0;
 `;
 
 const SuicideNote = styled.span`

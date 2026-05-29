@@ -103,6 +103,11 @@ function CurrentOrbitComponent({
   // and the value font to 11 px so a one-line value fits inside ~80 px
   // of content width.
   const tight = cols < 4 || rows < 5;
+  // Narrow panels (3–4 cols) can't fit long values like "1000.00 Mm" or
+  // "5h 15m 00s" at the 13 px tier — they clip at the panel edge. Shrink
+  // the value font on any narrow column count, not just the `tight`
+  // (small-on-both-axes) case, so compact (4×6) doesn't overflow either.
+  const narrow = cols < 5;
   const hyperbolic = typeof eccentricity === "number" && eccentricity >= 1;
 
   return (
@@ -113,7 +118,7 @@ function CurrentOrbitComponent({
       )}
 
       <Body ref={bodyRef} $landscape={isLandscape}>
-        <Grid $landscape={isLandscape} $tight={tight}>
+        <Grid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
           <Value $accent="ap">
             {apoapsisA === undefined ? "—" : formatDistance(apoapsisA)}
@@ -248,20 +253,29 @@ const Body = styled.div<{ $landscape: boolean }>`
   gap: 8px;
 `;
 
-const Grid = styled.div<{ $landscape: boolean; $tight: boolean }>`
+const Grid = styled.div<{
+  $landscape: boolean;
+  $tight: boolean;
+  $narrow: boolean;
+}>`
   display: grid;
-  grid-template-columns: ${({ $tight }) => ($tight ? "2.2em 1fr" : "3em 1fr")};
+  grid-template-columns: ${({ $tight }) =>
+    $tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"};
   gap: 2px ${({ $tight }) => ($tight ? "6px" : "8px")};
   align-items: baseline;
   align-content: start;
   ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
   /* Force values onto one line — at tiny widget sizes the formatted
-     distance ("85.0 km") wraps inside the 1fr column. Pair with the
-     11 px font tier below so the one-line value still fits ~80 px of
-     content width without clipping. */
+     distance ("85.0 km") wraps inside the value column. Pair with the
+     narrow-width font tiers below so realistic values still fit the
+     ~80–120 px of content width without clipping past the panel edge. */
   & > span:nth-child(2n) {
     white-space: nowrap;
-    ${({ $tight }) => ($tight ? "font-size: 11px;" : "")}
+    min-width: 0;
+    /* Narrow panels (3–4 cols) shrink long values rather than clip them;
+       the tiny tier (small on both axes) goes one step smaller still. */
+    ${({ $tight, $narrow }) =>
+      $tight ? "font-size: 10px;" : $narrow ? "font-size: 12px;" : ""}
   }
 `;
 
