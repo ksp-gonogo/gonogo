@@ -199,7 +199,11 @@ function ApproachHud({
   // Narrow widget: the "Closing rate" label wraps and the TCA value
   // ("T−02:05") clips at the right edge in the auto/1fr grid. Stack
   // labels above values so each value gets the full inner width.
-  const stack = cols < 5;
+  // Threshold is `< 6`: at exactly 5 cols (the tall-narrow portrait
+  // extreme) the auto label column eats so much width that the closing
+  // -rate value "−4.7 m/s" loses its trailing "s" off the right edge.
+  // 6-col and wider keep the paired label/value layout.
+  const stack = cols < 6;
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
   const closingMagnitude =
     relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
@@ -315,11 +319,17 @@ function DockingHud(props: DockingHudProps) {
     rows,
   } = props;
 
+  // Wide + short (e.g. 18×5): too few rows for the vertical
+  // viewport-over-overlay stack, but plenty of horizontal room. Flow to a
+  // row layout — reticle on the left, readout panel beside it on the right
+  // — instead of dropping the reticle entirely.
+  const wideShort = cols >= 12 && rows < 6;
   // Tiny widget: the viewport collapses to near-zero height after the
   // overlay takes its share, so the reticle clips at the top edge and
   // becomes useless. Drop it entirely and let the numeric readouts fill
-  // the slot.
-  const showViewport = rows >= 6 && cols >= 4;
+  // the slot. In the wide-short row layout the viewport gets its height
+  // from the full panel height, so it's kept there even at rows < 6.
+  const showViewport = wideShort || (rows >= 6 && cols >= 4);
   // Narrow widget: HudGrid auto/1fr columns can't hold "0.12 m / -0.07 m"
   // or "0.3° · -0.2° · 0.8°" without wrapping. Stack so each readout
   // owns the row width.
@@ -352,7 +362,11 @@ function DockingHud(props: DockingHudProps) {
   const closing = relVel !== undefined && relVel < 0;
 
   return (
-    <HudPanel role="region" aria-label={`Docking HUD for ${name}`}>
+    <HudPanel
+      role="region"
+      aria-label={`Docking HUD for ${name}`}
+      $row={wideShort}
+    >
       {showCamera && showViewport && <HudCamera cameraId={cameraId} />}
       {showViewport && (
         <Viewport>
@@ -378,7 +392,7 @@ function DockingHud(props: DockingHudProps) {
         </Viewport>
       )}
 
-      <HudOverlay>
+      <HudOverlay $side={wideShort}>
         <HudHeader>
           <HudName>{name}</HudName>
           <HudRange>
@@ -624,12 +638,12 @@ const ApproachValue = styled.span<{ $tone?: "ok" | "warn" }>`
 
 // ── Styles — HUD mode ─────────────────────────────────────────────────────────
 
-const HudPanel = styled.div`
+const HudPanel = styled.div<{ $row?: boolean }>`
   position: relative;
   width: 100%;
   height: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: ${({ $row }) => ($row ? "row" : "column")};
   background: var(--color-surface-app);
   border-radius: 2px;
   overflow: hidden;
@@ -648,6 +662,7 @@ const Viewport = styled.div`
   position: relative;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   /* Subtle green tint over the video to sell the instrument feel. */
   background: radial-gradient(
     circle at center,
@@ -719,10 +734,25 @@ const VertTick = styled.div`
   transform: translateX(-4px);
 `;
 
-const HudOverlay = styled.div`
+const HudOverlay = styled.div<{ $side?: boolean }>`
   padding: 6px 10px 8px;
   background: rgba(0, 0, 0, 0.55);
-  border-top: 1px solid rgba(0, 255, 136, 0.2);
+  /* Wide-short row layout docks the overlay to the side: fixed-width
+     right column with a left divider instead of the full-width bottom
+     bar. Centre it vertically so it reads as a paired panel. */
+  ${({ $side }) =>
+    $side
+      ? `
+        flex: 0 0 240px;
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-left: 1px solid rgba(0, 255, 136, 0.2);
+      `
+      : `
+        border-top: 1px solid rgba(0, 255, 136, 0.2);
+      `}
 `;
 
 const HudHeader = styled.div`

@@ -4,6 +4,8 @@
     "body": "Kerbin",
     "notes": "Descending ~2km over Water with impact prediction populated."
   },
+  "v.name": "tester",
+  "v.missionTime": 285,
   "v.heightFromTerrain": 2011.38623046875,
   "v.biome": "Water",
   "v.altitude": 2011.38619201363,

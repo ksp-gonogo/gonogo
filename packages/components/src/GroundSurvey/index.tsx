@@ -79,6 +79,10 @@ function GroundSurveyComponent({
   const showStrip = rows >= 5;
   const showSubtitle = rows >= 4;
   const showSpeed = cols >= 5 && rows >= 4;
+  const showPrediction =
+    rows >= 4 &&
+    survey.predictedLat !== null &&
+    survey.predictedLon !== null;
 
   return (
     <Panel>
@@ -89,6 +93,12 @@ function GroundSurveyComponent({
             <PanelSubtitle>
               {subtitleFor(survey, freezeBelowM, surveyCeilingM)}
             </PanelSubtitle>
+          )}
+          {showPrediction && (
+            <PredictionReadout
+              lat={survey.predictedLat as number}
+              lon={survey.predictedLon as number}
+            />
           )}
         </Titles>
         <BadgeArea>
@@ -146,6 +156,20 @@ function SmoothnessBadge({ verdict }: { verdict: SmoothnessVerdict | null }) {
 function SpeedReadout({ speed }: { speed: number | null }) {
   if (speed === null) return null;
   return <Speed>{speed.toFixed(0)} m/s surf.</Speed>;
+}
+
+function PredictionReadout({ lat, lon }: { lat: number; lon: number }) {
+  return (
+    <Prediction>
+      Impact {formatCoord(lat, "lat")}, {formatCoord(lon, "lon")}
+    </Prediction>
+  );
+}
+
+function formatCoord(value: number, axis: "lat" | "lon"): string {
+  const hemi =
+    axis === "lat" ? (value >= 0 ? "N" : "S") : value >= 0 ? "E" : "W";
+  return `${Math.abs(value).toFixed(2)}°${hemi}`;
 }
 
 function formatMetres(m: number): string {
@@ -238,6 +262,7 @@ const Titles = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1 1 auto;
 `;
 
 const BadgeArea = styled.div`
@@ -245,6 +270,10 @@ const BadgeArea = styled.div`
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  /* Grow to full width when wrapped onto its own line at narrow widths so the
+     badge + speed stay a coherent right-aligned cluster instead of floating
+     mid-line. At wide widths Titles' flex-grow keeps this pinned top-right. */
+  flex: 1 0 auto;
 `;
 
 const BadgeWrap = styled.div<{ $tone: SmoothnessVerdict["badge"] }>`
@@ -293,6 +322,13 @@ const Speed = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
+`;
+
+const Prediction = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
 `;
 
 const StripWrap = styled.div`
