@@ -90,7 +90,7 @@ importers:
         version: link:../data
       '@gonogo/kerbcam':
         specifier: workspace:*
-        version: file:packages/kerbcam(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: link:../kerbcam
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -318,8 +318,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcam':
-        specifier: ^0.5.2
-        version: 0.5.2
+        specifier: file:../../../kerbcam/client-sdk/typescript
+        version: file:../kerbcam/client-sdk/typescript
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1252,26 +1252,6 @@ packages:
   '@fastify/websocket@11.2.0':
     resolution: {integrity: sha512-3HrDPbAG1CzUCqnslgJxppvzaAZffieOVbLp1DAy1huCSynUWPifSvfdEDUR8HlJLp3sp1A36uOM2tJogADS8w==}
 
-  '@gonogo/core@file:packages/core':
-    resolution: {directory: packages/core, type: directory}
-    peerDependencies:
-      react: ^18.0.0
-      styled-components: ^6.0.0
-
-  '@gonogo/kerbcam@file:packages/kerbcam':
-    resolution: {directory: packages/kerbcam, type: directory}
-    peerDependencies:
-      react: ^18.0.0
-
-  '@gonogo/logger@file:packages/logger':
-    resolution: {directory: packages/logger, type: directory}
-
-  '@gonogo/ui@file:packages/ui':
-    resolution: {directory: packages/ui, type: directory}
-    peerDependencies:
-      react: ^18.0.0
-      styled-components: ^6.0.0
-
   '@grpc/grpc-js@1.14.3':
     resolution: {integrity: sha512-Iq8QQQ/7X3Sac15oB6p0FmUg/klxQvXLeileoqrTRGJYLV+/9tubbr9ipz0GKHjmXVsgFPo/+W+2cA8eNcR+XA==}
     engines: {node: '>=12.10.0'}
@@ -1353,11 +1333,8 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcam@0.3.1':
-    resolution: {integrity: sha512-RMOhc6pVW3+ih8fU7OAP1y+4267F6moX2YHPmJtIg5qv3eOrvIj9kypqgKGS2ofKObGaDd5RGzlFnWKp9KBXcA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.3.1/b5b9b5fa97cc3469c62fd8f352ca6720cc85764d}
-
-  '@jonpepler/kerbcam@0.5.2':
-    resolution: {integrity: sha512-iFn66PWgvUFTcYbZqrAt9TxkCJlMo4KncHpTt7dRafRHTNHCSQCLdijBmJ5jJ6DP47jw0PYDWqQ8q1QsaAdVwQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.5.2/d8f29eb53479f3bf60e4f770d92f1d652c633a00}
+  '@jonpepler/kerbcam@file:../kerbcam/client-sdk/typescript':
+    resolution: {directory: ../kerbcam/client-sdk/typescript, type: directory}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3617,36 +3594,6 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@gonogo/core@file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
-    dependencies:
-      '@gonogo/logger': file:packages/logger
-      react: 18.3.1
-      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-
-  '@gonogo/kerbcam@file:packages/kerbcam(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@gonogo/core': file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      '@gonogo/logger': file:packages/logger
-      '@gonogo/ui': file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      '@jonpepler/kerbcam': 0.3.1
-      react: 18.3.1
-      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-    transitivePeerDependencies:
-      - css-to-react-native
-      - react-dom
-      - react-native
-
-  '@gonogo/logger@file:packages/logger':
-    dependencies:
-      '@axiomhq/js': 1.6.1
-
-  '@gonogo/ui@file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
-    dependencies:
-      '@gonogo/core': file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      lucide-react: 1.14.0(react@18.3.1)
-      react: 18.3.1
-      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-
   '@grpc/grpc-js@1.14.3':
     dependencies:
       '@grpc/proto-loader': 0.8.0
@@ -3727,9 +3674,7 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcam@0.3.1': {}
-
-  '@jonpepler/kerbcam@0.5.2': {}
+  '@jonpepler/kerbcam@file:../kerbcam/client-sdk/typescript': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
