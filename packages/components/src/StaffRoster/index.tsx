@@ -261,9 +261,9 @@ const List = styled.ul`
 
 const Row = styled.li<{ $available: boolean }>`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
   padding: 4px 6px;
   border-radius: 2px;
   background: var(--color-surface-panel);
@@ -274,7 +274,6 @@ const Name = styled.span`
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-primary);
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -282,10 +281,10 @@ const Name = styled.span`
 `;
 
 const Meta = styled.span`
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  flex-shrink: 0;
-  align-items: baseline;
+  align-items: center;
 `;
 
 const TraitTag = styled.span`
