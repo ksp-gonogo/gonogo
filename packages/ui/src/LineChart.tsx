@@ -482,6 +482,16 @@ export function LineChart({
           // Approximate text width (≈6 px per glyph at fontSize 10); clamp so
           // the chip never runs past the plot's right edge on narrow charts.
           const chipW = Math.min(s.label.length * 6 + 8, plotW - 6);
+          // When the chip is clamped, the SVG <text> would still overflow the
+          // plot (the root carries `overflow: visible`, which is load-bearing
+          // and must NOT be flipped to hidden). Ellipsize the label to the
+          // glyphs that fit the clamped chip so it stays inside the plot at
+          // extreme/narrow aspects instead of escaping the right edge.
+          const maxChars = Math.max(1, Math.floor((chipW - 8) / 6));
+          const labelText =
+            s.label.length > maxChars
+              ? `${s.label.slice(0, Math.max(1, maxChars - 1))}…`
+              : s.label;
           return (
             <React.Fragment key={s.id}>
               <rect
@@ -493,7 +503,7 @@ export function LineChart({
                 fill="rgba(0, 0, 0, 0.55)"
               />
               <text x={plotX0 + 6} y={rowY + 10} fill={s.color} fontSize={10}>
-                {s.label}
+                {labelText}
               </text>
             </React.Fragment>
           );
