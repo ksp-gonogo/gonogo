@@ -512,6 +512,43 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "graph",
+    fixturesPath: "Graph/__fixtures__",
+    outPath: "renders/graph-widget",
+    // Graph is config-driven: the per-mode config carries the series list;
+    // the fixture supplies the _series data those keys plot against (time axis).
+    modes: (() => {
+      const config = {
+        windowSec: 600,
+        series: [
+          { key: "v.altitude", label: "Altitude", axis: "primary" },
+          {
+            key: "v.horizontalVelocity",
+            label: "H. velocity",
+            axis: "secondary",
+          },
+        ],
+      };
+      return [
+        { name: "min-5x4", w: 5, h: 4, config },
+        { name: "default-10x8", w: 10, h: 8, config },
+        // wide-short — stresses legend/axis reflow.
+        { name: "wide-16x6", w: 16, h: 6, config },
+        { name: "tall-8x12", w: 8, h: 12, config },
+        // single-series variant exercises the big-readout path.
+        {
+          name: "single-8x6",
+          w: 8,
+          h: 6,
+          config: {
+            windowSec: 600,
+            series: [{ key: "v.altitude", label: "Altitude", axis: "primary" }],
+          },
+        },
+      ];
+    })(),
+  },
+  {
     widgetId: "orbital-ascent",
     fixturesPath: "OrbitalAscent/__fixtures__",
     outPath: "renders/orbital-ascent-widget",
