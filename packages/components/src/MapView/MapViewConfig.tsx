@@ -1,4 +1,5 @@
 import type { ConfigComponentProps } from "@gonogo/core";
+import { getAllBodies } from "@gonogo/core";
 import { useDataSchema } from "@gonogo/data";
 import {
   ConfigForm,
@@ -36,6 +37,16 @@ export function MapViewConfigComponent({
   const [showAnomalies, setShowAnomalies] = useState(
     config?.showAnomalies ?? false,
   );
+  const [bodyOverride, setBodyOverride] = useState(config?.bodyOverride ?? "");
+  const [showFootprints, setShowFootprints] = useState(
+    config?.showFootprints ?? false,
+  );
+  const [showCoverage, setShowCoverage] = useState(
+    config?.showCoverage ?? false,
+  );
+  const [showAnomalyPanel, setShowAnomalyPanel] = useState(
+    config?.showAnomalyPanel ?? false,
+  );
   const [fogAltLoRes, setFogAltLoRes] = useState(
     config?.fogLayers?.altimetryLoRes !== false,
   );
@@ -51,6 +62,12 @@ export function MapViewConfigComponent({
   );
 
   const allKeys = useDataSchema("data");
+
+  // Stock bodies for the picker. Sorted by name for a predictable list.
+  const bodies = useMemo(
+    () => [...getAllBodies()].sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
 
   // Show numeric keys only — exclude booleans, enums and raw values that
   // aren't meaningful in a small telemetry panel.
@@ -78,6 +95,10 @@ export function MapViewConfigComponent({
       baseLayer,
       showHeightShading,
       showAnomalies,
+      bodyOverride: bodyOverride || undefined,
+      showFootprints,
+      showCoverage,
+      showAnomalyPanel,
       fogLayers: {
         altimetryLoRes: fogAltLoRes,
         altimetryHiRes: fogAltHiRes,
@@ -100,6 +121,25 @@ export function MapViewConfigComponent({
           value={trajectoryLength}
           onChange={(e) => setTrajectoryLength(e.target.value)}
         />
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="map-body-override">Body</FieldLabel>
+        <select
+          id="map-body-override"
+          value={bodyOverride}
+          onChange={(e) => setBodyOverride(e.target.value)}
+        >
+          <option value="">Follow vessel</option>
+          {bodies.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+        <FieldHint>
+          Pin the map to a specific body to inspect its scan layers while the
+          vessel is elsewhere. Default follows the active vessel.
+        </FieldHint>
       </Field>
       <Field>
         <FieldLabel>Base map</FieldLabel>
@@ -136,6 +176,27 @@ export function MapViewConfigComponent({
             checked={showAnomalies}
             onChange={setShowAnomalies}
             label="Anomaly markers"
+          />
+        </FieldRow>
+        <FieldRow>
+          <Switch
+            checked={showFootprints}
+            onChange={setShowFootprints}
+            label="Scanning-vessel footprints"
+          />
+        </FieldRow>
+        <FieldRow>
+          <Switch
+            checked={showCoverage}
+            onChange={setShowCoverage}
+            label="Coverage readout"
+          />
+        </FieldRow>
+        <FieldRow>
+          <Switch
+            checked={showAnomalyPanel}
+            onChange={setShowAnomalyPanel}
+            label="Anomaly distance panel"
           />
         </FieldRow>
       </Field>
