@@ -669,7 +669,11 @@ const Agency = styled.div`
 
 const Rewards = styled.div`
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  /* row-gap kept tight so a wrapped third reward (FUNDS/SCI/REP at narrow
+     widths, e.g. portrait-5x18) sits close under the first line instead of
+     overflowing and clipping the panel edge. */
+  gap: 2px 12px;
 `;
 
 const Reward = styled.div`

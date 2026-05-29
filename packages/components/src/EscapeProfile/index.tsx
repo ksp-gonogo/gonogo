@@ -30,6 +30,7 @@ function defaultCeiling(body: BodyDefinition): number {
 function buildEscapeCurve(
   body: BodyDefinition,
   ceiling: number,
+  narrow: boolean,
 ): ReferenceCurve | null {
   if (body.gm === undefined) return null;
   const xs: number[] = [];
@@ -43,7 +44,12 @@ function buildEscapeCurve(
   }
   return {
     id: "escape-velocity",
-    label: `Escape velocity (${body.name})`,
+    // The shared LineChart legend stamps the label as a single un-truncated
+    // line of SVG <text>; on a narrow plot the body-name parenthetical runs
+    // past the right edge and is clipped by the viewport. Drop it below ~6
+    // grid columns so the label fits — the body name is still implied by the
+    // widget context / title. Wider cells keep the explicit body name.
+    label: narrow ? "Escape velocity" : `Escape velocity (${body.name})`,
     xs,
     ys,
     color: "var(--color-status-warning-bg)",
@@ -52,17 +58,22 @@ function buildEscapeCurve(
 
 function EscapeProfileComponent({
   config,
+  w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
   const bodyName = useDataValue<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
 
   const windowSec = config?.windowSec ?? 600;
 
+  // At ~6 grid columns or fewer the plot is too narrow for the full
+  // "Escape velocity (Body)" legend to fit — shorten it (see buildEscapeCurve).
+  const narrow = w !== undefined && w <= 6;
+
   const referenceCurve = useMemo(() => {
     if (!body) return null;
     const ceiling = config?.altitudeCeiling ?? defaultCeiling(body);
-    return buildEscapeCurve(body, ceiling);
-  }, [body, config?.altitudeCeiling]);
+    return buildEscapeCurve(body, ceiling, narrow);
+  }, [body, config?.altitudeCeiling, narrow]);
 
   // Plot orbital speed (a strict upper bound on horizontal-only) against
   // altitude. When the trace touches the curve the trajectory is at escape.
