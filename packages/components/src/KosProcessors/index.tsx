@@ -92,12 +92,12 @@ function KosProcessorsComponent({
     const showCompactRows = !showFullRows && rows >= 4;
 
     if (!showFullRows && !showCompactRows) {
-      const runCount = payload.filter((p) => p.mode === "RUN").length;
+      const readyCount = payload.filter((p) => p.mode === "READY").length;
       return (
         <CompactSummary>
           <CompactCount>{payload.length}</CompactCount>
           <CompactSub>
-            CPU{payload.length === 1 ? "" : "s"} · {runCount} RUN
+            CPU{payload.length === 1 ? "" : "s"} · {readyCount} READY
           </CompactSub>
         </CompactSummary>
       );

@@ -120,4 +120,61 @@ describe("KosProcessorsComponent", () => {
     expect(screen.getByText(/untagged/i)).toBeInTheDocument();
     expect(screen.getByText("OFF")).toBeInTheDocument();
   });
+
+  it("counts only READY CPUs in the compact summary at small sizes", async () => {
+    // At 3x3 (minSize) the body collapses to the compact count summary —
+    // neither full nor compact rows render. The summary must reflect how
+    // many CPUs are actually running: READY, not STARVED ("powered but
+    // power-starved" = stalled) and not OFF. The kerboscript emits kOS's
+    // `:MODE` verbatim, whose values are READY / STARVED / OFF — never "RUN".
+    const fake = registerFakeKos();
+    render(<KosProcessorsComponent config={{}} w={3} h={3} />);
+
+    act(() => {
+      fake.push([
+        {
+          tag: "A",
+          mode: "READY",
+          volume: "",
+          bootFile: "",
+          partTitle: "",
+          partUid: "u1",
+        },
+        {
+          tag: "B",
+          mode: "READY",
+          volume: "",
+          bootFile: "",
+          partTitle: "",
+          partUid: "u2",
+        },
+        {
+          tag: "C",
+          mode: "STARVED",
+          volume: "",
+          bootFile: "",
+          partTitle: "",
+          partUid: "u3",
+        },
+        {
+          tag: "D",
+          mode: "OFF",
+          volume: "",
+          bootFile: "",
+          partTitle: "",
+          partUid: "u4",
+        },
+      ]);
+    });
+
+    // Total CPU count.
+    expect(await screen.findByText("4")).toBeInTheDocument();
+    // Only the two READY CPUs are counted — STARVED + OFF are excluded.
+    // (The sub-line is split across text nodes, so match the substring.)
+    expect(screen.getByText(/2 READY/)).toBeInTheDocument();
+    // Guard against the old "RUN" readout (and any !== "OFF" overcount,
+    // which would have shown 3).
+    expect(screen.queryByText(/RUN/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/3 READY/)).not.toBeInTheDocument();
+  });
 });
