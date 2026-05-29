@@ -755,4 +755,59 @@ export interface TelemaachusSchema {
   "dock.az": number;
   "dock.x": number;
   "dock.y": number;
+
+  // --- scan.* — SCANsat integration (gonogo Telemachus fork) ---
+  // `scan.available` gates the whole section — false means SCANsat is not
+  // installed. All other keys are only meaningful when this is true.
+  "scan.available": boolean;
+
+  /**
+   * Full list of vessels SCANsat is currently tracking (loaded and unloaded).
+   * Each entry carries per-sensor FoV / altitude range / in-range state and
+   * the vessel's current sub-satellite ground point.
+   */
+  "scan.scanningVessels": SCANScanningVessel[];
+
+  /**
+   * Percentage of a body scanned for a given scan type.
+   * `scan.coverage[bodyName, scanType]` — `scanType` is one of the
+   * `SCAN_TYPE` integer bit values. Returns a number in [0, 100].
+   */
+  [key: `scan.coverage[${string},${number}]`]: number;
+
+  /**
+   * Bit-packed scan coverage bitmap for a body + scan type.
+   * `scan.maskBitmap[bodyName, scanType]`
+   */
+  [key: `scan.maskBitmap[${string},${number}]`]: SCANCoverageBitmap;
+
+  /**
+   * Elevation grid for a body (PQS-backed, available without SCANsat).
+   * `scan.heightGrid[bodyName]`
+   */
+  [key: `scan.heightGrid[${string}]`]: SCANHeightGrid;
+
+  /**
+   * Biome colour-index grid for a body (stock BiomeMap-backed).
+   * `scan.biomeGrid[bodyName]`
+   */
+  [key: `scan.biomeGrid[${string}]`]: SCANBiomeGrid;
+
+  /**
+   * Known anomalies for a body (requires SCANsat Anomaly scan for discovery).
+   * `scan.anomalies[bodyName]`
+   */
+  [key: `scan.anomalies[${string}]`]: SCANAnomalyEntry[];
+
+  /**
+   * Terrain elevation in metres at a specific lat/lon on a body.
+   * `scan.elevation[bodyName, lat, lon]`
+   */
+  [key: `scan.elevation[${string},${number},${number}]`]: number;
+
+  /**
+   * Biome name at a specific lat/lon on a body (stock BiomeMap lookup).
+   * `scan.biome[bodyName, lat, lon]`
+   */
+  [key: `scan.biome[${string},${number},${number}]`]: string;
 }

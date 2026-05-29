@@ -41,6 +41,7 @@ function ScanningComponent({
 }: Readonly<ComponentProps<ScanningConfig>>) {
   const activeBody = useDataValue<string>("data", "v.body");
   const bodyName = config?.bodyName ?? activeBody;
+  const biome = useDataValue<string>("data", "v.biome");
   const scanAvailable = useDataValue<boolean>("data", "scan.available");
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
@@ -63,6 +64,8 @@ function ScanningComponent({
   return (
     <Panel>
       <PanelTitle>Scanning</PanelTitle>
+
+      {biome ? <BiomeStrip>Biome: {biome}</BiomeStrip> : null}
 
       {body ? (
         <Section>
@@ -326,6 +329,17 @@ const AnomalyCoords = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+const BiomeStrip = styled.div`
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  padding: 4px 8px;
+  margin-bottom: 10px;
+`;
+
 const EmptyState = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -347,7 +361,7 @@ registerComponent<ScanningConfig>({
   minSize: { w: 3, h: 4 },
   component: ScanningComponent,
   openConfigOnAdd: false,
-  dataRequirements: ["scan.available", "scan.scanningVessels", "v.body"],
+  dataRequirements: ["scan.available", "scan.scanningVessels", "v.body", "v.biome"],
   defaultConfig: {},
   actions: [],
   pushable: true,
