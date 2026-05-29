@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
   getBody,
+  getWidgetShape,
   kelvinToCelsius,
   registerComponent,
   useDataValue,
@@ -118,10 +119,15 @@ function LandingStatusComponent({
   // drop from the bottom (slope/predicted first) as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 10;
+  // Wide-short: lay the headline + metric grid side-by-side so the metrics
+  // show despite the short height (width compensates for the row-gates).
+  const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 6;
   const showAtmosphericNote = rows >= 7;
-  const showImpactRows = rows >= 6;
-  const showAltitudeRows = rows >= 8;
+  const showImpactRows = rows >= 6 || isLandscape;
+  const showAltitudeRows = rows >= 8 || isLandscape;
+  // Slope stays height-gated — a third metric pair would overflow the short
+  // landscape height beside the headline.
   const showSlopeRows = rows >= 10;
   const showAnyMetricGrid = showImpactRows || showAltitudeRows || showSlopeRows;
   const showBestImpactInline = cols >= 8;
@@ -159,7 +165,7 @@ function LandingStatusComponent({
             : "No landing in progress"}
         </EmptyState>
       ) : (
-        <Body>
+        <Body $row={isLandscape}>
           {/* Suicide burn — the headline on airless bodies. On atmospheric
               bodies KSP's prediction ignores aerobraking, so we still show it
               but demote it visually. */}
@@ -190,7 +196,7 @@ function LandingStatusComponent({
           </SuicideRow>
 
           {showAnyMetricGrid && (
-            <MetricGrid>
+            <MetricGrid $row={isLandscape}>
               {showImpactRows && (
                 <>
                   <MetricLabel>Impact in</MetricLabel>
@@ -261,12 +267,17 @@ function LandingStatusComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled.div`
+const Body = styled.div<{ $row?: boolean }>`
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: ${(p) => (p.$row ? "row" : "column")};
+  align-items: ${(p) => (p.$row ? "flex-start" : "stretch")};
+  gap: ${(p) => (p.$row ? "16px" : "8px")};
   min-height: 0;
+  /* Wide-short: headline and metric grid each take half the width. */
+  ${(p) =>
+    p.$row &&
+    `& > * { flex: 1 1 0; min-width: 0; }`}
 `;
 
 const SuicideRow = styled.div<{
@@ -333,12 +344,14 @@ const SuicideNote = styled.span`
   letter-spacing: 0.03em;
 `;
 
-const MetricGrid = styled.div`
+const MetricGrid = styled.div<{ $row?: boolean }>`
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 2px 10px;
-  margin-top: 10px;
+  /* No top margin when it sits beside the headline (wide-short). */
+  margin-top: ${(p) => (p.$row ? "0" : "10px")};
   align-items: baseline;
+  align-content: start;
 `;
 
 const MetricLabel = styled.span`
