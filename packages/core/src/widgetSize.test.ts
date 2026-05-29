@@ -32,8 +32,14 @@ describe("getWidgetShape", () => {
       shape: "square",
       aspect: 1,
     });
-    expect(getWidgetShape(10, undefined)).toEqual({ shape: "square", aspect: 1 });
-    expect(getWidgetShape(undefined, 10)).toEqual({ shape: "square", aspect: 1 });
+    expect(getWidgetShape(10, undefined)).toEqual({
+      shape: "square",
+      aspect: 1,
+    });
+    expect(getWidgetShape(undefined, 10)).toEqual({
+      shape: "square",
+      aspect: 1,
+    });
   });
 
   it("treats a zero height as missing rather than dividing by zero", () => {

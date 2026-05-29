@@ -37,9 +37,7 @@ export interface MockKerbcamSession {
    * Drive the peer's connection-state handler. Use `"connected"` for
    * the happy path, `"failed"` to test reconnect logic.
    */
-  setState(
-    state: "disconnected" | "connecting" | "connected" | "failed",
-  ): void;
+  setState(state: "disconnected" | "connecting" | "connected" | "failed"): void;
   /**
    * Deliver a `ServerMessage` from the sidecar into the client.
    * The object is JSON-serialised before delivery — pass plain objects,
@@ -53,9 +51,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
   let _channelOpenHandler: (() => void) | undefined;
   let _messageHandler: ((raw: string) => void) | undefined;
   let _stateHandler:
-    | ((
-        s: "disconnected" | "connecting" | "connected" | "failed",
-      ) => void)
+    | ((s: "disconnected" | "connecting" | "connected" | "failed") => void)
     | undefined;
   let _closed = false;
 

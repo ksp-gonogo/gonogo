@@ -361,7 +361,12 @@ registerComponent<ScanningConfig>({
   minSize: { w: 3, h: 4 },
   component: ScanningComponent,
   openConfigOnAdd: false,
-  dataRequirements: ["scan.available", "scan.scanningVessels", "v.body", "v.biome"],
+  dataRequirements: [
+    "scan.available",
+    "scan.scanningVessels",
+    "v.body",
+    "v.biome",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,

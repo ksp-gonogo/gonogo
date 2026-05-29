@@ -80,9 +80,7 @@ function GroundSurveyComponent({
   const showSubtitle = rows >= 4;
   const showSpeed = cols >= 5 && rows >= 4;
   const showPrediction =
-    rows >= 4 &&
-    survey.predictedLat !== null &&
-    survey.predictedLon !== null;
+    rows >= 4 && survey.predictedLat !== null && survey.predictedLon !== null;
 
   return (
     <Panel>

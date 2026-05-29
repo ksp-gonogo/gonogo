@@ -3,7 +3,11 @@ import type {
   ComponentProps,
   ConfigComponentProps,
 } from "@gonogo/core";
-import { getWidgetShape, registerComponent, useActionInput } from "@gonogo/core";
+import {
+  getWidgetShape,
+  registerComponent,
+  useActionInput,
+} from "@gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
 import {
   ConfigForm,
@@ -605,9 +609,7 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
     flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
     gap: ${({ $landscape }) => ($landscape ? "12px" : "8px")};
     ${({ $landscape }) =>
-      $landscape
-        ? "align-items: stretch; overflow: hidden;"
-        : ""}
+      $landscape ? "align-items: stretch; overflow: hidden;" : ""}
   }
 `;
 
@@ -616,9 +618,7 @@ const Section = styled.section<{ $landscape?: boolean }>`
   flex-direction: column;
   gap: 2px;
   ${({ $landscape }) =>
-    $landscape
-      ? "flex: 1 1 0; min-width: 0; min-height: 0;"
-      : ""}
+    $landscape ? "flex: 1 1 0; min-width: 0; min-height: 0;" : ""}
 `;
 
 const SectionTitle = styled.h3`

@@ -146,7 +146,10 @@ export function ComponentOverlay({
 
   // Keep the highlighted option scrolled into view as arrows move past the
   // visible edge of the scrolling List. Optional-call the method — jsdom (and
-  // any non-DOM host) doesn't implement scrollIntoView.
+  // any non-DOM host) doesn't implement scrollIntoView. activeIdx is the
+  // intentional trigger: the effect reads activeOptionRef and re-runs on each
+  // cursor move; dropping it from the deps would stop scroll-on-navigation.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeIdx is the intentional scroll trigger, read via ref.
   useEffect(() => {
     activeOptionRef.current?.scrollIntoView?.({ block: "nearest" });
   }, [activeIdx]);
@@ -508,8 +511,7 @@ const ListItem = styled.button<{ $active?: boolean }>`
   gap: 4px;
   width: 100%;
   text-align: left;
-  background: ${(p) =>
-    p.$active ? "var(--color-surface-raised)" : "none"};
+  background: ${(p) => (p.$active ? "var(--color-surface-raised)" : "none")};
   border: none;
   border-bottom: 1px solid var(--color-surface-panel);
   padding: 12px 16px;
