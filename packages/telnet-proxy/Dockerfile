@@ -18,6 +18,11 @@ RUN corepack enable
 # until any of those change. tsconfig.base is picked up by every
 # package's tsconfig via `extends`; .npmrc carries the
 # `inject-workspace-packages=true` setting that `pnpm deploy` needs.
+# Empty default so pnpm can parse .npmrc without the ${GITHUB_TOKEN}
+# substitution error. telnet-proxy doesn't pull from GitHub Packages.
+ARG GITHUB_TOKEN=""
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
 COPY packages/logger/package.json packages/logger/
 COPY packages/telnet-proxy/package.json packages/telnet-proxy/

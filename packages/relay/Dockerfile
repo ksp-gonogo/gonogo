@@ -14,6 +14,11 @@ RUN corepack enable
 # until any of those change. tsconfig.base is picked up by every
 # package's tsconfig via `extends`, so it has to land before the
 # build step.
+# Empty default so pnpm can parse .npmrc without the ${GITHUB_TOKEN}
+# substitution error. relay doesn't pull from GitHub Packages.
+ARG GITHUB_TOKEN=""
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json .npmrc ./
 COPY packages/logger/package.json packages/logger/
 COPY packages/relay/package.json packages/relay/
