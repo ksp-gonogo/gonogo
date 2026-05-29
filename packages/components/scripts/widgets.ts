@@ -511,6 +511,21 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-14x10", w: 14, h: 10 },
     ],
   },
+  {
+    widgetId: "orbital-ascent",
+    fixturesPath: "OrbitalAscent/__fixtures__",
+    outPath: "renders/orbital-ascent-widget",
+    modes: [
+      // minSize 5×4 — phase-space plot at its tightest.
+      { name: "min-5x4", w: 5, h: 4 },
+      // defaultSize 10×8 — the common operator view.
+      { name: "default-10x8", w: 10, h: 8 },
+      // tall — more vertical room for the velocity axis.
+      { name: "tall-8x12", w: 8, h: 12 },
+      // wide-short — stresses the chart's bottom-vs-side reflow.
+      { name: "wide-16x6", w: 16, h: 6 },
+    ],
+  },
 ];
 
 /**
