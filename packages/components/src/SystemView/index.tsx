@@ -150,6 +150,8 @@ function SystemViewComponent({
         })()
       : null;
 
+  // Diagram column size — feeds the SVG viewBox aspect. This is the 1fr grid
+  // child, so it legitimately shrinks when the side almanac mounts.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 280 });
   useEffect(() => {
@@ -169,12 +171,51 @@ function SystemViewComponent({
     return () => ro.disconnect();
   }, []);
 
+  // Whole-tile size — drives the portrait/landscape decision. Measured on the
+  // grid *container* (Body), whose border-box is fixed by `flex:1` and does NOT
+  // change when the inner grid-template flips between side/bottom almanac. (If
+  // orientation were derived from the diagram column instead, mounting the side
+  // panel would shrink that column, flip the reading to portrait, and oscillate.)
+  const tileRef = useRef<HTMLDivElement>(null);
+  const [tileSize, setTileSize] = useState({ w: 360, h: 280 });
+  useEffect(() => {
+    const el = tileRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        if (e.contentRect.width > 0 && e.contentRect.height > 0) {
+          setTileSize({
+            w: Math.floor(e.contentRect.width),
+            h: Math.floor(e.contentRect.height),
+          });
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Selective rendering — diagram needs real area; almanac sidebar is
   // wide chrome. At small sizes collapse to a text "Frame: X" summary.
   const cols = w ?? 10;
   const rows = h ?? 12;
   const showDiagram = rows >= 5 && cols >= 5;
-  const showAlmanac = rows >= 6 && cols >= 9;
+  // Orientation is taken from the *measured pixel* aspect, not raw grid
+  // units — grid rows are shorter than columns are wide, so a 10×12
+  // (rows>cols) tile is actually near-square in pixels and must keep the
+  // side panel. Only a clearly taller-than-wide tile (e.g. 5×18) reads as
+  // portrait and flows the almanac to the bottom. The threshold (1.3) keeps
+  // near-square tiles on the side layout.
+  const isPortrait = tileSize.h > tileSize.w * 1.3;
+  // Almanac placement: beside the diagram needs spare *width* (cols ≥ 9);
+  // stacked below needs spare *height* (rows ≥ 12, since the bottom strip
+  // eats vertical room the diagram would otherwise use). Splitting the gate
+  // by axis means both aspect extremes can show the almanac: a wide-short
+  // 18×5 keeps the side panel (its own ScrollArea handles the short height),
+  // a tall-narrow 5×18 gets the bottom strip.
+  const showSideAlmanac = !isPortrait && rows >= 5 && cols >= 9;
+  const showBottomAlmanac = isPortrait && rows >= 12;
+  const showAlmanac = showSideAlmanac || showBottomAlmanac;
 
   return (
     <Panel>
@@ -187,7 +228,12 @@ function SystemViewComponent({
             : `Frame: ${parentName}`}
       </PanelSubtitle>
       {showDiagram ? (
-        <Body $withSidebar={showAlmanac}>
+        <Body
+          ref={tileRef}
+          $almanac={
+            showSideAlmanac ? "side" : showBottomAlmanac ? "bottom" : "none"
+          }
+        >
           <DiagramWrap ref={wrapRef}>
             {parentName !== null && bodies.length > 0 && (
               <SystemDiagram
@@ -206,6 +252,7 @@ function SystemViewComponent({
           </DiagramWrap>
           {showAlmanac && (
             <AlmanacPanel
+              placement={showBottomAlmanac ? "bottom" : "side"}
               body={panelBody}
               phaseAngleDeg={panelPhaseAngle}
               isVesselParent={panelIsVesselParent}
@@ -325,12 +372,22 @@ function SystemViewConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled.div<{ $withSidebar: boolean }>`
+const Body = styled.div<{ $almanac: "side" | "bottom" | "none" }>`
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: ${({ $withSidebar }) =>
-    $withSidebar ? "minmax(0, 1fr) 200px" : "minmax(0, 1fr)"};
+  /* "side": almanac is a fixed 200px right column (wide/near-square tiles).
+     "bottom": almanac is a flexible strip under the diagram, capped to ~45%
+     of the tile height so a tall-narrow column keeps the diagram legible.
+     "none": diagram fills the whole tile. Every track is min-0 so the grid
+     caps its child rather than letting the almanac's ScrollArea overflow and
+     get hard-clipped by this container's overflow:hidden. */
+  ${({ $almanac }) =>
+    $almanac === "side"
+      ? "grid-template-columns: minmax(0, 1fr) 200px; grid-template-rows: minmax(0, 1fr);"
+      : $almanac === "bottom"
+        ? "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 45%);"
+        : "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);"}
   gap: 0;
   margin-top: 6px;
   border: 1px solid var(--color-surface-panel);

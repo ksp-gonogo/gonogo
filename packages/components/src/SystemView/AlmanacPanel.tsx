@@ -27,6 +27,12 @@ export interface AlmanacPanelProps {
   nextApsisType?: -1 | 1 | null;
   /** Seconds to the next apsis. */
   nextApsisTimeSec?: number | null;
+  /**
+   * Where the panel is docked relative to the diagram. Drives which edge
+   * carries the divider border — left edge when beside the diagram, top edge
+   * when stacked below it (tall-narrow tiles). Defaults to "side".
+   */
+  placement?: "side" | "bottom";
 }
 
 interface AlmanacRow {
@@ -169,10 +175,11 @@ export function AlmanacPanel({
   encounterTimeSec = null,
   nextApsisType = null,
   nextApsisTimeSec = null,
+  placement = "side",
 }: AlmanacPanelProps) {
   if (!body) {
     return (
-      <Wrap>
+      <Wrap placement={placement}>
         <Hint>
           Hover or focus a body in the diagram for almanac data, or pick the
           vessel's parent body to see its details.
@@ -192,7 +199,7 @@ export function AlmanacPanel({
     nextApsisTimeSec,
   );
   return (
-    <Wrap>
+    <Wrap placement={placement}>
       <Title>{body.name ?? "(unnamed)"}</Title>
       {body.referenceBody && <Sub>orbiting {body.referenceBody}</Sub>}
       <Rows>
@@ -252,14 +259,22 @@ function normalizeAngle(deg: number): number {
   return d;
 }
 
-const WrapOuter = styled.aside`
+const WrapOuter = styled.aside<{ $placement: "side" | "bottom" }>`
   display: flex;
   flex-direction: column;
   padding: 8px 10px;
   min-width: 0;
+  /* min-height:0 is load-bearing: this aside is a grid cell, and grid items
+     default to min-height:auto, which would let the inner ScrollArea grow
+     past the cell and get hard-clipped by the parent's overflow:hidden
+     instead of scrolling. Capping it here lets the ScrollArea engage. */
+  min-height: 0;
   max-width: 100%;
   background: var(--color-surface-panel);
-  border-left: 1px solid var(--color-surface-raised);
+  ${({ $placement }) =>
+    $placement === "bottom"
+      ? "border-top: 1px solid var(--color-surface-raised);"
+      : "border-left: 1px solid var(--color-surface-raised);"}
   font-size: 11px;
   color: var(--color-text-muted);
 `;
@@ -273,9 +288,15 @@ const WrapScroll = styled(ScrollArea)`
   }
 `;
 
-function Wrap({ children }: { children: ReactNode }) {
+function Wrap({
+  children,
+  placement,
+}: {
+  children: ReactNode;
+  placement: "side" | "bottom";
+}) {
   return (
-    <WrapOuter>
+    <WrapOuter $placement={placement}>
       <WrapScroll>{children}</WrapScroll>
     </WrapOuter>
   );
