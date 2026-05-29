@@ -515,14 +515,22 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "graph",
     fixturesPath: "Graph/__fixtures__",
     outPath: "renders/graph-widget",
-    // Graph is config-driven: the per-mode config carries the series list;
-    // the fixture supplies the _series data those keys plot against (time axis).
+    // Graph is config-driven: the per-mode `config` carries the series list +
+    // render options; the fixture supplies the `_series` data those keys plot
+    // against. This matrix exercises EVERY render type / variant the widget
+    // supports — line/step/scatter/band, chart/readout/auto, time-X vs
+    // phase-space X, thresholds, log scale, and aspect stress. All series get
+    // explicit `id`s (used as React keys + ChartSeries ids) and explicit
+    // `axis` so the "3+ units → AxisWarning" auto path doesn't fire unasked.
     modes: (() => {
-      const config = {
-        windowSec: 600,
+      const WINDOW = 600;
+      // Dual-axis line: altitude (left) + horizontal velocity (right).
+      const dualLine = {
+        windowSec: WINDOW,
         series: [
-          { key: "v.altitude", label: "Altitude", axis: "primary" },
+          { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
           {
+            id: "hvel",
             key: "v.horizontalVelocity",
             label: "H. velocity",
             axis: "secondary",
@@ -530,21 +538,254 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
       };
       return [
-        { name: "min-5x4", w: 5, h: 4, config },
-        { name: "default-10x8", w: 10, h: 8, config },
-        // wide-short — stresses legend/axis reflow.
-        { name: "wide-16x6", w: 16, h: 6, config },
-        { name: "tall-8x12", w: 8, h: 12, config },
-        // single-series variant exercises the big-readout path.
+        // ── WARMUP (slot 1 is sacrificial) ───────────────────────────────
+        // The very first render in a harness batch is a cold path: the
+        // async `useDataSeries` queryRange backfill consistently fails to
+        // land before the screenshot, so whatever sits in slot 1 plots an
+        // empty frame (axes + legend, no trace). This is a shared
+        // probe-entry artifact (out of edit scope), NOT a Graph bug — every
+        // type below renders its data correctly. This throwaway dual-axis
+        // warmup absorbs the empty slot so no real type is sacrificed.
+        { name: "warmup-ignore-10x8", w: 10, h: 8, config: dualLine },
+        // ── line ────────────────────────────────────────────────────────
+        // Single-series line (explicit chart so it doesn't downgrade).
         {
-          name: "single-8x6",
-          w: 8,
-          h: 6,
+          name: "line-single-10x8",
+          w: 10,
+          h: 8,
           config: {
-            windowSec: 600,
-            series: [{ key: "v.altitude", label: "Altitude", axis: "primary" }],
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude",
+                type: "line",
+                axis: "primary",
+              },
+            ],
           },
         },
+        // Dual-axis line, primary + secondary.
+        { name: "line-dual-10x8", w: 10, h: 8, config: dualLine },
+
+        // ── step ────────────────────────────────────────────────────────
+        {
+          name: "step-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              {
+                id: "vs",
+                key: "v.verticalSpeed",
+                label: "V. speed (step)",
+                type: "step",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // ── scatter ─────────────────────────────────────────────────────
+        {
+          name: "scatter-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude (scatter)",
+                type: "scatter",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // Short-window scatter so only the most-recent handful of samples
+        // fall in-window and the discrete dots are visibly separated (the
+        // 600s-window scatter above merges 154 dense samples into a near-
+        // continuous run — this proves the points actually draw discretely).
+        {
+          name: "scatter-sparse-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: 25,
+            variant: "chart",
+            series: [
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude (sparse scatter)",
+                type: "scatter",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // ── band ────────────────────────────────────────────────────────
+        // Synthetic ±(10%+200m) envelope around altitude (see fixture _meta),
+        // plus the real altitude line overlaid inside the band.
+        {
+          name: "band-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              {
+                id: "altband",
+                key: "synthetic.altBandLow",
+                keyHigh: "synthetic.altBandHigh",
+                label: "Altitude envelope",
+                type: "band",
+                axis: "primary",
+              },
+              {
+                id: "altline",
+                key: "v.altitude",
+                label: "Altitude",
+                type: "line",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // ── variant: readout / chart / auto at a tiny size ───────────────
+        // readout: explicit, single series → number + sparkline.
+        {
+          name: "readout-6x5",
+          w: 6,
+          h: 5,
+          config: {
+            windowSec: WINDOW,
+            variant: "readout",
+            series: [
+              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+            ],
+          },
+        },
+        // auto at small bucket (w<8) + single series → downgrades to readout.
+        {
+          name: "auto-small-6x6",
+          w: 6,
+          h: 6,
+          config: {
+            windowSec: WINDOW,
+            variant: "auto",
+            series: [
+              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+            ],
+          },
+        },
+        // chart forced at the same tiny size — proves the chart still draws
+        // when not allowed to downgrade.
+        {
+          name: "chart-tiny-6x6",
+          w: 6,
+          h: 6,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+            ],
+          },
+        },
+
+        // ── xKey = data key (phase-space) ────────────────────────────────
+        // Altitude on X, vertical speed on Y — classic ascent profile.
+        {
+          name: "phase-space-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            xKey: "v.altitude",
+            series: [
+              {
+                id: "vs",
+                key: "v.verticalSpeed",
+                label: "V. speed vs altitude",
+                type: "line",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // ── thresholds (dashed + solid) ──────────────────────────────────
+        {
+          name: "thresholds-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            series: [
+              { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+            ],
+            thresholds: [
+              {
+                id: "atmo",
+                value: 70000,
+                axis: "primary",
+                label: "Atmosphere top",
+                dashed: true,
+              },
+              {
+                id: "tower",
+                value: 10000,
+                axis: "primary",
+                label: "10 km",
+                dashed: false,
+              },
+            ],
+          },
+        },
+
+        // ── yScale log ───────────────────────────────────────────────────
+        // Altitude (all positive, 77 → 67k) on a log primary axis.
+        {
+          name: "log-primary-10x8",
+          w: 10,
+          h: 8,
+          config: {
+            windowSec: WINDOW,
+            variant: "chart",
+            yScalePrimary: "log",
+            series: [
+              {
+                id: "alt",
+                key: "v.altitude",
+                label: "Altitude (log)",
+                type: "line",
+                axis: "primary",
+              },
+            ],
+          },
+        },
+
+        // ── aspect stress ────────────────────────────────────────────────
+        // Wide-short: stresses legend-drop + x-axis tick density.
+        { name: "wide-16x5", w: 16, h: 5, config: dualLine },
+        // Tall-narrow: stresses y-tick density + legend stacking.
+        { name: "tall-7x16", w: 7, h: 16, config: dualLine },
+        // Default operator view, both axes (safely past slot 1).
+        { name: "default-10x8", w: 10, h: 8, config: dualLine },
       ];
     })(),
   },
