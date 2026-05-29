@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@gonogo/core";
-import { getSizeBucket, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  getSizeBucket,
+  getWidgetShape,
+  registerComponent,
+  useDataValue,
+} from "@gonogo/core";
 import {
   Badge,
   Panel,
@@ -115,6 +120,13 @@ function StaffRosterComponent({
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
   const sizeBucket = getSizeBucket(w, h);
+  // Wide-short boxes (landscape-18x5) leave a single-column list stranded with
+  // a long empty gutter — only the shape signal can see that, since the size
+  // bucket reads the same `normal` at 18x5 as at 5x18. Flow the rows into a
+  // width-following multi-column grid only when landscape; portrait and square
+  // keep the unchanged single column so those sizes can't regress.
+  const { shape } = getWidgetShape(w, h);
+  const multiColumn = shape === "landscape";
 
   if (staff === null) {
     return (
@@ -167,7 +179,7 @@ function StaffRosterComponent({
         </PanelSubtitle>
       )}
       <Body>
-        <List>
+        <List $multiColumn={multiColumn}>
           {sorted.map((kerbal) => (
             <Row
               key={kerbal.name}
@@ -250,13 +262,23 @@ const Body = styled(ScrollArea)`
   }
 `;
 
-const List = styled.ul`
+// Single column by default (portrait / square). In landscape we switch to a
+// width-following grid: `auto-fill` + a min row width derives the column count
+// from the available width rather than hardcoding a fixed "2 columns", so the
+// same rule fills an 18-wide box with two columns and a 24-wide one with three.
+const LIST_MIN_ROW_WIDTH = "160px";
+const List = styled.ul<{ $multiColumn: boolean }>`
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
   gap: 2px;
+  ${({ $multiColumn }) =>
+    $multiColumn
+      ? `display: grid;
+         grid-template-columns: repeat(auto-fill, minmax(${LIST_MIN_ROW_WIDTH}, 1fr));
+         align-content: start;`
+      : `display: flex;
+         flex-direction: column;`}
 `;
 
 const Row = styled.li<{ $available: boolean }>`
