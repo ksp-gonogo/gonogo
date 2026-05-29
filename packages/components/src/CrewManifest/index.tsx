@@ -10,6 +10,19 @@ import {
 } from "@gonogo/ui";
 import styled from "styled-components";
 
+/**
+ * Tiny-mode hero readout. `BigReadout`'s 38px max coexists fine with its
+ * caption in a roomy panel, but at the widget's 3x3 `minSize` the number +
+ * stacked "OF n ABOARD" caption overflows the short panel and the caption
+ * gets clipped by `Panel`'s `overflow: hidden`. We can't touch the shared
+ * `BigReadout`, so cap the number lower here and let the centred flex box
+ * keep both lines inside the box.
+ */
+const TinyReadout = styled(BigReadout)`
+  font-size: clamp(20px, 4vw, 30px);
+  min-height: 0;
+`;
+
 type CrewManifestConfig = Record<string, never>;
 
 /**
@@ -60,12 +73,12 @@ function CrewManifestComponent({
       <Panel>
         <PanelTitle>CREW</PanelTitle>
         {known ? (
-          <BigReadout $tone="go">
+          <TinyReadout $tone="go">
             {crewCount !== undefined ? `${crewCount}` : "—"}
             {crewCapacity !== undefined && (
               <ReadoutCaption>of {crewCapacity} aboard</ReadoutCaption>
             )}
-          </BigReadout>
+          </TinyReadout>
         ) : (
           <EmptyState>No crew data</EmptyState>
         )}

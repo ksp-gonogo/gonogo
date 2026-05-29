@@ -95,7 +95,7 @@ function ScienceOfficerComponent({
 
   return (
     <Panel>
-      <PanelTitle>SCIENCE OFFICER</PanelTitle>
+      <PanelTitle>SCIENCE LAB</PanelTitle>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
