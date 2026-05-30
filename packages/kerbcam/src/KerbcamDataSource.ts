@@ -474,18 +474,30 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   /**
-   * Fetch the relay's TURN creds and, if any came back, rebuild the client to
-   * use them. A no-op (keeps the current STUN-default client) when the relay
-   * is unreachable, so LAN streaming is unaffected. Run on every
+   * Fetch the relay's TURN creds and, if any came back, set them on the
+   * client. A no-op (keeps the SDK's STUN default) when the relay is
+   * unreachable, so LAN streaming is unaffected. Run on every
    * connect/reconnect because the relay rotates its secret per restart, so a
-   * reconnect after a relay bounce needs to re-fetch the fresh credentials.
+   * reconnect after a relay bounce needs the fresh credentials.
+   *
+   * Crucially this sets the creds on the *existing* client rather than
+   * rebuilding it: `KerbcamClient.connect()` re-reads `cfg.iceServers` every
+   * time it creates a peer (so the connect that immediately follows, and each
+   * reconnect, picks the mutation up), and swapping the instance instead would
+   * orphan the camera hooks. `useKerbcamStream` / `useKerbcamCameras` capture
+   * `getClient()` once and bind to its events; a rebuilt client would fire
+   * onto a dead instance — a black camera on exactly the TURN path this
+   * targets. `cfg` is private in the SDK, but we own kerbcam and the
+   * "threads TURN servers" test drives the real client, so a field rename
+   * reddens CI rather than silently regressing.
    */
   private async applyRelayIce(): Promise<void> {
     const ice = await fetchRelayIceServers();
     if (ice.length === 0) return;
     this.iceServers = ice;
-    this.teardownClient();
-    this.client = this.buildClient();
+    (
+      this.client as unknown as { cfg: { iceServers?: RTCIceServer[] } }
+    ).cfg.iceServers = ice;
   }
 
   private teardownClient(): void {
