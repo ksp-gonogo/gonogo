@@ -27,6 +27,20 @@ import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
 import { getCameraLifecycle } from "../lifecycle";
 
+// ── Pan directional-pad tuning ──────────────────────────────────────────────
+// The rate loop ticks every PAN_TICK_MS; at full ball deflection (or an arrow
+// hold) the angle advances at *_RATE_DEG_S degrees/sec. A keyboard activation
+// nudges by PAN_NUDGE_DEG. PAN_BALL_RADIUS is the ball's pixel deflection bound.
+const PAN_TICK_MS = 50;
+const PAN_YAW_RATE_DEG_S = 60;
+const PAN_PITCH_RATE_DEG_S = 45;
+const PAN_ARROW_RATE = 0.5;
+const PAN_NUDGE_DEG = 5;
+const PAN_BALL_RADIUS = 30;
+
+const clampPan = (v: number, lo: number, hi: number): number =>
+  Math.max(lo, Math.min(hi, v));
+
 export interface ExpCameraFeedConfig extends Record<string, unknown> {
   /**
    * KSP `Part.flightID` of the camera to stream. `null` (the
@@ -258,108 +272,178 @@ export function ExpCameraFeed({
   // Feature: Pan reticle — drag pad for yaw/pitch
   // --------------------------------------------------------------------------
 
-  // Display position tracks camera state; overridden locally during a drag so
-  // the dot moves immediately without waiting for the sidecar round-trip.
-  const [displayYaw, setDisplayYaw] = useState(0);
-  const [displayPitch, setDisplayPitch] = useState(0);
-  const panDragRef = useRef<{
-    active: boolean;
-    startClientX: number;
-    startClientY: number;
-    startYaw: number;
-    startPitch: number;
-  }>({
-    active: false,
-    startClientX: 0,
-    startClientY: 0,
-    startYaw: 0,
-    startPitch: 0,
-  });
-  const panThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const panPadRef = useRef<HTMLDivElement>(null);
+  // Pitch is adjustable only when the camera reports a non-zero pitch range.
+  const supportsPitch = !!camera && camera.panPitchMax - camera.panPitchMin > 0;
 
-  // Sync display from camera state when not mid-drag.
+  // Optimistic local angle the rate loop advances; rateRef is the normalised
+  // [-1, 1] velocity from the ball / arrows. panEnvRef is the loop's always-
+  // fresh snapshot of bounds + flightId + execute, so the interval never reads
+  // a stale closure.
+  const localPanRef = useRef({ yaw: 0, pitch: 0 });
+  const rateRef = useRef({ yaw: 0, pitch: 0 });
+  const ballDragRef = useRef({ active: false, startX: 0, startY: 0 });
+  const panIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [ballPos, setBallPos] = useState({ x: 0, y: 0 });
+  const panEnvRef = useRef({
+    flightId: null as number | null,
+    yawMin: 0,
+    yawMax: 0,
+    pitchMin: 0,
+    pitchMax: 0,
+    execute: executeKerbcam,
+  });
   useEffect(() => {
-    if (!panDragRef.current.active && camera) {
-      setDisplayYaw(camera.panYaw);
-      setDisplayPitch(camera.panPitch);
+    panEnvRef.current = {
+      flightId,
+      yawMin: camera?.panYawMin ?? 0,
+      yawMax: camera?.panYawMax ?? 0,
+      pitchMin: camera?.panPitchMin ?? 0,
+      pitchMax: camera?.panPitchMax ?? 0,
+      execute: executeKerbcam,
+    };
+  }, [flightId, camera, executeKerbcam]);
+
+  // Sync the optimistic angle from sidecar state while idle, so the next
+  // interaction starts from the camera's true pan.
+  useEffect(() => {
+    if (
+      !ballDragRef.current.active &&
+      rateRef.current.yaw === 0 &&
+      rateRef.current.pitch === 0 &&
+      camera
+    ) {
+      localPanRef.current = { yaw: camera.panYaw, pitch: camera.panPitch };
     }
   }, [camera]);
 
-  const handlePanPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!camera || flightId === null) return;
-      e.currentTarget.setPointerCapture(e.pointerId);
-      panDragRef.current = {
-        active: true,
-        startClientX: e.clientX,
-        startClientY: e.clientY,
-        startYaw: camera.panYaw,
-        startPitch: camera.panPitch,
-      };
-    },
-    [camera, flightId],
-  );
-
-  const handlePanPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (
-        !panDragRef.current.active ||
-        !camera ||
-        !panPadRef.current ||
-        flightId === null
-      )
-        return;
-      const { width, height } = panPadRef.current.getBoundingClientRect();
-      const dx = e.clientX - panDragRef.current.startClientX;
-      const dy = e.clientY - panDragRef.current.startClientY;
-      const yawRange = camera.panYawMax - camera.panYawMin || 1;
-      const pitchRange = camera.panPitchMax - camera.panPitchMin || 1;
-      const newYaw = Math.max(
-        camera.panYawMin,
-        Math.min(
-          camera.panYawMax,
-          panDragRef.current.startYaw + (dx / width) * yawRange,
-        ),
-      );
-      const newPitch = Math.max(
-        camera.panPitchMin,
-        Math.min(
-          camera.panPitchMax,
-          panDragRef.current.startPitch - (dy / height) * pitchRange,
-        ),
-      );
-      setDisplayYaw(newYaw);
-      setDisplayPitch(newPitch);
-      if (panThrottleRef.current === null) {
-        panThrottleRef.current = setTimeout(() => {
-          panThrottleRef.current = null;
-          void executeKerbcam(
-            `kerbcam.set-pan[${flightId},${newYaw},${newPitch}]`,
-          );
-        }, 50);
-      }
-    },
-    [camera, flightId, executeKerbcam],
-  );
-
-  const handlePanPointerUp = useCallback(() => {
-    panDragRef.current.active = false;
+  const stopPanLoop = useCallback(() => {
+    if (panIntervalRef.current !== null) {
+      clearInterval(panIntervalRef.current);
+      panIntervalRef.current = null;
+    }
   }, []);
+
+  // The rate loop: while a velocity is set, advance the optimistic angle and
+  // push the new absolute angle to the sidecar (the set-pan API is absolute,
+  // so a joystick velocity becomes a stream of absolute updates). Clears itself
+  // once the velocity returns to zero.
+  const ensurePanLoop = useCallback(() => {
+    if (panIntervalRef.current !== null) return;
+    panIntervalRef.current = setInterval(() => {
+      const env = panEnvRef.current;
+      const rate = rateRef.current;
+      if (rate.yaw === 0 && rate.pitch === 0) {
+        stopPanLoop();
+        return;
+      }
+      if (env.flightId === null) return;
+      const dt = PAN_TICK_MS / 1000;
+      const loc = localPanRef.current;
+      loc.yaw = clampPan(
+        loc.yaw + rate.yaw * PAN_YAW_RATE_DEG_S * dt,
+        env.yawMin,
+        env.yawMax,
+      );
+      loc.pitch = clampPan(
+        loc.pitch + rate.pitch * PAN_PITCH_RATE_DEG_S * dt,
+        env.pitchMin,
+        env.pitchMax,
+      );
+      void env.execute(
+        `kerbcam.set-pan[${env.flightId},${loc.yaw},${loc.pitch}]`,
+      );
+    }, PAN_TICK_MS);
+  }, [stopPanLoop]);
+
+  useEffect(() => stopPanLoop, [stopPanLoop]); // stop on unmount
 
   const showPan = camera?.supportsPan && !isDestroyed;
 
-  // Dot position within the 80×80 pad. Pitch Y is inverted (up = positive pitch).
-  const panDotX = camera
-    ? ((displayYaw - camera.panYawMin) /
-        (camera.panYawMax - camera.panYawMin || 1)) *
-      70
-    : 35;
-  const panDotY = camera
-    ? ((camera.panPitchMax - displayPitch) /
-        (camera.panPitchMax - camera.panPitchMin || 1)) *
-      70
-    : 35;
+  // Hard stop if the control is hidden mid-hold (signal lost / pan support
+  // dropped): the captured pointer's release never reaches us then, so without
+  // this the interval would keep panning a dead camera.
+  useEffect(() => {
+    if (!showPan) {
+      rateRef.current = { yaw: 0, pitch: 0 };
+      ballDragRef.current.active = false;
+      setBallPos({ x: 0, y: 0 });
+      stopPanLoop();
+    }
+  }, [showPan, stopPanLoop]);
+
+  // Arrows: press-and-hold for continuous pan; a keyboard activation (click
+  // with detail === 0) does a single discrete nudge instead.
+  const startArrow = useCallback(
+    (yaw: number, pitch: number) => {
+      rateRef.current = { yaw, pitch };
+      ensurePanLoop();
+    },
+    [ensurePanLoop],
+  );
+  const releaseArrow = useCallback(() => {
+    if (!ballDragRef.current.active) rateRef.current = { yaw: 0, pitch: 0 };
+  }, []);
+  const nudgePan = useCallback((yawSign: number, pitchSign: number) => {
+    const env = panEnvRef.current;
+    if (env.flightId === null) return;
+    const loc = localPanRef.current;
+    loc.yaw = clampPan(
+      loc.yaw + yawSign * PAN_NUDGE_DEG,
+      env.yawMin,
+      env.yawMax,
+    );
+    loc.pitch = clampPan(
+      loc.pitch + pitchSign * PAN_NUDGE_DEG,
+      env.pitchMin,
+      env.pitchMax,
+    );
+    void env.execute(
+      `kerbcam.set-pan[${env.flightId},${loc.yaw},${loc.pitch}]`,
+    );
+  }, []);
+
+  // Ball: drag = analog rate (deflection ∝ velocity); release springs to centre
+  // and the loop idles. Vertical (pitch) is locked when pitch isn't supported.
+  const handleBallDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (flightId === null) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      ballDragRef.current = {
+        active: true,
+        startX: e.clientX,
+        startY: e.clientY,
+      };
+      ensurePanLoop();
+    },
+    [flightId, ensurePanLoop],
+  );
+  const handleBallMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const drag = ballDragRef.current;
+      if (!drag.active) return;
+      const env = panEnvRef.current;
+      const hasPitch = env.pitchMax - env.pitchMin > 0;
+      let dx = e.clientX - drag.startX;
+      let dy = hasPitch ? e.clientY - drag.startY : 0;
+      const mag = Math.hypot(dx, dy);
+      if (mag > PAN_BALL_RADIUS) {
+        const k = PAN_BALL_RADIUS / mag;
+        dx *= k;
+        dy *= k;
+      }
+      setBallPos({ x: dx, y: dy });
+      rateRef.current = {
+        yaw: dx / PAN_BALL_RADIUS,
+        pitch: -dy / PAN_BALL_RADIUS,
+      };
+    },
+    [],
+  );
+  const handleBallUp = useCallback(() => {
+    ballDragRef.current.active = false;
+    rateRef.current = { yaw: 0, pitch: 0 };
+    setBallPos({ x: 0, y: 0 });
+  }, []);
 
   // --------------------------------------------------------------------------
   // Derived subtitle parts
@@ -482,19 +566,74 @@ export function ExpCameraFeed({
               </ZoomControlsWrap>
             )}
             {showPan && (
-              <PanPadWrap
-                ref={panPadRef}
-                role="slider"
-                aria-label="Pan camera"
-                aria-valuenow={displayYaw}
-                tabIndex={0}
-                onPointerDown={handlePanPointerDown}
-                onPointerMove={handlePanPointerMove}
-                onPointerUp={handlePanPointerUp}
-                onPointerCancel={handlePanPointerUp}
-              >
-                <PanDot style={{ left: panDotX, top: panDotY }} />
-              </PanPadWrap>
+              <PanControl role="group" aria-label="Pan camera">
+                <PanRing aria-hidden="true" />
+                <PanArrow
+                  type="button"
+                  $dir="up"
+                  aria-label="Pan up"
+                  disabled={!supportsPitch}
+                  onPointerDown={() => startArrow(0, PAN_ARROW_RATE)}
+                  onPointerUp={releaseArrow}
+                  onPointerLeave={releaseArrow}
+                  onClick={(e) => {
+                    if (e.detail === 0) nudgePan(0, 1);
+                  }}
+                >
+                  ▲
+                </PanArrow>
+                <PanArrow
+                  type="button"
+                  $dir="down"
+                  aria-label="Pan down"
+                  disabled={!supportsPitch}
+                  onPointerDown={() => startArrow(0, -PAN_ARROW_RATE)}
+                  onPointerUp={releaseArrow}
+                  onPointerLeave={releaseArrow}
+                  onClick={(e) => {
+                    if (e.detail === 0) nudgePan(0, -1);
+                  }}
+                >
+                  ▼
+                </PanArrow>
+                <PanArrow
+                  type="button"
+                  $dir="left"
+                  aria-label="Pan left"
+                  onPointerDown={() => startArrow(-PAN_ARROW_RATE, 0)}
+                  onPointerUp={releaseArrow}
+                  onPointerLeave={releaseArrow}
+                  onClick={(e) => {
+                    if (e.detail === 0) nudgePan(-1, 0);
+                  }}
+                >
+                  ◀
+                </PanArrow>
+                <PanArrow
+                  type="button"
+                  $dir="right"
+                  aria-label="Pan right"
+                  onPointerDown={() => startArrow(PAN_ARROW_RATE, 0)}
+                  onPointerUp={releaseArrow}
+                  onPointerLeave={releaseArrow}
+                  onClick={(e) => {
+                    if (e.detail === 0) nudgePan(1, 0);
+                  }}
+                >
+                  ▶
+                </PanArrow>
+                <PanBall
+                  aria-hidden="true"
+                  title="Drag to pan"
+                  onPointerDown={handleBallDown}
+                  onPointerMove={handleBallMove}
+                  onPointerUp={handleBallUp}
+                  onPointerCancel={handleBallUp}
+                  style={{
+                    transform: `translate(${ballPos.x}px, ${ballPos.y}px)`,
+                  }}
+                />
+              </PanControl>
             )}
           </>
         )}
@@ -503,61 +642,94 @@ export function ExpCameraFeed({
   );
 }
 
-// ZoomControlsWrap and PanPadWrap defined BEFORE VideoWrap so VideoWrap
+// ZoomControlsWrap and PanControl defined BEFORE VideoWrap so VideoWrap
 // can reference them in hover/focus-within selectors.
 
-const PanDot = styled.div`
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #00ff88;
-  box-shadow: 0 0 4px rgba(0, 255, 136, 0.7);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-`;
-
-const PanPadWrap = styled.div`
+// Pan directional pad — four arrows around a draggable rate ball, on a faint
+// circular guide ring. Less boxy than the old square crosshair pad; revealed
+// on hover/focus like the zoom control.
+const PanControl = styled.div`
   position: absolute;
   bottom: 8px;
   right: 8px;
-  width: 80px;
-  height: 80px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  cursor: crosshair;
-  touch-action: none;
+  width: 92px;
+  height: 92px;
   opacity: 0;
   transition: opacity 0.15s;
+  touch-action: none;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
 
+const PanRing = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+`;
+
+const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+  cursor: pointer;
+  touch-action: none;
+
+  ${(p) =>
+    p.$dir === "up"
+      ? "top: 0; left: 50%; transform: translateX(-50%);"
+      : p.$dir === "down"
+        ? "bottom: 0; left: 50%; transform: translateX(-50%);"
+        : p.$dir === "left"
+          ? "left: 0; top: 50%; transform: translateY(-50%);"
+          : "right: 0; top: 50%; transform: translateY(-50%);"}
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.75);
+    }
+  }
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
   &:focus-visible {
     outline: 2px solid #00ff88;
     outline-offset: 2px;
   }
+`;
 
-  /* Crosshair reference lines */
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: rgba(255, 255, 255, 0.2);
-  }
-  &::before {
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-  }
-  &::after {
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
+const PanBall = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7dffc1, #00d873);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.6);
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
   }
 `;
 
@@ -617,9 +789,9 @@ const VideoWrap = styled.div`
   justify-content: center;
 
   &:hover ${ZoomControlsWrap},
-  &:hover ${PanPadWrap},
+  &:hover ${PanControl},
   &:focus-within ${ZoomControlsWrap},
-  &:focus-within ${PanPadWrap} {
+  &:focus-within ${PanControl} {
     opacity: 1;
   }
 `;
