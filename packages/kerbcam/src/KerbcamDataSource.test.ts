@@ -94,6 +94,25 @@ describe("KerbcamDataSource — relay TURN / ice-config", () => {
     expect(session.iceServers).toEqual([turn]);
   });
 
+  it("does not swap the client instance when applying TURN creds", async () => {
+    // The camera hooks capture getClient() once and bind to its events, so the
+    // TURN path must mutate the existing client in place — a swap would leave
+    // them bound to a dead instance (black camera on exactly the TURN path).
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      kerbcamFetchImpl({
+        iceServers: [{ urls: ["turn:relay.example:3478"] }],
+      }),
+    );
+
+    const session = createMockKerbcamSession();
+    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const clientBefore = ds.getClient();
+    await ds.connect();
+
+    expect(ds.getClient()).toBe(clientBefore);
+    expect(session.iceServers).toEqual([{ urls: ["turn:relay.example:3478"] }]);
+  });
+
   it("falls back to the SDK STUN default when the relay has no TURN", async () => {
     // Empty iceServers stands in for a 503 / unreachable relay — the data
     // source must not break connect, leaving the client on its STUN default.
