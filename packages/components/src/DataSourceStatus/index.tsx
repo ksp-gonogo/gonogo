@@ -3,11 +3,9 @@ import {
   compareVersions,
   getAppVersion,
   getDataSource,
-  getStreamSource,
   type MismatchKind,
   registerComponent,
   useDataSources,
-  useStreamSources,
 } from "@gonogo/core";
 import {
   BigReadout,
@@ -66,38 +64,11 @@ function useRemoteVersionMismatch(sourceId: string): {
   return { remote, kind };
 }
 
-function useRemoteStreamVersionMismatch(sourceId: string): {
-  remote: { version: string; buildTime: string } | null;
-  kind: MismatchKind;
-} {
-  const [remote, setRemote] = useState<{
-    version: string;
-    buildTime: string;
-  } | null>(() => {
-    const src = getStreamSource(sourceId) as RemoteVersionExposing | undefined;
-    return src?.getRemoteVersion?.() ?? null;
-  });
-
-  useEffect(() => {
-    const src = getStreamSource(sourceId) as RemoteVersionExposing | undefined;
-    if (!src?.onRemoteVersionChange) return;
-    setRemote(src.getRemoteVersion?.() ?? null);
-    return src.onRemoteVersionChange(setRemote);
-  }, [sourceId]);
-
-  const local = getAppVersion()?.version;
-  const kind: MismatchKind = local
-    ? compareVersions(local, remote?.version)
-    : "unknown";
-  return { remote, kind };
-}
-
 function DataSourceStatusComponent({
   w,
   h,
 }: Readonly<{ w?: number; h?: number }>) {
   const sources = useDataSources();
-  const streamSources = useStreamSources();
   const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
 
@@ -134,13 +105,10 @@ function DataSourceStatusComponent({
   const rows = h ?? 10;
   const showFullRows = rows >= 6 && cols >= 6;
   const showCompactRows = !showFullRows && rows >= 4 && cols >= 3;
-  const showStreamSection = showFullRows;
 
   if (!showFullRows && !showCompactRows) {
-    const total = sources.length + streamSources.length;
-    const ok =
-      sources.filter((s) => s.status === "connected").length +
-      streamSources.filter((s) => s.status === "connected").length;
+    const total = sources.length;
+    const ok = sources.filter((s) => s.status === "connected").length;
     return (
       <Panel>
         <PanelTitle>SOURCES</PanelTitle>
@@ -156,11 +124,11 @@ function DataSourceStatusComponent({
     return (
       <Panel>
         <PanelTitle>Sources</PanelTitle>
-        {sources.length === 0 && streamSources.length === 0 ? (
+        {sources.length === 0 ? (
           <Placeholder>No data sources registered</Placeholder>
         ) : (
           <CompactList>
-            {[...sources, ...streamSources].map((s) => (
+            {sources.map((s) => (
               <CompactRow key={s.id}>
                 <Indicator $status={s.status} />
                 <Name>{s.name}</Name>
@@ -265,37 +233,6 @@ function DataSourceStatusComponent({
           })}
         </List>
       )}
-
-      {showStreamSection && streamSources.length > 0 && (
-        <>
-          <PanelTitle>Stream Sources</PanelTitle>
-          <List>
-            {streamSources.map((s) => (
-              <Item key={s.id}>
-                <Row>
-                  <Indicator $status={s.status} />
-                  <Name>{s.name}</Name>
-                  <RemoteStreamVersionPill sourceId={s.id} />
-                  <StreamCount>
-                    {s.streamCount} stream{s.streamCount === 1 ? "" : "s"}
-                  </StreamCount>
-                  <StatusLabel $status={s.status}>{s.status}</StatusLabel>
-                  {s.status === "disconnected" && (
-                    <RetryButton
-                      onClick={() => {
-                        void getStreamSource(s.id)?.connect();
-                      }}
-                      aria-label={`Reconnect ${s.name}`}
-                    >
-                      Reconnect
-                    </RetryButton>
-                  )}
-                </Row>
-              </Item>
-            ))}
-          </List>
-        </>
-      )}
     </PanelScrollable>
   );
 }
@@ -317,29 +254,6 @@ export { DataSourceStatusComponent };
 
 function RemoteVersionPill({ sourceId }: { sourceId: string }) {
   const { remote, kind } = useRemoteVersionMismatch(sourceId);
-  if (!remote) return null;
-  if (kind === "same" || kind === "patch") {
-    return (
-      <VersionTag
-        $kind="same"
-        title={`v${remote.version}${remote.buildTime ? ` (build ${remote.buildTime})` : ""}`}
-      >
-        v{remote.version}
-      </VersionTag>
-    );
-  }
-  return (
-    <VersionTag
-      $kind={kind}
-      title={`Local ↔ remote: ${kind} mismatch (remote v${remote.version})`}
-    >
-      v{remote.version}
-    </VersionTag>
-  );
-}
-
-function RemoteStreamVersionPill({ sourceId }: { sourceId: string }) {
-  const { remote, kind } = useRemoteStreamVersionMismatch(sourceId);
   if (!remote) return null;
   if (kind === "same" || kind === "patch") {
     return (
@@ -434,12 +348,6 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
   font-size: 11px;
   color: ${({ $status }) => statusColor[$status]};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const StreamCount = styled.span`
-  font-size: 11px;
-  color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
 

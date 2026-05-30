@@ -1,7 +1,3 @@
-// IMPORTANT: must be first import. Installs wrtc globals as a module
-// side-effect so they're in place before peerjs/webrtc-adapter sniff them.
-import "./peer/globals.js";
-
 import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
 import { AxiomTransport, logger } from "@gonogo/logger";
@@ -9,9 +5,6 @@ import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
-import { CameraPoller } from "./grpc/cameraPoller.js";
-import { OcislyClient } from "./grpc/OcislyClient.js";
-import { PeerHost } from "./peer/PeerHost.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
@@ -63,8 +56,8 @@ await fastify.register(cors, { origin: true });
 // reaches Axiom alongside the explicit `bridgeInfo` operational events.
 // Without this, `podman logs gonogo-relay-1` shows incoming/completed
 // pairs (level 30 pino output) but the remote dataset stays silent
-// between OCISLY-peer events, which makes "did the host reach the
-// relay before timing out?" debugging from afar impossible.
+// between relay events, which makes "did the host reach the relay
+// before timing out?" debugging from afar impossible.
 //
 // Successful responses (<400) go in at info; >=400 ride the warn
 // channel so a 4xx/5xx blip is queryable via `level == "warn"` without
@@ -84,36 +77,12 @@ fastify.addHook("onResponse", async (req, reply) => {
   else logger.info(msg, ctx);
 });
 
-const ocisly = new OcislyClient(`${config.ocislyHost}:${config.ocislyPort}`);
-
-// Throttle per-camera metadata to ~2 Hz. Telemetry (speed/altitude) changes
-// slowly; sending on every 30fps frame would spam data channels for no gain.
-// peerHost is assigned below — poller → peerHost is an intentional
-// late-binding cycle (poller receives peerHost as a caller, peerHost receives
-// poller in its opts).
-const METADATA_BROADCAST_INTERVAL_MS = 500;
-const lastMetadataSentAt = new Map<string, number>();
-let peerHost: PeerHost | null = null;
-
-const poller = new CameraPoller({
-  client: ocisly,
-  framesPerSecond: 30,
-  onFrame: (meta) => {
-    const now = Date.now();
-    const last = lastMetadataSentAt.get(meta.cameraId) ?? 0;
-    if (now - last < METADATA_BROADCAST_INTERVAL_MS) return;
-    lastMetadataSentAt.set(meta.cameraId, now);
-    peerHost?.broadcastMetadata(meta);
-  },
-  logger: { error: (msg, err) => bridgeError(msg, err) },
-});
-
 // ──────────────────────────────────────────────────────────────────────
 // Discover the public IP coturn should advertise, then start coturn as a
 // child process with a fresh per-restart secret. Fail-soft: if discovery
-// or coturn spawn fails, the relay still serves cameras over LAN, but
-// the /ice-config endpoint will report an unreachable TURN. The browser
-// readiness probe surfaces that to operators.
+// or coturn spawn fails, the relay still answers /health and /version,
+// but the /ice-config endpoint will report an unreachable TURN. The
+// browser readiness probe surfaces that to operators.
 // ──────────────────────────────────────────────────────────────────────
 
 let coturnHandle: CoturnHandle | null = null;
@@ -142,54 +111,13 @@ if (config.skipCoturn) {
   }
 }
 
-const proxyPeerId = `ocisly-${randomUUID()}`;
-// Tag every log entry with this relay's identity. proxyPeerId is the
-// natural id — it's stable for this process's lifetime and is what
-// other peers see on the broker side.
-logger.setIdentity({ role: "relay", id: proxyPeerId, peerId: proxyPeerId });
-
-if (config.peerBroker) {
-  bridgeInfo(
-    `peer broker override active: ${config.peerBroker.secure ? "wss" : "ws"}://${config.peerBroker.host}:${config.peerBroker.port}${config.peerBroker.path}`,
-  );
-}
-
-peerHost = new PeerHost({
-  peerId: proxyPeerId,
-  client: ocisly,
-  poller,
-  // STUN only — no TURN on the relay side. ICE prefers a TURN-relay
-  // candidate over srflx whenever one is available; wiring our own
-  // coturn here made the local case strictly worse because it pushed
-  // the path through the same coturn (two hairpins through the
-  // router) and exhausted the small port pool. Without TURN here,
-  // ICE falls back to srflx-via-hairpin — the path that was carrying
-  // the local case for weeks. STUN is still required: with no STUN
-  // the @roamhq/wrtc inside the container can't even discover its
-  // public IP, so it only gathers the 10.89.x.x bridge candidate
-  // (unreachable from the macOS host) and ICE has no working pair
-  // at all. External stations consume the host's TURN candidate via
-  // SDP signalling, so they still get TURN coverage for restrictive
-  // networks — the relay itself doesn't need to relay.
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-  peerOptions: config.peerBroker
-    ? {
-        host: config.peerBroker.host,
-        port: config.peerBroker.port,
-        path: config.peerBroker.path,
-        secure: config.peerBroker.secure,
-      }
-    : undefined,
-  logger: {
-    info: (msg, ...args) => bridgeInfo(msg, { args }),
-    error: (msg, ...args) => bridgeError(msg, undefined, { args }),
-  },
-});
+// Stable id for this relay process's lifetime — used only to tag log
+// entries so a single relay's lines are filterable in Axiom.
+const relayId = randomUUID();
+logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
 
 fastify.get("/health", async () => ({
   status: "ok",
-  ocislyTarget: `${config.ocislyHost}:${config.ocislyPort}`,
-  peerId: proxyPeerId,
   turn: coturnHandle
     ? {
         externalIp: coturnHandle.externalIp,
@@ -202,8 +130,6 @@ fastify.get("/version", async () => ({
   version: VERSION,
   buildTime: BUILD_TIME,
 }));
-
-fastify.get("/peer-id", async () => ({ peerId: proxyPeerId }));
 
 /**
  * ICE configuration the main screen should use when constructing its
@@ -242,59 +168,11 @@ fastify.get("/ice-config", async (_req, reply) => {
   };
 });
 
-fastify.get("/cameras", async (_req, reply) => {
-  try {
-    const cameras = await ocisly.getActiveCameraIds();
-    return { cameras };
-  } catch (err) {
-    bridgeError("GetActiveCameraIds failed", err);
-    return reply.status(502).send({ error: "ocisly server unreachable" });
-  }
-});
-
-fastify.get("/cameras/stats", async () => ({
-  cameras: poller.stats(),
-}));
-
-// Debugging aid: returns the most recent JPEG for a camera straight from the
-// OCISLY server, bypassing the whole WebRTC pipeline. If the image here looks
-// wrong, the problem is upstream (KSP mod / Unity render target). If the
-// image looks right but the <video> feed is wrong, the problem is in our
-// JPEG→I420→WebRTC encode.
-fastify.get<{ Params: { cameraId: string } }>(
-  "/cameras/:cameraId/snapshot.jpg",
-  async (req, reply) => {
-    try {
-      const frame = await ocisly.getCameraTexture(req.params.cameraId);
-      if (!frame.texture || frame.texture.length === 0) {
-        return reply.status(404).send({ error: "camera has no texture yet" });
-      }
-      reply.type("image/jpeg");
-      return reply.send(frame.texture);
-    } catch (err) {
-      bridgeError("GetCameraTexture failed", err);
-      return reply.status(502).send({ error: "ocisly server unreachable" });
-    }
-  },
-);
-
-// Start the peer host but don't block listen if the broker is unreachable — log and carry on.
-try {
-  await peerHost.start();
-} catch (err) {
-  bridgeError("peer host failed to open — broker unreachable?", err);
-}
-
 await fastify.listen({ port: config.port, host: "0.0.0.0" });
-bridgeInfo(
-  `relay listening on :${config.port}, bridging to ${config.ocislyHost}:${config.ocislyPort}, peerId=${proxyPeerId}`,
-);
+bridgeInfo(`relay listening on :${config.port}`);
 
 const shutdown = async () => {
   bridgeInfo("shutting down");
-  peerHost?.stop();
-  poller.shutdown();
-  ocisly.close();
   await coturnHandle?.stop();
   await fastify.close();
   // Drain any buffered Axiom entries before the process exits.

@@ -52,8 +52,6 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app /app
-# Proto file is loaded at runtime via @grpc/proto-loader.
-COPY --from=builder /repo/packages/relay/protos /app/protos
 
 # Set at image build time by the release workflow. version.ts reads these
 # as ENV first, with the runtime package.json as fallback.
