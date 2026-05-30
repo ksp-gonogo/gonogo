@@ -11,4 +11,22 @@
 # wouldn't make it into the staged snapshot. If it fails on formatting, run
 # `pnpm lint` to auto-fix, then re-commit. Bypass in a pinch: git commit --no-verify
 echo "pre-commit: biome check + pnpm typecheck…"
+
+# Guard: never commit a file:/link: @jonpepler/kerbcam dependency. It's fine to
+# link kerbcam from disk during cross-repo dev, but a file:/link: path that
+# lands on main breaks `pnpm install --frozen-lockfile` in CI (ENOENT) and
+# silently blocks the deploy — it cost us days once. Pin the published
+# "^x.y.z" before committing. Checks STAGED package.json content, not the
+# working tree, so an unstaged local link is allowed.
+staged_pkgs=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)package\.json$' || true)
+for f in $staged_pkgs; do
+  if git show ":$f" 2>/dev/null | grep -Eq '"@jonpepler/kerbcam"[[:space:]]*:[[:space:]]*"(file:|link:)'; then
+    echo "✖ pre-commit: $f stages a file:/link: @jonpepler/kerbcam dependency."
+    echo "  This breaks CI install and blocks the deploy. Pin the published"
+    echo "  ^version before committing (local-only links are fine, just unstaged)."
+    echo "  Override in a pinch: git commit --no-verify"
+    exit 1
+  fi
+done
+
 pnpm exec biome check . && pnpm typecheck
