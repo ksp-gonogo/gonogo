@@ -1,12 +1,14 @@
 #!/bin/sh
-# Typecheck the workspace before every commit.
+# Lint/format + typecheck the workspace before every commit.
 #
-# Why: vitest runs through esbuild and does NOT type-check, so tsc-only errors
-# (e.g. a styled-component missing a prop in its generic) pass tests locally
-# and only surface in CI's build step. While CI was blocked at install, a batch
-# of those slipped onto main. `turbo typecheck` caches per package, so unchanged
-# packages are instant — only what you touched re-runs.
+# Why: the test suite covers neither — vitest runs through esbuild (no type
+# checking) and biome lint/format isn't a test — so tsc-only errors and format
+# drift only surfaced in CI, and a batch slipped onto main while CI was blocked
+# at install. biome is sub-second on the whole repo; `turbo typecheck` caches
+# per package, so unchanged packages are instant.
 #
-# Bypass in a pinch with: git commit --no-verify
-echo "pre-commit: pnpm typecheck…"
-pnpm typecheck
+# `biome check` here is verify-only (no --write): auto-fixing mid-commit
+# wouldn't make it into the staged snapshot. If it fails on formatting, run
+# `pnpm lint` to auto-fix, then re-commit. Bypass in a pinch: git commit --no-verify
+echo "pre-commit: biome check + pnpm typecheck…"
+pnpm exec biome check . && pnpm typecheck
