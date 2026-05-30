@@ -176,6 +176,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
+      '@gonogo/kerbcam':
+        specifier: workspace:*
+        version: link:../kerbcam
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger

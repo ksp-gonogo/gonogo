@@ -4,9 +4,8 @@ import {
   registerComponent,
   resolveTargetName,
   useDataValue,
-  useStream,
-  useStreamList,
 } from "@gonogo/core";
+import { useKerbcamCameras, useKerbcamStream } from "@gonogo/kerbcam";
 import {
   ConfigForm,
   Field,
@@ -33,10 +32,10 @@ interface DistanceToTargetConfig {
   /** Which HUD variant auto-switch promotes to. Default "hud-with-camera". */
   hudMode?: DockingHudMode;
   /**
-   * OCISLY stream id used for the video backdrop. Empty → first available.
-   * Meaningful only when `hudMode === "hud-with-camera"`.
+   * kerbcam camera flightId used for the video backdrop. Unset → first
+   * available. Meaningful only when `hudMode === "hud-with-camera"`.
    */
-  cameraId?: string;
+  cameraFlightId?: number | null;
 }
 
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
@@ -120,7 +119,7 @@ function DistanceToTargetComponent({
         x={dockX}
         y={dockY}
         showCamera={hudMode === "hud-with-camera"}
-        cameraId={config?.cameraId}
+        cameraFlightId={config?.cameraFlightId}
         cols={cols}
         rows={rows}
       />
@@ -293,7 +292,7 @@ interface DockingHudProps {
   x: number | undefined;
   y: number | undefined;
   showCamera: boolean;
-  cameraId: string | undefined;
+  cameraFlightId: number | null | undefined;
   cols: number;
   rows: number;
 }
@@ -315,7 +314,7 @@ function DockingHud(props: DockingHudProps) {
     x,
     y,
     showCamera,
-    cameraId,
+    cameraFlightId,
     cols,
     rows,
   } = props;
@@ -368,7 +367,7 @@ function DockingHud(props: DockingHudProps) {
       aria-label={`Docking HUD for ${name}`}
       $row={wideShort}
     >
-      {showCamera && showViewport && <HudCamera cameraId={cameraId} />}
+      {showCamera && showViewport && <HudCamera flightId={cameraFlightId} />}
       {showViewport && (
         <Viewport>
           {/* Fixed centre crosshair */}
@@ -430,14 +429,14 @@ function DockingHud(props: DockingHudProps) {
   );
 }
 
-function HudCamera({ cameraId }: { cameraId: string | undefined }) {
-  const streams = useStreamList("ocisly");
-  // Pick the configured id if it's still available, otherwise first.
-  const resolvedId =
-    cameraId && streams.some((s) => s.id === cameraId)
-      ? cameraId
-      : (streams[0]?.id ?? null);
-  const { stream } = useStream("ocisly", resolvedId);
+function HudCamera({ flightId }: { flightId: number | null | undefined }) {
+  const cameras = useKerbcamCameras();
+  // Pick the configured camera if it's still available, otherwise first.
+  const resolved =
+    flightId != null && cameras.some((c) => c.flightId === flightId)
+      ? flightId
+      : (cameras[0]?.flightId ?? null);
+  const stream = useKerbcamStream(resolved);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -464,8 +463,10 @@ function DistanceToTargetConfigComponent({
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
   );
-  const [cameraId, setCameraId] = useState(config?.cameraId ?? "");
-  const streams = useStreamList("ocisly");
+  const [cameraFlightId, setCameraFlightId] = useState<number | null>(
+    config?.cameraFlightId ?? null,
+  );
+  const cameras = useKerbcamCameras();
 
   return (
     <ConfigForm>
@@ -496,13 +497,17 @@ function DistanceToTargetConfigComponent({
           <FieldLabel htmlFor="dtt-camera">Camera stream</FieldLabel>
           <Select
             id="dtt-camera"
-            value={cameraId}
-            onChange={(e) => setCameraId(e.target.value)}
+            value={cameraFlightId == null ? "" : String(cameraFlightId)}
+            onChange={(e) =>
+              setCameraFlightId(
+                e.target.value === "" ? null : Number(e.target.value),
+              )
+            }
           >
             <option value="">(first available)</option>
-            {streams.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name ?? s.id}
+            {cameras.map((c) => (
+              <option key={c.flightId} value={c.flightId}>
+                {c.cameraName} ({c.vesselName})
               </option>
             ))}
           </Select>
@@ -517,7 +522,7 @@ function DistanceToTargetConfigComponent({
           onSave({
             autoSwitch,
             hudMode,
-            cameraId: cameraId || undefined,
+            cameraFlightId: cameraFlightId ?? undefined,
           })
         }
       >
