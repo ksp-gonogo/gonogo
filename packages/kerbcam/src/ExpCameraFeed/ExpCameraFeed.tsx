@@ -32,8 +32,11 @@ import { getCameraLifecycle } from "../lifecycle";
 // hold) the angle advances at *_RATE_DEG_S degrees/sec. A keyboard activation
 // nudges by PAN_NUDGE_DEG. PAN_BALL_RADIUS is the ball's pixel deflection bound.
 const PAN_TICK_MS = 50;
-const PAN_YAW_RATE_DEG_S = 60;
-const PAN_PITCH_RATE_DEG_S = 45;
+// Rate at full ball deflection / arrow hold. The ball is analog, so partial
+// deflection pans slower — these are the controllable ceiling for framing, not
+// a fast slew.
+const PAN_YAW_RATE_DEG_S = 15;
+const PAN_PITCH_RATE_DEG_S = 12;
 const PAN_ARROW_RATE = 0.5;
 const PAN_NUDGE_DEG = 5;
 const PAN_BALL_RADIUS = 30;
@@ -723,8 +726,8 @@ const PanBall = styled.div`
   height: 20px;
   margin: -10px 0 0 -10px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #7dffc1, #00d873);
-  box-shadow: 0 0 6px rgba(0, 255, 136, 0.6);
+  background: radial-gradient(circle at 35% 30%, #ffffff, #cfd5dc);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
   cursor: grab;
   touch-action: none;
 
