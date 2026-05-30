@@ -643,8 +643,8 @@ describe("ExpCameraFeed — zoom controls", () => {
       });
     });
 
-    const slider = screen.getByRole("slider", { name: /field of view/i });
-    expect(slider).toBeTruthy();
+    expect(screen.getByRole("button", { name: /zoom in/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /zoom out/i })).toBeTruthy();
 
     ds.disconnect();
   });
@@ -655,7 +655,7 @@ describe("ExpCameraFeed — zoom controls", () => {
     renderFeed({ flightId: 42 });
 
     // buildConnectedSource() fixture creates a camera with supportsZoom: false
-    expect(screen.queryByRole("slider", { name: /field of view/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /zoom in/i })).toBeNull();
 
     ds.disconnect();
   });
