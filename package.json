@@ -7,6 +7,7 @@
     "dev:logs": "ENABLE_AXIOM=1 sh scripts/dev.sh",
     "play": "sh scripts/play.sh",
     "replay": "pnpm --filter @gonogo/replay-server start",
+    "prepare": "git config core.hooksPath .githooks || true",
     "build": "turbo build",
     "test": "turbo test",
     "test:playwright": "playwright test",
