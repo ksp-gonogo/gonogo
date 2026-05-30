@@ -23,7 +23,7 @@
     "@gonogo/core": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/ui": "workspace:*",
-    "@jonpepler/kerbcam": "file:../../../kerbcam/client-sdk/typescript",
+    "@jonpepler/kerbcam": "^0.7.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
