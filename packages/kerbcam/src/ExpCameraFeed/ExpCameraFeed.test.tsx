@@ -745,7 +745,7 @@ describe("ExpCameraFeed — pan reticle", () => {
     encoderBitrateBps: 0,
   });
 
-  it("pan pad appears when camera supportsPan", async () => {
+  it("pan controls appear when camera supportsPan", async () => {
     const { ds, session } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
@@ -758,33 +758,32 @@ describe("ExpCameraFeed — pan reticle", () => {
       });
     });
 
-    const pad = screen.getByRole("slider", { name: /pan camera/i });
-    expect(pad).toBeTruthy();
+    expect(screen.getByRole("button", { name: /pan left/i })).toBeTruthy();
+    // PAN_CAMERA has a pitch range, so the pitch arrows are enabled.
+    expect(
+      (screen.getByRole("button", { name: /pan up/i }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
 
     ds.disconnect();
   });
 
-  it("pan pad absent when camera does not support pan", async () => {
+  it("pan controls absent when camera does not support pan", async () => {
     const { ds } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     // buildConnectedSource() fixture has supportsPan: false
-    expect(screen.queryByRole("slider", { name: /pan camera/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /pan left/i })).toBeNull();
 
     ds.disconnect();
   });
 
-  it("drag on pan pad sends set-pan", async () => {
+  it("holding a pan arrow streams set-pan; releasing stops it", async () => {
     vi.useFakeTimers();
-
-    // jsdom doesn't implement pointer capture — stub it so pointerdown doesn't throw.
-    const origSetPointerCapture = Element.prototype.setPointerCapture;
-    Element.prototype.setPointerCapture = vi.fn();
 
     const { ds, session } = await buildConnectedSource();
 
-    // Enable pan with known bounds
     await act(async () => {
       session.sendServerMessage({
         type: "camera-state-changed",
@@ -794,62 +793,45 @@ describe("ExpCameraFeed — pan reticle", () => {
 
     renderFeed({ flightId: 42 });
 
-    const pad = screen.getByRole("slider", { name: /pan camera/i });
+    const leftArrow = screen.getByRole("button", { name: /pan left/i });
 
-    // Mock getBoundingClientRect so the component's delta math uses a known size.
-    vi.spyOn(pad, "getBoundingClientRect").mockReturnValue({
-      width: 80,
-      height: 80,
-      left: 0,
-      top: 0,
-      right: 80,
-      bottom: 80,
-      x: 0,
-      y: 0,
-      toJSON: () => {},
-    } as DOMRect);
+    const setPanMsgs = () =>
+      session.sentMessages
+        .map(
+          (s) =>
+            JSON.parse(s) as {
+              type: string;
+              content: { flightId?: number; yaw?: number };
+            },
+        )
+        .filter((m) => m.type === "set-pan");
 
-    // Pointerdown at center, then move 40px right (half pad = 45° yaw from 0).
+    // Hold the arrow — the rate loop fires an absolute set-pan each tick.
     await act(async () => {
-      pad.dispatchEvent(
-        new PointerEvent("pointerdown", {
-          clientX: 40,
-          clientY: 40,
-          bubbles: true,
-        }),
+      leftArrow.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true }),
       );
     });
     await act(async () => {
-      pad.dispatchEvent(
-        new PointerEvent("pointermove", {
-          clientX: 80,
-          clientY: 40,
-          bubbles: true,
-        }),
-      );
+      vi.advanceTimersByTime(160); // ~3 ticks at 50ms
     });
 
-    // Advance past the 50ms throttle
+    const held = setPanMsgs();
+    expect(held.length).toBeGreaterThan(1);
+    expect(held[0].content.flightId).toBe(42);
+    // Panning left drives yaw negative from 0, and it keeps moving each tick.
+    expect(held.at(-1)?.content.yaw).toBeLessThan(0);
+    expect(held.at(-1)?.content.yaw).toBeLessThan(held[0].content.yaw ?? 0);
+
+    // Release — the loop must stop; no further set-pan after the next tick.
     await act(async () => {
-      vi.advanceTimersByTime(51);
+      leftArrow.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
     });
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(setPanMsgs().length).toBe(held.length);
 
-    const sent = session.sentMessages;
-    const parsed = sent.map(
-      (s) =>
-        JSON.parse(s) as {
-          type: string;
-          content: { flightId?: number; yaw?: number; pitch?: number };
-        },
-    );
-    const panMsg = parsed.find((m) => m.type === "set-pan");
-    expect(panMsg).toBeTruthy();
-    expect(panMsg?.content.flightId).toBe(42);
-    // 40px / 80px * 90° range = 45° from yaw=0
-    expect(panMsg?.content.yaw).toBeCloseTo(45, 1);
-    expect(panMsg?.content.pitch).toBeCloseTo(0, 1);
-
-    Element.prototype.setPointerCapture = origSetPointerCapture;
     ds.disconnect();
     vi.useRealTimers();
   });
