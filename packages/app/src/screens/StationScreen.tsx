@@ -1,9 +1,7 @@
 import { ManeuverTriggerProvider } from "@gonogo/components";
 import {
-  getStreamSources,
   KosProxyContext,
   registerDataSource,
-  registerStreamSource,
   type SCANType,
   ScreenProvider,
 } from "@gonogo/core";
@@ -75,7 +73,6 @@ import {
   StationNameEditor,
   useStationName,
 } from "../stationIdentity";
-import { OcislyStreamSource } from "../streamSources/ocisly";
 import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -248,34 +245,6 @@ export function StationScreen() {
           void source.connect();
         }
 
-        // Station-side OCISLY stream source: overrides the default host
-        // registration (same id) with a variant that uses the station's own
-        // Peer and receives the relay peer id from the host via the existing
-        // data channel. Registration happens after schema so the connect()
-        // below reliably sees all sources, including this one.
-        const ocislySource = new OcislyStreamSource({
-          peerProvider: () => client.waitForPeer(),
-          proxyPeerIdProvider: () =>
-            new Promise<string>((resolve) => {
-              const cached = client.getRelayPeerId();
-              if (cached) {
-                resolve(cached);
-                return;
-              }
-              const remove = client.onRelayPeerIdChange((peerId) => {
-                if (peerId) {
-                  remove();
-                  resolve(peerId);
-                }
-              });
-            }),
-        });
-        registerStreamSource(ocislySource);
-
-        for (const streamSource of getStreamSources()) {
-          void streamSource.connect();
-        }
-
         setConnected(true);
       }),
     );
@@ -304,7 +273,6 @@ export function StationScreen() {
         u();
       });
       unsubsRef.current = [];
-      for (const s of getStreamSources()) s.disconnect();
       client.disconnect();
     };
   }, []);

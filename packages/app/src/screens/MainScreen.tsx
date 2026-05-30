@@ -1,10 +1,5 @@
 import { ManeuverTriggerProvider } from "@gonogo/components";
-import {
-  getDataSource,
-  getDataSources,
-  getStreamSources,
-  ScreenProvider,
-} from "@gonogo/core";
+import { getDataSource, getDataSources, ScreenProvider } from "@gonogo/core";
 import type { BufferedDataSource } from "@gonogo/data";
 import {
   CpuRegistryProvider,
@@ -158,17 +153,13 @@ export function MainScreen() {
   useEffect(() => {
     const sources = getDataSources();
     sources.forEach((s) => {
-      void s.connect();
-    });
-    const streamSources = getStreamSources();
-    streamSources.forEach((s) => {
-      void s.connect();
+      // A source that can't connect (e.g. kerbcam with no sidecar reachable)
+      // settles its own status + schedules its own reconnect; swallow the
+      // rejection here so it doesn't surface as an unhandled promise rejection.
+      void s.connect().catch(() => {});
     });
     return () => {
       sources.forEach((s) => {
-        s.disconnect();
-      });
-      streamSources.forEach((s) => {
         s.disconnect();
       });
     };

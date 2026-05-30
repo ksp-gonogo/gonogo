@@ -17,12 +17,11 @@ services:
       AXIOM_DATASET: ${AXIOM_DATASET:-gonogo}
     restart: unless-stopped
 
-  # The relay bundles three responsibilities: OCISLY camera bridging, the
-  # `/ice-config` endpoint (read by the main screen on boot), and the
-  # coturn TURN/STUN server (spawned as a child process). Bundling means
-  # one container with one rotated-per-restart secret, no init scripts,
-  # no shared volumes — just `podman compose up` and you have a working
-  # relay. See packages/relay/src/coturnManager.ts.
+  # The relay bundles the `/ice-config` endpoint (read by the main screen on
+  # boot) and the coturn TURN/STUN server (spawned as a child process).
+  # Bundling means one container with one rotated-per-restart secret, no init
+  # scripts, no shared volumes — just `podman compose up` and you have a
+  # working relay. See packages/relay/src/coturnManager.ts.
   relay:
     build:
       # Repo-root context so pnpm can resolve workspace deps (@gonogo/logger).
@@ -42,12 +41,6 @@ services:
       - "49160-49170:49160-49170/udp"
     environment:
       PORT: 3002
-      # OCISLY_HOST: IP or hostname of the machine running the OCISLY server.
-      # Default reaches the compose host (for users running the server on the
-      # game box). With `--profile ocisly-local`, override to `ocisly-server`
-      # so the proxy reaches the sidecar via the compose network.
-      OCISLY_HOST: ${OCISLY_HOST:-host.containers.internal}
-      OCISLY_PORT: ${OCISLY_PORT:-5077}
       # Optional pin for the public IP coturn advertises to clients.
       # When unset (the typical case) the relay auto-discovers it via a
       # public lookup at startup.
@@ -57,35 +50,4 @@ services:
       # to opt in.
       AXIOM_TOKEN: ${AXIOM_TOKEN:-}
       AXIOM_DATASET: ${AXIOM_DATASET:-gonogo}
-    depends_on:
-      # Only enforced when the ocisly-local profile is active; compose skips
-      # the dependency silently if ocisly-server isn't being started.
-      ocisly-server:
-        condition: service_healthy
-        required: false
-    restart: unless-stopped
-
-  # Optional: run the OCISLY gRPC server next to the relay instead of on the
-  # game machine. Enable with `podman compose --profile ocisly-local up`.
-  # Note: published image is linux/amd64 only — Apple Silicon will run it
-  # under qemu emulation.
-  ocisly-server:
-    image: jrodrigv/ofcourseistillloveyou:latest
-    platform: linux/amd64
-    ports:
-      - "5077:5077"
-    command: [ "--port", "5077", "--endpoint", "0.0.0.0" ]
-    # Base image (dotnet:6.0 runtime) lacks curl / nc, so we use bash's
-    # built-in /dev/tcp to check the gRPC port is accepting connections.
-    # Must invoke bash explicitly: the image's /bin/sh is dash, which
-    # doesn't understand /dev/tcp and would fail every probe.
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/5077" ]
-      interval: 3s
-      timeout: 2s
-      retries: 40
-      # Apple Silicon runs this image under qemu emulation (linux/amd64
-      # only), where dotnet boot regularly takes ~80s. start_period
-      # holds health checks below failure-counting until then.
-      start_period: 90s
     restart: unless-stopped

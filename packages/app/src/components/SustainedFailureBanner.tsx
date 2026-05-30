@@ -1,13 +1,12 @@
-import { useDataSources, useStreamSources } from "@gonogo/core";
+import { useDataSources } from "@gonogo/core";
 import { SourceOfflineBanner } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Surfaces data sources / stream sources that have been disconnected or
- * erroring for longer than the sustained-failure threshold. Hidden while
- * everything's healthy or while a transient blip clears within
- * `THRESHOLD_MS`. The OCISLY relay reconnect loop motivates the UI: prior
- * to this banner, an indefinite retry would happen entirely silently.
+ * Surfaces data sources that have been disconnected or erroring for longer
+ * than the sustained-failure threshold. Hidden while everything's healthy or
+ * while a transient blip clears within `THRESHOLD_MS`. Motivated by silent
+ * indefinite reconnect loops — without this banner they happen with no UI.
  *
  * Click-through is intentionally deferred — the visible banner is the
  * affordance; opening a panel from here would compete with the existing
@@ -18,16 +17,11 @@ const THRESHOLD_MS = 15_000;
 const TICK_MS = 1_000;
 
 export function SustainedFailureBanner() {
-  const dataSources = useDataSources();
-  const streamSources = useStreamSources();
-
-  // Combine both source kinds into a single working list keyed by id. Stream
-  // sources reuse DataSourceStatus values so the OK predicate is shared.
-  const all = [...dataSources, ...streamSources];
+  const all = useDataSources();
 
   // Track the timestamp each source first went non-OK. Cleared when it
-  // recovers. Survives re-renders via a ref so transient
-  // useDataSources/useStreamSources re-fires don't restart the clock.
+  // recovers. Survives re-renders via a ref so transient useDataSources
+  // re-fires don't restart the clock.
   const sinceRef = useRef<Map<string, number>>(new Map());
   const [, tick] = useState(0);
 
