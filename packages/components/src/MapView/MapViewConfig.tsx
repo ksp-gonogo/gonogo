@@ -10,6 +10,7 @@ import {
   FieldRow,
   Input,
   PrimaryButton,
+  Select,
   Switch,
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
@@ -124,7 +125,7 @@ export function MapViewConfigComponent({
       </Field>
       <Field>
         <FieldLabel htmlFor="map-body-override">Body</FieldLabel>
-        <select
+        <Select
           id="map-body-override"
           value={bodyOverride}
           onChange={(e) => setBodyOverride(e.target.value)}
@@ -135,7 +136,7 @@ export function MapViewConfigComponent({
               {b.name}
             </option>
           ))}
-        </select>
+        </Select>
         <FieldHint>
           Pin the map to a specific body to inspect its scan layers while the
           vessel is elsewhere. Default follows the active vessel.
