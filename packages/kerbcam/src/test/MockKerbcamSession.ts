@@ -44,6 +44,14 @@ export interface MockKerbcamSession {
    * not pre-serialised strings.
    */
   sendServerMessage(msg: object): void;
+  /**
+   * Fire the peer's `onTrack` handler with a real `MediaStreamTrack` —
+   * the WebRTC video path the SDK turns into `camera.mediaStream`. jsdom
+   * can't produce a track, so this is only useful in a real browser (the
+   * render harness uses `canvas.captureStream()`). `idx` maps to the
+   * camera order from the `/offer` answer's `cameras` array (default 0).
+   */
+  deliverTrack(track: MediaStreamTrack, idx?: number): void;
 }
 
 export function createMockKerbcamSession(): MockKerbcamSession {
@@ -52,6 +60,9 @@ export function createMockKerbcamSession(): MockKerbcamSession {
   let _messageHandler: ((raw: string) => void) | undefined;
   let _stateHandler:
     | ((s: "disconnected" | "connecting" | "connected" | "failed") => void)
+    | undefined;
+  let _trackHandler:
+    | ((track: MediaStreamTrack, idx: number) => void)
     | undefined;
   let _closed = false;
 
@@ -69,7 +80,9 @@ export function createMockKerbcamSession(): MockKerbcamSession {
   const peer: KerbcamPeer = {
     addRecvOnlyTransceiver: () => {},
     createDataChannel: () => channel,
-    onTrack: () => {},
+    onTrack: (h) => {
+      _trackHandler = h;
+    },
     onStateChange: (h) => {
       _stateHandler = h;
     },
@@ -103,6 +116,9 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     },
     sendServerMessage(msg) {
       _messageHandler?.(JSON.stringify(msg));
+    },
+    deliverTrack(track, idx = 0) {
+      _trackHandler?.(track, idx);
     },
   };
 }
