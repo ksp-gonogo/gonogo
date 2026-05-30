@@ -570,7 +570,6 @@ export function ExpCameraFeed({
             )}
             {showPan && (
               <PanControl role="group" aria-label="Pan camera">
-                <PanRing aria-hidden="true" />
                 <PanArrow
                   type="button"
                   $dir="up"
@@ -648,15 +647,15 @@ export function ExpCameraFeed({
 // ZoomControlsWrap and PanControl defined BEFORE VideoWrap so VideoWrap
 // can reference them in hover/focus-within selectors.
 
-// Pan directional pad — four arrows around a draggable rate ball, on a faint
-// circular guide ring. Less boxy than the old square crosshair pad; revealed
-// on hover/focus like the zoom control.
+// Pan directional pad — four bare arrow glyphs around a small draggable rate
+// ball. A dark drop-shadow (not a box) keeps the white glyphs + ball legible
+// over a bright frame. Revealed on hover/focus like the zoom control.
 const PanControl = styled.div`
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 92px;
-  height: 92px;
+  bottom: 10px;
+  right: 10px;
+  width: 64px;
+  height: 64px;
   opacity: 0;
   transition: opacity 0.15s;
   touch-action: none;
@@ -666,33 +665,25 @@ const PanControl = styled.div`
   }
 `;
 
-const PanRing = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60px;
-  height: 60px;
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 50%;
-`;
-
 const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 3px;
+  background: none;
+  border: none;
   cursor: pointer;
   touch-action: none;
+  /* Dark halo keeps the white glyph legible over a bright frame, no box. */
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.8);
 
   ${(p) =>
     p.$dir === "up"
@@ -705,7 +696,7 @@ const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      background: rgba(0, 0, 0, 0.75);
+      color: #00ff88;
     }
   }
   &:disabled {
@@ -722,12 +713,15 @@ const PanBall = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffffff, #cfd5dc);
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
+  background: radial-gradient(circle at 35% 30%, #ffffff, #d6dbe1);
+  /* Thin dark ring for contrast over a bright frame + a faint glow over dark. */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(255, 255, 255, 0.4);
   cursor: grab;
   touch-action: none;
 
