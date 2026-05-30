@@ -6,6 +6,7 @@ import {
   useExecuteAction,
 } from "@gonogo/core";
 import {
+  IconButton,
   Panel,
   PanelSubtitle,
   PanelTitle,
@@ -421,22 +422,22 @@ export function ExpCameraFeed({
               </option>
             ))}
           </CameraSelect>
-          <StepButton
+          <IconButton
             type="button"
             aria-label="Previous camera"
             disabled={!canStep}
             onClick={() => stepCamera(-1)}
           >
             ‹
-          </StepButton>
-          <StepButton
+          </IconButton>
+          <IconButton
             type="button"
             aria-label="Next camera"
             disabled={!canStep}
             onClick={() => stepCamera(1)}
           >
             ›
-          </StepButton>
+          </IconButton>
         </SelectionBar>
       )}
 
@@ -464,29 +465,20 @@ export function ExpCameraFeed({
             )}
             {showZoom && (
               <ZoomControlsWrap>
-                <button
-                  type="button"
-                  aria-label="Zoom out"
-                  onClick={() => onFovChange(camera.fov + 5)}
-                >
-                  −
-                </button>
-                <input
-                  type="range"
-                  min={camera.fovMin}
-                  max={camera.fovMax}
-                  step={1}
-                  value={camera.fov}
-                  aria-label={`Field of view: ${camera.fov}°`}
-                  onChange={(e) => onFovChange(Number(e.target.value))}
-                />
-                <button
+                <ZoomButton
                   type="button"
                   aria-label="Zoom in"
                   onClick={() => onFovChange(camera.fov - 5)}
                 >
                   +
-                </button>
+                </ZoomButton>
+                <ZoomButton
+                  type="button"
+                  aria-label="Zoom out"
+                  onClick={() => onFovChange(camera.fov + 5)}
+                >
+                  −
+                </ZoomButton>
               </ZoomControlsWrap>
             )}
             {showPan && (
@@ -527,7 +519,7 @@ const PanDot = styled.div`
 
 const PanPadWrap = styled.div`
   position: absolute;
-  bottom: 44px; /* sits above the zoom bar */
+  bottom: 8px;
   right: 8px;
   width: 80px;
   height: 80px;
@@ -569,47 +561,48 @@ const PanPadWrap = styled.div`
   }
 `;
 
+// Map-style zoom: a compact +/- stack tucked into the bottom-left corner,
+// revealed on hover/focus like the pan pad — not a slider across the stream.
 const ZoomControlsWrap = styled.div`
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 8px;
+  left: 8px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.55);
+  flex-direction: column;
+  gap: 2px;
   opacity: 0;
   transition: opacity 0.15s;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
 
-  button {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1;
-    padding: 2px 7px;
+// Reuses the @gonogo/ui IconButton, dressed as a map control: a legible dark
+// wash + light glyph so it reads over any video frame, not the faint
+// on-surface styling.
+const ZoomButton = styled(IconButton)`
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  color: #fff;
+  font-size: 1rem;
 
-    &:focus-visible {
-      outline: 2px solid #00ff88;
-      outline-offset: 2px;
+  @media (hover: hover) {
+    &:hover {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.8);
     }
   }
 
-  input[type="range"] {
-    flex: 1;
-    accent-color: #00ff88;
-
-    &:focus-visible {
-      outline: 2px solid #00ff88;
-      outline-offset: 2px;
-    }
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
   }
 `;
 
@@ -659,27 +652,6 @@ const CameraSelect = styled(Select)`
   flex: 1;
   min-width: 0;
   width: auto;
-`;
-
-const StepButton = styled.button`
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 2px 9px;
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #00ff88;
-    outline-offset: 2px;
-  }
 `;
 
 const StyledVideo = styled.video<{ $destroyed: boolean }>`
