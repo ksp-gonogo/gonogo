@@ -40,6 +40,43 @@ const PING_WATCHDOG_MS = 15_000;
 const RECONNECT_BASE_MS = 2_000;
 const RECONNECT_MAX_MS = 30_000;
 
+// The kerbcam WebRTC stream needs the same TURN relay the PeerJS host uses
+// for non-LAN delivery. The gonogo relay bundles coturn and serves the
+// rotated creds at `/ice-config` (see packages/relay). We fetch them here and
+// hand them to the SDK client; with no relay reachable we fall back to the
+// SDK's STUN-only default so kerbcam-on-LAN keeps working untouched. Mirrors
+// the host's app/peer/iceServers.ts (kerbcam can't import across that package
+// boundary, so the small fetch is duplicated rather than shared).
+const RELAY_DEFAULT_URL = "http://localhost:3002";
+const ICE_FETCH_TIMEOUT_MS = 4_000;
+
+function relayBaseUrl(): string {
+  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
+  return (env?.VITE_RELAY_URL ?? RELAY_DEFAULT_URL).replace(/\/$/, "");
+}
+
+/**
+ * Fetch the relay's TURN credentials. Returns `[]` on any failure — a 503
+ * (coturn down), a timeout, or no relay at all — so the caller leaves the SDK
+ * on its `stun:stun.l.google.com` default rather than breaking connect.
+ */
+async function fetchRelayIceServers(): Promise<RTCIceServer[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ICE_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${relayBaseUrl()}/ice-config`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { iceServers?: RTCIceServer[] };
+    return Array.isArray(body.iceServers) ? body.iceServers : [];
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const KERBCAM_CAMERAS_BUDGET = new PerfBudget({
   name: "KerbcamDataSource cameras updates/sec",
   threshold: 50,
@@ -256,6 +293,10 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   private baseTransport: KerbcamTransport | undefined;
   private client: KerbcamClient;
   private clientUnsubs: Array<() => void> = [];
+  // TURN creds fetched from the relay's /ice-config; empty until the first
+  // connect resolves them (and stays empty when no relay is reachable, in
+  // which case the SDK uses its STUN-only default).
+  private iceServers: RTCIceServer[] = [];
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
   private camerasKeySubs = new Set<(value: unknown) => void>();
 
@@ -279,6 +320,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
 
   async connect(): Promise<void> {
     this.reconnectEnabled = true;
+    await this.applyRelayIce();
     try {
       await this.client.connect();
     } catch (err) {
@@ -397,7 +439,13 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     );
 
     const client = new KerbcamClient(
-      { host: this.cfg.host, port: this.cfg.port },
+      {
+        host: this.cfg.host,
+        port: this.cfg.port,
+        // Pass the relay's TURN servers when we have them; `undefined` lets
+        // the SDK apply its STUN-only default (LAN / no relay).
+        iceServers: this.iceServers.length > 0 ? this.iceServers : undefined,
+      },
       keepaliveTransport,
     );
     this.clientUnsubs.push(
@@ -423,6 +471,21 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
       }),
     );
     return client;
+  }
+
+  /**
+   * Fetch the relay's TURN creds and, if any came back, rebuild the client to
+   * use them. A no-op (keeps the current STUN-default client) when the relay
+   * is unreachable, so LAN streaming is unaffected. Run on every
+   * connect/reconnect because the relay rotates its secret per restart, so a
+   * reconnect after a relay bounce needs to re-fetch the fresh credentials.
+   */
+  private async applyRelayIce(): Promise<void> {
+    const ice = await fetchRelayIceServers();
+    if (ice.length === 0) return;
+    this.iceServers = ice;
+    this.teardownClient();
+    this.client = this.buildClient();
   }
 
   private teardownClient(): void {
@@ -484,6 +547,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   private async attemptReconnect(): Promise<void> {
+    await this.applyRelayIce();
     try {
       await this.client.connect();
     } catch {
