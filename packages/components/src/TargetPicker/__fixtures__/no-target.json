@@ -4,8 +4,9 @@
     "vessel": "synthetic (Mk1 pod in LKO, no target)",
     "body": "Kerbin",
     "situation": "Orbiting ~87km, no target, no other vessels in range",
-    "notes": "SYNTHETIC, hand-generated — replace from a real flight. No-target state: tar.name OMITTED so the widget renders its genuine no-target branches (Current tab + compact \"No target set\"); tar.availableVessels empty (Vessels tab shows the no-targets-in-range hint); no encounter/apsis so OrbitalEventChips collapses. Body data copied from SystemView for the Bodies tab. NOTE: the real Telemachus no-target value (empty string vs a sentinel like \"No Target Selected.\") is unconfirmed — capture live; if it is a non-empty sentinel the widget must treat it as no-target."
+    "notes": "SYNTHETIC, hand-generated. No-target state: tar.name carries the real Telemachus no-target sentinel \"No Target Selected.\" (confirmed in the fork NavigationHandlers.cs: VesselTarget==null -> \"No Target Selected.\"). The widget normalises this to no-target via resolveTargetName, so the Current tab + compact readout render the empty branch. tar.availableVessels empty (Vessels tab shows the no-targets-in-range hint); no encounter/apsis so OrbitalEventChips collapses. Body data copied from SystemView for the Bodies tab."
   },
+  "tar.name": "No Target Selected.",
   "o.encounterExists": 0,
   "o.encounterBody": "",
   "o.encounterTime": -1,

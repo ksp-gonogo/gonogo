@@ -1,5 +1,9 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import {
+  registerComponent,
+  resolveTargetName,
+  useDataValue,
+} from "@gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -43,7 +47,7 @@ function SystemViewComponent({
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
   const vesselBody = useDataValue("data", "v.body");
-  const targetName = useDataValue("data", "tar.name");
+  const targetName = resolveTargetName(useDataValue("data", "tar.name"));
   // Vessel orbit — feeds the dot drawn on its own orbit when the
   // chosen frame matches its parent body.
   const vSma = useDataValue("data", "o.sma");

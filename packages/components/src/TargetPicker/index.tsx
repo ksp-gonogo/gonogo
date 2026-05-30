@@ -7,6 +7,7 @@ import type {
 import {
   formatDistance,
   registerComponent,
+  resolveTargetName,
   useActionInput,
   useDataValue,
   useExecuteAction,
@@ -49,7 +50,7 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const bodies = useCelestialBodies();
-  const tarName = useDataValue("data", "tar.name") as string | undefined;
+  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
   const tarType = useDataValue("data", "tar.type") as string | undefined;
   const tarDistance = useDataValue("data", "tar.distance");
   const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");

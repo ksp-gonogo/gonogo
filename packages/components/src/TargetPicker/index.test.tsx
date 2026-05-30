@@ -73,6 +73,22 @@ describe("TargetPickerComponent", () => {
     expect(screen.getByText(/Waiting for body data/i)).toBeInTheDocument();
   });
 
+  it("treats the Telemachus no-target sentinel as no target", () => {
+    // Telemachus' tar.name returns the literal "No Target Selected." (not ""
+    // or null) when nothing is targeted. The compact readout (w<4||h<6) must
+    // show its no-target branch, never the sentinel as a phantom target name.
+    render(
+      <DashboardItemContext.Provider value={{ instanceId: "tp" }}>
+        <TargetPickerComponent config={{}} id="tp" w={3} h={4} />
+      </DashboardItemContext.Provider>,
+    );
+    act(() => {
+      source.emit("tar.name", "No Target Selected.");
+    });
+    expect(screen.getByText(/No target set/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No Target Selected\./)).not.toBeInTheDocument();
+  });
+
   it("renders bodies grouped by reference body and targets on click", async () => {
     renderPicker();
     primeBodies();
