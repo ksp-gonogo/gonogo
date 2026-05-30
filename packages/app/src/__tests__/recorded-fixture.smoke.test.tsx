@@ -448,9 +448,11 @@ describe("recorded launch — full mission control flow", () => {
       expect(typeof apaMid).toBe("number");
       await screen.findByText(formatDistance(apaMid));
 
-      // Distance-to-target shows the recorded "No Target Selected." string.
+      // The recording's tar.name is Telemachus' no-target sentinel; the widget
+      // normalises it (resolveTargetName) and shows its no-target state rather
+      // than rendering the literal sentinel as a phantom target.
       expect(valueAt("tar.name", T_MID)).toBe("No Target Selected.");
-      await screen.findByText(/No Target Selected\./);
+      await screen.findByText(/No target set in KSP/i);
 
       // Seek near apoapsis — apoapsis text should change to the new value.
       act(() => {
