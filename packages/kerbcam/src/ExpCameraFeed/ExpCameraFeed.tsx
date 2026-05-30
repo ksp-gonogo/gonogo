@@ -654,8 +654,8 @@ const PanControl = styled.div`
   position: absolute;
   bottom: 10px;
   right: 10px;
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   opacity: 0;
   transition: opacity 0.15s;
   touch-action: none;
@@ -667,13 +667,13 @@ const PanControl = styled.div`
 
 const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
   position: absolute;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   color: #fff;
   background: none;
@@ -713,9 +713,9 @@ const PanBall = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ffffff, #d6dbe1);
   /* Thin dark ring for contrast over a bright frame + a faint glow over dark. */
