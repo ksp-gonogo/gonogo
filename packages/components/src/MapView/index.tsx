@@ -9,6 +9,7 @@ import type {
 import {
   getBody,
   getImagingWindow,
+  getWidgetShape,
   latLonToMap,
   predictGroundTrack,
   registerComponent,
@@ -870,6 +871,13 @@ function MapViewComponent({
   const showCoveragePanel = showMap && showCoverage && cols >= 7 && rows >= 8;
   const showAnomalySide =
     showMap && showAnomalyPanel && rankedAnomalies.length > 0 && cols >= 8;
+  // When the panel is shown, dock it BESIDE the map only for wide (landscape)
+  // placements; for tall/square ones stack it BELOW so the 2:1 map keeps its
+  // full width instead of being squeezed into a letterboxed sliver. Uses the
+  // shared aspect signal rather than a @container query (the Panel ancestor
+  // sets no container-type).
+  const stackAnomaly =
+    showAnomalySide && getWidgetShape(cols, rows).shape !== "landscape";
 
   if (!showMap) {
     return (
@@ -927,8 +935,8 @@ function MapViewComponent({
         {showImagingChip && vesselOnThisBody && <OrbitalEventChips />}
       </Header>
 
-      <MapBody>
-        <MapOuter ref={outerRef}>
+      <MapBody $stack={stackAnomaly}>
+        <MapOuter ref={outerRef} $stack={stackAnomaly}>
           <CanvasContainer
             ref={interactionRef}
             style={
@@ -962,11 +970,12 @@ function MapViewComponent({
         </MapOuter>
         {showAnomalySide && (
           <AnomalyPanel
+            $stack={stackAnomaly}
             role="region"
             aria-label={`Anomalies near ${displayName ?? "body"}`}
           >
             <AnomalyPanelTitle>Anomalies</AnomalyPanelTitle>
-            <AnomalyPanelList>
+            <AnomalyPanelList $stack={stackAnomaly}>
               {rankedAnomalies.map(
                 ({ anomaly, distanceMetres, bearingDeg }) => (
                   <AnomalyPanelItem key={`${anomaly.name}-${anomaly.latitude}`}>

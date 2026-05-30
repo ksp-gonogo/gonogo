@@ -54,10 +54,11 @@ export const CompactValue = styled.span`
  * help, the side-panel isn't rendered at all and the map keeps the full
  * width.
  */
-export const MapBody = styled.div`
+export const MapBody = styled.div<{ $stack?: boolean }>`
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-direction: ${(p) => (p.$stack ? "column" : "row")};
   gap: 8px;
 `;
 
@@ -65,8 +66,12 @@ export const MapBody = styled.div`
  * Fills leftover space. The ResizeObserver measures this element's actual
  * content rect and computes letterboxed pixel dimensions for CanvasContainer.
  */
-export const MapOuter = styled.div`
-  flex: 1;
+export const MapOuter = styled.div<{ $stack?: boolean }>`
+  /* Stacked (tall/square): pin to a 2:1 box at full width so the map fills it
+     edge-to-edge and the panel below takes the leftover height — no vertical
+     letterbox. Beside the panel (landscape): grow to fill leftover space. */
+  ${(p) =>
+    p.$stack ? "flex: 0 0 auto; width: 100%; aspect-ratio: 2 / 1;" : "flex: 1;"}
   min-height: 0;
   display: flex;
   align-items: center;
@@ -76,10 +81,13 @@ export const MapOuter = styled.div`
 
 // ── Anomaly side-panel (C) ──────────────────────────────────────────────────
 
-export const AnomalyPanel = styled.aside`
-  flex: 0 0 auto;
-  width: 140px;
-  max-width: 40%;
+export const AnomalyPanel = styled.aside<{ $stack?: boolean }>`
+  /* Beside the map: a fixed-width column. Below the map (stacked): full width,
+     absorbing the leftover height and scrolling its multi-column list. */
+  ${(p) =>
+    p.$stack
+      ? "width: 100%; max-width: none; flex: 1 1 0;"
+      : "flex: 0 0 auto; width: 140px; max-width: 40%;"}
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -95,13 +103,17 @@ export const AnomalyPanelTitle = styled.h3`
   margin: 0;
 `;
 
-export const AnomalyPanelList = styled.ul`
+export const AnomalyPanelList = styled.ul<{ $stack?: boolean }>`
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
   gap: 3px;
+  /* Beside the map: a single tall column. Below the map: flow into as many
+     columns as the width allows so the list uses the horizontal space. */
+  ${(p) =>
+    p.$stack
+      ? "display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));"
+      : "display: flex; flex-direction: column;"}
 `;
 
 export const AnomalyPanelItem = styled.li`
