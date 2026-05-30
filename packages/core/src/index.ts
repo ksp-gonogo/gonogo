@@ -30,6 +30,7 @@ export * from "./safeRandomUuid";
 export * from "./schemas/telemachus";
 export * from "./stock-bodies";
 export * from "./streamRegistry";
+export * from "./telemachus";
 export * from "./testing/installDomStubs";
 export * from "./testing/MockDataSource";
 export * from "./theme";

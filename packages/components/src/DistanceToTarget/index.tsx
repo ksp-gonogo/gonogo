@@ -2,6 +2,7 @@ import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import {
   formatDistance,
   registerComponent,
+  resolveTargetName,
   useDataValue,
   useStream,
   useStreamList,
@@ -55,7 +56,7 @@ function DistanceToTargetComponent({
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
   const tarDistance = useDataValue("data", "tar.distance");
-  const tarName = useDataValue("data", "tar.name");
+  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
   const tarType = useDataValue("data", "tar.type");
   const relVel = useDataValue("data", "tar.o.relativeVelocity");
   const closestApproachUT = useDataValue("data", "o.closestTgtApprUT");

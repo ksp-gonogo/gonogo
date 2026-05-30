@@ -4,6 +4,7 @@ import {
   type CurrentOrbit,
   getBody,
   registerComponent,
+  resolveTargetName,
   useDataValue,
   useExecuteAction,
   useOrbitElements,
@@ -87,7 +88,7 @@ function ManeuverPlannerComponent({
   const refBody = useDataValue("data", "o.referenceBody");
   const bodyName = useDataValue("data", "v.body");
   const inclination = useDataValue("data", "o.inclination");
-  const targetName = useDataValue("data", "tar.name");
+  const targetName = resolveTargetName(useDataValue("data", "tar.name"));
   const targetInclinationLive = useDataValue("data", "tar.o.inclination");
   const targetLanLive = useDataValue("data", "tar.o.lan");
   const targetSma = useDataValue("data", "tar.o.sma");
