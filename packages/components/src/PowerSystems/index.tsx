@@ -353,7 +353,7 @@ function PowerSystemsComponent({
           {producers.length === 0 ? (
             <SectionEmpty>Nothing producing.</SectionEmpty>
           ) : (
-            <ContribList $landscape={isLandscape}>
+            <ContribList>
               {producers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
@@ -370,7 +370,7 @@ function PowerSystemsComponent({
           {consumers.length === 0 ? (
             <SectionEmpty>Nothing consuming.</SectionEmpty>
           ) : (
-            <ContribList $landscape={isLandscape}>
+            <ContribList>
               {consumers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
@@ -383,7 +383,7 @@ function PowerSystemsComponent({
               Idle
               <SectionCount>· {idle.length}</SectionCount>
             </SectionTitle>
-            <IdleList $landscape={isLandscape}>
+            <IdleList>
               {idle.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
