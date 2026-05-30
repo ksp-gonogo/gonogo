@@ -9,6 +9,7 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
+  Select,
   StatusIndicator,
   type StatusTone,
 } from "@gonogo/ui";
@@ -652,20 +653,12 @@ const CameraPickerLabel = styled.label`
   letter-spacing: 0.06em;
 `;
 
-const CameraSelect = styled.select`
+// Reuses the shared @gonogo/ui Select (inputBase styling + focus ring); the
+// toolbar just needs it to flex within the SelectionBar rather than fill 100%.
+const CameraSelect = styled(Select)`
   flex: 1;
   min-width: 0;
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 3px 6px;
-  font-size: 12px;
-
-  &:focus-visible {
-    outline: 2px solid #00ff88;
-    outline-offset: 2px;
-  }
+  width: auto;
 `;
 
 const StepButton = styled.button`
