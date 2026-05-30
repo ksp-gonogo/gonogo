@@ -44,6 +44,10 @@ const ALLOWED_PATHS = [
   // no real benefit; the few literals here are duplicates of existing
   // tokens and stay green-by-discipline rather than gate.
   "packages/components/src/Scanning/Minimap.tsx",
+  // MapView/index.tsx: same canvas 2D `fillStyle` constraint as Minimap. The
+  // map/overlay canvases resolve theme tokens at draw time via canvasColor();
+  // the raw hex is only the getComputedStyle fallback, not a styled colour.
+  "packages/components/src/MapView/index.tsx",
 ];
 
 // Source roots to scan. Excludes telnet-proxy / relay because they're
