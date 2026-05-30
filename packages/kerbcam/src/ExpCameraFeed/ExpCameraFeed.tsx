@@ -676,6 +676,7 @@ const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
   font-size: 11px;
   line-height: 1;
   color: #fff;
+  opacity: 0.5;
   background: none;
   border: none;
   cursor: pointer;
@@ -696,6 +697,7 @@ const PanArrow = styled.button<{ $dir: "up" | "down" | "left" | "right" }>`
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
+      opacity: 1;
       color: #00ff88;
     }
   }
