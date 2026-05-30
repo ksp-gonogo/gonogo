@@ -20,6 +20,12 @@ export interface MockKerbcamSession {
   /** Pass to KerbcamDataSource or KerbcamClient constructor. */
   readonly transport: KerbcamTransport;
   /**
+   * The ICE servers the last `transport.createPeer(...)` was called with —
+   * lets tests assert the relay's TURN creds were threaded through to the
+   * peer connection. `undefined` until the first connect builds a peer.
+   */
+  readonly iceServers: RTCIceServer[] | undefined;
+  /**
    * Raw JSON strings sent by the client to the sidecar.
    * Array is mutable so tests can splice it (e.g. `sent.length = 0`
    * to discard the initial `hello` before asserting a command).
@@ -65,6 +71,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     | ((track: MediaStreamTrack, idx: number) => void)
     | undefined;
   let _closed = false;
+  let _iceServers: RTCIceServer[] | undefined;
 
   const channel: KerbcamDataChannel = {
     send: (s) => _sentMessages.push(s),
@@ -97,11 +104,17 @@ export function createMockKerbcamSession(): MockKerbcamSession {
   };
 
   const transport: KerbcamTransport = {
-    createPeer: () => peer,
+    createPeer: (iceServers) => {
+      _iceServers = iceServers;
+      return peer;
+    },
   };
 
   return {
     transport,
+    get iceServers() {
+      return _iceServers;
+    },
     get sentMessages() {
       return _sentMessages;
     },
@@ -120,5 +133,33 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     deliverTrack(track, idx = 0) {
       _trackHandler?.(track, idx);
     },
+  };
+}
+
+/**
+ * Build a URL-aware `fetch` implementation for kerbcam tests. The data source
+ * makes two distinct calls on connect: a GET `/ice-config` (TURN creds) and
+ * the SDK client's POST `/offer` (SDP answer + camera flightIds). A single
+ * shared `Response` can't serve both — its body is consumed on the first read
+ * — so this returns a *fresh* Response per call, routed by URL.
+ *
+ * Pass to `vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl(...))`.
+ * `iceServers` defaults to `[]` (the no-relay case → SDK STUN fallback);
+ * pass servers to exercise the TURN path.
+ */
+export function kerbcamFetchImpl(opts?: {
+  cameras?: number[];
+  iceServers?: RTCIceServer[];
+}): (input: RequestInfo | URL) => Promise<Response> {
+  const cameras = opts?.cameras ?? [];
+  const iceServers = opts?.iceServers ?? [];
+  return async (input) => {
+    const url = String(input);
+    if (url.includes("/ice-config")) {
+      return new Response(JSON.stringify({ iceServers }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ sdp: "answer-sdp", cameras }), {
+      status: 200,
+    });
   };
 }

@@ -40,6 +40,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "../KerbcamDataSource";
 import {
   createMockKerbcamSession,
+  kerbcamFetchImpl,
   type MockKerbcamSession,
 } from "../test/MockKerbcamSession";
 import { ExpCameraFeed, type ExpCameraFeedConfig } from "./ExpCameraFeed";
@@ -155,10 +156,8 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42] }), {
-      status: 200,
-    }),
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    kerbcamFetchImpl({ cameras: [42] }),
   );
 });
 
@@ -189,14 +188,8 @@ async function buildConnectedSource(
 
   // Keep the /offer answer's `cameras` array in sync with the snapshot so the
   // client opens a track for every flightId it's about to learn about.
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        sdp: "answer-sdp",
-        cameras: cameras.map((c) => c.flightId),
-      }),
-      { status: 200 },
-    ),
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    kerbcamFetchImpl({ cameras: cameras.map((c) => c.flightId) }),
   );
 
   await act(async () => {

@@ -2,14 +2,13 @@ import { Layer } from "@jonpepler/kerbcam";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "./KerbcamDataSource";
-import { createMockKerbcamSession } from "./test/MockKerbcamSession";
+import {
+  createMockKerbcamSession,
+  kerbcamFetchImpl,
+} from "./test/MockKerbcamSession";
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [] }), {
-      status: 200,
-    }),
-  );
+  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
 });
 
 describe("KerbcamDataSource", () => {
@@ -74,6 +73,39 @@ describe("KerbcamDataSource", () => {
 
     expect(received).toHaveLength(1);
     expect(received[0]).toEqual([]);
+  });
+});
+
+describe("KerbcamDataSource — relay TURN / ice-config", () => {
+  it("threads the relay's TURN servers into the peer connection", async () => {
+    const turn: RTCIceServer = {
+      urls: ["turn:relay.example:3478?transport=udp"],
+      username: "u",
+      credential: "c",
+    };
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      kerbcamFetchImpl({ iceServers: [turn] }),
+    );
+
+    const session = createMockKerbcamSession();
+    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    await ds.connect();
+
+    expect(session.iceServers).toEqual([turn]);
+  });
+
+  it("falls back to the SDK STUN default when the relay has no TURN", async () => {
+    // Empty iceServers stands in for a 503 / unreachable relay — the data
+    // source must not break connect, leaving the client on its STUN default.
+    vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
+
+    const session = createMockKerbcamSession();
+    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    await ds.connect();
+
+    expect(session.iceServers).toEqual([
+      { urls: "stun:stun.l.google.com:19302" },
+    ]);
   });
 });
 
