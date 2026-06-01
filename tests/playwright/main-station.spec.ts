@@ -44,6 +44,76 @@ async function getMainPeerId(page: Page): Promise<string> {
     .then((handle) => handle.jsonValue() as Promise<string>);
 }
 
+/**
+ * Read the host's stable share-code + confirm it has registered with the
+ * relay (so the relay's directory peer for that code is up on the broker).
+ * `relayRegistered` flips true once `POST /host` returns 2xx, which is the
+ * same event that fires the relay's `onRegister` → `directoryPeers.ensure`.
+ * We then wait an extra beat for the directory peer's own broker `open`.
+ */
+async function getRegisteredShareCode(page: Page): Promise<string> {
+  return await page
+    .waitForFunction(
+      () => {
+        const w = window as unknown as {
+          peerHostService?: {
+            shareCode?: string;
+            relayRegistered?: boolean;
+          };
+        };
+        const svc = w.peerHostService;
+        if (!svc?.relayRegistered) return null;
+        const code = svc.shareCode;
+        return typeof code === "string" && code.length > 0 ? code : null;
+      },
+      undefined,
+      { timeout: 30_000, polling: 200 },
+    )
+    .then((handle) => handle.jsonValue() as Promise<string>);
+}
+
+test.describe("station resolves a share-code via the relay directory peer", () => {
+  // The cross-machine path: the station is given ONLY the host's stable
+  // share-code (not its ephemeral peer id). The only way it reaches the
+  // host is by resolving that code over the broker via the relay's
+  // `gonogo-dir-<code>` directory peer. A passing handshake here is genuine
+  // end-to-end coverage of the directory resolve — the 4s direct-connect
+  // fallback can't be what carries it, because the share-code is not a
+  // valid host peer id (asserted below).
+  test("connects when handed only the share-code", async ({ browser }) => {
+    const mainContext = await browser.newContext();
+    const stationContext = await browser.newContext();
+
+    const main = await mainContext.newPage();
+    await main.goto(MAIN_URL);
+    await expect(
+      main.getByRole("button", { name: /add component/i }),
+    ).toBeVisible({ timeout: 30_000 });
+
+    const peerId = await getMainPeerId(main);
+    const shareCode = await getRegisteredShareCode(main);
+    // The share-code and the ephemeral peer id are independent identities —
+    // if they ever coincided, a "connected" station wouldn't prove the
+    // directory resolved anything (the fallback would reach the host
+    // directly).
+    expect(shareCode).not.toBe(peerId);
+
+    const station = await stationContext.newPage();
+    await station.goto(`${STATION_URL}?host=${shareCode}`);
+
+    // Reaching the dashboard means the station resolved the share-code to
+    // the host's peer id over the broker and completed the data handshake.
+    await expect(
+      station.getByRole("button", { name: /add component/i }),
+    ).toBeVisible({ timeout: 30_000 });
+
+    await main.close();
+    await station.close();
+    await mainContext.close();
+    await stationContext.close();
+  });
+});
+
 test.describe("main + station co-resident", () => {
   test("station handshakes with main over the local broker", async ({
     browser,
