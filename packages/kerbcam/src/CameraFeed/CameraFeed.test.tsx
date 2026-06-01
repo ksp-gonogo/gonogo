@@ -673,6 +673,98 @@ describe("CameraFeed — zoom controls", () => {
 
     ds.disconnect();
   });
+
+  it("zoomIn serial action sends set-fov command (fov - 5)", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: true,
+      });
+    });
+
+    const fovMsg = sidecar.lastCommand("set-fov") as Extract<
+      ClientMessage,
+      { type: "set-fov" }
+    > | null;
+    expect(fovMsg).toBeTruthy();
+    expect(fovMsg?.content.flightId).toBe(42);
+    expect(fovMsg?.content.fov).toBe(55);
+
+    ds.disconnect();
+  });
+
+  it("zoomOut serial action sends set-fov command (fov + 5)", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomOut", {
+        kind: "button",
+        value: true,
+      });
+    });
+
+    const fovMsg = sidecar.lastCommand("set-fov") as Extract<
+      ClientMessage,
+      { type: "set-fov" }
+    > | null;
+    expect(fovMsg).toBeTruthy();
+    expect(fovMsg?.content.flightId).toBe(42);
+    expect(fovMsg?.content.fov).toBe(65);
+
+    ds.disconnect();
+  });
+
+  it("zoom serial actions are no-ops when camera does not support zoom", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: true,
+      });
+    });
+
+    expect(sidecar.lastCommand("set-fov")).toBeUndefined();
+
+    ds.disconnect();
+  });
+
+  it("button-release payload (value=false) does not zoom", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: false,
+      });
+    });
+
+    expect(sidecar.lastCommand("set-fov")).toBeUndefined();
+
+    ds.disconnect();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -828,6 +920,132 @@ describe("CameraFeed — pan reticle", () => {
       vi.advanceTimersByTime(300);
     });
     expect(setPanMsgs().length).toBe(held.length);
+
+    ds.disconnect();
+    vi.useRealTimers();
+  });
+
+  it("panYaw serial action drives set-pan via the rate loop (yaw advances)", async () => {
+    vi.useFakeTimers();
+
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Dispatch a 50% rightward deflection on the yaw axis.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", {
+        kind: "analog",
+        value: 0.5,
+      });
+    });
+
+    // Advance ~3 ticks of the rate loop.
+    await act(async () => {
+      vi.advanceTimersByTime(160);
+    });
+
+    const panMsgs = sidecar.commands.filter(
+      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
+        c.type === "set-pan",
+    );
+    expect(panMsgs.length).toBeGreaterThan(0);
+    expect(panMsgs[0]?.content.flightId).toBe(42);
+    // Positive yaw value → camera yaw should be increasing (panning right).
+    expect(panMsgs.at(-1)?.content.yaw).toBeGreaterThan(0);
+
+    ds.disconnect();
+    vi.useRealTimers();
+  });
+
+  it("panPitch serial action drives set-pan via the rate loop (pitch advances)", async () => {
+    vi.useFakeTimers();
+
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Dispatch a 50% upward deflection on the pitch axis.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panPitch", {
+        kind: "analog",
+        value: 0.5,
+      });
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(160);
+    });
+
+    const panMsgs = sidecar.commands.filter(
+      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
+        c.type === "set-pan",
+    );
+    expect(panMsgs.length).toBeGreaterThan(0);
+    expect(panMsgs[0]?.content.flightId).toBe(42);
+    // Positive pitch value → pitch should be increasing (panning up).
+    expect(panMsgs.at(-1)?.content.pitch).toBeGreaterThan(0);
+
+    ds.disconnect();
+    vi.useRealTimers();
+  });
+
+  it("panYaw and panPitch axes are independent — each updates only its own field", async () => {
+    vi.useFakeTimers();
+
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Set a yaw rate; pitch stays at zero.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(160);
+    });
+
+    const yawOnlyMsgs = sidecar.commands.filter(
+      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
+        c.type === "set-pan",
+    );
+    expect(yawOnlyMsgs.length).toBeGreaterThan(0);
+    // Pitch should remain at 0 because only panYaw was dispatched.
+    expect(yawOnlyMsgs.at(-1)?.content.pitch).toBe(0);
+
+    ds.disconnect();
+    vi.useRealTimers();
+  });
+
+  it("pan serial actions are no-ops when camera does not support pan", async () => {
+    vi.useFakeTimers();
+
+    // buildConnectedSource() default has supportsPan: false.
+    const { ds, sidecar } = await buildConnectedSource();
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    const panMsgs = sidecar.commands.filter((c) => c.type === "set-pan");
+    expect(panMsgs.length).toBe(0);
 
     ds.disconnect();
     vi.useRealTimers();

@@ -64,6 +64,32 @@ export const cameraFeedActions = [
     accepts: ["button"],
     description: "Switch to the previous available camera (wraps round).",
   },
+  {
+    id: "zoomIn",
+    label: "Zoom in",
+    accepts: ["button"],
+    description: "Zoom in one step (reduces field of view by 5°).",
+  },
+  {
+    id: "zoomOut",
+    label: "Zoom out",
+    accepts: ["button"],
+    description: "Zoom out one step (increases field of view by 5°).",
+  },
+  {
+    id: "panYaw",
+    label: "Pan yaw axis",
+    accepts: ["analog"],
+    description:
+      "Analog yaw pan rate. Positive = pan right, negative = pan left. Maps −1…1 to the camera's max pan speed.",
+  },
+  {
+    id: "panPitch",
+    label: "Pan pitch axis",
+    accepts: ["analog"],
+    description:
+      "Analog pitch pan rate. Positive = pan up, negative = pan down. No-op if the camera does not support pitch. Maps −1…1 to the camera's max pan speed.",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type CameraFeedActions = typeof cameraFeedActions;
@@ -183,6 +209,31 @@ export function CameraFeed({
     prevCamera: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return;
       stepCamera(-1);
+    },
+    zoomIn: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return;
+      if (!camera?.supportsZoom || isDestroyed) return;
+      onFovChange(camera.fov - 5);
+    },
+    zoomOut: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return;
+      if (!camera?.supportsZoom || isDestroyed) return;
+      onFovChange(camera.fov + 5);
+    },
+    panYaw: (payload) => {
+      if (payload.kind !== "analog") return;
+      if (!showPan) return;
+      rateRef.current.yaw = Math.max(-1, Math.min(1, payload.value as number));
+      if (rateRef.current.yaw !== 0) ensurePanLoop();
+    },
+    panPitch: (payload) => {
+      if (payload.kind !== "analog") return;
+      if (!showPan || !supportsPitch) return;
+      rateRef.current.pitch = Math.max(
+        -1,
+        Math.min(1, payload.value as number),
+      );
+      if (rateRef.current.pitch !== 0) ensurePanLoop();
     },
   });
 
