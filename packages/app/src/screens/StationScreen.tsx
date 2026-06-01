@@ -34,6 +34,7 @@ import {
   AlarmsModal,
   StationAlarmBanner,
 } from "../alarms";
+import { createBrowserConsentController } from "../analytics/axiomTransportFactory";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -162,6 +163,23 @@ export function StationScreen() {
       void serialService.destroy();
     };
   }, [serialService]);
+
+  // Gate this station's Axiom transport on the HOST's analytics consent.
+  // Stations never read a local consent value — they follow the host. The
+  // controller defaults removed (disabled); onAnalyticsConsent fires
+  // immediately with the cached value and again on every host broadcast.
+  // On unmount we apply(false) so a remount starts clean and so a
+  // disconnected station doesn't keep shipping under a stale grant.
+  useEffect(() => {
+    const controller = createBrowserConsentController();
+    const unsub = client.onAnalyticsConsent((enabled) => {
+      controller.apply(enabled);
+    });
+    return () => {
+      unsub();
+      controller.apply(false);
+    };
+  }, [client]);
 
   // Switch the globally-registered kerbcam source into brokered (station) mode:
   // its WebRTC handshake relays through the host (no sidecar address) and its

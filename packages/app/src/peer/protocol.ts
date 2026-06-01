@@ -145,6 +145,13 @@ export type PeerMessage =
   // flush window → host destroys + restarts on new id → station's conn
   // closes → station's retry kicks in against the freshly-cached id.
   | { type: "host-id-rotation"; newPeerId: string; reason: string }
+  // Host → station: the operator's technical-analytics consent. Sent to
+  // each station on connect (right after schema) and re-broadcast whenever
+  // the host's consent changes. Stations apply it to their own browser
+  // Axiom transport — they never read a local consent value, they follow
+  // the host. Privacy-first: a station defaults to disabled until this
+  // arrives.
+  | { type: "analytics-consent"; enabled: boolean }
   // Host → station, fired once per connection right after schema. Carries
   // every fog mask the host has stored so a station's map starts populated
   // with whatever the operator has already explored. Stations keep their
