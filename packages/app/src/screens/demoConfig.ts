@@ -2,7 +2,6 @@ import type { DashboardConfig } from "../components/Dashboard";
 
 export const DEMO_CONFIG: DashboardConfig = {
   items: [
-    { i: "status", componentId: "data-source-status" },
     {
       i: "ag-sas",
       componentId: "action-group",
@@ -47,15 +46,6 @@ export const DEMO_CONFIG: DashboardConfig = {
 
   layouts: {
     lg: [
-      {
-        w: 8,
-        h: 6,
-        x: 0,
-        y: 0,
-        i: "status",
-        moved: false,
-        static: false,
-      },
       {
         w: 3,
         h: 3,
@@ -167,15 +157,6 @@ export const DEMO_CONFIG: DashboardConfig = {
     ],
     md: [
       {
-        w: 8,
-        h: 5,
-        x: 0,
-        y: 0,
-        i: "status",
-        moved: false,
-        static: false,
-      },
-      {
         w: 4,
         h: 3,
         x: 0,
@@ -285,15 +266,6 @@ export const DEMO_CONFIG: DashboardConfig = {
       },
     ],
     sm: [
-      {
-        w: 6,
-        h: 4,
-        x: 0,
-        y: 0,
-        i: "status",
-        moved: false,
-        static: false,
-      },
       {
         w: 3,
         h: 3,
@@ -405,15 +377,6 @@ export const DEMO_CONFIG: DashboardConfig = {
     ],
     xs: [
       {
-        w: 6,
-        h: 4,
-        x: 0,
-        y: 0,
-        i: "status",
-        moved: false,
-        static: false,
-      },
-      {
         w: 2,
         h: 3,
         x: 6,
@@ -523,15 +486,6 @@ export const DEMO_CONFIG: DashboardConfig = {
       },
     ],
     xxs: [
-      {
-        w: 6,
-        h: 4,
-        x: 0,
-        y: 0,
-        i: "status",
-        moved: false,
-        static: false,
-      },
       {
         w: 2,
         h: 3,

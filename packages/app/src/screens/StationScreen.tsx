@@ -82,10 +82,8 @@ import { BUILD_TIME, VERSION } from "../version";
 const HOST_ID_KEY = "gonogo-station-host-id";
 
 const DEFAULT_CONFIG: DashboardConfig = {
-  items: [{ i: "status", componentId: "data-source-status" }],
-  layouts: {
-    lg: [{ w: 8, h: 6, x: 0, y: 0, i: "status", moved: false, static: false }],
-  },
+  items: [],
+  layouts: {},
 };
 
 export function StationScreen() {
