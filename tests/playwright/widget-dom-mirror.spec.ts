@@ -60,31 +60,24 @@ async function seedContext(
   );
 }
 
+// Wait for the host peer to open, then return its share code — the station
+// derives `gonogo-host-<code>` and connects directly (stable-host-id model).
 async function getHostPeerId(page: Page): Promise<string> {
   return await page
     .waitForFunction(
       () => {
         const w = window as unknown as {
-          peerHostService?: {
-            peerId?: string | null;
-            __lastIdSeen?: string | null;
-            __lastIdSeenAt?: number;
-          };
+          peerHostService?: { peerId?: string | null; shareCode?: string };
         };
         const svc = w.peerHostService;
         if (!svc) return null;
-        const id = svc.peerId;
-        if (typeof id !== "string" || !/^[A-Z0-9]{4,}$/.test(id)) {
-          svc.__lastIdSeen = null;
+        if (typeof svc.peerId !== "string" || svc.peerId.length === 0) {
           return null;
         }
-        if (svc.__lastIdSeen !== id) {
-          svc.__lastIdSeen = id;
-          svc.__lastIdSeenAt = Date.now();
-          return null;
-        }
-        if (Date.now() - (svc.__lastIdSeenAt ?? 0) >= 500) return id;
-        return null;
+        const code = svc.shareCode;
+        return typeof code === "string" && /^[A-Z0-9]{4,}$/.test(code)
+          ? code
+          : null;
       },
       undefined,
       { timeout: 30_000, polling: 100 },

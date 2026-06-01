@@ -118,36 +118,30 @@ export async function seedContext(
 }
 
 /**
- * Wait for the host's PeerJS open event AND for the id to be stable for
- * ≥500 ms. The local broker can hold a stale id from a prior test run,
- * which would cause the host to auto-rotate; grabbing the first id we
- * see would race with that rotation.
+ * Wait for the host's PeerJS peer to open on the broker, then return its
+ * stable SHARE CODE. Under the stable-host-id model the station derives
+ * `gonogo-host-<code>` from this and connects directly — the broker-directory
+ * resolve hop (and the host's id-rotation it worked around) are gone, so a
+ * plain wait-for-open + return-the-code is all that's needed. The share code
+ * is a 4-char `[A-Z0-9]` token; the host's peer id is the derived form.
  */
 export async function getHostPeerId(page: Page): Promise<string> {
   return await page
     .waitForFunction(
       () => {
         const w = window as unknown as {
-          peerHostService?: {
-            peerId?: string | null;
-            __lastIdSeen?: string | null;
-            __lastIdSeenAt?: number;
-          };
+          peerHostService?: { peerId?: string | null; shareCode?: string };
         };
         const svc = w.peerHostService;
         if (!svc) return null;
-        const id = svc.peerId;
-        if (typeof id !== "string" || !/^[A-Z0-9]{4,}$/.test(id)) {
-          svc.__lastIdSeen = null;
+        // Peer must be open (peerId set) before the station tries to connect.
+        if (typeof svc.peerId !== "string" || svc.peerId.length === 0) {
           return null;
         }
-        if (svc.__lastIdSeen !== id) {
-          svc.__lastIdSeen = id;
-          svc.__lastIdSeenAt = Date.now();
-          return null;
-        }
-        if (Date.now() - (svc.__lastIdSeenAt ?? 0) >= 500) return id;
-        return null;
+        const code = svc.shareCode;
+        return typeof code === "string" && /^[A-Z0-9]{4,}$/.test(code)
+          ? code
+          : null;
       },
       undefined,
       { timeout: 30_000, polling: 100 },
