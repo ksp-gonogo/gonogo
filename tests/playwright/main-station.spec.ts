@@ -15,15 +15,12 @@ const MAIN_URL = "/";
 const STATION_URL = "/station";
 
 /**
- * Read the host's public peer id directly off the global peerHostService.
- * Skips the FAB-click path because the dashboard grid layer intercepts
- * pointer events at the FAB's screen position — the share code is also
- * surfaced as a data-testid for UI-clicking tests, but for plumbing
- * verification the in-page service is the source of truth.
+ * Read the host's derived broker peer id (`gonogo-host-<code>`) off the
+ * global peerHostService once it has opened. Used only to assert it differs
+ * from the share code; the station never connects with this directly.
  *
  * Polls because the broker `open` event is async (~hundreds of ms on a
- * cold local broker; many seconds on the public broker). 20s timeout
- * matches the longest realistic local-broker handshake.
+ * cold local broker; many seconds on the public broker).
  */
 async function getMainPeerId(page: Page): Promise<string> {
   // Playwright's waitForFunction is `(fn, arg, options)` — passing the
@@ -36,7 +33,9 @@ async function getMainPeerId(page: Page): Promise<string> {
           peerHostService?: { peerId?: string | null };
         };
         const id = w.peerHostService?.peerId;
-        return typeof id === "string" && /^[A-Z0-9]{4,}$/.test(id) ? id : null;
+        return typeof id === "string" && /^gonogo-host-[A-Z0-9]{4,}$/.test(id)
+          ? id
+          : null;
       },
       undefined,
       { timeout: 30_000 },
@@ -45,24 +44,20 @@ async function getMainPeerId(page: Page): Promise<string> {
 }
 
 /**
- * Read the host's stable share-code + confirm it has registered with the
- * relay (so the relay's directory peer for that code is up on the broker).
- * `relayRegistered` flips true once `POST /host` returns 2xx, which is the
- * same event that fires the relay's `onRegister` → `directoryPeers.ensure`.
- * We then wait an extra beat for the directory peer's own broker `open`.
+ * Wait for the host peer to open, then return its stable share code — the
+ * token the station uses to derive the host's id and connect directly.
  */
-async function getRegisteredShareCode(page: Page): Promise<string> {
+async function getHostShareCode(page: Page): Promise<string> {
   return await page
     .waitForFunction(
       () => {
         const w = window as unknown as {
-          peerHostService?: {
-            shareCode?: string;
-            relayRegistered?: boolean;
-          };
+          peerHostService?: { peerId?: string | null; shareCode?: string };
         };
         const svc = w.peerHostService;
-        if (!svc?.relayRegistered) return null;
+        if (!svc || typeof svc.peerId !== "string" || svc.peerId.length === 0) {
+          return null;
+        }
         const code = svc.shareCode;
         return typeof code === "string" && code.length > 0 ? code : null;
       },
@@ -72,14 +67,12 @@ async function getRegisteredShareCode(page: Page): Promise<string> {
     .then((handle) => handle.jsonValue() as Promise<string>);
 }
 
-test.describe("station resolves a share-code via the relay directory peer", () => {
-  // The cross-machine path: the station is given ONLY the host's stable
-  // share-code (not its ephemeral peer id). The only way it reaches the
-  // host is by resolving that code over the broker via the relay's
-  // `gonogo-dir-<code>` directory peer. A passing handshake here is genuine
-  // end-to-end coverage of the directory resolve — the 4s direct-connect
-  // fallback can't be what carries it, because the share-code is not a
-  // valid host peer id (asserted below).
+test.describe("station connects directly via the share code", () => {
+  // Stable-host-id model: the station is handed ONLY the operator's 4-char
+  // share code (not the host's broker peer id). It derives `gonogo-host-<code>`
+  // and connects to that on the broker directly — no resolve hop. The share
+  // code and the derived peer id are distinct (asserted below), so a passing
+  // handshake proves the derive-and-connect path end to end.
   test("connects when handed only the share-code", async ({ browser }) => {
     const mainContext = await browser.newContext();
     const stationContext = await browser.newContext();
@@ -91,18 +84,16 @@ test.describe("station resolves a share-code via the relay directory peer", () =
     ).toBeVisible({ timeout: 30_000 });
 
     const peerId = await getMainPeerId(main);
-    const shareCode = await getRegisteredShareCode(main);
-    // The share-code and the ephemeral peer id are independent identities —
-    // if they ever coincided, a "connected" station wouldn't prove the
-    // directory resolved anything (the fallback would reach the host
-    // directly).
+    const shareCode = await getHostShareCode(main);
+    // The 4-char share code is NOT the host's broker peer id — the station
+    // derives the id from the code, it isn't handed it.
     expect(shareCode).not.toBe(peerId);
 
     const station = await stationContext.newPage();
     await station.goto(`${STATION_URL}?host=${shareCode}`);
 
-    // Reaching the dashboard means the station resolved the share-code to
-    // the host's peer id over the broker and completed the data handshake.
+    // Reaching the dashboard means the station derived the host's id from the
+    // share code, connected over the broker, and completed the data handshake.
     await expect(
       station.getByRole("button", { name: /add component/i }),
     ).toBeVisible({ timeout: 30_000 });
@@ -133,12 +124,13 @@ test.describe("main + station co-resident", () => {
       timeout: 30_000,
     });
 
-    const peerId = await getMainPeerId(main);
+    const shareCode = await getHostShareCode(main);
 
     // Station opens with the main's share code in the URL. Skips the
-    // "Connect" form — the host param triggers auto-connect.
+    // "Connect" form — the host param triggers auto-connect (the station
+    // derives `gonogo-host-<code>` and connects directly).
     const station = await stationContext.newPage();
-    await station.goto(`${STATION_URL}?host=${peerId}`);
+    await station.goto(`${STATION_URL}?host=${shareCode}`);
 
     // The schema-arrival flip is the cleanest "we're connected" signal.
     // Until the host's schema lands, the station sits on the connection
