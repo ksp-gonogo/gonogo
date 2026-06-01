@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit",
     "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
     "render-navball": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball.ts",
+    "render-navball-gif": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-gif.ts",
+    "render-navball-scaling": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-scaling.ts",
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
     "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts"
   },
