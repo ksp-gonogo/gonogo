@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Sister project
 
-**`~/personal/kerbcam/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo will eventually consume in place of the current OCISLY+relay path. When working on anything that touches camera feeds, the WebRTC stream-source code, or the relay's gRPC/jpeg-js path, check `~/personal/kerbcam/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
+**`~/personal/kerbcam/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds — it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@jonpepler/kerbcam` SDK and the `CameraFeed` widget lives in `@gonogo/kerbcam`. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcam/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
 
 ## Project Vision
 
@@ -28,9 +28,10 @@ packages/
   ui/         — Reusable UI primitives (buttons, inputs, tabs, modal, icons, etc.)
   app/        — Vite + React SPA (main screen + station mode)
   telnet-proxy/ — Fastify server: spawns system telnet via node-pty, bridges to WebSocket
-  relay/      — Fastify server bundling the OCISLY camera fan-out, the
-                /ice-config endpoint, and a coturn TURN/STUN child process
-                with a per-restart-rotated shared secret
+  relay/      — Fastify server hosting the /ice-config endpoint, a coturn
+                TURN/STUN child process with a per-restart-rotated shared
+                secret, and the host-discovery registry (/host) mapping a
+                stable share-code to the host's current PeerJS peer id
 ```
 
 **Tooling:** pnpm workspaces + Turborepo. Package names use the `@gonogo/` scope.
