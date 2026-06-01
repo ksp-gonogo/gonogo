@@ -63,3 +63,49 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.package }}
           cache-to: type=gha,mode=max,scope=${{ matrix.package }}
+
+  # End-user bundle: app + relay + telnet-proxy in one image, served from
+  # Dockerfile.bundle (repo-root context). Separate job from the matrix
+  # because it needs a GITHUB_TOKEN build-arg (the app pulls @jonpepler/
+  # kerbcam from GitHub Packages) and a different Dockerfile shape.
+  publish-bundle:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/gonogo
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.bundle
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The app build authenticates to GitHub Packages for
+          # @jonpepler/kerbcam. The auto-injected GITHUB_TOKEN has
+          # read:packages, same as the Pages deploy workflow's install step.
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha,scope=gonogo-bundle
+          cache-to: type=gha,mode=max,scope=gonogo-bundle
