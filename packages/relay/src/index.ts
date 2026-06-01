@@ -5,6 +5,7 @@ import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
+import { HOST_TTL_MS, registerHostRoutes } from "./hostRegistry.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
@@ -168,11 +169,30 @@ fastify.get("/ice-config", async (_req, reply) => {
   };
 });
 
+// ──────────────────────────────────────────────────────────────────────
+// Host-discovery registry: maps a stable operator-facing share-code to the
+// host's current (ephemeral) PeerJS peer id. Hosts POST on every broker
+// open + heartbeat; stations GET to resolve before connecting and re-GET
+// on every reconnect so they auto-follow the host's peer-id rotation.
+// CORS is inherited from the global registration above. See
+// `local_docs/relay-host-discovery.md`.
+// ──────────────────────────────────────────────────────────────────────
+const hostRegistry = registerHostRoutes(fastify);
+// Bound steady-state memory: lazy GET-time sweeps only touch looked-up
+// codes, so a host that stops heartbeating without anyone resolving it
+// would linger forever. Half the TTL is a comfortable cadence.
+const hostSweepTimer = setInterval(() => {
+  hostRegistry.sweep();
+}, HOST_TTL_MS / 2);
+// Don't let the sweep timer keep the process alive on its own.
+hostSweepTimer.unref?.();
+
 await fastify.listen({ port: config.port, host: "0.0.0.0" });
 bridgeInfo(`relay listening on :${config.port}`);
 
 const shutdown = async () => {
   bridgeInfo("shutting down");
+  clearInterval(hostSweepTimer);
   await coturnHandle?.stop();
   await fastify.close();
   // Drain any buffered Axiom entries before the process exits.
