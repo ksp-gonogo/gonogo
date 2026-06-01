@@ -244,6 +244,12 @@ export class PeerClientService {
   private gonogoAbortNotifyListeners = new ListenerSet<
     [stationName: string, t: number]
   >();
+  // Host's technical-analytics consent. Stations follow the host — they
+  // never read a local value. Cached so a late subscriber gets the current
+  // state on subscribe. Privacy-first default: disabled until the first
+  // `analytics-consent` message lands.
+  private analyticsConsent = false;
+  private analyticsConsentListeners = new ListenerSet<[enabled: boolean]>();
 
   private pendingQueries = new RequestTracker<{
     t: number[];
@@ -1154,6 +1160,13 @@ export class PeerClientService {
     "trigger-snapshot": (msg) => {
       this.triggerSnapshotListeners.fire(msg.snapshot);
     },
+    "analytics-consent": (msg) => {
+      this.analyticsConsent = msg.enabled;
+      logger.info(
+        `[PeerClient] host analytics consent — ${msg.enabled ? "enabled" : "disabled"}`,
+      );
+      this.analyticsConsentListeners.fire(msg.enabled);
+    },
   });
 
   private handleMessage(msg: PeerMessage) {
@@ -1236,6 +1249,23 @@ export class PeerClientService {
    */
   onRelayPeerIdChange(cb: (peerId: string | null) => void): () => void {
     return this.relayPeerIdListeners.add(cb);
+  }
+
+  /** Latest analytics consent the host has broadcast (false until one
+   *  arrives). Stations gate their Axiom transport on this. */
+  getAnalyticsConsent(): boolean {
+    return this.analyticsConsent;
+  }
+
+  /**
+   * Notified whenever the host broadcasts its analytics consent (on connect
+   * and on every change). Fires immediately with the cached value so a late
+   * subscriber gates correctly without waiting for the next change.
+   */
+  onAnalyticsConsent(cb: (enabled: boolean) => void): () => void {
+    const remove = this.analyticsConsentListeners.add(cb);
+    cb(this.analyticsConsent);
+    return remove;
   }
 
   /**

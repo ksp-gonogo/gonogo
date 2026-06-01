@@ -5,7 +5,7 @@ import {
   registerStockBodies,
   setAppVersion,
 } from "@gonogo/core";
-import { AxiomTransport, logger } from "@gonogo/logger";
+import { logger } from "@gonogo/logger";
 import { ModalProvider } from "@gonogo/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
@@ -23,22 +23,11 @@ import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
 
-// Ship logs to Axiom when the build was given an ingest token. Console
-// output is unchanged — this is purely additive. Without env vars, no
-// transport is installed, so dev/test/CI never hit Axiom.
-const axiomToken = import.meta.env.VITE_AXIOM_TOKEN;
-const axiomDataset = import.meta.env.VITE_AXIOM_DATASET ?? "gonogo";
-if (axiomToken) {
-  logger.addTransport(
-    new AxiomTransport({
-      token: axiomToken,
-      dataset: axiomDataset,
-      url: import.meta.env.VITE_AXIOM_URL,
-      orgId: import.meta.env.VITE_AXIOM_ORG_ID,
-    }),
-  );
-}
-
+// The Axiom transport is opt-in and consent-gated — it is NOT installed
+// here. The main screen installs/removes it via AnalyticsConsentHost once
+// the operator answers the boot consent ask; stations install/remove it
+// when the host broadcasts its consent over PeerJS (see StationScreen).
+// Console + ring-buffer logging is always on, unaffected by consent.
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 
 // Test + console-debug helper. Subscribes once to a key on the

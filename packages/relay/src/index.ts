@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
-import { AxiomTransport, logger } from "@gonogo/logger";
+import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
+import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
 import {
@@ -18,23 +19,27 @@ import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
 
-// Ship logs to Axiom when an ingest token is present. Mirrors the
-// browser wiring in packages/app/src/main.tsx — without AXIOM_TOKEN,
-// the transport is silently skipped, so dev/test never reach Axiom
-// unless an operator opts in via `.env`/`.env.local`.
-if (process.env.AXIOM_TOKEN) {
-  logger.addTransport(
-    new AxiomTransport({
-      token: process.env.AXIOM_TOKEN,
-      dataset: process.env.AXIOM_DATASET ?? "gonogo",
-      url: process.env.AXIOM_URL,
-      orgId: process.env.AXIOM_ORG_ID,
-      // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
-      // calls `logger.flushTransports()` instead.
-      flushOnPageHide: false,
-    }),
-  );
-}
+// Ship logs to Axiom only when the token is present AND the host has
+// enabled analytics consent (relayed in via POST /analytics-config). The
+// token is the credential; consent is the runtime gate. Default is
+// DISABLED until the first POST — privacy-first. Console/pino output is
+// unaffected. The controller installs/removes the transport as the host's
+// consent changes; `analyticsConfig` drives it through `onChange` below.
+const axiomConsent = new AxiomConsentController({
+  logger,
+  makeTransport: () =>
+    process.env.AXIOM_TOKEN
+      ? new AxiomTransport({
+          token: process.env.AXIOM_TOKEN,
+          dataset: process.env.AXIOM_DATASET ?? "gonogo",
+          url: process.env.AXIOM_URL,
+          orgId: process.env.AXIOM_ORG_ID,
+          // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
+          // calls `logger.flushTransports()` instead.
+          flushOnPageHide: false,
+        })
+      : null,
+});
 
 logger.info(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
 
@@ -185,7 +190,6 @@ fastify.get("/ice-config", async (_req, reply) => {
 // cross-machine-broken HTTP GET was removed. CORS is inherited from the
 // global registration above.
 // ──────────────────────────────────────────────────────────────────────
-
 // The directory peer joins the same broker the app uses (env PEER_*,
 // default 0.peerjs.com / key "gonogo") as `gonogo-dir-<shareCode>`, so a
 // station on any machine can resolve a share-code to the host's current
@@ -206,6 +210,16 @@ registerHostRoutes(fastify, {
   // peer for that share-code exists. Idempotent — heartbeat POSTs don't
   // churn peers.
   onRegister: (shareCode) => directoryPeers.ensure(shareCode),
+});
+
+// Analytics-config broker: the host POSTs its consent here, the relay fans
+// it out (GET + SSE) to the telnet-proxy, and gates its OWN Axiom sink on
+// it via the onChange callback.
+registerAnalyticsConfigRoutes(fastify, {
+  onChange: (enabled) => {
+    axiomConsent.apply(enabled);
+    bridgeInfo(`analytics consent ${enabled ? "enabled" : "disabled"}`);
+  },
 });
 // Bound steady-state memory: lazy GET-time sweeps only touch looked-up
 // codes, so a host that stops heartbeating without anyone resolving it
