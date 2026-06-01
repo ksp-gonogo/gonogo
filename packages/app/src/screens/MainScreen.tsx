@@ -48,6 +48,7 @@ import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
+import { DataSourcesFab } from "../dataSources/DataSourcesFab";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
@@ -234,6 +235,7 @@ export function MainScreen() {
                                     }
                                   />
                                   <MainAlarmsFab />
+                                  <DataSourcesFab />
                                 </FabClusterProvider>
                                 <ReplayBanner />
                                 <BannerStack>

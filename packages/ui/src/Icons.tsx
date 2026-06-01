@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronUp,
   Columns2,
+  Database,
   FileText,
   History,
   Joystick,
@@ -62,6 +63,7 @@ export const SettingsIcon = makeIcon(Settings);
 export const SatelliteIcon = makeIcon(Satellite);
 export const FullscreenEnterIcon = makeIcon(Maximize);
 export const FullscreenExitIcon = makeIcon(Minimize);
+export const DatabaseIcon = makeIcon(Database);
 export const DiagnosticsIcon = makeIcon(FileText);
 export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 

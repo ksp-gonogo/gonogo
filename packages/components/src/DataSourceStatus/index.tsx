@@ -4,7 +4,6 @@ import {
   getAppVersion,
   getDataSource,
   type MismatchKind,
-  registerComponent,
   useDataSources,
 } from "@gonogo/core";
 import {
@@ -236,19 +235,6 @@ function DataSourceStatusComponent({
     </PanelScrollable>
   );
 }
-
-registerComponent({
-  id: "data-source-status",
-  name: "Data Source Status",
-  description:
-    "Shows connection status for all registered data sources and lets you edit their configuration.",
-  tags: ["system"],
-  defaultSize: { w: 12, h: 10 },
-  minSize: { w: 3, h: 3 },
-  component: DataSourceStatusComponent,
-  dataRequirements: [],
-  defaultConfig: {},
-});
 
 export { DataSourceStatusComponent };
 
