@@ -101,6 +101,10 @@ export async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
         localStorage.setItem(dashboardKey, dashboard);
+        // Pre-answer the analytics consent so the main-screen boot modal
+        // (blocking until answered) doesn't sit over the dashboard and
+        // intercept clicks. "disabled" = answered + Axiom off.
+        localStorage.setItem("gonogo.analytics.consent", "disabled");
       } catch {
         /* private mode / quota — ignore; the seed just won't apply */
       }
