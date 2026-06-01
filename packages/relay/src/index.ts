@@ -4,8 +4,16 @@ import { AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
+import {
+  DirectoryPeerService,
+  directoryPeerOptionsFromEnv,
+} from "./directoryPeer.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
-import { HOST_TTL_MS, registerHostRoutes } from "./hostRegistry.js";
+import {
+  HOST_TTL_MS,
+  HostRegistry,
+  registerHostRoutes,
+} from "./hostRegistry.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
@@ -172,12 +180,33 @@ fastify.get("/ice-config", async (_req, reply) => {
 // ──────────────────────────────────────────────────────────────────────
 // Host-discovery registry: maps a stable operator-facing share-code to the
 // host's current (ephemeral) PeerJS peer id. Hosts POST on every broker
-// open + heartbeat; stations GET to resolve before connecting and re-GET
-// on every reconnect so they auto-follow the host's peer-id rotation.
-// CORS is inherited from the global registration above. See
-// `local_docs/relay-host-discovery.md`.
+// open + heartbeat. Stations resolve over the PeerJS broker via the
+// directory peer (below), which reads this registry in-process — the old
+// cross-machine-broken HTTP GET was removed. CORS is inherited from the
+// global registration above.
 // ──────────────────────────────────────────────────────────────────────
-const hostRegistry = registerHostRoutes(fastify);
+
+// The directory peer joins the same broker the app uses (env PEER_*,
+// default 0.peerjs.com / key "gonogo") as `gonogo-dir-<shareCode>`, so a
+// station on any machine can resolve a share-code to the host's current
+// peer id — the broker is the only rendezvous they both reach. wrtc/peerjs
+// live entirely inside directoryPeer.ts.
+const hostRegistry = new HostRegistry();
+const directoryPeers = new DirectoryPeerService(
+  hostRegistry,
+  directoryPeerOptionsFromEnv(),
+  {
+    info: (msg) => bridgeInfo(msg),
+    error: (msg, err) => bridgeError(msg, err),
+  },
+);
+registerHostRoutes(fastify, {
+  registry: hostRegistry,
+  // On every accepted host registration, ensure the broker-side directory
+  // peer for that share-code exists. Idempotent — heartbeat POSTs don't
+  // churn peers.
+  onRegister: (shareCode) => directoryPeers.ensure(shareCode),
+});
 // Bound steady-state memory: lazy GET-time sweeps only touch looked-up
 // codes, so a host that stops heartbeating without anyone resolving it
 // would linger forever. Half the TTL is a comfortable cadence.
@@ -193,6 +222,7 @@ bridgeInfo(`relay listening on :${config.port}`);
 const shutdown = async () => {
   bridgeInfo("shutting down");
   clearInterval(hostSweepTimer);
+  directoryPeers.stop();
   await coturnHandle?.stop();
   await fastify.close();
   // Drain any buffered Axiom entries before the process exits.

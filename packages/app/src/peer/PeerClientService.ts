@@ -135,18 +135,26 @@ export interface PeerClientOptions {
   peerId?: string;
   /**
    * Resolve the operator-typed **share-code** to the host's current PeerJS
-   * peer id via the relay. When provided, `connect()` and every reconnect
-   * re-resolve the code first so the station auto-follows the host's
-   * peer-id rotation (the host re-registers a new id under the same code).
+   * peer id via the relay's broker-side directory peer. When provided,
+   * `connect()` and every reconnect open this station's Peer first, then
+   * resolve the code over the broker (opening a DataConnection to the
+   * relay's `gonogo-dir-<code>` directory peer) before connecting to the
+   * host — so the station auto-follows the host's peer-id rotation (the
+   * host re-registers a new id under the same code).
    *
-   * Resolving to `null` (relay down / unknown code) falls back to the
-   * last-known peer id if one exists, otherwise treats the typed value as
-   * a direct peer id — preserving the no-relay back-compat path.
+   * The resolver is handed this station's already-open `Peer` so it can
+   * reuse the existing broker session for the directory round-trip rather
+   * than standing up a second one (which would double broker
+   * registrations per reconnect — a rate-limit risk on the public broker).
+   *
+   * Resolving to `null` (relay/directory down or unknown code) falls back
+   * to the last-known peer id if one exists, otherwise treats the typed
+   * value as a direct peer id — preserving the no-relay back-compat path.
    *
    * Omitted (the default / test path) → no resolution; the typed value is
    * used verbatim as the peer id, exactly as before this feature.
    */
-  resolveHost?: (shareCode: string) => Promise<string | null>;
+  resolveHost?: (shareCode: string, peer: Peer) => Promise<string | null>;
 }
 
 export class PeerClientService {
@@ -159,10 +167,20 @@ export class PeerClientService {
    *  Stays stable across the session even as `hostPeerId` changes. */
   private shareCode: string | null = null;
   /** Optional relay resolver (share-code → current peer id). Null in the
-   *  default / test path, where the typed value is used verbatim. */
+   *  default / test path, where the typed value is used verbatim. Handed
+   *  this station's open Peer so the directory round-trip reuses the
+   *  existing broker session. */
   private readonly resolveHost:
-    | ((shareCode: string) => Promise<string | null>)
+    | ((shareCode: string, peer: Peer) => Promise<string | null>)
     | null;
+  /** True while the station's Peer is open but we're still resolving the
+   *  share-code over the broker (the directory DataConnection round-trip).
+   *  A `peer-unavailable` for the directory peer (`gonogo-dir-<code>`)
+   *  surfaces on this station's Peer during this window; the error handler
+   *  must NOT treat that as the host being unavailable — the resolver
+   *  fail-softs to null and we fall back to a direct connect. Cleared the
+   *  moment resolution lands (success or null). */
+  private resolvingDirectory = false;
   /** Fresh per `openPeer()` call. Reusing the same id across retries
    *  collides with the broker's id-hold (~30–60 s) when a previous
    *  connection didn't shut down gracefully — e.g. a mid-session WS
@@ -289,11 +307,12 @@ export class PeerClientService {
       tearDown: () => this.tearDownPeer(),
       rejectPending: (reason) => this.rejectPendingQueries(reason),
       emitStatus: (status) => this.emitConnStatus(status),
-      // Re-resolve the share-code before each reconnect so the station
-      // auto-follows the host's peer-id rotation. With no resolver this is
-      // a synchronous pass-through to openPeer(), keeping the existing
-      // reconnect-loop tests fully synchronous.
-      reopen: () => this.resolveAndOpen(),
+      // Re-open the Peer on each reconnect. The directory re-resolve
+      // happens inside the Peer's `open` handler (resolveAndConnect), so
+      // the station auto-follows the host's peer-id rotation. With no
+      // resolver this is a synchronous pass-through to openPeer(), keeping
+      // the existing reconnect-loop tests fully synchronous.
+      reopen: () => this.openPeer(),
     });
   }
 
@@ -310,51 +329,25 @@ export class PeerClientService {
       logger.setIdentity({ hostPeerId: code });
     }
     this.retryPolicy.beginConnect();
-    this.resolveAndOpen();
+    this.openPeer();
   }
 
   /**
-   * Resolve the share-code to the host's current peer id (when a resolver
-   * is wired), then open the Peer. Synchronous fast-path when there's no
-   * resolver — `openPeer()` runs in the same tick, so reconnect-loop tests
-   * that assert Peer-instance counts immediately after a timer fires stay
-   * valid.
+   * Open this station's Peer. The host target is resolved *after* the
+   * broker handshake (inside `peer.on("open")` via `resolveAndConnect`),
+   * because a relay resolver needs this open Peer to reach the directory
+   * peer over the broker. With no resolver, `connectToHost()` runs as soon
+   * as the Peer opens, using the typed value verbatim.
    *
-   * Resolution precedence on failure (relay down / 404):
-   *   1. the last-known `hostPeerId` (e.g. set by a live `host-id-rotation`
-   *      broadcast) — keeps the fast-path rotation recovery working when
-   *      the relay is unavailable;
-   *   2. otherwise the raw typed value as a direct peer id (no-relay
-   *      back-compat).
+   * Without a resolver, `hostPeerId` is already set from `connect()`, so
+   * this stays effectively synchronous for the existing reconnect-loop
+   * tests (a fresh Peer per `openPeer`, host target read on open).
    */
-  private resolveAndOpen(): void {
-    if (!this.resolveHost || !this.shareCode) {
-      this.openPeer();
-      return;
-    }
-    const code = this.shareCode;
-    void this.resolveHost(code)
-      .then((resolved) => {
-        // A teardown/disconnect may have landed while the resolve was in
-        // flight; bail if the retry loop no longer wants us.
-        if (this.shareCode !== code) return;
-        const next = resolved ?? this.hostPeerId ?? code;
-        this.hostPeerId = next;
-        logger.setIdentity({ hostPeerId: next });
-        this.openPeer();
-      })
-      .catch(() => {
-        // resolveHost is contracted to never reject (it fail-softs to
-        // null), but guard anyway so a thrown resolver can't wedge the
-        // reconnect loop — fall back and still attempt a connect.
-        if (this.shareCode !== code) return;
-        this.hostPeerId = this.hostPeerId ?? code;
-        this.openPeer();
-      });
-  }
-
   private openPeer() {
-    if (!this.hostPeerId) return;
+    // With a resolver, hostPeerId may be null until the directory lookup
+    // lands — that's expected. Without one, connect() set it already; a
+    // null here means there's nothing to do.
+    if (!this.resolveHost && !this.hostPeerId) return;
     // Re-roll the per-session id so retries can't collide with a broker
     // hold from a previous attempt that dropped without sending a
     // graceful leave (mid-session WS drop, screen lock, tab background).
@@ -362,7 +355,8 @@ export class PeerClientService {
       this.stationPeerId = getStationPeerId();
     }
     logger.info(
-      `[PeerClient] connecting to host=${this.hostPeerId} as ${this.stationPeerId}`,
+      `[PeerClient] opening peer as ${this.stationPeerId}` +
+        (this.hostPeerId ? ` (host=${this.hostPeerId})` : " (resolving host…)"),
     );
     this.emitConnStatus("connecting");
     // Stations construct their Peer with no ICE config. The host's
@@ -374,34 +368,32 @@ export class PeerClientService {
     // mobile clients.
     //
     // `key: "gonogo"` puts the station in our private namespace on the
-    // public broker. MUST match PeerHostService + the relay's PeerHost —
-    // a station with a different key is invisible to the host on the
-    // broker even if both ids would otherwise match.
+    // public broker. MUST match PeerHostService + the relay's directory
+    // peer — a station with a different key is invisible to the host (and
+    // the directory) on the broker even if both ids would otherwise match.
     this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
     this.peer.on("open", () => {
-      if (!this.peer || !this.hostPeerId) return;
-      this.conn = this.peer.connect(this.hostPeerId);
-      attachIceDiagnostics(this.conn);
-      this.conn.on("open", () => {
-        logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
-        this.retryPolicy.onConnected();
-        // Opt into selective broadcast immediately. The host's default
-        // is broadcast-all so v1 stations still work; v2 stations switch
-        // here. Following peer-data-subscribe messages from
-        // PeerClientDataSource are then respected per peer.
-        this.sendDataMode("selective");
-        this.emitConnStatus("connected");
-      });
-      this.conn.on("data", (raw) => this.handleMessage(raw as PeerMessage));
-      this.conn.on("close", () => {
-        logger.info(`[PeerClient] connection closed`);
-        this.retryPolicy.handleUnexpectedClose();
-      });
-      this.conn.on("error", (err) => {
-        logger.error("[PeerClient] connection error", err);
-      });
+      void this.resolveAndConnect();
     });
     this.peer.on("error", (err) => {
+      // While the directory round-trip is in flight, the only outgoing
+      // connect on this Peer targets `gonogo-dir-<code>`. If that peer
+      // isn't on the broker, PeerJS fires `peer-unavailable` here — but
+      // the resolver itself observes that and fail-softs to null, then
+      // `resolveAndConnect` falls back to a direct connect. Swallow it so
+      // it doesn't masquerade as a host outage (hostPeerId is still null
+      // at this point, so `isMissingHost` would otherwise classify it as
+      // the host being gone and tear the retry loop the wrong way).
+      if (
+        this.resolvingDirectory &&
+        isPeerJsError(err) &&
+        err.type === "peer-unavailable"
+      ) {
+        debugPeer("ignoring directory peer-unavailable during resolve", {
+          message: err.message,
+        });
+        return;
+      }
       // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
       // any outgoing peer.connect() targets a missing id. The station's
       // OCISLY stream source shares this Peer, so its failed connect to a
@@ -429,6 +421,77 @@ export class PeerClientService {
         this.hostUnavailableListeners.fire(this.hostPeerId);
       }
       this.retryPolicy.handlePeerError(err);
+    });
+  }
+
+  /**
+   * Runs once the station's Peer opens. With a resolver wired, resolve the
+   * share-code to the host's current peer id over the broker (the resolver
+   * uses this open Peer to reach the relay's directory peer), then connect.
+   * With no resolver, connect straight to the already-set `hostPeerId`.
+   *
+   * Resolution precedence on failure (directory/relay down or unknown
+   * code):
+   *   1. the last-known `hostPeerId` (e.g. set by a live `host-id-rotation`
+   *      broadcast) — keeps the fast-path rotation recovery working when
+   *      the relay is unavailable;
+   *   2. otherwise the raw typed value as a direct peer id (no-relay
+   *      back-compat).
+   */
+  private async resolveAndConnect(): Promise<void> {
+    if (!this.peer) return;
+    if (!this.resolveHost || !this.shareCode) {
+      this.connectToHost();
+      return;
+    }
+    const code = this.shareCode;
+    const peer = this.peer;
+    this.resolvingDirectory = true;
+    let resolved: string | null = null;
+    try {
+      resolved = await this.resolveHost(code, peer);
+    } catch {
+      // resolveHost is contracted to never reject (it fail-softs to
+      // null), but guard anyway so a thrown resolver can't wedge the
+      // reconnect loop.
+      resolved = null;
+    } finally {
+      this.resolvingDirectory = false;
+    }
+    // A teardown/disconnect may have landed while the resolve was in
+    // flight; bail if the retry loop tore the Peer down or no longer
+    // wants this code.
+    if (this.peer !== peer || this.shareCode !== code) return;
+    const next = resolved ?? this.hostPeerId ?? code;
+    this.hostPeerId = next;
+    logger.setIdentity({ hostPeerId: next });
+    this.connectToHost();
+  }
+
+  /** Open the data channel to the resolved host id. Requires the Peer to
+   *  be open and `hostPeerId` set. */
+  private connectToHost(): void {
+    if (!this.peer || !this.hostPeerId) return;
+    logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
+    this.conn = this.peer.connect(this.hostPeerId);
+    attachIceDiagnostics(this.conn);
+    this.conn.on("open", () => {
+      logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
+      this.retryPolicy.onConnected();
+      // Opt into selective broadcast immediately. The host's default
+      // is broadcast-all so v1 stations still work; v2 stations switch
+      // here. Following peer-data-subscribe messages from
+      // PeerClientDataSource are then respected per peer.
+      this.sendDataMode("selective");
+      this.emitConnStatus("connected");
+    });
+    this.conn.on("data", (raw) => this.handleMessage(raw as PeerMessage));
+    this.conn.on("close", () => {
+      logger.info(`[PeerClient] connection closed`);
+      this.retryPolicy.handleUnexpectedClose();
+    });
+    this.conn.on("error", (err) => {
+      logger.error("[PeerClient] connection error", err);
     });
   }
 
