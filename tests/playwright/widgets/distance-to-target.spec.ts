@@ -1,33 +1,18 @@
 /**
- * Widget DOM mirror — DistanceToTarget. Asserts the panel title plus the
- * tracking-mode readouts match on host and station.
+ * Widget DOM mirror — DistanceToTarget. Asserts the panel title and the
+ * no-target placeholder match on host and station.
  *
- * The recorded fixture's final snapshot has:
- *   tar.name     = "No Target Selected."
- *   tar.type     = ""
- *   tar.distance = 0
- *
- * `tar.name` is a string (not undefined), so the widget does NOT take its
- * `tarName === undefined` "no target set in KSP" branch. Instead it lands
- * in tracking mode (tarType is "" / not dockable, so the docking-HUD
- * auto-switch never fires) and renders the TARGET panel with the literal
- * `tar.name` string and `formatDistance(0)` → "0 m".
- *
- * Both sides should read identically — PBDS mirrors the same value to the
- * station — so we assert the title, the target name, and the distance
- * readout on both pages.
+ * The recorded fixture's final snapshot has tar.name = "No Target Selected."
+ * — the KSP NO_TARGET_SENTINEL, which `resolveTargetName` maps to undefined.
+ * So the widget takes its no-target branch and renders the TARGET panel with
+ * the "No target set in KSP" placeholder (not a tracking readout). PBDS
+ * mirrors the same value to the station, so both sides read identically.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror — DistanceToTarget", () => {
-  // TODO(playwright-rot): rotted while the suite was un-bootable (the OCISLY
-  // proto removal in 55d3fbd broke the global fake-OCISLY webServer, so nothing
-  // ran). The target widget / recorded fixture drifted since. Unrelated to the
-  // kerbcam rename + host-discovery work that revived the suite — sibling
-  // host/station mirror specs (data-source-status, main-station) pass. Re-verify
-  // the no-target rendering against the current fixture and re-enable.
-  test.fixme("tracking readout mirrors across host and station", async ({
+  test("no-target placeholder mirrors across host and station", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "distance-to-target", {
@@ -43,11 +28,8 @@ test.describe("widget DOM mirror — DistanceToTarget", () => {
         timeout: 15_000,
       });
       await expect(
-        page.getByText("No Target Selected.", { exact: true }),
+        page.getByText("No target set in KSP", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText("0 m", { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
     }
 
     await teardownPair(pair);

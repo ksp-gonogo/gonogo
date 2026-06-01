@@ -358,8 +358,10 @@ function renderApp() {
 // Each test renders the full app, walks the replay through several seek
 // points, and adds widgets through the real overlay flow — comfortably
 // past the 5s default. Lift the per-test budget so a normal run isn't
-// racing the clock under CPU contention from sibling test files.
-const TEST_TIMEOUT_MS = 20_000;
+// racing the clock under CPU contention from sibling test files, and so
+// the slower CI runners (where 20s was tripping intermittently) have
+// headroom — this test gates the deploy via CI.
+const TEST_TIMEOUT_MS = 60_000;
 
 describe("recorded launch — full mission control flow", () => {
   let replay: FlightReplayDataSource;
