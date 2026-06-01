@@ -369,10 +369,13 @@ describe("PeerClientService reconnect loop", () => {
     svc.onConnectionStatus((s) => statuses.push(s));
 
     svc.connect("Z6HK");
-    // Don't open — simulate a fresh attempt where the host id isn't on the broker.
-    const err = Object.assign(new Error("Could not connect to peer Z6HK"), {
-      type: "peer-unavailable",
-    });
+    // Don't open — simulate a fresh attempt where the host id isn't on the
+    // broker. The connect target is the DERIVED id (`gonogo-host-Z6HK`), so
+    // that's what peerjs reports as missing.
+    const err = Object.assign(
+      new Error("Could not connect to peer gonogo-host-Z6HK"),
+      { type: "peer-unavailable" },
+    );
     FakePeer.instances[0].emit("error", err);
 
     expect(statuses).toContain("reconnecting");

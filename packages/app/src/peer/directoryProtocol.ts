@@ -1,4 +1,9 @@
 /**
+ * SUPERSEDED by the stable-host-id model (host claims `gonogo-host-<code>`,
+ * the station derives the same id from the code — see `hostPeerId.ts`). This
+ * module is no longer imported by the app and is slated for removal in a
+ * follow-up alongside the relay-side directory peer.
+ *
  * Tiny request/response protocol for the relay's broker-side **host
  * directory**.
  *

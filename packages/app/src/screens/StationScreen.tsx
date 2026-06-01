@@ -59,7 +59,6 @@ import {
 } from "../missionProfiles";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
-import { resolveHostPeerId } from "../peer/iceServers";
 import { KosPeerConnection } from "../peer/KosPeerConnection";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
@@ -96,9 +95,13 @@ export function StationScreen() {
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
-  const [client] = useState(
-    () => new PeerClientService({ resolveHost: resolveHostPeerId }),
-  );
+  const [client] = useState(() => new PeerClientService());
+  // True once this station has reached "connected" at least once this
+  // session. Lets the connect screen tell "host mid-reclaim after a restart"
+  // (previously connected → show "Host reconnecting…") apart from "wrong
+  // code / host never up" (never connected → "couldn't find that code"). On
+  // the wire both look like the same `peer-unavailable`.
+  const [everConnected, setEverConnected] = useState(false);
   const dashboard = useDashboardState(
     "gonogo:dashboard:station",
     DEFAULT_CONFIG,
@@ -222,7 +225,10 @@ export function StationScreen() {
         setConnStatus(s);
         // A live connection clears the "not found" badge — the most
         // recent attempt for this host succeeded.
-        if (s === "connected") setHostNotFound(false);
+        if (s === "connected") {
+          setHostNotFound(false);
+          setEverConnected(true);
+        }
       }),
     );
     unsubsRef.current.push(
@@ -230,14 +236,10 @@ export function StationScreen() {
         setHostNotFound(true);
       }),
     );
-    // Graceful rotation: the host announced a new *peer id* over the live
-    // channel a beat before destroying it. We deliberately do NOT persist
-    // it here — `HOST_ID_KEY` holds the stable share-code, which never
-    // changes across rotations. The PeerClientService has already updated
-    // its live reconnect target; a refresh re-resolves the share-code via
-    // the relay and lands on the new peer id automatically. (Persisting the
-    // ephemeral peer id would clobber the share-code and break the next
-    // refresh — the exact regression the relay registry exists to avoid.)
+    // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
+    // is derived from it (`gonogo-host-<code>`) and never changes for a
+    // given code, so a refresh re-derives the same target — no persistence
+    // of any ephemeral id is needed here.
 
     // One-shot fog snapshot from the host. Persist each mask to the
     // station's local FogMaskStore — the map widget reads through the
@@ -372,7 +374,14 @@ export function StationScreen() {
                     <NameRow>
                       <StationNameEditor />
                     </NameRow>
-                    {hostNotFound && (
+                    {hostNotFound && everConnected && (
+                      <ReconnectMsg role="status" aria-live="polite">
+                        Host reconnecting… The main screen is restarting and
+                        will be back shortly — this station reconnects
+                        automatically.
+                      </ReconnectMsg>
+                    )}
+                    {hostNotFound && !everConnected && (
                       <ErrorMsg>
                         Couldn't find code &ldquo;
                         {hostInput.trim().toUpperCase()}&rdquo;. Check the main
@@ -386,10 +395,14 @@ export function StationScreen() {
                       </ErrorMsg>
                     )}
                     <StatusIndicator
-                      tone={statusTone(connStatus, hostNotFound)}
+                      tone={statusTone(connStatus, hostNotFound, everConnected)}
                       live
                     >
-                      {describeConnStatus(connStatus, hostNotFound)}
+                      {describeConnStatus(
+                        connStatus,
+                        hostNotFound,
+                        everConnected,
+                      )}
                     </StatusIndicator>
                     <DiagnosticsRow>
                       <DiagnosticsButton type="button" onClick={downloadLogs}>
@@ -649,6 +662,12 @@ const ErrorMsg = styled.p`
   font-size: 12px !important;
 `;
 
+const ReconnectMsg = styled.p`
+  margin-top: 12px !important;
+  color: var(--color-status-info-fg) !important;
+  font-size: 12px !important;
+`;
+
 const DiagnosticsRow = styled.div`
   margin-top: 12px;
   display: flex;
@@ -670,9 +689,15 @@ const DiagnosticsButton = styled.button`
   }
 `;
 
-function describeConnStatus(status: ConnStatus, hostNotFound: boolean): string {
+function describeConnStatus(
+  status: ConnStatus,
+  hostNotFound: boolean,
+  everConnected: boolean,
+): string {
   if (hostNotFound) {
-    return "Broker doesn't know that code. Retrying in case it comes back…";
+    return everConnected
+      ? "Host reconnecting — waiting for the main screen to come back…"
+      : "Broker doesn't know that code. Retrying in case it comes back…";
   }
   switch (status) {
     case "idle":
@@ -691,8 +716,11 @@ function describeConnStatus(status: ConnStatus, hostNotFound: boolean): string {
 function statusTone(
   status: ConnStatus,
   hostNotFound: boolean,
+  everConnected: boolean,
 ): "neutral" | "info" | "go" | "nogo" {
-  if (hostNotFound) return "nogo";
+  // A reclaim window (previously connected) is a transient "info" state, not
+  // the hard "nogo" of a wrong/dead code.
+  if (hostNotFound) return everConnected ? "info" : "nogo";
   switch (status) {
     case "idle":
       return "neutral";

@@ -8,18 +8,17 @@ import { isScriptable, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
+import { deriveHostPeerId } from "./hostPeerId";
 import { fetchHostIceServers, relayBaseUrl } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
 
-const PEER_ID_KEY = "gonogo-host-peer-id";
-// Stable, operator-facing identity. Distinct from PEER_ID_KEY (the
-// ephemeral PeerJS id, which the broker forces us to rotate on any
-// navigation). Persisted once and never rotated — stations type/scan this
-// and resolve it to the current peer id via the relay. See
-// `local_docs/relay-host-discovery.md`.
+// The host's sole persisted identity. The PeerJS peer id is now *derived*
+// from this code (`gonogo-host-<CODE>`), not persisted — stations derive the
+// same id from the operator-typed code and connect directly, no broker
+// directory in between. See `hostPeerId.ts` for the derivation.
 const SHARE_CODE_KEY = "gonogo-host-share-code";
 
 /**
@@ -76,19 +75,11 @@ function generateShortId(): string {
   ).join("");
 }
 
-function getOrCreatePeerId(): string {
-  const saved = localStorage.getItem(PEER_ID_KEY);
-  if (saved) return saved;
-  const id = generateShortId();
-  localStorage.setItem(PEER_ID_KEY, id);
-  return id;
-}
-
 /**
- * The host's stable share-code, minted once and persisted. Unlike the
- * peer id, this never rotates — a host refresh re-registers a (possibly
- * new) peer id under the *same* share-code, so the operator's code stays
- * valid and stations re-resolve transparently.
+ * The host's stable share-code, minted once and persisted. The PeerJS peer
+ * id is derived from it (`gonogo-host-<CODE>`); a host refresh re-claims the
+ * *same* derived id, so the operator's code stays valid and stations
+ * reconnect transparently. Only `regenerateShareCode()` changes it.
  */
 function getOrCreateShareCode(): string {
   const saved = localStorage.getItem(SHARE_CODE_KEY);
@@ -277,12 +268,18 @@ export class PeerHostService {
   >();
   private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
 
+  /** The host's broker peer id — the *derived* `gonogo-host-<shareCode>`
+   *  form (NOT the operator-facing 4-char code). Null until the broker
+   *  confirms it with an `open`. Stations connect to this directly; the
+   *  operator never sees it (they see `shareCode`). */
   peerId: string | null = null;
-  /** Stable, operator-facing share-code. Persisted; never rotates. The
-   *  "Add station" UI shows this (not the ephemeral peer id) whenever the
-   *  relay is reachable, and stations resolve it to the current peer id
-   *  via the relay. */
-  readonly shareCode: string = getOrCreateShareCode();
+  /** Stable, operator-facing share-code. Persisted and stable across host
+   *  refreshes — the "Add station" UI shows this, stations type/scan it,
+   *  and both ends derive the broker peer id from it. The operator can mint
+   *  a fresh one on demand via `regenerateShareCode()` (the Add Station
+   *  modal's reset control); that's the only thing that changes it. */
+  shareCode: string = getOrCreateShareCode();
+  private shareCodeListeners = new ListenerSet<[string]>();
   /** ICE servers fetched from the relay on start(). Exposed so the
    *  TURN reachability probe can re-use exactly what the host's Peer
    *  was constructed with. Empty `[]` means the fetch failed or no
@@ -299,12 +296,18 @@ export class PeerHostService {
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
   private currentFlightSnapshot: FlightRecord | null = null;
-  // Latches true the first time the broker confirms the host's id with
-  // an `open` event. Used by the auto-rotate guard in `peer.on("error")`
-  // to avoid rotating mid-session when PeerJS internally reconnects to
-  // the broker and trips an `unavailable-id` race. `regeneratePeerId()`
-  // resets it via stop() so the fresh Peer earns its own first-open.
-  private peerHasOpened = false;
+  /** True while we're retry-reclaiming the derived peer id after an
+   *  `unavailable-id` (broker still holds a stale slot from an unclean
+   *  prior tab). Drives the main-screen "Reclaiming your share code…"
+   *  status. Cleared on the next successful `open`. */
+  private reclaiming = false;
+  private reclaimingListeners = new ListenerSet<[boolean]>();
+  /** Exponential-backoff state for the reclaim loop. Separate from the
+   *  broker-reconnect backoff (which keeps the *same* id over a transient
+   *  WS blip) — reclaim destroys the dead Peer and re-claims the same
+   *  derived id until the broker frees the stale one (~30–60s). */
+  private reclaimAttempt = 0;
+  private reclaimTimer: ReturnType<typeof setTimeout> | null = null;
   // Polls the relay's `/ice-config` so a relay restart (which mints a
   // fresh coturn shared secret on every boot) doesn't leave the host's
   // Peer pinned to stale TURN credentials. Without this, a `pnpm dev`
@@ -326,15 +329,54 @@ export class PeerHostService {
   // successful `open`; cleared on stop().
   private brokerReconnectAttempt = 0;
   private brokerReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  // Page-lifecycle listeners registered once in `start()` and removed in
+  // `stop()`. Held as bound refs so they're removable (the old code added
+  // anonymous closures that leaked across StrictMode start→stop→start, and
+  // double-registered the pagehide/freeze/resume handlers each remount).
+  private lifecycleListenersAttached = false;
+  private readonly onPageHide = () => this.destroyPeer();
+  private readonly onBeforeUnload = () => this.destroyPeer();
+  private readonly onFreeze = () => this.suspendBroker();
+  private readonly onResume = () => this.resumeBroker();
 
   async start() {
-    const peerId = getOrCreatePeerId();
     // Fetch the relay's TURN config before constructing Peer — ICE
     // gathers candidates the moment the Peer exists, so a late config
     // wouldn't make it into the offer. If the fetch fails we get an
     // empty array and run direct/STUN-only; the readiness UI tells the
     // operator about it.
     this.iceServers = await fetchHostIceServers();
+    // Page-lifecycle listeners are registered ONCE per service lifetime
+    // (idempotent guard) so a StrictMode start→stop→start cycle — or a
+    // reclaim that re-opens the Peer — doesn't stack duplicate handlers.
+    this.attachLifecycleListeners();
+    // Keep the Peer's iceServers in sync with the relay's coturn — every
+    // relay restart rotates the shared secret, so creds baked into the
+    // Peer's config at start() time would silently fail (401) on any
+    // subsequent TURN allocation.
+    this.startIceConfigRefresh();
+    this.openPeer();
+  }
+
+  /**
+   * Construct the PeerJS Peer claiming the *derived* `gonogo-host-<code>`
+   * id and wire all of its events. Separate from `start()` so the reclaim
+   * loop can re-open a fresh Peer (after the broker frees a stale slot)
+   * WITHOUT re-fetching ice config or re-registering page-lifecycle
+   * listeners. The derived id is deterministic, so every open — first
+   * launch, refresh, reclaim — targets the same broker slot.
+   */
+  private openPeer(): void {
+    // A Peer is already live. This guards the StrictMode double-start race:
+    // PeerHostProvider's effect fires start() without awaiting, so a
+    // mount→unmount→mount runs start→stop→start, and because start() suspends
+    // at `await fetchHostIceServers()` BEFORE creating the Peer, two start()s
+    // can both reach openPeer(). Without this guard the second would leak the
+    // first Peer (same derived id) and trip a permanent unavailable-id reclaim
+    // loop. The reclaim + regenerate paths both null `this.peer` before
+    // calling openPeer(), so they're unaffected.
+    if (this.peer) return;
+    const peerId = deriveHostPeerId(this.shareCode);
     // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
     // public 0.peerjs.com broker. Without it, our 4-char ids collide with
     // every other PeerJS app on the planet using the default key — the broker
@@ -349,11 +391,17 @@ export class PeerHostService {
     });
 
     this.peer.on("open", (id) => {
-      localStorage.setItem(PEER_ID_KEY, id);
       this.peerId = id;
-      // Latches once per session — see the auto-rotate guard in the
-      // error handler below for why.
-      this.peerHasOpened = true;
+      // A successful open means the broker accepted our (derived) id —
+      // clear any in-flight reclaim and reset its backoff.
+      if (this.reclaiming || this.reclaimTimer !== null) {
+        if (this.reclaimTimer !== null) {
+          clearTimeout(this.reclaimTimer);
+          this.reclaimTimer = null;
+        }
+        this.reclaimAttempt = 0;
+        this.setReclaiming(false);
+      }
       // Reset the broker-reconnect backoff: a successful open means
       // whatever was wrong with the broker WS has cleared, and the next
       // disconnect should retry quickly. Without this reset, a long-
@@ -364,16 +412,15 @@ export class PeerHostService {
         clearTimeout(this.brokerReconnectTimer);
         this.brokerReconnectTimer = null;
       }
-      // Tag every subsequent log entry with this device's identity so we
-      // can filter "all logs from host XK3F" in the remote sink. The host
-      // peer id is both the stable device id and the broker id.
-      logger.setIdentity({ role: "host", id, peerId: id });
-      logger.info(`[PeerHost] open — id=${id}`);
+      // Tag every subsequent log entry with this device's identity. The
+      // human-facing device id is the 4-char SHARE CODE (what the operator
+      // shares); the broker peer id is the derived `gonogo-host-<code>`.
+      logger.setIdentity({ role: "host", id: this.shareCode, peerId: id });
+      logger.info(`[PeerHost] open — id=${id} (shareCode=${this.shareCode})`);
       this.idListeners.fire(id);
-      // Register the stable share-code → current peer-id mapping with the
-      // relay so stations can resolve the code to *this* (possibly rotated)
-      // id. Best-effort: relay down → stations fall back to direct peer id.
-      // The heartbeat keeps the relay entry alive for the session.
+      // Best-effort relay registration for diagnostics only — discovery no
+      // longer depends on it (stations derive the id from the code). The
+      // heartbeat keeps the entry alive for the session.
       void this.registerWithRelay();
       this.startRelayHeartbeat();
     });
@@ -508,104 +555,169 @@ export class PeerHostService {
       logger.error("[PeerHost] peer error", err);
       const peerErr = err as { type?: string };
       if (peerErr.type !== "unavailable-id") return;
-      // Two paths to recover from `unavailable-id`:
-      //   1. Before this Peer has ever opened — no station knows about
-      //      this code, rotate silently. This is the "broker still holds
-      //      a ghost slot from a prior tab" case.
-      //   2. After a successful open — typically post-laptop-sleep where
-      //      the broker's session-cleanup timer hasn't yet released our
-      //      slot but our `peer.reconnect()` hits it as taken. Stations
-      //      may still have live data channels: notify them over the
-      //      existing channel before we rotate so their built-in retry
-      //      loop targets the new id instead of the dead old one.
-      // Both paths end at `peer.destroy()` + `start()` with a fresh id;
-      // the difference is whether we broadcast a heads-up first.
-      if (this.peerHasOpened) {
-        logger.warn(
-          "[PeerHost] unavailable-id after a successful open — rotating with station notice",
-        );
-        void this.rotatePeerIdGracefully("unavailable-id-recovery");
-        return;
-      }
-      void this.regeneratePeerId();
+      // The broker still holds a stale slot for our derived id — almost
+      // always a prior tab/process that didn't send a clean leave (the
+      // broker frees it on its ~30–60s keepalive timer). We do NOT rotate
+      // to a different id (that would invalidate the operator's share code
+      // and every station's reconnect target). Instead we retry-RECLAIM the
+      // SAME derived id with backoff until the broker releases it; stations
+      // reconnect automatically the moment it comes back.
+      this.scheduleReclaim();
     });
+  }
 
-    // Keep the Peer's iceServers in sync with the relay's coturn — every
-    // relay restart rotates the shared secret, so creds baked into the
-    // Peer's config at start() time would silently fail (401) on any
-    // subsequent TURN allocation. Existing data channels survive (their
-    // ICE pair is already chosen); only NEW peer connections from this
-    // point onward pick up the refreshed creds via the Peer's
-    // `_options.config` mutation.
-    this.startIceConfigRefresh();
+  /**
+   * Retry-reclaim the derived peer id after an `unavailable-id`. Destroys
+   * the dead Peer, surfaces the "reclaiming" status, and schedules a
+   * backed-off `openPeer()` against the SAME id. Each subsequent
+   * `unavailable-id` (the broker hasn't freed the slot yet) lengthens the
+   * backoff up to a 30s cap — the broker's stale-slot timer fires within
+   * ~30–60s, so we keep trying until `openPeer()`'s `open` clears it.
+   */
+  private scheduleReclaim(): void {
+    this.setReclaiming(true);
+    // Tear the dead Peer down so the next openPeer() starts clean. destroyPeer
+    // is idempotent, so a concurrent pagehide is harmless.
+    this.destroyPeer();
+    if (this.reclaimTimer !== null) return; // already scheduled
+    const attempt = ++this.reclaimAttempt;
+    const delayMs = Math.min(1_000 * 2 ** (attempt - 1), 30_000);
+    logger.warn(
+      `[PeerHost] unavailable-id — reclaiming derived id in ${delayMs}ms (attempt ${attempt})`,
+    );
+    this.reclaimTimer = setTimeout(() => {
+      this.reclaimTimer = null;
+      this.openPeer();
+    }, delayMs);
+  }
 
-    // Tell the broker we're leaving on page unload. Without this, the WS
-    // close races the page teardown and may not flush before the page is
-    // gone — the broker then holds the slot for ~30–60s on its keepalive
-    // timer, and a quick refresh hits `unavailable-id` and rotates to a
-    // fresh share code (forcing every station to be re-shared the new
-    // code). `peer.destroy()` sends an explicit leave message before
-    // unload completes, so the slot is freed in time for the new page to
-    // reclaim the same id; stations' existing retry loop reconnects
-    // automatically. `pagehide` (not `beforeunload`) because it fires
-    // reliably on mobile + bfcache transitions.
-    if (typeof window !== "undefined") {
-      window.addEventListener("pagehide", () => {
-        this.peer?.destroy();
-      });
+  private setReclaiming(next: boolean): void {
+    if (this.reclaiming === next) return;
+    this.reclaiming = next;
+    this.reclaimingListeners.fire(next);
+  }
+
+  /**
+   * Subscribe to reclaim status. Fires the current value immediately (so a
+   * late subscriber — e.g. the Add Station modal opening mid-reclaim — sees
+   * the right state) and on every change. The main screen surfaces a
+   * "Reclaiming your share code…" status while true.
+   */
+  onReclaimingChange(cb: (reclaiming: boolean) => void): () => void {
+    const unsub = this.reclaimingListeners.add(cb);
+    const value = this.reclaiming;
+    queueMicrotask(() => cb(value));
+    return unsub;
+  }
+
+  /** Whether the host is currently retry-reclaiming its derived id. */
+  isReclaiming(): boolean {
+    return this.reclaiming;
+  }
+
+  /**
+   * Destroy the current Peer and null it out. Idempotent — safe to call
+   * from a `pagehide`+`beforeunload` double-fire or after `stop()` has
+   * already torn it down. Frees the broker slot immediately so a normal
+   * refresh reclaims the derived id instantly.
+   */
+  private destroyPeer(): void {
+    const peer = this.peer;
+    if (!peer) return;
+    this.peer = null;
+    try {
+      peer.destroy();
+    } catch (err) {
+      logger.error(
+        "[PeerHost] peer.destroy() threw",
+        err instanceof Error ? err : undefined,
+      );
     }
-    // Pre-emptive cleanup on tab freeze (Chrome Page Lifecycle API; fires
-    // before the OS suspends the page on laptop sleep). `peer.disconnect()`
-    // is the surgical move here, not `destroy()`: it sends a clean leave to
-    // the broker so the slot is released — avoiding the post-wake
-    // "ID is taken" ghost — while keeping the underlying RTCPeerConnections
-    // and their data channels open so connected stations don't get torn
-    // down by the suspend cycle. On `resume`, peer.reconnect() re-registers
-    // with the broker against the same id; nothing else changes. Without
-    // this, laptop sleep silently strands the host's broker session and
-    // every outgoing peer.connect() (OCISLY etc.) wedges until manual
-    // regenerate. `freeze`/`resume` are document events, not window.
+  }
+
+  /**
+   * Register the page-lifecycle listeners exactly once. `pagehide` +
+   * `beforeunload` both `destroyPeer()` so the broker frees the derived id
+   * the instant the page goes away — letting a quick refresh re-claim it
+   * without hitting `unavailable-id`. `freeze`/`resume` keep live data
+   * channels up across laptop sleep. All handlers are bound refs so
+   * `stop()` can remove them cleanly (StrictMode start→stop→start would
+   * otherwise leak a fresh set each remount).
+   */
+  private attachLifecycleListeners(): void {
+    if (this.lifecycleListenersAttached) return;
+    this.lifecycleListenersAttached = true;
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", this.onPageHide);
+      window.addEventListener("beforeunload", this.onBeforeUnload);
+      window.addEventListener("pageshow", this.onResume);
+    }
     if (typeof document !== "undefined") {
-      const suspend = () => {
-        if (!this.peer) return;
-        const p = this.peer as Peer & { disconnected?: boolean };
-        if (p.disconnected) return;
-        logger.info(
-          "[PeerHost] page freezing — disconnecting broker (keeping live channels)",
-        );
-        try {
-          this.peer.disconnect();
-        } catch (err) {
-          logger.error(
-            "[PeerHost] peer.disconnect() threw on freeze",
-            err instanceof Error ? err : undefined,
-          );
-        }
-      };
-      const resume = () => {
-        if (!this.peer) return;
-        const p = this.peer as Peer & {
-          disconnected?: boolean;
-          reconnect?: () => void;
-        };
-        if (!p.disconnected) return;
-        logger.info(
-          "[PeerHost] page resuming — peer.reconnect() to re-register on broker",
-        );
-        try {
-          p.reconnect?.();
-        } catch (err) {
-          logger.error(
-            "[PeerHost] peer.reconnect() threw on resume",
-            err instanceof Error ? err : undefined,
-          );
-        }
-      };
-      document.addEventListener("freeze", suspend);
-      document.addEventListener("resume", resume);
-      // `pageshow` covers the bfcache-restore path (back/forward nav) where
-      // freeze/resume don't fire but the peer may still need re-registering.
-      window.addEventListener("pageshow", resume);
+      document.addEventListener("freeze", this.onFreeze);
+      document.addEventListener("resume", this.onResume);
+    }
+  }
+
+  private detachLifecycleListeners(): void {
+    if (!this.lifecycleListenersAttached) return;
+    this.lifecycleListenersAttached = false;
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.onPageHide);
+      window.removeEventListener("beforeunload", this.onBeforeUnload);
+      window.removeEventListener("pageshow", this.onResume);
+    }
+    if (typeof document !== "undefined") {
+      document.removeEventListener("freeze", this.onFreeze);
+      document.removeEventListener("resume", this.onResume);
+    }
+  }
+
+  /**
+   * Pre-emptive cleanup on tab freeze (Chrome Page Lifecycle API; fires
+   * before the OS suspends the page on laptop sleep). `peer.disconnect()`
+   * is the surgical move — not `destroy()`: it sends a clean leave to the
+   * broker so the slot is released (avoiding the post-wake "ID is taken"
+   * ghost) while keeping the underlying RTCPeerConnections + data channels
+   * open so connected stations aren't torn down by the suspend cycle.
+   */
+  private suspendBroker(): void {
+    if (!this.peer) return;
+    const p = this.peer as Peer & { disconnected?: boolean };
+    if (p.disconnected) return;
+    logger.info(
+      "[PeerHost] page freezing — disconnecting broker (keeping live channels)",
+    );
+    try {
+      this.peer.disconnect();
+    } catch (err) {
+      logger.error(
+        "[PeerHost] peer.disconnect() threw on freeze",
+        err instanceof Error ? err : undefined,
+      );
+    }
+  }
+
+  /**
+   * On `resume`/`pageshow`, re-register with the broker against the same
+   * (derived) id. Covers laptop wake and the bfcache-restore path.
+   */
+  private resumeBroker(): void {
+    if (!this.peer) return;
+    const p = this.peer as Peer & {
+      disconnected?: boolean;
+      reconnect?: () => void;
+    };
+    if (!p.disconnected) return;
+    logger.info(
+      "[PeerHost] page resuming — peer.reconnect() to re-register on broker",
+    );
+    try {
+      p.reconnect?.();
+    } catch (err) {
+      logger.error(
+        "[PeerHost] peer.reconnect() threw on resume",
+        err instanceof Error ? err : undefined,
+      );
     }
   }
 
@@ -1435,15 +1547,20 @@ export class PeerHostService {
     this.stopIceConfigRefresh();
     this.stopRelayHeartbeat();
     this.setRelayRegistered(false);
+    this.detachLifecycleListeners();
     if (this.brokerReconnectTimer !== null) {
       clearTimeout(this.brokerReconnectTimer);
       this.brokerReconnectTimer = null;
     }
     this.brokerReconnectAttempt = 0;
-    this.peer?.destroy();
-    this.peer = null;
+    if (this.reclaimTimer !== null) {
+      clearTimeout(this.reclaimTimer);
+      this.reclaimTimer = null;
+    }
+    this.reclaimAttempt = 0;
+    this.setReclaiming(false);
+    this.destroyPeer();
     this.peerId = null;
-    this.peerHasOpened = false;
     this.connections.clear();
     this.idListeners.fire(null);
     logger.info("[PeerHost] stopped");
@@ -1465,15 +1582,13 @@ export class PeerHostService {
 
   /**
    * POST the current `{ shareCode, peerId }` to the relay's host registry.
+   * DIAGNOSTICS ONLY under the stable-host-id model — discovery no longer
+   * depends on this (stations derive the broker id from the share code).
    * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
-   * debug and swallowed — the relay is optional infrastructure, and
-   * stations fall back to treating the typed code as a direct peer id when
-   * resolution fails. No-op until the Peer has an id.
+   * debug and swallowed. No-op until the Peer has an id.
    */
-  private async registerWithRelay(peerIdOverride?: string): Promise<void> {
-    // `peerIdOverride` lets a graceful rotation pre-register the NEW id
-    // before the current Peer is torn down — see rotatePeerIdGracefully.
-    const peerId = peerIdOverride ?? this.peerId;
+  private async registerWithRelay(): Promise<void> {
+    const peerId = this.peerId;
     if (!peerId) return;
     const url = `${relayBaseUrl()}/host`;
     const controller = new AbortController();
@@ -1525,6 +1640,23 @@ export class PeerHostService {
   onRelayRegisteredChange(cb: (registered: boolean) => void): () => void {
     const unsub = this.relayRegisteredListeners.add(cb);
     queueMicrotask(() => cb(this.relayRegistered));
+    return unsub;
+  }
+
+  /**
+   * Subscribe to share-code changes. Fires with the current value
+   * immediately (so a late subscriber sees the right code without waiting
+   * for a regenerate) and on every subsequent change. The share-code only
+   * changes when the operator clicks the Add Station modal's reset control
+   * (`regenerateShareCode()`); a plain peer-id rotation leaves it alone.
+   * The modal subscribes to this so a regenerate visibly updates the
+   * displayed code even though the peer id (and `relayRegistered`) are
+   * unchanged.
+   */
+  onShareCodeChange(cb: (shareCode: string) => void): () => void {
+    const unsub = this.shareCodeListeners.add(cb);
+    const code = this.shareCode;
+    queueMicrotask(() => cb(code));
     return unsub;
   }
 
@@ -1589,59 +1721,27 @@ export class PeerHostService {
   }
 
   /**
-   * Drop the persisted host id and bring up a fresh Peer with a new
-   * four-character share code. Used by the operator-facing regenerate
-   * button in the Add Station modal — primarily as a recovery from the
-   * "ID is taken" rejection (a previous tab/process left a ghost session
-   * the broker is still holding) but also as a generic "rotate the
-   * code" action. Tears down every active station data channel; the
-   * operator is expected to re-share via QR or copied link.
-   */
-  async regeneratePeerId(): Promise<void> {
-    logger.info("[PeerHost] regenerating peer id");
-    this.stop();
-    localStorage.removeItem(PEER_ID_KEY);
-    await this.start();
-  }
-
-  /**
-   * Rotate to a fresh share code without stranding currently-connected
-   * stations. Sends `host-id-rotation` over each live data channel BEFORE
-   * tearing the peer down, so the station's auto-reconnect targets the
-   * new id rather than retrying the dead old one. The 500ms flush window
-   * is empirical — typical LAN data-channel RTT is <50ms, and the
-   * message is small (~80 bytes), so half a second comfortably covers a
-   * one-way delivery even on a stressed link. Stations whose channels
-   * have already died before this fires (long sleep, MTU change, etc.)
-   * will need a manual reconnect — that's the residual edge case the
-   * Add Station modal's Regenerate button still serves.
+   * Mint a fresh operator-facing share-code and re-claim the new derived
+   * `gonogo-host-<newCode>` peer id. Used by the Add Station modal's reset
+   * control — a clean teardown of the old Peer (freeing the old derived
+   * id's broker slot) followed by a fresh `openPeer()` against the new
+   * derived id. Every live station data channel drops; stations that held
+   * the old code must be re-shared the new one (the old code stops working
+   * because nothing on the broker answers to its derived id any more).
    *
-   * Used by the unavailable-id recovery path; replaces the previous
-   * "keep existing code, manual Regenerate available" behaviour, which
-   * left the host wedged until the operator noticed.
+   * Also doubles as the "host stuck" recovery: a fresh code sidesteps a
+   * broker slot the old code can't reclaim.
    */
-  async rotatePeerIdGracefully(reason: string): Promise<void> {
-    const newPeerId = generateShortId();
-    const liveConns = this.connections.size;
-    logger.info(
-      `[PeerHost] rotating peer id — reason=${reason}, newId=${newPeerId}, liveConns=${liveConns}`,
-    );
-    // Pre-register the NEW peer id under the (unchanged) share-code with
-    // the relay BEFORE tearing the old Peer down. This closes the window
-    // where a station re-resolving mid-rotation would otherwise get the
-    // stale pre-rotation id: the host's re-registration would normally
-    // only happen inside the fresh Peer's `open` handler, i.e. after the
-    // destroy that closed the station's channel. Best-effort — relay down
-    // just means stations rely on the `host-id-rotation` broadcast
-    // fast-path (and the next heartbeat) instead.
-    await this.registerWithRelay(newPeerId);
-    if (liveConns > 0) {
-      this.broadcast({ type: "host-id-rotation", newPeerId, reason });
-      // Empirical flush window — see method JSDoc.
-      await new Promise<void>((resolve) => setTimeout(resolve, 500));
-    }
+  async regenerateShareCode(): Promise<void> {
+    const next = generateShortId();
+    logger.info(`[PeerHost] regenerating share code — newCode=${next}`);
+    // Tear the current Peer + timers down cleanly, then mint the new code
+    // and bring a fresh Peer up against its derived id. stop() also detaches
+    // lifecycle listeners, so re-attach them via start().
     this.stop();
-    localStorage.setItem(PEER_ID_KEY, newPeerId);
+    localStorage.setItem(SHARE_CODE_KEY, next);
+    this.shareCode = next;
+    this.shareCodeListeners.fire(next);
     await this.start();
   }
 }
