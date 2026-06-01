@@ -10,9 +10,12 @@ import type { FastifyInstance } from "fastify";
  *
  * - The host `POST /host { shareCode, peerId }` on every PeerJS `open`
  *   and again on a periodic heartbeat.
- * - The station `GET /host/:shareCode` to resolve the current peer id
- *   just before connecting, and re-resolves on every reconnect so it
- *   auto-follows the host's rotation.
+ * - The station resolves the current peer id over the PeerJS broker via
+ *   the relay's directory peer (`gonogo-dir-<shareCode>`), which reads
+ *   this registry in-process (`registry.resolve(shareCode)`). It
+ *   re-resolves on every reconnect so it auto-follows the host's rotation.
+ *   (The old cross-machine-broken HTTP `GET /host/:shareCode` lookup was
+ *   removed in favour of the broker path — see `directoryPeer.ts`.)
  *
  * In-memory only. A relay restart just means hosts re-register on their
  * next heartbeat. Single-instance assumption — a shared registry across
@@ -73,18 +76,36 @@ interface RegisterHostBody {
   peerId?: unknown;
 }
 
+/** Options for `registerHostRoutes`. */
+export interface RegisterHostRoutesOptions {
+  /** Backing registry. Defaults to a fresh one; tests pass their own to
+   *  control the TTL or inspect entries. */
+  registry?: HostRegistry;
+  /** Called after each accepted `POST /host`, with the registered
+   *  share-code + peer id. The relay uses this to (lazily) bring up the
+   *  broker-side directory peer for the code — see `directoryPeer.ts`.
+   *  Kept as a callback so this module stays peerjs/wrtc-free. */
+  onRegister?: (shareCode: string, peerId: string) => void;
+}
+
 /**
- * Mount the host-discovery routes onto a Fastify instance. CORS is
+ * Mount the host-discovery route onto a Fastify instance. CORS is
  * inherited from the global `@fastify/cors` registration the relay
  * already applies (same as `/ice-config`) — no per-route allowlist.
+ *
+ * Only `POST /host` is exposed: stations no longer GET the registry over
+ * HTTP (that path was broken cross-machine — the relay is local to the
+ * host). They resolve over the broker via the directory peer instead,
+ * which reads this registry in-process.
  *
  * Returns the backing registry so the caller can wire a periodic sweep
  * timer (and tests can inspect it).
  */
 export function registerHostRoutes(
   fastify: FastifyInstance,
-  registry: HostRegistry = new HostRegistry(),
+  options: RegisterHostRoutesOptions = {},
 ): HostRegistry {
+  const registry = options.registry ?? new HostRegistry();
   fastify.post("/host", async (req, reply) => {
     const body = (req.body ?? {}) as RegisterHostBody;
     const shareCode =
@@ -96,21 +117,9 @@ export function registerHostRoutes(
         .send({ error: "shareCode and peerId are required" });
     }
     registry.register(shareCode, peerId);
+    options.onRegister?.(shareCode, peerId);
     return { ok: true };
   });
-
-  fastify.get<{ Params: { shareCode: string } }>(
-    "/host/:shareCode",
-    async (req, reply) => {
-      const peerId = registry.resolve(req.params.shareCode);
-      if (!peerId) {
-        return reply
-          .status(404)
-          .send({ error: "unknown or expired share code" });
-      }
-      return { peerId };
-    },
-  );
 
   return registry;
 }
