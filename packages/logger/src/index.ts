@@ -118,6 +118,27 @@ export class ConsoleLogger implements Logger {
   }
 
   /**
+   * Remove a previously-registered transport. Best-effort flush of any
+   * buffered entries first so the removed sink (e.g. Axiom) doesn't drop
+   * what it already holds. Idempotent — removing a transport that isn't
+   * registered is a no-op. Used by the analytics-consent gate to detach
+   * the Axiom sink the moment consent is revoked.
+   */
+  removeTransport(transport: LogTransport): void {
+    const idx = this.transports.indexOf(transport);
+    if (idx === -1) return;
+    void transport.flush?.();
+    this.transports.splice(idx, 1);
+  }
+
+  /** Number of currently-registered transports — used by the consent
+   *  controller's tests to assert install/remove without reaching into
+   *  the private array. */
+  transportCount(): number {
+    return this.transports.length;
+  }
+
+  /**
    * Merge identity fields into the device context attached to every
    * subsequent log entry. Call once at app start with `{role, id}` and
    * again as more becomes known (e.g. station learns its hostPeerId on
@@ -271,6 +292,7 @@ export class ConsoleLogger implements Logger {
 
 export const logger = new ConsoleLogger();
 export { AppError } from "./AppError.js";
+export { AxiomConsentController } from "./AxiomConsentController.js";
 export type { AxiomTransportOptions } from "./AxiomTransport.js";
 export { AxiomTransport } from "./AxiomTransport.js";
 export { LogRingBuffer } from "./ringBuffer.js";

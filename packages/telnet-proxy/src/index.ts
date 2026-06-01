@@ -1,30 +1,48 @@
 import { hostname } from "node:os";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import { AxiomTransport, logger } from "@gonogo/logger";
+import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
+import { AnalyticsConfigClient } from "./analyticsConfigClient.js";
 import { registerKosBridge } from "./bridge.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const port = Number(process.env.PORT ?? 3001);
 
-// Ship logs to Axiom when an ingest token is present. Mirrors the
-// browser wiring in packages/app/src/main.tsx — without AXIOM_TOKEN,
-// no transport is installed, so dev/test never reach Axiom unless an
-// operator opts in via `.env`/`.env.local`.
-if (process.env.AXIOM_TOKEN) {
-  logger.addTransport(
-    new AxiomTransport({
-      token: process.env.AXIOM_TOKEN,
-      dataset: process.env.AXIOM_DATASET ?? "gonogo",
-      url: process.env.AXIOM_URL,
-      orgId: process.env.AXIOM_ORG_ID,
-      // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
-      // calls `logger.flushTransports()` instead.
-      flushOnPageHide: false,
-    }),
-  );
-}
+// Where the proxy reaches the relay's analytics-config broker. Matches the
+// app's relay default (iceServers.ts → http://localhost:3002).
+const relayUrl = process.env.RELAY_URL ?? "http://localhost:3002";
+
+// Ship logs to Axiom only when the token is present AND the host has
+// enabled analytics consent. The token is the credential; consent is the
+// runtime gate, learned by subscribing to the relay's SSE stream below.
+// Default DISABLED until the relay reports otherwise — privacy-first.
+// Console output is unaffected.
+const axiomConsent = new AxiomConsentController({
+  logger,
+  makeTransport: () =>
+    process.env.AXIOM_TOKEN
+      ? new AxiomTransport({
+          token: process.env.AXIOM_TOKEN,
+          dataset: process.env.AXIOM_DATASET ?? "gonogo",
+          url: process.env.AXIOM_URL,
+          orgId: process.env.AXIOM_ORG_ID,
+          // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
+          // calls `logger.flushTransports()` instead.
+          flushOnPageHide: false,
+        })
+      : null,
+});
+
+const analyticsClient = new AnalyticsConfigClient({
+  relayUrl,
+  onConsent: (enabled) => axiomConsent.apply(enabled),
+  log: {
+    info: (m) => logger.info(m),
+    warn: (m) => logger.warn(m),
+  },
+});
+analyticsClient.start();
 
 // Tag every entry with this proxy's identity. The hostname:port is
 // stable enough for "all logs from this telnet-proxy" filters in
@@ -82,6 +100,7 @@ logger.info(`gonogo telnet-proxy listening on port ${port}`);
 
 const shutdown = async () => {
   logger.info("shutting down");
+  analyticsClient.stop();
   await fastify.close();
   // Drain any buffered Axiom entries before the process exits.
   await logger.flushTransports();

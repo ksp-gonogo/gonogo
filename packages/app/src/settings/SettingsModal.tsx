@@ -1,6 +1,8 @@
 import { useScreen } from "@gonogo/core";
 import { Switch } from "@gonogo/ui";
+import { useSyncExternalStore } from "react";
 import styled from "styled-components";
+import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
@@ -13,8 +15,12 @@ import { useSetting } from "./SettingsContext";
 export function SettingsModal() {
   const screen = useScreen();
   const settings = getSettingsForScreen(screen);
+  // The analytics-consent toggle is host-owned, so it only appears on the
+  // main screen. Stations follow the host's consent over PeerJS and have
+  // no local control.
+  const showConsent = screen === "main";
 
-  if (settings.length === 0) {
+  if (settings.length === 0 && !showConsent) {
     return <Empty>No settings yet on the {screen} screen.</Empty>;
   }
 
@@ -35,7 +41,45 @@ export function SettingsModal() {
           ))}
         </Section>
       ))}
+      {showConsent && (
+        <Section>
+          <SectionTitle>Privacy</SectionTitle>
+          <AnalyticsConsentRow />
+        </Section>
+      )}
     </Wrap>
+  );
+}
+
+/**
+ * Re-toggle for the technical-analytics consent the boot modal first
+ * asked about. Bound directly to `analyticsConsentService` (its own
+ * localStorage slot) rather than the settings registry — the boot modal,
+ * the browser Axiom gate, and the peer/relay propagation all read that
+ * same service, so routing this through the registry's `gonogo.settings`
+ * store would split the source of truth.
+ */
+function AnalyticsConsentRow() {
+  const enabled = useSyncExternalStore(
+    (cb) => analyticsConsentService.subscribe(cb),
+    () => analyticsConsentService.isEnabled(),
+  );
+  return (
+    <Row>
+      <RowText>
+        <RowLabel>Send technical analytics</RowLabel>
+        <RowDesc>
+          Share anonymous technical logs and errors with the developer to help
+          debugging. Applies to this main screen and every connected station.
+        </RowDesc>
+      </RowText>
+      <Switch
+        checked={enabled}
+        onChange={(next) =>
+          analyticsConsentService.set(next ? "enabled" : "disabled")
+        }
+      />
+    </Row>
   );
 }
 
