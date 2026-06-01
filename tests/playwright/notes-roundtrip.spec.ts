@@ -64,6 +64,9 @@ async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
         localStorage.setItem(dashboardKey, dashboard);
+        // Pre-answer analytics consent so the blocking boot modal doesn't
+        // sit over the dashboard and swallow the note-input click.
+        localStorage.setItem("gonogo.analytics.consent", "disabled");
       } catch {
         /* private mode / quota — ignore */
       }

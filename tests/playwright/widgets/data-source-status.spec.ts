@@ -1,52 +1,67 @@
 /**
- * Widget DOM mirror — DataSourceStatus. Asserts the `data` row (the
- * BufferedDataSource on the host, mirrored as a PeerClientDataSource on
- * the station) reports "connected" on both sides.
+ * Data sources are host-only. The main screen owns the KSP data sources and
+ * surfaces them through the Data Sources FAB; the dashboard widget was
+ * retired in favour of the FAB, and stations (which only consume the host's
+ * data over PeerJS) have no data-source panel of their own.
  *
- * Host and station have DIFFERENT source listings — the host registers
- * `telemachus` + `kos` + `data` (plus stream sources), while the station
- * registers a PCDS for each id the host broadcasts over its schema
- * message. We deliberately don't assert the lists mirror; some host
- * sources (kOS proxy, OCISLY relay) legitimately stay disconnected in
- * this test environment.
- *
- * The mirror we DO assert: the `data` source name — defaulted to
- * "Buffered Telemachus Reborn" by `BufferedDataSource` and propagated
- * verbatim to the station via the PeerHost schema message — appears on
- * both pages and shows status "connected". That single row exercises
- * the full host → broker → station data path, which is the point.
+ * This boots the main screen, opens the Data Sources panel from the FAB, and
+ * asserts the `data` row (the BufferedDataSource, named "Buffered Telemachus
+ * Reborn") reports "connected" — exercising the host's Telemachus path end
+ * to end against the replay server.
  */
-import { test } from "@playwright/test";
-import { bootstrapPair, expect, teardownPair } from "../helpers";
+import { expect, test } from "@playwright/test";
+import { PORTS } from "../../../playwright.config";
 
-test.describe("widget DOM mirror — DataSourceStatus", () => {
-  test("data source row shows connected on host and station", async ({
+const MAIN_URL = "/";
+
+const TELEMACHUS_CONFIG = JSON.stringify({
+  host: "localhost",
+  port: PORTS.telemachusReplay,
+});
+
+test.describe("Data Sources FAB — main screen", () => {
+  test("data source row shows connected in the Data Sources panel", async ({
     browser,
   }) => {
-    const pair = await bootstrapPair(browser, "data-source-status", {
-      waitForMain: async (page) => {
-        await expect(
-          page.getByText("Data Sources", { exact: true }),
-        ).toBeVisible({ timeout: 30_000 });
-      },
+    const context = await browser.newContext();
+    await context.addInitScript((teleCfg: string) => {
+      try {
+        localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
+        // Pre-answer analytics consent so the blocking boot modal doesn't
+        // sit over the screen and intercept the FAB click.
+        localStorage.setItem("gonogo.analytics.consent", "disabled");
+      } catch {
+        /* private mode / quota — ignore; the seed just won't apply */
+      }
+    }, TELEMACHUS_CONFIG);
+
+    const page = await context.newPage();
+    await page.goto(MAIN_URL);
+
+    // Open the Data Sources panel from the FAB. Secondary FABs are hidden
+    // (pointer-events:none) until the cluster is active; focusing the button
+    // fires the cluster's onFocus to reveal it, then the click opens the
+    // modal. The aria-label gains a " (a source is offline)" suffix when a
+    // source (kOS proxy, stream relays) is legitimately down in this env, so
+    // match on the stable prefix.
+    const fab = page.getByRole("button", { name: /^Manage data sources/ });
+    await expect(fab).toBeAttached({ timeout: 30_000 });
+    await fab.focus();
+    await fab.click();
+
+    // The source rows render only inside the FAB panel now (the dashboard
+    // widget was retired), so a visible `data` row is itself proof the panel
+    // opened. Scope to the row that owns the `data` source name so we don't
+    // match another source's status label.
+    const dataRow = page
+      .locator("li")
+      .filter({ hasText: "Buffered Telemachus Reborn" });
+    await expect(dataRow).toBeVisible({ timeout: 30_000 });
+    await expect(dataRow.getByText("connected", { exact: true })).toBeVisible({
+      timeout: 30_000,
     });
 
-    for (const page of [pair.main, pair.station]) {
-      await expect(page.getByText("Data Sources", { exact: true })).toBeVisible(
-        { timeout: 15_000 },
-      );
-
-      // Scope to the row that owns the `data` source name so we don't
-      // accidentally match another source's status label.
-      const dataRow = page
-        .locator("li")
-        .filter({ hasText: "Buffered Telemachus Reborn" });
-      await expect(dataRow).toBeVisible({ timeout: 30_000 });
-      await expect(dataRow.getByText("connected", { exact: true })).toBeVisible(
-        { timeout: 30_000 },
-      );
-    }
-
-    await teardownPair(pair);
+    await page.close();
+    await context.close();
   });
 });
