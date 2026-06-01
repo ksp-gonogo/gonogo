@@ -8,9 +8,10 @@ import type { KerbcamDataSource } from "../KerbcamDataSource";
  * after a disconnect). Components bind the stream to a `<video>`'s
  * `srcObject` directly.
  *
- * MediaStream objects can't cross PeerJS data channels, so this hook
- * is inherently main-screen-only. Station-side camera access requires
- * a dedicated relay (future work).
+ * Works on both screens. The main screen connects to the sidecar directly; a
+ * station uses the brokered data source (`KerbcamDataSource.attachBroker`) — the
+ * offer→answer relays through the host, but media flows station↔sidecar
+ * directly, so the `MediaStream` itself never crosses PeerJS.
  */
 export function useKerbcamStream(flightId: number | null): MediaStream | null {
   const [stream, setStream] = useState<MediaStream | null>(() => {
@@ -28,7 +29,15 @@ export function useKerbcamStream(flightId: number | null): MediaStream | null {
     if (!ds) return;
     const cam = ds.getClient().camera(flightId);
     setStream(cam.mediaStream);
-    return cam.on("stream", setStream);
+    const off = cam.on("stream", setStream);
+    // Bind a slot for this camera while it's on screen; release it on unmount /
+    // camera switch. The data source refcounts, so several widgets showing the
+    // same camera share one slot.
+    ds.subscribeCamera(flightId);
+    return () => {
+      off();
+      ds.unsubscribeCamera(flightId);
+    };
   }, [flightId]);
 
   return stream;

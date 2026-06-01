@@ -7,14 +7,17 @@ import type {
 /**
  * Controllable in-process fake for kerbcam sidecar sessions.
  *
- * Extracted from the duplicated `makeFakeTransport()` in
- * KerbcamDataSource.test.ts and ExpCameraFeed.test.tsx so all test
- * files share a single canonical mock.
+ * Prefer the SDK's `MockSidecar` (`@jonpepler/kerbcam/testing`) — the
+ * protocol-level canonical fake, which speaks the full wire protocol including
+ * the dynamic slot subscription. The component tests (`CameraFeed`) and the
+ * dynamic/broker `KerbcamDataSource` tests already use it.
  *
- * TODO: once the next @jonpepler/kerbcam release is published, migrate
- * gonogo tests to use `MockSidecar` from `@jonpepler/kerbcam/testing`
- * instead — it is the protocol-level canonical fake and already ships in
- * kerbcam commit d6103cd.
+ * This transport-level fake remains for the handful of `KerbcamDataSource`
+ * tests that assert data-source internals `MockSidecar` doesn't surface: the
+ * captured `iceServers` (the relay-TURN threading path), the raw `sentMessages`
+ * array (message ordering), and the `closed` flag. Those are a natural fit for
+ * a transport fake; folding them into `MockSidecar` to delete this file is a
+ * possible future cleanup, not a current need.
  */
 export interface MockKerbcamSession {
   /** Pass to KerbcamDataSource or KerbcamClient constructor. */
@@ -56,6 +59,10 @@ export interface MockKerbcamSession {
    * can't produce a track, so this is only useful in a real browser (the
    * render harness uses `canvas.captureStream()`). `idx` maps to the
    * camera order from the `/offer` answer's `cameras` array (default 0).
+   *
+   * Slot-aware (dynamic-mode) delivery and the subscribe → slot-map round-trip
+   * live in the SDK's canonical `MockSidecar` (`@jonpepler/kerbcam/testing`) —
+   * use that for dynamic-subscription tests rather than extending this fake.
    */
   deliverTrack(track: MediaStreamTrack, idx?: number): void;
 }
@@ -68,7 +75,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     | ((s: "disconnected" | "connecting" | "connected" | "failed") => void)
     | undefined;
   let _trackHandler:
-    | ((track: MediaStreamTrack, idx: number) => void)
+    | ((track: MediaStreamTrack, idx: number, mid: string) => void)
     | undefined;
   let _closed = false;
   let _iceServers: RTCIceServer[] | undefined;
@@ -131,7 +138,9 @@ export function createMockKerbcamSession(): MockKerbcamSession {
       _messageHandler?.(JSON.stringify(msg));
     },
     deliverTrack(track, idx = 0) {
-      _trackHandler?.(track, idx);
+      // mid is unused in legacy index-routed mode (gonogo's current path);
+      // pass the index as a placeholder mid for the 3-arg handler.
+      _trackHandler?.(track, idx, String(idx));
     },
   };
 }

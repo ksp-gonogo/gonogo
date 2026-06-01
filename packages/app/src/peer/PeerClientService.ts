@@ -133,12 +133,36 @@ export interface PeerClientOptions {
    * localStorage-backed id from `getStationPeerId()`. Override for tests.
    */
   peerId?: string;
+  /**
+   * Resolve the operator-typed **share-code** to the host's current PeerJS
+   * peer id via the relay. When provided, `connect()` and every reconnect
+   * re-resolve the code first so the station auto-follows the host's
+   * peer-id rotation (the host re-registers a new id under the same code).
+   *
+   * Resolving to `null` (relay down / unknown code) falls back to the
+   * last-known peer id if one exists, otherwise treats the typed value as
+   * a direct peer id — preserving the no-relay back-compat path.
+   *
+   * Omitted (the default / test path) → no resolution; the typed value is
+   * used verbatim as the peer id, exactly as before this feature.
+   */
+  resolveHost?: (shareCode: string) => Promise<string | null>;
 }
 
 export class PeerClientService {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private hostPeerId: string | null = null;
+  /** The operator-typed value — a relay **share-code** when a resolver is
+   *  wired, or a raw peer id otherwise. Held as the reconnect target so
+   *  every retry re-resolves it (the host may have rotated its peer id).
+   *  Stays stable across the session even as `hostPeerId` changes. */
+  private shareCode: string | null = null;
+  /** Optional relay resolver (share-code → current peer id). Null in the
+   *  default / test path, where the typed value is used verbatim. */
+  private readonly resolveHost:
+    | ((shareCode: string) => Promise<string | null>)
+    | null;
   /** Fresh per `openPeer()` call. Reusing the same id across retries
    *  collides with the broker's id-hold (~30–60 s) when a previous
    *  connection didn't shut down gracefully — e.g. a mid-session WS
@@ -165,6 +189,14 @@ export class PeerClientService {
   private kosCloseListeners = new ListenerSet<[sessionId: string]>();
   private relayPeerIdListeners = new ListenerSet<[peerId: string | null]>();
   private relayPeerId: string | null = null;
+  // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
+  // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
+  // kerbcam data source can feed them to its station↔sidecar PeerConnection —
+  // a path separate from PeerJS. Empty until the first broadcast carrying creds.
+  private relayIceServers: RTCIceServer[] = [];
+  private relayIceServersListeners = new ListenerSet<
+    [servers: RTCIceServer[]]
+  >();
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
   private hostHelloListeners = new ListenerSet<
@@ -201,6 +233,10 @@ export class PeerClientService {
   }>();
   private pendingKosExecutes = new RequestTracker<KosData>();
   private pendingFlightRpc = new RequestTracker<unknown>();
+  private pendingKerbcamNegotiate = new RequestTracker<{
+    sdp: string;
+    cameras: number[];
+  }>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -229,8 +265,10 @@ export class PeerClientService {
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
     peerId,
+    resolveHost,
   }: PeerClientOptions = {}) {
     this.fixedPeerIdOverride = peerId ?? null;
+    this.resolveHost = resolveHost ?? null;
     this.stationPeerId = peerId ?? getStationPeerId();
     this.stationKey = getStationKey();
     // Tag every log entry on this station with the persistent stationKey
@@ -251,18 +289,68 @@ export class PeerClientService {
       tearDown: () => this.tearDownPeer(),
       rejectPending: (reason) => this.rejectPendingQueries(reason),
       emitStatus: (status) => this.emitConnStatus(status),
-      reopen: () => this.openPeer(),
+      // Re-resolve the share-code before each reconnect so the station
+      // auto-follows the host's peer-id rotation. With no resolver this is
+      // a synchronous pass-through to openPeer(), keeping the existing
+      // reconnect-loop tests fully synchronous.
+      reopen: () => this.resolveAndOpen(),
     });
   }
 
-  connect(hostPeerId: string) {
-    this.hostPeerId = hostPeerId;
-    // Now we know which host this station is in a session with — fold it
-    // into the device identity so subsequent logs say which host they
-    // belong to.
-    logger.setIdentity({ hostPeerId });
+  connect(code: string) {
+    // `code` is the operator-typed value: a relay share-code when a
+    // resolver is wired, otherwise a raw peer id. Held as the reconnect
+    // target so each retry re-resolves it.
+    this.shareCode = code;
+    // Without a resolver the typed value IS the peer id (back-compat /
+    // test path). With one, hostPeerId stays null until the first resolve
+    // lands inside resolveAndOpen().
+    if (!this.resolveHost) {
+      this.hostPeerId = code;
+      logger.setIdentity({ hostPeerId: code });
+    }
     this.retryPolicy.beginConnect();
-    this.openPeer();
+    this.resolveAndOpen();
+  }
+
+  /**
+   * Resolve the share-code to the host's current peer id (when a resolver
+   * is wired), then open the Peer. Synchronous fast-path when there's no
+   * resolver — `openPeer()` runs in the same tick, so reconnect-loop tests
+   * that assert Peer-instance counts immediately after a timer fires stay
+   * valid.
+   *
+   * Resolution precedence on failure (relay down / 404):
+   *   1. the last-known `hostPeerId` (e.g. set by a live `host-id-rotation`
+   *      broadcast) — keeps the fast-path rotation recovery working when
+   *      the relay is unavailable;
+   *   2. otherwise the raw typed value as a direct peer id (no-relay
+   *      back-compat).
+   */
+  private resolveAndOpen(): void {
+    if (!this.resolveHost || !this.shareCode) {
+      this.openPeer();
+      return;
+    }
+    const code = this.shareCode;
+    void this.resolveHost(code)
+      .then((resolved) => {
+        // A teardown/disconnect may have landed while the resolve was in
+        // flight; bail if the retry loop no longer wants us.
+        if (this.shareCode !== code) return;
+        const next = resolved ?? this.hostPeerId ?? code;
+        this.hostPeerId = next;
+        logger.setIdentity({ hostPeerId: next });
+        this.openPeer();
+      })
+      .catch(() => {
+        // resolveHost is contracted to never reject (it fail-softs to
+        // null), but guard anyway so a thrown resolver can't wedge the
+        // reconnect loop — fall back and still attempt a connect.
+        if (this.shareCode !== code) return;
+        this.hostPeerId = this.hostPeerId ?? code;
+        this.openPeer();
+      });
   }
 
   private openPeer() {
@@ -586,10 +674,38 @@ export class PeerClientService {
     return pending;
   }
 
+  /**
+   * Station broker: ask the host to relay a kerbcam WebRTC offer to the sidecar
+   * and return the answer. Pass as the `negotiate` seam to a station-side
+   * KerbcamClient so it never needs the sidecar's address — media still flows
+   * station↔sidecar directly off the answer's ICE candidates.
+   */
+  sendKerbcamNegotiate(
+    offer: { sdp: string; cameras: number[]; slots?: number },
+    timeoutMs = 15_000,
+  ): Promise<{ sdp: string; cameras: number[] }> {
+    if (!this.conn) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const requestId = safeRandomUuid();
+    const pending = this.pendingKerbcamNegotiate.track(
+      requestId,
+      timeoutMs,
+      "kerbcam negotiate timeout",
+    );
+    this.conn.send({
+      type: "kerbcam-negotiate-request",
+      requestId,
+      offer,
+    } satisfies PeerMessage);
+    return pending;
+  }
+
   private rejectPendingQueries(reason: string) {
     this.pendingQueries.rejectAll(reason);
     this.pendingKosExecutes.rejectAll(reason);
     this.pendingFlightRpc.rejectAll(reason);
+    this.pendingKerbcamNegotiate.rejectAll(reason);
   }
 
   /**
@@ -866,6 +982,16 @@ export class PeerClientService {
         this.pendingQueries.resolve(msg.requestId, { t: msg.t, v: msg.v });
       }
     },
+    "kerbcam-negotiate-response": (msg) => {
+      if (msg.error || !msg.answer) {
+        this.pendingKerbcamNegotiate.reject(
+          msg.requestId,
+          new Error(msg.error ?? "no answer in kerbcam negotiate response"),
+        );
+      } else {
+        this.pendingKerbcamNegotiate.resolve(msg.requestId, msg.answer);
+      }
+    },
     "flight-rpc-response": (msg) => {
       if (msg.error) {
         this.pendingFlightRpc.reject(msg.requestId, new Error(msg.error));
@@ -981,6 +1107,10 @@ export class PeerClientService {
    * already-negotiated ICE pair and aren't disturbed.
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
+    // Expose for the brokered kerbcam data source regardless of whether the
+    // Peer is up yet — the kerbcam client reads these for its own connection.
+    this.relayIceServers = iceServers;
+    this.relayIceServersListeners.fire(iceServers);
     if (!this.peer) return;
     const opts = (
       this.peer as unknown as {
@@ -993,6 +1123,16 @@ export class PeerClientService {
         `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast — station→relay camera channel can now use TURN`,
       );
     }
+  }
+
+  /** Latest relay TURN creds the host has broadcast (empty until one arrives). */
+  getRelayIceServers(): RTCIceServer[] {
+    return this.relayIceServers;
+  }
+
+  /** Notified whenever the host broadcasts a fresh set of relay TURN creds. */
+  onRelayIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void {
+    return this.relayIceServersListeners.add(cb);
   }
 
   /** Latest relay peer id the host has announced, or null if none. */
@@ -1059,6 +1199,9 @@ export class PeerClientService {
     this.tearDownPeer();
     this.rejectPendingQueries("peer client disconnected");
     this.hostPeerId = null;
+    // Clear the reconnect target so any in-flight share-code resolve bails
+    // when it lands (it checks `this.shareCode` hasn't changed).
+    this.shareCode = null;
     logger.info("[PeerClient] disconnected");
   }
 }

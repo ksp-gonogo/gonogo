@@ -66,3 +66,45 @@ export function relayBaseUrl(): string {
   const env = import.meta.env as Record<string, string | undefined>;
   return (env.VITE_RELAY_URL ?? DEFAULT_RELAY_URL).replace(/\/$/, "");
 }
+
+/**
+ * Resolve a host share-code to its current PeerJS peer id via the relay's
+ * `/host/:shareCode` registry. Returns the peer id, or `null` when the
+ * relay is unreachable or doesn't know the code (404) — the station then
+ * falls back to treating the typed value as a direct peer id (back-compat
+ * with the no-relay flow).
+ *
+ * The host registers `shareCode → peerId` on every PeerJS open + heartbeat,
+ * so a station re-resolving on each reconnect auto-follows the host's
+ * peer-id rotation without the operator re-sharing a code. See
+ * `local_docs/relay-host-discovery.md`.
+ */
+export async function resolveHostPeerId(
+  shareCode: string,
+): Promise<string | null> {
+  const url = `${relayBaseUrl()}/host/${encodeURIComponent(shareCode)}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (res.status === 404) {
+      logger.debug(`[ice] relay doesn't know share code ${shareCode}`);
+      return null;
+    }
+    if (!res.ok) {
+      logger.warn(`[ice] relay /host returned ${res.status}`);
+      return null;
+    }
+    const body = (await res.json()) as { peerId?: unknown };
+    return typeof body.peerId === "string" ? body.peerId : null;
+  } catch (err) {
+    logger.debug(
+      `[ice] relay /host resolve failed — treating code as a direct peer id (${
+        err instanceof Error ? err.message : String(err)
+      })`,
+    );
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}

@@ -62,21 +62,22 @@ function isLocalDevOrigin(origin: string): boolean {
  *     machines can't reach those, so the QR points at the canonical
  *     deploy instead.
  *
- * The host id rides as `?host=` so the station screen can auto-connect
- * on landing without the user typing anything. The PeerJS broker
- * resolves `?host=` regardless of where the station SPA is hosted.
+ * The share code (or raw peer id when the relay is unreachable) rides as
+ * `?host=` so the station screen can auto-connect on landing without the
+ * user typing anything. The station resolves `?host=` via the relay first,
+ * falling back to a direct peer-id connect.
  */
-function buildStationUrl(peerId: string): string {
+function buildStationUrl(code: string): string {
   const override = import.meta.env.VITE_STATION_URL;
   if (override) {
-    return `${override.replace(/\/$/, "")}?host=${encodeURIComponent(peerId)}`;
+    return `${override.replace(/\/$/, "")}?host=${encodeURIComponent(code)}`;
   }
   const origin = globalThis.location.origin;
   if (isLocalDevOrigin(origin)) {
-    return `${PROJECT_STATION_URL}?host=${encodeURIComponent(peerId)}`;
+    return `${PROJECT_STATION_URL}?host=${encodeURIComponent(code)}`;
   }
   const base = import.meta.env.BASE_URL;
-  return `${origin}${base}station?host=${encodeURIComponent(peerId)}`;
+  return `${origin}${base}station?host=${encodeURIComponent(code)}`;
 }
 
 function StationLinkPanel() {
@@ -85,10 +86,20 @@ function StationLinkPanel() {
   // to the service singleton directly — it already drives the provider's
   // state, so this sees the same value without relying on React context.
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
+  // Whether the relay has accepted our share-code → peer-id registration.
+  // When true, stations can resolve the stable share-code, so we surface it
+  // (it survives host refreshes); when false, the relay isn't reachable and
+  // the only thing a station can connect to is the raw, ephemeral peer id.
+  const [relayRegistered, setRelayRegistered] = useState(
+    peerHostService.relayRegistered,
+  );
   useEffect(() => {
-    const unsub = peerHostService.onPeerIdChange(setPeerId);
+    const unsubId = peerHostService.onPeerIdChange(setPeerId);
+    const unsubRelay =
+      peerHostService.onRelayRegisteredChange(setRelayRegistered);
     return () => {
-      unsub();
+      unsubId();
+      unsubRelay();
     };
   }, []);
 
@@ -96,13 +107,17 @@ function StationLinkPanel() {
     return <Empty>Connecting to peer network…</Empty>;
   }
 
-  const url = buildStationUrl(peerId);
+  // The value a station types / the QR encodes / the link carries — all
+  // three MUST be the same. Share-code when the relay can resolve it,
+  // otherwise the raw peer id (no-relay fallback).
+  const shareValue = relayRegistered ? peerHostService.shareCode : peerId;
+  const url = buildStationUrl(shareValue);
 
   return (
     <Wrap>
       <Row>
-        <Label>Host ID</Label>
-        <Code>{peerId}</Code>
+        <Label>{relayRegistered ? "Share code" : "Host ID"}</Label>
+        <Code>{shareValue}</Code>
       </Row>
       <UrlRow>
         <Label>Link</Label>
@@ -118,20 +133,26 @@ function StationLinkPanel() {
         Scan to open <code>/station</code> on another device — it&apos;ll
         auto-connect to this host. Or copy the link above.
       </Hint>
-      <RegenerateRow />
+      <RegenerateRow relayRegistered={relayRegistered} />
     </Wrap>
   );
 }
 
 /**
  * Two-step button: idle → "Regenerate" → "Confirm" → kicks the host's
- * peer service. Stations connected with the previous code will lose
- * their data channel and need to be re-shared via QR / link. Useful
- * when the broker is still holding a ghost session for the persisted
- * id (the "ID is taken" recovery path) and when the operator wants
- * to rotate the share code for any other reason.
+ * peer service (`regeneratePeerId` — mints a fresh PeerJS id; the stable
+ * share-code is untouched).
+ *
+ * The copy adapts to whether the relay is registering this host:
+ *  - **Relay registered** — the share-code is stable and stations
+ *    re-resolve it via the relay, so a peer-id rotation is transparent:
+ *    connected stations auto-reconnect, the displayed code doesn't change.
+ *    The button is purely the "host stuck on ID-is-taken" recovery.
+ *  - **No relay** — the operator-facing identity IS the peer id, so
+ *    regenerating changes the code stations type and disconnects every
+ *    station until re-shared (the pre-relay behaviour).
  */
-function RegenerateRow() {
+function RegenerateRow({ relayRegistered }: { relayRegistered: boolean }) {
   const [phase, setPhase] = useState<"idle" | "confirming" | "running">("idle");
 
   useEffect(() => {
@@ -153,22 +174,34 @@ function RegenerateRow() {
     <RegenerateWrap>
       {phase === "idle" && (
         <GhostButton type="button" onClick={() => setPhase("confirming")}>
-          Regenerate code
+          {relayRegistered ? "Reset connection" : "Regenerate code"}
         </GhostButton>
       )}
       {phase === "confirming" && (
         <GhostButton type="button" onClick={run}>
-          Confirm — disconnects every station
+          {relayRegistered
+            ? "Confirm — briefly drops stations"
+            : "Confirm — disconnects every station"}
         </GhostButton>
       )}
       {phase === "running" && (
         <GhostButton type="button" disabled>
-          Regenerating…
+          {relayRegistered ? "Resetting…" : "Regenerating…"}
         </GhostButton>
       )}
       <RegenerateHint>
-        Use this if the host is stuck on &ldquo;ID is taken&rdquo; or you want a
-        fresh share code. Connected stations will need the new code.
+        {relayRegistered ? (
+          <>
+            Use this if the host is stuck on &ldquo;ID is taken&rdquo;. The
+            share code above stays the same — connected stations re-resolve it
+            and reconnect automatically.
+          </>
+        ) : (
+          <>
+            Use this if the host is stuck on &ldquo;ID is taken&rdquo; or you
+            want a fresh share code. Connected stations will need the new code.
+          </>
+        )}
       </RegenerateHint>
     </RegenerateWrap>
   );

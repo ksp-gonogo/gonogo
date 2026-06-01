@@ -8,3 +8,7 @@ export function getCameraLifecycle(cam: CameraState): CameraLifecycle {
     ? CameraLifecycle.Destroyed
     : CameraLifecycle.Active;
 }
+
+export function isCameraDestroyed(cam: CameraState): boolean {
+  return getCameraLifecycle(cam) === CameraLifecycle.Destroyed;
+}

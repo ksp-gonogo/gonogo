@@ -8,13 +8,19 @@ import { isScriptable, ListenerSet } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
-import { fetchHostIceServers } from "./iceServers";
+import { fetchHostIceServers, relayBaseUrl } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
 
 const PEER_ID_KEY = "gonogo-host-peer-id";
+// Stable, operator-facing identity. Distinct from PEER_ID_KEY (the
+// ephemeral PeerJS id, which the broker forces us to rotate on any
+// navigation). Persisted once and never rotated — stations type/scan this
+// and resolve it to the current peer id via the relay. See
+// `local_docs/relay-host-discovery.md`.
+const SHARE_CODE_KEY = "gonogo-host-share-code";
 
 /**
  * Cheap structural compare for two iceServers configs. Good enough
@@ -77,6 +83,26 @@ function getOrCreatePeerId(): string {
   localStorage.setItem(PEER_ID_KEY, id);
   return id;
 }
+
+/**
+ * The host's stable share-code, minted once and persisted. Unlike the
+ * peer id, this never rotates — a host refresh re-registers a (possibly
+ * new) peer id under the *same* share-code, so the operator's code stays
+ * valid and stations re-resolve transparently.
+ */
+function getOrCreateShareCode(): string {
+  const saved = localStorage.getItem(SHARE_CODE_KEY);
+  if (saved) return saved;
+  const code = generateShortId();
+  localStorage.setItem(SHARE_CODE_KEY, code);
+  return code;
+}
+
+/** Heartbeat cadence for re-registering the share-code → peer-id mapping.
+ *  Well within the relay's ~90s TTL so a single missed beat doesn't expire
+ *  the entry. */
+const HOST_HEARTBEAT_MS = 30_000;
+const RELAY_POST_TIMEOUT_MS = 4_000;
 
 type StationInfoListener = (
   peerId: string,
@@ -246,11 +272,23 @@ export class PeerHostService {
   private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
 
   peerId: string | null = null;
+  /** Stable, operator-facing share-code. Persisted; never rotates. The
+   *  "Add station" UI shows this (not the ephemeral peer id) whenever the
+   *  relay is reachable, and stations resolve it to the current peer id
+   *  via the relay. */
+  readonly shareCode: string = getOrCreateShareCode();
   /** ICE servers fetched from the relay on start(). Exposed so the
    *  TURN reachability probe can re-use exactly what the host's Peer
    *  was constructed with. Empty `[]` means the fetch failed or no
    *  relay is configured. */
   iceServers: RTCIceServer[] = [];
+  /** True once the relay has accepted a `shareCode → peerId` registration
+   *  (`POST /host` returned 2xx). This — not `iceServers` (which is `[]`
+   *  whenever coturn is down but the relay process is up) — is the signal
+   *  the "Add station" UI gates on to decide whether to surface the
+   *  share-code (resolvable) or fall back to the raw peer id. */
+  relayRegistered = false;
+  private relayRegisteredListeners = new ListenerSet<[boolean]>();
 
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
@@ -267,6 +305,11 @@ export class PeerHostService {
   // rebuild of the relay container silently breaks new TURN allocations
   // until the operator hard-refreshes the host page.
   private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  // Periodically re-POSTs the share-code → peer-id mapping to the relay so
+  // its entry doesn't expire (TTL ~90s). Started on the first PeerJS open,
+  // stopped in stop(). Best-effort throughout — relay down just means
+  // stations fall back to treating the typed code as a direct peer id.
+  private relayHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
   // Exponential-backoff state for the broker-reconnect path. PeerJS's
   // `disconnected` event fires synchronously from the WS's `onclose`
   // handler — if the broker is unreachable or rate-limiting us, the
@@ -321,6 +364,12 @@ export class PeerHostService {
       logger.setIdentity({ role: "host", id, peerId: id });
       logger.info(`[PeerHost] open — id=${id}`);
       this.idListeners.fire(id);
+      // Register the stable share-code → current peer-id mapping with the
+      // relay so stations can resolve the code to *this* (possibly rotated)
+      // id. Best-effort: relay down → stations fall back to direct peer id.
+      // The heartbeat keeps the relay entry alive for the session.
+      void this.registerWithRelay();
+      this.startRelayHeartbeat();
     });
 
     this.peer.on("connection", (conn) => {
@@ -344,7 +393,12 @@ export class PeerHostService {
         // Bundles iceServers so the station's Peer can configure TURN for
         // the station→relay camera channel (without TURN the relay's
         // container-bridge candidates are unreachable from the LAN).
-        if (this.relayPeerId !== null) {
+        //
+        // Send when there's a relay peer id (OCISLY) OR just TURN creds: a
+        // brokered kerbcam station has no relay *peer* (it streams direct from
+        // the sidecar) but still needs the relay's TURN creds for the non-LAN
+        // hop, and a station can't fetch /ice-config itself (localhost).
+        if (this.relayPeerId !== null || this.iceServers.length > 0) {
           conn.send({
             type: "relay-peer-id",
             peerId: this.relayPeerId,
@@ -826,6 +880,9 @@ export class PeerHostService {
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
     },
+    "kerbcam-negotiate-request": (msg, conn) => {
+      void this.handleKerbcamNegotiate(msg, conn);
+    },
     "flight-rpc-request": (msg, conn) => {
       void this.handleFlightRpcRequest(msg, conn);
     },
@@ -1105,6 +1162,48 @@ export class PeerHostService {
     }
   }
 
+  // Station broker: relay a station's kerbcam offer to the local sidecar (only
+  // the main screen can reach its address) and return the answer. Signaling
+  // only — media flows station↔sidecar directly off the answer's ICE candidates.
+  private async handleKerbcamNegotiate(
+    msg: Extract<PeerMessage, { type: "kerbcam-negotiate-request" }>,
+    conn: DataConnection,
+  ) {
+    const { getDataSource } = await import("@gonogo/core");
+    const source = getDataSource("kerbcam") as
+      | (ReturnType<typeof getDataSource> & {
+          relayOffer?: (offer: {
+            sdp: string;
+            cameras: number[];
+            slots?: number;
+          }) => Promise<{ sdp: string; cameras: number[] }>;
+        })
+      | undefined;
+    const respond = (
+      answer?: { sdp: string; cameras: number[] },
+      error?: string,
+    ) => {
+      conn.send({
+        type: "kerbcam-negotiate-response",
+        requestId: msg.requestId,
+        answer,
+        error,
+      } satisfies PeerMessage);
+    };
+    if (!source || typeof source.relayOffer !== "function") {
+      respond(undefined, "kerbcam source unavailable on host");
+      return;
+    }
+    try {
+      const answer = await source.relayOffer(msg.offer);
+      respond(answer);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error("[PeerHost] kerbcam negotiate failed", error);
+      respond(undefined, error.message);
+    }
+  }
+
   private async handleKosExecuteRequest(
     msg: Extract<PeerMessage, { type: "kos-execute-request" }>,
     conn: DataConnection,
@@ -1269,6 +1368,8 @@ export class PeerHostService {
     this.flightListChangeUnsub = null;
     this.currentFlightSnapshot = null;
     this.stopIceConfigRefresh();
+    this.stopRelayHeartbeat();
+    this.setRelayRegistered(false);
     if (this.brokerReconnectTimer !== null) {
       clearTimeout(this.brokerReconnectTimer);
       this.brokerReconnectTimer = null;
@@ -1295,6 +1396,89 @@ export class PeerHostService {
     this.iceConfigRefreshTimer = setInterval(() => {
       void this.refreshIceConfig();
     }, REFRESH_MS);
+  }
+
+  /**
+   * POST the current `{ shareCode, peerId }` to the relay's host registry.
+   * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
+   * debug and swallowed — the relay is optional infrastructure, and
+   * stations fall back to treating the typed code as a direct peer id when
+   * resolution fails. No-op until the Peer has an id.
+   */
+  private async registerWithRelay(peerIdOverride?: string): Promise<void> {
+    // `peerIdOverride` lets a graceful rotation pre-register the NEW id
+    // before the current Peer is torn down — see rotatePeerIdGracefully.
+    const peerId = peerIdOverride ?? this.peerId;
+    if (!peerId) return;
+    const url = `${relayBaseUrl()}/host`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RELAY_POST_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ shareCode: this.shareCode, peerId }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        debugPeer("host relay register non-ok", {
+          status: res.status,
+          shareCode: this.shareCode,
+        });
+        this.setRelayRegistered(false);
+        return;
+      }
+      debugPeer("host registered with relay", {
+        shareCode: this.shareCode,
+        peerId,
+      });
+      this.setRelayRegistered(true);
+    } catch (err) {
+      // Relay unreachable is the common, expected case (no relay deployed,
+      // local-only dev). Keep it at debug so it doesn't spam the ring buffer.
+      debugPeer("host relay register failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      this.setRelayRegistered(false);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private setRelayRegistered(next: boolean): void {
+    if (this.relayRegistered === next) return;
+    this.relayRegistered = next;
+    this.relayRegisteredListeners.fire(next);
+  }
+
+  /**
+   * Subscribe to relay-registration state. Fires with the current value
+   * immediately (so a late subscriber — e.g. the Add Station modal opening
+   * after the first POST already landed — sees the right state without
+   * waiting for the next heartbeat) and on every subsequent change.
+   */
+  onRelayRegisteredChange(cb: (registered: boolean) => void): () => void {
+    const unsub = this.relayRegisteredListeners.add(cb);
+    queueMicrotask(() => cb(this.relayRegistered));
+    return unsub;
+  }
+
+  /**
+   * Begin the periodic relay heartbeat so the share-code → peer-id mapping
+   * doesn't expire (relay TTL ~90s). Idempotent — a second call while the
+   * timer is live is a no-op. Cleared in stop().
+   */
+  private startRelayHeartbeat(): void {
+    if (this.relayHeartbeatTimer) return;
+    this.relayHeartbeatTimer = setInterval(() => {
+      void this.registerWithRelay();
+    }, HOST_HEARTBEAT_MS);
+  }
+
+  private stopRelayHeartbeat(): void {
+    if (!this.relayHeartbeatTimer) return;
+    clearInterval(this.relayHeartbeatTimer);
+    this.relayHeartbeatTimer = null;
   }
 
   private stopIceConfigRefresh(): void {
@@ -1373,6 +1557,15 @@ export class PeerHostService {
     logger.info(
       `[PeerHost] rotating peer id — reason=${reason}, newId=${newPeerId}, liveConns=${liveConns}`,
     );
+    // Pre-register the NEW peer id under the (unchanged) share-code with
+    // the relay BEFORE tearing the old Peer down. This closes the window
+    // where a station re-resolving mid-rotation would otherwise get the
+    // stale pre-rotation id: the host's re-registration would normally
+    // only happen inside the fresh Peer's `open` handler, i.e. after the
+    // destroy that closed the station's channel. Best-effort — relay down
+    // just means stations rely on the `host-id-rotation` broadcast
+    // fast-path (and the next heartbeat) instead.
+    await this.registerWithRelay(newPeerId);
     if (liveConns > 0) {
       this.broadcast({ type: "host-id-rotation", newPeerId, reason });
       // Empirical flush window — see method JSDoc.

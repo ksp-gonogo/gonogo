@@ -1,5 +1,5 @@
 /**
- * Tests for the `ExpCameraFeed` component.
+ * Tests for the `CameraFeed` component.
  *
  * Two halves:
  *  - the "SIGNAL LOST" overlay + zoom / pan / resize / CommNet feedback
@@ -9,11 +9,14 @@
  *    and empty state) that mirrors the OCISLY `CameraFeed`.
  *
  * Everything drives the real `KerbcamDataSource` + real `useKerbcamCameras`
- * / `useKerbcamStream` hooks through a fake transport
- * (`createMockKerbcamSession`); the only thing faked is the WebRTC
- * transport, because jsdom can't produce a real `MediaStream`. Multi-camera
- * scenarios are expressed purely as `camera-snapshot` payloads — the shared
- * `MockKerbcamSession` is a transport-level fake and needs no extension.
+ * / `useKerbcamStream` hooks through the SDK's canonical `MockSidecar`
+ * (`@jonpepler/kerbcam/testing`) — the protocol-level fake that owns a camera
+ * registry and speaks the full kerbcam wire protocol. The only thing faked is
+ * the WebRTC transport, because jsdom can't produce a real `MediaStream`.
+ * Multi-camera scenarios are expressed by populating the sidecar's registry
+ * (`addCamera` / `setCameras`); state changes go through `updateCamera` /
+ * `destroyCamera`; client commands are inspected via the parsed `commands`
+ * array.
  */
 
 import type {
@@ -29,24 +32,26 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import {
+  type CameraLifecycle,
+  type ClientMessage,
+  Layer,
+} from "@jonpepler/kerbcam";
+import { type MockCameraInit, MockSidecar } from "@jonpepler/kerbcam/testing";
+import {
   act,
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "../KerbcamDataSource";
-import {
-  createMockKerbcamSession,
-  kerbcamFetchImpl,
-  type MockKerbcamSession,
-} from "../test/MockKerbcamSession";
-import { ExpCameraFeed, type ExpCameraFeedConfig } from "./ExpCameraFeed";
+import { CameraFeed, type CameraFeedConfig } from "./CameraFeed";
 
 // ---------------------------------------------------------------------------
-// Render helper — ExpCameraFeed calls useActionInput, which reads its instance
+// Render helper — CameraFeed calls useActionInput, which reads its instance
 // ID from the enclosing DashboardItemContext. Rendering the component bare
 // throws ("must be used inside a DashboardItemContext.Provider"), so every
 // test goes through this wrapper. Mirrors CameraFeed/index.test.tsx's
@@ -54,15 +59,15 @@ import { ExpCameraFeed, type ExpCameraFeedConfig } from "./ExpCameraFeed";
 // test drives the serial-input path directly.
 // ---------------------------------------------------------------------------
 
-const TEST_INSTANCE_ID = "exp-camera-feed-test";
+const TEST_INSTANCE_ID = "camera-feed-test";
 
 function renderFeed(
-  config: ExpCameraFeedConfig,
-  onConfigChange?: ComponentProps<ExpCameraFeedConfig>["onConfigChange"],
+  config: CameraFeedConfig,
+  onConfigChange?: ComponentProps<CameraFeedConfig>["onConfigChange"],
 ): ReturnType<typeof render> {
   return render(
     <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
-      <ExpCameraFeed
+      <CameraFeed
         config={config}
         id={TEST_INSTANCE_ID}
         onConfigChange={onConfigChange}
@@ -77,16 +82,16 @@ function renderFeed(
 // serial action) → onConfigChange persists flightId → the widget re-renders
 // against the new selection — rather than just spying on the callback.
 function renderStatefulFeed(
-  initial: ExpCameraFeedConfig,
+  initial: CameraFeedConfig,
 ): ReturnType<typeof render> {
   function Harness() {
-    const [config, setConfig] = useState<ExpCameraFeedConfig>(initial);
+    const [config, setConfig] = useState<CameraFeedConfig>(initial);
     return (
       <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
-        <ExpCameraFeed
+        <CameraFeed
           config={config}
           id={TEST_INSTANCE_ID}
-          onConfigChange={(next) => setConfig(next as ExpCameraFeedConfig)}
+          onConfigChange={(next) => setConfig(next as CameraFeedConfig)}
         />
       </DashboardItemContext.Provider>
     );
@@ -137,6 +142,59 @@ function makeCamera(overrides: CameraStateLike): CameraStateLike {
   };
 }
 
+// Translate a loose `CameraStateLike` (string enum values, ~25 fields) into the
+// SDK's `MockCameraInit`. Every field is mapped through — not a subset — so the
+// resulting camera matches the old fixture exactly and `buildCamera`'s differing
+// defaults (e.g. `supportsZoom: true`, `fov: 60`, `layers: [Near]`) never leak
+// in. The enum-typed fields are cast (their runtime string values already match
+// the enum members); the rest are plain number/string/boolean pass-through.
+function toInit(c: CameraStateLike): MockCameraInit {
+  return {
+    flightId: c.flightId,
+    lifecycle: c.lifecycle as CameraLifecycle | undefined,
+    partName: c.partName as string | undefined,
+    partTitle: c.partTitle as string | undefined,
+    cameraName: c.cameraName as string | undefined,
+    vesselName: c.vesselName as string | undefined,
+    layers: c.layers as Layer[] | undefined,
+    operatorLayers: c.operatorLayers as Layer[] | undefined,
+    renderWidth: c.renderWidth as number | undefined,
+    renderHeight: c.renderHeight as number | undefined,
+    operatorWidth: c.operatorWidth as number | undefined,
+    operatorHeight: c.operatorHeight as number | undefined,
+    supportsZoom: c.supportsZoom as boolean | undefined,
+    fov: c.fov as number | undefined,
+    fovMin: c.fovMin as number | undefined,
+    fovMax: c.fovMax as number | undefined,
+    supportsPan: c.supportsPan as boolean | undefined,
+    panYaw: c.panYaw as number | undefined,
+    panPitch: c.panPitch as number | undefined,
+    panYawMin: c.panYawMin as number | undefined,
+    panYawMax: c.panYawMax as number | undefined,
+    panPitchMin: c.panPitchMin as number | undefined,
+    panPitchMax: c.panPitchMax as number | undefined,
+    encoderBitrateBps: c.encoderBitrateBps as number | undefined,
+    targetBitrateBps: c.targetBitrateBps as number | undefined,
+    degradeLevel: c.degradeLevel as number | undefined,
+  };
+}
+
+// Build a URL-aware fetch impl for the connect handshake: GET `/ice-config`
+// (TURN creds) → empty server list (no relay); the SDK client's POST `/offer`
+// → an SDP answer carrying the given flightIds, so the client opens a track for
+// every camera it's about to learn about. `makeOfferResponse` is called per
+// invocation because a `Response` body is single-use.
+function kerbcamFetch(
+  cameras: number[],
+): (input: RequestInfo | URL) => Promise<Response> {
+  return async (input) => {
+    if (String(input).includes("/ice-config")) {
+      return new Response(JSON.stringify({ iceServers: [] }), { status: 200 });
+    }
+    return MockSidecar.makeOfferResponse(cameras);
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Global ResizeObserver stub — jsdom doesn't ship one. The resize-observer
 // describe block installs a controllable version in its own beforeEach; all
@@ -156,9 +214,7 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockImplementation(
-    kerbcamFetchImpl({ cameras: [42] }),
-  );
+  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetch([42]));
 });
 
 afterEach(() => {
@@ -180,37 +236,36 @@ async function buildConnectedSource(
   cameras: CameraStateLike[] = [
     makeCamera({ flightId: 42, cameraName: "Starboard Cam" }),
   ],
-): Promise<{ ds: KerbcamDataSource; session: MockKerbcamSession }> {
-  const session = createMockKerbcamSession();
-  const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+  const sidecar = new MockSidecar();
+  for (const c of cameras) {
+    sidecar.addCamera(toInit(c));
+  }
+  const ds = new KerbcamDataSource(
+    { host: "h", port: 1 },
+    sidecar.createTransport(),
+  );
 
   registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
 
   // Keep the /offer answer's `cameras` array in sync with the snapshot so the
   // client opens a track for every flightId it's about to learn about.
   vi.spyOn(globalThis, "fetch").mockImplementation(
-    kerbcamFetchImpl({ cameras: cameras.map((c) => c.flightId) }),
+    kerbcamFetch(cameras.map((c) => c.flightId)),
   );
 
   await act(async () => {
     await ds.connect();
   });
 
-  // Open the control channel and complete the Hello handshake.
+  // Complete the WebRTC handshake: open() fires the channel-open handler and
+  // pushes hello + camera-snapshot (built from the cameras added above).
   await act(async () => {
-    session.openChannel();
-    session.setState("connected");
-    session.sendServerMessage({
-      type: "hello",
-      content: { sidecarVersion: "0.3.2", encoderBackend: "openh264" },
-    });
-    session.sendServerMessage({
-      type: "camera-snapshot",
-      content: { cameras },
-    });
+    sidecar.open();
+    sidecar.setConnectionState("connected");
   });
 
-  return { ds, session };
+  return { ds, sidecar };
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +316,7 @@ function makeDataSource(
 // Camera selection — picker, Next/Previous, serial actions, empty/status
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — camera selection", () => {
+describe("CameraFeed — camera selection", () => {
   const TWO_CAMERAS = [
     makeCamera({
       flightId: 42,
@@ -438,19 +493,16 @@ describe("ExpCameraFeed — camera selection", () => {
   });
 
   it("falls back to the first camera when the configured one disappears", async () => {
-    const { ds, session } = await buildConnectedSource(TWO_CAMERAS);
+    const { ds, sidecar } = await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: 44 });
     expect(screen.getByRole("heading", { name: "Tail Cam" })).toBeTruthy();
 
     // The vessel changes — only flightId 42 survives.
     await act(async () => {
-      session.sendServerMessage({
-        type: "camera-snapshot",
-        content: {
-          cameras: [makeCamera({ flightId: 42, cameraName: "Starboard Cam" })],
-        },
-      });
+      sidecar.setCameras([
+        toInit(makeCamera({ flightId: 42, cameraName: "Starboard Cam" })),
+      ]);
     });
 
     // Configured 44 is gone → widget falls back to the surviving first camera
@@ -481,7 +533,7 @@ describe("ExpCameraFeed — camera selection", () => {
   });
 });
 
-describe("ExpCameraFeed — empty state and status", () => {
+describe("CameraFeed — empty state and status", () => {
   it("shows the no-cameras empty state and hides the picker when connected with no cameras", async () => {
     const { ds } = await buildConnectedSource([]);
 
@@ -491,41 +543,33 @@ describe("ExpCameraFeed — empty state and status", () => {
     expect(screen.queryByRole("combobox", { name: /camera/i })).toBeNull();
     // No <video> element either.
     expect(document.querySelector("video")).toBeNull();
-    // Empty-state copy tells the operator the sidecar IS up.
-    expect(
-      screen.getByText(/start a vessel with hullcams installed/i),
-    ).toBeTruthy();
+    // Neutral empty-state copy — connection/transport detail is intentionally
+    // NOT shown here (it lives in the Data Sources widget).
+    expect(screen.getByText(/start a vessel with hullcam parts/i)).toBeTruthy();
 
     ds.disconnect();
   });
 
-  it("surfaces the sidecar connection status via a live status indicator", async () => {
-    const { ds } = await buildConnectedSource();
-
-    renderFeed({ flightId: 42 });
-
-    // The status indicator is a named live region; scope by name so it does
-    // not collide with the SIGNAL LOST overlay (also role="status").
-    const status = screen.getByRole("status", { name: /sidecar connected/i });
-    expect(status.textContent).toMatch(/sidecar connected/i);
-
-    ds.disconnect();
-  });
-
-  it("renders the offline empty-state copy before the sidecar connects", async () => {
-    // Register a kerbcam source that never connects (status stays disconnected).
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+  it("renders the empty state gracefully when the source is disconnected", async () => {
+    // A kerbcam source that never connects (status stays disconnected): build
+    // the transport but never call connect()/open(). The widget shows the same
+    // neutral empty state and surfaces no in-widget connection status.
+    const sidecar = new MockSidecar();
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
     registerDataSource(
       ds as unknown as Parameters<typeof registerDataSource>[0],
     );
 
     renderFeed({ flightId: null });
 
-    expect(screen.getByText(/is the kerbcam sidecar running/i)).toBeTruthy();
+    expect(screen.getByText(/start a vessel with hullcam parts/i)).toBeTruthy();
+    // No in-widget sidecar status indicator (removed — lives in Data Sources).
     expect(
-      screen.getByRole("status", { name: /sidecar disconnected/i }),
-    ).toBeTruthy();
+      screen.queryByRole("status", { name: /connected|disconnected/i }),
+    ).toBeNull();
   });
 });
 
@@ -533,7 +577,7 @@ describe("ExpCameraFeed — empty state and status", () => {
 // SIGNAL LOST overlay
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
+describe("CameraFeed — SIGNAL LOST overlay", () => {
   it("does not render SIGNAL LOST overlay when camera is active", async () => {
     const { ds } = await buildConnectedSource();
 
@@ -545,33 +589,17 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
   });
 
   it("renders SIGNAL LOST overlay when camera lifecycle transitions to destroyed", async () => {
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     // Confirm the overlay is absent before the destruction event.
     expect(screen.queryByRole("status", { name: /signal lost/i })).toBeNull();
 
-    // Simulate the sidecar broadcasting camera-state-changed with destroyed lifecycle.
+    // Simulate the sidecar reporting the camera's part destroyed — flips the
+    // lifecycle to Destroyed and pushes camera-state-changed.
     await act(async () => {
-      session.sendServerMessage({
-        type: "camera-state-changed",
-        content: {
-          state: makeCamera({
-            flightId: 42,
-            lifecycle: "destroyed",
-            cameraName: "Starboard Cam",
-            layers: [],
-            operatorLayers: [],
-            renderWidth: 0,
-            renderHeight: 0,
-            operatorWidth: 0,
-            operatorHeight: 0,
-            fov: 0,
-            encoderBitrateBps: 0,
-          }),
-        },
-      });
+      sidecar.destroyCamera(42);
     });
 
     // The overlay must now be visible with "SIGNAL LOST" text.
@@ -615,24 +643,17 @@ describe("ExpCameraFeed — SIGNAL LOST overlay", () => {
 // Zoom controls
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — zoom controls", () => {
+describe("CameraFeed — zoom controls", () => {
   it("zoom controls appear when camera supportsZoom", async () => {
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
-    // Initially supportsZoom is false — fire a camera-state-changed to flip it.
+    // Initially supportsZoom is false — apply a partial update to flip it.
     await act(async () => {
-      session.sendServerMessage({
-        type: "camera-state-changed",
-        content: {
-          state: makeCamera({
-            flightId: 42,
-            cameraName: "Starboard Cam",
-            partTitle: "Hullcam Mk1 Zoom",
-            supportsZoom: true,
-          }),
-        },
+      sidecar.updateCamera(42, {
+        partTitle: "Hullcam Mk1 Zoom",
+        supportsZoom: true,
       });
     });
 
@@ -658,7 +679,7 @@ describe("ExpCameraFeed — zoom controls", () => {
 // ResizeObserver render-size feedback
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
+describe("CameraFeed — ResizeObserver render-size feedback", () => {
   let resizeCallback:
     | ((entries: ResizeObserverEntry[], observer: ResizeObserver) => void)
     | undefined;
@@ -685,11 +706,12 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
   });
 
   it("render-size observer fires set-render-size command", async () => {
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
-    // Fire the resize observer callback with a 400×400 contentRect
+    // Fire the resize observer callback with a 400-wide contentRect (height is
+    // ignored — the widget derives a 16:9 frame from the width).
     await act(async () => {
       resizeCallback?.(
         [{ contentRect: { width: 400, height: 400 } }] as ResizeObserverEntry[],
@@ -702,19 +724,12 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
       vi.advanceTimersByTime(501);
     });
 
-    const sent = session.sentMessages;
-    const parsed = sent.map(
-      (s) =>
-        JSON.parse(s) as {
-          type: string;
-          content: { width?: number; height?: number };
-        },
-    );
-    const renderSizeMsg = parsed.find((m) => m.type === "set-render-size");
+    const renderSizeMsg = sidecar.lastCommand("set-render-size");
     expect(renderSizeMsg).toBeTruthy();
-    // 400 is already even
+    // Width as-is (already even); height derived 16:9 then rounded to the
+    // nearest even px (H.264 chroma): 400 * 9/16 = 225 → 226.
     expect(renderSizeMsg?.content.width).toBe(400);
-    expect(renderSizeMsg?.content.height).toBe(400);
+    expect(renderSizeMsg?.content.height).toBe(226);
 
     ds.disconnect();
   });
@@ -724,35 +739,32 @@ describe("ExpCameraFeed — ResizeObserver render-size feedback", () => {
 // Pan reticle
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — pan reticle", () => {
-  const PAN_CAMERA = makeCamera({
-    flightId: 42,
-    cameraName: "Starboard Cam",
-    layers: ["NEAR"],
-    operatorLayers: ["NEAR"],
+describe("CameraFeed — pan reticle", () => {
+  // The partial applied to the default flightId-42 camera to make it steerable:
+  // a ±45° yaw / ±30° pitch range with pan enabled. Mirrors the old full-camera
+  // PAN_CAMERA fixture, expressed as the changed fields for `updateCamera`.
+  const PAN_FLIP = {
     supportsPan: true,
     panYawMin: -45,
     panYawMax: 45,
     panPitchMin: -30,
     panPitchMax: 30,
-    encoderBitrateBps: 0,
-  });
+    layers: [Layer.Near],
+    operatorLayers: [Layer.Near],
+  };
 
   it("pan controls appear when camera supportsPan", async () => {
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
-    // Flip supportsPan on via a state-changed event.
+    // Flip supportsPan on via a partial state update.
     await act(async () => {
-      session.sendServerMessage({
-        type: "camera-state-changed",
-        content: { state: PAN_CAMERA },
-      });
+      sidecar.updateCamera(42, PAN_FLIP);
     });
 
     expect(screen.getByRole("button", { name: /pan left/i })).toBeTruthy();
-    // PAN_CAMERA has a pitch range, so the pitch arrows are enabled.
+    // The pan flip gives a pitch range, so the pitch arrows are enabled.
     expect(
       (screen.getByRole("button", { name: /pan up/i }) as HTMLButtonElement)
         .disabled,
@@ -775,13 +787,10 @@ describe("ExpCameraFeed — pan reticle", () => {
   it("holding a pan arrow streams set-pan; releasing stops it", async () => {
     vi.useFakeTimers();
 
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
-      session.sendServerMessage({
-        type: "camera-state-changed",
-        content: { state: PAN_CAMERA },
-      });
+      sidecar.updateCamera(42, PAN_FLIP);
     });
 
     renderFeed({ flightId: 42 });
@@ -789,15 +798,10 @@ describe("ExpCameraFeed — pan reticle", () => {
     const leftArrow = screen.getByRole("button", { name: /pan left/i });
 
     const setPanMsgs = () =>
-      session.sentMessages
-        .map(
-          (s) =>
-            JSON.parse(s) as {
-              type: string;
-              content: { flightId?: number; yaw?: number };
-            },
-        )
-        .filter((m) => m.type === "set-pan");
+      sidecar.commands.filter(
+        (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
+          c.type === "set-pan",
+      );
 
     // Hold the arrow — the rate loop fires an absolute set-pan each tick.
     await act(async () => {
@@ -834,7 +838,7 @@ describe("ExpCameraFeed — pan reticle", () => {
 // CommNet degrade
 // ---------------------------------------------------------------------------
 
-describe("ExpCameraFeed — CommNet degrade", () => {
+describe("CameraFeed — CommNet degrade", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -844,7 +848,7 @@ describe("ExpCameraFeed — CommNet degrade", () => {
   });
 
   it("CommNet degrade 0 when signal is full strength", async () => {
-    const { ds, session } = await buildConnectedSource();
+    const { ds, sidecar } = await buildConnectedSource();
 
     // Register a fake "data" source with comm values pre-set
     const dataSource = makeDataSource("data", {
@@ -867,19 +871,94 @@ describe("ExpCameraFeed — CommNet degrade", () => {
       vi.advanceTimersByTime(501);
     });
 
-    const sent = session.sentMessages;
-    const parsed = sent.map(
-      (s) =>
-        JSON.parse(s) as {
-          type: string;
-          content: { flightId?: number; level?: number };
-        },
-    );
-    const degradeMsg = parsed.find((m) => m.type === "set-degrade");
+    const degradeMsg = sidecar.lastCommand("set-degrade");
     expect(degradeMsg).toBeTruthy();
     expect(degradeMsg?.content.flightId).toBe(42);
     // 1 - 1.0 = 0
     expect(degradeMsg?.content.level).toBe(0);
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Station (brokered) mode — the widget runs the SAME hooks, but the data source
+// is in brokered mode: the WebRTC handshake relays through the host (the
+// `negotiate` seam) and TURN comes from the relay broadcast. Driven by the
+// SDK's canonical `MockSidecar` (the protocol-level fake), proving the camera
+// UI works on a station, not just the main screen.
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed — station (brokered) mode", () => {
+  async function buildBrokeredSource(
+    cams: Array<{ flightId: number; cameraName: string; vesselName: string }>,
+  ): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+    const sidecar = new MockSidecar();
+    for (const c of cams) {
+      sidecar.addCamera({
+        flightId: c.flightId,
+        cameraName: c.cameraName,
+        vesselName: c.vesselName,
+        supportsZoom: false,
+      });
+    }
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+    // Brokered: the offer→answer round-trips through the (faked) host instead
+    // of a localhost POST; TURN would come from the relay broadcast (none here).
+    ds.attachBroker({
+      negotiate: (offer) => sidecar.negotiate(offer),
+      iceServers: () => [],
+      onIceServersChange: () => () => {},
+    });
+    registerDataSource(
+      ds as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    await act(async () => {
+      await ds.connect();
+    });
+    await act(async () => {
+      sidecar.open(); // hello + camera-snapshot
+      sidecar.setConnectionState("connected");
+    });
+    return { ds, sidecar };
+  }
+
+  it("lists the host-relayed cameras and shows the selected one", async () => {
+    const { ds } = await buildBrokeredSource([
+      { flightId: 42, cameraName: "Starboard Cam", vesselName: "Kerbal X" },
+      { flightId: 43, cameraName: "Nose Cam", vesselName: "Kerbal X" },
+    ]);
+
+    renderFeed({ flightId: 42 });
+
+    expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
+    const picker = screen.getByRole("combobox", { name: /camera/i });
+    const labels = Array.from(picker.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    );
+    expect(labels).toEqual(["Starboard Cam (Kerbal X)", "Nose Cam (Kerbal X)"]);
+
+    ds.disconnect();
+  });
+
+  it("subscribes the displayed camera through the broker (slot bound)", async () => {
+    const { ds, sidecar } = await buildBrokeredSource([
+      { flightId: 42, cameraName: "Starboard Cam", vesselName: "Kerbal X" },
+    ]);
+
+    renderFeed({ flightId: 42 });
+
+    // The mounted widget's useKerbcamStream subscribed flightId 42, which the
+    // sidecar answered with a slot binding — same dynamic path as the main
+    // screen, but every message rode the brokered connection.
+    await waitFor(() => {
+      expect(sidecar.slotMidFor(42)).toBeDefined();
+    });
+    expect(sidecar.lastCommand("subscribe", 42)).toBeTruthy();
 
     ds.disconnect();
   });

@@ -1,13 +1,13 @@
 #!/usr/bin/env tsx
 /**
- * Render the ExpCameraFeed widget through a real Chromium page with a mocked
+ * Render the CameraFeed widget through a real Chromium page with a mocked
  * kerbcam sidecar + a canvas.captureStream() video — the camera-widget
- * equivalent of the components `render-widget` harness. ExpCameraFeed can't
+ * equivalent of the components `render-widget` harness. CameraFeed can't
  * go through that harness (it needs a live MediaStream and the kerbcam
  * session context), so this is its dedicated renderer.
  *
  * Run: `pnpm --filter @gonogo/kerbcam render-camera`
- * Output: local_docs/renders/exp-camera-feed/<scene>.png
+ * Output: local_docs/renders/camera-feed/<scene>.png
  *
  * Each scene varies the camera's capability flags (pan / pitch / zoom) so a
  * regression in the control layout is visible. Controls are hover-gated, so
@@ -25,7 +25,7 @@ const PROBE_DIR = resolve(HERE, "probe");
 const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "probe.html");
 const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/exp-camera-feed");
+const OUT_DIR = resolve(HERE, "../../../local_docs/renders/camera-feed");
 
 const CAM_BASE = {
   lifecycle: "active",
