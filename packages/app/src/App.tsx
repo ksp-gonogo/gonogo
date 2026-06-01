@@ -1,4 +1,5 @@
 import { PeerHostProvider } from "./peer/PeerHostProvider";
+import { HostedLanding } from "./screens/HostedLanding";
 import { MainScreen } from "./screens/MainScreen";
 import { StationScreen } from "./screens/StationScreen";
 import "./styles/global.css";
@@ -12,6 +13,13 @@ export default function App() {
   const isStation = relative.startsWith("/station");
 
   if (isStation) return <StationScreen />;
+
+  // The main screen reaches KSP's Telemachus over insecure ws://, which a
+  // secure-origin (HTTPS) page can't do (mixed content) — so a hosted build
+  // can never run the main screen. Over HTTPS, show the front-door landing
+  // that points at local setup; over http:// (local container / dev) render
+  // the real main screen. Stations are unaffected — they peer over wss.
+  if (globalThis.location.protocol === "https:") return <HostedLanding />;
 
   return (
     <PeerHostProvider>
