@@ -557,8 +557,10 @@ describe("recorded launch — full mission control flow", () => {
 
       await buffered.connect();
       await peerHostService.start();
-      // Wait for the host's FakePeer to emit "open" with its assigned ID.
-      const hostId = await new Promise<string>((res) => {
+      // Wait for the host's FakePeer to emit "open" (broker confirmed the
+      // derived id), then share the operator-facing CODE — the station
+      // derives `gonogo-host-<code>` from it, same as the host claimed.
+      await new Promise<string>((res) => {
         const unsub = peerHostService.onPeerIdChange((id) => {
           if (id) {
             unsub();
@@ -566,12 +568,13 @@ describe("recorded launch — full mission control flow", () => {
           }
         });
       });
+      const hostCode = peerHostService.shareCode;
       new PeerBroadcastingDataSource(buffered, peerHostService);
 
-      // 2) Route App to the station and feed the host id via the QR-code
+      // 2) Route App to the station and feed the host code via the QR-code
       //    URL param. StationScreen's mount-only effect will read it and
       //    auto-connect.
-      globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
+      globalThis.history.replaceState({}, "", `/station?host=${hostCode}`);
 
       renderApp();
 
@@ -654,7 +657,7 @@ describe("recorded launch — full mission control flow", () => {
       const { FogSyncHostService } = await import("../fog/FogSyncHostService");
 
       await peerHostService.start();
-      const hostId = await new Promise<string>((res) => {
+      await new Promise<string>((res) => {
         const unsub = peerHostService.onPeerIdChange((id) => {
           if (id) {
             unsub();
@@ -662,6 +665,7 @@ describe("recorded launch — full mission control flow", () => {
           }
         });
       });
+      const hostCode = peerHostService.shareCode;
 
       // Pre-populate a host-side fog store with one body's mask. Both
       // sides bucket under DEFAULT_PROFILE_ID now that save-profile
@@ -686,7 +690,7 @@ describe("recorded launch — full mission control flow", () => {
       });
       fogSync.start();
 
-      globalThis.history.replaceState({}, "", `/station?host=${hostId}`);
+      globalThis.history.replaceState({}, "", `/station?host=${hostCode}`);
       renderApp();
 
       // Same gate the previous station test uses — schema arrival flips
