@@ -1,33 +1,18 @@
 /**
- * Widget DOM mirror — TargetPicker. Asserts the panel title, tab labels,
- * and the current-target chip mirror across host and station.
+ * Widget DOM mirror — TargetPicker. Asserts the panel title, tab labels, and
+ * the no-target header state mirror across host and station.
  *
- * The recorded fixture's final snapshot has:
- *   tar.name = "No Target Selected."
- *   tar.type = ""
- *   tar.distance = 0
- *
- * `tar.name` is a string (not undefined), so the widget renders the
- * `CurrentTargetChip` in its header with the literal `tar.name` text —
- * KSP itself reports "No Target Selected." as the active target name
- * when nothing is locked, and the widget pipes that straight through.
- *
- * Default tab is "bodies"; the widget's Tabs row labels ("Bodies",
- * "Vessels", "Current") render regardless of data state, so they're a
- * stable mirror assertion that doesn't depend on the kOS data source
- * (which isn't running in tests).
+ * The recorded fixture's final snapshot has tar.name = "No Target Selected."
+ * — the KSP NO_TARGET_SENTINEL, which `resolveTargetName` maps to undefined.
+ * So the header renders the title and tabs but NOT the current-target chip
+ * (it only appears when a target is set). The tab labels render regardless of
+ * data state, so they're a stable mirror assertion.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror — TargetPicker", () => {
-  // TODO(playwright-rot): rotted while the suite was un-bootable (the OCISLY
-  // proto removal in 55d3fbd broke the global fake-OCISLY webServer, so nothing
-  // ran). The target widget / recorded fixture drifted since. Unrelated to the
-  // kerbcam rename + host-discovery work that revived the suite — sibling
-  // host/station mirror specs (data-source-status, main-station) pass. Re-verify
-  // the current-target chip against the current fixture and re-enable.
-  test.fixme("panel title + tabs + current-target chip mirror across host and station", async ({
+  test("title, tabs, and no-target header mirror across host and station", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "target-picker", {
@@ -51,11 +36,9 @@ test.describe("widget DOM mirror — TargetPicker", () => {
       await expect(page.getByRole("tab", { name: "Current" })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(
-        page.getByLabel(
-          "Current target: No Target Selected.. Open Current tab.",
-        ),
-      ).toBeVisible({ timeout: 15_000 });
+      // No target in the fixture (NO_TARGET_SENTINEL) -> the current-target
+      // chip is absent, on both screens.
+      await expect(page.getByLabel(/^Current target:/)).toHaveCount(0);
     }
 
     await teardownPair(pair);
