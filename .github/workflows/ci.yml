@@ -45,4 +45,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
+      # `pnpm test` runs turbo `test` (dependsOn ^build), so all workspace
+      # dists exist afterwards — the Playwright webServers (relay via tsx →
+      # @gonogo/logger/dist, app via vite) rely on that.
       - run: pnpm test
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright e2e
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

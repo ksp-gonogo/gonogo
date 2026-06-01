@@ -19,20 +19,15 @@ const BROKER_PORT = 9999;
 // developer's actual host stack instead of the test-launched one.
 const APP_PORT = 15173;
 const TELEMACHUS_REPLAY_PORT = 8086;
-// Relay (OCISLY camera fan-out) + a fake OCISLY gRPC backend so the
-// media-stream test exercises the real WebRTC pipe without needing a
-// linux/amd64-only OCISLY container.
+// The relay (/ice-config + coturn + the host-discovery registry).
 //
-// Ports deliberately offset from production defaults (3002, 5077) so
-// the test stack coexists with a developer-side `podman compose up`
-// running their own relay. Without this offset `reuseExistingServer`
-// would pick up the dev relay (pointed at the user's real OCISLY
-// target) instead of launching ours, and the smoke spec asserted
-// against the wrong target after the 2026-05-18 mid-day live test.
-// The app's `DEFAULT_RELAY_URL` is overridden to match via
-// `VITE_RELAY_URL` on the vite dev server below.
+// Port deliberately offset from the production default (3002) so the
+// test stack coexists with a developer-side `podman compose up` running
+// their own relay. Without the offset `reuseExistingServer` would pick
+// up the dev relay instead of launching ours. The app's
+// `DEFAULT_RELAY_URL` is overridden to match via `VITE_RELAY_URL` on the
+// vite dev server below.
 const RELAY_PORT = 13002;
-const FAKE_OCISLY_PORT = 15078;
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -78,20 +73,6 @@ export default defineConfig({
       },
     },
     {
-      command: "node ./tests/playwright/ocisly-fake.mjs",
-      // ocisly-fake doesn't expose an HTTP port — use a short tcp-port
-      // wait via the underlying gRPC port. Playwright's `port` field
-      // matches that pattern.
-      port: FAKE_OCISLY_PORT,
-      reuseExistingServer: !process.env.CI,
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 10_000,
-      env: {
-        FAKE_OCISLY_PORT: String(FAKE_OCISLY_PORT),
-      },
-    },
-    {
       command: "pnpm --filter @gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
@@ -100,8 +81,6 @@ export default defineConfig({
       timeout: 30_000,
       env: {
         PORT: String(RELAY_PORT),
-        OCISLY_HOST: "localhost",
-        OCISLY_PORT: String(FAKE_OCISLY_PORT),
         SKIP_COTURN: "1",
         // Same broker as the app — without this the relay would
         // register on peerjs.com and the host running on
@@ -131,14 +110,10 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
-        // Override BOTH relay URL env vars — iceServers.ts uses
-        // VITE_RELAY_URL (for /ice-config polling) and ocisly.ts uses
-        // VITE_OCISLY_PROXY_URL (for /peer-id discovery). They happen
-        // to point at the same relay in production but each reads its
-        // own env, so missing either leaves part of the camera flow
-        // hitting localhost:3002 (the developer's dev relay).
+        // Point the app's relay client (iceServers.ts — /ice-config +
+        // the host-discovery registry) at the test relay rather than the
+        // dev default (localhost:3002).
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
-        VITE_OCISLY_PROXY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
   ],
@@ -150,5 +125,4 @@ export const PORTS = {
   broker: BROKER_PORT,
   telemachusReplay: TELEMACHUS_REPLAY_PORT,
   relay: RELAY_PORT,
-  fakeOcisly: FAKE_OCISLY_PORT,
 } as const;
