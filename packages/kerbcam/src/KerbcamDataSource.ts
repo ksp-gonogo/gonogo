@@ -32,6 +32,27 @@ export interface KerbcamConfig extends Record<string, unknown> {
   port: number;
 }
 
+/**
+ * Station-side broker. A station can't reach the sidecar's address, so instead
+ * of the default localhost handshake the data source relays the WebRTC
+ * offer→answer through the main screen and sources its TURN creds from the
+ * host's relay broadcast (NOT a localhost `/ice-config` fetch). Media still
+ * flows station↔sidecar directly off the answer's ICE candidates — nothing
+ * about the video crosses PeerJS. The app builds this from `PeerClientService`.
+ */
+export interface KerbcamBroker {
+  /** Relay one offer to the sidecar via the host; resolve with the answer. */
+  negotiate(offer: {
+    sdp: string;
+    cameras: number[];
+    slots?: number;
+  }): Promise<{ sdp: string; cameras: number[] }>;
+  /** Current relay TURN creds (empty until the host has broadcast some). */
+  iceServers(): RTCIceServer[];
+  /** Notified when the host broadcasts fresh relay TURN creds. */
+  onIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void;
+}
+
 const DEFAULT_CONFIG: KerbcamConfig = { host: "127.0.0.1", port: 8088 };
 
 const STORAGE_KEY = "gonogo.datasource.kerbcam";
@@ -39,6 +60,13 @@ const STORAGE_KEY = "gonogo.datasource.kerbcam";
 const PING_WATCHDOG_MS = 15_000;
 const RECONNECT_BASE_MS = 2_000;
 const RECONNECT_MAX_MS = 30_000;
+
+// Dynamic slot-pool size negotiated up front. Each displayed camera widget
+// binds a free slot at runtime via subscribeCamera(); the spare slots let the
+// operator switch cameras with no renegotiation. The Deck only renders/encodes
+// the cameras actually bound to a slot, so the pool size is a cap on
+// simultaneous on-screen feeds, not a steady-state cost.
+const SLOT_COUNT = 6;
 
 // The kerbcam WebRTC stream needs the same TURN relay the PeerJS host uses
 // for non-LAN delivery. The gonogo relay bundles coturn and serves the
@@ -158,10 +186,15 @@ export class BrowserRTCTransport implements KerbcamTransport {
   createPeer(iceServers: RTCIceServer[]): KerbcamPeer {
     const pc = new RTCPeerConnection({ iceServers });
     let trackIdx = 0;
-    let onTrack: ((track: MediaStreamTrack, idx: number) => void) | null = null;
+    let onTrack:
+      | ((track: MediaStreamTrack, idx: number, mid: string) => void)
+      | null = null;
     let onStateChange: ((state: KerbcamConnectionState) => void) | null = null;
     pc.ontrack = (ev) => {
-      onTrack?.(ev.track, trackIdx++);
+      // mid is the stable transceiver id the sidecar keys SlotMap on (set by
+      // the time ontrack fires, post-answer); the SDK routes dynamic-mode
+      // tracks by it.
+      onTrack?.(ev.track, trackIdx++, ev.transceiver.mid ?? "");
     };
     pc.onconnectionstatechange = () => {
       onStateChange?.(mapRTCState(pc.connectionState));
@@ -293,12 +326,21 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   private baseTransport: KerbcamTransport | undefined;
   private client: KerbcamClient;
   private clientUnsubs: Array<() => void> = [];
-  // TURN creds fetched from the relay's /ice-config; empty until the first
-  // connect resolves them (and stays empty when no relay is reachable, in
-  // which case the SDK uses its STUN-only default).
+  // TURN creds: on the main screen, fetched from the relay's /ice-config; on a
+  // brokered station, pushed in from the host's relay broadcast. Empty until
+  // resolved (SDK then uses its STUN-only default).
   private iceServers: RTCIceServer[] = [];
+  // Set on a station via attachBroker(); switches connect() off the localhost
+  // /offer + /ice-config path and onto the host-relayed handshake.
+  private broker: KerbcamBroker | undefined;
+  private brokerIceUnsub: (() => void) | undefined;
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
   private camerasKeySubs = new Set<(value: unknown) => void>();
+  // flightId -> refcount of widgets currently displaying that camera. Drives
+  // the dynamic slot subscription: 0->1 binds a slot, 1->0 frees it. Passed as
+  // the initial set on (re)connect so a reconnect re-binds whatever's on screen
+  // without a client-side round-trip (the sidecar pushes the SlotMaps on Hello).
+  private desiredSubs = new Map<number, number>();
 
   private pingWatchdog: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -316,16 +358,190 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     return this.client;
   }
 
+  /**
+   * Dev diagnostic: a JSON-serialisable snapshot of the stream-routing state,
+   * for chasing black-feed / no-track issues. Reaches into the SDK client's
+   * internals (private — read-only, best-effort).
+   */
+  debugDump(): unknown {
+    const c = this.client as unknown as {
+      dynamicMode?: boolean;
+      cameras?: Array<{ flightId: number }>;
+      trackByMid?: Map<string, MediaStreamTrack>;
+      flightByMid?: Map<string, number>;
+      handles?: Map<number, { mediaStream?: MediaStream | null }>;
+      peer?: unknown;
+    };
+    const trackInfo = (t?: MediaStreamTrack | null) =>
+      t
+        ? { readyState: t.readyState, muted: t.muted, enabled: t.enabled }
+        : null;
+    return {
+      status: this.status,
+      reconnectEnabled: this.reconnectEnabled,
+      brokered: !!this.broker,
+      desiredSubs: [...this.desiredSubs.entries()],
+      dynamicMode: c.dynamicMode ?? null,
+      cameras: c.cameras?.map((cam) => cam.flightId) ?? null,
+      slotTracks: c.trackByMid
+        ? [...c.trackByMid.entries()].map(([mid, t]) => [mid, trackInfo(t)])
+        : null,
+      slotBindings: c.flightByMid ? [...c.flightByMid.entries()] : null,
+      handles: c.handles
+        ? [...c.handles.entries()].map(([fid, h]) => [
+            fid,
+            {
+              hasStream: !!h.mediaStream,
+              tracks: h.mediaStream?.getTracks().map(trackInfo) ?? [],
+            },
+          ])
+        : null,
+    };
+  }
+
   // -- DataSource contract --
 
   async connect(): Promise<void> {
     this.reconnectEnabled = true;
-    await this.applyRelayIce();
+    // Brokered (station) mode gets its TURN creds from the host's relay
+    // broadcast via attachBroker(); the localhost /ice-config fetch would hit the
+    // station's own loopback, so skip it.
+    if (!this.broker) await this.applyRelayIce();
     try {
-      await this.client.connect();
+      await this.client.connect([...this.desiredSubs.keys()], {
+        slots: SLOT_COUNT,
+      });
     } catch (err) {
       this.scheduleReconnect();
       throw err;
+    }
+  }
+
+  /**
+   * Open the connection if nothing has yet — the lazy entry point for a mounted
+   * camera widget that needs the camera list + slot pool *before* it can pick a
+   * specific camera to display. Without this a brokered (station) source
+   * deadlocks: the widget only subscribes once it has a flightId, but the
+   * flightId comes from the camera list, which only arrives after connecting.
+   * A no-op once connecting/connected; on the main screen the data-source
+   * manager connects eagerly, so this just returns.
+   */
+  ensureConnected(): void {
+    if (!this.reconnectEnabled) {
+      void this.connect().catch(() => {});
+    }
+  }
+
+  /**
+   * Bind a camera to a slot for display (dynamic-mode subscription).
+   * Refcounted: the first widget to show `flightId` sends `subscribe` to the
+   * sidecar — allocating a slot and starting render/encode for that camera —
+   * and the last one to stop showing it frees the slot. Called by
+   * {@link useKerbcamStream} on mount/unmount.
+   *
+   * Safe to call while disconnected: the camera is recorded and bound via the
+   * initial set on the next connect, so a widget that mounts before the sidecar
+   * is up still gets its feed once the connection lands.
+   *
+   * On a brokered (station) source this also drives the **lazy connect** — the
+   * source stays disconnected until the first camera widget asks for a stream,
+   * so a station with no camera widget never opens a sidecar peer.
+   */
+  subscribeCamera(flightId: number): void {
+    const count = this.desiredSubs.get(flightId) ?? 0;
+    this.desiredSubs.set(flightId, count + 1);
+    if (this.status === "connected") {
+      if (count === 0) {
+        void this.client.subscribe(flightId).catch(() => {
+          /* channel raced closed — re-bound on next connect via initial set */
+        });
+      }
+      return;
+    }
+    // Not connected. A brokered station source isn't eager-connected anywhere,
+    // so the first widget that wants a stream triggers the connect; the camera
+    // binds via the initial set (desiredSubs). The main screen connects all
+    // sources up front (no broker set), so this stays a no-op there.
+    if (this.broker && !this.reconnectEnabled) {
+      void this.connect().catch(() => {});
+    }
+  }
+
+  /** Release a display reference taken by {@link subscribeCamera}. */
+  unsubscribeCamera(flightId: number): void {
+    const count = this.desiredSubs.get(flightId) ?? 0;
+    if (count === 0) return;
+    if (count > 1) {
+      this.desiredSubs.set(flightId, count - 1);
+      return;
+    }
+    this.desiredSubs.delete(flightId);
+    if (this.status === "connected") {
+      void this.client.unsubscribe(flightId).catch(() => {
+        /* already tearing down */
+      });
+    }
+  }
+
+  /**
+   * Main-screen half of the station broker: forward a station's WebRTC offer to
+   * the sidecar's HTTP `/offer` (only the main screen can reach the sidecar's
+   * address) and return the answer. Signaling only — the answer's ICE
+   * candidates let the station's PeerConnection reach the sidecar directly for
+   * media, so video frames never cross PeerJS. Mirrors the SDK's internal
+   * `httpNegotiate`; kept here (not on the client) because the host relays on
+   * behalf of a remote peer, independent of its own connection.
+   */
+  async relayOffer(offer: {
+    sdp: string;
+    cameras: number[];
+    slots?: number;
+  }): Promise<{ sdp: string; cameras: number[] }> {
+    const res = await fetch(`http://${this.cfg.host}:${this.cfg.port}/offer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(offer),
+    });
+    if (!res.ok) {
+      throw new Error(`kerbcam /offer returned ${res.status}`);
+    }
+    return (await res.json()) as { sdp: string; cameras: number[] };
+  }
+
+  /**
+   * Switch this source into station/brokered mode: route the WebRTC handshake
+   * through the host (no sidecar address needed) and take TURN creds from the
+   * host's relay broadcast instead of a localhost `/ice-config` fetch. The app
+   * calls this on a station once its `PeerClientService` is up. Rebuilds the
+   * client so the camera hooks rebind to the brokered instance; if a connection
+   * was already live it reconnects through the broker.
+   *
+   * (Named `attachBroker`, not `useBroker`, to avoid the React-hook naming
+   * heuristic — it's a plain method, safe to call outside render.)
+   */
+  attachBroker(broker: KerbcamBroker): void {
+    this.broker = broker;
+    this.iceServers = broker.iceServers();
+    this.brokerIceUnsub?.();
+    this.brokerIceUnsub = broker.onIceServersChange((servers) => {
+      // Mutate the live client's cfg in place (same reasoning as applyRelayIce)
+      // so the next connect/reconnect picks up rotated creds without orphaning
+      // the camera hooks bound to this client instance.
+      this.iceServers = servers;
+      (
+        this.client as unknown as { cfg: { iceServers?: RTCIceServer[] } }
+      ).cfg.iceServers = servers.length > 0 ? servers : undefined;
+    });
+    const wasEnabled = this.reconnectEnabled;
+    this.teardownClient();
+    this.client = this.buildClient();
+    // Connect through the broker if a connection was already live, OR if a
+    // camera widget already wants a stream — it may have mounted and subscribed
+    // before this ran (React runs child effects before the parent's). Swallow
+    // the initial rejection (the reconnect loop retries); without this an
+    // immediate WebRTC failure would surface as an unhandled rejection.
+    if (wasEnabled || this.desiredSubs.size > 0) {
+      void this.connect().catch(() => {});
     }
   }
 
@@ -438,6 +654,9 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
       },
     );
 
+    // Capture the broker locally so the negotiate closure is stable across a
+    // later rebuild and doesn't re-read `this.broker` after a teardown.
+    const broker = this.broker;
     const client = new KerbcamClient(
       {
         host: this.cfg.host,
@@ -445,6 +664,10 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
         // Pass the relay's TURN servers when we have them; `undefined` lets
         // the SDK apply its STUN-only default (LAN / no relay).
         iceServers: this.iceServers.length > 0 ? this.iceServers : undefined,
+        // Brokered (station) mode: route the offer→answer through the host
+        // instead of POSTing localhost:port/offer. Default (main) mode leaves
+        // this undefined so the SDK uses its built-in httpNegotiate.
+        negotiate: broker ? (offer) => broker.negotiate(offer) : undefined,
       },
       keepaliveTransport,
     );
@@ -559,9 +782,11 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   private async attemptReconnect(): Promise<void> {
-    await this.applyRelayIce();
+    if (!this.broker) await this.applyRelayIce();
     try {
-      await this.client.connect();
+      await this.client.connect([...this.desiredSubs.keys()], {
+        slots: SLOT_COUNT,
+      });
     } catch {
       this.scheduleReconnect();
     }
@@ -597,5 +822,13 @@ function parseAction(action: string): [string, string[]] {
 
 export const kerbcamSource = new KerbcamDataSource();
 registerDataSource(kerbcamSource);
+
+// Dev-only debug handle: inspect the live stream-routing state from the console
+// (or via automation) to diagnose black-feed / no-track issues.
+//   __kerbcam.debugDump()  →  status, desiredSubs, slot routing, per-camera tracks
+if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
+  (globalThis as unknown as { __kerbcam?: KerbcamDataSource }).__kerbcam =
+    kerbcamSource;
+}
 
 export type { CameraState };

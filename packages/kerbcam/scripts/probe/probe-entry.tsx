@@ -1,10 +1,10 @@
 /**
- * Browser entry for the ExpCameraFeed render harness. esbuild bundles this
+ * Browser entry for the CameraFeed render harness. esbuild bundles this
  * into probe.html; `render-camera.ts` (Playwright) drives it via the
  * `window.__renderCamera` hook, then hovers the video to reveal the
  * hover-gated controls and screenshots #root.
  *
- * It mounts the REAL ExpCameraFeed against a real KerbcamDataSource wired to
+ * It mounts the REAL CameraFeed against a real KerbcamDataSource wired to
  * the in-process MockKerbcamSession (the same transport-level fake the vitest
  * suite uses), mirroring `buildConnectedSource()`. The one thing jsdom can't
  * do — a live MediaStream — works here because this runs in real Chromium:
@@ -17,7 +17,7 @@ import {
   unregisterDataSource,
 } from "@gonogo/core";
 import { createRoot, type Root } from "react-dom/client";
-import { ExpCameraFeed } from "../../src/ExpCameraFeed/ExpCameraFeed";
+import { CameraFeed } from "../../src/CameraFeed/CameraFeed";
 import { KerbcamDataSource } from "../../src/KerbcamDataSource";
 import { createMockKerbcamSession } from "../../src/test/MockKerbcamSession";
 
@@ -129,7 +129,7 @@ async function renderCamera(payload: Payload): Promise<void> {
   root = createRoot(el);
   root.render(
     <DashboardItemContext.Provider value={{ instanceId: "probe" }}>
-      <ExpCameraFeed config={payload.config as never} id="probe" />
+      <CameraFeed config={payload.config as never} id="probe" />
     </DashboardItemContext.Provider>,
   );
 

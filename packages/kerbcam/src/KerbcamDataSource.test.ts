@@ -1,4 +1,5 @@
 import { Layer } from "@jonpepler/kerbcam";
+import { MockSidecar } from "@jonpepler/kerbcam/testing";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "./KerbcamDataSource";
@@ -238,6 +239,286 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
     });
 
     expect(fetchSpy.mock.calls.length).toBeGreaterThan(callsBefore);
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Dynamic slot subscription — exercised against the SDK's canonical protocol
+// fake (MockSidecar) rather than the local transport fake, so these tests cover
+// the real subscribe → slot-map round-trip the sidecar speaks.
+// ---------------------------------------------------------------------------
+
+describe("KerbcamDataSource — dynamic slot subscription", () => {
+  function mockFetch(): void {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) =>
+      Promise.resolve(
+        String(input).includes("/ice-config")
+          ? new Response(JSON.stringify({ iceServers: [] }), { status: 200 })
+          : MockSidecar.makeOfferResponse([]),
+      ),
+    );
+  }
+
+  async function connectedSidecar(
+    flightIds: number[] = [42, 43],
+  ): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+    const sidecar = new MockSidecar();
+    flightIds.forEach((flightId) => {
+      sidecar.addCamera({ flightId });
+    });
+    mockFetch();
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+    await ds.connect();
+    sidecar.open();
+    sidecar.setConnectionState("connected");
+    return { ds, sidecar };
+  }
+
+  function subscribeCount(sidecar: MockSidecar, flightId: number): number {
+    return sidecar.commands.filter(
+      (c) => c.type === "subscribe" && c.content.flightId === flightId,
+    ).length;
+  }
+
+  it("binds a slot when a camera is subscribed while connected", async () => {
+    const { ds, sidecar } = await connectedSidecar();
+
+    ds.subscribeCamera(42);
+
+    expect(sidecar.lastCommand("subscribe", 42)).toBeTruthy();
+    expect(sidecar.slotMidFor(42)).toBeDefined();
+
+    ds.disconnect();
+  });
+
+  it("refcounts subscribers — one slot shared, freed only on the last release", async () => {
+    const { ds, sidecar } = await connectedSidecar();
+
+    ds.subscribeCamera(42);
+    ds.subscribeCamera(42); // a second widget shows the same camera
+
+    expect(subscribeCount(sidecar, 42)).toBe(1); // one slot, not two
+
+    ds.unsubscribeCamera(42); // first widget gone — still shown elsewhere
+    expect(sidecar.lastCommand("unsubscribe", 42)).toBeUndefined();
+    expect(sidecar.slotMidFor(42)).toBeDefined();
+
+    ds.unsubscribeCamera(42); // last widget gone — slot frees
+    expect(sidecar.lastCommand("unsubscribe", 42)).toBeTruthy();
+    expect(sidecar.slotMidFor(42)).toBeUndefined();
+
+    ds.disconnect();
+  });
+
+  it("switching cameras frees the old slot and binds the new one", async () => {
+    const { ds, sidecar } = await connectedSidecar();
+
+    ds.subscribeCamera(42);
+    expect(sidecar.slotMidFor(42)).toBeDefined();
+
+    // The flightId change useKerbcamStream drives: release old, bind new.
+    ds.unsubscribeCamera(42);
+    ds.subscribeCamera(43);
+
+    expect(sidecar.slotMidFor(42)).toBeUndefined();
+    expect(sidecar.slotMidFor(43)).toBeDefined();
+
+    ds.disconnect();
+  });
+
+  it("re-binds on-screen cameras via the initial offer set (cold start / reconnect)", async () => {
+    const sidecar = new MockSidecar();
+    sidecar.addCamera({ flightId: 42 });
+    mockFetch();
+    const fetchSpy = vi.mocked(globalThis.fetch);
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+
+    // A widget mounts before the sidecar is reachable.
+    ds.subscribeCamera(42);
+    // Nothing can be sent over a closed channel — no live subscribe yet.
+    expect(sidecar.commands.some((c) => c.type === "subscribe")).toBe(false);
+
+    // The fetch spy accumulates calls across tests in this file; drop the
+    // history so the /offer we inspect below is unambiguously this connect's.
+    fetchSpy.mockClear();
+    await ds.connect();
+
+    // The desired camera rides along as the offer's initial bound set, so the
+    // sidecar pushes its SlotMap on Hello without a client-side round-trip.
+    const offerCall = fetchSpy.mock.calls.find(([url]) =>
+      String(url).includes("/offer"),
+    );
+    const body = JSON.parse(String(offerCall?.[1]?.body ?? "{}")) as {
+      slots?: number;
+      cameras?: number[];
+    };
+    expect(body.slots).toBe(6);
+    expect(body.cameras).toEqual([42]);
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// relayOffer — the main screen's half of the station broker. Forwards a
+// station's offer to the local sidecar's /offer and returns the answer.
+// ---------------------------------------------------------------------------
+
+describe("KerbcamDataSource — relayOffer (station broker)", () => {
+  it("POSTs the offer to the sidecar /offer and returns the answer", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42, 43] }), {
+        status: 200,
+      }),
+    );
+    fetchSpy.mockClear();
+
+    const ds = new KerbcamDataSource({ host: "sidehost", port: 9090 });
+    const answer = await ds.relayOffer({
+      sdp: "offer-sdp",
+      cameras: [42, 43],
+      slots: 6,
+    });
+
+    expect(answer).toEqual({ sdp: "answer-sdp", cameras: [42, 43] });
+    const [url, init] = fetchSpy.mock.calls[0] ?? [];
+    expect(String(url)).toBe("http://sidehost:9090/offer");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      sdp: "offer-sdp",
+      cameras: [42, 43],
+      slots: 6,
+    });
+  });
+
+  it("throws when the sidecar returns a non-OK status", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("unavailable", { status: 503 }),
+    );
+
+    const ds = new KerbcamDataSource({ host: "h", port: 1 });
+    await expect(ds.relayOffer({ sdp: "o", cameras: [] })).rejects.toThrow(
+      /503/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Brokered (station) mode — the station relays the handshake through the host
+// and takes TURN creds from the broadcast, never touching localhost.
+// ---------------------------------------------------------------------------
+
+describe("KerbcamDataSource — brokered (station) mode", () => {
+  const TURN: RTCIceServer = {
+    urls: ["turn:relay.example:3478"],
+    username: "u",
+    credential: "c",
+  };
+
+  function cfgIce(ds: KerbcamDataSource): RTCIceServer[] | undefined {
+    return (
+      ds.getClient() as unknown as { cfg: { iceServers?: RTCIceServer[] } }
+    ).cfg.iceServers;
+  }
+
+  it("routes the handshake through the broker and skips the localhost fetch", async () => {
+    const sidecar = new MockSidecar();
+    sidecar.addCamera({ flightId: 42 });
+    // A station has no relay on localhost — any fetch here is a bug.
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("no localhost relay on a station"));
+    fetchSpy.mockClear();
+
+    const negotiate = vi.fn((offer: { sdp: string; cameras: number[] }) =>
+      sidecar.negotiate(offer),
+    );
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+    ds.attachBroker({
+      negotiate,
+      iceServers: () => [TURN],
+      onIceServersChange: () => () => {},
+    });
+
+    await ds.connect();
+
+    // Neither /ice-config nor /offer was fetched — the broker handled signaling.
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(negotiate).toHaveBeenCalledTimes(1);
+    // The client was built with the broker-supplied TURN creds.
+    expect(cfgIce(ds)).toEqual([TURN]);
+
+    ds.disconnect();
+  });
+
+  it("applies rotated relay creds from the broadcast in place (no client swap)", async () => {
+    const sidecar = new MockSidecar();
+    let fireIceChange: ((servers: RTCIceServer[]) => void) | undefined;
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      MockSidecar.makeOfferResponse([]),
+    );
+
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+    ds.attachBroker({
+      negotiate: (offer) => sidecar.negotiate(offer),
+      iceServers: () => [],
+      onIceServersChange: (cb) => {
+        fireIceChange = cb;
+        return () => {};
+      },
+    });
+
+    const clientBefore = ds.getClient();
+    // Host broadcasts TURN creds after the station is already brokered.
+    fireIceChange?.([TURN]);
+
+    // Mutated in place so the camera hooks stay bound to the same client.
+    expect(ds.getClient()).toBe(clientBefore);
+    expect(cfgIce(ds)).toEqual([TURN]);
+  });
+
+  it("stays idle until a camera is wanted, then lazily connects via the broker", async () => {
+    const sidecar = new MockSidecar();
+    sidecar.addCamera({ flightId: 42 });
+    // A station has no localhost relay — any fetch would be the wrong path.
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no localhost"));
+    const negotiate = vi.fn((offer: { sdp: string; cameras: number[] }) =>
+      sidecar.negotiate(offer),
+    );
+
+    const ds = new KerbcamDataSource(
+      { host: "h", port: 1 },
+      sidecar.createTransport(),
+    );
+    ds.attachBroker({
+      negotiate,
+      iceServers: () => [],
+      onIceServersChange: () => () => {},
+    });
+
+    // Brokered but no camera wanted yet → no connection, no negotiate.
+    expect(ds.status).toBe("disconnected");
+    expect(negotiate).not.toHaveBeenCalled();
+
+    // First camera widget asks for a stream → lazy connect through the broker.
+    ds.subscribeCamera(42);
+    await vi.waitFor(() => {
+      expect(negotiate).toHaveBeenCalledTimes(1);
+    });
 
     ds.disconnect();
   });

@@ -1,5 +1,6 @@
 import { ManeuverTriggerProvider } from "@gonogo/components";
 import {
+  getDataSource,
   KosProxyContext,
   registerDataSource,
   type SCANType,
@@ -13,6 +14,7 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@gonogo/data";
+import type { KerbcamDataSource } from "@gonogo/kerbcam";
 import { debugPeer, logger } from "@gonogo/logger";
 import {
   InputDispatcher,
@@ -56,6 +58,7 @@ import {
 } from "../missionProfiles";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
+import { resolveHostPeerId } from "../peer/iceServers";
 import { KosPeerConnection } from "../peer/KosPeerConnection";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
@@ -94,7 +97,9 @@ export function StationScreen() {
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
-  const [client] = useState(() => new PeerClientService());
+  const [client] = useState(
+    () => new PeerClientService({ resolveHost: resolveHostPeerId }),
+  );
   const dashboard = useDashboardState(
     "gonogo:dashboard:station",
     DEFAULT_CONFIG,
@@ -158,6 +163,21 @@ export function StationScreen() {
     };
   }, [serialService]);
 
+  // Switch the globally-registered kerbcam source into brokered (station) mode:
+  // its WebRTC handshake relays through the host (no sidecar address) and its
+  // TURN creds come from the host's relay broadcast. Wired here once — it stays
+  // disconnected until a camera widget asks for a stream (lazy connect), and
+  // the broker's negotiate just retries until the host link is up. Media flows
+  // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
+  useEffect(() => {
+    const kerbcam = getDataSource("kerbcam") as KerbcamDataSource | undefined;
+    kerbcam?.attachBroker({
+      negotiate: (offer) => client.sendKerbcamNegotiate(offer),
+      iceServers: () => client.getRelayIceServers(),
+      onIceServersChange: (cb) => client.onRelayIceServersChange(cb),
+    });
+  }, [client]);
+
   function attemptConnect(hostId: string) {
     const trimmed = hostId.trim().toUpperCase();
     if (!trimmed) return;
@@ -194,15 +214,15 @@ export function StationScreen() {
         setHostNotFound(true);
       }),
     );
-    // Graceful rotation: host announced a new share code over the live
-    // channel a beat before destroying it. Persist now so a refresh
-    // before the auto-reconnect succeeds also lands on the new id.
-    unsubsRef.current.push(
-      client.onHostPeerIdChange((newPeerId) => {
-        localStorage.setItem(HOST_ID_KEY, newPeerId);
-        setHostInput(newPeerId);
-      }),
-    );
+    // Graceful rotation: the host announced a new *peer id* over the live
+    // channel a beat before destroying it. We deliberately do NOT persist
+    // it here — `HOST_ID_KEY` holds the stable share-code, which never
+    // changes across rotations. The PeerClientService has already updated
+    // its live reconnect target; a refresh re-resolves the share-code via
+    // the relay and lands on the new peer id automatically. (Persisting the
+    // ephemeral peer id would clobber the share-code and break the next
+    // refresh — the exact regression the relay registry exists to avoid.)
+
     // One-shot fog snapshot from the host. Persist each mask to the
     // station's local FogMaskStore — the map widget reads through the
     // same store so a refresh shows the host's exploration state. Both
@@ -239,6 +259,11 @@ export function StationScreen() {
         if (schemaHandledRef.current) return;
         schemaHandledRef.current = true;
         for (const s of sources) {
+          // kerbcam is NOT peer-routed: its media streams direct from the
+          // sidecar, brokered through the host. Don't replace the real
+          // (brokered) source with a peer-data one — it's wired in the
+          // attachBroker mount effect, and connects lazily on first camera view.
+          if (s.id === "kerbcam") continue;
           const source = new PeerClientDataSource(s.id, s.name, client);
           source.setSchema(s.keys);
           registerDataSource(source);

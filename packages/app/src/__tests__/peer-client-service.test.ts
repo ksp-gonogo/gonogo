@@ -555,6 +555,82 @@ describe("PeerClientService.sendQueryRange", () => {
   });
 });
 
+describe("PeerClientService.sendKerbcamNegotiate", () => {
+  beforeEach(() => {
+    FakePeer.instances = [];
+  });
+
+  function connectedSvc() {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[0];
+    peer.emit("open");
+    peer._lastConn?.emit("open");
+    return { svc, peer };
+  }
+
+  const OFFER = { sdp: "offer-sdp", cameras: [42], slots: 6 };
+
+  it("rejects if called before the conn is open", async () => {
+    const svc = new PeerClientService();
+    await expect(svc.sendKerbcamNegotiate(OFFER)).rejects.toThrow(
+      /not connected/,
+    );
+  });
+
+  it("resolves with the answer when the host responds", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendKerbcamNegotiate(OFFER);
+    const first = sent[0];
+    if (!first || first.type !== "kerbcam-negotiate-request") {
+      throw new Error("expected kerbcam-negotiate-request");
+    }
+    expect(first.offer).toEqual(OFFER);
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "kerbcam-negotiate-response",
+      requestId: first.requestId,
+      answer: { sdp: "answer-sdp", cameras: [42] },
+    });
+
+    await expect(pending).resolves.toEqual({
+      sdp: "answer-sdp",
+      cameras: [42],
+    });
+  });
+
+  it("rejects when the host returns an error", async () => {
+    const { svc, peer } = connectedSvc();
+    if (!peer._lastConn) throw new Error("expected an active peer connection");
+    const conn = peer._lastConn;
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+
+    const pending = svc.sendKerbcamNegotiate(OFFER);
+    const first = sent[0];
+    if (!first || first.type !== "kerbcam-negotiate-request") {
+      throw new Error("expected kerbcam-negotiate-request");
+    }
+
+    (svc as unknown as PeerClientServiceInternal).handleMessage({
+      type: "kerbcam-negotiate-response",
+      requestId: first.requestId,
+      error: "kerbcam source unavailable on host",
+    });
+
+    await expect(pending).rejects.toThrow(/unavailable on host/);
+  });
+});
+
 describe("PeerClientService.sendFlightRpc", () => {
   beforeEach(() => {
     FakePeer.instances = [];

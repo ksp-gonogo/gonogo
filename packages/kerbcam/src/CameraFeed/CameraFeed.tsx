@@ -1,18 +1,11 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
-import {
-  useActionInput,
-  useDataSources,
-  useDataValue,
-  useExecuteAction,
-} from "@gonogo/core";
+import { useActionInput, useDataValue, useExecuteAction } from "@gonogo/core";
 import {
   IconButton,
   Panel,
   PanelSubtitle,
   PanelTitle,
   Select,
-  StatusIndicator,
-  type StatusTone,
 } from "@gonogo/ui";
 import {
   useCallback,
@@ -25,7 +18,7 @@ import {
 import styled, { css } from "styled-components";
 import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
-import { getCameraLifecycle } from "../lifecycle";
+import { isCameraDestroyed } from "../lifecycle";
 
 // ── Pan directional-pad tuning ──────────────────────────────────────────────
 // The rate loop ticks every PAN_TICK_MS; at full ball deflection (or an arrow
@@ -44,7 +37,7 @@ const PAN_BALL_RADIUS = 30;
 const clampPan = (v: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, v));
 
-export interface ExpCameraFeedConfig extends Record<string, unknown> {
+export interface CameraFeedConfig extends Record<string, unknown> {
   /**
    * KSP `Part.flightID` of the camera to stream. `null` (the
    * default) auto-picks the first available — handy for "drop the
@@ -57,7 +50,7 @@ export interface ExpCameraFeedConfig extends Record<string, unknown> {
 }
 
 /** Component actions exposed to the serial-input platform. */
-export const expCameraFeedActions = [
+export const cameraFeedActions = [
   {
     id: "nextCamera",
     label: "Next camera",
@@ -73,75 +66,73 @@ export const expCameraFeedActions = [
   },
 ] as const satisfies readonly ActionDefinition[];
 
-export type ExpCameraFeedActions = typeof expCameraFeedActions;
+export type CameraFeedActions = typeof cameraFeedActions;
 
 /** Round n to the nearest even integer, minimum 2 (H.264 chroma requirement). */
 function toEvenPx(n: number): number {
   return Math.max(2, Math.round(n / 2) * 2);
 }
 
-function statusTone(status: string | undefined): StatusTone {
-  switch (status) {
-    case "connected":
-      return "go";
-    case "reconnecting":
-      return "warn";
-    case "error":
-    case "disconnected":
-      return "nogo";
-    default:
-      return "neutral";
-  }
-}
-
-function statusLabel(status: string | undefined): string {
-  switch (status) {
-    case "connected":
-      return "Sidecar connected";
-    case "reconnecting":
-      return "Connecting to sidecar…";
-    case "error":
-      return "Sidecar error";
-    case "disconnected":
-      return "Sidecar disconnected";
-    default:
-      return "Sidecar status unknown";
-  }
-}
-
-export function ExpCameraFeed({
+export function CameraFeed({
   config,
   onConfigChange,
-}: Readonly<ComponentProps<ExpCameraFeedConfig>>) {
+}: Readonly<ComponentProps<CameraFeedConfig>>) {
   const cameras = useKerbcamCameras();
   const requested = config?.flightId ?? null;
 
   // --------------------------------------------------------------------------
-  // Selection model — pure derivation, no render-time refs.
+  // Selection model.
   //
-  // `config.flightId` is the single source of truth. `null` means
-  // "auto": fall back to the first available camera. If the operator
-  // explicitly picked a camera that has since disappeared (vessel
-  // change, part destroyed), we also fall back to the first available
-  // so the widget never wedges on a dead id.
+  // `config.flightId` is the single source of truth for an *explicit* pick;
+  // `null` means "auto". Resolution order:
+  //   1. Explicit pick, if still present in the list (destroyed or not) — the
+  //      operator chose it, so we honour it even after the part blows up.
+  //   2. Auto: *latch* onto whatever's currently on screen. Once a camera is
+  //      displayed we keep showing it even if it becomes destroyed, so a feed
+  //      the operator is watching never silently jumps to a sibling or vanishes
+  //      when its part is destroyed. The latch only releases when that camera
+  //      leaves the list entirely (vessel change).
+  //   3. Fresh auto-pick (nothing latched / latched camera gone): prefer the
+  //      first *live* camera — a destroyed one makes a poor default. Fall back
+  //      to the first camera overall only if every camera is destroyed, so the
+  //      widget shows a SIGNAL LOST feed rather than "no cameras".
+  //
+  // The latch needs a render-time ref read (what's currently displayed is
+  // historical state, not derivable from cameras+config alone); it's committed
+  // in an effect below.
   // --------------------------------------------------------------------------
-  const firstFlightId = cameras[0]?.flightId ?? null;
+  const displayedRef = useRef<number | null>(null);
   const requestedStillPresent =
     requested !== null && cameras.some((c) => c.flightId === requested);
-  const flightId = requestedStillPresent ? requested : firstFlightId;
+
+  let flightId: number | null;
+  if (requestedStillPresent) {
+    flightId = requested;
+  } else {
+    const latched = displayedRef.current;
+    const latchedPresent =
+      latched !== null && cameras.some((c) => c.flightId === latched);
+    flightId = latchedPresent
+      ? latched
+      : (cameras.find((c) => !isCameraDestroyed(c))?.flightId ??
+        cameras[0]?.flightId ??
+        null);
+  }
 
   const camera =
     flightId !== null
       ? (cameras.find((c) => c.flightId === flightId) ?? null)
       : null;
 
-  // --------------------------------------------------------------------------
-  // Connection status — surfaced from the kerbcam DataSource itself, so the
-  // operator can tell "no cameras because the sidecar is down" apart from
-  // "connected but the vessel has no Hullcams".
-  // --------------------------------------------------------------------------
-  const dataSources = useDataSources();
-  const kerbcamStatus = dataSources.find((s) => s.id === "kerbcam")?.status;
+  // Commit the on-screen camera for the auto-mode latch above.
+  useEffect(() => {
+    displayedRef.current = flightId;
+  }, [flightId]);
+
+  // Connection status is intentionally NOT shown here — it lives in the Data
+  // Sources widget (and a disconnect surfaces as a banner). This widget only
+  // shows cameras-or-none, so the operator isn't asked to reason about
+  // transport details at the feed level.
 
   const stream = useKerbcamStream(flightId);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -151,8 +142,7 @@ export function ExpCameraFeed({
     }
   }, [stream]);
 
-  const lifecycle = camera ? getCameraLifecycle(camera) : "active";
-  const isDestroyed = lifecycle === "destroyed";
+  const isDestroyed = camera ? isCameraDestroyed(camera) : false;
 
   const executeKerbcam = useExecuteAction("kerbcam");
 
@@ -185,7 +175,7 @@ export function ExpCameraFeed({
     [cameras, currentIndex, selectCamera],
   );
 
-  useActionInput<ExpCameraFeedActions>({
+  useActionInput<CameraFeedActions>({
     nextCamera: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return;
       stepCamera(1);
@@ -210,11 +200,14 @@ export function ExpCameraFeed({
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) return;
-      const { width, height } = entry.contentRect;
+      const { width } = entry.contentRect;
       if (resizeTimerRef.current !== null) clearTimeout(resizeTimerRef.current);
       resizeTimerRef.current = setTimeout(() => {
+        // Always request a 16:9 frame (height derived from width) so KSP renders
+        // a widescreen feed regardless of the widget's grid proportions, rather
+        // than an arbitrary aspect that'd letterbox or distort in the player.
         const w = toEvenPx(width);
-        const h = toEvenPx(height);
+        const h = toEvenPx((width * 9) / 16);
         void executeKerbcam(`kerbcam.set-render-size[${flightId},${w},${h}]`);
       }, 500);
     });
@@ -462,13 +455,13 @@ export function ExpCameraFeed({
   const hasCameras = cameras.length > 0;
   const canStep = cameras.length > 1;
 
-  // Unique per widget instance so two ExpCameraFeeds on one dashboard don't
+  // Unique per widget instance so two CameraFeeds on one dashboard don't
   // produce duplicate ids (which would break the label→select association).
   const selectId = useId();
 
   return (
     <Panel>
-      <PanelTitle>{camera?.cameraName ?? "Camera Feed (exp)"}</PanelTitle>
+      <PanelTitle>{camera?.cameraName ?? "Camera Feed"}</PanelTitle>
       {camera ? (
         <PanelSubtitle>
           {camera.vesselName} · {camera.renderWidth}×{camera.renderHeight}
@@ -476,20 +469,8 @@ export function ExpCameraFeed({
           {adaptiveLabel}
         </PanelSubtitle>
       ) : (
-        <PanelSubtitle>
-          {kerbcamStatus === "connected"
-            ? "no cameras on this vessel"
-            : "waiting for sidecar handshake…"}
-        </PanelSubtitle>
+        <PanelSubtitle>no cameras on this vessel</PanelSubtitle>
       )}
-
-      <StatusIndicator
-        tone={statusTone(kerbcamStatus)}
-        live
-        aria-label={statusLabel(kerbcamStatus)}
-      >
-        {statusLabel(kerbcamStatus)}
-      </StatusIndicator>
 
       {hasCameras && (
         <SelectionBar>
@@ -506,6 +487,7 @@ export function ExpCameraFeed({
             {cameras.map((c) => (
               <option key={c.flightId} value={c.flightId}>
                 {c.cameraName} ({c.vesselName})
+                {isCameraDestroyed(c) ? " — signal lost" : ""}
               </option>
             ))}
           </CameraSelect>
@@ -531,9 +513,7 @@ export function ExpCameraFeed({
       <VideoWrap ref={wrapRef}>
         {flightId === null ? (
           <Empty>
-            {kerbcamStatus === "connected"
-              ? "no cameras detected — start a vessel with Hullcams installed"
-              : "no cameras detected — is the kerbcam sidecar running?"}
+            No camera feeds — start a vessel with Hullcam parts installed
           </Empty>
         ) : (
           <>
@@ -782,7 +762,7 @@ const VideoWrap = styled.div`
   background: #000;
   border-radius: 4px;
   overflow: hidden;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;

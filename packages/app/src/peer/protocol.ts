@@ -117,6 +117,25 @@ export type PeerMessage =
       peerId: string | null;
       iceServers?: RTCIceServer[];
     }
+  // Station → host: relay ONE kerbcam WebRTC offer through the main screen so a
+  // station never needs the sidecar's address. The host forwards the offer to
+  // the sidecar's HTTP `/offer` (only the main screen can reach it) and returns
+  // the answer. Signaling ONLY — the PeerConnection this sets up carries media
+  // station↔sidecar *directly*: the answer SDP's ICE candidates locate the
+  // sidecar, and TURN creds from the `relay-peer-id` broadcast cover the non-LAN
+  // hop. Nothing about the video frames crosses PeerJS. requestId-correlated
+  // like `query-range-*`.
+  | {
+      type: "kerbcam-negotiate-request";
+      requestId: string;
+      offer: { sdp: string; cameras: number[]; slots?: number };
+    }
+  | {
+      type: "kerbcam-negotiate-response";
+      requestId: string;
+      answer?: { sdp: string; cameras: number[] };
+      error?: string;
+    }
   // Host → station, sent over the existing data channel a beat before the
   // host rotates its share code. Stations update their reconnect target
   // *before* the host's `peer.destroy()` closes the channel, so their

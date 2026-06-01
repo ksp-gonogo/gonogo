@@ -967,3 +967,125 @@ describe("PeerHostService — relay-peer-id iceServers propagation", () => {
     expect(latecomer?.iceServers).toEqual(turnConfig);
   });
 });
+
+describe("PeerHostService — kerbcam negotiate broker", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  async function flush(): Promise<void> {
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  function kerbcamResponses(conn: FakeDataConnection): Array<{
+    type: string;
+    requestId: string;
+    answer?: { sdp: string; cameras: number[] };
+    error?: string;
+  }> {
+    return conn.sent.filter(
+      (
+        m,
+      ): m is {
+        type: string;
+        requestId: string;
+        answer?: { sdp: string; cameras: number[] };
+        error?: string;
+      } =>
+        typeof m === "object" &&
+        m !== null &&
+        "type" in m &&
+        (m as { type: string }).type === "kerbcam-negotiate-response",
+    );
+  }
+
+  it("relays a station offer to the host kerbcam source and returns its answer", async () => {
+    const { registerDataSource, clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    clearRegistry();
+
+    const relayOffer = vi.fn(
+      async (offer: { sdp: string; cameras: number[]; slots?: number }) => ({
+        sdp: "answer-from-sidecar",
+        cameras: offer.cameras,
+      }),
+    );
+    registerDataSource({
+      id: "kerbcam",
+      name: "Kerbcam",
+      status: "connected",
+      affectedBySignalLoss: false,
+      connect: async () => {},
+      disconnect: () => {},
+      schema: () => [],
+      subscribe: () => () => {},
+      onStatusChange: () => () => {},
+      execute: async () => {},
+      configSchema: () => [],
+      configure: () => {},
+      getConfig: () => ({}),
+      relayOffer,
+    } as unknown as Parameters<typeof registerDataSource>[0]);
+
+    const service = new PeerHostService();
+    await service.start();
+    await Promise.resolve();
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await flush();
+
+    conn.emit("data", {
+      type: "kerbcam-negotiate-request",
+      requestId: "req-1",
+      offer: { sdp: "offer-from-station", cameras: [42, 43], slots: 6 },
+    });
+    await flush();
+
+    expect(relayOffer).toHaveBeenCalledWith({
+      sdp: "offer-from-station",
+      cameras: [42, 43],
+      slots: 6,
+    });
+    const responses = kerbcamResponses(conn);
+    expect(responses).toHaveLength(1);
+    expect(responses[0].requestId).toBe("req-1");
+    expect(responses[0].answer).toEqual({
+      sdp: "answer-from-sidecar",
+      cameras: [42, 43],
+    });
+    expect(responses[0].error).toBeUndefined();
+
+    clearRegistry();
+  });
+
+  it("responds with an error when the host has no kerbcam source", async () => {
+    const { clearRegistry } = await import("@gonogo/core");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    clearRegistry(); // no kerbcam registered
+
+    const service = new PeerHostService();
+    await service.start();
+    await Promise.resolve();
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    await flush();
+
+    conn.emit("data", {
+      type: "kerbcam-negotiate-request",
+      requestId: "req-2",
+      offer: { sdp: "offer", cameras: [], slots: 6 },
+    });
+    await flush();
+
+    const responses = kerbcamResponses(conn);
+    expect(responses).toHaveLength(1);
+    expect(responses[0].answer).toBeUndefined();
+    expect(responses[0].error).toMatch(/unavailable/);
+
+    clearRegistry();
+  });
+});
