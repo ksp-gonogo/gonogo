@@ -59,54 +59,58 @@ describe("HostRegistry", () => {
   });
 });
 
-describe("host-discovery routes (fastify.inject)", () => {
-  async function buildApp() {
+describe("host-discovery route (fastify.inject)", () => {
+  async function buildApp(opts?: Parameters<typeof registerHostRoutes>[1]) {
     const app = Fastify();
-    const registry = registerHostRoutes(app);
+    const registry = registerHostRoutes(app, opts);
     await app.ready();
     return { app, registry };
   }
 
-  it("POST /host registers then GET /host/:code resolves", async () => {
-    const { app } = await buildApp();
+  it("POST /host registers a share-code → peer-id mapping in the registry", async () => {
+    const { app, registry } = await buildApp();
     const post = await app.inject({
       method: "POST",
       url: "/host",
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
     expect(post.statusCode).toBe(200);
-
-    const get = await app.inject({ method: "GET", url: "/host/AB3K" });
-    expect(get.statusCode).toBe(200);
-    expect(get.json()).toEqual({ peerId: "peer-123" });
+    // The station resolves over the broker now, not HTTP — assert the
+    // registry the directory peer reads in-process was updated.
+    expect(registry.resolve("AB3K")).toBe("peer-123");
     await app.close();
   });
 
-  it("GET /host/:code returns 404 for an unknown code", async () => {
-    const { app } = await buildApp();
-    const get = await app.inject({ method: "GET", url: "/host/UNKNOWN" });
-    expect(get.statusCode).toBe(404);
-    await app.close();
-  });
-
-  it("GET /host/:code returns 404 once the entry has expired", async () => {
-    const app = Fastify();
-    // 0ms TTL — every entry is already expired by the time it's resolved.
-    registerHostRoutes(app, new HostRegistry(0));
-    await app.ready();
-
+  it("POST /host fires onRegister with the accepted code + peer id", async () => {
+    const calls: Array<[string, string]> = [];
+    const { app } = await buildApp({
+      onRegister: (code, peerId) => calls.push([code, peerId]),
+    });
     await app.inject({
       method: "POST",
       url: "/host",
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
-    const get = await app.inject({ method: "GET", url: "/host/AB3K" });
-    expect(get.statusCode).toBe(404);
+    expect(calls).toEqual([["AB3K", "peer-123"]]);
+    await app.close();
+  });
+
+  it("does NOT fire onRegister for a rejected (400) body", async () => {
+    const calls: Array<[string, string]> = [];
+    const { app } = await buildApp({
+      onRegister: (code, peerId) => calls.push([code, peerId]),
+    });
+    await app.inject({
+      method: "POST",
+      url: "/host",
+      payload: { shareCode: "AB3K" },
+    });
+    expect(calls).toEqual([]);
     await app.close();
   });
 
   it("a re-POST under the same code reflects the new peer id (rotation)", async () => {
-    const { app } = await buildApp();
+    const { app, registry } = await buildApp();
     await app.inject({
       method: "POST",
       url: "/host",
@@ -117,8 +121,7 @@ describe("host-discovery routes (fastify.inject)", () => {
       url: "/host",
       payload: { shareCode: "AB3K", peerId: "peer-new" },
     });
-    const get = await app.inject({ method: "GET", url: "/host/AB3K" });
-    expect(get.json()).toEqual({ peerId: "peer-new" });
+    expect(registry.resolve("AB3K")).toBe("peer-new");
     await app.close();
   });
 
@@ -136,6 +139,20 @@ describe("host-discovery routes (fastify.inject)", () => {
       payload: { peerId: "peer-123" },
     });
     expect(noCode.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("uses a supplied registry when one is passed in options", async () => {
+    const registry = new HostRegistry(0); // 0ms TTL — entries expire instantly
+    const { app } = await buildApp({ registry });
+    await app.inject({
+      method: "POST",
+      url: "/host",
+      payload: { shareCode: "AB3K", peerId: "peer-123" },
+    });
+    // Entry is already expired on resolve (TTL 0) — proves our registry
+    // instance, not a fresh internal one, is the backing store.
+    expect(registry.resolve("AB3K")).toBeNull();
     await app.close();
   });
 });
