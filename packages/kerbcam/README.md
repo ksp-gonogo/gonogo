@@ -2,7 +2,7 @@
 
 Consumer of the [kerbcam](https://github.com/jonpepler/kerbcam) KSP
 camera-streaming sidecar for gonogo. Registers a `kerbcam` DataSource
-and an `exp-camera-feed` dashboard widget on module import.
+and a `camera-feed` dashboard widget on module import.
 
 Wire it into the app once, alongside the other data-source imports:
 
@@ -12,8 +12,8 @@ import "@gonogo/kerbcam";
 ```
 
 After that, "Kerbcam" appears in the Data Sources widget (with the
-sidecar host/port configurable from the same UI) and "Camera Feed
-(exp)" appears in the dashboard widget picker.
+sidecar host/port configurable from the same UI) and "Camera Feed"
+appears in the dashboard widget picker.
 
 ## Shape
 
@@ -30,9 +30,9 @@ useKerbcamCameras()    live CameraState[] from the sidecar's
 
 useKerbcamStream(id)   live MediaStream for one camera
 
-ExpCameraFeed          dashboard widget rendering a single camera's
-                       stream; auto-picks the first available when
-                       no flightId is configured
+CameraFeed             dashboard widget rendering a single camera's
+                       stream; auto-picks the first available live
+                       camera when no flightId is configured
 ```
 
 Wire-protocol types come from `@jonpepler/kerbcam` (the typeshare-
