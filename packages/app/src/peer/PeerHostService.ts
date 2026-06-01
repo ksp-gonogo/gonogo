@@ -201,6 +201,12 @@ export class PeerHostService {
     },
   });
   private relayPeerId: string | null = null;
+  // Operator's technical-analytics consent. Retained (not just broadcast
+  // transiently) so it can be sent to each station on connect and
+  // re-asserted to the relay on every heartbeat. Privacy-first default:
+  // disabled until the host's consent service drives it via
+  // setAnalyticsConsent.
+  private analyticsConsent = false;
   // peerId → stationKey, populated from incoming station-info. Used to
   // evict the ghost connection when a refreshed station rejoins with a
   // fresh peerId — without this the GO/NO-GO list shows the same station
@@ -406,6 +412,12 @@ export class PeerHostService {
               this.iceServers.length > 0 ? this.iceServers : undefined,
           } satisfies PeerMessage);
         }
+        // Tell the joining station the host's current analytics consent so
+        // it gates its own Axiom transport from the moment it connects.
+        conn.send({
+          type: "analytics-consent",
+          enabled: this.analyticsConsent,
+        } satisfies PeerMessage);
         // Latecomer's initial flight snapshot. The host's flight-change
         // listener is set up lazily below; this send is independent so a
         // station that connects mid-flight gets the current value
@@ -714,6 +726,59 @@ export class PeerHostService {
   setRelayPeerId(peerId: string | null) {
     this.relayPeerId = peerId;
     this.broadcastRelayInfo();
+  }
+
+  /**
+   * Set the operator's technical-analytics consent. Retains the value,
+   * broadcasts it to every connected station, and POSTs it to the relay
+   * config broker so the services (relay + telnet-proxy) learn the new
+   * state. Idempotent on no-change — but always re-POSTs so a relay that
+   * restarted re-learns the current value even if it didn't flip here.
+   * Called by the main screen's AnalyticsConsentHost on mount + change.
+   */
+  setAnalyticsConsent(enabled: boolean): void {
+    const changed = this.analyticsConsent !== enabled;
+    this.analyticsConsent = enabled;
+    if (changed) {
+      this.broadcast({ type: "analytics-consent", enabled });
+    }
+    void this.postAnalyticsConfig();
+  }
+
+  /** Current retained consent — exposed for the heartbeat re-assert and
+   *  for tests. */
+  getAnalyticsConsent(): boolean {
+    return this.analyticsConsent;
+  }
+
+  /**
+   * POST the current consent to the relay's `/analytics-config` broker.
+   * Best-effort: relay down / non-2xx is logged at debug and swallowed,
+   * exactly like the host-registry POST. The heartbeat re-asserts this so
+   * a relay restart re-learns the real value (the relay defaults to
+   * disabled until first POST).
+   */
+  private async postAnalyticsConfig(): Promise<void> {
+    const url = `${relayBaseUrl()}/analytics-config`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RELAY_POST_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ enabled: this.analyticsConsent }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        debugPeer("host analytics-config POST non-ok", { status: res.status });
+      }
+    } catch (err) {
+      debugPeer("host analytics-config POST failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**
@@ -1472,6 +1537,10 @@ export class PeerHostService {
     if (this.relayHeartbeatTimer) return;
     this.relayHeartbeatTimer = setInterval(() => {
       void this.registerWithRelay();
+      // Re-assert analytics consent on the same cadence so a relay restart
+      // (which resets its in-memory config to disabled) re-learns the real
+      // value within one heartbeat.
+      void this.postAnalyticsConfig();
     }, HOST_HEARTBEAT_MS);
   }
 

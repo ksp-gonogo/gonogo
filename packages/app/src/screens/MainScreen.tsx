@@ -33,6 +33,8 @@ import {
   useAlarmHost,
 } from "../alarms";
 import type { AlarmSnapshot } from "../alarms/types";
+import { AnalyticsConsentHost } from "../analytics/AnalyticsConsentHost";
+import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -168,6 +170,10 @@ export function MainScreen() {
   return (
     <ScreenProvider value="main">
       <SettingsProvider service={settingsService}>
+        <AnalyticsConsentHost
+          service={analyticsConsentService}
+          peerHost={peerHostService}
+        />
         <AlarmHostProvider service={alarmHost}>
           <NotesHostProvider service={notesHost}>
             <ManeuverTriggerProvider service={maneuverTriggerHost}>
