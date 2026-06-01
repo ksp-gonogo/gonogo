@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { networkInterfaces } from "node:os";
 import cors from "@fastify/cors";
 import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
@@ -6,6 +7,7 @@ import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
 import {
+  type DirectoryIceServer,
   DirectoryPeerService,
   directoryPeerOptionsFromEnv,
 } from "./directoryPeer.js";
@@ -91,6 +93,21 @@ fastify.addHook("onResponse", async (req, reply) => {
   else logger.info(msg, ctx);
 });
 
+/**
+ * This process's primary non-internal IPv4 — the address coturn can actually
+ * bind relay sockets to. In a container that's the bridge IP (e.g.
+ * `10.89.x.x`); running natively it's the host's LAN IP. Used as the
+ * `/private` half of coturn's external-ip mapping. `undefined` if none found.
+ */
+function primaryLocalIpv4(): string | undefined {
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family === "IPv4" && !a.internal) return a.address;
+    }
+  }
+  return undefined;
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // Discover the public IP coturn should advertise, then start coturn as a
 // child process with a fresh per-restart secret. Fail-soft: if discovery
@@ -109,9 +126,20 @@ if (config.skipCoturn) {
     const externalIp = await discoverPublicIp({
       override: config.turnExternalIp ?? undefined,
     });
-    bridgeInfo(`relay public IP for TURN: ${externalIp}`);
+    // The address coturn actually binds relay sockets on. When externalIp is
+    // a NAT / published / host-LAN address (the container case — externalIp is
+    // the host's LAN IP, this process sees only the container's 10.x), coturn
+    // must bind the local interface and merely advertise externalIp. Pass our
+    // own primary non-internal IPv4 as the `/private` half.
+    const localIp = primaryLocalIpv4();
+    bridgeInfo(
+      `relay TURN advertise=${externalIp}${localIp && localIp !== externalIp ? ` bind=${localIp}` : ""}`,
+    );
     coturnHandle = startCoturn({
       externalIp,
+      // Only attach the private half when it differs — `X/X` is pointless,
+      // and when externalIp is itself local (native runs) coturn binds it fine.
+      localIp: localIp && localIp !== externalIp ? localIp : undefined,
       logger: {
         info: (msg, ...args) => bridgeInfo(msg, { args }),
         error: (msg, ...args) => bridgeError(msg, undefined, { args }),
@@ -145,6 +173,36 @@ fastify.get("/version", async () => ({
   buildTime: BUILD_TIME,
 }));
 
+// Build the ICE-server list advertising the relay's coturn over BOTH UDP
+// and TCP. Without an explicit `?transport=` hint browsers gather only a
+// UDP TURN candidate, which strands clients on UDP-restrictive networks
+// (corporate firewalls, some cellular carriers — exactly the case our
+// self-hosted TURN exists to help). coturn listens on both UDP/3478 and
+// TCP/3478, so the transport list is purely a hint. Shared by /ice-config
+// (the host browser) and the broker directory peer so both relay their
+// WebRTC through the same TURN. The router port-forward needs both
+// protocols (the Add Station modal's Port table lists "TCP & UDP" for 3478).
+function iceServersFor(
+  handle: CoturnHandle,
+  hostOverride?: string,
+): DirectoryIceServer[] {
+  // `hostOverride` lets a caller on the relay's own box reach coturn over
+  // loopback instead of the advertised external IP (see the directory peer
+  // wiring below). coturn still maps the allocated relay candidate to the
+  // external IP, so stations get a reachable address either way.
+  const turnHost = `${hostOverride ?? handle.externalIp}:${handle.port}`;
+  return [
+    {
+      urls: [
+        `turn:${turnHost}?transport=udp`,
+        `turn:${turnHost}?transport=tcp`,
+      ],
+      username: handle.username,
+      credential: handle.credential,
+    },
+  ];
+}
+
 /**
  * ICE configuration the main screen should use when constructing its
  * PeerJS Peer. The relay's TURN credentials live only in this process's
@@ -158,28 +216,7 @@ fastify.get("/ice-config", async (_req, reply) => {
   if (!coturnHandle) {
     return reply.status(503).send({ error: "TURN not available" });
   }
-  // Advertise BOTH UDP and TCP transports for the same TURN server.
-  // Without an explicit `?transport=` hint, browsers only gather a
-  // UDP TURN candidate, which silently strands clients on
-  // UDP-restrictive networks (corporate firewalls, some cellular
-  // carriers — exactly the case our self-hosted TURN exists to help).
-  // coturn listens on both UDP/3478 and TCP/3478 by default, so this
-  // is purely a hint to the browser; no relay-side change needed.
-  // The router port-forward needs both protocols (the Add Station
-  // modal's Port management table already lists "TCP & UDP" for 3478).
-  const turnHost = `${coturnHandle.externalIp}:${coturnHandle.port}`;
-  return {
-    iceServers: [
-      {
-        urls: [
-          `turn:${turnHost}?transport=udp`,
-          `turn:${turnHost}?transport=tcp`,
-        ],
-        username: coturnHandle.username,
-        credential: coturnHandle.credential,
-      },
-    ],
-  };
+  return { iceServers: iceServersFor(coturnHandle) };
 });
 
 // ──────────────────────────────────────────────────────────────────────
@@ -190,6 +227,12 @@ fastify.get("/ice-config", async (_req, reply) => {
 // cross-machine-broken HTTP GET was removed. CORS is inherited from the
 // global registration above.
 // ──────────────────────────────────────────────────────────────────────
+// SUPERSEDED: discovery no longer depends on the directory peer — under the
+// stable-host-id model the host claims `gonogo-host-<code>` and stations
+// derive that id from the code directly. The directory peer + POST /host
+// registry below are kept for diagnostics and slated for removal in a
+// follow-up; do not build new wiring on them.
+//
 // The directory peer joins the same broker the app uses (env PEER_*,
 // default 0.peerjs.com / key "gonogo") as `gonogo-dir-<shareCode>`, so a
 // station on any machine can resolve a share-code to the host's current
@@ -203,6 +246,20 @@ const directoryPeers = new DirectoryPeerService(
     info: (msg) => bridgeInfo(msg),
     error: (msg, err) => bridgeError(msg, err),
   },
+  // Relay the directory peer's DataConnections through coturn so a station on
+  // another device gets a reachable relay candidate. Reach coturn via the
+  // relay's OWN container IP — not loopback, not the advertised external IP.
+  // All three were checked with turnutils from inside the container:
+  //   - external IP (192.168.x): hairpins out of the netns → 508 Cannot
+  //     create socket; no allocation.
+  //   - loopback (127.0.0.1): allocates, but coturn grants a 127.0.0.1 relay
+  //     address — useless to a station — because external-ip only maps the
+  //     container IP, not loopback.
+  //   - container IP (10.89.x): allocates AND external-ip maps the relay to
+  //     the public IP, so the station gets a reachable 192.168.x candidate.
+  // Evaluated per peer creation; null if coturn failed to start.
+  () =>
+    coturnHandle ? iceServersFor(coturnHandle, primaryLocalIpv4()) : undefined,
 );
 registerHostRoutes(fastify, {
   registry: hostRegistry,
