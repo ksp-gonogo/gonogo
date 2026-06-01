@@ -1,16 +1,13 @@
 import styled from "styled-components";
 
 /**
- * Shown at "/" when the app is served over HTTPS — i.e. the published
+ * Shown at "/" when the app is served over HTTPS, i.e. the published
  * GitHub Pages build. The main screen talks to KSP's Telemachus over
- * insecure `ws://`, which a secure-origin (HTTPS) page is not allowed to
- * reach (mixed content), so a hosted main screen can never actually
- * connect. Instead the published root is a front door that points people
- * at the local setup. Served over `http://` (the local container or
- * `pnpm dev`), `App` renders the real `MainScreen`.
- *
- * First pass: intent + a setup link + a way into a station screen. The
- * copy and visuals are a starting point, meant to be iterated.
+ * insecure ws://, which a secure-origin (HTTPS) page can't reach (mixed
+ * content), so a hosted main screen can never connect. The published root
+ * is a front door that points people at the local setup instead. Served
+ * over http:// (the local container or the dev server), App renders the
+ * real MainScreen.
  */
 export function HostedLanding() {
   const stationHref = `${import.meta.env.BASE_URL}station`;
@@ -18,26 +15,25 @@ export function HostedLanding() {
     <Wrap>
       <Hero>
         <Title>gonogo</Title>
-        <Tagline>Mission control for Kerbal Space Program.</Tagline>
+        <Tagline>A mission control room for Kerbal Space Program.</Tagline>
         <Lede>
-          A live, multi-screen telemetry dashboard for your KSP flights —
-          self-registering widgets that adapt to any screen, driven straight
-          from your game.
+          Run your whole save from the browser: contracts, science, the
+          administration building, launches, and live telemetry. Lay the widgets
+          out the way you want, across as many screens as you want.
         </Lede>
         <Note role="note">
           The main screen connects directly to your KSP install, so it runs on
-          your own machine — not here. This page is just the front door.
+          your own machine, not here. This page is just the front door.
         </Note>
         <Actions>
           <Primary href="https://github.com/jonpepler/gonogo#readme">
-            Set up gonogo&nbsp;→
+            Set up gonogo
           </Primary>
           <Secondary href={stationHref}>Open a station screen</Secondary>
         </Actions>
         <Fine>
-          A station screen joins a main screen that&rsquo;s already running on
-          someone&rsquo;s machine — pair it with that machine&rsquo;s share
-          code.
+          A station screen joins a main screen that is already running on
+          someone's machine. All you need is the share code.
         </Fine>
       </Hero>
     </Wrap>
@@ -50,14 +46,8 @@ const Wrap = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background:
-    radial-gradient(
-      120% 80% at 50% -10%,
-      rgba(0, 255, 136, 0.08),
-      transparent 60%
-    ),
-    #0a0d10;
-  color: #e6edf3;
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
 `;
 
 const Hero = styled.main`
@@ -70,23 +60,22 @@ const Title = styled.h1`
   font-size: clamp(3rem, 12vw, 5rem);
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #00ff88;
-  text-shadow: 0 0 24px rgba(0, 255, 136, 0.25);
+  color: var(--color-accent-fg);
 `;
 
 const Tagline = styled.p`
   margin: 0.5rem 0 0;
   font-size: clamp(1.1rem, 3.5vw, 1.5rem);
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--color-text-primary);
 `;
 
 const Lede = styled.p`
   margin: 1.25rem auto 0;
-  max-width: 52ch;
+  max-width: 54ch;
   font-size: 1.05rem;
   line-height: 1.55;
-  color: #aab4bf;
+  color: var(--color-text-muted);
 `;
 
 const Note = styled.p`
@@ -94,8 +83,8 @@ const Note = styled.p`
   max-width: 50ch;
   font-size: 0.95rem;
   line-height: 1.5;
-  color: #8a96a3;
-  border-left: 2px solid rgba(0, 255, 136, 0.4);
+  color: var(--color-text-muted);
+  border-left: 2px solid var(--color-accent-fg);
   padding-left: 0.9rem;
   text-align: left;
 `;
@@ -116,22 +105,22 @@ const linkReset = `
   padding: 0.7rem 1.3rem;
   font-size: 1rem;
   font-weight: 600;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: filter 0.15s, border-color 0.15s, color 0.15s;
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
 `;
 
 const Primary = styled.a`
   ${linkReset}
-  background: #00ff88;
-  color: #06120c;
+  background: var(--color-accent-bg);
+  color: var(--color-text-inverse);
 
   @media (hover: hover) {
     &:hover {
-      background: #33ffa0;
+      filter: brightness(1.1);
     }
   }
 `;
@@ -139,13 +128,13 @@ const Primary = styled.a`
 const Secondary = styled.a`
   ${linkReset}
   background: transparent;
-  color: #e6edf3;
-  border: 1px solid rgba(230, 237, 243, 0.3);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
 
   @media (hover: hover) {
     &:hover {
-      border-color: #00ff88;
-      color: #00ff88;
+      border-color: var(--color-accent-fg);
+      color: var(--color-accent-fg);
     }
   }
 `;
@@ -155,6 +144,5 @@ const Fine = styled.p`
   max-width: 48ch;
   font-size: 0.82rem;
   line-height: 1.5;
-  /* Keep >=4.5:1 on the near-black background (AA, small text). */
-  color: #8893a0;
+  color: var(--color-text-muted);
 `;
