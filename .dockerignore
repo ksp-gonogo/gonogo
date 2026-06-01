@@ -20,6 +20,7 @@ coverage
 .github
 .vscode
 .idea
+.claude
 **/.DS_Store
 
 # Logs and local env.
