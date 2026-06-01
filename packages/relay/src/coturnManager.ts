@@ -18,6 +18,16 @@ import { randomBytes } from "node:crypto";
 export interface CoturnOptions {
   /** External IP coturn advertises in relay candidates. */
   externalIp: string;
+  /**
+   * Local, bindable IP coturn should actually open relay sockets on, passed
+   * as the `/private` half of coturn's `--external-ip=<public>/<private>`.
+   * Needed whenever `externalIp` is a NAT / published address that isn't a
+   * local interface — the usual container case: without it coturn tries to
+   * bind relay sockets on the non-local `externalIp`, fails `EADDRNOTAVAIL`,
+   * and every allocation dies with `create_relay_ioa_sockets: no available
+   * ports`. Omit only when `externalIp` is itself a local interface.
+   */
+  localIp?: string;
   /** Realm name. Cosmetic; coturn requires a value. */
   realm?: string;
   /** Listening UDP/TCP port. Defaults to 3478. */
@@ -79,6 +89,13 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
   const binary = opts.binaryPath ?? "turnserver";
   const realm = opts.realm ?? "gonogo";
 
+  // coturn binds relay sockets on the `/private` address and only advertises
+  // the public one. Without the private half it tries to bind the (non-local)
+  // external IP and every allocation fails. See CoturnOptions.localIp.
+  const externalIpArg = opts.localIp
+    ? `${opts.externalIp}/${opts.localIp}`
+    : opts.externalIp;
+
   const args = [
     "-n", // no config file — everything via CLI
     "--log-file=stdout",
@@ -89,7 +106,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--listening-port=${port}`,
     `--min-port=${minPort}`,
     `--max-port=${maxPort}`,
-    `--external-ip=${opts.externalIp}`,
+    `--external-ip=${externalIpArg}`,
     "--no-tls",
     "--no-dtls",
     // Aggressive idle cleanup — coturn's defaults give an unused
@@ -108,7 +125,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
   ];
 
   opts.logger.info(
-    `[coturn] spawning ${binary} listening=${port} relay-range=${minPort}-${maxPort} external-ip=${opts.externalIp}`,
+    `[coturn] spawning ${binary} listening=${port} relay-range=${minPort}-${maxPort} external-ip=${externalIpArg}`,
   );
 
   const proc: ChildProcess = spawn(binary, args, {

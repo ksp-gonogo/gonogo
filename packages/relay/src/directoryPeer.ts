@@ -1,4 +1,11 @@
 // ──────────────────────────────────────────────────────────────────────
+// SUPERSEDED by the stable-host-id model (the host now claims a
+// deterministic `gonogo-host-<code>` broker peer id and stations derive the
+// same id from the share code — no directory resolve hop). This directory
+// peer is unused by the app and slated for removal in a follow-up; left in
+// place for now so the relay keeps building and the POST /host registry
+// (diagnostics-only) is undisturbed.
+//
 // Broker-side host directory.
 //
 // The station and the host's relay only ever share ONE rendezvous: the
@@ -101,6 +108,15 @@ export interface DirectoryPeerOptions {
   secure?: boolean;
 }
 
+/** Minimal ICE-server shape — matches the `/ice-config` response and
+ *  peerjs's `config.iceServers`. Defined locally so the relay's tsconfig
+ *  doesn't have to pull in DOM's `RTCIceServer`. */
+export interface DirectoryIceServer {
+  urls: string[];
+  username?: string;
+  credential?: string;
+}
+
 /**
  * Read broker options from the environment, defaulting to the same public
  * broker (`0.peerjs.com`, key `gonogo`) the app's `peerOptions.ts`
@@ -147,6 +163,16 @@ export class DirectoryPeerService {
     private readonly registry: HostRegistry,
     private readonly options: DirectoryPeerOptions,
     private readonly logger: DirectoryLogger,
+    /**
+     * Supplies the TURN/STUN servers the directory peer should relay its
+     * DataConnections through — the relay's own coturn, the same servers
+     * `/ice-config` hands the host browser. Evaluated lazily at peer-creation
+     * time (coturn has started by then). Returns `undefined` when coturn is
+     * unavailable, in which case the peer falls back to host candidates only
+     * (reachable on the same machine / LAN-routable host, but not from a
+     * station on another device behind NAT).
+     */
+    private readonly getIceServers?: () => DirectoryIceServer[] | undefined,
   ) {}
 
   /** Spin up (or keep) the directory peer for a share-code. Idempotent. */
@@ -154,8 +180,17 @@ export class DirectoryPeerService {
     if (this.handles.has(shareCode)) return;
     const id = `${DIRECTORY_PEER_PREFIX}${shareCode}`;
     let peer: DirectoryPeerInstance;
+    // Relay this peer's DataConnections through coturn (when available) so a
+    // station on another device gets a reachable relay candidate. Without it
+    // the peer only offers container-internal host candidates, which nothing
+    // off the relay's box can route to.
+    const peerOptions: Record<string, unknown> = { ...this.options };
+    const iceServers = this.getIceServers?.();
+    if (iceServers && iceServers.length > 0) {
+      peerOptions.config = { iceServers };
+    }
     try {
-      peer = new Peer(id, { ...this.options });
+      peer = new Peer(id, peerOptions);
     } catch (err) {
       this.logger.error(`[directory] failed to construct peer ${id}`, err);
       return;
