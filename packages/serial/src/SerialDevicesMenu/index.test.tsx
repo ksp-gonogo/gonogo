@@ -20,11 +20,23 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
+function setSecureContext(value: boolean): void {
+  Object.defineProperty(window, "isSecureContext", {
+    configurable: true,
+    value,
+  });
+}
+
 describe("SerialDevicesMenu Web Serial support banner", () => {
   let originalSerial: PropertyDescriptor | undefined;
+  let originalSecureContext: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     originalSerial = Object.getOwnPropertyDescriptor(navigator, "serial");
+    originalSecureContext = Object.getOwnPropertyDescriptor(
+      window,
+      "isSecureContext",
+    );
   });
 
   afterEach(() => {
@@ -33,6 +45,11 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
       Object.defineProperty(navigator, "serial", originalSerial);
     } else {
       delete (navigator as Navigator & { serial?: unknown }).serial;
+    }
+    if (originalSecureContext) {
+      Object.defineProperty(window, "isSecureContext", originalSecureContext);
+    } else {
+      delete (window as Window & { isSecureContext?: boolean }).isSecureContext;
     }
   });
 
@@ -49,15 +66,28 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     );
   }
 
-  it("renders the banner when navigator.serial is unavailable", () => {
+  it("shows the unsupported-browser banner when serial is absent in a secure context", () => {
     Object.defineProperty(navigator, "serial", {
       configurable: true,
       value: undefined,
     });
+    setSecureContext(true);
     renderMenu();
     expect(screen.getByRole("status").textContent).toMatch(
-      /Web Serial is not available/i,
+      /not available in this browser/i,
     );
+  });
+
+  it("shows the insecure-context banner when serial is absent on an insecure origin", () => {
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: undefined,
+    });
+    setSecureContext(false);
+    renderMenu();
+    const banner = screen.getByRole("status");
+    expect(banner.textContent).toMatch(/secure context/i);
+    expect(banner.textContent).toMatch(/unsafely-treat-insecure-origin/i);
   });
 
   it("hides the banner when navigator.serial.requestPort exists", () => {

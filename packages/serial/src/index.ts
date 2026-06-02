@@ -34,4 +34,8 @@ export { VirtualTransport } from "./transports/VirtualTransport";
 export { WebSerialTransport } from "./transports/WebSerialTransport";
 export * from "./types";
 export { VirtualDeviceComponent } from "./VirtualDevice";
-export { isWebSerialSupported } from "./webSerialSupport";
+export {
+  getWebSerialSupport,
+  isWebSerialSupported,
+  type WebSerialSupport,
+} from "./webSerialSupport";
