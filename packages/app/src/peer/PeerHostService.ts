@@ -295,6 +295,28 @@ export class PeerHostService {
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
   private currentFlightSnapshot: FlightRecord | null = null;
+  /**
+   * TURN-on-demand escalation flag. False by default — the host starts
+   * STUN-only. Set to true permanently for the session when a station
+   * connection fails to reach "open" within TURN_ESCALATION_MS, indicating
+   * the network needs TURN relay. Once escalated, all new connections (and
+   * refreshIceConfig) include TURN credentials.
+   */
+  private turnEscalated = false;
+  /**
+   * Per-connection escalation timers. Started when an incoming connection
+   * is detected; cancelled if the connection opens within the window.
+   * If the timer fires, escalation is triggered.
+   */
+  private turnEscalationTimers = new Map<
+    DataConnection,
+    ReturnType<typeof setTimeout>
+  >();
+  /** How long to wait for a new station connection to reach "open" before
+   *  treating the network as TURN-requiring. 6s is well within the
+   *  chrome-iceconnectionstate="failed" timeout (10–30s) but long enough
+   *  to survive normal STUN round-trips on a congested LAN. */
+  private static readonly TURN_ESCALATION_MS = 6_000;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
    *  prior tab). Drives the main-screen "Reclaiming your share code…"
@@ -382,11 +404,21 @@ export class PeerHostService {
     // namespace is shared by `key`, so picking our own gives us our own slice.
     // MUST match the `key` set in PeerClientService and packages/relay (any
     // mismatch and that peer is invisible on the broker to our other peers).
+    // TURN-on-demand: start STUN-only by default. The host's data channel
+    // only gains TURN relay candidates once a station connection fails to open
+    // within TURN_ESCALATION_MS (see escalateTurn / the connection handler),
+    // at which point turnEscalated flips and this fresh Peer is built
+    // TURN-ready. Note: this.iceServers is still fetched/stored and broadcast
+    // to stations for their camera channel — we just don't put it into the
+    // host's own data-channel RTCPeerConnection unless escalation has proven
+    // the network needs it.
+    const pcConfig: RTCConfiguration = {};
+    if (this.turnEscalated && this.iceServers.length > 0) {
+      pcConfig.iceServers = this.iceServers;
+    }
     this.peer = new Peer(peerId, {
       ...peerBrokerOptions(),
-      ...(this.iceServers.length > 0
-        ? { config: { iceServers: this.iceServers } }
-        : {}),
+      ...(Object.keys(pcConfig).length > 0 ? { config: pcConfig } : {}),
     });
 
     this.peer.on("open", (id) => {
@@ -426,7 +458,26 @@ export class PeerHostService {
 
     this.peer.on("connection", (conn) => {
       logger.info(`[PeerHost] incoming connection from ${conn.peer}`);
+      // TURN-on-demand: start an escalation timer. If this connection doesn't
+      // reach "open" within TURN_ESCALATION_MS we treat the network as needing
+      // TURN and escalate — injecting iceServers into the Peer config so the
+      // station's automatic reconnect attempt gathers TURN relay candidates.
+      // LAN connections typically open in <500ms; the 6s window never fires for
+      // them. The timer is cleared in the "open" handler below.
+      if (!this.turnEscalated && this.iceServers.length > 0) {
+        const timer = setTimeout(() => {
+          this.turnEscalationTimers.delete(conn);
+          this.escalateTurn(conn.peer);
+        }, PeerHostService.TURN_ESCALATION_MS);
+        this.turnEscalationTimers.set(conn, timer);
+      }
       conn.on("open", () => {
+        // Connection opened in time — cancel the escalation timer (LAN path).
+        const timer = this.turnEscalationTimers.get(conn);
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          this.turnEscalationTimers.delete(conn);
+        }
         this.connections.add(conn);
         logger.info(
           `[PeerHost] connection open — peer=${conn.peer}, total=${this.connections.size}`,
@@ -488,6 +539,14 @@ export class PeerHostService {
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
       conn.on("close", () => {
+        // If the connection closes before "open" fires (e.g. the escalation
+        // timer fires and then the conn closes), cancel any pending timer to
+        // avoid a double-escalation or a stale reference.
+        const pendingTimer = this.turnEscalationTimers.get(conn);
+        if (pendingTimer !== undefined) {
+          clearTimeout(pendingTimer);
+          this.turnEscalationTimers.delete(conn);
+        }
         this.connections.delete(conn);
         this.peerIdToStationKey.delete(conn.peer);
         this.kosSessions.closeAllForConn(conn);
@@ -588,6 +647,46 @@ export class PeerHostService {
       this.reclaimTimer = null;
       this.openPeer();
     }, delayMs);
+  }
+
+  /**
+   * Escalate the host's Peer to use TURN relay for all future connections.
+   * Called when an incoming station connection fails to open within
+   * TURN_ESCALATION_MS — indicating the network path requires a relay.
+   *
+   * Sets `turnEscalated = true` (sticky for the session) and immediately
+   * patches the Peer's internal `_options.config.iceServers` so the next
+   * connection attempt (the station's automatic reconnect) gathers TURN
+   * candidates. Does nothing if already escalated or if there are no
+   * iceServers to inject.
+   */
+  private escalateTurn(fromPeerId: string): void {
+    if (this.turnEscalated) return;
+    if (this.iceServers.length === 0) return;
+    this.turnEscalated = true;
+    logger.warn(
+      `[PeerHost] TURN escalation triggered by slow connection from ${fromPeerId} — injecting TURN for future connections`,
+    );
+    // Patch the live Peer's config so subsequent peer.connect() calls
+    // (the station's automatic reconnect) include TURN relay candidates.
+    this.applyTurnToLivePeer();
+  }
+
+  /**
+   * Inject the current iceServers into the live Peer's `_options.config`.
+   * Used by both the escalation trigger and `refreshIceConfig()` (when
+   * already escalated). No-op if no Peer exists or no iceServers to apply.
+   */
+  private applyTurnToLivePeer(): void {
+    if (!this.peer || this.iceServers.length === 0) return;
+    const opts = (
+      this.peer as unknown as {
+        _options?: { config?: { iceServers: RTCIceServer[] } };
+      }
+    )._options;
+    if (opts) {
+      opts.config = { iceServers: this.iceServers };
+    }
   }
 
   private setReclaiming(next: boolean): void {
@@ -1558,6 +1657,13 @@ export class PeerHostService {
     }
     this.reclaimAttempt = 0;
     this.setReclaiming(false);
+    // Clear any in-flight escalation timers and reset escalation state so a
+    // fresh start() (e.g. after regenerateShareCode) begins STUN-only again.
+    for (const timer of this.turnEscalationTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.turnEscalationTimers.clear();
+    this.turnEscalated = false;
     this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
@@ -1682,23 +1788,26 @@ export class PeerHostService {
     if (next.length === 0) return;
     if (areIceServersEqual(this.iceServers, next)) return;
     this.iceServers = next;
-    // PeerJS's Peer doesn't expose a public setter for `iceServers`, so
-    // reach into `_options.config`. New peer.connect() / peer.call()
-    // calls grab `_options.config` when constructing the underlying
-    // RTCPeerConnection, so the next ICE attempt picks up the fresh
-    // creds. Existing connections aren't disturbed (their ICE pair is
-    // already negotiated).
-    const opts = (
-      this.peer as unknown as {
-        _options?: { config?: { iceServers: RTCIceServer[] } };
-      }
-    )._options;
-    if (opts) {
-      opts.config = { iceServers: next };
+    // TURN-on-demand: only patch the host Peer's config when TURN is already
+    // in use (turnEscalated). If the host is still STUN-only, there's no live
+    // TURN allocation to keep fresh — and silently re-enabling TURN here would
+    // defeat the whole change after the first 60s refresh cycle.
+    if (this.turnEscalated) {
+      // PeerJS's Peer doesn't expose a public setter for `iceServers`, so
+      // reach into `_options.config`. New peer.connect() / peer.call()
+      // calls grab `_options.config` when constructing the underlying
+      // RTCPeerConnection, so the next ICE attempt picks up the fresh
+      // creds. Existing connections aren't disturbed (their ICE pair is
+      // already negotiated).
+      this.applyTurnToLivePeer();
+      logger.info(
+        "[PeerHost] ice-config refreshed — new TURN creds active for future connections (TURN escalated)",
+      );
+    } else {
+      logger.info(
+        "[PeerHost] ice-config refreshed — creds stored for station broadcast (STUN-only host)",
+      );
     }
-    logger.info(
-      "[PeerHost] ice-config refreshed — new TURN creds active for future connections",
-    );
     // Push the refresh to every connected station so their station→relay
     // peer connections can pick up the new credentials too. Without this,
     // a coturn secret rotation (relay restart) would silently break

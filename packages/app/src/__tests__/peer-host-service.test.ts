@@ -968,6 +968,203 @@ describe("PeerHostService — relay-peer-id iceServers propagation", () => {
   });
 });
 
+describe("PeerHostService — TURN-on-demand escalation", () => {
+  beforeEach(() => {
+    FakePeer.last = null;
+  });
+
+  async function flush(): Promise<void> {
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  type ServiceInternal = {
+    turnEscalated: boolean;
+    iceServers: RTCIceServer[];
+    turnEscalationTimers: Map<unknown, ReturnType<typeof setTimeout>>;
+    escalateTurn: (peerId: string) => void;
+    destroyPeer: () => void;
+    openPeer: () => void;
+  };
+
+  // An incoming connection that opens in time should cancel its escalation timer.
+  // We verify that:
+  //   (a) a timer is added to the map when the connection arrives (iceServers non-empty)
+  //   (b) after "open" fires, the map entry is removed (timer was cancelled)
+  //   (c) turnEscalated stays false
+  it("cancels the escalation timer when a station connection opens normally", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    const turnConfig: RTCIceServer[] = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+    internal.iceServers = turnConfig;
+
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    const conn = new FakeDataConnection();
+    FakePeer.last.emit("connection", conn);
+
+    // Timer should have been registered (conn is in the map).
+    expect(internal.turnEscalationTimers.has(conn)).toBe(true);
+
+    // Connection opens — timer should be cancelled and removed.
+    conn.emit("open");
+    await flush();
+
+    expect(internal.turnEscalationTimers.has(conn)).toBe(false);
+    expect(internal.turnEscalated).toBe(false);
+  });
+
+  // No timer should be started when iceServers is empty (nothing to escalate to).
+  it("does not start an escalation timer when iceServers is empty", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [];
+
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    const conn = new FakeDataConnection();
+    FakePeer.last.emit("connection", conn);
+
+    // No timer registered — iceServers was empty.
+    expect(internal.turnEscalationTimers.has(conn)).toBe(false);
+    expect(internal.turnEscalated).toBe(false);
+  });
+
+  // escalateTurn() sets turnEscalated to true when iceServers is non-empty.
+  it("escalateTurn sets turnEscalated to true", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+
+    expect(internal.turnEscalated).toBe(false);
+    internal.escalateTurn("some-peer");
+    expect(internal.turnEscalated).toBe(true);
+  });
+
+  // escalateTurn() is a no-op if iceServers is empty.
+  it("escalateTurn does not set turnEscalated when iceServers is empty", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [];
+    internal.escalateTurn("some-peer");
+    expect(internal.turnEscalated).toBe(false);
+  });
+
+  // escalateTurn() is idempotent.
+  it("escalateTurn is idempotent when already escalated", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+    internal.escalateTurn("peer-1");
+    internal.escalateTurn("peer-2"); // second call should not throw
+    expect(internal.turnEscalated).toBe(true);
+  });
+
+  // stop() must reset turnEscalated so a fresh start() begins STUN-only.
+  it("resets turnEscalated on stop()", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.turnEscalated = true;
+    service.stop();
+
+    expect(internal.turnEscalated).toBe(false);
+  });
+
+  // stop() clears any pending escalation timers.
+  it("clears all pending escalation timers on stop()", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    // Connection without "open" — registers an escalation timer.
+    const conn = new FakeDataConnection();
+    FakePeer.last.emit("connection", conn);
+    expect(internal.turnEscalationTimers.size).toBeGreaterThan(0);
+
+    service.stop();
+    expect(internal.turnEscalationTimers.size).toBe(0);
+  });
+
+  // A connection that closes before "open" must clear its escalation timer.
+  it("clears the escalation timer when a connection closes before opening", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    const conn = new FakeDataConnection();
+    FakePeer.last.emit("connection", conn);
+    expect(internal.turnEscalationTimers.has(conn)).toBe(true);
+
+    // Close before open — timer should be cleared.
+    conn.emit("close");
+    expect(internal.turnEscalationTimers.has(conn)).toBe(false);
+  });
+
+  // When already escalated, no new timer is started for subsequent connections.
+  it("does not start new escalation timers when already escalated", async () => {
+    const { PeerHostService } = await import("../peer/PeerHostService");
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    const internal = service as unknown as ServiceInternal;
+    internal.iceServers = [
+      { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
+    ];
+    // Simulate already-escalated state.
+    internal.turnEscalated = true;
+
+    if (!FakePeer.last) throw new Error("FakePeer not instantiated");
+    const conn = new FakeDataConnection();
+    FakePeer.last.emit("connection", conn);
+
+    // No timer started because `!this.turnEscalated` guard is false.
+    expect(internal.turnEscalationTimers.has(conn)).toBe(false);
+  });
+});
+
 describe("PeerHostService — kerbcam negotiate broker", () => {
   beforeEach(() => {
     FakePeer.last = null;
