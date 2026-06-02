@@ -135,6 +135,9 @@ interface CrashSummary {
   groundDistance: number;
 }
 
+// crash.lastCrash only ever carries notable-vessel crashes — the Telemachus
+// fork filters debris / flags / non-vessels at the source, so the banner
+// trusts whatever it receives and never second-guesses by name or type.
 function parseCrash(raw: unknown): CrashSummary | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const e = raw as Record<string, unknown>;
