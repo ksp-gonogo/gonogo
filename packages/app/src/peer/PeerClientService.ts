@@ -64,7 +64,12 @@ const iceLog = logger.tag("peer:ice");
  * cast through unknown to read it. Best-effort: if peerjs ever changes
  * shape we just lose the diagnostics rather than crashing.
  */
-function attachIceDiagnostics(conn: DataConnection): void {
+const ICE_DISCONNECT_GRACE_MS = 4_000;
+
+export function attachIceDiagnostics(
+  conn: DataConnection,
+  onDead?: () => void,
+): void {
   const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
     .peerConnection;
   if (!pc) {
@@ -73,6 +78,27 @@ function attachIceDiagnostics(conn: DataConnection): void {
     });
     return;
   }
+  // Liveness state-machine: when the host refreshes, its peer is destroyed
+  // abruptly on pagehide and the station's RTCPeerConnection can go silent
+  // WITHOUT peerjs ever firing `close`/`error`. We watch the ICE / PC state
+  // directly and call onDead() so the reconnect loop starts anyway.
+  let graceTimer: ReturnType<typeof setTimeout> | null = null;
+  let dead = false;
+  const clearGrace = () => {
+    if (graceTimer !== null) {
+      clearTimeout(graceTimer);
+      graceTimer = null;
+    }
+  };
+  const fireDead = (why: string) => {
+    if (dead) return; // at most once per dead connection
+    dead = true;
+    clearGrace();
+    iceLog.debug(`connection dead (${why}) — signalling onDead`, {
+      peerId: conn.peer,
+    });
+    onDead?.();
+  };
   const ctx = { peerId: conn.peer };
   iceLog.debug("attached", {
     ...ctx,
@@ -85,12 +111,36 @@ function attachIceDiagnostics(conn: DataConnection): void {
   });
   pc.addEventListener("iceconnectionstatechange", () => {
     iceLog.debug(`iceConnectionState=${pc.iceConnectionState}`, ctx);
+    const state = pc.iceConnectionState;
+    if (state === "failed" || state === "closed") {
+      // Terminal — no recovery from these.
+      fireDead(`iceConnectionState=${state}`);
+    } else if (state === "disconnected") {
+      // Possibly transient (a brief network blip recovers to `connected`).
+      // Start a grace timer; only declare dead if we're still not healthy
+      // when it elapses.
+      if (!dead && graceTimer === null) {
+        graceTimer = setTimeout(() => {
+          graceTimer = null;
+          const s = pc.iceConnectionState;
+          if (s !== "connected" && s !== "completed") {
+            fireDead("iceConnectionState=disconnected (grace elapsed)");
+          }
+        }, ICE_DISCONNECT_GRACE_MS);
+      }
+    } else if (state === "connected" || state === "completed") {
+      // Recovered (or healthy) — cancel any pending dead-declaration.
+      clearGrace();
+    }
   });
   pc.addEventListener("icegatheringstatechange", () => {
     iceLog.debug(`iceGatheringState=${pc.iceGatheringState}`, ctx);
   });
   pc.addEventListener("connectionstatechange", () => {
     iceLog.debug(`connectionState=${pc.connectionState}`, ctx);
+    if (pc.connectionState === "failed") {
+      fireDead("connectionState=failed");
+    }
   });
   pc.addEventListener("signalingstatechange", () => {
     iceLog.debug(`signalingState=${pc.signalingState}`, ctx);
@@ -123,6 +173,14 @@ function attachIceDiagnostics(conn: DataConnection): void {
       errorCode: e.errorCode,
       errorText: e.errorText,
     });
+  });
+  // Clean teardown (peerjs `close`, or our own reconnect tearing the conn
+  // down): stop reacting and kill any pending grace timer so a stale timer
+  // can't fire onDead after the connection is already gone. Mark dead so
+  // any late state transition is ignored too.
+  conn.on("close", () => {
+    dead = true;
+    clearGrace();
   });
 }
 
@@ -356,7 +414,16 @@ export class PeerClientService {
     if (!this.peer || !this.hostPeerId) return;
     logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
     this.conn = this.peer.connect(this.hostPeerId);
-    attachIceDiagnostics(this.conn);
+    attachIceDiagnostics(this.conn, () => {
+      // The host's peer can die without peerjs ever firing `close` (abrupt
+      // pagehide on host refresh). This is the line that ships to Axiom to
+      // mark the ICE/PC-driven reconnect. handleUnexpectedClose() is
+      // idempotent, so racing the `conn.on("close")` path is harmless.
+      logger.warn(
+        "[PeerClient] host connection lost (ICE/PC dead) — reconnecting",
+      );
+      this.retryPolicy.handleUnexpectedClose();
+    });
     this.conn.on("open", () => {
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
       this.retryPolicy.onConnected();
