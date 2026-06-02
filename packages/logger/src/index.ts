@@ -189,6 +189,15 @@ export class ConsoleLogger implements Logger {
     return this.buffer.snapshot();
   }
 
+  /**
+   * Snapshot of the in-memory ring buffer (oldest first). Alias of
+   * {@link getBuffer} — used by {@link AxiomConsentController} to backfill
+   * the pre-consent history to a freshly-installed transport.
+   */
+  snapshot(): readonly LogEntry[] {
+    return this.buffer.snapshot();
+  }
+
   /** Serialises the buffer as a pretty-printed JSON array for download. */
   exportLogs(): string {
     return JSON.stringify(this.buffer.snapshot(), null, 2);

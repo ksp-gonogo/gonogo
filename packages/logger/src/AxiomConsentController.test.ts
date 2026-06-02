@@ -96,6 +96,69 @@ describe("AxiomConsentController", () => {
     expect(logger.transportCount()).toBe(0);
   });
 
+  it("backfills the pre-consent ring buffer to the transport on first install", () => {
+    const logger = new ConsoleLogger({ enabled: true });
+    const transport = makeTransport();
+    const controller = new AxiomConsentController({
+      logger,
+      makeTransport: () => transport,
+    });
+
+    // Pre-consent history accumulates in the ring buffer only.
+    logger.info("before consent A");
+    logger.info("before consent B");
+    expect(transport.sent).toHaveLength(0);
+
+    controller.apply(true);
+
+    // One backfill send carrying the buffered history, at original timestamps.
+    expect(transport.sent).toHaveLength(1);
+    const backfilled = transport.sent[0];
+    expect(backfilled.map((e) => e.message)).toEqual([
+      "before consent A",
+      "before consent B",
+    ]);
+
+    // Live entries after install flow through normally and are NOT part of
+    // the backfill batch (snapshot taken before addTransport).
+    logger.info("after consent");
+    expect(transport.sent).toHaveLength(2);
+    expect(transport.sent[1].map((e) => e.message)).toEqual(["after consent"]);
+  });
+
+  it("does NOT re-ship the buffer on a revoke → re-grant cycle", () => {
+    const logger = new ConsoleLogger({ enabled: true });
+    // A fresh transport each install so the second grant gets a clean sink.
+    const transports: (LogTransport & { sent: LogEntry[][] })[] = [];
+    const controller = new AxiomConsentController({
+      logger,
+      makeTransport: () => {
+        const t = makeTransport();
+        transports.push(t);
+        return t;
+      },
+    });
+
+    logger.info("history 1");
+    controller.apply(true);
+    expect(transports[0].sent).toHaveLength(1); // backfill shipped once
+
+    controller.apply(false);
+    logger.info("history 2");
+    controller.apply(true);
+
+    // Second transport installs but the buffer is NOT re-backfilled.
+    expect(transports).toHaveLength(2);
+    expect(transports[1].sent).toHaveLength(0);
+
+    // Live entries after the re-grant still flow.
+    logger.info("live after re-grant");
+    expect(transports[1].sent).toHaveLength(1);
+    expect(transports[1].sent[0].map((e) => e.message)).toEqual([
+      "live after re-grant",
+    ]);
+  });
+
   it("apply(false) before any install is a no-op", () => {
     const logger = new ConsoleLogger({ enabled: true });
     const transport = makeTransport();

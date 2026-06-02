@@ -43,6 +43,9 @@ export interface AxiomTransportOptions {
  * Failures are swallowed — log delivery never crashes the app.
  */
 export class AxiomTransport implements LogTransport {
+  /** Max entries per `ingest` call — bounds a one-shot backfill so a full
+   *  ring-buffer flush is split across several requests. */
+  private static readonly MAX_BATCH = 500;
   private readonly client: AxiomIngestClient;
   private readonly dataset: string;
   private pageHideHandler: (() => void) | null = null;
@@ -85,7 +88,18 @@ export class AxiomTransport implements LogTransport {
   send(entries: readonly LogEntry[]): void {
     if (entries.length === 0) return;
     try {
-      this.client.ingest(this.dataset, entries as unknown as object[]);
+      // Chunk large batches so a one-shot backfill of the whole ring buffer
+      // (up to 5000 entries) can't exceed Axiom's per-request limits. Steady
+      // -state sends are far smaller than the chunk size and pass through in
+      // a single ingest call.
+      if (entries.length <= AxiomTransport.MAX_BATCH) {
+        this.client.ingest(this.dataset, entries as unknown as object[]);
+        return;
+      }
+      for (let i = 0; i < entries.length; i += AxiomTransport.MAX_BATCH) {
+        const chunk = entries.slice(i, i + AxiomTransport.MAX_BATCH);
+        this.client.ingest(this.dataset, chunk as unknown as object[]);
+      }
     } catch {
       // ignore — never let a logging path throw
     }
