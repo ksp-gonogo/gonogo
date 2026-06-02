@@ -8,6 +8,10 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
+import {
+  BURNUP_DESTROYED,
+  SHIP_CRASH_SPLASHDOWN,
+} from "./fixtures/crash-payloads";
 
 function Wrap({ children }: { children: ReactNode }) {
   return <ModalProvider>{children}</ModalProvider>;
@@ -50,29 +54,92 @@ describe("FlightOutcomeBanner", () => {
     // Pre-crash: nothing on screen.
     expect(screen.queryByText(/VESSEL DESTROYED/)).toBeNull();
 
-    // Crash data arrives — banner should pop.
+    // Crash data arrives — banner should pop. Real recorded Ship-crash payload.
+    act(() => {
+      src.emit("crash.hasRecent", true);
+      src.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+    });
+
+    expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
+    expect(screen.getByText("career-orbital-test")).toBeInTheDocument();
+  });
+
+  // Real re-entry burn-up (eventKind "Destroyed") — fires no onCrash in KSP, so
+  // the onVesselWillDestroy detector is what records it. The banner must surface
+  // it like any other crash.
+  it("fires the crash banner for a re-entry burn-up (eventKind Destroyed)", () => {
+    const src = new MockDataSource({
+      id: "data",
+      keys: [
+        { key: "recovery.hasRecent" },
+        { key: "recovery.lastSummary" },
+        { key: "crash.hasRecent" },
+        { key: "crash.lastCrash" },
+      ],
+    });
+    registerDataSource(src);
+    src.setStatus("connected");
+
+    render(
+      <Wrap>
+        <FlightOutcomeBanner />
+      </Wrap>,
+    );
+
+    act(() => {
+      src.emit("crash.hasRecent", true);
+      src.emit("crash.lastCrash", BURNUP_DESTROYED);
+    });
+
+    expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
+    expect(screen.getByText("Perf Test 1")).toBeInTheDocument();
+  });
+
+  // Debris is filtered at the source (the fork), never by name in the banner.
+  // Guard against anyone re-introducing name-based filtering here: a real
+  // vessel the operator named "… Debris" must still fire.
+  it("fires for a crash whose vessel name ends in Debris", () => {
+    const src = new MockDataSource({
+      id: "data",
+      keys: [
+        { key: "recovery.hasRecent" },
+        { key: "recovery.lastSummary" },
+        { key: "crash.hasRecent" },
+        { key: "crash.lastCrash" },
+      ],
+    });
+    registerDataSource(src);
+    src.setStatus("connected");
+
+    render(
+      <Wrap>
+        <FlightOutcomeBanner />
+      </Wrap>,
+    );
+
     act(() => {
       src.emit("crash.hasRecent", true);
       src.emit("crash.lastCrash", {
-        ut: 1234.5,
-        vesselName: "tester",
+        ut: 9100,
+        vesselName: "Project Debris",
+        vesselType: "Ship",
         body: "Kerbin",
         situation: "FLYING",
         what: "Kerbin^N",
         partsLost: [{ partName: "mk1pod.v2" }],
-        kerbalsKilled: ["Jebediah Kerman"],
-        crewAboard: ["Jebediah Kerman"],
+        kerbalsKilled: [],
+        crewAboard: [],
         flightStats: {
-          highestAltitude: 4951,
-          highestSpeed: 964,
-          highestGee: 7.4,
-          groundDistance: 44876,
+          highestAltitude: 0,
+          highestSpeed: 0,
+          highestGee: 0,
+          groundDistance: 0,
         },
       });
     });
 
     expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
-    expect(screen.getByText("tester")).toBeInTheDocument();
+    expect(screen.getByText("Project Debris")).toBeInTheDocument();
   });
 
   it("fires the recovery banner when recovery.lastSummary arrives", () => {
