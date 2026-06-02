@@ -75,37 +75,8 @@ describe("host-discovery route (fastify.inject)", () => {
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
     expect(post.statusCode).toBe(200);
-    // The station resolves over the broker now, not HTTP — assert the
-    // registry the directory peer reads in-process was updated.
+    // Diagnostics-only registry — assert the POST landed.
     expect(registry.resolve("AB3K")).toBe("peer-123");
-    await app.close();
-  });
-
-  it("POST /host fires onRegister with the accepted code + peer id", async () => {
-    const calls: Array<[string, string]> = [];
-    const { app } = await buildApp({
-      onRegister: (code, peerId) => calls.push([code, peerId]),
-    });
-    await app.inject({
-      method: "POST",
-      url: "/host",
-      payload: { shareCode: "AB3K", peerId: "peer-123" },
-    });
-    expect(calls).toEqual([["AB3K", "peer-123"]]);
-    await app.close();
-  });
-
-  it("does NOT fire onRegister for a rejected (400) body", async () => {
-    const calls: Array<[string, string]> = [];
-    const { app } = await buildApp({
-      onRegister: (code, peerId) => calls.push([code, peerId]),
-    });
-    await app.inject({
-      method: "POST",
-      url: "/host",
-      payload: { shareCode: "AB3K" },
-    });
-    expect(calls).toEqual([]);
     await app.close();
   });
 

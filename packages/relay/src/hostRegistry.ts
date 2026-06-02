@@ -10,12 +10,10 @@ import type { FastifyInstance } from "fastify";
  *
  * - The host `POST /host { shareCode, peerId }` on every PeerJS `open`
  *   and again on a periodic heartbeat.
- * - The station resolves the current peer id over the PeerJS broker via
- *   the relay's directory peer (`gonogo-dir-<shareCode>`), which reads
- *   this registry in-process (`registry.resolve(shareCode)`). It
- *   re-resolves on every reconnect so it auto-follows the host's rotation.
- *   (The old cross-machine-broken HTTP `GET /host/:shareCode` lookup was
- *   removed in favour of the broker path — see `directoryPeer.ts`.)
+ * - Diagnostics-only under the stable-host-id model: stations derive the
+ *   host's broker peer id (`gonogo-host-<shareCode>`) from the share code
+ *   directly and connect to it, so nothing resolves through this registry.
+ *   It remains a useful "is this host currently online?" signal.
  *
  * In-memory only. A relay restart just means hosts re-register on their
  * next heartbeat. Single-instance assumption — a shared registry across
@@ -81,11 +79,6 @@ export interface RegisterHostRoutesOptions {
   /** Backing registry. Defaults to a fresh one; tests pass their own to
    *  control the TTL or inspect entries. */
   registry?: HostRegistry;
-  /** Called after each accepted `POST /host`, with the registered
-   *  share-code + peer id. The relay uses this to (lazily) bring up the
-   *  broker-side directory peer for the code — see `directoryPeer.ts`.
-   *  Kept as a callback so this module stays peerjs/wrtc-free. */
-  onRegister?: (shareCode: string, peerId: string) => void;
 }
 
 /**
@@ -93,10 +86,9 @@ export interface RegisterHostRoutesOptions {
  * inherited from the global `@fastify/cors` registration the relay
  * already applies (same as `/ice-config`) — no per-route allowlist.
  *
- * Only `POST /host` is exposed: stations no longer GET the registry over
- * HTTP (that path was broken cross-machine — the relay is local to the
- * host). They resolve over the broker via the directory peer instead,
- * which reads this registry in-process.
+ * Only `POST /host` is exposed: stations don't read the registry at all
+ * under the stable-host-id model — they derive the host's broker peer id
+ * from the share code directly. The registry is diagnostics-only.
  *
  * Returns the backing registry so the caller can wire a periodic sweep
  * timer (and tests can inspect it).
@@ -117,7 +109,6 @@ export function registerHostRoutes(
         .send({ error: "shareCode and peerId are required" });
     }
     registry.register(shareCode, peerId);
-    options.onRegister?.(shareCode, peerId);
     return { ok: true };
   });
 

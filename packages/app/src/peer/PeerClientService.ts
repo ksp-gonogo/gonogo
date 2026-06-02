@@ -235,12 +235,6 @@ export class PeerClientService {
   >();
   private flightListChangeListeners = new ListenerSet<[]>();
   private hostUnavailableListeners = new ListenerSet<[hostPeerId: string]>();
-  // Fired when the host announces a graceful rotation of its share code
-  // over the existing data channel. The PeerClientService updates its
-  // reconnect target internally; the listener gives the screen layer a
-  // chance to persist the new id so a subsequent refresh picks it up
-  // instead of retrying the dead old code.
-  private hostPeerIdChangeListeners = new ListenerSet<[newPeerId: string]>();
   // One-shot fog-snapshot from the host, fired right after schema on each
   // connect. Subscribers (StationScreen → FogMaskStore) decide what to
   // do with the masks; the service itself doesn't keep them around.
@@ -817,17 +811,6 @@ export class PeerClientService {
   }
 
   /**
-   * Fires when the host has broadcast a graceful share-code rotation
-   * over the existing data channel. The service has already updated its
-   * own reconnect target; subscribers (StationScreen) should persist the
-   * new id to localStorage so a refresh after the rotation lands on the
-   * new code rather than retrying the dead old one.
-   */
-  onHostPeerIdChange(cb: (newPeerId: string) => void) {
-    return this.hostPeerIdChangeListeners.add(cb);
-  }
-
-  /**
    * Fires once per host-connect cycle when the host pushes its fog snapshot.
    * The station applies the masks to its local FogMaskStore so the map
    * reflects the host's exploration state.
@@ -1001,18 +984,6 @@ export class PeerClientService {
       if (msg.iceServers && msg.iceServers.length > 0) {
         this.applyRelayIceServers(msg.iceServers);
       }
-    },
-    "host-id-rotation": (msg) => {
-      logger.info(
-        `[PeerClient] host rotating id — new=${msg.newPeerId} reason=${msg.reason}`,
-      );
-      // Repoint reconnects at the new id *before* the host destroys the
-      // channel a beat later. The conn's `close` event will fire shortly
-      // afterwards and the retry loop calls openPeer(), which reads
-      // `this.hostPeerId` afresh — no extra wiring needed there.
-      this.hostPeerId = msg.newPeerId;
-      logger.setIdentity({ hostPeerId: msg.newPeerId });
-      this.hostPeerIdChangeListeners.fire(msg.newPeerId);
     },
     "fog-snapshot": (msg) => {
       this.fogSnapshotListeners.fire(msg);

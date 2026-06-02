@@ -291,7 +291,6 @@ export class PeerHostService {
    *  the "Add station" UI gates on to decide whether to surface the
    *  share-code (resolvable) or fall back to the raw peer id. */
   relayRegistered = false;
-  private relayRegisteredListeners = new ListenerSet<[boolean]>();
 
   private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
@@ -1628,19 +1627,6 @@ export class PeerHostService {
   private setRelayRegistered(next: boolean): void {
     if (this.relayRegistered === next) return;
     this.relayRegistered = next;
-    this.relayRegisteredListeners.fire(next);
-  }
-
-  /**
-   * Subscribe to relay-registration state. Fires with the current value
-   * immediately (so a late subscriber — e.g. the Add Station modal opening
-   * after the first POST already landed — sees the right state without
-   * waiting for the next heartbeat) and on every subsequent change.
-   */
-  onRelayRegisteredChange(cb: (registered: boolean) => void): () => void {
-    const unsub = this.relayRegisteredListeners.add(cb);
-    queueMicrotask(() => cb(this.relayRegistered));
-    return unsub;
   }
 
   /**
