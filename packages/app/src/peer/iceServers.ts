@@ -67,9 +67,6 @@ export function relayBaseUrl(): string {
   return (env.VITE_RELAY_URL ?? DEFAULT_RELAY_URL).replace(/\/$/, "");
 }
 
-// NOTE: the broker-directory resolver (`resolveHostPeerId` /
-// `gonogo-dir-<code>`) was removed here when the stable-host-id model
-// landed — the host now claims a deterministic `gonogo-host-<code>` peer id
-// and the station derives the same id from the code (see `hostPeerId.ts`),
-// so there's no resolve hop. The relay-side directory peer is superseded and
-// slated for removal in a follow-up (see `packages/relay/src/directoryPeer.ts`).
+// NOTE: there is no broker-directory resolve hop. Under the stable-host-id
+// model the host claims a deterministic `gonogo-host-<code>` peer id and the
+// station derives the same id from the code (see `hostPeerId.ts`).

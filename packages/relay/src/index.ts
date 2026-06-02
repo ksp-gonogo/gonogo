@@ -6,11 +6,6 @@ import Fastify from "fastify";
 import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
-import {
-  type DirectoryIceServer,
-  DirectoryPeerService,
-  directoryPeerOptionsFromEnv,
-} from "./directoryPeer.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
 import {
   HOST_TTL_MS,
@@ -178,18 +173,26 @@ fastify.get("/version", async () => ({
 // UDP TURN candidate, which strands clients on UDP-restrictive networks
 // (corporate firewalls, some cellular carriers — exactly the case our
 // self-hosted TURN exists to help). coturn listens on both UDP/3478 and
-// TCP/3478, so the transport list is purely a hint. Shared by /ice-config
-// (the host browser) and the broker directory peer so both relay their
-// WebRTC through the same TURN. The router port-forward needs both
-// protocols (the Add Station modal's Port table lists "TCP & UDP" for 3478).
+// TCP/3478, so the transport list is purely a hint. Consumed by /ice-config
+// (the host browser). The router port-forward needs both protocols (the Add
+// Station modal's Port table lists "TCP & UDP" for 3478).
+// Minimal ICE-server shape — matches the `/ice-config` response and peerjs's
+// `config.iceServers`. Defined locally so the relay's tsconfig doesn't have to
+// pull in DOM's `RTCIceServer`.
+interface IceServer {
+  urls: string[];
+  username?: string;
+  credential?: string;
+}
+
 function iceServersFor(
   handle: CoturnHandle,
   hostOverride?: string,
-): DirectoryIceServer[] {
+): IceServer[] {
   // `hostOverride` lets a caller on the relay's own box reach coturn over
-  // loopback instead of the advertised external IP (see the directory peer
-  // wiring below). coturn still maps the allocated relay candidate to the
-  // external IP, so stations get a reachable address either way.
+  // loopback instead of the advertised external IP. coturn still maps the
+  // allocated relay candidate to the external IP, so stations get a reachable
+  // address either way.
   const turnHost = `${hostOverride ?? handle.externalIp}:${handle.port}`;
   return [
     {
@@ -222,52 +225,16 @@ fastify.get("/ice-config", async (_req, reply) => {
 // ──────────────────────────────────────────────────────────────────────
 // Host-discovery registry: maps a stable operator-facing share-code to the
 // host's current (ephemeral) PeerJS peer id. Hosts POST on every broker
-// open + heartbeat. Stations resolve over the PeerJS broker via the
-// directory peer (below), which reads this registry in-process — the old
-// cross-machine-broken HTTP GET was removed. CORS is inherited from the
-// global registration above.
-// ──────────────────────────────────────────────────────────────────────
-// SUPERSEDED: discovery no longer depends on the directory peer — under the
-// stable-host-id model the host claims `gonogo-host-<code>` and stations
-// derive that id from the code directly. The directory peer + POST /host
-// registry below are kept for diagnostics and slated for removal in a
-// follow-up; do not build new wiring on them.
+// open + heartbeat. CORS is inherited from the global registration above.
 //
-// The directory peer joins the same broker the app uses (env PEER_*,
-// default 0.peerjs.com / key "gonogo") as `gonogo-dir-<shareCode>`, so a
-// station on any machine can resolve a share-code to the host's current
-// peer id — the broker is the only rendezvous they both reach. wrtc/peerjs
-// live entirely inside directoryPeer.ts.
+// Diagnostics-only under the stable-host-id model: the host claims a
+// deterministic `gonogo-host-<code>` broker peer id and stations derive that
+// id from the share code directly, so no resolve hop is needed. The
+// `POST /host` registry remains a useful "is this host currently online?"
+// signal but nothing routes through it.
+// ──────────────────────────────────────────────────────────────────────
 const hostRegistry = new HostRegistry();
-const directoryPeers = new DirectoryPeerService(
-  hostRegistry,
-  directoryPeerOptionsFromEnv(),
-  {
-    info: (msg) => bridgeInfo(msg),
-    error: (msg, err) => bridgeError(msg, err),
-  },
-  // Relay the directory peer's DataConnections through coturn so a station on
-  // another device gets a reachable relay candidate. Reach coturn via the
-  // relay's OWN container IP — not loopback, not the advertised external IP.
-  // All three were checked with turnutils from inside the container:
-  //   - external IP (192.168.x): hairpins out of the netns → 508 Cannot
-  //     create socket; no allocation.
-  //   - loopback (127.0.0.1): allocates, but coturn grants a 127.0.0.1 relay
-  //     address — useless to a station — because external-ip only maps the
-  //     container IP, not loopback.
-  //   - container IP (10.89.x): allocates AND external-ip maps the relay to
-  //     the public IP, so the station gets a reachable 192.168.x candidate.
-  // Evaluated per peer creation; null if coturn failed to start.
-  () =>
-    coturnHandle ? iceServersFor(coturnHandle, primaryLocalIpv4()) : undefined,
-);
-registerHostRoutes(fastify, {
-  registry: hostRegistry,
-  // On every accepted host registration, ensure the broker-side directory
-  // peer for that share-code exists. Idempotent — heartbeat POSTs don't
-  // churn peers.
-  onRegister: (shareCode) => directoryPeers.ensure(shareCode),
-});
+registerHostRoutes(fastify, { registry: hostRegistry });
 
 // Analytics-config broker: the host POSTs its consent here, the relay fans
 // it out (GET + SSE) to the telnet-proxy, and gates its OWN Axiom sink on
@@ -293,7 +260,6 @@ bridgeInfo(`relay listening on :${config.port}`);
 const shutdown = async () => {
   bridgeInfo("shutting down");
   clearInterval(hostSweepTimer);
-  directoryPeers.stop();
   await coturnHandle?.stop();
   await fastify.close();
   // Drain any buffered Axiom entries before the process exits.

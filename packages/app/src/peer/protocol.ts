@@ -136,15 +136,6 @@ export type PeerMessage =
       answer?: { sdp: string; cameras: number[] };
       error?: string;
     }
-  // Host → station, sent over the existing data channel a beat before the
-  // host rotates its share code. Stations update their reconnect target
-  // *before* the host's `peer.destroy()` closes the channel, so their
-  // built-in retry loop reconnects to the new id rather than retrying the
-  // dead old one forever. `reason` is operator-facing diagnostic only
-  // (e.g. "unavailable-id-recovery"). Lifecycle: host broadcasts → ~500ms
-  // flush window → host destroys + restarts on new id → station's conn
-  // closes → station's retry kicks in against the freshly-cached id.
-  | { type: "host-id-rotation"; newPeerId: string; reason: string }
   // Host → station: the operator's technical-analytics consent. Sent to
   // each station on connect (right after schema) and re-broadcast whenever
   // the host's consent changes. Stations apply it to their own browser
