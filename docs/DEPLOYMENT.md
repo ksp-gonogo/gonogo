@@ -43,9 +43,9 @@ podman run -d --name gonogo-relay \
 
 Stations on the same WiFi as the main screen don't touch the relay: both ends are browsers, they meet at the host's derived broker id and connect directly over the LAN. The relay's TURN server only matters for stations out on the internet, which can't reach the host's local addresses and need TURN to bridge the connection.
 
-One honest limitation: a containerized relay on a macOS host can't relay cross-internet traffic. The container's network layer rewrites the inbound source address, which breaks coturn's per-client permissions. To relay cross-internet stations you need the relay on a public Linux box where the TURN ports are directly reachable, not behind a container-on-macOS network rewrite.
+For an always-on setup, run the relay on a public Linux box where the TURN ports are directly reachable: it auto-discovers its public IP, needs no home port-forwarding, and stays up. A containerized relay on a macOS host also relays cross-internet traffic — verified end-to-end with a station on cellular — as long as you forward the TURN ports and pin the public IP (below); it's simply a less convenient always-on option than a public host.
 
-For that public-relay case, coturn has to be reachable from outside your network. Forward these ports on your router to the machine running the relay. The ranges match `docker-compose.yml`:
+Either way, coturn has to be reachable from outside your network. Forward these ports on your router to the machine running the relay. The ranges match `docker-compose.yml`:
 
 | Port | Protocol | Purpose |
 | --- | --- | --- |
@@ -55,7 +55,15 @@ For that public-relay case, coturn has to be reachable from outside your network
 
 The relay range is 11 ports (`49160–49170`), sized for up to ~10 simultaneous relayed clients, and kept small because consumer routers want one forward entry per port. If you need more concurrent relayed stations, widen the range in `docker-compose.yml` and `packages/relay/src/coturnManager.ts` together; they must match.
 
-The relay auto-discovers its public IP at startup and advertises it to clients. If your ISP gives you a stable IP, that's all you need; if it rotates, restart the relay when it changes or pin it explicitly with `TURN_EXTERNAL_IP`.
+The relay auto-discovers its public IP at startup and advertises it to clients. If your ISP gives you a stable IP, that's all you need; if it rotates, restart the relay when it changes or pin it explicitly with `TURN_EXTERNAL_IP=<your public IP>` in the environment.
+
+**Local dev with remote stations.** `scripts/dev.sh` auto-detects the host's LAN IP and passes it to coturn — correct for same-WiFi stations but unreachable from the internet. To support a remote/off-LAN station from a local dev setup, set your public IP in the repo-root `.env`:
+
+```
+TURN_EXTERNAL_IP=<your public IP>
+```
+
+`curl ifconfig.me` gives your current public IP. An explicit `TURN_EXTERNAL_IP` always overrides auto-detection. With the public IP pinned and the TURN ports forwarded, a containerized relay on macOS relays cross-internet stations fine — verified end-to-end.
 
 `GET http://localhost:3002/health` reports the relay status, the most recently registered host peer id (diagnostics only; stations don't read this to find the host), and the public IP coturn is advertising. `GET http://localhost:3002/ice-config` returns the iceServers config the main screen fetches on boot. The TURN shared secret rotates on every relay restart and only ever lives in the relay process's memory; never commit a TURN credential to source.
 
