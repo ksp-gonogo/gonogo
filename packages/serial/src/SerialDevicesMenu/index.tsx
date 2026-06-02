@@ -9,7 +9,7 @@ import {
   useSerialPendingChoices,
 } from "../SerialDeviceContext";
 import type { DeviceInstance, DeviceType } from "../types";
-import { isWebSerialSupported } from "../webSerialSupport";
+import { getWebSerialSupport } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
 import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
@@ -41,6 +41,7 @@ function DevicesTab() {
   const pendingChoices = useSerialPendingChoices();
   const [editing, setEditing] = useState<DeviceInstance | "new" | null>(null);
   const [adding, setAdding] = useState<"self-describing" | null>(null);
+  const support = getWebSerialSupport();
 
   if (adding === "self-describing") {
     return <SelfDescribingAddWizard onClose={() => setAdding(null)} />;
@@ -64,17 +65,11 @@ function DevicesTab() {
 
   return (
     <List>
-      {!isWebSerialSupported() && (
-        <WebSerialUnavailableBanner role="status">
-          Web Serial is not available in this browser. Virtual devices still
-          work; real USB hardware needs a Chromium-based browser on desktop or
-          Android.
-        </WebSerialUnavailableBanner>
-      )}
+      {!support.supported && <WebSerialBanner reason={support.reason} />}
       <Toolbar>
         <Heading>Registered devices ({devices.length})</Heading>
         <ToolbarButtons>
-          {isWebSerialSupported() && (
+          {support.supported && (
             <Button
               type="button"
               onClick={() => setAdding("self-describing")}
@@ -103,6 +98,31 @@ function DevicesTab() {
         />
       ))}
     </List>
+  );
+}
+
+function WebSerialBanner({
+  reason,
+}: Readonly<{ reason: "insecure-context" | "unsupported-browser" }>) {
+  if (reason === "insecure-context") {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "this page";
+    return (
+      <WebSerialUnavailableBanner role="status">
+        Web Serial is blocked because <code>{origin}</code> isn't a secure
+        context. Chrome only exposes USB serial over HTTPS or{" "}
+        <code>http://localhost</code>. Either open the app via{" "}
+        <code>localhost</code>/HTTPS, or whitelist this origin at{" "}
+        <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>{" "}
+        and relaunch. Virtual devices work regardless.
+      </WebSerialUnavailableBanner>
+    );
+  }
+  return (
+    <WebSerialUnavailableBanner role="status">
+      Web Serial is not available in this browser. Virtual devices still work;
+      real USB hardware needs a Chromium-based browser on desktop or Android.
+    </WebSerialUnavailableBanner>
   );
 }
 
@@ -315,6 +335,15 @@ const WebSerialUnavailableBanner = styled.div`
   font-size: 12px;
   line-height: 1.45;
   padding: 10px 12px;
+
+  code {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    word-break: break-all;
+    background: var(--color-surface-raised);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
 `;
 
 const Row = styled.div`
