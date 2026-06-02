@@ -106,6 +106,14 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--listening-port=${port}`,
     `--min-port=${minPort}`,
     `--max-port=${maxPort}`,
+    // Hard cap on simultaneous allocations = the size of the relay pool. Once
+    // every port is in use coturn returns a clean 486 "Allocation Quota
+    // Reached" instead of silently spamming "create_relay_ioa_sockets: no
+    // available ports" per retry — the latter buried the real signal in the
+    // logs for ages. This is a diagnostic guardrail, not a connectivity fix:
+    // the genuine relief for pool pressure is not handing TURN to LAN peers
+    // in the first place (TURN-on-demand).
+    `--total-quota=${maxPort - minPort + 1}`,
     `--external-ip=${externalIpArg}`,
     "--no-tls",
     "--no-dtls",
