@@ -29,7 +29,36 @@ Because both ends are browsers on the same WiFi, they exchange local network add
 
 The relay still runs, but its job is now the camera channel's TURN server and a diagnostics-only registry, not station discovery. A station on the same WiFi joins with no relay involved at all.
 
-A station out on the internet (a phone on cellular, a friend at their own house) is a harder case. The two browsers still meet at the same broker identity, but when they can't reach each other's local addresses they need a TURN relay to bridge the connection. The bundled relay's TURN server can do that in principle, but a containerized relay on a macOS host can't relay cross-internet traffic: the container's network layer rewrites the inbound source address, which breaks coturn's per-client permissions. Cross-internet stations therefore need the relay running on a public Linux box with the TURN ports reachable, covered in [DEPLOYMENT.md](DEPLOYMENT.md). Same-WiFi stations need none of that.
+A station out on the internet (a phone on cellular, a friend at their own house) is a harder case. The two browsers still meet at the same broker identity, but when they can't reach each other's local addresses they need a TURN relay to bridge the connection. The bundled relay's TURN server handles this — including from a containerized relay on macOS — as long as coturn advertises a reachable public IP and the TURN ports are forwarded to it. See [Cross-internet stations](#cross-internet-stations-cellular-remote-networks) below for the setup. Same-WiFi stations need none of that.
+
+## Cross-internet stations (cellular, remote networks)
+
+A station on the same WiFi as the main screen connects directly, peer-to-peer, and never needs TURN or any port-forwarding. Everything below only applies when a station is on a different network — a phone on cellular, someone joining from their own home.
+
+For a cross-internet station to reach the main screen, two things must be in place:
+
+**1. Router port-forwarding.** The machine running the relay must be reachable on these ports from the internet:
+
+| Port | Protocol | Purpose |
+| --- | --- | --- |
+| `3478` | TCP + UDP | TURN signalling |
+| `49160–49170` | UDP | TURN relay sessions (one port per active relayed client) |
+
+Consumer routers like Google Wi-Fi require one forward entry per port, so that's ~12 entries total. If you ever widen the relay range in `packages/relay/src/coturnManager.ts`, widen the forwards to match.
+
+**2. Public IP advertised to coturn.** coturn must advertise the machine's public IP in its relay candidates — a LAN IP won't be reachable from the internet.
+
+When running with `pnpm dev`, `scripts/dev.sh` auto-detects the **LAN IP** and passes it to coturn. That's the right default for same-WiFi stations, but a remote station can't reach a LAN address. To support a remote station from a local dev setup, set your public IP in the repo-root `.env`:
+
+```
+TURN_EXTERNAL_IP=<your public IP>
+```
+
+`curl ifconfig.me` gives your current public IP. That variable is read by both `scripts/dev.sh` and the relay, and an explicit value always wins over auto-detection.
+
+When the relay runs on a public Linux box (as in the production setup described in [DEPLOYMENT.md](DEPLOYMENT.md#port-forwarding-for-off-network-stations)), it auto-discovers its public IP at startup, so no extra configuration is needed.
+
+A relay containerized on a macOS host relays cross-internet traffic fine once both of the above are in place — it's been verified end-to-end with a station on cellular. A public Linux host is the better always-on choice (stable public IP, no home port-forwarding), but it isn't a requirement.
 
 ## Checking the relay works
 
