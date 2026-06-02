@@ -17,10 +17,11 @@ packages/
   app/         — Vite + React SPA (main screen + station mode)
   telnet-proxy/— Fastify server: spawns system telnet via node-pty, bridges
                  to a WebSocket the browser can consume (kOS only)
-  relay/       — Fastify server hosting /ice-config (TURN credentials), a
+  relay/       — Fastify server hosting /ice-config (TURN credentials) and a
                  coturn TURN/STUN child process with a per-restart-rotated
-                 shared secret, and the host-discovery registry (/host)
-                 mapping a stable share-code to the host's current peer id
+                 shared secret, for the camera channel and future
+                 cross-internet stations. Also a diagnostics-only /host
+                 registry; it is not in the station-discovery path
 ```
 
 Package names use the `@gonogo/` scope.

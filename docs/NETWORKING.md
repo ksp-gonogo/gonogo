@@ -23,12 +23,14 @@ If a station or the main screen can't reach the KSP computer on the same WiFi, a
 
 ## How a station finds the main screen
 
-A station enters the share code; gonogo matches that code to the main screen through the relay, then the two connect peer-to-peer. The relay always has to be running for a station to join, even on the same WiFi, because the share code is looked up there. The station device itself needs to be able to reach the relay.
+The main screen's peer claims a fixed identity derived from its share code, and a station derives the same identity from the code the operator types. Both ends meet at that identity on the public PeerJS broker and connect directly, peer-to-peer. There is no lookup step and no relay in the path: the station never resolves the code against a server, it just computes where the host will be and connects there.
 
-For a station out on the internet (a phone on cellular, a friend at their own house) to reach the relay, the computer running the relay has to be reachable from outside your home network, which means forwarding some ports on your router. That setup, and the relay's ports, are covered in [DEPLOYMENT.md](DEPLOYMENT.md).
+Because both ends are browsers on the same WiFi, they exchange local network addresses directly and the connection stays on your LAN. The relay is not needed for a station to find or reach the main screen on the same network.
 
-Because the single-command gonogo setup isn't built yet, the relay side is still developer-shaped today, and reaching it from a separate station device takes some manual setup. Expect that to get simpler once the packaged setup lands.
+The relay still runs, but its job is now the camera channel's TURN server and a diagnostics-only registry, not station discovery. A station on the same WiFi joins with no relay involved at all.
+
+A station out on the internet (a phone on cellular, a friend at their own house) is a harder case. The two browsers still meet at the same broker identity, but when they can't reach each other's local addresses they need a TURN relay to bridge the connection. The bundled relay's TURN server can do that in principle, but a containerized relay on a macOS host can't relay cross-internet traffic: the container's network layer rewrites the inbound source address, which breaks coturn's per-client permissions. Cross-internet stations therefore need the relay running on a public Linux box with the TURN ports reachable, covered in [DEPLOYMENT.md](DEPLOYMENT.md). Same-WiFi stations need none of that.
 
 ## Checking the relay works
 
-Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay is reachable: green means a station out on the internet can connect, and red usually means a missing port-forward or the wrong public address.
+Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: green means a cross-internet station can be relayed, red usually means a missing port-forward or the wrong public address. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN.
