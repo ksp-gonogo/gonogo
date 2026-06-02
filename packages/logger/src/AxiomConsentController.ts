@@ -20,16 +20,23 @@ import type { LogTransport } from "./types.js";
 export class AxiomConsentController {
   private readonly logger: Pick<
     ConsoleLogger,
-    "addTransport" | "removeTransport"
+    "addTransport" | "removeTransport" | "snapshot"
   >;
   /** Lazily constructs the Axiom transport. Returns `null` when no token
    *  is configured, so a tokenless build never installs a sink. Called at
    *  most once per install; the instance is reused until removed. */
   private readonly makeTransport: () => LogTransport | null;
   private installed: LogTransport | null = null;
+  /** Set once the pre-consent ring buffer has been shipped. A consent
+   *  revoke → re-grant re-installs the transport but must NOT re-ship the
+   *  whole buffer again. */
+  private backfilled = false;
 
   constructor(opts: {
-    logger: Pick<ConsoleLogger, "addTransport" | "removeTransport">;
+    logger: Pick<
+      ConsoleLogger,
+      "addTransport" | "removeTransport" | "snapshot"
+    >;
     makeTransport: () => LogTransport | null;
   }) {
     this.logger = opts.logger;
@@ -46,8 +53,18 @@ export class AxiomConsentController {
       if (this.installed) return;
       const transport = this.makeTransport();
       if (!transport) return; // no token — can't ship regardless of consent
+      // Snapshot the pre-consent ring buffer BEFORE wiring the transport in,
+      // so live entries emitted after install aren't also captured here and
+      // double-sent. Entries keep their original timestamps, so Axiom shows
+      // the backfilled history at the time it actually happened. Guard with
+      // `backfilled` so a revoke → re-grant cycle doesn't re-ship the buffer.
+      const buffered = this.backfilled ? null : this.logger.snapshot();
       this.installed = transport;
       this.logger.addTransport(transport);
+      if (buffered) {
+        this.backfilled = true;
+        if (buffered.length > 0) transport.send(buffered);
+      }
       return;
     }
     if (!this.installed) return;
