@@ -26,6 +26,7 @@ registerComponent<CameraFeedConfig>({
   dataRequirements: ["comm.signalStrength", "comm.connected"],
   defaultConfig: {
     flightId: null,
+    showDebugInfo: false,
   },
   actions: cameraFeedActions,
   pushable: true,
