@@ -1,6 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import { useActionInput, useDataValue, useExecuteAction } from "@gonogo/core";
-import { ChevronDownIcon, IconButton, Panel, Switch } from "@gonogo/ui";
+import { ChevronDownIcon, IconButton, Panel } from "@gonogo/ui";
 import {
   useCallback,
   useEffect,
@@ -185,28 +185,18 @@ export function CameraFeed({
   // Camera selection — picker + Next/Prev. All paths persist through
   // onConfigChange so the choice survives a remount, mirroring CameraFeed.
   // --------------------------------------------------------------------------
-  // Per-widget "show debug info" toggle. Persisted through the same
-  // onConfigChange path the flightId pick uses, so it survives a remount.
+  // Per-widget "show debug info" toggle, edited from the gear modal's Settings
+  // tab (see CameraFeedConfigPanel); here we only read it to gate the readout.
   const showDebugInfo = config?.showDebugInfo ?? false;
 
-  // Both writes carry the *full* config (both fields), defaulting any that the
-  // caller's config object happens to be missing, so a partial config can't
-  // strip the sibling field on persist.
+  // The camera pick carries the *full* config (both fields), defaulting any the
+  // caller's config object happens to be missing, so it can't strip the sibling
+  // `showDebugInfo` field on persist.
   const selectCamera = useCallback(
     (nextFlightId: number | null) => {
       onConfigChange?.({
         flightId: nextFlightId,
         showDebugInfo: config?.showDebugInfo ?? false,
-      });
-    },
-    [config, onConfigChange],
-  );
-
-  const setShowDebugInfo = useCallback(
-    (next: boolean) => {
-      onConfigChange?.({
-        flightId: config?.flightId ?? null,
-        showDebugInfo: next,
       });
     },
     [config, onConfigChange],
@@ -725,14 +715,6 @@ export function CameraFeed({
               {isCameraDestroyed(c) ? " — signal lost" : ""}
             </CameraMenuItem>
           ))}
-          <CameraMenuSeparator role="separator" />
-          <CameraMenuToggleRow role="menuitem">
-            <Switch
-              checked={showDebugInfo}
-              onChange={setShowDebugInfo}
-              label="Show debug info"
-            />
-          </CameraMenuToggleRow>
         </CameraMenu>
       )}
 
@@ -1172,15 +1154,6 @@ const CameraMenuItem = styled.button<{ $selected: boolean }>`
     outline: 2px solid #00ff88;
     outline-offset: -2px;
   }
-`;
-
-const CameraMenuSeparator = styled.div`
-  height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-`;
-
-const CameraMenuToggleRow = styled.div`
-  padding: 6px 8px;
 `;
 
 const TopMeta = styled.div`

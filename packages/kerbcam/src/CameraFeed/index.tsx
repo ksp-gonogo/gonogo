@@ -4,6 +4,7 @@ import {
   type CameraFeedConfig,
   cameraFeedActions,
 } from "./CameraFeed";
+import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 registerComponent<CameraFeedConfig>({
   id: "camera-feed",
@@ -19,6 +20,9 @@ registerComponent<CameraFeedConfig>({
   // and the mobile-sizing regression guarded by camera-feed-mobile.spec).
   mobileHeight: 280,
   component: CameraFeed,
+  // "Show debug info" lives in the gear modal's Settings tab (paired with the
+  // Inputs tab the widget's actions add) — not in the in-feed camera dropdown.
+  configComponent: CameraFeedConfigPanel,
   // kerbcam.cameras is pulled direct from the kerbcam DataSource via
   // custom hooks — not listed here to avoid a duplicate subscription.
   // CommNet keys are listed so the orchestrator knows to subscribe
