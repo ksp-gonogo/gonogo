@@ -1,12 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import { useActionInput, useDataValue, useExecuteAction } from "@gonogo/core";
-import {
-  IconButton,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
-  Select,
-} from "@gonogo/ui";
+import { IconButton, Panel, Select } from "@gonogo/ui";
 import {
   useCallback,
   useEffect,
@@ -20,22 +14,31 @@ import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
 import { useKerbcamStream } from "../hooks/useKerbcamStream";
 import { isCameraDestroyed } from "../lifecycle";
 
-// ── Pan directional-pad tuning ──────────────────────────────────────────────
-// The rate loop ticks every PAN_TICK_MS; at full ball deflection (or an arrow
-// hold) the angle advances at *_RATE_DEG_S degrees/sec. A keyboard activation
-// nudges by PAN_NUDGE_DEG. PAN_BALL_RADIUS is the ball's pixel deflection bound.
-const PAN_TICK_MS = 50;
-// Rate at full ball deflection / arrow hold. The ball is analog, so partial
-// deflection pans slower — these are the controllable ceiling for framing, not
-// a fast slew.
-const PAN_YAW_RATE_DEG_S = 15;
-const PAN_PITCH_RATE_DEG_S = 12;
-const PAN_ARROW_RATE = 0.5;
-const PAN_NUDGE_DEG = 5;
-const PAN_BALL_RADIUS = 30;
+// ── Pan / zoom control tuning ───────────────────────────────────────────────
+// Two control idioms, by input type:
+//  - DISCRETE (on-screen arrow + zoom buttons): each press = one fixed *_NUDGE_DEG
+//    step via an *absolute* set-pan / set-fov against an optimistic accumulator.
+//    No velocity, no hold — a press moves exactly one unit. Absolute commands are
+//    reliable (they carry a position the plugin slews to), unlike rate commands.
+//  - ANALOG (drag ball, serial stick axes): deflection maps to a normalised
+//    velocity (−1…1) sent as set-pan-rate; the plugin integrates + slews. Centre
+//    / release sends rate 0 to stop.
+const PAN_NUDGE_DEG = 5; // one discrete pan step
+const FOV_NUDGE_DEG = 5; // one discrete zoom-button keyboard step
+const PAN_BALL_RADIUS = 15; // ball's pixel deflection bound (full = rate 1)
+// The FoV slider declares a precise absolute FoV. We debounce the drag and only
+// send the *settled* value, so a drag doesn't stream intermediate set-fov.
+const FOV_SLIDER_DEBOUNCE_MS = 120;
+// Analog deadzone: a physical stick dithering near centre would otherwise emit
+// a stream of tiny non-zero rates, each a command + a sliver of integrated
+// drift. Snap small magnitudes to zero.
+const ANALOG_DEADZONE = 0.05;
 
 const clampPan = (v: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, v));
+
+const applyDeadzone = (v: number): number =>
+  Math.abs(v) < ANALOG_DEADZONE ? 0 : v;
 
 export interface CameraFeedConfig extends Record<string, unknown> {
   /**
@@ -211,29 +214,26 @@ export function CameraFeed({
       stepCamera(-1);
     },
     zoomIn: (payload) => {
-      if (payload.kind === "button" && payload.value !== true) return;
-      if (!camera?.supportsZoom || isDestroyed) return;
-      onFovChange(camera.fov - 5);
+      // Hold-to-zoom: press starts a zoom-in velocity, release (value false)
+      // stops it. +rate = zoom in (FoV decreases), per the kerbcam contract.
+      if (payload.kind !== "button") return;
+      if (!showZoom) return;
+      sendZoomRate(payload.value === true ? 1 : 0);
     },
     zoomOut: (payload) => {
-      if (payload.kind === "button" && payload.value !== true) return;
-      if (!camera?.supportsZoom || isDestroyed) return;
-      onFovChange(camera.fov + 5);
+      if (payload.kind !== "button") return;
+      if (!showZoom) return;
+      sendZoomRate(payload.value === true ? -1 : 0);
     },
     panYaw: (payload) => {
       if (payload.kind !== "analog") return;
       if (!showPan) return;
-      rateRef.current.yaw = Math.max(-1, Math.min(1, payload.value as number));
-      if (rateRef.current.yaw !== 0) ensurePanLoop();
+      setPanAxis("yaw", payload.value as number);
     },
     panPitch: (payload) => {
       if (payload.kind !== "analog") return;
       if (!showPan || !supportsPitch) return;
-      rateRef.current.pitch = Math.max(
-        -1,
-        Math.min(1, payload.value as number),
-      );
-      if (rateRef.current.pitch !== 0) ensurePanLoop();
+      setPanAxis("pitch", payload.value as number);
     },
   });
 
@@ -304,153 +304,241 @@ export function CameraFeed({
   }, [flightId, signalStrength, commConnected, executeKerbcam]);
 
   // --------------------------------------------------------------------------
-  // Feature: Zoom controls (FoV) — handler
-  // --------------------------------------------------------------------------
-  const onFovChange = useCallback(
-    (newFov: number) => {
-      if (flightId === null || !camera) return;
-      const clamped = Math.max(camera.fovMin, Math.min(camera.fovMax, newFov));
-      void executeKerbcam(`kerbcam.set-fov[${flightId},${clamped}]`);
-    },
-    [flightId, camera, executeKerbcam],
-  );
-
-  // --------------------------------------------------------------------------
-  // Feature: Pan reticle — drag pad for yaw/pitch
+  // Feature: Pan + zoom velocity controls.
+  //
+  // Continuous controls (ball drag, arrow/button hold, serial axes) send a
+  // normalised rate via set-pan-rate / set-zoom-rate; the plugin integrates it
+  // per frame and slews smoothly. We hold the last-*sent* rate in a ref and
+  // dedupe identical sends, so a held control needs no further traffic.
+  //
+  // Discrete keyboard nudges (Enter/Space — pointer `detail === 0`) use the
+  // absolute set-pan / set-fov path against an optimistic accumulator
+  // (localPanRef / localFovRef), synced from the camera's echoed absolute only
+  // while idle — so rapid key-repeat doesn't collapse on the lagging echo.
   // --------------------------------------------------------------------------
 
   // Pitch is adjustable only when the camera reports a non-zero pitch range.
   const supportsPitch = !!camera && camera.panPitchMax - camera.panPitchMin > 0;
 
-  // Optimistic local angle the rate loop advances; rateRef is the normalised
-  // [-1, 1] velocity from the ball / arrows. panEnvRef is the loop's always-
-  // fresh snapshot of bounds + flightId + execute, so the interval never reads
-  // a stale closure.
-  const localPanRef = useRef({ yaw: 0, pitch: 0 });
-  const rateRef = useRef({ yaw: 0, pitch: 0 });
+  const panRateRef = useRef({ yaw: 0, pitch: 0 }); // last pan rate SENT
+  const zoomRateRef = useRef(0); // last zoom rate SENT
   const ballDragRef = useRef({ active: false, startX: 0, startY: 0 });
-  const panIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [ballPos, setBallPos] = useState({ x: 0, y: 0 });
+  // Optimistic accumulators for the discrete keyboard nudge path only.
+  const localPanRef = useRef({ yaw: 0, pitch: 0 });
+  const localFovRef = useRef(0);
+  // FoV slider drag state: while dragging, the thumb follows the pointer
+  // optimistically (not the lagging camera echo); on release, echo-sync resumes.
+  const fovSliderDraggingRef = useRef(false);
+  // Optimistic FoV thumb position — follows the pointer while dragging, then the
+  // camera echo when idle.
+  const [sliderFov, setSliderFov] = useState<number>(60);
+  // Debounced slider-commit state (declared here so the echo-sync effect below
+  // can see a pending send): while a send is pending the thumb is the operator's,
+  // not the camera echo's.
+  const fovDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFovRef = useRef<number | null>(null);
+  // Always-fresh snapshot so the send helpers never read a stale closure.
   const panEnvRef = useRef({
     flightId: null as number | null,
-    yawMin: 0,
-    yawMax: 0,
-    pitchMin: 0,
-    pitchMax: 0,
     execute: executeKerbcam,
   });
   useEffect(() => {
-    panEnvRef.current = {
-      flightId,
-      yawMin: camera?.panYawMin ?? 0,
-      yawMax: camera?.panYawMax ?? 0,
-      pitchMin: camera?.panPitchMin ?? 0,
-      pitchMax: camera?.panPitchMax ?? 0,
-      execute: executeKerbcam,
-    };
-  }, [flightId, camera, executeKerbcam]);
+    panEnvRef.current = { flightId, execute: executeKerbcam };
+  }, [flightId, executeKerbcam]);
 
-  // Sync the optimistic angle from sidecar state while idle, so the next
-  // interaction starts from the camera's true pan.
+  // Sync the nudge accumulators and slider positions from sidecar state while
+  // idle, so the next discrete nudge starts from the camera's true pan / FoV,
+  // and the slider thumb reflects reality when nobody is dragging.
   useEffect(() => {
+    if (!camera) return;
     if (
       !ballDragRef.current.active &&
-      rateRef.current.yaw === 0 &&
-      rateRef.current.pitch === 0 &&
-      camera
+      panRateRef.current.yaw === 0 &&
+      panRateRef.current.pitch === 0
     ) {
       localPanRef.current = { yaw: camera.panYaw, pitch: camera.panPitch };
     }
+    if (
+      zoomRateRef.current === 0 &&
+      !fovSliderDraggingRef.current &&
+      pendingFovRef.current === null
+    ) {
+      localFovRef.current = camera.fov;
+      setSliderFov(camera.fov);
+    }
   }, [camera]);
 
-  const stopPanLoop = useCallback(() => {
-    if (panIntervalRef.current !== null) {
-      clearInterval(panIntervalRef.current);
-      panIntervalRef.current = null;
-    }
-  }, []);
-
-  // The rate loop: while a velocity is set, advance the optimistic angle and
-  // push the new absolute angle to the sidecar (the set-pan API is absolute,
-  // so a joystick velocity becomes a stream of absolute updates). Clears itself
-  // once the velocity returns to zero.
-  const ensurePanLoop = useCallback(() => {
-    if (panIntervalRef.current !== null) return;
-    panIntervalRef.current = setInterval(() => {
-      const env = panEnvRef.current;
-      const rate = rateRef.current;
-      if (rate.yaw === 0 && rate.pitch === 0) {
-        stopPanLoop();
-        return;
-      }
-      if (env.flightId === null) return;
-      const dt = PAN_TICK_MS / 1000;
-      const loc = localPanRef.current;
-      loc.yaw = clampPan(
-        loc.yaw + rate.yaw * PAN_YAW_RATE_DEG_S * dt,
-        env.yawMin,
-        env.yawMax,
-      );
-      loc.pitch = clampPan(
-        loc.pitch + rate.pitch * PAN_PITCH_RATE_DEG_S * dt,
-        env.pitchMin,
-        env.pitchMax,
-      );
-      void env.execute(
-        `kerbcam.set-pan[${env.flightId},${loc.yaw},${loc.pitch}]`,
-      );
-    }, PAN_TICK_MS);
-  }, [stopPanLoop]);
-
-  useEffect(() => stopPanLoop, [stopPanLoop]); // stop on unmount
-
-  const showPan = camera?.supportsPan && !isDestroyed;
-
-  // Hard stop if the control is hidden mid-hold (signal lost / pan support
-  // dropped): the captured pointer's release never reaches us then, so without
-  // this the interval would keep panning a dead camera.
-  useEffect(() => {
-    if (!showPan) {
-      rateRef.current = { yaw: 0, pitch: 0 };
-      ballDragRef.current.active = false;
-      setBallPos({ x: 0, y: 0 });
-      stopPanLoop();
-    }
-  }, [showPan, stopPanLoop]);
-
-  // Arrows: press-and-hold for continuous pan; a keyboard activation (click
-  // with detail === 0) does a single discrete nudge instead.
-  const startArrow = useCallback(
-    (yaw: number, pitch: number) => {
-      rateRef.current = { yaw, pitch };
-      ensurePanLoop();
-    },
-    [ensurePanLoop],
-  );
-  const releaseArrow = useCallback(() => {
-    if (!ballDragRef.current.active) rateRef.current = { yaw: 0, pitch: 0 };
-  }, []);
-  const nudgePan = useCallback((yawSign: number, pitchSign: number) => {
+  // Send a normalised pan velocity, deduped against the last sent and with the
+  // analog deadzone applied. Updates the ref only on an actual send, so the ref
+  // always reflects what the plugin last heard.
+  const sendPanRate = useCallback((yaw: number, pitch: number) => {
     const env = panEnvRef.current;
     if (env.flightId === null) return;
-    const loc = localPanRef.current;
-    loc.yaw = clampPan(
-      loc.yaw + yawSign * PAN_NUDGE_DEG,
-      env.yawMin,
-      env.yawMax,
-    );
-    loc.pitch = clampPan(
-      loc.pitch + pitchSign * PAN_NUDGE_DEG,
-      env.pitchMin,
-      env.pitchMax,
-    );
-    void env.execute(
-      `kerbcam.set-pan[${env.flightId},${loc.yaw},${loc.pitch}]`,
-    );
+    const y = applyDeadzone(clampPan(yaw, -1, 1));
+    const p = applyDeadzone(clampPan(pitch, -1, 1));
+    const last = panRateRef.current;
+    if (y === last.yaw && p === last.pitch) return;
+    panRateRef.current = { yaw: y, pitch: p };
+    void env.execute(`kerbcam.set-pan-rate[${env.flightId},${y},${p}]`);
   }, []);
 
-  // Ball: drag = analog rate (deflection ∝ velocity); release springs to centre
-  // and the loop idles. Vertical (pitch) is locked when pitch isn't supported.
+  // Update one axis, preserving the other — so two independent serial axes (or
+  // an axis + the ball) compose instead of clobbering each other.
+  const setPanAxis = useCallback(
+    (axis: "yaw" | "pitch", value: number) => {
+      const cur = panRateRef.current;
+      if (axis === "yaw") sendPanRate(value, cur.pitch);
+      else sendPanRate(cur.yaw, value);
+    },
+    [sendPanRate],
+  );
+
+  const sendZoomRate = useCallback((rate: number) => {
+    const env = panEnvRef.current;
+    if (env.flightId === null) return;
+    const r = applyDeadzone(clampPan(rate, -1, 1));
+    if (r === zoomRateRef.current) return;
+    zoomRateRef.current = r;
+    void env.execute(`kerbcam.set-zoom-rate[${env.flightId},${r}]`);
+  }, []);
+
+  // Absolute FoV — the vertical zoom slider declares a precise target FoV and
+  // the server slews there (accurate target-based control, vs. chasing the frame).
+  const sendAbsoluteFov = useCallback(
+    (fov: number) => {
+      const env = panEnvRef.current;
+      if (env.flightId === null || !camera) return;
+      const clamped = clampPan(fov, camera.fovMin, camera.fovMax);
+      localFovRef.current = clamped;
+      void env.execute(`kerbcam.set-fov[${env.flightId},${clamped}]`);
+    },
+    [camera],
+  );
+
+  // Debounced slider commit: while dragging we update the thumb optimistically
+  // but only send the *settled* FoV (no intermediate stream). flushFovSlider
+  // sends immediately (on pointer release); scheduleFovSlider sends after the
+  // drag pauses (covers keyboard arrow-stepping too, which has no pointer-up).
+  const flushFovSlider = useCallback(() => {
+    if (fovDebounceRef.current !== null) {
+      clearTimeout(fovDebounceRef.current);
+      fovDebounceRef.current = null;
+    }
+    if (pendingFovRef.current !== null) {
+      sendAbsoluteFov(pendingFovRef.current);
+      pendingFovRef.current = null;
+    }
+  }, [sendAbsoluteFov]);
+  const scheduleFovSlider = useCallback(
+    (fov: number) => {
+      pendingFovRef.current = fov;
+      if (fovDebounceRef.current !== null) clearTimeout(fovDebounceRef.current);
+      fovDebounceRef.current = setTimeout(
+        flushFovSlider,
+        FOV_SLIDER_DEBOUNCE_MS,
+      );
+    },
+    [flushFovSlider],
+  );
+  useEffect(
+    () => () => {
+      if (fovDebounceRef.current !== null) clearTimeout(fovDebounceRef.current);
+    },
+    [],
+  );
+
+  const showPan = camera?.supportsPan && !isDestroyed;
+  const showZoom = camera?.supportsZoom && !isDestroyed;
+
+  // Stop any active rate when the streamed camera changes or the widget
+  // unmounts. The KerbcamDataSource outlives this widget and the sidecar's
+  // disconnect deadman only fires on PEER loss — so without this cleanup an
+  // unmount mid-pan leaves the plugin integrating the last non-zero rate to its
+  // bounds. Captures the flightId the rates were sent for (the cleanup closure
+  // sees the value from when the effect ran, not the new one).
+  useEffect(() => {
+    if (flightId === null) return;
+    return () => {
+      // Best-effort: a stop racing a teardown may hit an already-closed
+      // control channel (execute rejects). There's nothing left to stop then,
+      // so swallow it rather than leak an unhandled rejection.
+      const stop = (action: string) =>
+        void executeKerbcam(action).catch(() => {});
+      if (panRateRef.current.yaw !== 0 || panRateRef.current.pitch !== 0) {
+        stop(`kerbcam.set-pan-rate[${flightId},0,0]`);
+        panRateRef.current = { yaw: 0, pitch: 0 };
+      }
+      if (zoomRateRef.current !== 0) {
+        stop(`kerbcam.set-zoom-rate[${flightId},0]`);
+        zoomRateRef.current = 0;
+      }
+    };
+  }, [flightId, executeKerbcam]);
+
+  // Hard stop if a control hides mid-hold (signal lost / support dropped): the
+  // captured pointer's release never reaches us then. sendPanRate/sendZoomRate
+  // dedupe, so these are no-ops when nothing is active.
+  useEffect(() => {
+    if (!showPan) {
+      ballDragRef.current.active = false;
+      setBallPos({ x: 0, y: 0 });
+      sendPanRate(0, 0);
+    }
+  }, [showPan, sendPanRate]);
+  useEffect(() => {
+    if (!showZoom) sendZoomRate(0);
+  }, [showZoom, sendZoomRate]);
+
+  // --------------------------------------------------------------------------
+  // Discrete keyboard nudges — absolute set-pan / set-fov against the
+  // optimistic accumulators. Bumps land via the plugin's per-field sequence
+  // counter even after a rate has drifted the target.
+  // --------------------------------------------------------------------------
+  const onFovChange = useCallback(
+    (newFov: number) => {
+      if (flightId === null || !camera) return;
+      const clamped = clampPan(newFov, camera.fovMin, camera.fovMax);
+      localFovRef.current = clamped;
+      void executeKerbcam(`kerbcam.set-fov[${flightId},${clamped}]`);
+    },
+    [flightId, camera, executeKerbcam],
+  );
+  // deltaSign: -1 = zoom in (FoV down), +1 = zoom out (FoV up).
+  const nudgeZoom = useCallback(
+    (deltaSign: number) => {
+      onFovChange(localFovRef.current + deltaSign * FOV_NUDGE_DEG);
+    },
+    [onFovChange],
+  );
+  const nudgePan = useCallback(
+    (yawSign: number, pitchSign: number) => {
+      if (flightId === null || !camera) return;
+      const loc = localPanRef.current;
+      loc.yaw = clampPan(
+        loc.yaw + yawSign * PAN_NUDGE_DEG,
+        camera.panYawMin,
+        camera.panYawMax,
+      );
+      loc.pitch = clampPan(
+        loc.pitch + pitchSign * PAN_NUDGE_DEG,
+        camera.panPitchMin,
+        camera.panPitchMax,
+      );
+      void executeKerbcam(
+        `kerbcam.set-pan[${flightId},${loc.yaw},${loc.pitch}]`,
+      );
+    },
+    [flightId, camera, executeKerbcam],
+  );
+
+  // On-screen pan ARROWS are discrete: nudgePan moves one fixed step per click
+  // (mouse or keyboard) — exactly one unit, no held velocity. Zoom buttons, by
+  // contrast, hold a constant velocity (wired in JSX); their keyboard path is a
+  // discrete nudgeZoom step.
+
+  // Ball: drag deflection ∝ rate; release springs to centre and stops.
+  // Vertical (pitch) is locked when pitch isn't supported.
   const handleBallDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (flightId === null) return;
@@ -460,18 +548,15 @@ export function CameraFeed({
         startX: e.clientX,
         startY: e.clientY,
       };
-      ensurePanLoop();
     },
-    [flightId, ensurePanLoop],
+    [flightId],
   );
   const handleBallMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const drag = ballDragRef.current;
       if (!drag.active) return;
-      const env = panEnvRef.current;
-      const hasPitch = env.pitchMax - env.pitchMin > 0;
       let dx = e.clientX - drag.startX;
-      let dy = hasPitch ? e.clientY - drag.startY : 0;
+      let dy = supportsPitch ? e.clientY - drag.startY : 0;
       const mag = Math.hypot(dx, dy);
       if (mag > PAN_BALL_RADIUS) {
         const k = PAN_BALL_RADIUS / mag;
@@ -479,18 +564,15 @@ export function CameraFeed({
         dy *= k;
       }
       setBallPos({ x: dx, y: dy });
-      rateRef.current = {
-        yaw: dx / PAN_BALL_RADIUS,
-        pitch: -dy / PAN_BALL_RADIUS,
-      };
+      sendPanRate(dx / PAN_BALL_RADIUS, -dy / PAN_BALL_RADIUS);
     },
-    [],
+    [supportsPitch, sendPanRate],
   );
   const handleBallUp = useCallback(() => {
     ballDragRef.current.active = false;
-    rateRef.current = { yaw: 0, pitch: 0 };
     setBallPos({ x: 0, y: 0 });
-  }, []);
+    sendPanRate(0, 0);
+  }, [sendPanRate]);
 
   // --------------------------------------------------------------------------
   // Derived subtitle parts
@@ -502,7 +584,6 @@ export function CameraFeed({
   const adaptiveLabel =
     camera && camera.renderWidth < camera.operatorWidth ? " · adaptive" : "";
 
-  const showZoom = camera?.supportsZoom && !isDestroyed;
   const hasCameras = cameras.length > 0;
   const canStep = cameras.length > 1;
 
@@ -510,24 +591,30 @@ export function CameraFeed({
   // produce duplicate ids (which would break the label→select association).
   const selectId = useId();
 
-  return (
-    <Panel>
-      <PanelTitle>{camera?.cameraName ?? "Camera Feed"}</PanelTitle>
+  // The chrome (title / metadata / picker + the controls) overlays the feed and
+  // is hover-revealed on desktop. Touch has no hover, so tapping the video pins
+  // the chrome visible (tap again to hide) — see Stage's $pinned rule.
+  const [chromePinned, setChromePinned] = useState(false);
+
+  // Compact title + metadata + camera picker, overlaid on the feed (top) and
+  // revealed with the rest of the chrome. Shared by the live + empty states.
+  const topOverlay = (
+    <TopOverlay>
+      <TopTitle>{camera?.cameraName ?? "Camera Feed"}</TopTitle>
       {camera ? (
-        <PanelSubtitle>
+        <TopMeta>
           {camera.vesselName} · {camera.renderWidth}×{camera.renderHeight}
           {bitrateLabel}
           {adaptiveLabel}
-        </PanelSubtitle>
+        </TopMeta>
       ) : (
-        <PanelSubtitle>no cameras on this vessel</PanelSubtitle>
+        <TopMeta>no cameras on this vessel</TopMeta>
       )}
-
       {hasCameras && (
-        <SelectionBar>
-          <CameraPickerLabel htmlFor={selectId}>Camera</CameraPickerLabel>
+        <PickerRow>
           <CameraSelect
             id={selectId}
+            aria-label="Camera"
             value={flightId ?? ""}
             onChange={(e) =>
               selectCamera(
@@ -542,136 +629,171 @@ export function CameraFeed({
               </option>
             ))}
           </CameraSelect>
-          <IconButton
+          <OverlayIconButton
             type="button"
             aria-label="Previous camera"
             disabled={!canStep}
             onClick={() => stepCamera(-1)}
           >
             ‹
-          </IconButton>
-          <IconButton
+          </OverlayIconButton>
+          <OverlayIconButton
             type="button"
             aria-label="Next camera"
             disabled={!canStep}
             onClick={() => stepCamera(1)}
           >
             ›
-          </IconButton>
-        </SelectionBar>
+          </OverlayIconButton>
+        </PickerRow>
       )}
+    </TopOverlay>
+  );
 
-      <VideoWrap ref={wrapRef}>
-        {flightId === null ? (
+  return (
+    <Stage ref={wrapRef} $pinned={chromePinned}>
+      {flightId === null ? (
+        <>
           <Empty>
             No camera feeds — start a vessel with Hullcam parts installed
           </Empty>
-        ) : (
-          <>
-            <StyledVideo
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              controls={false}
-              $destroyed={isDestroyed}
-            />
-            {isDestroyed && (
-              <SignalLostOverlay role="status" aria-label="Signal lost">
-                <SignalLostText>SIGNAL LOST</SignalLostText>
-              </SignalLostOverlay>
-            )}
-            {showZoom && (
-              <ZoomControlsWrap>
-                <ZoomButton
-                  type="button"
-                  aria-label="Zoom in"
-                  onClick={() => onFovChange(camera.fov - 5)}
-                >
-                  +
-                </ZoomButton>
-                <ZoomButton
-                  type="button"
-                  aria-label="Zoom out"
-                  onClick={() => onFovChange(camera.fov + 5)}
-                >
-                  −
-                </ZoomButton>
-              </ZoomControlsWrap>
-            )}
-            {showPan && (
-              <PanControl role="group" aria-label="Pan camera">
-                <PanArrow
-                  type="button"
-                  $dir="up"
-                  aria-label="Pan up"
-                  disabled={!supportsPitch}
-                  onPointerDown={() => startArrow(0, PAN_ARROW_RATE)}
-                  onPointerUp={releaseArrow}
-                  onPointerLeave={releaseArrow}
-                  onClick={(e) => {
-                    if (e.detail === 0) nudgePan(0, 1);
-                  }}
-                >
-                  ▲
-                </PanArrow>
-                <PanArrow
-                  type="button"
-                  $dir="down"
-                  aria-label="Pan down"
-                  disabled={!supportsPitch}
-                  onPointerDown={() => startArrow(0, -PAN_ARROW_RATE)}
-                  onPointerUp={releaseArrow}
-                  onPointerLeave={releaseArrow}
-                  onClick={(e) => {
-                    if (e.detail === 0) nudgePan(0, -1);
-                  }}
-                >
-                  ▼
-                </PanArrow>
-                <PanArrow
-                  type="button"
-                  $dir="left"
-                  aria-label="Pan left"
-                  onPointerDown={() => startArrow(-PAN_ARROW_RATE, 0)}
-                  onPointerUp={releaseArrow}
-                  onPointerLeave={releaseArrow}
-                  onClick={(e) => {
-                    if (e.detail === 0) nudgePan(-1, 0);
-                  }}
-                >
-                  ◀
-                </PanArrow>
-                <PanArrow
-                  type="button"
-                  $dir="right"
-                  aria-label="Pan right"
-                  onPointerDown={() => startArrow(PAN_ARROW_RATE, 0)}
-                  onPointerUp={releaseArrow}
-                  onPointerLeave={releaseArrow}
-                  onClick={(e) => {
-                    if (e.detail === 0) nudgePan(1, 0);
-                  }}
-                >
-                  ▶
-                </PanArrow>
-                <PanBall
-                  aria-hidden="true"
-                  title="Drag to pan"
-                  onPointerDown={handleBallDown}
-                  onPointerMove={handleBallMove}
-                  onPointerUp={handleBallUp}
-                  onPointerCancel={handleBallUp}
-                  style={{
-                    transform: `translate(${ballPos.x}px, ${ballPos.y}px)`,
-                  }}
-                />
-              </PanControl>
-            )}
-          </>
-        )}
-      </VideoWrap>
-    </Panel>
+          {topOverlay}
+        </>
+      ) : (
+        <>
+          {/* Tapping the feed pins/unpins the chrome on touch (no hover). */}
+          <StyledVideo
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            controls={false}
+            $destroyed={isDestroyed}
+            onClick={() => setChromePinned((v) => !v)}
+          />
+          {topOverlay}
+          {isDestroyed && (
+            <SignalLostOverlay role="status" aria-label="Signal lost">
+              <SignalLostText>SIGNAL LOST</SignalLostText>
+            </SignalLostOverlay>
+          )}
+          {showZoom && (
+            // One integrated zoom control (Google-Maps style): + button, a
+            // vertical slider, − button — visually joined into a single rod.
+            // BUTTONS hold a constant zoom velocity (press = steady linear
+            // zoom, release = stop; +rate = zoom in). SLIDER declares a precise
+            // absolute FoV across the camera's full range, debounced so only
+            // the settled value is sent. Keyboard activation of a button does a
+            // discrete step (can't "hold" a keypress). Top of the slider /
+            // the + button are zoomed-in (narrow FoV).
+            <ZoomControlsWrap>
+              <ZoomButton
+                type="button"
+                aria-label="Zoom in"
+                $pos="top"
+                onPointerDown={() => sendZoomRate(1)}
+                onPointerUp={() => sendZoomRate(0)}
+                onPointerLeave={() => sendZoomRate(0)}
+                onPointerCancel={() => sendZoomRate(0)}
+                onClick={(e) => {
+                  if (e.detail === 0) nudgeZoom(-1); // keyboard: one step in
+                }}
+              >
+                +
+              </ZoomButton>
+              <FovSlider
+                type="range"
+                aria-label="Zoom"
+                min={camera.fovMin}
+                max={camera.fovMax}
+                step={0.5}
+                value={sliderFov}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setSliderFov(v); // optimistic thumb
+                  scheduleFovSlider(v); // send the settled value
+                }}
+                onPointerDown={() => {
+                  fovSliderDraggingRef.current = true;
+                }}
+                onPointerUp={() => {
+                  fovSliderDraggingRef.current = false;
+                  flushFovSlider(); // commit immediately on release
+                }}
+                onPointerCancel={() => {
+                  fovSliderDraggingRef.current = false;
+                  flushFovSlider();
+                }}
+              />
+              <ZoomButton
+                type="button"
+                aria-label="Zoom out"
+                $pos="bottom"
+                onPointerDown={() => sendZoomRate(-1)}
+                onPointerUp={() => sendZoomRate(0)}
+                onPointerLeave={() => sendZoomRate(0)}
+                onPointerCancel={() => sendZoomRate(0)}
+                onClick={(e) => {
+                  if (e.detail === 0) nudgeZoom(1); // keyboard: one step out
+                }}
+              >
+                −
+              </ZoomButton>
+            </ZoomControlsWrap>
+          )}
+          {showPan && (
+            <PanControl role="group" aria-label="Pan camera">
+              {/* Arrows are discrete single steps — one click = one unit. */}
+              <PanArrow
+                type="button"
+                $dir="up"
+                aria-label="Pan up"
+                disabled={!supportsPitch}
+                onClick={() => nudgePan(0, 1)}
+              >
+                ▲
+              </PanArrow>
+              <PanArrow
+                type="button"
+                $dir="down"
+                aria-label="Pan down"
+                disabled={!supportsPitch}
+                onClick={() => nudgePan(0, -1)}
+              >
+                ▼
+              </PanArrow>
+              <PanArrow
+                type="button"
+                $dir="left"
+                aria-label="Pan left"
+                onClick={() => nudgePan(-1, 0)}
+              >
+                ◀
+              </PanArrow>
+              <PanArrow
+                type="button"
+                $dir="right"
+                aria-label="Pan right"
+                onClick={() => nudgePan(1, 0)}
+              >
+                ▶
+              </PanArrow>
+              <PanBall
+                aria-hidden="true"
+                title="Drag to pan"
+                onPointerDown={handleBallDown}
+                onPointerMove={handleBallMove}
+                onPointerUp={handleBallUp}
+                onPointerCancel={handleBallUp}
+                style={{
+                  transform: `translate(${ballPos.x}px, ${ballPos.y}px)`,
+                }}
+              />
+            </PanControl>
+          )}
+        </>
+      )}
+    </Stage>
   );
 }
 
@@ -765,13 +887,19 @@ const PanBall = styled.div`
 
 // Map-style zoom: a compact +/- stack tucked into the bottom-left corner,
 // revealed on hover/focus like the pan pad — not a slider across the stream.
+// One integrated rod: + button, slider, − button joined with no gaps, a single
+// square-cornered dark container with a thin white border. White (not green)
+// accents throughout so it reads as one map-style zoom control.
 const ZoomControlsWrap = styled.div`
   position: absolute;
   bottom: 8px;
   left: 8px;
+  width: 30px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: stretch;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   opacity: 0;
   transition: opacity 0.15s;
 
@@ -780,50 +908,122 @@ const ZoomControlsWrap = styled.div`
   }
 `;
 
-// Reuses the @gonogo/ui IconButton, dressed as a map control: a legible dark
-// wash + light glyph so it reads over any video frame, not the faint
-// on-surface styling.
-const ZoomButton = styled(IconButton)`
-  width: 28px;
-  height: 28px;
+// Square, borderless +/− glyphs that share a thin divider with the slider so the
+// three pieces read as one rod. White glyph, subtle white hover wash.
+const ZoomButton = styled(IconButton)<{ $pos: "top" | "bottom" }>`
+  width: 100%;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: #fff;
   font-size: 1rem;
+  ${(p) =>
+    p.$pos === "top"
+      ? "border-bottom: 1px solid rgba(255, 255, 255, 0.3);"
+      : "border-top: 1px solid rgba(255, 255, 255, 0.3);"}
 
   @media (hover: hover) {
     &:hover {
       color: #fff;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(255, 255, 255, 0.15);
     }
   }
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
-    outline-offset: 2px;
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 `;
 
-const VideoWrap = styled.div`
+// Top overlay — title + metadata + camera picker, floated over the feed and
+// hidden until revealed. Defined before Stage so Stage can target it.
+const TopOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px 14px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const TopTitle = styled.h3`
+  margin: 0;
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+`;
+
+const TopMeta = styled.div`
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+`;
+
+const PickerRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+`;
+
+// Full-bleed video stage: the feed fills the whole widget; every piece of chrome
+// (the top overlay + the zoom/pan controls) floats on top and stays hidden until
+// the operator hovers (desktop) or taps to pin ($pinned, for touch). Reuses
+// Panel for the widget frame but drops its padding/gap so nothing steals
+// vertical space from the feed.
+const Stage = styled(Panel)<{ $pinned: boolean }>`
+  padding: 0;
+  gap: 0;
   position: relative;
   background: #000;
-  border-radius: 4px;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  display: flex;
   align-items: center;
   justify-content: center;
 
+  &:hover ${TopOverlay},
+  &:focus-within ${TopOverlay},
   &:hover ${ZoomControlsWrap},
-  &:hover ${PanControl},
   &:focus-within ${ZoomControlsWrap},
+  &:hover ${PanControl},
   &:focus-within ${PanControl} {
     opacity: 1;
   }
+  &:hover ${TopOverlay},
+  &:focus-within ${TopOverlay} {
+    pointer-events: auto;
+  }
+
+  ${(p) =>
+    p.$pinned &&
+    css`
+      ${TopOverlay} {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      ${ZoomControlsWrap},
+      ${PanControl} {
+        opacity: 1;
+      }
+    `}
 `;
 
 const Empty = styled.div`
@@ -834,29 +1034,37 @@ const Empty = styled.div`
   text-align: center;
 `;
 
-const SelectionBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 6px 0;
-`;
-
-const CameraPickerLabel = styled.label`
-  font-size: 11px;
-  color: var(--color-text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-// Reuses the shared @gonogo/ui Select (inputBase styling + focus ring); the
-// toolbar just needs it to flex within the SelectionBar rather than fill 100%.
+// Camera picker dressed for the dark overlay: fills the row, compact.
 const CameraSelect = styled(Select)`
   flex: 1;
   min-width: 0;
   width: auto;
+  height: 24px;
+  padding: 0 4px;
+  font-size: 11px;
+`;
+
+// IconButton restyled for legibility over the video (dark wash, white glyph).
+const OverlayIconButton = styled(IconButton)`
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.4;
+  }
 `;
 
 const StyledVideo = styled.video<{ $destroyed: boolean }>`
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -905,5 +1113,32 @@ const SignalLostText = styled.span`
     50% {
       opacity: 0.6;
     }
+  }
+`;
+
+// ── Range sliders (pan yaw / pitch / zoom) ──────────────────────────────────
+// Rendered below the video — not overlaid — so the operator can see both the
+// slider position and the live feed at once. Each row shows: label · min
+// bound · slider · max bound · current numeric value. The slider is a native
+// <input type="range"> (role="slider") for keyboard accessibility and easy
+// querying in tests. Styled to match the widget's dark/compact aesthetic.
+
+// Vertical zoom slider, flush between the +/− buttons so the three form one rod.
+// `writing-mode: vertical-lr` orients the native range input vertically; min
+// (narrow FoV / zoomed in) at the top by the +, max (wide / zoomed out) at the
+// bottom by the −. If a browser renders the ends flipped, that's a one-line
+// `direction: rtl` toggle. White accent to match the buttons.
+const FovSlider = styled.input`
+  writing-mode: vertical-lr;
+  width: 100%;
+  height: 54px;
+  margin: 0;
+  padding: 3px 0;
+  cursor: pointer;
+  accent-color: #fff;
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 `;

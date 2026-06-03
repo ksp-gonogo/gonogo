@@ -674,7 +674,7 @@ describe("CameraFeed — zoom controls", () => {
     ds.disconnect();
   });
 
-  it("zoomIn serial action sends set-fov command (fov - 5)", async () => {
+  it("clicking the on-screen +/- buttons fires a discrete set-fov step, never a rate", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -683,25 +683,86 @@ describe("CameraFeed — zoom controls", () => {
 
     renderFeed({ flightId: 42 });
 
+    // Each click is exactly one absolute step — no rate, no hold (the rate path
+    // is unreliable at the plugin's mtime-gated poll; absolute is reliable).
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
+    });
+    expect(sidecar.lastCommand("set-fov")?.content).toMatchObject({
+      flightId: 42,
+      fov: 55, // 60 − 5 (zoom in)
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /zoom out/i }));
+    });
+    // Accumulates against the optimistic FoV (55 → 60), not the lagging echo.
+    expect(sidecar.lastCommand("set-fov")?.content.fov).toBe(60);
+
+    ds.disconnect();
+  });
+
+  it("keyboard-activating a zoom button (no pointer events) fires a discrete nudge", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Enter/Space on a focused <button> dispatches a click with detail === 0
+    // and NO pointer events — the keyboard path. It must still zoom (a11y).
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /zoom in/i }), {
+        detail: 0,
+      });
+    });
+    expect(sidecar.lastCommand("set-fov")?.content).toMatchObject({
+      flightId: 42,
+      fov: 55,
+    });
+    // No rate command on the keyboard path.
+    expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
+
+    ds.disconnect();
+  });
+
+  it("zoomIn serial action holds a +1 zoom rate, releases to 0", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Press: +rate = zoom in (FoV decreases). The plugin integrates per frame.
     await act(async () => {
       dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
         kind: "button",
         value: true,
       });
     });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content).toMatchObject({
+      flightId: 42,
+      rate: 1,
+    });
 
-    const fovMsg = sidecar.lastCommand("set-fov") as Extract<
-      ClientMessage,
-      { type: "set-fov" }
-    > | null;
-    expect(fovMsg).toBeTruthy();
-    expect(fovMsg?.content.flightId).toBe(42);
-    expect(fovMsg?.content.fov).toBe(55);
+    // Release: stop zooming.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: false,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
 
     ds.disconnect();
   });
 
-  it("zoomOut serial action sends set-fov command (fov + 5)", async () => {
+  it("zoomOut serial action holds a -1 zoom rate, releases to 0", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -716,14 +777,18 @@ describe("CameraFeed — zoom controls", () => {
         value: true,
       });
     });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content).toMatchObject({
+      flightId: 42,
+      rate: -1,
+    });
 
-    const fovMsg = sidecar.lastCommand("set-fov") as Extract<
-      ClientMessage,
-      { type: "set-fov" }
-    > | null;
-    expect(fovMsg).toBeTruthy();
-    expect(fovMsg?.content.flightId).toBe(42);
-    expect(fovMsg?.content.fov).toBe(65);
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomOut", {
+        kind: "button",
+        value: false,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
 
     ds.disconnect();
   });
@@ -740,12 +805,12 @@ describe("CameraFeed — zoom controls", () => {
       });
     });
 
-    expect(sidecar.lastCommand("set-fov")).toBeUndefined();
+    expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
 
     ds.disconnect();
   });
 
-  it("button-release payload (value=false) does not zoom", async () => {
+  it("a release with no prior press emits no command (rate already 0)", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -761,7 +826,193 @@ describe("CameraFeed — zoom controls", () => {
       });
     });
 
+    // sendZoomRate dedupes against the last-sent rate (0), so a bare release
+    // sends nothing — no redundant stop on the wire.
+    expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Range sliders
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed — vertical FoV (zoom) slider", () => {
+  // The only slider in the widget: a vertical zoom slider tucked into the +/−
+  // overlay (Google-Maps style). Pan stays on the ball + arrows — there are no
+  // yaw/pitch sliders. Shown only when the camera supports zoom.
+  const PAN_ZOOM_CAMERA = {
+    flightId: 42,
+    cameraName: "Gimbal Cam",
+    supportsPan: true,
+    panYaw: 0,
+    panPitch: 0,
+    panYawMin: -45,
+    panYawMax: 45,
+    panPitchMin: -30,
+    panPitchMax: 30,
+    supportsZoom: true,
+    fov: 60,
+    fovMin: 10,
+    fovMax: 90,
+  };
+
+  it("shows a single zoom slider (no yaw/pitch sliders) when zoom is supported", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    expect(screen.getByRole("slider", { name: /zoom/i })).toBeTruthy();
+    // No pan sliders exist anymore — pan is the ball + arrows only.
+    expect(screen.queryByRole("slider", { name: /pan/i })).toBeNull();
+
+    ds.disconnect();
+  });
+
+  it("does not show the zoom slider when the camera has no zoom", async () => {
+    // Default camera fixture has supportsZoom: false.
+    const { ds } = await buildConnectedSource();
+
+    renderFeed({ flightId: 42 });
+
+    expect(screen.queryByRole("slider", { name: /zoom/i })).toBeNull();
+
+    ds.disconnect();
+  });
+
+  it("zoom slider min/max reflect the camera FoV range and initial value", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    const fovSlider = screen.getByRole<HTMLInputElement>("slider", {
+      name: /zoom/i,
+    });
+    expect(Number(fovSlider.min)).toBe(10);
+    expect(Number(fovSlider.max)).toBe(90);
+    expect(Number(fovSlider.value)).toBe(60);
+
+    ds.disconnect();
+  });
+
+  it("zoom slider commits the settled absolute set-fov on release (debounced, not streamed)", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    const fovSlider = screen.getByRole("slider", { name: /zoom/i });
+
+    // Dragging across intermediate values does NOT stream set-fov — the send is
+    // debounced/deferred to the settled value.
+    await act(async () => {
+      fireEvent.pointerDown(fovSlider);
+      fireEvent.change(fovSlider, { target: { value: "50" } });
+      fireEvent.change(fovSlider, { target: { value: "30" } });
+    });
     expect(sidecar.lastCommand("set-fov")).toBeUndefined();
+
+    // Release commits the final value immediately.
+    await act(async () => {
+      fireEvent.pointerUp(fovSlider);
+    });
+    expect(sidecar.lastCommand("set-fov")?.content).toMatchObject({
+      flightId: 42,
+      fov: 30,
+    });
+
+    ds.disconnect();
+  });
+
+  it("zoom slider also commits the settled value after a pause (no pointer release)", async () => {
+    vi.useFakeTimers();
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    const fovSlider = screen.getByRole("slider", { name: /zoom/i });
+
+    // Keyboard-stepping the slider fires change with no pointer up; the debounce
+    // commits once the value settles.
+    await act(async () => {
+      fireEvent.change(fovSlider, { target: { value: "42" } });
+    });
+    expect(sidecar.lastCommand("set-fov")).toBeUndefined();
+
+    await act(async () => {
+      vi.advanceTimersByTime(150); // past FOV_SLIDER_DEBOUNCE_MS
+    });
+    expect(sidecar.lastCommand("set-fov")?.content.fov).toBe(42);
+
+    vi.useRealTimers();
+    ds.disconnect();
+  });
+
+  it("holding a zoom button sends a constant rate; releasing stops it", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    const zoomInBtn = screen.getByRole("button", { name: /zoom in/i });
+
+    // Press and hold → a single constant +1 rate (zoom in). No acceleration, no
+    // per-frame stream — the plugin integrates the steady rate.
+    await act(async () => {
+      fireEvent.pointerDown(zoomInBtn);
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content).toMatchObject({
+      flightId: 42,
+      rate: 1,
+    });
+
+    // Release → stop. (Reliable now the plugin detects control changes by
+    // content, not mtime.)
+    await act(async () => {
+      fireEvent.pointerUp(zoomInBtn);
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
+
+    ds.disconnect();
+  });
+
+  it("zoom slider thumb tracks the camera echo when not dragging", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Plugin reports a new FoV — the idle thumb should follow it.
+    await act(async () => {
+      sidecar.updateCamera(42, { fov: 45 });
+    });
+
+    const fovSlider = screen.getByRole<HTMLInputElement>("slider", {
+      name: /zoom/i,
+    });
+    expect(Number(fovSlider.value)).toBe(45);
 
     ds.disconnect();
   });
@@ -876,9 +1127,15 @@ describe("CameraFeed — pan reticle", () => {
     ds.disconnect();
   });
 
-  it("holding a pan arrow streams set-pan; releasing stops it", async () => {
-    vi.useFakeTimers();
+  const panRateMsgs = (
+    sidecar: Awaited<ReturnType<typeof buildConnectedSource>>["sidecar"],
+  ) =>
+    sidecar.commands.filter(
+      (c): c is Extract<ClientMessage, { type: "set-pan-rate" }> =>
+        c.type === "set-pan-rate",
+    );
 
+  it("clicking a pan arrow moves one discrete step (absolute set-pan, no rate)", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -889,44 +1146,31 @@ describe("CameraFeed — pan reticle", () => {
 
     const leftArrow = screen.getByRole("button", { name: /pan left/i });
 
-    const setPanMsgs = () =>
-      sidecar.commands.filter(
-        (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
-          c.type === "set-pan",
-      );
-
-    // Hold the arrow — the rate loop fires an absolute set-pan each tick.
+    // One click = one fixed step (PAN_NUDGE_DEG = 5°) on the yaw axis, absolute.
+    // No rate command — arrows are discrete, not held velocity.
     await act(async () => {
-      leftArrow.dispatchEvent(
-        new PointerEvent("pointerdown", { bubbles: true }),
-      );
+      fireEvent.click(leftArrow);
     });
-    await act(async () => {
-      vi.advanceTimersByTime(160); // ~3 ticks at 50ms
+    expect(panRateMsgs(sidecar)).toHaveLength(0);
+    expect(sidecar.lastCommand("set-pan")?.content).toMatchObject({
+      flightId: 42,
+      yaw: -5, // left = negative yaw, one 5° step from 0
+      pitch: 0,
     });
 
-    const held = setPanMsgs();
-    expect(held.length).toBeGreaterThan(1);
-    expect(held[0].content.flightId).toBe(42);
-    // Panning left drives yaw negative from 0, and it keeps moving each tick.
-    expect(held.at(-1)?.content.yaw).toBeLessThan(0);
-    expect(held.at(-1)?.content.yaw).toBeLessThan(held[0].content.yaw ?? 0);
-
-    // Release — the loop must stop; no further set-pan after the next tick.
+    // A second click steps again (accumulates): −10°.
     await act(async () => {
-      leftArrow.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+      fireEvent.click(leftArrow);
     });
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-    });
-    expect(setPanMsgs().length).toBe(held.length);
+    expect(sidecar.lastCommand("set-pan")?.content.yaw).toBe(-10);
 
     ds.disconnect();
-    vi.useRealTimers();
   });
 
-  it("panYaw serial action drives set-pan via the rate loop (yaw advances)", async () => {
-    vi.useFakeTimers();
+  it("dragging the pan ball sends a proportional set-pan-rate; release sends 0", async () => {
+    // jsdom doesn't implement pointer capture; the ball's pointerdown calls it.
+    const origCapture = HTMLElement.prototype.setPointerCapture;
+    HTMLElement.prototype.setPointerCapture = vi.fn();
 
     const { ds, sidecar } = await buildConnectedSource();
 
@@ -936,7 +1180,46 @@ describe("CameraFeed — pan reticle", () => {
 
     renderFeed({ flightId: 42 });
 
-    // Dispatch a 50% rightward deflection on the yaw axis.
+    const ball = screen.getByTitle("Drag to pan");
+
+    // Grabbing the ball alone sends nothing — only deflection sets a rate.
+    await act(async () => {
+      fireEvent.pointerDown(ball, { clientX: 100, clientY: 100 });
+    });
+    expect(panRateMsgs(sidecar)).toHaveLength(0);
+
+    // Deflect fully right (40px ≥ PAN_BALL_RADIUS ⇒ rate clamps to +1).
+    await act(async () => {
+      fireEvent.pointerMove(ball, { clientX: 140, clientY: 100 });
+    });
+    const moved = panRateMsgs(sidecar);
+    expect(moved.length).toBeGreaterThan(0);
+    expect(moved.at(-1)?.content).toMatchObject({ flightId: 42, yawRate: 1 });
+    // Horizontal drag leaves the pitch axis at rest.
+    expect(moved.at(-1)?.content.pitchRate).toBe(0);
+
+    // Release springs to centre and stops.
+    await act(async () => {
+      fireEvent.pointerUp(ball);
+    });
+    expect(panRateMsgs(sidecar).at(-1)?.content).toMatchObject({
+      yawRate: 0,
+      pitchRate: 0,
+    });
+
+    HTMLElement.prototype.setPointerCapture = origCapture;
+    ds.disconnect();
+  });
+
+  it("panYaw serial action sends a set-pan-rate on the yaw axis", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    renderFeed({ flightId: 42 });
+
     await act(async () => {
       dispatchAction(TEST_INSTANCE_ID, "panYaw", {
         kind: "analog",
@@ -944,27 +1227,16 @@ describe("CameraFeed — pan reticle", () => {
       });
     });
 
-    // Advance ~3 ticks of the rate loop.
-    await act(async () => {
-      vi.advanceTimersByTime(160);
+    expect(sidecar.lastCommand("set-pan-rate")?.content).toMatchObject({
+      flightId: 42,
+      yawRate: 0.5,
+      pitchRate: 0,
     });
 
-    const panMsgs = sidecar.commands.filter(
-      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
-        c.type === "set-pan",
-    );
-    expect(panMsgs.length).toBeGreaterThan(0);
-    expect(panMsgs[0]?.content.flightId).toBe(42);
-    // Positive yaw value → camera yaw should be increasing (panning right).
-    expect(panMsgs.at(-1)?.content.yaw).toBeGreaterThan(0);
-
     ds.disconnect();
-    vi.useRealTimers();
   });
 
-  it("panPitch serial action drives set-pan via the rate loop (pitch advances)", async () => {
-    vi.useFakeTimers();
-
+  it("panPitch serial action sends a set-pan-rate on the pitch axis", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -973,7 +1245,6 @@ describe("CameraFeed — pan reticle", () => {
 
     renderFeed({ flightId: 42 });
 
-    // Dispatch a 50% upward deflection on the pitch axis.
     await act(async () => {
       dispatchAction(TEST_INSTANCE_ID, "panPitch", {
         kind: "analog",
@@ -981,26 +1252,16 @@ describe("CameraFeed — pan reticle", () => {
       });
     });
 
-    await act(async () => {
-      vi.advanceTimersByTime(160);
+    expect(sidecar.lastCommand("set-pan-rate")?.content).toMatchObject({
+      flightId: 42,
+      yawRate: 0,
+      pitchRate: 0.5,
     });
 
-    const panMsgs = sidecar.commands.filter(
-      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
-        c.type === "set-pan",
-    );
-    expect(panMsgs.length).toBeGreaterThan(0);
-    expect(panMsgs[0]?.content.flightId).toBe(42);
-    // Positive pitch value → pitch should be increasing (panning up).
-    expect(panMsgs.at(-1)?.content.pitch).toBeGreaterThan(0);
-
     ds.disconnect();
-    vi.useRealTimers();
   });
 
-  it("panYaw and panPitch axes are independent — each updates only its own field", async () => {
-    vi.useFakeTimers();
-
+  it("panYaw and panPitch axes compose — setting one preserves the other", async () => {
     const { ds, sidecar } = await buildConnectedSource();
 
     await act(async () => {
@@ -1009,29 +1270,49 @@ describe("CameraFeed — pan reticle", () => {
 
     renderFeed({ flightId: 42 });
 
-    // Set a yaw rate; pitch stays at zero.
     await act(async () => {
       dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
     });
     await act(async () => {
-      vi.advanceTimersByTime(160);
+      dispatchAction(TEST_INSTANCE_ID, "panPitch", {
+        kind: "analog",
+        value: 0.5,
+      });
     });
 
-    const yawOnlyMsgs = sidecar.commands.filter(
-      (c): c is Extract<ClientMessage, { type: "set-pan" }> =>
-        c.type === "set-pan",
-    );
-    expect(yawOnlyMsgs.length).toBeGreaterThan(0);
-    // Pitch should remain at 0 because only panYaw was dispatched.
-    expect(yawOnlyMsgs.at(-1)?.content.pitch).toBe(0);
+    // The pitch update carries the already-set yaw — axes don't clobber.
+    expect(sidecar.lastCommand("set-pan-rate")?.content).toMatchObject({
+      yawRate: 1,
+      pitchRate: 0.5,
+    });
 
     ds.disconnect();
-    vi.useRealTimers();
+  });
+
+  it("a tiny analog deflection inside the deadzone sends no command", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // 0.02 < ANALOG_DEADZONE (0.05) → snapped to 0 → deduped against the
+    // resting 0 → no traffic.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", {
+        kind: "analog",
+        value: 0.02,
+      });
+    });
+
+    expect(panRateMsgs(sidecar)).toHaveLength(0);
+
+    ds.disconnect();
   });
 
   it("pan serial actions are no-ops when camera does not support pan", async () => {
-    vi.useFakeTimers();
-
     // buildConnectedSource() default has supportsPan: false.
     const { ds, sidecar } = await buildConnectedSource();
 
@@ -1040,15 +1321,40 @@ describe("CameraFeed — pan reticle", () => {
     await act(async () => {
       dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
     });
-    await act(async () => {
-      vi.advanceTimersByTime(200);
-    });
 
-    const panMsgs = sidecar.commands.filter((c) => c.type === "set-pan");
-    expect(panMsgs.length).toBe(0);
+    expect(panRateMsgs(sidecar)).toHaveLength(0);
 
     ds.disconnect();
-    vi.useRealTimers();
+  });
+
+  it("unmounting mid-pan stops the rate so the plugin doesn't run away", async () => {
+    const { ds, sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, PAN_FLIP);
+    });
+
+    const { unmount } = renderFeed({ flightId: 42 });
+
+    // Start a pan via the serial axis (a non-zero rate is now in flight).
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
+    });
+    expect(panRateMsgs(sidecar).at(-1)?.content.yawRate).toBe(1);
+
+    // Unmount while the rate is still active. The KerbcamDataSource outlives the
+    // widget, so without the cleanup the plugin would keep integrating to its
+    // bounds. The cleanup must send a stop for flightId 42.
+    await act(async () => {
+      unmount();
+    });
+    expect(panRateMsgs(sidecar).at(-1)?.content).toMatchObject({
+      flightId: 42,
+      yawRate: 0,
+      pitchRate: 0,
+    });
+
+    ds.disconnect();
   });
 });
 
