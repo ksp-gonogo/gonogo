@@ -52,43 +52,83 @@ function teardown(): void {
   }
 }
 
-/** A static-ish "camera view": star field + a planet limb, animated just
- *  enough that captureStream produces frames. */
+/** Paint a "camera view" — star field + a planet limb — into a 2D context of
+ *  the given size. `t` animates the limb a touch. Used for both the live
+ *  captureStream (track delivery) and the static render backdrop. */
+function paintScene(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+): void {
+  ctx.fillStyle = "#05070d";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(205,222,255,0.75)";
+  for (let i = 0; i < 90; i++) {
+    const x = (i * 71 + 11) % w;
+    const y = (i * 97 + 30) % (h * 0.66);
+    const s = 1 + (i % 2);
+    ctx.fillRect(x, y, s, s);
+  }
+  const cx = w / 2;
+  const cy = h * 1.25 + Math.sin(t) * 6;
+  const rx = w * 0.95;
+  const ry = h * 0.7;
+  const grd = ctx.createLinearGradient(0, h * 0.6, 0, h);
+  grd.addColorStop(0, "#2f72a0");
+  grd.addColorStop(1, "#0c2230");
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 2 * Math.PI);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(130,190,235,0.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 2 * Math.PI);
+  ctx.stroke();
+}
+
+/** Live captureStream for the SDK track-delivery path (keeps CameraFeed in its
+ *  real "has a stream" state). */
 function startCanvasStream(): MediaStream {
   const canvas = document.createElement("canvas");
   canvas.width = 384;
   canvas.height = 384;
+  canvas.style.cssText =
+    "position:fixed;left:-9999px;top:0;width:384px;height:384px;";
+  document.body.appendChild(canvas);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
   let t = 0;
   const draw = (): void => {
     t += 0.02;
-    ctx.fillStyle = "#05070d";
-    ctx.fillRect(0, 0, 384, 384);
-    ctx.fillStyle = "rgba(205,222,255,0.75)";
-    for (let i = 0; i < 70; i++) {
-      const x = (i * 53 + 11) % 384;
-      const y = (i * 97 + 30) % 230;
-      ctx.fillRect(x, y, 1 + (i % 2), 1 + (i % 2));
-    }
-    const cx = 192;
-    const cy = 470 + Math.sin(t) * 6;
-    const grd = ctx.createLinearGradient(0, 230, 0, 384);
-    grd.addColorStop(0, "#2f72a0");
-    grd.addColorStop(1, "#0c2230");
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 370, 240, 0, Math.PI, 2 * Math.PI);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(130,190,235,0.55)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 370, 240, 0, Math.PI, 2 * Math.PI);
-    ctx.stroke();
+    paintScene(ctx, 384, 384, t);
     rafId = requestAnimationFrame(draw);
   };
   draw();
   return canvas.captureStream(30);
+}
+
+/** Insert a static noise/scene backdrop directly behind nothing-but-above the
+ *  <video> so the feed area shows a representative image in the render. The
+ *  <video> won't paint the captureStream in headless Chromium, so this canvas
+ *  — a later DOM sibling, hence stacked above the (black) video but below the
+ *  hover chrome/controls — is what makes the feed visible. Pure render-harness
+ *  visual; the real widget shows the live WebRTC feed here. */
+function paintFeedBackdrop(): void {
+  const video = document.querySelector("video");
+  const stage = video?.parentElement;
+  if (!video || !stage) return;
+  const rect = stage.getBoundingClientRect();
+  const bg = document.createElement("canvas");
+  bg.width = Math.max(2, Math.round(rect.width));
+  bg.height = Math.max(2, Math.round(rect.height));
+  bg.style.cssText =
+    "position:absolute;inset:0;width:100%;height:100%;display:block;";
+  const ctx = bg.getContext("2d");
+  if (ctx) paintScene(ctx, bg.width, bg.height, 0.6);
+  bg.style.pointerEvents = "none";
+  stage.insertBefore(bg, video.nextSibling);
 }
 
 async function renderCamera(payload: Payload): Promise<void> {
@@ -133,9 +173,12 @@ async function renderCamera(payload: Payload): Promise<void> {
     </DashboardItemContext.Provider>,
   );
 
-  // Let connect settle, the camera-snapshot propagate, and the <video>
-  // paint at least one frame.
-  await new Promise((r) => setTimeout(r, 500));
+  // Let connect settle + the camera-snapshot propagate, then paint the feed
+  // backdrop (the <video> won't reliably paint the mock stream in headless, so
+  // this canvas behind the chrome is what makes the feed visible in the render).
+  await new Promise((r) => setTimeout(r, 400));
+  paintFeedBackdrop();
+  await new Promise((r) => setTimeout(r, 100));
 }
 
 (window as unknown as { __renderCamera: typeof renderCamera }).__renderCamera =

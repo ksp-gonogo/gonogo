@@ -63,40 +63,44 @@ interface Scene {
   pxH: number;
 }
 
+const PAN_PITCH_ZOOM = {
+  ...CAM_BASE,
+  flightId: 42,
+  supportsPan: true,
+  supportsZoom: true,
+  panYawMin: -90,
+  panYawMax: 90,
+  panPitchMin: -45,
+  panPitchMax: 45,
+  panYaw: 18,
+  panPitch: -10,
+};
+
+// Each scene is rendered TWICE: resting (chrome hidden — the feed fills the
+// widget) and hover (chrome revealed). Sizes span a desktop-ish cell, a wide
+// cell, and a narrow mobile-width cell so the overlay layout can be reviewed
+// responsively.
 const SCENES: Scene[] = [
   {
-    name: "pan-pitch-zoom",
-    camera: {
-      ...CAM_BASE,
-      flightId: 42,
-      supportsPan: true,
-      supportsZoom: true,
-      panYawMin: -90,
-      panYawMax: 90,
-      panPitchMin: -45,
-      panPitchMax: 45,
-      panYaw: 18,
-      panPitch: -10,
-    },
+    name: "desktop",
+    camera: PAN_PITCH_ZOOM,
     config: { flightId: 42 },
     pxW: 360,
-    pxH: 452,
+    pxH: 320,
   },
   {
-    name: "yaw-only",
-    camera: {
-      ...CAM_BASE,
-      flightId: 42,
-      supportsPan: true,
-      supportsZoom: true,
-      panYawMin: -120,
-      panYawMax: 120,
-      panPitchMin: 0,
-      panPitchMax: 0,
-    },
+    name: "wide",
+    camera: PAN_PITCH_ZOOM,
     config: { flightId: 42 },
-    pxW: 360,
-    pxH: 452,
+    pxW: 560,
+    pxH: 320,
+  },
+  {
+    name: "mobile",
+    camera: PAN_PITCH_ZOOM,
+    config: { flightId: 42 },
+    pxW: 240,
+    pxH: 300,
   },
 ];
 
@@ -189,14 +193,23 @@ async function main(): Promise<void> {
           ).__renderCamera(s),
         scene,
       );
-      // Reveal the hover-gated controls, then let the opacity transition land.
-      await page.hover("video").catch(() => {});
-      await page.waitForTimeout(250);
       const root = await page.$("#root");
       if (!root) throw new Error("#root missing after render");
-      const out = join(OUT_DIR, `${scene.name}.png`);
-      await root.screenshot({ path: out });
-      console.log(`  ✓ ${scene.name} → ${out}`);
+
+      // 1) Resting — move the pointer away so nothing is hovered (the feed
+      // should fill the widget with no chrome).
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(250);
+      const resting = join(OUT_DIR, `${scene.name}-resting.png`);
+      await root.screenshot({ path: resting });
+      console.log(`  ✓ ${scene.name}-resting → ${resting}`);
+
+      // 2) Hover — reveal the chrome (top overlay + zoom/pan controls).
+      await page.hover("video").catch(() => {});
+      await page.waitForTimeout(250);
+      const hover = join(OUT_DIR, `${scene.name}-hover.png`);
+      await root.screenshot({ path: hover });
+      console.log(`  ✓ ${scene.name}-hover → ${hover}`);
     }
   } finally {
     await browser.close();
