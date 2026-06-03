@@ -589,6 +589,20 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
         await cam.setPan(Number(yaw), Number(pitch));
         break;
       }
+      case "set-pan-rate": {
+        // Velocity, not position — "0" is a valid (stop) value, so guard on
+        // undefined rather than falsiness.
+        const [yawRate, pitchRate] = rest;
+        if (yawRate === undefined || pitchRate === undefined) return;
+        await cam.setPanRate(Number(yawRate), Number(pitchRate));
+        break;
+      }
+      case "set-zoom-rate": {
+        const [rate] = rest;
+        if (rate === undefined) return;
+        await cam.setZoomRate(Number(rate));
+        break;
+      }
       case "set-degrade": {
         const [level] = rest;
         if (!level) return;
