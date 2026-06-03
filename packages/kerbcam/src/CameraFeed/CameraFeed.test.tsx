@@ -49,6 +49,7 @@ import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcamDataSource } from "../KerbcamDataSource";
 import { CameraFeed, type CameraFeedConfig } from "./CameraFeed";
+import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 // ---------------------------------------------------------------------------
 // Render helper — CameraFeed calls useActionInput, which reads its instance
@@ -602,36 +603,25 @@ describe("CameraFeed — debug info toggle", () => {
     ds.disconnect();
   });
 
-  it("toggling 'Show debug info' in the menu persists via onConfigChange and reveals the readout", async () => {
-    const { ds } = await buildConnectedSource([
-      makeCamera({
-        flightId: 42,
-        cameraName: "Starboard Cam",
-        vesselName: "Kerbal X",
-        renderWidth: 640,
-        renderHeight: 360,
-      }),
-    ]);
+  it("the Settings-tab config panel persists the toggle without dropping the camera pick", () => {
+    // The toggle lives in the gear modal's Settings tab now, not the in-feed
+    // dropdown. Saving must thread the current flightId back through so it
+    // can't wipe the selected camera.
+    const onSave = vi.fn();
+    render(
+      <CameraFeedConfigPanel
+        config={{ flightId: 42, showDebugInfo: false }}
+        onSave={onSave}
+      />,
+    );
 
-    renderStatefulFeed({ flightId: 42 });
+    const toggle = screen.getByRole("checkbox", { name: /show debug info/i });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
 
-    // Hidden initially.
-    expect(screen.queryByText(/640×360/)).toBeNull();
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
-    // Open the menu and flip the toggle.
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
-    });
-    await act(async () => {
-      fireEvent.click(
-        screen.getByRole("checkbox", { name: /show debug info/i }),
-      );
-    });
-
-    // The stateful harness persisted showDebugInfo → readout now visible.
-    expect(screen.getByText(/640×360/)).toBeTruthy();
-
-    ds.disconnect();
+    expect(onSave).toHaveBeenCalledWith({ flightId: 42, showDebugInfo: true });
   });
 });
 
