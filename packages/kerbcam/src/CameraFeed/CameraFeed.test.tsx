@@ -61,14 +61,20 @@ import { CameraFeed, type CameraFeedConfig } from "./CameraFeed";
 
 const TEST_INSTANCE_ID = "camera-feed-test";
 
+// Fill the config defaults so individual tests only spell out the fields they
+// care about (flightId, and occasionally showDebugInfo).
+function fullConfig(config: Partial<CameraFeedConfig>): CameraFeedConfig {
+  return { flightId: null, showDebugInfo: false, ...config };
+}
+
 function renderFeed(
-  config: CameraFeedConfig,
+  config: Partial<CameraFeedConfig>,
   onConfigChange?: ComponentProps<CameraFeedConfig>["onConfigChange"],
 ): ReturnType<typeof render> {
   return render(
     <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
       <CameraFeed
-        config={config}
+        config={fullConfig(config)}
         id={TEST_INSTANCE_ID}
         onConfigChange={onConfigChange}
       />
@@ -82,10 +88,10 @@ function renderFeed(
 // serial action) → onConfigChange persists flightId → the widget re-renders
 // against the new selection — rather than just spying on the callback.
 function renderStatefulFeed(
-  initial: CameraFeedConfig,
+  initial: Partial<CameraFeedConfig>,
 ): ReturnType<typeof render> {
   function Harness() {
-    const [config, setConfig] = useState<CameraFeedConfig>(initial);
+    const [config, setConfig] = useState<CameraFeedConfig>(fullConfig(initial));
     return (
       <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
         <CameraFeed
@@ -335,15 +341,17 @@ describe("CameraFeed — camera selection", () => {
     }),
   ];
 
-  it("lists every available camera in the picker", async () => {
+  it("lists every available camera in the menu", async () => {
     const { ds } = await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: null });
 
-    const picker = screen.getByRole("combobox", { name: /camera/i });
-    const labels = Array.from(picker.querySelectorAll("option")).map(
-      (o) => o.textContent,
-    );
+    // The title is the menu trigger; open it to reveal the camera list.
+    fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+
+    const labels = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
     expect(labels).toEqual([
       "Starboard Cam (Kerbal X)",
       "Nose Cam (Kerbal X)",
@@ -358,12 +366,11 @@ describe("CameraFeed — camera selection", () => {
 
     renderFeed({ flightId: null });
 
-    // Title reflects the first camera; picker value points at its flightId.
+    // Title reflects the first camera; the menu marks it as the checked item.
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-    const picker = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: /camera/i,
-    });
-    expect(picker.value).toBe("42");
+    fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+    const checked = screen.getByRole("menuitemradio", { checked: true });
+    expect(checked.textContent).toBe("Starboard Cam (Kerbal X)");
 
     ds.disconnect();
   });
@@ -375,34 +382,40 @@ describe("CameraFeed — camera selection", () => {
     renderFeed({ flightId: 44 });
 
     expect(screen.getByRole("heading", { name: "Tail Cam" })).toBeTruthy();
-    const picker = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: /camera/i,
-    });
-    expect(picker.value).toBe("44");
+    fireEvent.click(screen.getByRole("button", { name: /tail cam/i }));
+    const checked = screen.getByRole("menuitemradio", { checked: true });
+    expect(checked.textContent).toBe("Tail Cam (Kerbal X)");
 
     ds.disconnect();
   });
 
-  it("selecting a different camera in the picker persists the choice and switches", async () => {
+  it("selecting a different camera in the menu persists the choice and switches", async () => {
     const { ds } = await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
 
-    const picker = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: /camera/i,
+    // Open the menu and pick a different camera.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
     });
     await act(async () => {
-      fireEvent.change(picker, { target: { value: "43" } });
+      fireEvent.click(screen.getByRole("menuitemradio", { name: /nose cam/i }));
     });
 
     // Stateful harness persisted the new flightId → widget re-rendered.
     expect(screen.getByRole("heading", { name: "Nose Cam" })).toBeTruthy();
-    const switched = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: /camera/i,
+    // Selecting a camera closes the menu.
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    // Re-open: the menu now marks the newly-chosen camera as checked.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /nose cam/i }));
     });
-    expect(switched.value).toBe("43");
+    expect(
+      screen.getByRole("menuitemradio", { checked: true }).textContent,
+    ).toBe("Nose Cam (Kerbal X)");
 
     ds.disconnect();
   });
@@ -531,16 +544,105 @@ describe("CameraFeed — camera selection", () => {
 
     ds.disconnect();
   });
+
+  it("Escape closes the open camera menu", async () => {
+    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+
+    renderFeed({ flightId: 42 });
+
+    fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+    expect(screen.getByRole("menu")).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    ds.disconnect();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Debug-info toggle (resolution + bitrate readouts gated behind the menu)
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed — debug info toggle", () => {
+  it("hides the resolution/bitrate readout by default", async () => {
+    const { ds } = await buildConnectedSource([
+      makeCamera({
+        flightId: 42,
+        cameraName: "Starboard Cam",
+        vesselName: "Kerbal X",
+        renderWidth: 640,
+        renderHeight: 360,
+      }),
+    ]);
+
+    renderFeed({ flightId: 42 });
+
+    // showDebugInfo defaults to false → resolution string is not rendered.
+    expect(screen.queryByText(/640×360/)).toBeNull();
+
+    ds.disconnect();
+  });
+
+  it("shows the resolution/bitrate readout when showDebugInfo is true", async () => {
+    const { ds } = await buildConnectedSource([
+      makeCamera({
+        flightId: 42,
+        cameraName: "Starboard Cam",
+        vesselName: "Kerbal X",
+        renderWidth: 640,
+        renderHeight: 360,
+      }),
+    ]);
+
+    renderFeed({ flightId: 42, showDebugInfo: true });
+
+    expect(screen.getByText(/640×360/)).toBeTruthy();
+
+    ds.disconnect();
+  });
+
+  it("toggling 'Show debug info' in the menu persists via onConfigChange and reveals the readout", async () => {
+    const { ds } = await buildConnectedSource([
+      makeCamera({
+        flightId: 42,
+        cameraName: "Starboard Cam",
+        vesselName: "Kerbal X",
+        renderWidth: 640,
+        renderHeight: 360,
+      }),
+    ]);
+
+    renderStatefulFeed({ flightId: 42 });
+
+    // Hidden initially.
+    expect(screen.queryByText(/640×360/)).toBeNull();
+
+    // Open the menu and flip the toggle.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: /show debug info/i }),
+      );
+    });
+
+    // The stateful harness persisted showDebugInfo → readout now visible.
+    expect(screen.getByText(/640×360/)).toBeTruthy();
+
+    ds.disconnect();
+  });
 });
 
 describe("CameraFeed — empty state and status", () => {
-  it("shows the no-cameras empty state and hides the picker when connected with no cameras", async () => {
+  it("shows the no-cameras empty state and hides the menu trigger when connected with no cameras", async () => {
     const { ds } = await buildConnectedSource([]);
 
     renderFeed({ flightId: null });
 
-    // No picker when there are no cameras.
-    expect(screen.queryByRole("combobox", { name: /camera/i })).toBeNull();
+    // No menu trigger (the title is plain text) when there are no cameras.
+    expect(screen.queryByRole("button", { name: /camera feed/i })).toBeNull();
     // No <video> element either.
     expect(document.querySelector("video")).toBeNull();
     // Neutral empty-state copy — connection/transport detail is intentionally
@@ -1460,10 +1562,10 @@ describe("CameraFeed — station (brokered) mode", () => {
     renderFeed({ flightId: 42 });
 
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-    const picker = screen.getByRole("combobox", { name: /camera/i });
-    const labels = Array.from(picker.querySelectorAll("option")).map(
-      (o) => o.textContent,
-    );
+    fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
+    const labels = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
     expect(labels).toEqual(["Starboard Cam (Kerbal X)", "Nose Cam (Kerbal X)"]);
 
     ds.disconnect();

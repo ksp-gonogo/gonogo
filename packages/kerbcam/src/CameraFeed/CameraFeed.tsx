@@ -1,6 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import { useActionInput, useDataValue, useExecuteAction } from "@gonogo/core";
-import { IconButton, Panel, Select } from "@gonogo/ui";
+import { ChevronDownIcon, IconButton, Panel, Switch } from "@gonogo/ui";
 import {
   useCallback,
   useEffect,
@@ -50,6 +50,12 @@ export interface CameraFeedConfig extends Record<string, unknown> {
    * input) the chosen flightId is persisted here.
    */
   flightId: number | null;
+  /**
+   * When true, the feed renders the technical readouts (resolution +
+   * encoder bitrate) in the top overlay. Defaults to `false` so the
+   * default chrome stays uncluttered; toggled from the camera menu.
+   */
+  showDebugInfo: boolean;
 }
 
 /** Component actions exposed to the serial-input platform. */
@@ -179,9 +185,29 @@ export function CameraFeed({
   // Camera selection — picker + Next/Prev. All paths persist through
   // onConfigChange so the choice survives a remount, mirroring CameraFeed.
   // --------------------------------------------------------------------------
+  // Per-widget "show debug info" toggle. Persisted through the same
+  // onConfigChange path the flightId pick uses, so it survives a remount.
+  const showDebugInfo = config?.showDebugInfo ?? false;
+
+  // Both writes carry the *full* config (both fields), defaulting any that the
+  // caller's config object happens to be missing, so a partial config can't
+  // strip the sibling field on persist.
   const selectCamera = useCallback(
     (nextFlightId: number | null) => {
-      onConfigChange?.({ ...(config ?? {}), flightId: nextFlightId });
+      onConfigChange?.({
+        flightId: nextFlightId,
+        showDebugInfo: config?.showDebugInfo ?? false,
+      });
+    },
+    [config, onConfigChange],
+  );
+
+  const setShowDebugInfo = useCallback(
+    (next: boolean) => {
+      onConfigChange?.({
+        flightId: config?.flightId ?? null,
+        showDebugInfo: next,
+      });
     },
     [config, onConfigChange],
   );
@@ -588,65 +614,138 @@ export function CameraFeed({
   const canStep = cameras.length > 1;
 
   // Unique per widget instance so two CameraFeeds on one dashboard don't
-  // produce duplicate ids (which would break the label→select association).
-  const selectId = useId();
+  // produce duplicate ids (the menu trigger ↔ menu association).
+  const menuId = useId();
 
-  // The chrome (title / metadata / picker + the controls) overlays the feed and
+  // The chrome (title / metadata / menu + the controls) overlays the feed and
   // is hover-revealed on desktop. Touch has no hover, so tapping the video pins
   // the chrome visible (tap again to hide) — see Stage's $pinned rule.
   const [chromePinned, setChromePinned] = useState(false);
 
-  // Compact title + metadata + camera picker, overlaid on the feed (top) and
-  // revealed with the rest of the chrome. Shared by the live + empty states.
+  // --------------------------------------------------------------------------
+  // Camera menu — the title IS the trigger. Clicking it opens a dropdown of
+  // selectable cameras plus the "show debug info" toggle at the bottom.
+  // --------------------------------------------------------------------------
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Escape closes the menu (and returns focus to the trigger); an outside
+  // pointer-down dismisses it too. Both are no-ops while the menu is closed.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setMenuOpen(false);
+        menuTriggerRef.current?.focus();
+      }
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (
+        !menuRef.current?.contains(e.target as Node) &&
+        !menuTriggerRef.current?.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [menuOpen]);
+
+  // Compact title (as a menu trigger) + optional debug metadata, overlaid on
+  // the feed (top-left) with the Next/Prev step buttons floated top-right.
+  // Shared by the live + empty states.
+  const title = camera?.cameraName ?? "Camera Feed";
   const topOverlay = (
     <TopOverlay>
-      <TopTitle>{camera?.cameraName ?? "Camera Feed"}</TopTitle>
-      {camera ? (
-        <TopMeta>
-          {camera.vesselName} · {camera.renderWidth}×{camera.renderHeight}
-          {bitrateLabel}
-          {adaptiveLabel}
-        </TopMeta>
-      ) : (
-        <TopMeta>no cameras on this vessel</TopMeta>
+      <TitleRow>
+        {/* The title text IS the menu trigger. The <h3> keeps the heading
+            role (so the camera name is still a landmark + queryable heading);
+            the inner <button> carries the menu semantics. */}
+        <TopTitle>
+          {hasCameras ? (
+            <TitleButton
+              ref={menuTriggerRef}
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <TitleButton__Text>{title}</TitleButton__Text>
+              <ChevronDownIcon aria-hidden="true" />
+            </TitleButton>
+          ) : (
+            title
+          )}
+        </TopTitle>
+        {hasCameras && (
+          <StepButtons>
+            <OverlayIconButton
+              type="button"
+              aria-label="Previous camera"
+              disabled={!canStep}
+              onClick={() => stepCamera(-1)}
+            >
+              ‹
+            </OverlayIconButton>
+            <OverlayIconButton
+              type="button"
+              aria-label="Next camera"
+              disabled={!canStep}
+              onClick={() => stepCamera(1)}
+            >
+              ›
+            </OverlayIconButton>
+          </StepButtons>
+        )}
+      </TitleRow>
+
+      {menuOpen && hasCameras && (
+        <CameraMenu ref={menuRef} id={menuId} role="menu" aria-label="Camera">
+          {cameras.map((c) => (
+            <CameraMenuItem
+              key={c.flightId}
+              type="button"
+              role="menuitemradio"
+              aria-checked={c.flightId === flightId}
+              $selected={c.flightId === flightId}
+              onClick={() => {
+                selectCamera(c.flightId);
+                setMenuOpen(false);
+                menuTriggerRef.current?.focus();
+              }}
+            >
+              {c.cameraName} ({c.vesselName})
+              {isCameraDestroyed(c) ? " — signal lost" : ""}
+            </CameraMenuItem>
+          ))}
+          <CameraMenuSeparator role="separator" />
+          <CameraMenuToggleRow role="menuitem">
+            <Switch
+              checked={showDebugInfo}
+              onChange={setShowDebugInfo}
+              label="Show debug info"
+            />
+          </CameraMenuToggleRow>
+        </CameraMenu>
       )}
-      {hasCameras && (
-        <PickerRow>
-          <CameraSelect
-            id={selectId}
-            aria-label="Camera"
-            value={flightId ?? ""}
-            onChange={(e) =>
-              selectCamera(
-                e.target.value === "" ? null : Number(e.target.value),
-              )
-            }
-          >
-            {cameras.map((c) => (
-              <option key={c.flightId} value={c.flightId}>
-                {c.cameraName} ({c.vesselName})
-                {isCameraDestroyed(c) ? " — signal lost" : ""}
-              </option>
-            ))}
-          </CameraSelect>
-          <OverlayIconButton
-            type="button"
-            aria-label="Previous camera"
-            disabled={!canStep}
-            onClick={() => stepCamera(-1)}
-          >
-            ‹
-          </OverlayIconButton>
-          <OverlayIconButton
-            type="button"
-            aria-label="Next camera"
-            disabled={!canStep}
-            onClick={() => stepCamera(1)}
-          >
-            ›
-          </OverlayIconButton>
-        </PickerRow>
-      )}
+
+      {showDebugInfo &&
+        (camera ? (
+          <TopMeta>
+            {camera.vesselName} · {camera.renderWidth}×{camera.renderHeight}
+            {bitrateLabel}
+            {adaptiveLabel}
+          </TopMeta>
+        ) : (
+          <TopMeta>no cameras on this vessel</TopMeta>
+        ))}
     </TopOverlay>
   );
 
@@ -962,8 +1061,18 @@ const TopOverlay = styled.div`
   }
 `;
 
+// Title row: the menu-trigger title on the left, the Next/Prev step buttons
+// floated to the upper-right corner.
+const TitleRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
 const TopTitle = styled.h3`
   margin: 0;
+  min-width: 0;
   font-size: var(--font-size-xs, 11px);
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -972,18 +1081,113 @@ const TopTitle = styled.h3`
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 `;
 
+// The title rendered as the dropdown trigger: camera name + a chevron. Bare
+// (no box) so it reads as the heading text, with a clear focus ring.
+const TitleButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-shadow: inherit;
+  text-align: left;
+
+  svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+
+  &[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    svg {
+      transition: none;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
+  }
+`;
+
+const TitleButton__Text = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+// Next/Prev step buttons, floated to the upper-right corner of the overlay.
+const StepButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+`;
+
+// Dropdown menu of selectable cameras + the debug toggle, anchored under the
+// title. Dark wash to stay legible over a bright frame.
+const CameraMenu = styled.div`
+  margin-top: 4px;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const CameraMenuItem = styled.button<{ $selected: boolean }>`
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  background: ${(p) => (p.$selected ? "rgba(0, 255, 136, 0.15)" : "transparent")};
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: -2px;
+  }
+`;
+
+const CameraMenuSeparator = styled.div`
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+`;
+
+const CameraMenuToggleRow = styled.div`
+  padding: 6px 8px;
+`;
+
 const TopMeta = styled.div`
   font-size: 11px;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.78);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-`;
-
-const PickerRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
 `;
 
 // Full-bleed video stage: the feed fills the whole widget; every piece of chrome
@@ -1032,16 +1236,6 @@ const Empty = styled.div`
   font-style: italic;
   padding: 1rem;
   text-align: center;
-`;
-
-// Camera picker dressed for the dark overlay: fills the row, compact.
-const CameraSelect = styled(Select)`
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  height: 24px;
-  padding: 0 4px;
-  font-size: 11px;
 `;
 
 // IconButton restyled for legibility over the video (dark wash, white glyph).
