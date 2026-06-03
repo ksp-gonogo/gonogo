@@ -330,6 +330,24 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   // brokered station, pushed in from the host's relay broadcast. Empty until
   // resolved (SDK then uses its STUN-only default).
   private iceServers: RTCIceServer[] = [];
+  // TURN-on-demand, main-screen path only. The main→sidecar leg is LAN (Steam
+  // Deck ↔ MacBook, same WiFi), so it connects on host/STUN candidates and
+  // never needs a relay — yet fetching /ice-config up front made every camera
+  // connection *gather* a TURN relay candidate it then discarded, burning a
+  // coturn relay port per feed. So we stay STUN-only until a connection attempt
+  // has actually failed, then pull the relay's TURN creds and let the reconnect
+  // pick them up (see connect / attemptReconnect / the "failed" state handler).
+  // Worst case is one failed STUN attempt before we fall back to today's
+  // always-TURN behaviour; the common LAN case never allocates a relay port.
+  //
+  // The asymmetry with the data channel's TURN-on-demand (which escalates on a
+  // short timer) is deliberate, not an oversight: that path spans the internet,
+  // so fast escalation earns its keep; this path is LAN, where a STUN-only
+  // attempt should *succeed*, and waiting for a genuine failure avoids tearing
+  // down a slow-but-valid local connect. The remote-camera case rides the
+  // broker/station path (attachBroker), which takes TURN from the host
+  // broadcast and is untouched by this flag.
+  private turnEscalated = false;
   // Set on a station via attachBroker(); switches connect() off the localhost
   // /offer + /ice-config path and onto the host-relayed handshake.
   private broker: KerbcamBroker | undefined;
@@ -405,13 +423,15 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     this.reconnectEnabled = true;
     // Brokered (station) mode gets its TURN creds from the host's relay
     // broadcast via attachBroker(); the localhost /ice-config fetch would hit the
-    // station's own loopback, so skip it.
-    if (!this.broker) await this.applyRelayIce();
+    // station's own loopback, so skip it. On the main screen we stay STUN-only
+    // until a failed attempt has flipped `turnEscalated` (see the field comment).
+    if (!this.broker && this.turnEscalated) await this.applyRelayIce();
     try {
       await this.client.connect([...this.desiredSubs.keys()], {
         slots: SLOT_COUNT,
       });
     } catch (err) {
+      this.turnEscalated = true;
       this.scheduleReconnect();
       throw err;
     }
@@ -547,6 +567,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
 
   disconnect(): void {
     this.reconnectEnabled = false;
+    this.turnEscalated = false;
     this.clearTimers();
     this.client.disconnect();
   }
@@ -652,6 +673,9 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     };
     persistConfig(this.cfg);
     this.reconnectEnabled = false;
+    // A host/port change is a fresh start — re-probe STUN-only against the new
+    // sidecar rather than carrying a stale escalation across the reconfigure.
+    this.turnEscalated = false;
     this.teardownClient();
     this.client = this.buildClient();
     if (wasEnabled) void this.connect();
@@ -697,6 +721,9 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
           }
           this.startWatchdog();
         } else if (s === "failed" && this.reconnectEnabled) {
+          // A STUN-only attempt that reached ICE "failed" couldn't traverse —
+          // escalate so the reconnect fetches the relay's TURN creds.
+          this.turnEscalated = true;
           this.scheduleReconnect();
         }
       }),
@@ -796,12 +823,13 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   private async attemptReconnect(): Promise<void> {
-    if (!this.broker) await this.applyRelayIce();
+    if (!this.broker && this.turnEscalated) await this.applyRelayIce();
     try {
       await this.client.connect([...this.desiredSubs.keys()], {
         slots: SLOT_COUNT,
       });
     } catch {
+      this.turnEscalated = true;
       this.scheduleReconnect();
     }
   }

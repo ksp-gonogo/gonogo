@@ -77,32 +77,71 @@ describe("KerbcamDataSource", () => {
   });
 });
 
-describe("KerbcamDataSource — relay TURN / ice-config", () => {
-  it("threads the relay's TURN servers into the peer connection", async () => {
-    const turn: RTCIceServer = {
-      urls: ["turn:relay.example:3478?transport=udp"],
-      username: "u",
-      credential: "c",
-    };
+describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () => {
+  const STUN_DEFAULT: RTCIceServer = {
+    urls: "stun:stun.l.google.com:19302",
+  };
+  const TURN: RTCIceServer = {
+    urls: ["turn:relay.example:3478?transport=udp"],
+    username: "u",
+    credential: "c",
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("starts STUN-only on the main screen — no /ice-config fetch up front", async () => {
+    // The main→sidecar leg is LAN, so the first attempt must NOT fetch the
+    // relay's TURN creds; gathering a relay candidate it never uses is exactly
+    // the per-feed coturn port burn TURN-on-demand removes.
     vi.spyOn(globalThis, "fetch").mockImplementation(
-      kerbcamFetchImpl({ iceServers: [turn] }),
+      kerbcamFetchImpl({ iceServers: [TURN] }),
     );
 
     const session = createMockKerbcamSession();
     const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
     await ds.connect();
 
-    expect(session.iceServers).toEqual([turn]);
+    expect(session.iceServers).toEqual([STUN_DEFAULT]);
+    const fetchSpy = vi.mocked(globalThis.fetch);
+    expect(
+      fetchSpy.mock.calls.some(([url]) => String(url).includes("/ice-config")),
+    ).toBe(false);
+
+    ds.disconnect();
   });
 
-  it("does not swap the client instance when applying TURN creds", async () => {
+  it("escalates to the relay's TURN servers after a failed connection", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      kerbcamFetchImpl({ iceServers: [TURN] }),
+    );
+
+    const session = createMockKerbcamSession();
+    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    await ds.connect();
+    expect(session.iceServers).toEqual([STUN_DEFAULT]); // STUN-only first
+
+    // ICE couldn't traverse → fail. The reconnect (backoff ~2s) now pulls TURN.
+    session.setState("failed");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_001);
+    });
+
+    expect(session.iceServers).toEqual([TURN]);
+
+    ds.disconnect();
+  });
+
+  it("does not swap the client instance when escalating to TURN", async () => {
     // The camera hooks capture getClient() once and bind to its events, so the
-    // TURN path must mutate the existing client in place — a swap would leave
+    // escalation must mutate the existing client in place — a swap would leave
     // them bound to a dead instance (black camera on exactly the TURN path).
     vi.spyOn(globalThis, "fetch").mockImplementation(
-      kerbcamFetchImpl({
-        iceServers: [{ urls: ["turn:relay.example:3478"] }],
-      }),
+      kerbcamFetchImpl({ iceServers: [TURN] }),
     );
 
     const session = createMockKerbcamSession();
@@ -110,22 +149,35 @@ describe("KerbcamDataSource — relay TURN / ice-config", () => {
     const clientBefore = ds.getClient();
     await ds.connect();
 
+    session.setState("failed");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_001);
+    });
+
     expect(ds.getClient()).toBe(clientBefore);
-    expect(session.iceServers).toEqual([{ urls: ["turn:relay.example:3478"] }]);
+    expect(session.iceServers).toEqual([TURN]);
+
+    ds.disconnect();
   });
 
-  it("falls back to the SDK STUN default when the relay has no TURN", async () => {
-    // Empty iceServers stands in for a 503 / unreachable relay — the data
-    // source must not break connect, leaving the client on its STUN default.
+  it("stays on the SDK STUN default when the relay has no TURN, even after a failure", async () => {
+    // Empty iceServers stands in for a 503 / unreachable relay — escalation must
+    // not break the reconnect, leaving the client on its STUN default.
     vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
 
     const session = createMockKerbcamSession();
     const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
     await ds.connect();
+    expect(session.iceServers).toEqual([STUN_DEFAULT]);
 
-    expect(session.iceServers).toEqual([
-      { urls: "stun:stun.l.google.com:19302" },
-    ]);
+    session.setState("failed");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_001);
+    });
+
+    expect(session.iceServers).toEqual([STUN_DEFAULT]);
+
+    ds.disconnect();
   });
 });
 
