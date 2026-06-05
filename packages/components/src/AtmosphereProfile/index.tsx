@@ -14,6 +14,7 @@ import {
   GraphView,
   type ReferenceCurve,
 } from "../Graph";
+import { formatDensity } from "../shared/formatDensity";
 
 export interface AtmosphereProfileConfig {
   /** Override the auto-derived altitude ceiling for the curve (metres). */
@@ -204,13 +205,6 @@ function AtmosphereProfileComponent({
       )}
     </Wrap>
   );
-}
-
-function formatDensity(d: number): string {
-  const abs = Math.abs(d);
-  if (abs >= 1) return `${d.toFixed(3)} kg/m³`;
-  if (abs >= 1e-3) return `${(d * 1000).toFixed(2)} g/m³`;
-  return `${d.toExponential(2)} kg/m³`;
 }
 
 function formatTempC(k: number): string {

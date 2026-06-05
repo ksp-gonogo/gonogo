@@ -8,6 +8,7 @@ import {
 } from "@gonogo/core";
 import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
 import styled from "styled-components";
+import { formatDensity } from "../shared/formatDensity";
 
 // Empty config — kept for forward-compat. Follow-ups: hide suicide-burn row
 // on atmospheric landings; override body-atmosphere detection for mods.
@@ -60,20 +61,6 @@ function formatTempC(k: number | undefined): string {
   if (k === undefined || !Number.isFinite(k)) return "—";
   const c = kelvinToCelsius(k);
   return `${c.toFixed(0)} °C`;
-}
-
-/**
- * Atmospheric density in kg/m³. Stock Kerbin sea level is ~1.225 kg/m³; the
- * mesosphere thins to single-digit grams; high-altitude values drop into
- * 1e-6 territory. Pick a representation per magnitude so the readout stays
- * comparable across an entire descent.
- */
-function formatDensity(d: number | undefined): string {
-  if (d === undefined || !Number.isFinite(d)) return "—";
-  const abs = Math.abs(d);
-  if (abs >= 1) return `${d.toFixed(3)} kg/m³`;
-  if (abs >= 1e-3) return `${(d * 1000).toFixed(2)} g/m³`;
-  return `${d.toExponential(2)} kg/m³`;
 }
 
 function LandingStatusComponent({

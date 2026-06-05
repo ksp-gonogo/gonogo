@@ -31,3 +31,15 @@ export function formatCompactNumber(
 function stripTrailingZeros(s: string): string {
   return s.replace(/\.0+$/, "");
 }
+
+/**
+ * Format a currency/cost amount to a fixed-precision abbreviated string.
+ * Examples: "1.20M", "1.5k", "501". Unlike {@link formatCompactNumber} this
+ * keeps trailing zeros (`.toFixed`) and rounds sub-1000 values to a whole
+ * number, matching the spend-readout style used by the funds widgets.
+ */
+export function formatCompactCurrency(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return value.toFixed(0);
+}
