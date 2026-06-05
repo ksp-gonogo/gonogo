@@ -270,7 +270,7 @@ function StrategiesComponent({
         </HeaderMeta>
       </Header>
       <ScrollArea>
-        <Section>
+        <Section aria-label="Active">
           <SectionLabel>Active</SectionLabel>
           {active.length === 0 ? (
             <Empty>No active strategies.</Empty>
@@ -329,7 +329,7 @@ function StrategiesComponent({
           )}
         </Section>
 
-        <Section>
+        <Section aria-label="Available">
           <SectionLabel>Available</SectionLabel>
           {available.length === 0 && softBlocked.length === 0 ? (
             <Empty>No strategies available right now.</Empty>
@@ -377,7 +377,7 @@ function StrategiesComponent({
         </Section>
 
         {ineligible.length > 0 && (
-          <Section>
+          <Section aria-label="Locked">
             <SectionLabel>Locked</SectionLabel>
             {ineligible.map((s) => (
               <StrategyCard key={s.id}>

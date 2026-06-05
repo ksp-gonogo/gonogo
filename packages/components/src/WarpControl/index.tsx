@@ -194,7 +194,7 @@ function WarpControlComponent({
       >
         <Body>
           <Rate $tone={rateTone}>
-            <RateValue aria-label={`Time warp rate ${rateLabel}`}>
+            <RateValue role="img" aria-label={`Time warp rate ${rateLabel}`}>
               {rateLabel}
             </RateValue>
             {showModeCaption && typeof mode === "string" && mode !== "" && (

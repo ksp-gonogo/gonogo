@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  formatCompactCurrency,
   getSizeBucket,
   registerComponent,
   useDataValue,
@@ -160,6 +161,7 @@ function SpaceCenterStatusComponent({
           <TinyPad
             $occupied={padOccupied === true}
             title={padLine}
+            role="img"
             aria-label={padLine}
           >
             {padOccupied === true ? "PAD ACTIVE" : "PAD CLEAR"}
@@ -221,7 +223,18 @@ function SpaceCenterStatusComponent({
             return (
               <FacilityCell key={key} title={tooltip || undefined}>
                 <FacilityLabel>{label}</FacilityLabel>
-                <FacilityValue>
+                <FacilityValue
+                  // role="img" + aria-label so AT announces a coherent
+                  // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
+                  // read as fragments (and makes aria-label valid on the
+                  // otherwise-roleless value container).
+                  role="img"
+                  aria-label={
+                    f && f.max > 0
+                      ? `${label} tier ${displayLevel} of ${displayMax}`
+                      : `${label} tier unknown`
+                  }
+                >
                   {f && f.max > 0 ? (
                     <>
                       <Tier>{displayLevel}</Tier>
@@ -235,7 +248,7 @@ function SpaceCenterStatusComponent({
                 {f && f.upgradeFunds > 0 && !atMax && (
                   <UpgradeRow>
                     <UpgradeCost $afford={canAfford}>
-                      {formatCost(f.upgradeFunds)}
+                      {formatCompactCurrency(f.upgradeFunds)}
                     </UpgradeCost>
                     <UpgradeButton
                       facilityKey={key}
@@ -362,12 +375,6 @@ function formatTinyFunds(value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `${Math.round(value / 1_000_000)}M`;
   if (abs >= 1_000) return `${Math.round(value / 1_000)}k`;
-  return value.toFixed(0);
-}
-
-function formatCost(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
   return value.toFixed(0);
 }
 
@@ -584,7 +591,7 @@ const TinyBody = styled.div`
 
 const TinyFunds = styled.div`
   /* Fluid size: large in a roomy "tiny" box (e.g. compact-4x7) but small
-     enough that the abbreviated value (formatCost → "290k") still fits the
+     enough that the abbreviated value (formatCompactCurrency → "290k") still fits the
      widget's 2x3 minSize floor (~110px wide) without clipping. */
   font-size: clamp(12px, 13cqw, 22px);
   font-weight: 600;

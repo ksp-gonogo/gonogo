@@ -145,7 +145,7 @@ function CommSignalComponent({
 
       <Body $row={isLandscape}>
         <Readout>
-          <Bars aria-label={`Signal ${bars} of 4`}>
+          <Bars role="img" aria-label={`Signal ${bars} of 4`}>
             {[1, 2, 3, 4].map((i) => (
               <Bar key={i} $lit={i <= bars} $tone={control.tone} />
             ))}
