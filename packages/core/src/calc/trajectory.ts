@@ -14,6 +14,7 @@
  */
 import { PerfBudget } from "../perf/PerfBudget";
 import type { OrbitPatch } from "../schemas/telemachus";
+import { degToRad, radToDeg } from "../utils/math";
 
 /**
  * Solve Kepler's equation `E - e·sin E = M` for the eccentric anomaly E.
@@ -100,9 +101,9 @@ export function patchStateAt(patch: OrbitPatch, ut: number): InertialState {
 
   // Rotate perifocal → inertial via (argPe, inclination, LAN).
   // Standard 3-1-3 Euler rotation for Keplerian orbits.
-  const w = (patch.argumentOfPeriapsis * Math.PI) / 180;
-  const i = (patch.inclination * Math.PI) / 180;
-  const O = (patch.lan * Math.PI) / 180;
+  const w = degToRad(patch.argumentOfPeriapsis);
+  const i = degToRad(patch.inclination);
+  const O = degToRad(patch.lan);
   const cosW = Math.cos(w);
   const sinW = Math.sin(w);
   const cosI = Math.cos(i);
@@ -140,8 +141,8 @@ export function geoFromInertial(
   state: InertialState,
   bodyRadius: number,
 ): GeoState {
-  const lat = (Math.asin(state.z / state.radius) * 180) / Math.PI;
-  const lonInertial = (Math.atan2(state.y, state.x) * 180) / Math.PI;
+  const lat = radToDeg(Math.asin(state.z / state.radius));
+  const lonInertial = radToDeg(Math.atan2(state.y, state.x));
   return { lat, lonInertial, alt: state.radius - bodyRadius };
 }
 
@@ -169,7 +170,7 @@ export function buildBodyRotation(
   rotationPeriod: number,
 ): (inertialLon: number, ut: number) => number {
   const refState = patchStateAt(referencePatch, ref.ut);
-  const refInertialLon = (Math.atan2(refState.y, refState.x) * 180) / Math.PI;
+  const refInertialLon = radToDeg(Math.atan2(refState.y, refState.x));
   // rotationOffset such that: lon_body = lon_inertial - rotationOffset - omega·(t - ref.ut)
   // At t = ref.ut, lon_body = ref.lon, so rotationOffset = refInertialLon - ref.lon.
   const rotationOffsetAtRef = refInertialLon - ref.lon;
