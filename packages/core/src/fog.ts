@@ -12,7 +12,7 @@
  */
 
 import type { BodyDefinition } from "./bodies";
-import { clamp } from "./utils/math";
+import { clamp, degToRad, radToDeg } from "./utils/math";
 
 export interface Vec3 {
   x: number;
@@ -61,8 +61,8 @@ export interface DirtyRect {
  * camera direction before real attitude is wired in.
  */
 export function nadirNose(shipLat: number, shipLon: number): Vec3 {
-  const latR = (shipLat * Math.PI) / 180;
-  const lonR = (shipLon * Math.PI) / 180;
+  const latR = degToRad(shipLat);
+  const lonR = degToRad(shipLon);
   const cosLat = Math.cos(latR);
   return {
     x: -cosLat * Math.cos(lonR),
@@ -90,10 +90,10 @@ export function noseFromAttitude(
   pitchDeg: number,
   headingDeg: number,
 ): Vec3 {
-  const latR = (shipLat * Math.PI) / 180;
-  const lonR = (shipLon * Math.PI) / 180;
-  const pitchR = (pitchDeg * Math.PI) / 180;
-  const headingR = (headingDeg * Math.PI) / 180;
+  const latR = degToRad(shipLat);
+  const lonR = degToRad(shipLon);
+  const pitchR = degToRad(pitchDeg);
+  const headingR = degToRad(headingDeg);
 
   const cosLat = Math.cos(latR);
   const sinLat = Math.sin(latR);
@@ -125,6 +125,97 @@ export function noseFromAttitude(
 }
 
 /**
+ * Shared scan over the spherical-cap pixels of a mask. Walks the bounding box
+ * implied by `capRadiusDeg` around the centre point (centreLat/centreLon, in
+ * the physical frame, mapped through the body offsets to texture pixels),
+ * reconstructs each pixel's surface unit vector, and calls `test(upX, upY,
+ * upZ)`. Qualifying pixels rise to `alpha` (max-lighten) and grow the dirty
+ * rect. Returns the bounding rect of touched pixels, or null if none.
+ *
+ * Callers own the per-pixel predicate (FOV/horizon cone for footprints, a
+ * single dot-product cap for discs) and pass the predicate-specific geometry
+ * in via the closure.
+ */
+function scanMaskCap(
+  mask: MaskTarget,
+  centreLat: number,
+  centreLon: number,
+  longitudeOffset: number,
+  latitudeOffset: number,
+  capRadiusDeg: number,
+  alpha: number,
+  test: (upX: number, upY: number, upZ: number) => boolean,
+): DirtyRect | null {
+  const W = mask.width;
+  const H = mask.height;
+
+  // Centre's texture coordinate (pixel centre of the sub-point)
+  const texLat = clamp(centreLat + latitudeOffset, -90, 90);
+  const texLon = wrapLon(centreLon + longitudeOffset);
+  const sx = ((texLon + 180) / 360) * W;
+  const sy = ((90 - texLat) / 180) * H;
+
+  const dxPx = Math.ceil((capRadiusDeg / 360) * W);
+  const dyPx = Math.ceil((capRadiusDeg / 180) * H);
+
+  const yMin = Math.max(0, Math.floor(sy - dyPx));
+  const yMax = Math.min(H - 1, Math.ceil(sy + dyPx));
+
+  // If the cap reaches more than half the map in longitude we have to
+  // iterate everything (the bbox wraps all the way around).
+  const wrapLonAll = dxPx >= W / 2;
+
+  // Precompute per-column cos/sin(physicalLon). 2 × W trig, ~0.3 ms at
+  // 2048 — cheaper than doing it per (x, y) pair.
+  const lonCos = new Float64Array(W);
+  const lonSin = new Float64Array(W);
+  for (let x = 0; x < W; x++) {
+    const texLonPix = ((x + 0.5) / W) * 360 - 180;
+    const physLonRad = degToRad(wrapLon(texLonPix - longitudeOffset));
+    lonCos[x] = Math.cos(physLonRad);
+    lonSin[x] = Math.sin(physLonRad);
+  }
+
+  let minX = W;
+  let minY = H;
+  let maxX = -1;
+  let maxY = -1;
+
+  const xStartRaw = wrapLonAll ? 0 : Math.floor(sx - dxPx);
+  const xEndRaw = wrapLonAll ? W - 1 : Math.ceil(sx + dxPx);
+
+  for (let y = yMin; y <= yMax; y++) {
+    const texLatPix = 90 - ((y + 0.5) / H) * 180;
+    const physLat = clamp(texLatPix - latitudeOffset, -90, 90);
+    const physLatR = degToRad(physLat);
+    const cosLatP = Math.cos(physLatR);
+    const sinLatP = Math.sin(physLatR);
+
+    for (let xi = xStartRaw; xi <= xEndRaw; xi++) {
+      // Column index may wrap when the bbox crosses the anti-meridian
+      const x = ((xi % W) + W) % W;
+      const upX = cosLatP * lonCos[x];
+      const upY = cosLatP * lonSin[x];
+      const upZ = sinLatP;
+
+      if (!test(upX, upY, upZ)) continue;
+
+      const idx = y * W + x;
+      if (mask.data[idx] < alpha) {
+        mask.data[idx] = alpha;
+      }
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (maxX < 0) return null;
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+/**
  * Paint the imaging footprint onto a mask. Qualified pixels rise to
  * `qualityAlpha` (never down — revisits at worse altitude can't erase
  * earlier coverage). Returns the bounding rect of touched pixels, or null.
@@ -140,7 +231,7 @@ export function paintFogFootprint(
   const rOverRplusH = R / (R + h);
   if (rOverRplusH >= 1) return null;
 
-  const cosFov = Math.cos((params.fovDeg * Math.PI) / 180);
+  const cosFov = Math.cos(degToRad(params.fovDeg));
 
   const noseLen = Math.hypot(params.nose.x, params.nose.y, params.nose.z);
   if (noseLen === 0) return null;
@@ -149,8 +240,8 @@ export function paintFogFootprint(
   const noseZ = params.nose.z / noseLen;
 
   // Ship unit vector + position in physical frame
-  const shipLatR = (params.shipLat * Math.PI) / 180;
-  const shipLonR = (params.shipLon * Math.PI) / 180;
+  const shipLatR = degToRad(params.shipLat);
+  const shipLonR = degToRad(params.shipLon);
   const cosShipLat = Math.cos(shipLatR);
   const usX = cosShipLat * Math.cos(shipLonR);
   const usY = cosShipLat * Math.sin(shipLonR);
@@ -161,90 +252,36 @@ export function paintFogFootprint(
 
   // Horizon-cap angular radius — bounds the set of surface points we could
   // possibly see. The FOV test further narrows within this.
-  const horizonDeg = (Math.acos(rOverRplusH) * 180) / Math.PI;
+  const horizonDeg = radToDeg(Math.acos(rOverRplusH));
 
-  const W = mask.width;
-  const H = mask.height;
-
-  // Ship's texture coordinate (pixel centre of the sub-ship point)
-  const texLat = clamp(params.shipLat + params.latitudeOffset, -90, 90);
-  const texLon = wrapLon(params.shipLon + params.longitudeOffset);
-  const sx = ((texLon + 180) / 360) * W;
-  const sy = ((90 - texLat) / 180) * H;
-
-  const dxPx = Math.ceil((horizonDeg / 360) * W);
-  const dyPx = Math.ceil((horizonDeg / 180) * H);
-
-  const yMin = Math.max(0, Math.floor(sy - dyPx));
-  const yMax = Math.min(H - 1, Math.ceil(sy + dyPx));
-
-  // If the horizon reaches more than half the map in longitude we have to
-  // iterate everything (the bbox wraps all the way around).
-  const wrapLonAll = dxPx >= W / 2;
-
-  // Precompute per-column cos/sin(physicalLon). 2 × W trig, ~0.3 ms at
-  // 2048 — cheaper than doing it per (x, y) pair.
-  const lonCos = new Float64Array(W);
-  const lonSin = new Float64Array(W);
-  for (let x = 0; x < W; x++) {
-    const texLonPix = ((x + 0.5) / W) * 360 - 180;
-    const physLonRad =
-      (wrapLon(texLonPix - params.longitudeOffset) * Math.PI) / 180;
-    lonCos[x] = Math.cos(physLonRad);
-    lonSin[x] = Math.sin(physLonRad);
-  }
-
-  let minX = W;
-  let minY = H;
-  let maxX = -1;
-  let maxY = -1;
-
-  const xStartRaw = wrapLonAll ? 0 : Math.floor(sx - dxPx);
-  const xEndRaw = wrapLonAll ? W - 1 : Math.ceil(sx + dxPx);
-
-  for (let y = yMin; y <= yMax; y++) {
-    const texLatPix = 90 - ((y + 0.5) / H) * 180;
-    const physLat = clamp(texLatPix - params.latitudeOffset, -90, 90);
-    const physLatR = (physLat * Math.PI) / 180;
-    const cosLatP = Math.cos(physLatR);
-    const sinLatP = Math.sin(physLatR);
-
-    for (let xi = xStartRaw; xi <= xEndRaw; xi++) {
-      // Column index may wrap when the bbox crosses the anti-meridian
-      const x = ((xi % W) + W) % W;
-      const upX = cosLatP * lonCos[x];
-      const upY = cosLatP * lonSin[x];
-      const upZ = sinLatP;
-
+  return scanMaskCap(
+    mask,
+    params.shipLat,
+    params.shipLon,
+    params.longitudeOffset,
+    params.latitudeOffset,
+    horizonDeg,
+    params.qualityAlpha,
+    (upX, upY, upZ) => {
       const dotUsUp = usX * upX + usY * upY + usZ * upZ;
       // Horizon test — simplified:
       //   dot(shipPos - p, u_p) > 0
       //   <=> (R+h) * dotUsUp - R > 0
       //   <=> dotUsUp > R / (R + h)
-      if (dotUsUp <= rOverRplusH) continue;
+      if (dotUsUp <= rOverRplusH) return false;
 
       // Cone test — dot(normalise(p - shipPos), nose) > cos(fov)
       const vX = R * upX - shipX;
       const vY = R * upY - shipY;
       const vZ = R * upZ - shipZ;
       const vLen = Math.hypot(vX, vY, vZ);
-      if (vLen === 0) continue;
+      if (vLen === 0) return false;
       const dotVNose = (vX * noseX + vY * noseY + vZ * noseZ) / vLen;
-      if (dotVNose <= cosFov) continue;
+      if (dotVNose <= cosFov) return false;
 
-      const idx = y * W + x;
-      if (mask.data[idx] < params.qualityAlpha) {
-        mask.data[idx] = params.qualityAlpha;
-      }
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-  }
-
-  if (maxX < 0) return null;
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+      return true;
+    },
+  );
 }
 
 /**
@@ -301,71 +338,28 @@ export function paintFogDisc(
   const angularRadius = params.radiusMetres / R; // radians along the surface
   if (angularRadius <= 0) return null;
   const cosRadius = Math.cos(angularRadius);
-  const radiusDeg = (angularRadius * 180) / Math.PI;
+  const radiusDeg = radToDeg(angularRadius);
 
-  const W = mask.width;
-  const H = mask.height;
-
-  const centreLatR = (params.lat * Math.PI) / 180;
-  const centreLonR = (params.lon * Math.PI) / 180;
+  const centreLatR = degToRad(params.lat);
+  const centreLonR = degToRad(params.lon);
   const cosCLat = Math.cos(centreLatR);
   const ucX = cosCLat * Math.cos(centreLonR);
   const ucY = cosCLat * Math.sin(centreLonR);
   const ucZ = Math.sin(centreLatR);
 
-  const texLat = clamp(params.lat + params.latitudeOffset, -90, 90);
-  const texLon = wrapLon(params.lon + params.longitudeOffset);
-  const sx = ((texLon + 180) / 360) * W;
-  const sy = ((90 - texLat) / 180) * H;
-  const dxPx = Math.ceil((radiusDeg / 360) * W);
-  const dyPx = Math.ceil((radiusDeg / 180) * H);
-  const yMin = Math.max(0, Math.floor(sy - dyPx));
-  const yMax = Math.min(H - 1, Math.ceil(sy + dyPx));
-  const wrapLonAll = dxPx >= W / 2;
-  const xStartRaw = wrapLonAll ? 0 : Math.floor(sx - dxPx);
-  const xEndRaw = wrapLonAll ? W - 1 : Math.ceil(sx + dxPx);
-
-  // Precompute per-column cos/sin(physicalLon)
-  const lonCos = new Float64Array(W);
-  const lonSin = new Float64Array(W);
-  for (let x = 0; x < W; x++) {
-    const texLonPix = ((x + 0.5) / W) * 360 - 180;
-    const physLonRad =
-      (wrapLon(texLonPix - params.longitudeOffset) * Math.PI) / 180;
-    lonCos[x] = Math.cos(physLonRad);
-    lonSin[x] = Math.sin(physLonRad);
-  }
-
-  let minX = W;
-  let minY = H;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let y = yMin; y <= yMax; y++) {
-    const texLatPix = 90 - ((y + 0.5) / H) * 180;
-    const physLat = clamp(texLatPix - params.latitudeOffset, -90, 90);
-    const physLatR = (physLat * Math.PI) / 180;
-    const cosLatP = Math.cos(physLatR);
-    const sinLatP = Math.sin(physLatR);
-
-    for (let xi = xStartRaw; xi <= xEndRaw; xi++) {
-      const x = ((xi % W) + W) % W;
-      const upX = cosLatP * lonCos[x];
-      const upY = cosLatP * lonSin[x];
-      const upZ = sinLatP;
+  return scanMaskCap(
+    mask,
+    params.lat,
+    params.lon,
+    params.longitudeOffset,
+    params.latitudeOffset,
+    radiusDeg,
+    params.alpha,
+    (upX, upY, upZ) => {
       const dot = ucX * upX + ucY * upY + ucZ * upZ;
-      if (dot < cosRadius) continue;
-      const idx = y * W + x;
-      if (mask.data[idx] < params.alpha) mask.data[idx] = params.alpha;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-  }
-
-  if (maxX < 0) return null;
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+      return dot >= cosRadius;
+    },
+  );
 }
 
 function wrapLon(lon: number): number {

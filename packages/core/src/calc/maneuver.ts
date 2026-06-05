@@ -17,6 +17,7 @@
  * carried through but not reflected in the projected in-plane shape.
  */
 
+import { degToRad, radToDeg } from "../utils/math";
 import { eccentricToTrueAnomaly, solveKepler } from "./trajectory";
 
 /** Orbit snapshot taken from Telemachus `o.*` keys. All distances in metres. */
@@ -194,7 +195,7 @@ export function stateAtUT(
   const e = current.eccentricity;
 
   // Current true anomaly → eccentric anomaly.
-  const nu0 = (currentTrueAnomalyDeg * Math.PI) / 180;
+  const nu0 = degToRad(currentTrueAnomalyDeg);
   const E0 =
     2 *
     Math.atan2(
@@ -217,7 +218,7 @@ export function stateAtUT(
     r,
     speed,
     flightPathAngle,
-    trueAnomalyDeg: ((nu * 180) / Math.PI + 360) % 360,
+    trueAnomalyDeg: (radToDeg(nu) + 360) % 360,
   };
 }
 
@@ -405,7 +406,7 @@ function timeToTrueAnomaly(
   const period = (2 * Math.PI) / n;
 
   const toM = (trueAnomalyDeg: number) => {
-    const nu = (trueAnomalyDeg * Math.PI) / 180;
+    const nu = degToRad(trueAnomalyDeg);
     const E =
       2 *
       Math.atan2(
@@ -468,8 +469,7 @@ export function matchInclination(
   // the radius (i.e. horizontal). At a node γ is approximately zero for
   // circular-ish orbits, but we include the cos(γ) correction for
   // eccentric cases.
-  const deltaIRad =
-    ((targetInclinationDeg - currentInclinationDeg) * Math.PI) / 180;
+  const deltaIRad = degToRad(targetInclinationDeg - currentInclinationDeg);
   const vHorizontal = state.speed * Math.cos(state.flightPathAngle);
   const magnitude = 2 * vHorizontal * Math.sin(Math.abs(deltaIRad) / 2);
   const normal = nodeDirection * Math.sign(deltaIRad) * magnitude;
@@ -517,9 +517,9 @@ export function matchTargetPlane(
   mu: number,
   currentUT: number,
 ): ManeuverPlan {
-  const i1 = (currentInclinationDeg * Math.PI) / 180;
-  const i2 = (targetInclinationDeg * Math.PI) / 180;
-  const dOmega = ((targetLanDeg - currentLanDeg) * Math.PI) / 180;
+  const i1 = degToRad(currentInclinationDeg);
+  const i2 = degToRad(targetInclinationDeg);
+  const dOmega = degToRad(targetLanDeg - currentLanDeg);
 
   const cosRel =
     Math.cos(i1) * Math.cos(i2) +
@@ -534,7 +534,7 @@ export function matchTargetPlane(
     Math.cos(i1) * Math.sin(i2) * Math.cos(dOmega) -
       Math.sin(i1) * Math.cos(i2),
   );
-  const u1Deg = ((u1Rad * 180) / Math.PI + 360) % 360;
+  const u1Deg = (radToDeg(u1Rad) + 360) % 360;
   // argPe is the angle from our AN to periapsis, so true anomaly at the
   // relative node is u₁ − argPe.
   const nuAN = (((u1Deg - currentArgumentOfPeriapsisDeg) % 360) + 360) % 360;
@@ -733,14 +733,14 @@ export function hohmannRendezvous(
   if (!(vessel.sma > 0)) return null;
 
   // 1. Plane-mismatch detection — cos(rel) formula matches matchTargetPlane.
-  const i1 = (vesselInclinationDeg * Math.PI) / 180;
-  const i2 = (target.inclinationDeg * Math.PI) / 180;
-  const dOmegaRad = ((target.lanDeg - vesselLanDeg) * Math.PI) / 180;
+  const i1 = degToRad(vesselInclinationDeg);
+  const i2 = degToRad(target.inclinationDeg);
+  const dOmegaRad = degToRad(target.lanDeg - vesselLanDeg);
   const cosRel =
     Math.cos(i1) * Math.cos(i2) +
     Math.sin(i1) * Math.sin(i2) * Math.cos(dOmegaRad);
   const relIncRad = Math.acos(Math.max(-1, Math.min(1, cosRel)));
-  const relIncDeg = (relIncRad * 180) / Math.PI;
+  const relIncDeg = radToDeg(relIncRad);
 
   const PLANE_MATCH_THRESHOLD_DEG = 0.5;
   const burns: ManeuverPlan[] = [];
@@ -792,7 +792,7 @@ export function hohmannRendezvous(
     vesselLanDeg + vesselArgPeDeg + vesselTrueAnomalyDeg;
   const targetTrueLongDeg =
     target.lanDeg + target.argPeDeg + target.trueAnomalyDeg;
-  let phiNow = ((targetTrueLongDeg - vesselTrueLongDeg) * Math.PI) / 180;
+  let phiNow = degToRad(targetTrueLongDeg - vesselTrueLongDeg);
   phiNow = ((phiNow % TWO_PI) + TWO_PI) % TWO_PI;
 
   // Drift from currentUT to effectiveStartUT (zero if no plane match).

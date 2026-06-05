@@ -10,6 +10,7 @@
  */
 
 import type { BodyDefinition } from "./bodies";
+import { degToRad } from "./utils/math";
 
 // ---------------------------------------------------------------------------
 // Gravity / circular-orbit reference curves
@@ -117,7 +118,7 @@ export function trueAnomalyToRadius(
   ecc: number,
   theta: number,
 ): number {
-  const th = (theta * Math.PI) / 180;
+  const th = degToRad(theta);
   return (sma * (1 - ecc * ecc)) / (1 + ecc * Math.cos(th));
 }
 
@@ -132,7 +133,7 @@ export function orbitalToCartesian(
   radius: number,
   theta: number,
 ): { x: number; y: number } {
-  const th = (theta * Math.PI) / 180;
+  const th = degToRad(theta);
   return { x: radius * Math.cos(th), y: radius * Math.sin(th) };
 }
 
