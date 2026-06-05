@@ -1,3 +1,4 @@
+import { clamp } from "@gonogo/core";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
 import { applyAnalogShaping } from "./analogShaping";
@@ -41,10 +42,7 @@ function parseOne(line: string, input: DeviceInput): InputEvent | null {
     const min = input.min ?? 0;
     const max = input.max ?? 255;
     if (max === min) return null;
-    const normalised = Math.max(
-      -1,
-      Math.min(1, (2 * (raw - min)) / (max - min) - 1),
-    );
+    const normalised = clamp((2 * (raw - min)) / (max - min) - 1, -1, 1);
     return { inputId: input.id, value: applyAnalogShaping(input, normalised) };
   }
 
