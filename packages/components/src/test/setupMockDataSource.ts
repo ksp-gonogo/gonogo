@@ -26,6 +26,16 @@ export interface MockDataSourceFixture {
   source: MockDataSource;
   /** The registered buffered wrapper — what components see via `useDataValue`. */
   buffered: BufferedDataSource;
+  /**
+   * Number of `queryRange` backfills still in flight. `useDataSeries`
+   * (graphs, sparklines) fires an async `queryRange().then(notify)` on
+   * mount; its `notify()` would otherwise land outside `act()`. Tests/
+   * harnesses await this settling the testing-library way —
+   * `await waitFor(() => expect(fixture.pendingQueries()).toBe(0))` — so the
+   * backfill update is flushed inside waitFor's act-wrapping (rather than a
+   * manual `act()`). Returns 0 for widgets that never query a range.
+   */
+  pendingQueries: () => number;
 }
 
 /**
@@ -61,11 +71,24 @@ export async function setupMockDataSource(
     source,
     store: new MemoryStore(),
   });
+
+  // Track in-flight `queryRange` backfills so tests can await them settling
+  // (see MockDataSourceFixture.pendingQueries). Wrapping here keeps the
+  // production BufferedDataSource untouched — this is purely a test seam.
+  let pending = 0;
+  const realQueryRange = buffered.queryRange.bind(buffered);
+  buffered.queryRange = (...args: Parameters<typeof realQueryRange>) => {
+    pending++;
+    return realQueryRange(...args).finally(() => {
+      pending--;
+    });
+  };
+
   registerDataSource(buffered);
   if (opts.connect ?? true) {
     await buffered.connect();
   }
-  return { source, buffered };
+  return { source, buffered, pendingQueries: () => pending };
 }
 
 /**

@@ -2,6 +2,7 @@ import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { KosWidgetComponent } from "./index";
 
 interface FakeSource {
@@ -145,5 +146,33 @@ describe("KosWidget", () => {
     });
     // 42 still visible under the error banner.
     expect(screen.getByText("42")).toBeInTheDocument();
+  });
+
+  it("has no accessible violations rendering parsed key/value pairs", async () => {
+    const user = userEvent.setup();
+    registerFakeComputeSource(async (_cpu, _script, _args) => ({
+      dv: 1234.5,
+      stage: 2,
+      burning: true,
+    }));
+
+    const { container } = render(
+      <KosWidgetComponent
+        config={{
+          cpu: "datastream",
+          script: "deltav",
+          args: [],
+          mode: "command",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() => {
+      expect(screen.getByText("dv")).toBeInTheDocument();
+    });
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

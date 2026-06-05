@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -152,7 +153,8 @@ describe("StrategiesComponent", () => {
     teardownMockDataSource(fixture);
   });
 
-  it("shows the active strategy with a deactivate confirmation flow", () => {
+  it("shows the active strategy with a deactivate confirmation flow", async () => {
+    const user = userEvent.setup();
     render(<StrategiesComponent config={{}} id="s" />);
     act(() => {
       source.emit("strategies.all", [SAMPLE_ACTIVE, SAMPLE_BLOCKED]);
@@ -167,12 +169,12 @@ describe("StrategiesComponent", () => {
       screen.getByText(/-1\.5% Funds Off on Launch Costs/i),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /^Deactivate$/i }));
+    await user.click(screen.getByRole("button", { name: /^Deactivate$/i }));
     expect(
       screen.getByRole("button", { name: /Confirm deactivate/i }),
     ).toBeInTheDocument();
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /Confirm deactivate/i }),
     );
     expect(
@@ -205,17 +207,15 @@ describe("StrategiesComponent", () => {
       source.emit("kc.scene", "SPACECENTER");
     });
 
-    const locked = screen.getByText("Locked").closest("section");
-    expect(locked).not.toBeNull();
-    if (locked) {
-      expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
-      expect(
-        within(locked).getByText(/Requires more reputation/i),
-      ).toBeInTheDocument();
-    }
+    const locked = screen.getByRole("region", { name: "Locked" });
+    expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
+    expect(
+      within(locked).getByText(/Requires more reputation/i),
+    ).toBeInTheDocument();
   });
 
-  it("fires strategies.activate with the chosen factor", () => {
+  it("fires strategies.activate with the chosen factor", async () => {
+    const user = userEvent.setup();
     const inactive = { ...SAMPLE_BLOCKED, canActivate: true };
     render(<StrategiesComponent config={{}} id="s" />);
     act(() => {
@@ -226,8 +226,8 @@ describe("StrategiesComponent", () => {
       source.emit("kc.scene", "SPACECENTER");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Activate$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm activate/i }));
+    await user.click(screen.getByRole("button", { name: /^Activate$/i }));
+    await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
 
     // Factor defaults to factorSliderDefault (0.05) for this fixture.
     expect(

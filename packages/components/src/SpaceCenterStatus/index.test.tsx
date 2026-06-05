@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -49,12 +50,11 @@ describe("SpaceCenterStatusComponent", () => {
         vab: { level: 2, max: 2 },
       });
     });
-    // launchPad: tier 2 of 3
-    const launchPadCell = screen.getByText(/Launch Pad/i).closest("div");
-    expect(launchPadCell?.textContent).toMatch(/2\s*\/\s*3/);
-    // vab: tier 3 of 3 (at max)
-    const vabCell = screen.getByText(/^VAB$/i).closest("div");
-    expect(vabCell?.textContent).toMatch(/3\s*\/\s*3/);
+    // launchPad: tier 2 of 3, vab: tier 3 of 3 (at max). The tier value
+    // exposes an accessible label so we assert on that rather than
+    // walking the DOM to stitch the split "2 / 3" spans back together.
+    expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeInTheDocument();
+    expect(screen.getByLabelText("VAB tier 3 of 3")).toBeInTheDocument();
   });
 
   it("shows the pad-occupied vessel name when on the pad", () => {
@@ -84,6 +84,7 @@ describe("SpaceCenterStatusComponent", () => {
   });
 
   it("fires kc.upgradeFacility on arm-then-confirm in the SC scene", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -101,10 +102,10 @@ describe("SpaceCenterStatusComponent", () => {
     const upgradeButtons = screen.getAllByRole("button", { name: "Upgrade" });
     expect(upgradeButtons.length).toBeGreaterThan(0);
 
-    fireEvent.click(upgradeButtons[0]);
+    await user.click(upgradeButtons[0]);
     expect(onExecute).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
     expect(onExecute).toHaveBeenCalledWith("kc.upgradeFacility[vab]");
   });
 

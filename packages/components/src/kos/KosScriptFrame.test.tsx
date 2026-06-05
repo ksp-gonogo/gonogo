@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { axe } from "../test/axe";
 import { KosScriptFrame } from "./KosScriptFrame";
 
 afterEach(cleanup);
@@ -67,5 +68,18 @@ describe("KosScriptFrame paused state", () => {
     );
     expect(screen.queryByText(/Paused — kOS errors/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Script failed/i)).toBeInTheDocument();
+  });
+
+  it("has no accessible violations", async () => {
+    const { container } = render(
+      <KosScriptFrame
+        {...baseProps}
+        paused
+        pausedReason="Undefined Variable Name 'needswrite'"
+        onReEnable={() => {}}
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

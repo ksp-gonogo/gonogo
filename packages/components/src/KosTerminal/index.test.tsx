@@ -16,6 +16,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { axe } from "../test/axe";
 import { KosTerminalComponent } from "./index";
 
 // xterm.js requires a canvas-capable DOM which jsdom doesn't provide.
@@ -371,5 +372,19 @@ describe("KosTerminal", () => {
     unmount();
 
     await waitFor(() => expect(events).toContain("closed"));
+  });
+
+  it("has no accessible violations", async () => {
+    const connected = new Promise<void>((resolve) => {
+      server.use(kosProxyWs.addEventListener("connection", () => resolve()));
+    });
+
+    const { container } = render(
+      <KosTerminalComponent config={DEFAULT_CONFIG} />,
+    );
+    await connected;
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

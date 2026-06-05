@@ -1,7 +1,9 @@
 import type { ConfigField, DataSource, DataSourceStatus } from "@gonogo/core";
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "../test/axe";
 import { DataSourceStatusComponent } from "./index";
 
 function makeFixtureSource(
@@ -120,82 +122,100 @@ describe("DataSourceStatus config form", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opens config form when config button is clicked", () => {
+  it("opens config form when config button is clicked", async () => {
+    const user = userEvent.setup();
     const { source } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
     expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
   });
 
-  it("pre-fills inputs with current values from getConfig()", () => {
+  it("pre-fills inputs with current values from getConfig()", async () => {
+    const user = userEvent.setup();
     const { source } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
     expect(screen.getByLabelText("Host")).toHaveValue("myhost");
     expect(screen.getByLabelText("Port")).toHaveValue(9000);
   });
 
-  it("calls configure() with updated values on save", () => {
+  it("calls configure() with updated values on save", async () => {
+    const user = userEvent.setup();
     const { source, configureSpy } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
-    fireEvent.change(screen.getByLabelText("Port"), {
-      target: { value: "7777" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    const portInput = screen.getByLabelText("Port");
+    await user.clear(portInput);
+    await user.type(portInput, "7777");
+    await user.click(screen.getByRole("button", { name: /save/i }));
     expect(configureSpy).toHaveBeenCalledWith({ host: "myhost", port: 7777 });
   });
 
-  it("closes form after saving", () => {
+  it("closes form after saving", async () => {
+    const user = userEvent.setup();
     const { source } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
     expect(
       screen.queryByRole("button", { name: /save/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("closes form on cancel without calling configure()", () => {
+  it("closes form on cancel without calling configure()", async () => {
+    const user = userEvent.setup();
     const { source, configureSpy } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
     expect(
       screen.queryByRole("button", { name: /save/i }),
     ).not.toBeInTheDocument();
     expect(configureSpy).not.toHaveBeenCalled();
   });
 
-  it("clicking config button again closes the form", () => {
+  it("clicking config button again closes the form", async () => {
+    const user = userEvent.setup();
     const { source } = makeConfigurableSource();
     registerDataSource(source);
     render(<DataSourceStatusComponent />);
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
     expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
     expect(
       screen.queryByRole("button", { name: /save/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("has no accessible violations with the config form open", async () => {
+    const user = userEvent.setup();
+    const { source } = makeConfigurableSource();
+    registerDataSource(source);
+    const { container } = render(<DataSourceStatusComponent />);
+    await user.click(
+      screen.getByRole("button", { name: /configure test source/i }),
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });
