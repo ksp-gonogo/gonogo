@@ -4,16 +4,18 @@ import type {
   DataKeyMeta,
   FlightRecord,
 } from "@gonogo/data";
-import { isScriptable, ListenerSet } from "@gonogo/data";
+import { isScriptable } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { deriveHostPeerId } from "./hostPeerId";
-import { fetchHostIceServers, relayBaseUrl } from "./iceServers";
+import { fetchHostIceServers } from "./iceServers";
 import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
+import { RelayRegistration } from "./RelayRegistration";
+import { TypedListeners } from "./typedListeners";
 
 // The host's sole persisted identity. The PeerJS peer id is now *derived*
 // from this code (`gonogo-host-<CODE>`), not persisted — stations derive the
@@ -89,12 +91,6 @@ function getOrCreateShareCode(): string {
   return code;
 }
 
-/** Heartbeat cadence for re-registering the share-code → peer-id mapping.
- *  Well within the relay's ~90s TTL so a single missed beat doesn't expire
- *  the entry. */
-const HOST_HEARTBEAT_MS = 30_000;
-const RELAY_POST_TIMEOUT_MS = 4_000;
-
 type StationInfoListener = (
   peerId: string,
   info: { name: string; version?: string; buildTime?: string },
@@ -141,10 +137,48 @@ type NoteReorderListener = (
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
 ) => void;
 
+/**
+ * Argument-tuple map for the host's `TypedListeners` registry. Each key
+ * mirrors what the old per-field `ListenerSet<[...]>` fired — the dispatcher
+ * handlers still derive these args (`gonogoVote` → `(peerId, status)`), so
+ * the registry is a drop-in for the hand-rolled fields with no payload
+ * change. Lifecycle keys (`id`, `peerConnect`, `shareCode`, `reclaiming`)
+ * aren't wire messages; they live here for the same boilerplate-collapse
+ * reason.
+ */
+type HostEventMap = {
+  id: [string | null];
+  shareCode: [string];
+  reclaiming: [boolean];
+  stationInfo: Parameters<StationInfoListener>;
+  gonogoVote: Parameters<GonogoVoteListener>;
+  gonogoAbort: Parameters<GonogoAbortListener>;
+  peerConnect: Parameters<PeerLifecycleListener>;
+  peerDisconnect: Parameters<PeerLifecycleListener>;
+  widgetPush: Parameters<WidgetPushListener>;
+  widgetRecall: Parameters<WidgetRecallListener>;
+  alarmAdd: Parameters<AlarmAddListener>;
+  alarmUpdate: Parameters<AlarmUpdateListener>;
+  alarmDelete: Parameters<AlarmDeleteListener>;
+  alarmAcknowledge: Parameters<AlarmAcknowledgeListener>;
+  alarmAck: Parameters<AlarmAckListener>;
+  alarmWarpIntent: Parameters<AlarmWarpIntentListener>;
+  triggerArm: Parameters<TriggerArmListener>;
+  triggerCancel: Parameters<TriggerCancelListener>;
+  noteAdd: Parameters<NoteAddListener>;
+  noteUpdate: Parameters<NoteUpdateListener>;
+  noteDelete: Parameters<NoteDeleteListener>;
+  noteReorder: Parameters<NoteReorderListener>;
+};
+
 export class PeerHostService {
   private peer: Peer | null = null;
   private connections: Set<DataConnection> = new Set();
-  private idListeners = new ListenerSet<[string | null]>();
+  /** Single typed event registry replacing the former ~22 hand-rolled
+   *  `ListenerSet` fields. The `onX` methods are thin wrappers over
+   *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", …)`,
+   *  preserving the public API and listener-invocation order. */
+  private readonly events = new TypedListeners<HostEventMap>();
   // Fresh per page-load. Stations compare against the last-seen value to
   // distinguish a transient broker reconnect (same token) from a genuine
   // host restart (new token), so widgets like GO/NO-GO can clear state
@@ -203,57 +237,6 @@ export class PeerHostService {
   // fresh peerId — without this the GO/NO-GO list shows the same station
   // twice for ~60 s while the broker times out the old conn.
   private peerIdToStationKey = new Map<string, string>();
-  private stationInfoListeners = new ListenerSet<
-    Parameters<StationInfoListener>
-  >();
-  private gonogoVoteListeners = new ListenerSet<
-    Parameters<GonogoVoteListener>
-  >();
-  private gonogoAbortListeners = new ListenerSet<
-    Parameters<GonogoAbortListener>
-  >();
-  private peerConnectListeners = new ListenerSet<
-    Parameters<PeerLifecycleListener>
-  >();
-  private peerDisconnectListeners = new ListenerSet<
-    Parameters<PeerLifecycleListener>
-  >();
-  private widgetPushListeners = new ListenerSet<
-    Parameters<WidgetPushListener>
-  >();
-  private widgetRecallListeners = new ListenerSet<
-    Parameters<WidgetRecallListener>
-  >();
-  private alarmAddListeners = new ListenerSet<Parameters<AlarmAddListener>>();
-  private alarmUpdateListeners = new ListenerSet<
-    Parameters<AlarmUpdateListener>
-  >();
-  private alarmDeleteListeners = new ListenerSet<
-    Parameters<AlarmDeleteListener>
-  >();
-  private alarmAcknowledgeListeners = new ListenerSet<
-    Parameters<AlarmAcknowledgeListener>
-  >();
-  private alarmAckListeners = new ListenerSet<Parameters<AlarmAckListener>>();
-  private alarmWarpIntentListeners = new ListenerSet<
-    Parameters<AlarmWarpIntentListener>
-  >();
-  private triggerArmListeners = new ListenerSet<
-    Parameters<TriggerArmListener>
-  >();
-  private triggerCancelListeners = new ListenerSet<
-    Parameters<TriggerCancelListener>
-  >();
-  private noteAddListeners = new ListenerSet<Parameters<NoteAddListener>>();
-  private noteUpdateListeners = new ListenerSet<
-    Parameters<NoteUpdateListener>
-  >();
-  private noteDeleteListeners = new ListenerSet<
-    Parameters<NoteDeleteListener>
-  >();
-  private noteReorderListeners = new ListenerSet<
-    Parameters<NoteReorderListener>
-  >();
 
   // Selective subscription state. Maps each connected DataConnection to:
   //   - mode: "broadcast-all" (default) or "selective"
@@ -279,7 +262,6 @@ export class PeerHostService {
    *  a fresh one on demand via `regenerateShareCode()` (the Add Station
    *  modal's reset control); that's the only thing that changes it. */
   shareCode: string = getOrCreateShareCode();
-  private shareCodeListeners = new ListenerSet<[string]>();
   /** ICE servers fetched from the relay on start(). Exposed so the
    *  TURN reachability probe can re-use exactly what the host's Peer
    *  was constructed with. Empty `[]` means the fetch failed or no
@@ -322,7 +304,6 @@ export class PeerHostService {
    *  prior tab). Drives the main-screen "Reclaiming your share code…"
    *  status. Cleared on the next successful `open`. */
   private reclaiming = false;
-  private reclaimingListeners = new ListenerSet<[boolean]>();
   /** Exponential-backoff state for the reclaim loop. Separate from the
    *  broker-reconnect backoff (which keeps the *same* id over a transient
    *  WS blip) — reclaim destroys the dead Peer and re-claims the same
@@ -335,11 +316,17 @@ export class PeerHostService {
   // rebuild of the relay container silently breaks new TURN allocations
   // until the operator hard-refreshes the host page.
   private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
-  // Periodically re-POSTs the share-code → peer-id mapping to the relay so
-  // its entry doesn't expire (TTL ~90s). Started on the first PeerJS open,
-  // stopped in stop(). Best-effort throughout — relay down just means
-  // stations fall back to treating the typed code as a direct peer id.
-  private relayHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  // Best-effort relay bookkeeping: the share-code → peer-id registration
+  // (diagnostics only), the analytics-consent POST, and the periodic
+  // heartbeat that re-asserts both (relay TTL ~90s). The heartbeat starts on
+  // the first PeerJS open and stops in stop(). Relay down just means stations
+  // fall back to treating the typed code as a direct peer id.
+  private readonly relayRegistration = new RelayRegistration({
+    getShareCode: () => this.shareCode,
+    getPeerId: () => this.peerId,
+    getConsent: () => this.analyticsConsent,
+    onRegisteredChange: (registered) => this.setRelayRegistered(registered),
+  });
   // Exponential-backoff state for the broker-reconnect path. PeerJS's
   // `disconnected` event fires synchronously from the WS's `onclose`
   // handler — if the broker is unreachable or rate-limiting us, the
@@ -448,12 +435,12 @@ export class PeerHostService {
       // shares); the broker peer id is the derived `gonogo-host-<code>`.
       logger.setIdentity({ role: "host", id: this.shareCode, peerId: id });
       logger.info(`[PeerHost] open — id=${id} (shareCode=${this.shareCode})`);
-      this.idListeners.fire(id);
+      this.events.emit("id", id);
       // Best-effort relay registration for diagnostics only — discovery no
       // longer depends on it (stations derive the id from the code). The
       // heartbeat keeps the entry alive for the session.
-      void this.registerWithRelay();
-      this.startRelayHeartbeat();
+      void this.relayRegistration.register();
+      this.relayRegistration.startHeartbeat();
     });
 
     this.peer.on("connection", (conn) => {
@@ -535,7 +522,7 @@ export class PeerHostService {
         // this in start() races. Per-connection is too eager (we'd subscribe
         // every time), so we gate on a single attach.
         void this.attachFlightChangeBroadcaster();
-        this.peerConnectListeners.fire(conn.peer);
+        this.events.emit("peerConnect", conn.peer);
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
       conn.on("close", () => {
@@ -566,7 +553,7 @@ export class PeerHostService {
         logger.info(
           `[PeerHost] connection closed — peer=${conn.peer}, total=${this.connections.size}`,
         );
-        this.peerDisconnectListeners.fire(conn.peer);
+        this.events.emit("peerDisconnect", conn.peer);
       });
       conn.on("error", (err) => {
         logger.error(`[PeerHost] connection error — peer=${conn.peer}`, err);
@@ -692,7 +679,7 @@ export class PeerHostService {
   private setReclaiming(next: boolean): void {
     if (this.reclaiming === next) return;
     this.reclaiming = next;
-    this.reclaimingListeners.fire(next);
+    this.events.emit("reclaiming", next);
   }
 
   /**
@@ -702,7 +689,7 @@ export class PeerHostService {
    * "Reclaiming your share code…" status while true.
    */
   onReclaimingChange(cb: (reclaiming: boolean) => void): () => void {
-    const unsub = this.reclaimingListeners.add(cb);
+    const unsub = this.events.on("reclaiming", cb);
     const value = this.reclaiming;
     queueMicrotask(() => cb(value));
     return unsub;
@@ -952,43 +939,13 @@ export class PeerHostService {
     if (changed) {
       this.broadcast({ type: "analytics-consent", enabled });
     }
-    void this.postAnalyticsConfig();
+    void this.relayRegistration.postAnalyticsConfig();
   }
 
   /** Current retained consent — exposed for the heartbeat re-assert and
    *  for tests. */
   getAnalyticsConsent(): boolean {
     return this.analyticsConsent;
-  }
-
-  /**
-   * POST the current consent to the relay's `/analytics-config` broker.
-   * Best-effort: relay down / non-2xx is logged at debug and swallowed,
-   * exactly like the host-registry POST. The heartbeat re-asserts this so
-   * a relay restart re-learns the real value (the relay defaults to
-   * disabled until first POST).
-   */
-  private async postAnalyticsConfig(): Promise<void> {
-    const url = `${relayBaseUrl()}/analytics-config`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), RELAY_POST_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ enabled: this.analyticsConsent }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        debugPeer("host analytics-config POST non-ok", { status: res.status });
-      }
-    } catch (err) {
-      debugPeer("host analytics-config POST failed", {
-        message: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      clearTimeout(timer);
-    }
   }
 
   /**
@@ -1105,7 +1062,7 @@ export class PeerHostService {
   }
 
   onPeerIdChange(cb: (id: string | null) => void) {
-    const unsub = this.idListeners.add(cb);
+    const unsub = this.events.on("id", cb);
     // Replay the current id so a late subscriber doesn't miss an
     // already-fired "open" event. Necessary now that start() is async:
     // the Peer's open microtask can fire before the caller's await
@@ -1192,59 +1149,59 @@ export class PeerHostService {
         }
         this.peerIdToStationKey.set(conn.peer, msg.stationKey);
       }
-      this.stationInfoListeners.fire(conn.peer, {
+      this.events.emit("stationInfo", conn.peer, {
         name: msg.name,
         version: msg.version,
         buildTime: msg.buildTime,
       });
     },
     "gonogo-vote": (msg, conn) => {
-      this.gonogoVoteListeners.fire(conn.peer, msg.status);
+      this.events.emit("gonogoVote", conn.peer, msg.status);
     },
     "gonogo-abort": (_msg, conn) => {
-      this.gonogoAbortListeners.fire(conn.peer);
+      this.events.emit("gonogoAbort", conn.peer);
     },
     "widget-push": (msg, conn) => {
-      this.widgetPushListeners.fire(conn.peer, msg);
+      this.events.emit("widgetPush", conn.peer, msg);
     },
     "widget-recall": (msg, conn) => {
-      this.widgetRecallListeners.fire(conn.peer, msg.widgetInstanceId);
+      this.events.emit("widgetRecall", conn.peer, msg.widgetInstanceId);
     },
     "alarm-add": (msg, conn) => {
-      this.alarmAddListeners.fire(conn.peer, msg);
+      this.events.emit("alarmAdd", conn.peer, msg);
     },
     "alarm-update": (msg, conn) => {
-      this.alarmUpdateListeners.fire(conn.peer, msg);
+      this.events.emit("alarmUpdate", conn.peer, msg);
     },
     "alarm-delete": (msg, conn) => {
-      this.alarmDeleteListeners.fire(conn.peer, msg.id);
+      this.events.emit("alarmDelete", conn.peer, msg.id);
     },
     "alarm-acknowledge": (msg, conn) => {
-      this.alarmAcknowledgeListeners.fire(conn.peer, msg.id);
+      this.events.emit("alarmAcknowledge", conn.peer, msg.id);
     },
     "alarm-ack-unscheduled-warp": (_msg, conn) => {
-      this.alarmAckListeners.fire(conn.peer);
+      this.events.emit("alarmAck", conn.peer);
     },
     "alarm-warp-intent": (msg, conn) => {
-      this.alarmWarpIntentListeners.fire(conn.peer, msg.index);
+      this.events.emit("alarmWarpIntent", conn.peer, msg.index);
     },
     "trigger-arm": (msg, conn) => {
-      this.triggerArmListeners.fire(conn.peer, msg);
+      this.events.emit("triggerArm", conn.peer, msg);
     },
     "trigger-cancel": (msg, conn) => {
-      this.triggerCancelListeners.fire(conn.peer, msg.id);
+      this.events.emit("triggerCancel", conn.peer, msg.id);
     },
     "note-add": (msg, conn) => {
-      this.noteAddListeners.fire(conn.peer, msg);
+      this.events.emit("noteAdd", conn.peer, msg);
     },
     "note-update": (msg, conn) => {
-      this.noteUpdateListeners.fire(conn.peer, msg);
+      this.events.emit("noteUpdate", conn.peer, msg);
     },
     "note-delete": (msg, conn) => {
-      this.noteDeleteListeners.fire(conn.peer, msg.id);
+      this.events.emit("noteDelete", conn.peer, msg.id);
     },
     "note-reorder": (msg, conn) => {
-      this.noteReorderListeners.fire(conn.peer, msg);
+      this.events.emit("noteReorder", conn.peer, msg);
     },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
@@ -1318,76 +1275,76 @@ export class PeerHostService {
   // ───────────────────────────────────────────────────────────────────────
 
   onStationInfo(cb: StationInfoListener): () => void {
-    return this.stationInfoListeners.add(cb);
+    return this.events.on("stationInfo", cb);
   }
 
   onGonogoVote(cb: GonogoVoteListener): () => void {
-    return this.gonogoVoteListeners.add(cb);
+    return this.events.on("gonogoVote", cb);
   }
 
   onGonogoAbort(cb: GonogoAbortListener): () => void {
-    return this.gonogoAbortListeners.add(cb);
+    return this.events.on("gonogoAbort", cb);
   }
 
   onPeerConnect(cb: PeerLifecycleListener): () => void {
-    return this.peerConnectListeners.add(cb);
+    return this.events.on("peerConnect", cb);
   }
 
   onPeerDisconnect(cb: PeerLifecycleListener): () => void {
-    return this.peerDisconnectListeners.add(cb);
+    return this.events.on("peerDisconnect", cb);
   }
 
   onAlarmAdd(cb: AlarmAddListener): () => void {
-    return this.alarmAddListeners.add(cb);
+    return this.events.on("alarmAdd", cb);
   }
 
   onAlarmUpdate(cb: AlarmUpdateListener): () => void {
-    return this.alarmUpdateListeners.add(cb);
+    return this.events.on("alarmUpdate", cb);
   }
 
   onAlarmDelete(cb: AlarmDeleteListener): () => void {
-    return this.alarmDeleteListeners.add(cb);
+    return this.events.on("alarmDelete", cb);
   }
 
   onAlarmAcknowledge(cb: AlarmAcknowledgeListener): () => void {
-    return this.alarmAcknowledgeListeners.add(cb);
+    return this.events.on("alarmAcknowledge", cb);
   }
 
   onAlarmAckUnscheduledWarp(cb: AlarmAckListener): () => void {
-    return this.alarmAckListeners.add(cb);
+    return this.events.on("alarmAck", cb);
   }
 
   onAlarmWarpIntent(cb: AlarmWarpIntentListener): () => void {
-    return this.alarmWarpIntentListeners.add(cb);
+    return this.events.on("alarmWarpIntent", cb);
   }
 
   onTriggerArm(cb: TriggerArmListener): () => void {
-    return this.triggerArmListeners.add(cb);
+    return this.events.on("triggerArm", cb);
   }
 
   onTriggerCancel(cb: TriggerCancelListener): () => void {
-    return this.triggerCancelListeners.add(cb);
+    return this.events.on("triggerCancel", cb);
   }
 
   onNoteAdd(cb: NoteAddListener): () => void {
-    return this.noteAddListeners.add(cb);
+    return this.events.on("noteAdd", cb);
   }
   onNoteUpdate(cb: NoteUpdateListener): () => void {
-    return this.noteUpdateListeners.add(cb);
+    return this.events.on("noteUpdate", cb);
   }
   onNoteDelete(cb: NoteDeleteListener): () => void {
-    return this.noteDeleteListeners.add(cb);
+    return this.events.on("noteDelete", cb);
   }
   onNoteReorder(cb: NoteReorderListener): () => void {
-    return this.noteReorderListeners.add(cb);
+    return this.events.on("noteReorder", cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {
-    return this.widgetPushListeners.add(cb);
+    return this.events.on("widgetPush", cb);
   }
 
   onWidgetRecall(cb: WidgetRecallListener): () => void {
-    return this.widgetRecallListeners.add(cb);
+    return this.events.on("widgetRecall", cb);
   }
 
   getConnectedPeerIds(): string[] {
@@ -1643,7 +1600,7 @@ export class PeerHostService {
     this.flightListChangeUnsub = null;
     this.currentFlightSnapshot = null;
     this.stopIceConfigRefresh();
-    this.stopRelayHeartbeat();
+    this.relayRegistration.stopHeartbeat();
     this.setRelayRegistered(false);
     this.detachLifecycleListeners();
     if (this.brokerReconnectTimer !== null) {
@@ -1667,7 +1624,7 @@ export class PeerHostService {
     this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
-    this.idListeners.fire(null);
+    this.events.emit("id", null);
     logger.info("[PeerHost] stopped");
   }
 
@@ -1683,51 +1640,6 @@ export class PeerHostService {
     this.iceConfigRefreshTimer = setInterval(() => {
       void this.refreshIceConfig();
     }, REFRESH_MS);
-  }
-
-  /**
-   * POST the current `{ shareCode, peerId }` to the relay's host registry.
-   * DIAGNOSTICS ONLY under the stable-host-id model — discovery no longer
-   * depends on this (stations derive the broker id from the share code).
-   * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
-   * debug and swallowed. No-op until the Peer has an id.
-   */
-  private async registerWithRelay(): Promise<void> {
-    const peerId = this.peerId;
-    if (!peerId) return;
-    const url = `${relayBaseUrl()}/host`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), RELAY_POST_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ shareCode: this.shareCode, peerId }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        debugPeer("host relay register non-ok", {
-          status: res.status,
-          shareCode: this.shareCode,
-        });
-        this.setRelayRegistered(false);
-        return;
-      }
-      debugPeer("host registered with relay", {
-        shareCode: this.shareCode,
-        peerId,
-      });
-      this.setRelayRegistered(true);
-    } catch (err) {
-      // Relay unreachable is the common, expected case (no relay deployed,
-      // local-only dev). Keep it at debug so it doesn't spam the ring buffer.
-      debugPeer("host relay register failed", {
-        message: err instanceof Error ? err.message : String(err),
-      });
-      this.setRelayRegistered(false);
-    } finally {
-      clearTimeout(timer);
-    }
   }
 
   private setRelayRegistered(next: boolean): void {
@@ -1746,32 +1658,10 @@ export class PeerHostService {
    * unchanged.
    */
   onShareCodeChange(cb: (shareCode: string) => void): () => void {
-    const unsub = this.shareCodeListeners.add(cb);
+    const unsub = this.events.on("shareCode", cb);
     const code = this.shareCode;
     queueMicrotask(() => cb(code));
     return unsub;
-  }
-
-  /**
-   * Begin the periodic relay heartbeat so the share-code → peer-id mapping
-   * doesn't expire (relay TTL ~90s). Idempotent — a second call while the
-   * timer is live is a no-op. Cleared in stop().
-   */
-  private startRelayHeartbeat(): void {
-    if (this.relayHeartbeatTimer) return;
-    this.relayHeartbeatTimer = setInterval(() => {
-      void this.registerWithRelay();
-      // Re-assert analytics consent on the same cadence so a relay restart
-      // (which resets its in-memory config to disabled) re-learns the real
-      // value within one heartbeat.
-      void this.postAnalyticsConfig();
-    }, HOST_HEARTBEAT_MS);
-  }
-
-  private stopRelayHeartbeat(): void {
-    if (!this.relayHeartbeatTimer) return;
-    clearInterval(this.relayHeartbeatTimer);
-    this.relayHeartbeatTimer = null;
   }
 
   private stopIceConfigRefresh(): void {
@@ -1836,7 +1726,7 @@ export class PeerHostService {
     this.stop();
     localStorage.setItem(SHARE_CODE_KEY, next);
     this.shareCode = next;
-    this.shareCodeListeners.fire(next);
+    this.events.emit("shareCode", next);
     await this.start();
   }
 }

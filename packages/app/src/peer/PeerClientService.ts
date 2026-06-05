@@ -5,7 +5,7 @@ import type {
   KosManagedScript,
   KosScriptArg,
 } from "@gonogo/data";
-import { KosScriptError, ListenerSet } from "@gonogo/data";
+import { KosScriptError } from "@gonogo/data";
 import { debugPeer, logger } from "@gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -15,6 +15,7 @@ import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import { getStationKey, getStationPeerId } from "./stationPeerId";
+import { TypedListeners } from "./typedListeners";
 
 export type ConnStatus =
   | "idle"
@@ -194,6 +195,40 @@ export interface PeerClientOptions {
   peerId?: string;
 }
 
+/**
+ * Argument-tuple map for the station's `TypedListeners` registry — the
+ * client-side analog of `HostEventMap`. Each key mirrors what the former
+ * per-field `ListenerSet<[...]>` fired; the dispatcher handlers still derive
+ * these args, so swapping `.fire`/`.add` for `emit`/`on` is behaviour-
+ * preserving. Several keys (`connStatus`, `hostRestart`, `flightChange`,
+ * `hostUnavailable`, `relayIceServers`, …) aren't wire messages.
+ */
+type ClientEventMap = {
+  data: [sourceId: string, key: string, value: unknown, t: number];
+  sourceStatus: [sourceId: string, status: string];
+  connStatus: [status: ConnStatus];
+  schema: [sources: PeerSchemaSource[]];
+  kosData: [sessionId: string, data: string];
+  kosOpened: [sessionId: string];
+  kosClose: [sessionId: string];
+  relayPeerId: [peerId: string | null];
+  relayIceServers: [servers: RTCIceServer[]];
+  hostHello: [info: { version: string; buildTime: string }];
+  hostRestart: [];
+  gonogoCountdownStart: [t0Ms: number];
+  gonogoCountdownCancel: [reason: string | undefined];
+  alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
+  alarmFired: [fire: { id: string; name: string; ut: number }];
+  triggerSnapshot: [snap: import("@gonogo/components").TriggerSnapshot];
+  notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
+  gonogoAbortNotify: [stationName: string, t: number];
+  analyticsConsent: [enabled: boolean];
+  flightChange: [flight: FlightRecord | null];
+  flightListChange: [];
+  hostUnavailable: [hostPeerId: string];
+  fogSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
+};
+
 export class PeerClientService {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
@@ -213,64 +248,25 @@ export class PeerClientService {
   private readonly fixedPeerIdOverride: string | null;
   private readonly retryPolicy: RetryPolicy;
 
-  private dataListeners = new ListenerSet<
-    [sourceId: string, key: string, value: unknown, t: number]
-  >();
-  private sourceStatusListeners = new ListenerSet<
-    [sourceId: string, status: string]
-  >();
-  private connStatusListeners = new ListenerSet<[status: ConnStatus]>();
-  private schemaListeners = new ListenerSet<[sources: PeerSchemaSource[]]>();
-  private kosDataListeners = new ListenerSet<
-    [sessionId: string, data: string]
-  >();
-  private kosOpenedListeners = new ListenerSet<[sessionId: string]>();
-  private kosCloseListeners = new ListenerSet<[sessionId: string]>();
-  private relayPeerIdListeners = new ListenerSet<[peerId: string | null]>();
+  /** Single typed event registry replacing the former ~24 hand-rolled
+   *  `ListenerSet` fields. The `onX` methods wrap `events.on("x", cb)` and
+   *  the dispatcher fires via `events.emit("x", …)`, preserving the public
+   *  API and listener-invocation order. */
+  private readonly events = new TypedListeners<ClientEventMap>();
+
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
   // kerbcam data source can feed them to its station↔sidecar PeerConnection —
   // a path separate from PeerJS. Empty until the first broadcast carrying creds.
   private relayIceServers: RTCIceServer[] = [];
-  private relayIceServersListeners = new ListenerSet<
-    [servers: RTCIceServer[]]
-  >();
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
-  private hostHelloListeners = new ListenerSet<
-    [info: { version: string; buildTime: string }]
-  >();
-  // Fires when the host's `sessionToken` changes between two hellos (i.e.
-  // the host process has restarted). Stations use this to clear local
-  // state that would otherwise re-broadcast on reconnect — see GoNoGo
-  // station-side vote reset.
-  private hostRestartListeners = new ListenerSet<[]>();
-  private gonogoCountdownStartListeners = new ListenerSet<[t0Ms: number]>();
-  private gonogoCountdownCancelListeners = new ListenerSet<
-    [reason: string | undefined]
-  >();
-  private alarmSnapshotListeners = new ListenerSet<
-    [snap: import("../alarms/types").AlarmSnapshot]
-  >();
-  private alarmFiredListeners = new ListenerSet<
-    [fire: { id: string; name: string; ut: number }]
-  >();
-  private triggerSnapshotListeners = new ListenerSet<
-    [snap: import("@gonogo/components").TriggerSnapshot]
-  >();
-  private notesSnapshotListeners = new ListenerSet<
-    [snap: import("../notes/types").NotesSnapshot]
-  >();
-  private gonogoAbortNotifyListeners = new ListenerSet<
-    [stationName: string, t: number]
-  >();
   // Host's technical-analytics consent. Stations follow the host — they
   // never read a local value. Cached so a late subscriber gets the current
   // state on subscribe. Privacy-first default: disabled until the first
   // `analytics-consent` message lands.
   private analyticsConsent = false;
-  private analyticsConsentListeners = new ListenerSet<[enabled: boolean]>();
 
   private pendingQueries = new RequestTracker<{
     t: number[];
@@ -288,17 +284,6 @@ export class PeerClientService {
   // Stations read this synchronously through `getCurrentFlight()`; the modal
   // useFlight hook subscribes via `onFlightChange`.
   private currentFlight: FlightRecord | null = null;
-  private flightChangeListeners = new ListenerSet<
-    [flight: FlightRecord | null]
-  >();
-  private flightListChangeListeners = new ListenerSet<[]>();
-  private hostUnavailableListeners = new ListenerSet<[hostPeerId: string]>();
-  // One-shot fog-snapshot from the host, fired right after schema on each
-  // connect. Subscribers (StationScreen → FogMaskStore) decide what to
-  // do with the masks; the service itself doesn't keep them around.
-  private fogSnapshotListeners = new ListenerSet<
-    [msg: Extract<PeerMessage, { type: "fog-snapshot" }>]
-  >();
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -402,7 +387,7 @@ export class PeerClientService {
         err.type === "peer-unavailable" &&
         this.hostPeerId
       ) {
-        this.hostUnavailableListeners.fire(this.hostPeerId);
+        this.events.emit("hostUnavailable", this.hostPeerId);
       }
       this.retryPolicy.handlePeerError(err);
     });
@@ -464,7 +449,7 @@ export class PeerClientService {
   }
 
   private emitConnStatus(status: ConnStatus) {
-    this.connStatusListeners.fire(status);
+    this.events.emit("connStatus", status);
   }
 
   sendExecute(sourceId: string, action: string) {
@@ -776,7 +761,7 @@ export class PeerClientService {
         remove?.();
         reject(new Error("connection timeout"));
       }, timeoutMs);
-      remove = this.connStatusListeners.add((status) => {
+      remove = this.events.on("connStatus", (status) => {
         if (status === "connected") {
           clearTimeout(timer);
           remove?.();
@@ -797,7 +782,7 @@ export class PeerClientService {
    * wait for the next transition.
    */
   onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {
-    const remove = this.flightChangeListeners.add(cb);
+    const remove = this.events.on("flightChange", cb);
     cb(this.currentFlight);
     return remove;
   }
@@ -809,7 +794,7 @@ export class PeerClientService {
    * can subscribe identically on both screens.
    */
   onFlightListChange(cb: () => void): () => void {
-    return this.flightListChangeListeners.add(cb);
+    return this.events.on("flightListChange", cb);
   }
 
   /**
@@ -850,19 +835,19 @@ export class PeerClientService {
   onData(
     cb: (sourceId: string, key: string, value: unknown, t: number) => void,
   ) {
-    return this.dataListeners.add(cb);
+    return this.events.on("data", cb);
   }
 
   onSourceStatus(cb: (sourceId: string, status: string) => void) {
-    return this.sourceStatusListeners.add(cb);
+    return this.events.on("sourceStatus", cb);
   }
 
   onConnectionStatus(cb: (status: ConnStatus) => void) {
-    return this.connStatusListeners.add(cb);
+    return this.events.on("connStatus", cb);
   }
 
   onSchema(cb: (sources: PeerSchemaSource[]) => void) {
-    return this.schemaListeners.add(cb);
+    return this.events.on("schema", cb);
   }
 
   /**
@@ -874,7 +859,7 @@ export class PeerClientService {
    * stale main-screen tab.
    */
   onHostUnavailable(cb: (hostPeerId: string) => void) {
-    return this.hostUnavailableListeners.add(cb);
+    return this.events.on("hostUnavailable", cb);
   }
 
   /**
@@ -885,62 +870,62 @@ export class PeerClientService {
   onFogSnapshot(
     cb: (msg: Extract<PeerMessage, { type: "fog-snapshot" }>) => void,
   ) {
-    return this.fogSnapshotListeners.add(cb);
+    return this.events.on("fogSnapshot", cb);
   }
 
   onKosOpened(cb: (sessionId: string) => void) {
-    return this.kosOpenedListeners.add(cb);
+    return this.events.on("kosOpened", cb);
   }
 
   onKosData(cb: (sessionId: string, data: string) => void) {
-    return this.kosDataListeners.add(cb);
+    return this.events.on("kosData", cb);
   }
 
   onKosClose(cb: (sessionId: string) => void) {
-    return this.kosCloseListeners.add(cb);
+    return this.events.on("kosClose", cb);
   }
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
-    return this.gonogoCountdownStartListeners.add(cb);
+    return this.events.on("gonogoCountdownStart", cb);
   }
 
   onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
-    return this.gonogoCountdownCancelListeners.add(cb);
+    return this.events.on("gonogoCountdownCancel", cb);
   }
 
   onGonogoAbortNotify(cb: (stationName: string, t: number) => void) {
-    return this.gonogoAbortNotifyListeners.add(cb);
+    return this.events.on("gonogoAbortNotify", cb);
   }
 
   onAlarmSnapshot(cb: (snap: import("../alarms/types").AlarmSnapshot) => void) {
-    return this.alarmSnapshotListeners.add(cb);
+    return this.events.on("alarmSnapshot", cb);
   }
 
   onNotesSnapshot(cb: (snap: import("../notes/types").NotesSnapshot) => void) {
-    return this.notesSnapshotListeners.add(cb);
+    return this.events.on("notesSnapshot", cb);
   }
 
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
-    return this.alarmFiredListeners.add(cb);
+    return this.events.on("alarmFired", cb);
   }
 
   onTriggerSnapshot(
     cb: (snap: import("@gonogo/components").TriggerSnapshot) => void,
   ) {
-    return this.triggerSnapshotListeners.add(cb);
+    return this.events.on("triggerSnapshot", cb);
   }
 
   /** For tests + DEBUG_PEER diagnostics — exposes listener Set sizes. */
   _listenerCounts() {
     return {
-      data: this.dataListeners.size,
-      sourceStatus: this.sourceStatusListeners.size,
-      connStatus: this.connStatusListeners.size,
-      schema: this.schemaListeners.size,
-      kosOpened: this.kosOpenedListeners.size,
-      kosData: this.kosDataListeners.size,
-      kosClose: this.kosCloseListeners.size,
-      fogSnapshot: this.fogSnapshotListeners.size,
+      data: this.events.size("data"),
+      sourceStatus: this.events.size("sourceStatus"),
+      connStatus: this.events.size("connStatus"),
+      schema: this.events.size("schema"),
+      kosOpened: this.events.size("kosOpened"),
+      kosData: this.events.size("kosData"),
+      kosClose: this.events.size("kosClose"),
+      fogSnapshot: this.events.size("fogSnapshot"),
     };
   }
 
@@ -963,18 +948,18 @@ export class PeerClientService {
         prevToken !== msg.sessionToken
       ) {
         logger.info("[PeerClient] host session changed — restart detected");
-        this.hostRestartListeners.fire();
+        this.events.emit("hostRestart");
       }
-      this.hostHelloListeners.fire(this.hostVersion);
+      this.events.emit("hostHello", this.hostVersion);
     },
     data: (msg) => {
       debugPeer("client handleMessage data", {
         sourceId: msg.sourceId,
         key: msg.key,
-        dataListenerCount: this.dataListeners.size,
+        dataListenerCount: this.events.size("data"),
       });
       const t = msg.t ?? Date.now();
-      this.dataListeners.fire(msg.sourceId, msg.key, msg.value, t);
+      this.events.emit("data", msg.sourceId, msg.key, msg.value, t);
     },
     "query-range-response": (msg) => {
       if (msg.error) {
@@ -1002,10 +987,10 @@ export class PeerClientService {
     },
     "flight-change": (msg) => {
       this.currentFlight = msg.flight;
-      this.flightChangeListeners.fire(msg.flight);
+      this.events.emit("flightChange", msg.flight);
     },
     "flight-list-changed": () => {
-      this.flightListChangeListeners.fire();
+      this.events.emit("flightListChange");
     },
     "kos-execute-response": (msg) => {
       if (msg.error || !msg.data) {
@@ -1022,26 +1007,26 @@ export class PeerClientService {
       }
     },
     status: (msg) => {
-      this.sourceStatusListeners.fire(msg.sourceId, msg.status);
+      this.events.emit("sourceStatus", msg.sourceId, msg.status);
     },
     schema: (msg) => {
       logger.info(
         `[PeerClient] schema received — ${msg.sources.length} sources`,
       );
-      this.schemaListeners.fire(msg.sources);
+      this.events.emit("schema", msg.sources);
     },
     "kos-opened": (msg) => {
-      this.kosOpenedListeners.fire(msg.sessionId);
+      this.events.emit("kosOpened", msg.sessionId);
     },
     "kos-data": (msg) => {
-      this.kosDataListeners.fire(msg.sessionId, msg.data);
+      this.events.emit("kosData", msg.sessionId, msg.data);
     },
     "kos-close": (msg) => {
-      this.kosCloseListeners.fire(msg.sessionId);
+      this.events.emit("kosClose", msg.sessionId);
     },
     "relay-peer-id": (msg) => {
       this.relayPeerId = msg.peerId;
-      this.relayPeerIdListeners.fire(msg.peerId);
+      this.events.emit("relayPeerId", msg.peerId);
       // Carry the host's TURN credentials into the station's own Peer.
       // The station→relay camera channel is a separate peer.connect()
       // call from the station's Peer instance; without TURN the relay's
@@ -1053,39 +1038,39 @@ export class PeerClientService {
       }
     },
     "fog-snapshot": (msg) => {
-      this.fogSnapshotListeners.fire(msg);
+      this.events.emit("fogSnapshot", msg);
     },
     "gonogo-countdown-start": (msg) => {
-      this.gonogoCountdownStartListeners.fire(msg.t0Ms);
+      this.events.emit("gonogoCountdownStart", msg.t0Ms);
     },
     "gonogo-countdown-cancel": (msg) => {
-      this.gonogoCountdownCancelListeners.fire(msg.reason);
+      this.events.emit("gonogoCountdownCancel", msg.reason);
     },
     "gonogo-abort-notify": (msg) => {
-      this.gonogoAbortNotifyListeners.fire(msg.stationName, msg.t);
+      this.events.emit("gonogoAbortNotify", msg.stationName, msg.t);
     },
     "alarm-snapshot": (msg) => {
-      this.alarmSnapshotListeners.fire(msg.snapshot);
+      this.events.emit("alarmSnapshot", msg.snapshot);
     },
     "notes-snapshot": (msg) => {
-      this.notesSnapshotListeners.fire(msg.snapshot);
+      this.events.emit("notesSnapshot", msg.snapshot);
     },
     "alarm-fired": (msg) => {
-      this.alarmFiredListeners.fire({
+      this.events.emit("alarmFired", {
         id: msg.id,
         name: msg.name,
         ut: msg.ut,
       });
     },
     "trigger-snapshot": (msg) => {
-      this.triggerSnapshotListeners.fire(msg.snapshot);
+      this.events.emit("triggerSnapshot", msg.snapshot);
     },
     "analytics-consent": (msg) => {
       this.analyticsConsent = msg.enabled;
       logger.info(
         `[PeerClient] host analytics consent — ${msg.enabled ? "enabled" : "disabled"}`,
       );
-      this.analyticsConsentListeners.fire(msg.enabled);
+      this.events.emit("analyticsConsent", msg.enabled);
     },
   });
 
@@ -1106,7 +1091,7 @@ export class PeerClientService {
     // Expose for the brokered kerbcam data source regardless of whether the
     // Peer is up yet — the kerbcam client reads these for its own connection.
     this.relayIceServers = iceServers;
-    this.relayIceServersListeners.fire(iceServers);
+    this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;
     const opts = (
       this.peer as unknown as {
@@ -1128,7 +1113,7 @@ export class PeerClientService {
 
   /** Notified whenever the host broadcasts a fresh set of relay TURN creds. */
   onRelayIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void {
-    return this.relayIceServersListeners.add(cb);
+    return this.events.on("relayIceServers", cb);
   }
 
   /** Latest relay peer id the host has announced, or null if none. */
@@ -1148,7 +1133,7 @@ export class PeerClientService {
   onHostHello(
     cb: (info: { version: string; buildTime: string }) => void,
   ): () => void {
-    return this.hostHelloListeners.add(cb);
+    return this.events.on("hostHello", cb);
   }
 
   /**
@@ -1160,7 +1145,7 @@ export class PeerClientService {
    * actually changes.
    */
   onHostRestart(cb: () => void): () => void {
-    return this.hostRestartListeners.add(cb);
+    return this.events.on("hostRestart", cb);
   }
 
   /**
@@ -1168,7 +1153,7 @@ export class PeerClientService {
    * null → relay is down).
    */
   onRelayPeerIdChange(cb: (peerId: string | null) => void): () => void {
-    return this.relayPeerIdListeners.add(cb);
+    return this.events.on("relayPeerId", cb);
   }
 
   /** Latest analytics consent the host has broadcast (false until one
@@ -1183,7 +1168,7 @@ export class PeerClientService {
    * subscriber gates correctly without waiting for the next change.
    */
   onAnalyticsConsent(cb: (enabled: boolean) => void): () => void {
-    const remove = this.analyticsConsentListeners.add(cb);
+    const remove = this.events.on("analyticsConsent", cb);
     cb(this.analyticsConsent);
     return remove;
   }
