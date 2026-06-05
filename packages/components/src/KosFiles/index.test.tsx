@@ -2,6 +2,7 @@ import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { KosFilesComponent } from "./index";
 
 interface FakeSource {
@@ -130,5 +131,36 @@ describe("KosFilesComponent", () => {
     expect(
       await screen.findByRole("button", { name: /Show error detail/i }),
     ).toBeInTheDocument();
+  });
+
+  it("has no accessible violations rendering the volume listing", async () => {
+    registerFakeKos(async (_cpu, _script, args) => {
+      const op = args[0];
+      const target = args[1];
+      if (op === "list") {
+        return {
+          op: "list",
+          volume: String(target),
+          listing: JSON.stringify([
+            { name: "shipmap.ks", size: 1234 },
+            { name: "boot.ks", size: 256 },
+          ]),
+        };
+      }
+      return {
+        op: "read",
+        path: String(target),
+        contents: JSON.stringify('print "hello".\n'),
+      };
+    });
+
+    const { container } = render(
+      <KosFilesComponent config={{ cpu: "MainCPU", volume: "0:" }} />,
+    );
+
+    expect(await screen.findByText("shipmap.ks")).toBeInTheDocument();
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

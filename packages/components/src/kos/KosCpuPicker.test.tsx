@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { KosCpuPicker } from "./KosCpuPicker";
 
 class MemoryStorage implements Storage {
@@ -205,5 +206,17 @@ describe("KosCpuPicker", () => {
 
     expect(screen.getByText("Lander")).toBeDefined();
     expect(screen.queryByText("Orbital")).toBeNull();
+  });
+
+  it("has no accessible violations with the dropdown open", async () => {
+    service.upsert({ tagname: "lander", label: "Lander Computer" });
+    service.upsert({ tagname: "orbital", description: "Bus" });
+    const user = userEvent.setup();
+
+    const { container } = render(<ControlledPicker service={service} />);
+    await user.click(screen.getByRole("combobox"));
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

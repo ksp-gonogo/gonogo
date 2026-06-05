@@ -3,8 +3,7 @@ import {
   type MockDataSource,
   registerStockBodies,
 } from "@gonogo/core";
-import type { BufferedDataSource } from "@gonogo/data";
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import {
   setupMockDataSource,
@@ -75,7 +74,6 @@ export async function snapshotWidgetMode<
     keys: fixtureKeys.map((key) => ({ key })),
   });
   let source: MockDataSource | null = fixture.source;
-  let buffered: BufferedDataSource | null = fixture.buffered;
 
   try {
     const config: Cfg = {
@@ -104,15 +102,83 @@ export async function snapshotWidgetMode<
       }
     });
 
+    // Drain the async `useDataSeries` backfill (graphs/sparklines) before
+    // snapshotting. waitFor wraps act, so the backfill's notify() flushes
+    // inside it — no manual act(). Waits on the real pending work, not a
+    // bare tick. No-op for widgets that never query a range.
+    await waitFor(() => {
+      if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
+    });
+
     return stripVolatile(container.innerHTML);
   } finally {
-    teardownMockDataSource({
-      source: source as MockDataSource,
-      buffered: buffered as BufferedDataSource,
-    });
+    teardownMockDataSource(fixture);
     source = null;
-    buffered = null;
   }
+}
+
+/** Live render handle from {@link renderWidgetMode}. */
+export interface RenderedWidget {
+  /** The mounted, still-live container — valid until `teardown()`. */
+  container: HTMLElement;
+  /**
+   * Unmount and disconnect. Must be called by the test (typically right
+   * after assertions). Runs `cleanup()` before the data-source disconnect
+   * so no state update fires outside `act()`.
+   */
+  teardown: () => void;
+}
+
+/**
+ * Mount a widget exactly like {@link snapshotWidgetMode} — same registry,
+ * same fixture seeding, same context — but leave it mounted and return the
+ * live `container` plus a `teardown()`, for callers that need to assert on
+ * the rendered DOM (e.g. running `axe()` for an a11y smoke). Unlike
+ * `snapshotWidgetMode`, teardown is the caller's responsibility: run your
+ * assertions against `container` first, then call `teardown()`.
+ */
+export async function renderWidgetMode<
+  Cfg extends Record<string, unknown> = Record<string, unknown>,
+>(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
+  registerStockBodies();
+  const fixtureKeys = Object.keys(opts.fixture).filter(
+    (k) => !k.startsWith("_"),
+  );
+  const fixture = await setupMockDataSource({
+    id: "data",
+    keys: fixtureKeys.map((key) => ({ key })),
+  });
+  const source: MockDataSource = fixture.source;
+
+  const config: Cfg = {
+    ...(opts.defaultConfig ?? ({} as Cfg)),
+    ...((opts.mode.config ?? {}) as Cfg),
+  };
+  const instanceId = opts.instanceId ?? "snap";
+  const { container } = render(
+    <DashboardItemContext.Provider value={{ instanceId }}>
+      <opts.Widget
+        config={config}
+        id={instanceId}
+        w={opts.mode.w}
+        h={opts.mode.h}
+      />
+    </DashboardItemContext.Provider>,
+  );
+
+  act(() => {
+    for (const key of fixtureKeys) {
+      source.emit(key, opts.fixture[key]);
+    }
+  });
+
+  // Drain the async useDataSeries backfill the testing-library way (see
+  // snapshotWidgetMode) so a11y assertions run against a settled tree.
+  await waitFor(() => {
+    if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
+  });
+
+  return { container, teardown: () => teardownMockDataSource(fixture) };
 }
 
 /**
