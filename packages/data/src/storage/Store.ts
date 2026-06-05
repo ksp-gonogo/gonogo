@@ -1,6 +1,13 @@
 import type { FlightRecord, SeriesRange } from "../types";
 
 /**
+ * Sort comparator for flight listings: most-recently-launched first.
+ * Shared by `MemoryStore` and `IndexedDbStore` so both order identically.
+ */
+export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
+  b.launchedAt - a.launchedAt;
+
+/**
  * Persistence contract for flight metadata + samples. Implemented by both
  * `MemoryStore` (tests, non-browser environments) and `IndexedDbStore`
  * (production). Both back the same BufferedDataSource.
