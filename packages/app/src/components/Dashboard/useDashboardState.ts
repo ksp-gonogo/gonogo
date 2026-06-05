@@ -2,22 +2,19 @@ import type { InputMappings } from "@gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
+import { BREAKPOINTS } from "./layoutNormalization";
 
-// Keep in lockstep with `BREAKPOINTS` in Dashboard/index.tsx — RGL warns
-// at runtime if a key here isn't a valid breakpoint.
-const COLS_KEYS = ["lg", "md", "sm", "xs", "xxs"] as const;
+// Derived from the single source of truth in layoutNormalization.ts — RGL
+// warns at runtime if a key here isn't a valid breakpoint.
+const COLS_KEYS = Object.keys(BREAKPOINTS);
 
-// Must match BREAKPOINTS in Dashboard/index.tsx. Duplicated here so the initial
-// render picks the correct breakpoint before ResponsiveGridLayout has a chance
-// to fire onBreakpointChange — avoids a one-frame flash of desktop layout on
-// phones.
-const INITIAL_BREAKPOINTS: ReadonlyArray<readonly [string, number]> = [
-  ["lg", 1200],
-  ["md", 996],
-  ["sm", 768],
-  ["xs", 480],
-  ["xxs", 0],
-];
+// Derived from BREAKPOINTS in layoutNormalization.ts as descending
+// [name, minWidth] pairs (Object.entries preserves insertion order). Used so
+// the initial render picks the correct breakpoint before ResponsiveGridLayout
+// has a chance to fire onBreakpointChange — avoids a one-frame flash of desktop
+// layout on phones.
+const INITIAL_BREAKPOINTS: ReadonlyArray<readonly [string, number]> =
+  Object.entries(BREAKPOINTS);
 
 function initialBreakpoint(): string {
   if (typeof window === "undefined") return "lg";
