@@ -3,6 +3,9 @@ import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "./index";
 
 export const COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 };
+// Single source of truth for the responsive breakpoints (pixel minWidths,
+// descending). Consumed here, by Dashboard/GridDashboard.tsx, and derived into
+// `INITIAL_BREAKPOINTS` / `COLS_KEYS` in Dashboard/useDashboardState.ts.
 export const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
 export const BREAKPOINT_KEYS = new Set(Object.keys(BREAKPOINTS));
 export const ROW_HEIGHT = 25;
