@@ -9,6 +9,7 @@ interface PresetPickerProps {
 export function PresetPicker({ value, onChange }: PresetPickerProps) {
   return (
     <PresetSelect
+      aria-label="Maneuver preset"
       value={value}
       onChange={(e) => onChange(e.target.value as PresetId)}
     >

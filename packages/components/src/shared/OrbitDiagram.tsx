@@ -594,6 +594,9 @@ function formatAltitude(
 }
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
+  // role="img" gives the focusable marker a valid role so its descriptive
+  // `aria-label` is permitted (a bare <circle> prohibits aria-label).
+  role: "img",
   style: { "--apsis-focus-stroke-w": `${Number(r) * 0.5}px` },
 }))`
   cursor: help;

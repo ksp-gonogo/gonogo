@@ -268,69 +268,71 @@ export function KosCpuPicker({
         }
       />
       {open && (
-        <Dropdown role="listbox" id={listboxId}>
+        <Dropdown>
           {mode === "list" && (
             <>
-              {filtered.length === 0 && !showQuickAdd && (
-                <EmptyState>
-                  No CPUs yet — add one to start configuring widgets.
-                </EmptyState>
-              )}
-              {filtered.map((entry, idx) => {
-                const isActive = idx === activeIndex;
-                const isSelected = entry.tagname === value;
-                return (
+              <Listbox role="listbox" id={listboxId}>
+                {filtered.length === 0 && !showQuickAdd && (
+                  <EmptyState>
+                    No CPUs yet — add one to start configuring widgets.
+                  </EmptyState>
+                )}
+                {filtered.map((entry, idx) => {
+                  const isActive = idx === activeIndex;
+                  const isSelected = entry.tagname === value;
+                  return (
+                    <DropdownItem
+                      key={entry.tagname}
+                      id={optionId(entry.tagname)}
+                      role="option"
+                      aria-selected={isActive}
+                      $active={isActive}
+                      $selected={isSelected}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        selectEntry(entry.tagname);
+                      }}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                    >
+                      <ItemMain>
+                        <StatusDot
+                          $state={statusState(entry)}
+                          title={statusTooltip(entry)}
+                          aria-label={statusTooltip(entry)}
+                        />
+                        <ItemLabel>{displayLabel(entry)}</ItemLabel>
+                        {entry.label && entry.label !== entry.tagname && (
+                          <ItemTag>{entry.tagname}</ItemTag>
+                        )}
+                      </ItemMain>
+                      {entry.description && (
+                        <ItemDescription>{entry.description}</ItemDescription>
+                      )}
+                    </DropdownItem>
+                  );
+                })}
+                {showQuickAdd && (
                   <DropdownItem
-                    key={entry.tagname}
-                    id={optionId(entry.tagname)}
                     role="option"
-                    aria-selected={isActive}
-                    $active={isActive}
-                    $selected={isSelected}
+                    aria-selected={false}
+                    $active={false}
+                    $selected={false}
                     onPointerDown={(e) => {
                       e.preventDefault();
-                      selectEntry(entry.tagname);
+                      handleQuickAdd(trimmedQuery);
                     }}
-                    onMouseEnter={() => setActiveIndex(idx)}
                   >
                     <ItemMain>
-                      <StatusDot
-                        $state={statusState(entry)}
-                        title={statusTooltip(entry)}
-                        aria-label={statusTooltip(entry)}
-                      />
-                      <ItemLabel>{displayLabel(entry)}</ItemLabel>
-                      {entry.label && entry.label !== entry.tagname && (
-                        <ItemTag>{entry.tagname}</ItemTag>
-                      )}
+                      <ItemLabel>
+                        Save “{trimmedQuery}” as a new CPU tagname
+                      </ItemLabel>
                     </ItemMain>
-                    {entry.description && (
-                      <ItemDescription>{entry.description}</ItemDescription>
-                    )}
+                    <ItemDescription>
+                      Adds a bare entry — open the picker again to label it.
+                    </ItemDescription>
                   </DropdownItem>
-                );
-              })}
-              {showQuickAdd && (
-                <DropdownItem
-                  role="option"
-                  aria-selected={false}
-                  $active={false}
-                  $selected={false}
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    handleQuickAdd(trimmedQuery);
-                  }}
-                >
-                  <ItemMain>
-                    <ItemLabel>
-                      Save “{trimmedQuery}” as a new CPU tagname
-                    </ItemLabel>
-                  </ItemMain>
-                  <ItemDescription>
-                    Adds a bare entry — open the picker again to label it.
-                  </ItemDescription>
-                </DropdownItem>
-              )}
+                )}
+              </Listbox>
               <FooterRow>
                 <GhostButton
                   type="button"
@@ -646,6 +648,10 @@ const Dropdown = styled.div`
   max-height: 360px;
   overflow-y: auto;
   z-index: 100;
+`;
+
+const Listbox = styled.div`
+  display: contents;
 `;
 
 const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`

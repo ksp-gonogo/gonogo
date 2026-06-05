@@ -50,7 +50,11 @@ function KosWidgetComponent({
       <Header>
         <Title>{title}</Title>
         <HeaderActions>
-          {running && <Spinner aria-label="running">…</Spinner>}
+          {running && (
+            <Spinner role="img" aria-label="running">
+              …
+            </Spinner>
+          )}
           {config?.mode !== "interval" && (
             <RunButton
               type="button"
