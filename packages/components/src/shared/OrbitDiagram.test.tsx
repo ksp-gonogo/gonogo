@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { OrbitDiagram } from "./OrbitDiagram";
 
@@ -56,7 +57,8 @@ describe("OrbitDiagram projected overlay", () => {
     expect(h).toBeGreaterThan(w);
   });
 
-  it("swaps the apoapsis label for its altitude on hover", () => {
+  it("swaps the apoapsis label for its altitude on hover", async () => {
+    const user = userEvent.setup();
     // bodyRadius=600_000, apoapsis=770_000 → altitude = 170 km
     const { container } = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} />,
@@ -73,14 +75,14 @@ describe("OrbitDiagram projected overlay", () => {
     );
     expect(apMarker).toBeTruthy();
     if (!apMarker) return;
-    fireEvent.mouseEnter(apMarker);
+    await user.hover(apMarker);
     expect(findApText()).toBeUndefined();
     expect(
       Array.from(container.querySelectorAll("text")).some((t) =>
         (t.textContent ?? "").includes("170.0 km"),
       ),
     ).toBe(true);
-    fireEvent.mouseLeave(apMarker);
+    await user.unhover(apMarker);
     expect(findApText()).toBeTruthy();
   });
 

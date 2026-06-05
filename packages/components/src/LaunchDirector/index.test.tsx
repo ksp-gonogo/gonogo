@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -82,6 +83,7 @@ describe("LaunchDirectorComponent", () => {
   });
 
   it("requires arm-then-confirm before firing ksp.launch", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -113,19 +115,20 @@ describe("LaunchDirectorComponent", () => {
       ]);
     });
 
-    fireEvent.click(screen.getByText(/Mun Hopper/));
-    fireEvent.click(screen.getByText(/Jebediah Kerman/));
+    await user.click(screen.getByText(/Mun Hopper/));
+    await user.click(screen.getByText(/Jebediah Kerman/));
 
-    fireEvent.click(screen.getByText(/Launch Mun Hopper \(1 crew\)/i));
+    await user.click(screen.getByText(/Launch Mun Hopper \(1 crew\)/i));
     expect(onExecute).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText(/Confirm launch/i));
+    await user.click(screen.getByText(/Confirm launch/i));
     expect(onExecute).toHaveBeenCalledWith(
       "ksp.launch[Mun Hopper,VAB,LaunchPad,Jebediah Kerman]",
     );
   });
 
   it("switches to recover / revert controls when the pad is occupied", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -140,12 +143,13 @@ describe("LaunchDirectorComponent", () => {
 
     expect(screen.getByText(/On pad: Kerbal X/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Recover"));
-    fireEvent.click(screen.getByText(/Confirm recover/i));
+    await user.click(screen.getByText("Recover"));
+    await user.click(screen.getByText(/Confirm recover/i));
     expect(onExecute).toHaveBeenCalledWith("ksp.recover");
   });
 
   it("shows the in-flight panel with mission time + revert affordances when scene is Flight", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -170,8 +174,8 @@ describe("LaunchDirectorComponent", () => {
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
     expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Revert to launch"));
-    fireEvent.click(screen.getByText(/Confirm revert to launch/i));
+    await user.click(screen.getByText("Revert to launch"));
+    await user.click(screen.getByText(/Confirm revert to launch/i));
     expect(onExecute).toHaveBeenCalledWith("ksp.revertToLaunch");
   });
 
@@ -208,6 +212,7 @@ describe("LaunchDirectorComponent", () => {
   // warning dialog, so the gonogo button now requires an arm-then-confirm
   // step so a casual mis-tap doesn't lose progress.
   it("requires a confirm step before firing ksp.toTrackingStation", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -227,11 +232,11 @@ describe("LaunchDirectorComponent", () => {
     });
 
     // First click arms the confirm — no execute fired yet.
-    fireEvent.click(screen.getByText("Tracking Station"));
+    await user.click(screen.getByText("Tracking Station"));
     expect(onExecute).not.toHaveBeenCalledWith("ksp.toTrackingStation");
     // Confirm step is visible.
     const confirm = screen.getByText(/Confirm — flight may revert/i);
-    fireEvent.click(confirm);
+    await user.click(confirm);
     expect(onExecute).toHaveBeenCalledWith("ksp.toTrackingStation");
   });
 
@@ -268,6 +273,7 @@ describe("LaunchDirectorComponent", () => {
   });
 
   it("greys out unavailable crew chips and ignores clicks", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -298,8 +304,8 @@ describe("LaunchDirectorComponent", () => {
       ]);
     });
 
-    fireEvent.click(screen.getByText("Probe"));
-    fireEvent.click(screen.getByText("Jeb"));
+    await user.click(screen.getByText("Probe"));
+    await user.click(screen.getByText("Jeb"));
     // Click should be a no-op; launch button should still say "unmanned".
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
   });

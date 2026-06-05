@@ -5,13 +5,8 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -185,6 +180,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {
+    const user = userEvent.setup();
     buffered.disconnect();
     clearRegistry();
     const calls: string[] = [];
@@ -205,23 +201,19 @@ describe("ManeuverPlannerComponent", () => {
     });
 
     // Open the trigger editor.
-    fireEvent.click(screen.getByRole("button", { name: /add node when/i }));
+    await user.click(screen.getByRole("button", { name: /add node when/i }));
 
     // Pick the o.ApA telemetry key via the data-key search input.
     const picker = screen.getByPlaceholderText("Search telemetry…");
-    await act(async () => {
-      fireEvent.focus(picker);
-      fireEvent.change(picker, { target: { value: "o.ApA" } });
-      fireEvent.keyDown(picker, { key: "Enter" });
-    });
+    await user.click(picker);
+    await user.type(picker, "o.ApA{Enter}");
 
     // Set threshold above current ApA (107000) so it doesn't fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
-    fireEvent.change(valueInput, { target: { value: "200000" } });
+    await user.clear(valueInput);
+    await user.type(valueInput, "200000");
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^arm$/i }));
-    });
+    await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
     // Armed row visible, no burn dispatched yet.
     expect(screen.getByText(/o\.ApA >= 200000/)).toBeInTheDocument();
@@ -240,6 +232,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("fires immediately when the trigger condition is already true at arm time", async () => {
+    const user = userEvent.setup();
     buffered.disconnect();
     clearRegistry();
     const calls: string[] = [];
@@ -259,20 +252,16 @@ describe("ManeuverPlannerComponent", () => {
       emitFullOrbit(source);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /add node when/i }));
+    await user.click(screen.getByRole("button", { name: /add node when/i }));
     const picker = screen.getByPlaceholderText("Search telemetry…");
-    await act(async () => {
-      fireEvent.focus(picker);
-      fireEvent.change(picker, { target: { value: "o.ApA" } });
-      fireEvent.keyDown(picker, { key: "Enter" });
-    });
+    await user.click(picker);
+    await user.type(picker, "o.ApA{Enter}");
     // Threshold below current ApA (107000) — should fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
-    fireEvent.change(valueInput, { target: { value: "50000" } });
+    await user.clear(valueInput);
+    await user.type(valueInput, "50000");
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^arm$/i }));
-    });
+    await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
     expect(calls.length).toBe(1);
     expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
@@ -330,7 +319,8 @@ describe("ManeuverPlannerComponent", () => {
     }
   });
 
-  it("reveals per-preset custom inputs when a custom preset is selected", () => {
+  it("reveals per-preset custom inputs when a custom preset is selected", async () => {
+    const user = userEvent.setup();
     render(<ManeuverPlannerComponent id="mnv" config={{}} />);
     act(() => {
       emitFullOrbit(source);
@@ -342,45 +332,34 @@ describe("ManeuverPlannerComponent", () => {
 
     // custom-apo: prograde / normal / radial fields appear.
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    act(() => {
-      fireEvent.change(select, { target: { value: "custom-apo" } });
-    });
+    await user.selectOptions(select, "custom-apo");
     expect(screen.getByText("Prograde")).toBeInTheDocument();
     expect(screen.getByText("Normal")).toBeInTheDocument();
     expect(screen.getByText("Radial")).toBeInTheDocument();
 
     // match-inclination: target inc field, no prograde.
-    act(() => {
-      fireEvent.change(select, { target: { value: "match-inclination" } });
-    });
+    await user.selectOptions(select, "match-inclination");
     expect(screen.getByText("Target inc")).toBeInTheDocument();
     expect(screen.queryByText("Prograde")).toBeNull();
 
     // hohmann-to-altitude: target altitude.
-    act(() => {
-      fireEvent.change(select, { target: { value: "hohmann-to-altitude" } });
-    });
+    await user.selectOptions(select, "hohmann-to-altitude");
     expect(screen.getByText("Target alt")).toBeInTheDocument();
 
     // hohmann-rendezvous-target: standoff.
-    act(() => {
-      fireEvent.change(select, {
-        target: { value: "hohmann-rendezvous-target" },
-      });
-    });
+    await user.selectOptions(select, "hohmann-rendezvous-target");
     expect(screen.getByText("Standoff")).toBeInTheDocument();
   });
 
-  it("resets prograde/normal/radial to 0 when switching away from a custom preset", () => {
+  it("resets prograde/normal/radial to 0 when switching away from a custom preset", async () => {
+    const user = userEvent.setup();
     render(<ManeuverPlannerComponent id="mnv" config={{}} />);
     act(() => {
       emitFullOrbit(source);
     });
 
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    act(() => {
-      fireEvent.change(select, { target: { value: "custom-apo" } });
-    });
+    await user.selectOptions(select, "custom-apo");
 
     // Find the prograde input by walking up from its label.
     const progradeLabel = screen.getByText("Prograde");
@@ -388,18 +367,13 @@ describe("ManeuverPlannerComponent", () => {
       'input[type="number"]',
     ) as HTMLInputElement;
     expect(progradeInput).toBeTruthy();
-    act(() => {
-      fireEvent.change(progradeInput, { target: { value: "42" } });
-    });
+    await user.clear(progradeInput);
+    await user.type(progradeInput, "42");
     expect(progradeInput.value).toBe("42");
 
     // Switch to a non-custom-input preset; switch back; the value should be 0.
-    act(() => {
-      fireEvent.change(select, { target: { value: "circularize-apo" } });
-    });
-    act(() => {
-      fireEvent.change(select, { target: { value: "custom-apo" } });
-    });
+    await user.selectOptions(select, "circularize-apo");
+    await user.selectOptions(select, "custom-apo");
     const reopenedLabel = screen.getByText("Prograde");
     const reopenedInput = reopenedLabel.parentElement?.querySelector(
       'input[type="number"]',
@@ -408,6 +382,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("sends o.updateManeuverNode with edited values via the per-node editor", async () => {
+    const user = userEvent.setup();
     // Edit flow: click Edit on a planned-node row, change the prograde, Save.
     // Verifies the action string and arg order: `o.updateManeuverNode[id, ut,
     // radial, normal, prograde]` — same vector convention as add.
@@ -435,9 +410,7 @@ describe("ManeuverPlannerComponent", () => {
 
     // Open the editor on the planned node.
     const editBtn = screen.getByRole("button", { name: /edit node/i });
-    await act(async () => {
-      fireEvent.click(editBtn);
-    });
+    await user.click(editBtn);
 
     // The editor exposes a Prograde input pre-filled with the current value.
     // Multiple "Prograde" labels can exist (the custom-preset form has one too,
@@ -449,14 +422,11 @@ describe("ManeuverPlannerComponent", () => {
     ) as HTMLInputElement;
     expect(progradeInput).toBeTruthy();
     expect(progradeInput.value).toBe("30");
-    act(() => {
-      fireEvent.change(progradeInput, { target: { value: "45" } });
-    });
+    await user.clear(progradeInput);
+    await user.type(progradeInput, "45");
 
     const saveBtn = screen.getByRole("button", { name: /^save$/i });
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
+    await user.click(saveBtn);
 
     expect(calls).toHaveLength(1);
     const match =
@@ -474,6 +444,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
+    const user = userEvent.setup();
     // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde) —
     // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
     // straight to OnGizmoUpdated(Vector3d(x,y,z), ut), so the on-wire
@@ -500,9 +471,7 @@ describe("ManeuverPlannerComponent", () => {
     });
 
     const addBtn = await screen.findByRole("button", { name: /^add node$/i });
-    await act(async () => {
-      fireEvent.click(addBtn);
-    });
+    await user.click(addBtn);
 
     // Default preset is circularize-apo: a positive prograde burn,
     // normal=0, radial=0. So the action string should have the
