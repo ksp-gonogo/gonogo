@@ -13,6 +13,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -235,6 +236,17 @@ function ReportBug() {
   const [phase, setPhase] = useState<FormPhase>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Post-send form-reset timer (5s after a successful submit). Held so it
+  // can be cleared on unmount — otherwise closing the Logs modal within 5s
+  // of sending fires setState on an unmounted component.
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    },
+    [],
+  );
   const descriptionId = useId();
   const windowId = useId();
   const screenshotId = useId();
@@ -353,7 +365,7 @@ function ReportBug() {
       }
       setPhase("sent");
       setOpen(false);
-      window.setTimeout(() => {
+      resetTimerRef.current = setTimeout(() => {
         // After the user has seen the success notice, collapse it and reset
         // the form so a second report starts from a clean slate. We bail if
         // the user has already started another report by then.

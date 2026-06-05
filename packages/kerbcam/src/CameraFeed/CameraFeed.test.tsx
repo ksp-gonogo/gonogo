@@ -62,6 +62,12 @@ import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 const TEST_INSTANCE_ID = "camera-feed-test";
 
+// Sources created during a test are torn down in afterEach AFTER cleanup() so
+// the CameraFeed is already unmounted when disconnect() fires. Disconnecting a
+// live source while the widget is still mounted triggers useKerbcamStream state
+// updates outside act() — the documented anti-pattern in CLAUDE.md.
+const createdSources: Array<{ disconnect: () => void }> = [];
+
 // Fill the config defaults so individual tests only spell out the fields they
 // care about (flightId, and occasionally showDebugInfo).
 function fullConfig(config: Partial<CameraFeedConfig>): CameraFeedConfig {
@@ -226,6 +232,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // Disconnect tracked sources AFTER cleanup so the widget is unmounted first.
+  for (const ds of createdSources) ds.disconnect();
+  createdSources.length = 0;
   clearActionHandlers(); // tests share one instanceId — handlers would leak
   clearRegistry(); // resets all registries — tests register their own instance
   vi.restoreAllMocks();
@@ -272,6 +281,7 @@ async function buildConnectedSource(
     sidecar.setConnectionState("connected");
   });
 
+  createdSources.push(ds);
   return { ds, sidecar };
 }
 
@@ -343,7 +353,7 @@ describe("CameraFeed — camera selection", () => {
   ];
 
   it("lists every available camera in the menu", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: null });
 
@@ -358,12 +368,10 @@ describe("CameraFeed — camera selection", () => {
       "Nose Cam (Kerbal X)",
       "Tail Cam (Kerbal X)",
     ]);
-
-    ds.disconnect();
   });
 
   it("auto-selects the first available camera when flightId is null", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: null });
 
@@ -372,12 +380,10 @@ describe("CameraFeed — camera selection", () => {
     fireEvent.click(screen.getByRole("button", { name: /starboard cam/i }));
     const checked = screen.getByRole("menuitemradio", { checked: true });
     expect(checked.textContent).toBe("Starboard Cam (Kerbal X)");
-
-    ds.disconnect();
   });
 
   it("honours an explicitly-configured non-top camera", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     // flightId 44 is the THIRD camera, not the top of the list.
     renderFeed({ flightId: 44 });
@@ -386,12 +392,10 @@ describe("CameraFeed — camera selection", () => {
     fireEvent.click(screen.getByRole("button", { name: /tail cam/i }));
     const checked = screen.getByRole("menuitemradio", { checked: true });
     expect(checked.textContent).toBe("Tail Cam (Kerbal X)");
-
-    ds.disconnect();
   });
 
   it("selecting a different camera in the menu persists the choice and switches", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
@@ -417,12 +421,10 @@ describe("CameraFeed — camera selection", () => {
     expect(
       screen.getByRole("menuitemradio", { checked: true }).textContent,
     ).toBe("Nose Cam (Kerbal X)");
-
-    ds.disconnect();
   });
 
   it("Next button advances to the next camera and wraps round", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
@@ -443,12 +445,10 @@ describe("CameraFeed — camera selection", () => {
       fireEvent.click(next);
     });
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("Previous button steps backward and wraps round", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
@@ -459,12 +459,10 @@ describe("CameraFeed — camera selection", () => {
       fireEvent.click(prev);
     });
     expect(screen.getByRole("heading", { name: "Tail Cam" })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("nextCamera / prevCamera serial actions switch cameras", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
@@ -485,12 +483,10 @@ describe("CameraFeed — camera selection", () => {
       });
     });
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("a button-release payload (value=false) does not switch cameras", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderStatefulFeed({ flightId: 42 });
 
@@ -502,12 +498,10 @@ describe("CameraFeed — camera selection", () => {
     });
     // Still on the first camera — release events are ignored.
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("falls back to the first camera when the configured one disappears", async () => {
-    const { ds, sidecar } = await buildConnectedSource(TWO_CAMERAS);
+    const { sidecar } = await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: 44 });
     expect(screen.getByRole("heading", { name: "Tail Cam" })).toBeTruthy();
@@ -522,12 +516,10 @@ describe("CameraFeed — camera selection", () => {
     // Configured 44 is gone → widget falls back to the surviving first camera
     // rather than wedging on a dead id.
     expect(screen.getByRole("heading", { name: "Starboard Cam" })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("step buttons are disabled when only one camera is available", async () => {
-    const { ds } = await buildConnectedSource();
+    await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -542,12 +534,10 @@ describe("CameraFeed — camera selection", () => {
         name: /previous camera/i,
       }).disabled,
     ).toBe(true);
-
-    ds.disconnect();
   });
 
   it("Escape closes the open camera menu", async () => {
-    const { ds } = await buildConnectedSource(TWO_CAMERAS);
+    await buildConnectedSource(TWO_CAMERAS);
 
     renderFeed({ flightId: 42 });
 
@@ -556,8 +546,6 @@ describe("CameraFeed — camera selection", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
-
-    ds.disconnect();
   });
 });
 
@@ -567,7 +555,7 @@ describe("CameraFeed — camera selection", () => {
 
 describe("CameraFeed — debug info toggle", () => {
   it("hides the resolution/bitrate readout by default", async () => {
-    const { ds } = await buildConnectedSource([
+    await buildConnectedSource([
       makeCamera({
         flightId: 42,
         cameraName: "Starboard Cam",
@@ -581,12 +569,10 @@ describe("CameraFeed — debug info toggle", () => {
 
     // showDebugInfo defaults to false → resolution string is not rendered.
     expect(screen.queryByText(/640×360/)).toBeNull();
-
-    ds.disconnect();
   });
 
   it("shows the resolution/bitrate readout when showDebugInfo is true", async () => {
-    const { ds } = await buildConnectedSource([
+    await buildConnectedSource([
       makeCamera({
         flightId: 42,
         cameraName: "Starboard Cam",
@@ -599,8 +585,6 @@ describe("CameraFeed — debug info toggle", () => {
     renderFeed({ flightId: 42, showDebugInfo: true });
 
     expect(screen.getByText(/640×360/)).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("the Settings-tab config panel persists the toggle without dropping the camera pick", () => {
@@ -627,7 +611,7 @@ describe("CameraFeed — debug info toggle", () => {
 
 describe("CameraFeed — empty state and status", () => {
   it("shows the no-cameras empty state and hides the menu trigger when connected with no cameras", async () => {
-    const { ds } = await buildConnectedSource([]);
+    await buildConnectedSource([]);
 
     renderFeed({ flightId: null });
 
@@ -638,8 +622,6 @@ describe("CameraFeed — empty state and status", () => {
     // Neutral empty-state copy — connection/transport detail is intentionally
     // NOT shown here (it lives in the Data Sources widget).
     expect(screen.getByText(/start a vessel with hullcam parts/i)).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("renders the empty state gracefully when the source is disconnected", async () => {
@@ -654,6 +636,7 @@ describe("CameraFeed — empty state and status", () => {
     registerDataSource(
       ds as unknown as Parameters<typeof registerDataSource>[0],
     );
+    createdSources.push(ds);
 
     renderFeed({ flightId: null });
 
@@ -671,17 +654,15 @@ describe("CameraFeed — empty state and status", () => {
 
 describe("CameraFeed — SIGNAL LOST overlay", () => {
   it("does not render SIGNAL LOST overlay when camera is active", async () => {
-    const { ds } = await buildConnectedSource();
+    await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     expect(screen.queryByRole("status", { name: /signal lost/i })).toBeNull();
-
-    ds.disconnect();
   });
 
   it("renders SIGNAL LOST overlay when camera lifecycle transitions to destroyed", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -698,12 +679,10 @@ describe("CameraFeed — SIGNAL LOST overlay", () => {
     const overlay = screen.getByRole("status", { name: /signal lost/i });
     expect(overlay).toBeTruthy();
     expect(overlay.textContent).toMatch(/SIGNAL LOST/i);
-
-    ds.disconnect();
   });
 
   it("renders SIGNAL LOST overlay from initial snapshot when camera starts destroyed", async () => {
-    const { ds } = await buildConnectedSource([
+    await buildConnectedSource([
       makeCamera({
         flightId: 99,
         lifecycle: "destroyed",
@@ -726,8 +705,6 @@ describe("CameraFeed — SIGNAL LOST overlay", () => {
     const overlay = await screen.findByRole("status", { name: /signal lost/i });
     expect(overlay).toBeTruthy();
     expect(overlay.textContent).toMatch(/SIGNAL LOST/i);
-
-    ds.disconnect();
   });
 });
 
@@ -737,7 +714,7 @@ describe("CameraFeed — SIGNAL LOST overlay", () => {
 
 describe("CameraFeed — zoom controls", () => {
   it("zoom controls appear when camera supportsZoom", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -751,23 +728,19 @@ describe("CameraFeed — zoom controls", () => {
 
     expect(screen.getByRole("button", { name: /zoom in/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /zoom out/i })).toBeTruthy();
-
-    ds.disconnect();
   });
 
   it("zoom controls absent when camera does not support zoom", async () => {
-    const { ds } = await buildConnectedSource();
+    await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     // buildConnectedSource() fixture creates a camera with supportsZoom: false
     expect(screen.queryByRole("button", { name: /zoom in/i })).toBeNull();
-
-    ds.disconnect();
   });
 
   it("clicking the on-screen +/- buttons fires a discrete set-fov step, never a rate", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -791,12 +764,10 @@ describe("CameraFeed — zoom controls", () => {
     });
     // Accumulates against the optimistic FoV (55 → 60), not the lagging echo.
     expect(sidecar.lastCommand("set-fov")?.content.fov).toBe(60);
-
-    ds.disconnect();
   });
 
   it("keyboard-activating a zoom button (no pointer events) fires a discrete nudge", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -817,12 +788,10 @@ describe("CameraFeed — zoom controls", () => {
     });
     // No rate command on the keyboard path.
     expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
-
-    ds.disconnect();
   });
 
   it("zoomIn serial action holds a +1 zoom rate, releases to 0", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -850,12 +819,10 @@ describe("CameraFeed — zoom controls", () => {
       });
     });
     expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
-
-    ds.disconnect();
   });
 
   it("zoomOut serial action holds a -1 zoom rate, releases to 0", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -881,12 +848,10 @@ describe("CameraFeed — zoom controls", () => {
       });
     });
     expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
-
-    ds.disconnect();
   });
 
   it("zoom serial actions are no-ops when camera does not support zoom", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -898,12 +863,10 @@ describe("CameraFeed — zoom controls", () => {
     });
 
     expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
-
-    ds.disconnect();
   });
 
   it("a release with no prior press emits no command (rate already 0)", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -921,8 +884,6 @@ describe("CameraFeed — zoom controls", () => {
     // sendZoomRate dedupes against the last-sent rate (0), so a bare release
     // sends nothing — no redundant stop on the wire.
     expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
-
-    ds.disconnect();
   });
 });
 
@@ -951,7 +912,7 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
   };
 
   it("shows a single zoom slider (no yaw/pitch sliders) when zoom is supported", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
@@ -962,23 +923,19 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
     expect(screen.getByRole("slider", { name: /zoom/i })).toBeTruthy();
     // No pan sliders exist anymore — pan is the ball + arrows only.
     expect(screen.queryByRole("slider", { name: /pan/i })).toBeNull();
-
-    ds.disconnect();
   });
 
   it("does not show the zoom slider when the camera has no zoom", async () => {
     // Default camera fixture has supportsZoom: false.
-    const { ds } = await buildConnectedSource();
+    await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     expect(screen.queryByRole("slider", { name: /zoom/i })).toBeNull();
-
-    ds.disconnect();
   });
 
   it("zoom slider min/max reflect the camera FoV range and initial value", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
@@ -992,12 +949,10 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
     expect(Number(fovSlider.min)).toBe(10);
     expect(Number(fovSlider.max)).toBe(90);
     expect(Number(fovSlider.value)).toBe(60);
-
-    ds.disconnect();
   });
 
   it("zoom slider commits the settled absolute set-fov on release (debounced, not streamed)", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
@@ -1024,13 +979,11 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
       flightId: 42,
       fov: 30,
     });
-
-    ds.disconnect();
   });
 
   it("zoom slider also commits the settled value after a pause (no pointer release)", async () => {
     vi.useFakeTimers();
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
@@ -1053,11 +1006,10 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
     expect(sidecar.lastCommand("set-fov")?.content.fov).toBe(42);
 
     vi.useRealTimers();
-    ds.disconnect();
   });
 
   it("holding a zoom button sends a constant rate; releasing stops it", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
@@ -1083,12 +1035,10 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
       fireEvent.pointerUp(zoomInBtn);
     });
     expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
-
-    ds.disconnect();
   });
 
   it("zoom slider thumb tracks the camera echo when not dragging", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_ZOOM_CAMERA);
@@ -1105,8 +1055,6 @@ describe("CameraFeed — vertical FoV (zoom) slider", () => {
       name: /zoom/i,
     });
     expect(Number(fovSlider.value)).toBe(45);
-
-    ds.disconnect();
   });
 });
 
@@ -1141,7 +1089,7 @@ describe("CameraFeed — ResizeObserver render-size feedback", () => {
   });
 
   it("render-size observer fires set-render-size command", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -1165,8 +1113,6 @@ describe("CameraFeed — ResizeObserver render-size feedback", () => {
     // nearest even px (H.264 chroma): 400 * 9/16 = 225 → 226.
     expect(renderSizeMsg?.content.width).toBe(400);
     expect(renderSizeMsg?.content.height).toBe(226);
-
-    ds.disconnect();
   });
 });
 
@@ -1189,7 +1135,7 @@ describe("CameraFeed — pan reticle", () => {
   };
 
   it("pan controls appear when camera supportsPan", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -1204,19 +1150,15 @@ describe("CameraFeed — pan reticle", () => {
       (screen.getByRole("button", { name: /pan up/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
-
-    ds.disconnect();
   });
 
   it("pan controls absent when camera does not support pan", async () => {
-    const { ds } = await buildConnectedSource();
+    await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
     // buildConnectedSource() fixture has supportsPan: false
     expect(screen.queryByRole("button", { name: /pan left/i })).toBeNull();
-
-    ds.disconnect();
   });
 
   const panRateMsgs = (
@@ -1228,7 +1170,7 @@ describe("CameraFeed — pan reticle", () => {
     );
 
   it("clicking a pan arrow moves one discrete step (absolute set-pan, no rate)", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1255,8 +1197,6 @@ describe("CameraFeed — pan reticle", () => {
       fireEvent.click(leftArrow);
     });
     expect(sidecar.lastCommand("set-pan")?.content.yaw).toBe(-10);
-
-    ds.disconnect();
   });
 
   it("dragging the pan ball sends a proportional set-pan-rate; release sends 0", async () => {
@@ -1264,7 +1204,7 @@ describe("CameraFeed — pan reticle", () => {
     const origCapture = HTMLElement.prototype.setPointerCapture;
     HTMLElement.prototype.setPointerCapture = vi.fn();
 
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1300,11 +1240,10 @@ describe("CameraFeed — pan reticle", () => {
     });
 
     HTMLElement.prototype.setPointerCapture = origCapture;
-    ds.disconnect();
   });
 
   it("panYaw serial action sends a set-pan-rate on the yaw axis", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1324,12 +1263,10 @@ describe("CameraFeed — pan reticle", () => {
       yawRate: 0.5,
       pitchRate: 0,
     });
-
-    ds.disconnect();
   });
 
   it("panPitch serial action sends a set-pan-rate on the pitch axis", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1349,12 +1286,10 @@ describe("CameraFeed — pan reticle", () => {
       yawRate: 0,
       pitchRate: 0.5,
     });
-
-    ds.disconnect();
   });
 
   it("panYaw and panPitch axes compose — setting one preserves the other", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1377,12 +1312,10 @@ describe("CameraFeed — pan reticle", () => {
       yawRate: 1,
       pitchRate: 0.5,
     });
-
-    ds.disconnect();
   });
 
   it("a tiny analog deflection inside the deadzone sends no command", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1400,13 +1333,11 @@ describe("CameraFeed — pan reticle", () => {
     });
 
     expect(panRateMsgs(sidecar)).toHaveLength(0);
-
-    ds.disconnect();
   });
 
   it("pan serial actions are no-ops when camera does not support pan", async () => {
     // buildConnectedSource() default has supportsPan: false.
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     renderFeed({ flightId: 42 });
 
@@ -1415,12 +1346,10 @@ describe("CameraFeed — pan reticle", () => {
     });
 
     expect(panRateMsgs(sidecar)).toHaveLength(0);
-
-    ds.disconnect();
   });
 
   it("unmounting mid-pan stops the rate so the plugin doesn't run away", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     await act(async () => {
       sidecar.updateCamera(42, PAN_FLIP);
@@ -1445,8 +1374,6 @@ describe("CameraFeed — pan reticle", () => {
       yawRate: 0,
       pitchRate: 0,
     });
-
-    ds.disconnect();
   });
 });
 
@@ -1464,7 +1391,7 @@ describe("CameraFeed — CommNet degrade", () => {
   });
 
   it("CommNet degrade 0 when signal is full strength", async () => {
-    const { ds, sidecar } = await buildConnectedSource();
+    const { sidecar } = await buildConnectedSource();
 
     // Register a fake "data" source with comm values pre-set
     const dataSource = makeDataSource("data", {
@@ -1492,8 +1419,6 @@ describe("CameraFeed — CommNet degrade", () => {
     expect(degradeMsg?.content.flightId).toBe(42);
     // 1 - 1.0 = 0
     expect(degradeMsg?.content.level).toBe(0);
-
-    ds.disconnect();
   });
 });
 
@@ -1540,11 +1465,12 @@ describe("CameraFeed — station (brokered) mode", () => {
       sidecar.open(); // hello + camera-snapshot
       sidecar.setConnectionState("connected");
     });
+    createdSources.push(ds);
     return { ds, sidecar };
   }
 
   it("lists the host-relayed cameras and shows the selected one", async () => {
-    const { ds } = await buildBrokeredSource([
+    await buildBrokeredSource([
       { flightId: 42, cameraName: "Starboard Cam", vesselName: "Kerbal X" },
       { flightId: 43, cameraName: "Nose Cam", vesselName: "Kerbal X" },
     ]);
@@ -1557,12 +1483,10 @@ describe("CameraFeed — station (brokered) mode", () => {
       .getAllByRole("menuitemradio")
       .map((item) => item.textContent);
     expect(labels).toEqual(["Starboard Cam (Kerbal X)", "Nose Cam (Kerbal X)"]);
-
-    ds.disconnect();
   });
 
   it("subscribes the displayed camera through the broker (slot bound)", async () => {
-    const { ds, sidecar } = await buildBrokeredSource([
+    const { sidecar } = await buildBrokeredSource([
       { flightId: 42, cameraName: "Starboard Cam", vesselName: "Kerbal X" },
     ]);
 
@@ -1575,7 +1499,5 @@ describe("CameraFeed — station (brokered) mode", () => {
       expect(sidecar.slotMidFor(42)).toBeDefined();
     });
     expect(sidecar.lastCommand("subscribe", 42)).toBeTruthy();
-
-    ds.disconnect();
   });
 });

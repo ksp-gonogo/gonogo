@@ -1,5 +1,5 @@
 import type { ActionDefinition } from "@gonogo/core";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
@@ -89,7 +89,10 @@ describe("InputMappingTab press-to-map", () => {
     expect(svc.isCaptureMode()).toBe(true);
     expect(screen.getByRole("status").textContent).toMatch(/press a button/i);
 
-    transport.inject("b", true);
+    // inject() fires the input listener chain synchronously into a React
+    // setState, so wrap it in act() (synchronous external push, no
+    // testing-library async equivalent).
+    act(() => transport.inject("b", true));
 
     await waitFor(() => expect(svc.isCaptureMode()).toBe(false));
     expect(screen.queryByRole("status")).toBeNull();
@@ -120,10 +123,12 @@ describe("InputMappingTab press-to-map", () => {
     await user.click(
       screen.getByRole("button", { name: /capture an input for throttle/i }),
     );
-    transport.inject("x", 0.1);
+    // Synchronous external pushes into the capture-mode setState — wrap in
+    // act(). The first is below half-deflection (no bind), the second binds.
+    act(() => transport.inject("x", 0.1));
     expect(svc.isCaptureMode()).toBe(true); // still listening
 
-    transport.inject("x", -0.7);
+    act(() => transport.inject("x", -0.7));
     await waitFor(() => expect(svc.isCaptureMode()).toBe(false));
 
     await user.click(screen.getByRole("button", { name: /^save$/i }));
