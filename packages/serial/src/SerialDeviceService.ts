@@ -14,6 +14,7 @@ import type {
 } from "./transports/DeviceTransport";
 import { VirtualTransport } from "./transports/VirtualTransport";
 import { WebSerialTransport } from "./transports/WebSerialTransport";
+import { TypedListeners } from "./typedListeners";
 import type {
   DeviceInput,
   DeviceInstance,
@@ -92,26 +93,25 @@ export class SerialDeviceService {
    * the picker the device would silently stay disconnected.
    */
   private pendingChoices = new Map<string, SerialPort[]>();
-  private pendingChoicesListeners = new Set<() => void>();
-  /**
-   * Fires when the hot-plug adopt path detects that a returning device
-   * cannot be reopened in this JS context (the streams stay locked even
-   * after pipeTo abort + close). Subscribers — typically a top-level
-   * modal — can offer the user a one-click page reload, the only
-   * reliable way to release the SerialPort instance.
-   */
-  private portRecoveryListeners = new Set<
-    (deviceId: string, deviceName: string) => void
-  >();
 
-  private deviceTypeListeners = new Set<() => void>();
-  private devicesListeners = new Set<() => void>();
-  private inputListeners = new Set<
-    (deviceId: string, event: InputEvent) => void
-  >();
-  private statusListeners = new Set<
-    (deviceId: string, status: TransportStatus, err?: unknown) => void
-  >();
+  /**
+   * Single typed registry backing every `on*`/emit pair on the service. Each
+   * event key maps to its listener argument tuple — the public `on*` methods
+   * are thin wrappers over `events.on(...)` and the emit sites call
+   * `events.emit(...)`. The `portRecovery` event fires when the hot-plug
+   * adopt path detects a returning device that can't be reopened in this JS
+   * context (streams stay locked even after pipeTo abort + close);
+   * subscribers — typically a top-level modal — can offer a page reload, the
+   * only reliable way to release the SerialPort instance.
+   */
+  private events = new TypedListeners<{
+    deviceTypes: [];
+    devices: [];
+    pendingChoices: [];
+    input: [deviceId: string, event: InputEvent];
+    status: [deviceId: string, status: TransportStatus, err?: unknown];
+    portRecovery: [deviceId: string, deviceName: string];
+  }>();
 
   constructor(opts: ServiceOptions) {
     this.screenKey = opts.screenKey;
@@ -375,10 +375,7 @@ export class SerialDeviceService {
   }
 
   onDeviceTypesChange(cb: () => void): () => void {
-    this.deviceTypeListeners.add(cb);
-    return () => {
-      this.deviceTypeListeners.delete(cb);
-    };
+    return this.events.on("deviceTypes", cb);
   }
 
   // -------------------------------------------------------------------------
@@ -457,10 +454,7 @@ export class SerialDeviceService {
   }
 
   onDevicesChange(cb: () => void): () => void {
-    this.devicesListeners.add(cb);
-    return () => {
-      this.devicesListeners.delete(cb);
-    };
+    return this.events.on("devices", cb);
   }
 
   // -------------------------------------------------------------------------
@@ -567,10 +561,7 @@ export class SerialDeviceService {
   }
 
   onPendingChoicesChange(cb: () => void): () => void {
-    this.pendingChoicesListeners.add(cb);
-    return () => {
-      this.pendingChoicesListeners.delete(cb);
-    };
+    return this.events.on("pendingChoices", cb);
   }
 
   /**
@@ -608,24 +599,17 @@ export class SerialDeviceService {
   }
 
   private emitPendingChoicesChange(): void {
-    this.pendingChoicesListeners.forEach((cb) => {
-      cb();
-    });
+    this.events.emit("pendingChoices");
   }
 
   onPortRecoveryRequested(
     cb: (deviceId: string, deviceName: string) => void,
   ): () => void {
-    this.portRecoveryListeners.add(cb);
-    return () => {
-      this.portRecoveryListeners.delete(cb);
-    };
+    return this.events.on("portRecovery", cb);
   }
 
   private emitPortRecovery(deviceId: string, deviceName: string): void {
-    this.portRecoveryListeners.forEach((cb) => {
-      cb(deviceId, deviceName);
-    });
+    this.events.emit("portRecovery", deviceId, deviceName);
   }
 
   private capturePortInfo(managed: ManagedDevice): void {
@@ -671,19 +655,13 @@ export class SerialDeviceService {
   }
 
   onInput(cb: (deviceId: string, event: InputEvent) => void): () => void {
-    this.inputListeners.add(cb);
-    return () => {
-      this.inputListeners.delete(cb);
-    };
+    return this.events.on("input", cb);
   }
 
   onStatusChange(
     cb: (deviceId: string, status: TransportStatus, err?: unknown) => void,
   ): () => void {
-    this.statusListeners.add(cb);
-    return () => {
-      this.statusListeners.delete(cb);
-    };
+    return this.events.on("status", cb);
   }
 
   // -------------------------------------------------------------------------
@@ -760,14 +738,10 @@ export class SerialDeviceService {
   private register(instance: DeviceInstance, deviceType: DeviceType): void {
     const transport = this.transportFactory(instance, deviceType);
     const unsubInput = transport.onInput((event) => {
-      this.inputListeners.forEach((cb) => {
-        cb(instance.id, event);
-      });
+      this.events.emit("input", instance.id, event);
     });
     const unsubStatus = transport.onStatus((status, err) => {
-      this.statusListeners.forEach((cb) => {
-        cb(instance.id, status, err);
-      });
+      this.events.emit("status", instance.id, status, err);
     });
     const unsubSchema = transport.onSchema
       ? transport.onSchema((update) => {
@@ -944,14 +918,10 @@ export class SerialDeviceService {
   }
 
   private emitDeviceTypesChange(): void {
-    this.deviceTypeListeners.forEach((cb) => {
-      cb();
-    });
+    this.events.emit("deviceTypes");
   }
 
   private emitDevicesChange(): void {
-    this.devicesListeners.forEach((cb) => {
-      cb();
-    });
+    this.events.emit("devices");
   }
 }
