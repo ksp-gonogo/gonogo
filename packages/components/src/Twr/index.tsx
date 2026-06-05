@@ -12,6 +12,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { useElementSize } from "../shared/useElementSize";
 
 type TwrConfig = Record<string, never>;
 
@@ -69,19 +70,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   // Measure the gauge slot so the SVG fills it responsively. Falls back to
   // fixed defaults when ResizeObserver hasn't fired (initial render, tests).
-  const gaugeRef = useRef<HTMLDivElement>(null);
-  const [gaugeSize, setGaugeSize] = useState({ w: 200, h: 110 });
-  useEffect(() => {
-    const el = gaugeRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      if (width <= 0 || height <= 0) return;
-      setGaugeSize({ w: Math.floor(width), h: Math.floor(height) });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
 
   // Sparkline width follows its slot — fixed-pixel sparklines used to spill
   // out of narrow widget columns and overlap the title row.

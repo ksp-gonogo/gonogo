@@ -11,8 +11,9 @@ import {
   PanelTitle,
   PrimaryButton,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { useElementSize } from "../shared/useElementSize";
 import { ProfileStrip } from "./ProfileStrip";
 import {
   rateSmoothness,
@@ -51,24 +52,7 @@ function GroundSurveyComponent({
     return () => clearInterval(id);
   }, []);
 
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 320, h: 160 });
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        if (e.contentRect.width > 0 && e.contentRect.height > 0) {
-          setSize({
-            w: Math.floor(e.contentRect.width),
-            h: Math.floor(e.contentRect.height),
-          });
-        }
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { ref: wrapRef, size } = useElementSize({ w: 320, h: 160 });
 
   const verdict = rateSmoothness(survey.samples);
 

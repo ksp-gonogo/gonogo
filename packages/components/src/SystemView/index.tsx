@@ -15,8 +15,9 @@ import {
   PrimaryButton,
   Select,
 } from "@gonogo/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { useElementSize } from "../shared/useElementSize";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram } from "./SystemDiagram";
 import {
@@ -156,48 +157,14 @@ function SystemViewComponent({
 
   // Diagram column size — feeds the SVG viewBox aspect. This is the 1fr grid
   // child, so it legitimately shrinks when the side almanac mounts.
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 360, h: 280 });
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        if (e.contentRect.width > 0 && e.contentRect.height > 0) {
-          setSize({
-            w: Math.floor(e.contentRect.width),
-            h: Math.floor(e.contentRect.height),
-          });
-        }
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
 
   // Whole-tile size — drives the portrait/landscape decision. Measured on the
   // grid *container* (Body), whose border-box is fixed by `flex:1` and does NOT
   // change when the inner grid-template flips between side/bottom almanac. (If
   // orientation were derived from the diagram column instead, mounting the side
   // panel would shrink that column, flip the reading to portrait, and oscillate.)
-  const tileRef = useRef<HTMLDivElement>(null);
-  const [tileSize, setTileSize] = useState({ w: 360, h: 280 });
-  useEffect(() => {
-    const el = tileRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        if (e.contentRect.width > 0 && e.contentRect.height > 0) {
-          setTileSize({
-            w: Math.floor(e.contentRect.width),
-            h: Math.floor(e.contentRect.height),
-          });
-        }
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { ref: tileRef, size: tileSize } = useElementSize({ w: 360, h: 280 });
 
   // Selective rendering — diagram needs real area; almanac sidebar is
   // wide chrome. At small sizes collapse to a text "Frame: X" summary.
