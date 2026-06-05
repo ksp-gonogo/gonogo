@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -93,14 +94,15 @@ describe("TechTreeComponent", () => {
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
   });
 
-  it("filters to Researchable on demand", () => {
+  it("filters to Researchable on demand", async () => {
+    const user = userEvent.setup();
     render(<TechTreeComponent config={{}} id="tt" />);
     act(() => {
       source.emit("tech.nodes", SAMPLE_NODES);
       source.emit("career.science", 100);
       source.emit("kc.scene", "SpaceCenter");
     });
-    fireEvent.click(screen.getByRole("button", { name: "Researchable" }));
+    await user.click(screen.getByRole("button", { name: "Researchable" }));
     // Basic Rocketry (parent unlocked, affordable) is researchable-now.
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     // Start (owned) and Advanced Rocketry (parent locked) are filtered out.
@@ -108,14 +110,15 @@ describe("TechTreeComponent", () => {
     expect(screen.queryByText("Advanced Rocketry")).toBeNull();
   });
 
-  it("expands a node to show description, parents, and parts", () => {
+  it("expands a node to show description, parents, and parts", async () => {
+    const user = userEvent.setup();
     render(<TechTreeComponent config={{}} id="tt" />);
     act(() => {
       source.emit("tech.nodes", SAMPLE_NODES);
       source.emit("career.science", 100);
       source.emit("kc.scene", "SpaceCenter");
     });
-    fireEvent.click(screen.getByText("Basic Rocketry"));
+    await user.click(screen.getByText("Basic Rocketry"));
     expect(
       screen.getByText("How hard can Rocket Science be anyway?"),
     ).toBeInTheDocument();
@@ -124,6 +127,7 @@ describe("TechTreeComponent", () => {
   });
 
   it("arms and confirms tech.unlock with the node id", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -135,13 +139,14 @@ describe("TechTreeComponent", () => {
       source.emit("career.science", 100);
       source.emit("kc.scene", "SpaceCenter");
     });
-    fireEvent.click(screen.getByText("Basic Rocketry"));
-    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm unlock/i }));
+    await user.click(screen.getByText("Basic Rocketry"));
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+    await user.click(screen.getByRole("button", { name: /Confirm unlock/i }));
     expect(onExecute).toHaveBeenCalledWith("tech.unlock[basicRocketry]");
   });
 
-  it("renders the tiered graph at wide sizes and opens a detail dialog on click", () => {
+  it("renders the tiered graph at wide sizes and opens a detail dialog on click", async () => {
+    const user = userEvent.setup();
     render(<TechTreeComponent config={{}} id="tt" w={16} h={12} />);
     act(() => {
       source.emit("tech.nodes", SAMPLE_NODES);
@@ -150,7 +155,7 @@ describe("TechTreeComponent", () => {
     });
     // Graph cards are buttons labelled with title + state + cost.
     const card = screen.getByRole("button", { name: /Basic Rocketry/ });
-    fireEvent.click(card);
+    await user.click(card);
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     // Detail surfaces the description and the unlock control.
@@ -160,14 +165,15 @@ describe("TechTreeComponent", () => {
     expect(screen.getByRole("button", { name: "Unlock" })).toBeInTheDocument();
   });
 
-  it("disables Unlock when science is insufficient", () => {
+  it("disables Unlock when science is insufficient", async () => {
+    const user = userEvent.setup();
     render(<TechTreeComponent config={{}} id="tt" />);
     act(() => {
       source.emit("tech.nodes", SAMPLE_NODES);
       source.emit("career.science", 2);
       source.emit("kc.scene", "SpaceCenter");
     });
-    fireEvent.click(screen.getByText("Basic Rocketry"));
+    await user.click(screen.getByText("Basic Rocketry"));
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect((unlock as HTMLButtonElement).disabled).toBe(true);
   });
