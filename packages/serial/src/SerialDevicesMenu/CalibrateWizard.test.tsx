@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
@@ -86,7 +86,10 @@ describe("CalibrateWizard", () => {
       </SerialDeviceProvider>,
     );
 
-    transport.injectRawLine("512");
+    // injectRawLine delivers synchronously through the transport listener
+    // chain into a React setState, so wrap it in act() (no testing-library
+    // async equivalent for a synchronous external push).
+    act(() => transport.injectRawLine("512"));
     // Preview row reads the latest line and surfaces the normalised value.
     // 512 / 1023 → roughly centre, so we expect a normalised value near 0.
     await waitFor(() =>
@@ -135,9 +138,10 @@ describe("CalibrateWizard", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /capture range/i }));
-    transport.injectRawLine("100");
-    transport.injectRawLine("900");
-    transport.injectRawLine("500");
+    // Synchronous external pushes into React setState — wrap each in act().
+    act(() => transport.injectRawLine("100"));
+    act(() => transport.injectRawLine("900"));
+    act(() => transport.injectRawLine("500"));
 
     await user.click(screen.getByRole("button", { name: /^done$/i }));
     await user.click(screen.getByRole("button", { name: /^apply$/i }));

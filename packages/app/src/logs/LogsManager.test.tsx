@@ -1,6 +1,6 @@
 import { logger } from "@gonogo/logger";
 import { ModalProvider } from "@gonogo/ui";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LogsManager } from "./LogsManager";
@@ -38,6 +38,11 @@ async function openReportForm() {
 
 describe("LogsManager — Report bug", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {
+    // Fake timers (shouldAdvanceTime so userEvent's internal delays still
+    // run) so the post-success setTimeout(5000) that resets the form can be
+    // drained inside act() immediately after the success notice — otherwise
+    // it fires its state updates after the test ends, outside act().
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     logger.info("seed-message-for-recent-window");
     const user = await openReportForm();
 
@@ -49,6 +54,15 @@ describe("LogsManager — Report bug", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
+    });
+
+    // Drain the 5s form-reset timer NOW — immediately after the notice, before
+    // any further awaits — so it fires inside this act()-wrapped drain rather
+    // than via the background wall-clock advancer after the test ends. A
+    // deliberately-drained timer callback is a synchronous setState push with
+    // no testing-library equivalent (the rule-3 act() case).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
     });
 
     const reports = logger.getBuffer().filter((e) => e.tag === "bug-report");
@@ -113,7 +127,11 @@ describe("LogsManager — Report bug", () => {
       expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
     });
 
-    await vi.advanceTimersByTimeAsync(5000);
+    // Drain the 5s reset timer inside act() immediately after the notice so
+    // it fires here rather than via the background advancer after the test.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
 
     await waitFor(() => {
       expect(screen.queryByText(/bug report sent/i)).not.toBeInTheDocument();
