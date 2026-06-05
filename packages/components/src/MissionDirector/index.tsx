@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  formatCompactCurrency,
   getWidgetShape,
   registerComponent,
   useDataValue,
@@ -264,7 +265,7 @@ function MissionDirectorComponent({
                   <Reward>
                     <RewardLabel>FUNDS</RewardLabel>
                     <RewardValue>
-                      {formatCurrency(c.fundsCompletion)}
+                      {formatCompactCurrency(c.fundsCompletion)}
                     </RewardValue>
                   </Reward>
                 )}
@@ -408,7 +409,7 @@ function MissionDirectorComponent({
                   <Reward>
                     <RewardLabel>FUNDS</RewardLabel>
                     <RewardValue>
-                      {formatCurrency(c.fundsCompletion)}
+                      {formatCompactCurrency(c.fundsCompletion)}
                     </RewardValue>
                   </Reward>
                 )}
@@ -524,12 +525,6 @@ function CancelButton({
       Forfeit contract
     </ConfirmCancelButton>
   );
-}
-
-function formatCurrency(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
-  return value.toFixed(0);
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
