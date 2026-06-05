@@ -1,5 +1,5 @@
 import type { FlightRecord, SeriesRange } from "../types";
-import type { Store } from "./Store";
+import { FLIGHTS_DESC, type Store } from "./Store";
 
 interface SampleRow {
   t: number;
@@ -17,6 +17,11 @@ interface SampleRow {
  * for out-of-order samples (e.g. backfilled history).
  */
 export class MemoryStore implements Store {
+  // Separator between flightId and key in a bucket map key. `\u0000`
+  // prevents collisions between keys that happen to contain the flightId
+  // as a prefix.
+  private static readonly BUCKET_SEP = "\u0000";
+
   private flights = new Map<string, FlightRecord>();
   private samples = new Map<string, SampleRow[]>();
 
@@ -34,13 +39,14 @@ export class MemoryStore implements Store {
   async listFlights(): Promise<FlightRecord[]> {
     return Array.from(this.flights.values())
       .map((r) => ({ ...r }))
-      .sort((a, b) => b.launchedAt - a.launchedAt);
+      .sort(FLIGHTS_DESC);
   }
 
   async deleteFlight(id: string): Promise<void> {
     this.flights.delete(id);
     for (const key of Array.from(this.samples.keys())) {
-      if (key.startsWith(`${id}\u0000`)) this.samples.delete(key);
+      if (key.startsWith(`${id}${MemoryStore.BUCKET_SEP}`))
+        this.samples.delete(key);
     }
   }
 
@@ -102,9 +108,7 @@ export class MemoryStore implements Store {
   // --- Internal ----------------------------------------------------------
 
   private bucketKey(flightId: string, key: string): string {
-    // `\u0000` separator prevents collisions between keys that happen to
-    // contain the flightId as a prefix.
-    return `${flightId}\u0000${key}`;
+    return `${flightId}${MemoryStore.BUCKET_SEP}${key}`;
   }
 
   private bucketFor(flightId: string, key: string): SampleRow[] {

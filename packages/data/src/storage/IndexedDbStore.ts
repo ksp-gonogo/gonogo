@@ -1,6 +1,6 @@
 import { debugFlight } from "../logger";
 import type { FlightRecord, SeriesRange } from "../types";
-import type { Store } from "./Store";
+import { FLIGHTS_DESC, type Store } from "./Store";
 
 const DB_NAME = "gonogo-data";
 const DB_VERSION = 1;
@@ -42,13 +42,8 @@ export class IndexedDbStore implements Store {
   // --- Flights -----------------------------------------------------------
 
   async upsertFlight(record: FlightRecord): Promise<void> {
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(FLIGHTS_STORE, "readwrite");
+    await this.runTx(FLIGHTS_STORE, "readwrite", (tx) => {
       tx.objectStore(FLIGHTS_STORE).put(record);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
     });
   }
 
@@ -74,7 +69,7 @@ export class IndexedDbStore implements Store {
         .getAll();
       req.onsuccess = () => {
         const list = req.result as FlightRecord[];
-        list.sort((a, b) => b.launchedAt - a.launchedAt);
+        list.sort(FLIGHTS_DESC);
         resolve(list);
       };
       req.onerror = () => reject(req.error);
@@ -83,44 +78,37 @@ export class IndexedDbStore implements Store {
 
   async deleteFlight(id: string): Promise<void> {
     await this.flush();
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction([FLIGHTS_STORE, SAMPLES_STORE], "readwrite");
-      tx.objectStore(FLIGHTS_STORE).delete(id);
+    await this.runTx(
+      [FLIGHTS_STORE, SAMPLES_STORE],
+      "readwrite",
+      (tx, reject) => {
+        tx.objectStore(FLIGHTS_STORE).delete(id);
 
-      // Delete all samples with this flightId by walking the key range
-      // [id, "", -Infinity] … [id, "\uffff", Infinity] on the compound key.
-      const samples = tx.objectStore(SAMPLES_STORE);
-      const range = IDBKeyRange.bound(
-        [id, "", Number.NEGATIVE_INFINITY],
-        [id, "\uffff", Number.POSITIVE_INFINITY],
-      );
-      const cursorReq = samples.openCursor(range);
-      cursorReq.onsuccess = () => {
-        const cursor = cursorReq.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
-      cursorReq.onerror = () => reject(cursorReq.error);
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
+        // Delete all samples with this flightId by walking the key range
+        // [id, "", -Infinity] … [id, "\uffff", Infinity] on the compound key.
+        const samples = tx.objectStore(SAMPLES_STORE);
+        const range = IDBKeyRange.bound(
+          [id, "", Number.NEGATIVE_INFINITY],
+          [id, "\uffff", Number.POSITIVE_INFINITY],
+        );
+        const cursorReq = samples.openCursor(range);
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result;
+          if (cursor) {
+            cursor.delete();
+            cursor.continue();
+          }
+        };
+        cursorReq.onerror = () => reject(cursorReq.error);
+      },
+    );
   }
 
   async clearAllFlights(): Promise<void> {
     await this.flush();
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction([FLIGHTS_STORE, SAMPLES_STORE], "readwrite");
+    await this.runTx([FLIGHTS_STORE, SAMPLES_STORE], "readwrite", (tx) => {
       tx.objectStore(FLIGHTS_STORE).clear();
       tx.objectStore(SAMPLES_STORE).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
     });
   }
 
@@ -201,12 +189,28 @@ export class IndexedDbStore implements Store {
   }
 
   private async writeBatch(batch: PendingSample[]): Promise<void> {
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(SAMPLES_STORE, "readwrite");
+    await this.runTx(SAMPLES_STORE, "readwrite", (tx) => {
       const store = tx.objectStore(SAMPLES_STORE);
       for (const row of batch) store.put(row);
-      tx.oncomplete = () => resolve();
+    });
+  }
+
+  /**
+   * Open the db, start a transaction over `stores`, run `fn`, and resolve on
+   * `oncomplete` / reject on `onerror`/`onabort`. `fn` receives the live
+   * transaction plus the promise's `reject` so it can surface request-level
+   * errors (e.g. a cursor's `onerror`).
+   */
+  private async runTx<T = void>(
+    stores: string | string[],
+    mode: IDBTransactionMode,
+    fn: (tx: IDBTransaction, reject: (reason?: unknown) => void) => void,
+  ): Promise<T> {
+    const db = await this.open();
+    return new Promise<T>((resolve, reject) => {
+      const tx = db.transaction(stores, mode);
+      fn(tx, reject);
+      tx.oncomplete = () => resolve(undefined as T);
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
