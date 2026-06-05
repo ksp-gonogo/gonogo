@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -87,6 +88,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -107,11 +109,12 @@ describe("ScienceOfficerComponent", () => {
       ]);
     });
 
-    fireEvent.click(screen.getByText("Deploy"));
+    await user.click(screen.getByText("Deploy"));
     expect(onExecute).toHaveBeenCalledWith("sci.deploy[42]");
   });
 
   it("requires arm-then-confirm before transmitting an instrument's data", async () => {
+    const user = userEvent.setup();
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
@@ -132,10 +135,10 @@ describe("ScienceOfficerComponent", () => {
       ]);
     });
 
-    fireEvent.click(screen.getByText("Transmit"));
+    await user.click(screen.getByText("Transmit"));
     expect(onExecute).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText(/Confirm transmit/i));
+    await user.click(screen.getByText(/Confirm transmit/i));
     expect(onExecute).toHaveBeenCalledWith("sci.transmit[99]");
   });
 

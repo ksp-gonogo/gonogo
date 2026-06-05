@@ -1,12 +1,7 @@
 import type { DataKey } from "@gonogo/core";
 import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -90,9 +85,10 @@ describe("TargetPickerComponent", () => {
   });
 
   it("renders bodies grouped by reference body and targets on click", async () => {
+    const user = userEvent.setup();
     renderPicker();
     primeBodies();
-    fireEvent.click(screen.getByRole("button", { name: /Mun/ }));
+    await user.click(screen.getByRole("button", { name: /Mun/ }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.setTargetBody[2]");
     });
@@ -127,19 +123,21 @@ describe("TargetPickerComponent", () => {
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
-  it("filters the list as the user types", () => {
+  it("filters the list as the user types", async () => {
+    const user = userEvent.setup();
     renderPicker();
     primeBodies();
-    fireEvent.change(screen.getByLabelText("Filter bodies"), {
-      target: { value: "mun" },
-    });
+    const filter = screen.getByLabelText("Filter bodies");
+    await user.clear(filter);
+    await user.type(filter, "mun");
     expect(screen.queryByRole("button", { name: /Kerbol/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
   it("renders vessels from tar.availableVessels sorted by distance", async () => {
+    const user = userEvent.setup();
     renderPicker();
-    fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
+    await user.click(screen.getByRole("tab", { name: "Vessels" }));
     act(() => {
       source.emit("tar.availableVessels", [
         {
@@ -174,8 +172,9 @@ describe("TargetPickerComponent", () => {
   });
 
   it("clicking a vessel row fires tar.setTargetVessel with its server index", async () => {
+    const user = userEvent.setup();
     renderPicker();
-    fireEvent.click(screen.getByRole("tab", { name: "Vessels" }));
+    await user.click(screen.getByRole("tab", { name: "Vessels" }));
     act(() => {
       source.emit("tar.availableVessels", [
         {
@@ -192,13 +191,14 @@ describe("TargetPickerComponent", () => {
       expect(screen.getByText("Hubble Mk II")).toBeInTheDocument(),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Hubble/ }));
+    await user.click(screen.getByRole("button", { name: /Hubble/ }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.setTargetVessel[12]");
     });
   });
 
   it("renders current target details and clears via tar.clearTarget", async () => {
+    const user = userEvent.setup();
     renderPicker();
     act(() => {
       source.emit("tar.name", "Test Station");
@@ -206,11 +206,11 @@ describe("TargetPickerComponent", () => {
       source.emit("tar.distance", 1500);
       source.emit("tar.o.relativeVelocity", -2.5);
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+    await user.click(screen.getByRole("tab", { name: "Current" }));
     expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
     expect(screen.getByText("Vessel")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear target" }));
+    await user.click(screen.getByRole("button", { name: "Clear target" }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
     });

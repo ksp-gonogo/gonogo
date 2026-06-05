@@ -14,6 +14,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NavballComponent } from "./index";
 
@@ -104,11 +105,12 @@ describe("NavballComponent", () => {
   });
 
   it("displays the control surface and fires Telemachus actions", async () => {
+    const user = userEvent.setup();
     renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);
     });
-    fireEvent.click(screen.getByRole("button", { name: /^PRO$/ }));
+    await user.click(screen.getByRole("button", { name: /^PRO$/ }));
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("f.setSASMode[Prograde]");
     });
@@ -125,12 +127,13 @@ describe("NavballComponent", () => {
   });
 
   it("arms FBW on click and disarms on unmount", async () => {
+    const user = userEvent.setup();
     const { unmount } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     act(() => {
       source.emit("v.isControllable", true);
     });
     const armButton = screen.getByRole("button", { name: /Arm FBW/ });
-    fireEvent.click(armButton);
+    await user.click(armButton);
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("v.setFbW[1]");
     });
@@ -148,6 +151,8 @@ describe("NavballComponent", () => {
       source.emit("f.throttle", 0.25);
     });
     const slider = screen.getByRole("slider", { name: "Throttle" });
+    // Range inputs have no userEvent equivalent (type/selectOptions don't apply);
+    // fireEvent.change is the RTL-recommended way to set a slider value.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("f.setThrottle[0.750]");
