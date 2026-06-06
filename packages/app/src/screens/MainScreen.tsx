@@ -13,7 +13,6 @@ import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
-  SerialFab,
   SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
 import { BannerStack, FabClusterProvider } from "@gonogo/ui";
@@ -48,11 +47,9 @@ import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
-import { DataSourcesFab } from "../dataSources/DataSourcesFab";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
-import { LogsFab } from "../logs/LogsFab";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
 import {
   MissionProfilesFab,
@@ -220,14 +217,12 @@ export function MainScreen() {
                                     currentLayouts={dashboard.currentLayouts}
                                   />
                                   <FlightsFab />
-                                  <SerialFab />
                                   <SerialPortRecoveryWatcher />
                                   <StationLinkFab />
-                                  <LogsFab bottom={264} />
-                                  <FullscreenFab bottom={324} />
-                                  <SettingsFab bottom={384} />
+                                  <FullscreenFab bottom={204} />
+                                  <SettingsFab bottom={264} />
                                   <MissionProfilesFab
-                                    bottom={444}
+                                    bottom={324}
                                     currentItems={dashboard.items}
                                     currentLayouts={dashboard.layouts}
                                     onLoad={(p) =>
@@ -235,7 +230,6 @@ export function MainScreen() {
                                     }
                                   />
                                   <MainAlarmsFab />
-                                  <DataSourcesFab />
                                 </FabClusterProvider>
                                 <ReplayBanner />
                                 <BannerStack>
@@ -332,7 +326,7 @@ function MainAlarmsFab() {
   const bindings = useMainAlarmsBindings();
   return (
     <AlarmsFab
-      bottom={504}
+      bottom={384}
       useSnapshot={bindings.useSnapshot}
       onAdd={bindings.onAdd}
       onUpdate={bindings.onUpdate}

@@ -1,16 +1,21 @@
-import { useScreen } from "@gonogo/core";
-import { Switch } from "@gonogo/ui";
-import { useSyncExternalStore } from "react";
+import { DataSourceStatusComponent } from "@gonogo/components";
+import { useDataSources, useScreen } from "@gonogo/core";
+import { SerialDevicesMenu, useSerialAggregateStatus } from "@gonogo/serial";
+import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
+import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { LogsManager } from "../logs/LogsManager";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
 
 /**
- * Auto-renders every registered setting relevant to the current screen,
- * grouped by category. Add a new setting by calling `registerSetting()`
- * — it shows up here on next mount with no modal changes required.
+ * Tabbed settings surface. Beyond the auto-rendered registered settings
+ * (the "General" tab), this is also the home for the connection/device
+ * management that used to live in standalone FABs — Data Sources, Devices
+ * (serial), and Diagnostics. Each tab can raise an attention dot; the
+ * Settings FAB aggregates those dots into its own badge (see SettingsFab).
  */
 export function SettingsModal() {
   const screen = useScreen();
@@ -19,11 +24,76 @@ export function SettingsModal() {
   // main screen. Stations follow the host's consent over PeerJS and have
   // no local control.
   const showConsent = screen === "main";
+  // Data-source management is main-only — stations follow the host over
+  // PeerJS and have nothing to manage locally.
+  const showDataSources = screen === "main";
 
-  if (settings.length === 0 && !showConsent) {
+  const dataSources = useDataSources();
+  const dataSourceIssue =
+    showDataSources &&
+    dataSources.some(
+      (s) => s.status === "disconnected" || s.status === "error",
+    );
+  const serialStatus = useSerialAggregateStatus();
+  const serialIssue = serialStatus === "partial" || serialStatus === "error";
+
+  const hasGeneral = settings.length > 0 || showConsent;
+
+  const tabs: TabDescriptor[] = [];
+  if (hasGeneral) {
+    tabs.push({
+      id: "general",
+      label: "General",
+      content: (
+        <GeneralSettings settings={settings} showConsent={showConsent} />
+      ),
+    });
+  }
+  if (showDataSources) {
+    tabs.push({
+      id: "data-sources",
+      label: "Data Sources",
+      // Renders its own "DATA SOURCES" header, so no extra section title.
+      content: <DataSourceStatusComponent />,
+      indicator: dataSourceIssue,
+    });
+  }
+  tabs.push({
+    id: "devices",
+    label: "Devices",
+    content: <SerialDevicesMenu />,
+    indicator: serialIssue,
+  });
+  tabs.push({
+    id: "diagnostics",
+    label: "Diagnostics",
+    content: <LogsManager />,
+  });
+
+  // Open on the first tab that wants attention, else the first tab.
+  const [activeId, setActiveId] = useState(
+    () => tabs.find((t) => t.indicator)?.id ?? tabs[0]?.id ?? "general",
+  );
+
+  if (tabs.length === 0) {
     return <Empty>No settings yet on the {screen} screen.</Empty>;
   }
 
+  return (
+    <Wrap>
+      <Tabs tabs={tabs} activeId={activeId} onChange={setActiveId} />
+    </Wrap>
+  );
+}
+
+/** The auto-rendered registered settings + the privacy consent toggle. */
+function GeneralSettings({
+  settings,
+  showConsent,
+}: {
+  settings: SettingDefinition[];
+  showConsent: boolean;
+}) {
   const byCategory = new Map<string, SettingDefinition[]>();
   for (const s of settings) {
     const bucket = byCategory.get(s.category);
@@ -32,7 +102,7 @@ export function SettingsModal() {
   }
 
   return (
-    <Wrap>
+    <SectionStack>
       {[...byCategory.entries()].map(([category, items]) => (
         <Section key={category}>
           <SectionTitle>{category}</SectionTitle>
@@ -47,7 +117,7 @@ export function SettingsModal() {
           <AnalyticsConsentRow />
         </Section>
       )}
-    </Wrap>
+    </SectionStack>
   );
 }
 
@@ -113,8 +183,21 @@ function BooleanRow({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
+  /* Give the tab system a workable box: wide enough for the embedded
+     Data Sources / Devices / Diagnostics panels, and a height so a tall
+     panel scrolls within the modal rather than stretching it unbounded. */
+  min-width: 460px;
+  max-width: 80vw;
+  height: min(70vh, 640px);
+  min-height: 0;
+`;
+
+const SectionStack = styled.div`
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  min-width: 320px;
+  overflow-y: auto;
+  min-height: 0;
 `;
 
 const Section = styled.section`

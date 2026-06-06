@@ -6,6 +6,12 @@ export interface TabDescriptor {
   id: string;
   label: string;
   content: ReactNode;
+  /**
+   * When true, an attention dot is shown beside the tab label — used to
+   * point the operator at a tab whose subsystem needs attention (e.g. an
+   * offline data source). Aggregating these across tabs is the caller's job.
+   */
+  indicator?: boolean;
 }
 
 export interface TabsProps {
@@ -76,6 +82,7 @@ export function Tabs({ tabs, activeId, onChange }: Readonly<TabsProps>) {
               onKeyDown={handleKeyDown}
             >
               {tab.label}
+              {tab.indicator && <TabDot aria-hidden="true" />}
             </TabButton>
           );
         })}
@@ -100,6 +107,16 @@ const TabBar = styled.div`
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--color-border-subtle);
+`;
+
+const TabDot = styled.span`
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--color-status-warning-bg);
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`

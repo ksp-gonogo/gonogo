@@ -1,22 +1,46 @@
-import { ScreenProvider, useScreen } from "@gonogo/core";
+import { ScreenProvider, useDataSources, useScreen } from "@gonogo/core";
+import {
+  SerialDeviceProvider,
+  useSerialAggregateStatus,
+  useSerialDeviceService,
+} from "@gonogo/serial";
 import { Fab, SettingsIcon, useModal } from "@gonogo/ui";
+import styled from "styled-components";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
 
 /**
- * Settings FAB — the modal portal renders outside the SettingsProvider's
- * React tree, so we capture the service here at the call site and re-wrap.
+ * Settings FAB — the modal portal renders outside this provider tree, so we
+ * capture the services here at the call site and re-wrap inside the modal.
+ *
+ * Data-source management and serial-device management now live inside the
+ * Settings modal (they used to be their own FABs), so this button carries
+ * the aggregate "something in here needs attention" badge: an offline data
+ * source or a dropped serial device lights it, mirroring the per-tab dots.
  */
 export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const { open } = useModal();
   const service = useSettingsService();
+  const serialService = useSerialDeviceService();
   const screen = useScreen();
+
+  // Data sources only surface in Settings on the main screen, so only badge
+  // for them there. Serial devices are per-screen, so badge on both.
+  const sources = useDataSources();
+  const dataSourceIssue =
+    screen === "main" &&
+    sources.some((s) => s.status === "disconnected" || s.status === "error");
+  const serialStatus = useSerialAggregateStatus();
+  const serialIssue = serialStatus === "partial" || serialStatus === "error";
+  const hasIssue = dataSourceIssue || serialIssue;
 
   function handleClick() {
     open(
       <SettingsProvider service={service}>
         <ScreenProvider value={screen}>
-          <SettingsModal />
+          <SerialDeviceProvider service={serialService}>
+            <SettingsModal />
+          </SerialDeviceProvider>
         </ScreenProvider>
       </SettingsProvider>,
       { title: "Settings" },
@@ -27,10 +51,25 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
     <Fab
       bottom={bottom}
       onClick={handleClick}
-      aria-label="Settings"
-      title="Settings"
+      aria-label={
+        hasIssue ? "Settings (something needs attention)" : "Settings"
+      }
+      title={hasIssue ? "Something in settings needs attention" : "Settings"}
     >
       <SettingsIcon />
+      {hasIssue && <StatusDot aria-hidden="true" />}
     </Fab>
   );
 }
+
+const StatusDot = styled.span`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-status-warning-bg);
+  border: 2px solid var(--color-surface-raised);
+  pointer-events: none;
+`;
