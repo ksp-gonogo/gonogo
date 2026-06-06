@@ -17,6 +17,7 @@ import type { DataSource } from "@gonogo/core";
 import { getDataSource } from "@gonogo/core";
 import { logger } from "@gonogo/logger";
 import type { PeerHostService } from "../peer/PeerHostService";
+import { playAbortTone, playCountdownTone } from "../sound";
 
 export type Vote = "go" | "no-go" | null;
 
@@ -144,6 +145,14 @@ export class GoNoGoHostService {
         }
         const stationName = this.peerIdToName.get(peerId) ?? "Unknown station";
         this.abort = { peerId, stationName, at: Date.now() };
+        // Abort alert tone — fired alongside f.abort on the first-abort path
+        // (the re-notify branch above returns early, so a station re-sending
+        // within the same host session doesn't chime twice). The tone is
+        // deliberately coupled to f.abort: a main-screen *reload* mid-abort
+        // builds a fresh host with no abort memory and re-fires both f.abort
+        // and this tone — inherited f.abort behaviour, not introduced here.
+        // Internally gated by isSoundEnabled(); main-only.
+        playAbortTone();
         void this.dataSource?.execute("f.abort");
         this.host.broadcast({
           type: "gonogo-abort-notify",
@@ -256,6 +265,13 @@ export class GoNoGoHostService {
   private onCountdownReached(): void {
     if (!this.countdown) return;
     this.countdown = null;
+    // T-0 commit tone. Fired here (not in CountdownTone) because the
+    // component unmounts the instant the countdown clears, so a 100ms tick
+    // can't reliably observe secondsLeft === 0. This is the success path
+    // (vs. cancelCountdownIfRunning), so it only chimes on a real T-0.
+    // Internally gated by isSoundEnabled(); main-only since this service
+    // is instantiated only on MainScreen.
+    playCountdownTone(true);
     if (this.config.triggerStageAtZero) {
       void this.dataSource?.execute("f.stage");
     }

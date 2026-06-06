@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { getSharedAudioContext, isSoundEnabled, pulse } from "../sound";
 import type { Alarm } from "./types";
 
 /**
@@ -35,41 +36,14 @@ export function useFireBeep(alarms: readonly Alarm[]): void {
   }, [alarms]);
 }
 
-let sharedAudioContext: AudioContext | null = null;
 export function playAlarmTone(): void {
-  if (typeof window === "undefined") return;
-  const Ctor =
-    window.AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
-  if (!Ctor) return;
-  try {
-    if (!sharedAudioContext) sharedAudioContext = new Ctor();
-    const ctx = sharedAudioContext;
-    if (ctx.state === "suspended") void ctx.resume();
-    const now = ctx.currentTime;
-    pulse(ctx, 880, now, 0.18);
-    pulse(ctx, 660, now + 0.22, 0.22);
-  } catch {
-    // Audio might be blocked by autoplay policy on first load — silently
-    // skip; the visual banner still alerts the operator.
-  }
-}
-
-function pulse(
-  ctx: AudioContext,
-  freq: number,
-  start: number,
-  durationS: number,
-): void {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = "square";
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + durationS);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(start);
-  osc.stop(start + durationS + 0.05);
+  // MAIN-ONLY + gated: stations never call this (no useFireBeep), and the
+  // operator can mute via the "Sound effects" setting. The visual banner
+  // still alerts regardless of audio.
+  if (!isSoundEnabled()) return;
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  pulse(ctx, 880, now, 0.18);
+  pulse(ctx, 660, now + 0.22, 0.22);
 }

@@ -3,6 +3,13 @@ import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
+import type { SettingsService } from "../settings";
+import { __resetSharedAudioContextForTests } from "../sound/audio";
+import {
+  __resetSoundEnabledForTests,
+  initSoundSettings,
+} from "../sound/soundSettings";
+import { installFakeAudio, makeSoundService } from "../test/fakeAudio";
 
 // ---------------------------------------------------------------------------
 // Fakes — small stand-ins so we can drive events deterministically
@@ -126,10 +133,25 @@ describe("GoNoGoHostService", () => {
   let host: FakeHost;
   let ds: FakeDataSource;
   let svc: GoNoGoHostService;
+  let oscillators: ReturnType<typeof installFakeAudio>;
+  let unsubSound: (() => void) | null = null;
+  let soundSvc: SettingsService | null = null;
+
+  function useSound(enabled: boolean): void {
+    unsubSound?.();
+    soundSvc?.dispose();
+    soundSvc = makeSoundService(enabled);
+    unsubSound = initSoundSettings(soundSvc);
+  }
 
   beforeEach(() => {
     vi.useFakeTimers();
     clearRegistry();
+    // Sound on by default; the host fires the T-0 + abort tones internally.
+    __resetSharedAudioContextForTests();
+    oscillators = installFakeAudio();
+    __resetSoundEnabledForTests();
+    useSound(true);
     host = new FakeHost();
     ds = new FakeDataSource();
     registerDataSource(ds);
@@ -138,6 +160,11 @@ describe("GoNoGoHostService", () => {
 
   afterEach(() => {
     svc.dispose();
+    unsubSound?.();
+    unsubSound = null;
+    soundSvc?.dispose();
+    soundSvc = null;
+    __resetSoundEnabledForTests();
     vi.useRealTimers();
     clearRegistry();
   });
@@ -216,6 +243,24 @@ describe("GoNoGoHostService", () => {
     expect(ds.executed).not.toContain("f.stage");
   });
 
+  it("plays the T-0 commit tone when the countdown reaches zero", () => {
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireVote("peer-1", "go");
+    expect(oscillators).toHaveLength(0);
+    vi.advanceTimersByTime(5_001);
+    expect(oscillators.length).toBeGreaterThan(0);
+  });
+
+  it("stays silent at T-0 when sound is disabled", () => {
+    useSound(false);
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireVote("peer-1", "go");
+    vi.advanceTimersByTime(5_001);
+    expect(oscillators).toHaveLength(0);
+  });
+
   it("marks launched when v.missionTime goes positive", () => {
     expect(svc.getSnapshot().launched).toBe(false);
     ds.emit("v.missionTime", 1.5);
@@ -245,6 +290,19 @@ describe("GoNoGoHostService", () => {
     };
     expect(notify.type).toBe("gonogo-abort-notify");
     expect(notify.stationName).toBe("CAPCOM");
+  });
+
+  it("plays the abort alert tone on the genuine first abort, but not on re-notify", () => {
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "CAPCOM");
+    ds.emit("v.missionTime", 10);
+    host.fireAbort("peer-1");
+    const afterFirst = oscillators.length;
+    expect(afterFirst).toBeGreaterThan(0);
+    // A re-notification (station reconnect after host refresh) must not chime
+    // again — mirrors the f.abort no-double-fire guarantee.
+    host.fireAbort("peer-1");
+    expect(oscillators.length).toBe(afterFirst);
   });
 
   it("re-notifies (doesn't re-fire) when an already-aborted station resends", () => {
