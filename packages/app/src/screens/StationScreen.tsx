@@ -20,7 +20,6 @@ import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
-  SerialFab,
   SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
 import { BannerStack, FabClusterProvider, StatusIndicator } from "@gonogo/ui";
@@ -49,7 +48,6 @@ import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
 import { downloadLogs } from "../logs/downloadLogs";
-import { LogsFab } from "../logs/LogsFab";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
 import {
   MissionProfilesFab,
@@ -476,10 +474,9 @@ export function StationScreen() {
                                     currentLayouts={dashboard.currentLayouts}
                                   />
                                   <FlightsFab />
-                                  <SerialFab />
                                   <SerialPortRecoveryWatcher />
                                   <StationConnectionFab
-                                    bottom={204}
+                                    bottom={144}
                                     hostId={hostInput || null}
                                     connStatus={connStatus}
                                     onSwitchHost={(next) => {
@@ -502,11 +499,10 @@ export function StationScreen() {
                                       globalThis.location.assign("/station");
                                     }}
                                   />
-                                  <LogsFab bottom={264} />
-                                  <FullscreenFab bottom={324} />
-                                  <SettingsFab bottom={384} />
+                                  <FullscreenFab bottom={204} />
+                                  <SettingsFab bottom={264} />
                                   <MissionProfilesFab
-                                    bottom={444}
+                                    bottom={324}
                                     currentItems={dashboard.items}
                                     currentLayouts={dashboard.layouts}
                                     onLoad={(p) =>
@@ -514,7 +510,7 @@ export function StationScreen() {
                                     }
                                   />
                                   <AlarmsFab
-                                    bottom={504}
+                                    bottom={384}
                                     useSnapshot={useStationAlarmSnapshot}
                                     onAdd={(input) =>
                                       alarmClient.addAlarm(input)

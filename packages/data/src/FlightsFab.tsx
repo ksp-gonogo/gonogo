@@ -3,8 +3,9 @@ import { Fab, HistoryIcon, useModal } from "@gonogo/ui";
 import { FlightsManager } from "./FlightsManager";
 
 /**
- * History FAB — stacked above the SerialFab. Opens the FlightsManager
- * modal. Hidden by default; reveals with the FAB cluster on hover.
+ * History FAB — the lowest secondary in the FAB cluster (just above the
+ * add-component button). Opens the FlightsManager modal. Hidden by
+ * default; reveals with the FAB cluster on hover.
  *
  * `useScreen` is read here (FAB is mounted inside ScreenProvider) and
  * passed in as a prop because ModalProvider's portal renders above the
@@ -25,7 +26,7 @@ export function FlightsFab() {
 
   return (
     <Fab
-      bottom={144}
+      bottom={84}
       onClick={handleClick}
       aria-label="Flight history"
       title="Flight history"
