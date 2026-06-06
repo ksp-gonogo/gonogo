@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Screen probe</title>
+    <style id="probe-theme">/* injected by render-screen driver from packages/app/src/styles/global.css */</style>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-surface-app);
+        color: var(--color-text-primary);
+        font-family: var(--font-family-mono);
+      }
+      /* Unlike the widget probe, the screen owns the whole viewport. #root
+         fills it so the screen's own `min-height: 100vh` + safe-area +
+         `@media` breakpoints engage against the real page viewport (which
+         the driver resizes per breakpoint). No centering wrapper. */
+      #root {
+        box-sizing: border-box;
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./screen-entry.bundle.js"></script>
+  </body>
+</html>

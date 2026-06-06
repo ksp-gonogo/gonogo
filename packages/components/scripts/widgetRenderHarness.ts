@@ -19,6 +19,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
 const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "probe.html");
+const SCREEN_ENTRY = join(PROBE_DIR, "screen-entry.tsx");
+const SCREEN_HTML_TEMPLATE = join(PROBE_DIR, "screen-probe.html");
 const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
@@ -68,6 +70,43 @@ export interface WidgetRenderConfig {
   modes: SizeMode[];
 }
 
+/** A viewport size the screen harness renders a screen at. Unlike a widget
+ *  `SizeMode` (grid units → `#root` pixels), a screen breakpoint sizes the
+ *  whole PAGE viewport so the screen's own `@media` rules engage. */
+export interface ScreenBreakpoint {
+  /** Slug used in the output filename. */
+  name: string;
+  /** Page viewport width in CSS px. */
+  width: number;
+  /** Page viewport height in CSS px. */
+  height: number;
+  /** Emulate a touch / coarse-pointer device so `@media (pointer: coarse)`
+   *  matches. Defaults to true for sub-tablet widths. */
+  touch?: boolean;
+}
+
+/** One visual state of a screen — selects the prop set passed to the screen
+ *  view (idle / error / reconnecting). */
+export interface ScreenState {
+  /** Slug used in the output filename. */
+  name: string;
+  /** Prop set forwarded to the screen probe. Shape matches the screen view. */
+  props: Record<string, unknown>;
+}
+
+export interface ScreenRenderConfig {
+  /** Marks this as a screen entry (vs. a widget) for the unified registry. */
+  isScreen: true;
+  /** Screen id the screen-entry probe dispatches on. */
+  screenId: string;
+  /** Output directory path relative to `local_docs/`. */
+  outPath: string;
+  /** Viewport breakpoints to render every state at. */
+  breakpoints: ScreenBreakpoint[];
+  /** Visual states (prop sets) to render at every breakpoint. */
+  states: ScreenState[];
+}
+
 interface ProbeSeriesSample {
   t: number;
   v: unknown;
@@ -102,7 +141,15 @@ export async function renderWidgets(
     process.exit(1);
   }
 
-  const probeHtmlOut = await prepareProbePage(configs);
+  const slug =
+    configs.length === 1 ? (configs[0].slug ?? configs[0].widgetId) : "all";
+  const probeHtmlOut = await prepareProbePage({
+    entry: PROBE_ENTRY,
+    htmlTemplate: PROBE_HTML_TEMPLATE,
+    scriptSrcPlaceholder:
+      '<script type="module" src="./probe-entry.bundle.js"></script>',
+    slug,
+  });
 
   console.log("Launching Chromium…");
   const browser = await chromium.launch();
@@ -138,6 +185,108 @@ export async function renderWidgets(
   } finally {
     await browser.close();
   }
+}
+
+/**
+ * Render every (state × breakpoint) for one or more screen-level views in a
+ * single Chromium session. The screen-entry bundle is built once and reused.
+ *
+ * The defining difference from `renderWidgets`: a screen owns the whole
+ * viewport, so this resizes the PAGE viewport per breakpoint (and toggles
+ * touch emulation) rather than sizing `#root`. That is what makes a screen's
+ * `@media (max-width: …)` / `(pointer: coarse)` rules actually engage —
+ * those match against the viewport + device, not an element's box. A fresh
+ * browser CONTEXT is created per breakpoint because `hasTouch` is a
+ * context-level option (it can't be flipped on a live page).
+ */
+export async function renderScreens(
+  configs: ScreenRenderConfig[],
+): Promise<void> {
+  if (configs.length === 0) {
+    console.error("renderScreens: no screen configs provided");
+    process.exit(1);
+  }
+
+  const probeHtmlOut = await prepareProbePage({
+    entry: SCREEN_ENTRY,
+    htmlTemplate: SCREEN_HTML_TEMPLATE,
+    scriptSrcPlaceholder:
+      '<script type="module" src="./screen-entry.bundle.js"></script>',
+    slug: configs.length === 1 ? configs[0].screenId : "screens",
+  });
+  const probeUrl = pathToFileURL(probeHtmlOut).toString();
+
+  console.log("Launching Chromium…");
+  const browser = await chromium.launch();
+  try {
+    for (const config of configs) {
+      await renderOneScreen(browser, probeUrl, config);
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+async function renderOneScreen(
+  browser: Awaited<ReturnType<typeof chromium.launch>>,
+  probeUrl: string,
+  config: ScreenRenderConfig,
+): Promise<void> {
+  const outDir = resolve(LOCAL_DOCS, config.outPath);
+  await mkdir(outDir, { recursive: true });
+  await cleanArtifacts(outDir, ARTIFACT_EXTS);
+
+  console.log(`\n── screen: ${config.screenId} ──`);
+  let count = 0;
+  for (const bp of config.breakpoints) {
+    // hasTouch is a context-level option — a new context per breakpoint is
+    // the only way to flip coarse-pointer emulation. deviceScaleFactor=2
+    // mirrors the widget harness for crisp retina-density PNGs.
+    const touch = bp.touch ?? bp.width <= 768;
+    const context = await browser.newContext({
+      viewport: { width: bp.width, height: bp.height },
+      deviceScaleFactor: 2,
+      hasTouch: touch,
+      isMobile: touch,
+    });
+    const page = await context.newPage();
+    page.on("pageerror", (err) => {
+      console.error("  [page error]", err.message);
+    });
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        console.error("  [console error]", msg.text());
+      }
+    });
+
+    await page.goto(probeUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(
+      () =>
+        typeof (window as unknown as { __renderScreen?: unknown })
+          .__renderScreen === "function",
+      undefined,
+      { timeout: 10_000 },
+    );
+
+    for (const state of config.states) {
+      await page.evaluate(
+        (p) =>
+          (
+            window as unknown as {
+              __renderScreen: (payload: unknown) => Promise<void>;
+            }
+          ).__renderScreen(p),
+        { screenId: config.screenId, props: state.props },
+      );
+      const outName = `${state.name}--${bp.name}.png`;
+      // Full-page screenshot (not `#root`) so the captured frame is exactly
+      // the breakpoint viewport — the whole point of a screen render.
+      await page.screenshot({ path: join(outDir, outName) });
+      count++;
+    }
+    await context.close();
+  }
+  console.log(`Rendered ${count} screen shots → ${outDir}`);
 }
 
 async function renderOneWidget(
@@ -214,14 +363,26 @@ async function renderOneWidget(
   console.log(`Rendered ${count} widget shots → ${outDir}`);
 }
 
-/** Build the probe bundle, inline it into the HTML template, write to
- *  tmpdir. Returns the absolute path of the generated HTML. */
-async function prepareProbePage(
-  configs: WidgetRenderConfig[],
-): Promise<string> {
-  console.log("Bundling probe-entry with esbuild…");
+interface PreparePageOpts {
+  /** esbuild entry point (probe-entry.tsx or screen-entry.tsx). */
+  entry: string;
+  /** HTML template path with the `probe-theme` style + script placeholder. */
+  htmlTemplate: string;
+  /** The exact `<script …></script>` string in the template to replace with
+   *  the inlined bundle. */
+  scriptSrcPlaceholder: string;
+  /** Filename slug for the tmpdir HTML. */
+  slug: string;
+}
+
+/** Build a probe bundle, inline it + the theme CSS into the HTML template,
+ *  write to tmpdir. Shared by the widget and screen render paths — they
+ *  differ only in entry point + HTML template. Returns the generated HTML
+ *  path. */
+async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
+  console.log(`Bundling ${opts.entry} with esbuild…`);
   const bundleResult = await build({
-    entryPoints: [PROBE_ENTRY],
+    entryPoints: [opts.entry],
     bundle: true,
     format: "esm",
     target: "es2022",
@@ -234,7 +395,7 @@ async function prepareProbePage(
   });
   const bundleJs = bundleResult.outputFiles[0].text;
 
-  const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
+  const htmlTemplate = await readFile(opts.htmlTemplate, "utf8");
   const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
 
   // Inline-script payload may contain `</script>` (rare but possible in
@@ -246,19 +407,17 @@ async function prepareProbePage(
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(
-      '<style id="probe-theme">/* injected by render-widget driver from packages/app/src/styles/global.css */</style>',
+      /<style id="probe-theme">[\s\S]*?<\/style>/,
       () => `<style id="probe-theme">${themeCss}</style>`,
     )
     .replace(
-      '<script type="module" src="./probe-entry.bundle.js"></script>',
+      opts.scriptSrcPlaceholder,
       () => `<script type="module">${escapedBundle}</script>`,
     );
 
-  const slug =
-    configs.length === 1 ? (configs[0].slug ?? configs[0].widgetId) : "all";
   const probeHtmlOut = join(
     tmpdir(),
-    `gonogo-probe-${slug}-${process.pid}.html`,
+    `gonogo-probe-${opts.slug}-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
   return probeHtmlOut;

@@ -12,7 +12,11 @@
  *   dashboard's COL_WIDTH / ROW_HEIGHT / GRID_MARGIN constants.
  * - `config` overrides the widget's defaultConfig for that mode only.
  */
-import type { SizeMode, WidgetRenderConfig } from "./widgetRenderHarness";
+import type {
+  ScreenRenderConfig,
+  SizeMode,
+  WidgetRenderConfig,
+} from "./widgetRenderHarness";
 
 const WIDGETS: WidgetRenderConfig[] = [
   {
@@ -1077,4 +1081,93 @@ export function listWidgets(): readonly WidgetRenderConfig[] {
 export function getWidget(id: string): WidgetRenderConfig | undefined {
   const found = WIDGETS.find((w) => w.widgetId === id);
   return found ? withAutoModes(found) : undefined;
+}
+
+/**
+ * Screen-level render entries — the screen analog of WIDGETS. Each renders a
+ * full-viewport view at several device breakpoints and visual states through
+ * the shared `renderScreens` harness path (page-viewport resize + coarse
+ * pointer emulation, so the screen's own `@media` rules engage). Driven from
+ * the same `render-widget` CLI via `--screen <id>` / `--screens`.
+ *
+ * Why screens live here and not in `@gonogo/app`: the harness tooling
+ * (playwright / esbuild / tsx) and the probe entries all live in
+ * `@gonogo/components`, and app→components is the existing dependency edge —
+ * a screen driver in app would have no harness to call. The screen VIEW
+ * (`StationConnectView`) is a pure presentational component exported from
+ * `@gonogo/components` and imported back by app's StationScreen, so there is
+ * a single source of the markup the harness verifies.
+ */
+const SCREENS: ScreenRenderConfig[] = [
+  {
+    isScreen: true,
+    screenId: "station-connect",
+    outPath: "renders/station-connect-screen",
+    // 375×667 (iPhone SE / 8 class), 480×812 (the inclusive boundary of the
+    // max-width:480px rule on a tallish phone), 810×1080 (an iPad-class TOUCH
+    // device above the 480 breakpoint — proves the coarse-pointer rules don't
+    // break the still-horizontal Row), 768×1024 (the non-touch desktop
+    // control proving the wide layout still reads).
+    breakpoints: [
+      { name: "iphone-375x667", width: 375, height: 667 },
+      { name: "phone-480x812", width: 480, height: 812 },
+      // Coarse pointer + wide: max-width:480 is OFF (Row stays horizontal) but
+      // pointer:coarse is ON. Guards against a full-width button overflowing
+      // the row beside the input — the case the 768 non-touch control misses.
+      { name: "tablet-touch-810x1080", width: 810, height: 1080, touch: true },
+      // Above the 480px breakpoint and explicitly non-touch: the desktop
+      // control. If the wide layout regresses this is where it shows.
+      { name: "tablet-768x1024", width: 768, height: 1024, touch: false },
+    ],
+    states: [
+      // Fresh station, nothing typed — idle.
+      {
+        name: "idle",
+        props: {
+          hostInput: "",
+          connStatus: "idle",
+          hostNotFound: false,
+          everConnected: false,
+        },
+      },
+      // Code typed, connecting — button shows "Connecting…" + disabled.
+      {
+        name: "connecting",
+        props: {
+          hostInput: "AB3K",
+          connStatus: "connecting",
+          hostNotFound: false,
+          everConnected: false,
+        },
+      },
+      // Wrong / dead code, never connected — the hard nogo error.
+      {
+        name: "not-found",
+        props: {
+          hostInput: "ZZ9Q",
+          connStatus: "disconnected",
+          hostNotFound: true,
+          everConnected: false,
+        },
+      },
+      // Previously connected, host mid-reclaim — the softer reconnect notice.
+      {
+        name: "reconnecting",
+        props: {
+          hostInput: "AB3K",
+          connStatus: "reconnecting",
+          hostNotFound: true,
+          everConnected: true,
+        },
+      },
+    ],
+  },
+];
+
+export function listScreens(): readonly ScreenRenderConfig[] {
+  return SCREENS;
+}
+
+export function getScreen(id: string): ScreenRenderConfig | undefined {
+  return SCREENS.find((s) => s.screenId === id);
 }
