@@ -70,7 +70,7 @@ export function SceneSwitchPrompt({
   return (
     <FabPrompt
       label={`Switch to ${active.profile.name}?`}
-      acceptLabel={`Load Mission Profile ${active.profile.name}`}
+      acceptLabel={`Load layout ${active.profile.name}`}
       onAccept={() => {
         onLoad(active.profile.items, active.profile.layouts);
         setActive(null);

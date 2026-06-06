@@ -43,7 +43,7 @@ export function MissionProfilesFab({
           />
         </ScreenProvider>
       </MissionProfilesProvider>,
-      { title: "Mission Profiles" },
+      { title: "Dashboard Layouts" },
     );
   }
 
@@ -51,8 +51,8 @@ export function MissionProfilesFab({
     <Fab
       bottom={bottom}
       onClick={handleClick}
-      aria-label="Mission profiles"
-      title="Mission profiles"
+      aria-label="Dashboard layouts"
+      title="Dashboard layouts"
     >
       <LayersIcon />
     </Fab>
