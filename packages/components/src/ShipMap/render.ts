@@ -81,7 +81,7 @@ const SVG_STYLE_BLOCK = `<style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;

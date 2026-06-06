@@ -5,7 +5,7 @@ exports[`Ship Map SVG snapshots > renders an empty parts list as a placeholder 1
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
@@ -27,7 +27,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-poststage2 (minimum-su
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
@@ -49,7 +49,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-prelaunch (multi-engin
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
@@ -71,7 +71,7 @@ exports[`Ship Map SVG snapshots > renders rover-b-alone 1`] = `
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
@@ -93,7 +93,7 @@ exports[`Ship Map SVG snapshots > renders rover-merged (docked T-shape) 1`] = `
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
-  --color-text-dim: #666;
+  --color-text-dim: #808080;
   --color-text-inverse: #050505;
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
