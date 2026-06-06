@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Layout, Layouts } from "react-grid-layout";
+import { useMemo, useRef } from "react";
+import type { Layout } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import styled from "styled-components";
 import "react-grid-layout/css/styles.css";
@@ -64,69 +64,6 @@ export function GridDashboard({
   const gridRef = useRef<HTMLDivElement | null>(null);
   useScrollIntoViewOnAdd(gridRef, lastAddedId, clearLastAdded);
 
-  // Free placement: compactType=null + preventCollision lets widgets stay
-  // where they're dropped and leave gaps. The catch with null is that new
-  // widgets don't auto-find a free slot and deletes leave holes — so we flip
-  // to vertical compaction just for the duration of an add/remove (RGL then
-  // packs the new item / closes the hole), then return to free placement so
-  // the tidy-up doesn't fight the operator's manual arrangement afterwards.
-  const [compactType, setCompactType] = useState<"vertical" | null>(null);
-  const revertTimer = useRef<number | null>(null);
-
-  const clearRevert = useCallback(() => {
-    if (revertTimer.current !== null) {
-      window.clearTimeout(revertTimer.current);
-      revertTimer.current = null;
-    }
-  }, []);
-
-  const enterCompactWindow = useCallback(() => {
-    clearRevert();
-    setCompactType("vertical");
-    // Fallback revert in case the expected layout-change doesn't fire.
-    revertTimer.current = window.setTimeout(() => {
-      revertTimer.current = null;
-      setCompactType(null);
-    }, 300);
-  }, [clearRevert]);
-
-  useEffect(() => clearRevert, [clearRevert]);
-
-  // A fresh add flips lastAddedId — compact so the new widget drops into the
-  // first free slot instead of overlapping under preventCollision.
-  const prevAdded = useRef(lastAddedId);
-  useEffect(() => {
-    if (lastAddedId && lastAddedId !== prevAdded.current) {
-      enterCompactWindow();
-    }
-    prevAdded.current = lastAddedId;
-  }, [lastAddedId, enterCompactWindow]);
-
-  const handleRemove = useCallback(
-    (id: string) => {
-      enterCompactWindow();
-      removeItem(id);
-    },
-    [enterCompactWindow, removeItem],
-  );
-
-  const handleLayoutChange = useCallback(
-    (current: Layout[], all: Layouts) => {
-      onLayoutChange(current, all);
-      // Once the compaction has produced (and persisted) the tidy layout,
-      // drop back to free placement — switching to null leaves positions as
-      // they are, so there's no second jump.
-      if (compactType === "vertical") {
-        clearRevert();
-        revertTimer.current = window.setTimeout(() => {
-          revertTimer.current = null;
-          setCompactType(null);
-        }, 0);
-      }
-    },
-    [onLayoutChange, compactType, clearRevert],
-  );
-
   return (
     <div ref={gridRef}>
       <ResponsiveGridLayout
@@ -139,9 +76,16 @@ export function GridDashboard({
         containerPadding={[0, 0]}
         draggableHandle=".drag-handle"
         resizeHandles={RESIZE_HANDLES}
-        compactType={compactType}
-        preventCollision={compactType === null}
-        onLayoutChange={handleLayoutChange}
+        // Free placement: widgets stay exactly where the operator drops them
+        // and may leave gaps. `compactType={null}` disables the float-to-top,
+        // and `preventCollision` makes a drop onto an occupied cell revert
+        // instead of shoving neighbours. New widgets are placed at a computed
+        // bottom row by `addItem` (see useDashboardState) so they never land
+        // on top of an existing one; deletes leave a hole the operator can
+        // fill by dragging.
+        compactType={null}
+        preventCollision
+        onLayoutChange={onLayoutChange}
         onBreakpointChange={onBreakpointChange}
       >
         {(() => {
@@ -169,7 +113,7 @@ export function GridDashboard({
                   h={entry?.h}
                   updateItemConfig={updateItemConfig}
                   updateItemMappings={updateItemMappings}
-                  removeItem={handleRemove}
+                  removeItem={removeItem}
                 />
               </GridCell>
             );
