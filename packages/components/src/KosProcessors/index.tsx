@@ -12,7 +12,6 @@ import {
   FieldHint,
   FieldLabel,
   GhostButton,
-  PrimaryButton,
   ScrollArea,
 } from "@gonogo/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
@@ -162,9 +161,9 @@ function KosProcessorsComponent({
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-function KosProcessorsConfigComponent({
-  onSave,
-}: Readonly<ConfigComponentProps<KosProcessorsConfig>>) {
+function KosProcessorsConfigComponent(
+  _props: Readonly<ConfigComponentProps<KosProcessorsConfig>>,
+) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -200,8 +199,6 @@ function KosProcessorsConfigComponent({
           <pre>{KOS_PROCESSORS_SCRIPT}</pre>
         </ScriptBox>
       </Field>
-
-      <PrimaryButton onClick={() => onSave({})}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

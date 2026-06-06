@@ -15,10 +15,10 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
-  PrimaryButton,
   ReadoutCaption,
   Select,
   Sparkline,
+  useModalSaveBar,
   WidgetHeader,
 } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -521,8 +521,8 @@ function GraphConfigComponent({
     setThresholds((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const handleSave = () => {
-    onSave({
+  const candidate = useMemo<GraphConfig>(
+    () => ({
       ...config,
       series: seriesList.filter(
         (s) => s.key !== "" && (s.type !== "band" || (s.keyHigh ?? "") !== ""),
@@ -535,8 +535,28 @@ function GraphConfigComponent({
       yScaleSecondary,
       thresholds: thresholds.filter((t) => Number.isFinite(t.value)),
       variant,
-    });
-  };
+    }),
+    [
+      config,
+      seriesList,
+      windowSec,
+      xKey,
+      yMinPrimary,
+      yMaxPrimary,
+      yMinSecondary,
+      yMaxSecondary,
+      yScalePrimary,
+      yScaleSecondary,
+      thresholds,
+      variant,
+    ],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
 
   const seriesCount = seriesList.filter((s) => s.key !== "").length;
   const variantHint =
@@ -733,7 +753,6 @@ function GraphConfigComponent({
           + Add threshold
         </AddButton>
       </Field>
-      <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

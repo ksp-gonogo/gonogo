@@ -12,8 +12,8 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
-  PrimaryButton,
   Select,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
@@ -311,6 +311,14 @@ function SystemViewConfigComponent({
   const bodies = useCelestialBodies();
   const [frame, setFrame] = useState(config?.frame ?? "auto");
 
+  const candidate = useMemo<SystemViewConfig>(() => ({ frame }), [frame]);
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -336,7 +344,6 @@ function SystemViewConfigComponent({
           you see the whole system. Pick a specific body to pin the frame.
         </FieldHint>
       </Field>
-      <PrimaryButton onClick={() => onSave({ frame })}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

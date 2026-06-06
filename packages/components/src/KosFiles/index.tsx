@@ -11,8 +11,8 @@ import {
   FieldLabel,
   GhostButton,
   Input,
-  PrimaryButton,
   ScrollArea,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import {
   type ReactNode,
@@ -372,6 +372,17 @@ function KosFilesConfigComponent({
   const [volume, setVolume] = useState(config?.volume ?? DEFAULT_VOLUME);
   const [copied, setCopied] = useState(false);
 
+  const candidate = useMemo<KosFilesConfig>(
+    () => ({ cpu, scriptName, volume }),
+    [cpu, scriptName, volume],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   const handleCopy = () => {
     void navigator.clipboard?.writeText(KOS_FILES_SCRIPT).then(() => {
       setCopied(true);
@@ -434,10 +445,6 @@ function KosFilesConfigComponent({
           <pre>{KOS_FILES_SCRIPT}</pre>
         </ScriptBox>
       </Field>
-
-      <PrimaryButton onClick={() => onSave({ cpu, scriptName, volume })}>
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }

@@ -17,11 +17,11 @@ import {
   FieldLabel,
   Panel,
   PanelTitle,
-  PrimaryButton,
   Select,
   Switch,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 
@@ -607,6 +607,17 @@ function NavballConfigComponent({
   const [useCoMFrame, setUseCoMFrame] = useState(config?.useCoMFrame === true);
   const [controlMode, setControlMode] = useState(config?.controlMode === true);
 
+  const candidate = useMemo<NavballConfig>(
+    () => ({ useCoMFrame, controlMode }),
+    [useCoMFrame, controlMode],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -635,9 +646,6 @@ function NavballConfigComponent({
           probe core / command pod isn't aligned with the ship's geometry.
         </FieldHint>
       </Field>
-      <PrimaryButton onClick={() => onSave({ useCoMFrame, controlMode })}>
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }

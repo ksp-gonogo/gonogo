@@ -9,9 +9,9 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
-  PrimaryButton,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useElementSize } from "../shared/useElementSize";
 import { ProfileStrip } from "./ProfileStrip";
@@ -173,6 +173,22 @@ function GroundSurveyConfigComponent({
     String(config?.surveyCeilingM ?? 10_000),
   );
 
+  const candidate = useMemo<GroundSurveyConfig>(() => {
+    const freeze = Number.parseInt(freezeBelowM, 10);
+    const ceiling = Number.parseInt(surveyCeilingM, 10);
+    return {
+      freezeBelowM: Number.isFinite(freeze) && freeze > 0 ? freeze : 1000,
+      surveyCeilingM:
+        Number.isFinite(ceiling) && ceiling > 0 ? ceiling : 10_000,
+    };
+  }, [freezeBelowM, surveyCeilingM]);
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -213,19 +229,6 @@ function GroundSurveyConfigComponent({
           the verdict before final approach.
         </FieldHint>
       </Field>
-      <PrimaryButton
-        onClick={() => {
-          const freeze = Number.parseInt(freezeBelowM, 10);
-          const ceiling = Number.parseInt(surveyCeilingM, 10);
-          onSave({
-            freezeBelowM: Number.isFinite(freeze) && freeze > 0 ? freeze : 1000,
-            surveyCeilingM:
-              Number.isFinite(ceiling) && ceiling > 0 ? ceiling : 10_000,
-          });
-        }}
-      >
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }

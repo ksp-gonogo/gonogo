@@ -20,7 +20,6 @@ import {
   FieldLabel,
   Panel,
   PanelTitle,
-  PrimaryButton,
   ScrollArea,
   Spinner,
   Tabs,
@@ -438,9 +437,9 @@ function BodyTreeNode({
 
 // ── Config component ──────────────────────────────────────────────────────────
 
-function TargetPickerConfigComponent({
-  onSave,
-}: Readonly<ConfigComponentProps<TargetPickerConfig>>) {
+function TargetPickerConfigComponent(
+  _props: Readonly<ConfigComponentProps<TargetPickerConfig>>,
+) {
   return (
     <ConfigForm>
       <Field>
@@ -451,7 +450,6 @@ function TargetPickerConfigComponent({
           KSP target; click Clear in the Current tab to drop it.
         </FieldHint>
       </Field>
-      <PrimaryButton onClick={() => onSave({})}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

@@ -22,10 +22,10 @@ import {
   Input,
   Panel,
   Placeholder,
-  PrimaryButton,
   Select,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 
@@ -232,9 +232,16 @@ function ActionGroupConfigComponent({
   );
   const [label, setLabel] = useState(config?.label ?? "");
 
-  const handleSave = () => {
-    onSave({ actionGroupId, label: label.trim() || undefined });
-  };
+  const candidate = useMemo<ActionGroupConfig>(
+    () => ({ actionGroupId, label: label.trim() || undefined }),
+    [actionGroupId, label],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
 
   return (
     <ConfigForm>
@@ -263,7 +270,6 @@ function ActionGroupConfigComponent({
         />
         <FieldHint>Leave blank to use the action group name.</FieldHint>
       </Field>
-      <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

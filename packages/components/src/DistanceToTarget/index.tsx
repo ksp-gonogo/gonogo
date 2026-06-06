@@ -13,11 +13,11 @@ import {
   FieldLabel,
   Panel,
   PanelTitle,
-  PrimaryButton,
   Select,
   Switch,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 type DockingHudMode = "hud" | "hud-with-camera";
@@ -468,6 +468,21 @@ function DistanceToTargetConfigComponent({
   );
   const cameras = useKerbcamCameras();
 
+  const candidate = useMemo<DistanceToTargetConfig>(
+    () => ({
+      autoSwitch,
+      hudMode,
+      cameraFlightId: cameraFlightId ?? undefined,
+    }),
+    [autoSwitch, hudMode, cameraFlightId],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -517,17 +532,6 @@ function DistanceToTargetConfigComponent({
           </FieldHint>
         </Field>
       )}
-      <PrimaryButton
-        onClick={() =>
-          onSave({
-            autoSwitch,
-            hudMode,
-            cameraFlightId: cameraFlightId ?? undefined,
-          })
-        }
-      >
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }

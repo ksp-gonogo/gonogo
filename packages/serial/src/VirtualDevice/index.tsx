@@ -7,10 +7,10 @@ import {
   FieldLabel,
   Panel,
   Placeholder,
-  PrimaryButton,
   Select,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   useSerialDeviceService,
@@ -108,6 +108,17 @@ function VirtualDeviceConfigComponent({
     config?.deviceId ?? devices[0]?.id ?? "",
   );
 
+  const candidate = useMemo<VirtualDeviceConfig>(
+    () => ({ deviceId }),
+    [deviceId],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -132,7 +143,6 @@ function VirtualDeviceConfigComponent({
           Add a virtual device via the joystick FAB → Devices → Add device.
         </FieldHint>
       </Field>
-      <PrimaryButton onClick={() => onSave({ deviceId })}>Save</PrimaryButton>
     </ConfigForm>
   );
 }
