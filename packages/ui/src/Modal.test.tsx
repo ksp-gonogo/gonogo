@@ -48,4 +48,43 @@ describe("Modal", () => {
     if (backdrop) await user.click(backdrop);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("stays open when a selection starts inside and releases on the backdrop", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <ModalProvider>
+        <Opener onOpen={onOpen} />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement;
+    expect(backdrop).toBeTruthy();
+    // Press inside the dialog (e.g. start a text selection), release on backdrop.
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: dialog },
+      { keys: "[/MouseLeft]", target: backdrop as HTMLElement },
+    ]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("stays open when a press on the backdrop releases inside the dialog", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <ModalProvider>
+        <Opener onOpen={onOpen} />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement;
+    expect(backdrop).toBeTruthy();
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: backdrop as HTMLElement },
+      { keys: "[/MouseLeft]", target: dialog },
+    ]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
 });

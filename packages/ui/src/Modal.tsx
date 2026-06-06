@@ -99,6 +99,10 @@ interface ModalDialogProps {
 function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Only dismiss when both the press and the release land on the backdrop
+  // itself. A mousedown inside the dialog (e.g. starting a text selection) that
+  // releases over the backdrop must NOT close the modal.
+  const downOnBackdropRef = useRef(false);
 
   // Close on Escape
   useEffect(() => {
@@ -146,13 +150,22 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
         // Backdrop is interactive (click-to-close) so it can't also declare
         // role="presentation" — the two contradict. Keyboard users close via
         // the dialog's Escape handler instead of clicking the backdrop.
-        <Backdrop onClick={onClose}>
+        <Backdrop
+          onMouseDown={(e) => {
+            downOnBackdropRef.current = e.target === e.currentTarget;
+          }}
+          onMouseUp={(e) => {
+            if (downOnBackdropRef.current && e.target === e.currentTarget) {
+              onClose();
+            }
+            downOnBackdropRef.current = false;
+          }}
+        >
           <Dialog
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={entry.title ? titleId : undefined}
-            onClick={(e) => e.stopPropagation()}
             $width={entry.width}
           >
             <DialogHeader>
