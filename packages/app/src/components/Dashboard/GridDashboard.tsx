@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { useMemo, useRef } from "react";
 import type { Layout } from "react-grid-layout";
 import { Responsive, WidthProvider } from "react-grid-layout";
@@ -17,6 +18,26 @@ import { highlightStyle } from "./shared";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// RGL's `ResizeHandle` type isn't a named export, so derive the array element
+// type straight from the component's own prop signature instead.
+type ResizeHandles = NonNullable<
+  ComponentProps<typeof Responsive>["resizeHandles"]
+>;
+
+// Enable resize from every edge + corner so the cursor changes on approach
+// like an OS window. Module-level const keeps the array reference stable
+// across renders (an inline literal would re-allocate each time).
+const RESIZE_HANDLES: ResizeHandles = [
+  "s",
+  "e",
+  "se",
+  "sw",
+  "w",
+  "n",
+  "ne",
+  "nw",
+];
 
 export function GridDashboard({
   items,
@@ -54,6 +75,7 @@ export function GridDashboard({
         margin={[8, 8]}
         containerPadding={[0, 0]}
         draggableHandle=".drag-handle"
+        resizeHandles={RESIZE_HANDLES}
         onLayoutChange={onLayoutChange}
         onBreakpointChange={onBreakpointChange}
       >
