@@ -9,9 +9,9 @@ import {
   FieldLabel,
   FieldRow,
   Input,
-  PrimaryButton,
   Select,
   Switch,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
 import type { MapViewConfig } from "./types";
@@ -84,9 +84,9 @@ export function MapViewConfigComponent({
     [allKeys],
   );
 
-  const handleSave = () => {
+  const candidate = useMemo<MapViewConfig>(() => {
     const keys = numericKeys.map((k) => k.key).filter((k) => selected.has(k));
-    onSave({
+    return {
       trajectoryLength: Math.max(
         1,
         Number.parseInt(trajectoryLength, 10) || 2000,
@@ -107,8 +107,31 @@ export function MapViewConfigComponent({
         resourceLoRes: fogResLoRes,
         resourceHiRes: fogResHiRes,
       },
-    });
-  };
+    };
+  }, [
+    numericKeys,
+    selected,
+    trajectoryLength,
+    showPrediction,
+    baseLayer,
+    showHeightShading,
+    showAnomalies,
+    bodyOverride,
+    showFootprints,
+    showCoverage,
+    showAnomalyPanel,
+    fogAltLoRes,
+    fogAltHiRes,
+    fogBiome,
+    fogResLoRes,
+    fogResHiRes,
+  ]);
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
 
   return (
     <ConfigForm>
@@ -249,7 +272,6 @@ export function MapViewConfigComponent({
         />
         <FieldHint>Selected values are shown below the map.</FieldHint>
       </Field>
-      <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

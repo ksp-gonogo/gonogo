@@ -5,8 +5,8 @@ import {
   FieldLabel,
   FieldRow,
   GhostButton,
-  PrimaryButton,
   Select,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -133,6 +133,17 @@ export function InputMappingTab({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [listeningFor]);
 
+  useModalSaveBar({
+    onSave: () => onSave(draft),
+    value: draft,
+    saved: mappings,
+    extra: onClose ? (
+      <GhostButton type="button" onClick={onClose}>
+        Cancel
+      </GhostButton>
+    ) : undefined,
+  });
+
   if (actions.length === 0) {
     return (
       <Empty>
@@ -227,10 +238,6 @@ export function InputMappingTab({
           );
         })}
       </List>
-      <Actions>
-        {onClose && <GhostButton onClick={onClose}>Cancel</GhostButton>}
-        <PrimaryButton onClick={() => onSave(draft)}>Save</PrimaryButton>
-      </Actions>
     </Wrap>
   );
 }
@@ -299,10 +306,4 @@ const ListenDot = styled.span`
       opacity: 0.35;
     }
   }
-`;
-
-const Actions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 `;

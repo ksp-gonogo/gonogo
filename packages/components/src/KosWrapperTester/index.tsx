@@ -15,6 +15,7 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -287,6 +288,18 @@ function KosWrapperTesterConfigComponent({
   const [scriptPath, setScriptPath] = useState(
     config?.scriptPath ?? DEFAULT_SCRIPT_PATH,
   );
+
+  const candidate = useMemo<KosWrapperTesterConfig>(
+    () => ({ cpu, scriptPath }),
+    [cpu, scriptPath],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -309,20 +322,9 @@ function KosWrapperTesterConfigComponent({
           <code>.ver</code> sidecar for change detection.
         </FieldHint>
       </Field>
-      <FormActions>
-        <PrimaryButton onClick={() => onSave({ cpu, scriptPath })}>
-          Save
-        </PrimaryButton>
-      </FormActions>
     </ConfigForm>
   );
 }
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-`;
 
 const Hint = styled.div`
   font-size: var(--font-size-xs);

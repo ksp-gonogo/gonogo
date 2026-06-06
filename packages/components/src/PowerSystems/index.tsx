@@ -17,10 +17,10 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
-  PrimaryButton,
   ScrollArea,
   Select,
   Sparkline,
+  useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -447,6 +447,18 @@ function PowerSystemsConfigComponent({
   const [defaultResource, setDefaultResource] = useState(
     config?.defaultResource ?? "ElectricCharge",
   );
+
+  const candidate = useMemo<PowerSystemsConfig>(
+    () => ({ defaultResource: defaultResource.trim() || "ElectricCharge" }),
+    [defaultResource],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
   return (
     <ConfigForm>
       <Field>
@@ -462,15 +474,6 @@ function PowerSystemsConfigComponent({
           switch at runtime; this just sets the starting point.
         </FieldHint>
       </Field>
-      <PrimaryButton
-        onClick={() =>
-          onSave({
-            defaultResource: defaultResource.trim() || "ElectricCharge",
-          })
-        }
-      >
-        Save
-      </PrimaryButton>
     </ConfigForm>
   );
 }

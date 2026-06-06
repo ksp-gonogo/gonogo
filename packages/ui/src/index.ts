@@ -2,6 +2,7 @@ export * from "./Badge";
 export * from "./BannerPill";
 export * from "./BannerStack";
 export * from "./Button";
+export * from "./configEqual";
 export * from "./DataKeyMultiPicker";
 export * from "./DataKeyPicker";
 export * from "./DimmedOverlay";

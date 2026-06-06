@@ -12,6 +12,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
+import { GhostButton, PrimaryButton } from "./Button";
+import { configEqual } from "./configEqual";
 import { CloseIcon } from "./Icons";
 
 // ---------------------------------------------------------------------------
@@ -88,6 +90,115 @@ export function useModal(): ModalContextValue {
 }
 
 // ---------------------------------------------------------------------------
+// Chrome context — lets content rendered *inside* a modal register a sticky
+// footer (rendered outside the scrollable body) and a dirty flag that gates
+// every close path. This is the mechanism behind useModalSaveBar.
+// ---------------------------------------------------------------------------
+
+interface ModalChromeValue {
+  /** Register/replace the sticky footer node. Pass null to clear. */
+  setFooter: (node: ReactNode) => void;
+  /** Register whether the current content has unsaved changes. */
+  setDirty: (dirty: boolean) => void;
+}
+
+const ModalChromeContext = createContext<ModalChromeValue | null>(null);
+
+/**
+ * Render a sticky action footer for the enclosing modal and report unsaved
+ * changes so the modal can guard its close paths. The footer lives OUTSIDE the
+ * scrollable body, so it never scrolls out of view.
+ *
+ * Returns the rendered footer node (already portalled by the modal) — call
+ * sites render nothing inline; they just call this hook with their footer JSX.
+ */
+export function useModalChrome(footer: ReactNode, dirty: boolean): void {
+  const ctx = useContext(ModalChromeContext);
+  const setFooter = ctx?.setFooter;
+  const setDirty = ctx?.setDirty;
+
+  useEffect(() => {
+    setFooter?.(footer);
+    return () => setFooter?.(null);
+  }, [setFooter, footer]);
+
+  useEffect(() => {
+    setDirty?.(dirty);
+    return () => setDirty?.(false);
+  }, [setDirty, dirty]);
+}
+
+interface ModalSaveBarOptions<TValue> {
+  /** Fired when the user confirms the save. Typically the config's handleSave. */
+  onSave: () => void;
+  /**
+   * The working draft the form would persist on Save — the fully materialized
+   * config object. Compared against both the value at open time (the baseline)
+   * and the persisted `saved` config to derive the dirty flag.
+   */
+  value: TValue;
+  /**
+   * The currently-persisted config (the `config` prop). Used so an async data
+   * shift that reconverges the draft to a saved value reads as clean, even if
+   * it briefly diverged from the open-time baseline.
+   */
+  saved: TValue;
+  /** Save button label. Defaults to "Save". */
+  saveLabel?: ReactNode;
+  /** Optional extra buttons rendered to the left of Save (e.g. Cancel). */
+  extra?: ReactNode;
+  /**
+   * Disable the Save button. A form can be clean (nothing to discard) yet still
+   * let the user re-save, so Save is NOT auto-disabled when clean.
+   */
+  disabled?: boolean;
+}
+
+/**
+ * Drop-in replacement for an inline `<PrimaryButton onClick={handleSave}>Save`
+ * at the bottom of a config form. Renders the Save button into the modal's
+ * sticky footer (so it's always visible) and computes a dirty flag so the modal
+ * asks before discarding unsaved edits.
+ *
+ * Dirty is true only when the draft differs from BOTH the value captured when
+ * the modal opened (the baseline) AND the persisted config. The baseline guards
+ * against false positives from sparse stored configs (a default that the form
+ * materializes into a denser object would otherwise always read as dirty); the
+ * persisted-config comparison lets an async data load that reconverges the
+ * draft to a saved value settle back to clean.
+ *
+ * Renders nothing where it's called. If used outside a ModalProvider chrome
+ * (e.g. an isolated unit test), it's a no-op — callers should not rely on a
+ * fallback inline button.
+ */
+export function useModalSaveBar<TValue>(
+  options: Readonly<ModalSaveBarOptions<TValue>>,
+): void {
+  const { onSave, value, saved, saveLabel = "Save", extra, disabled } = options;
+
+  // Capture the draft as it stood when the modal opened. Wrapped in an object
+  // so a falsy/empty first value still counts as "captured".
+  const baselineRef = useRef<{ v: TValue } | null>(null);
+  if (baselineRef.current === null) baselineRef.current = { v: value };
+
+  const dirty =
+    !configEqual(value, baselineRef.current.v) && !configEqual(value, saved);
+
+  const footer = useMemo(
+    () => (
+      <>
+        {extra}
+        <PrimaryButton type="button" onClick={onSave} disabled={disabled}>
+          {saveLabel}
+        </PrimaryButton>
+      </>
+    ),
+    [extra, onSave, disabled, saveLabel],
+  );
+  useModalChrome(footer, dirty);
+}
+
+// ---------------------------------------------------------------------------
 // Dialog
 // ---------------------------------------------------------------------------
 
@@ -104,16 +215,55 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
   // releases over the backdrop must NOT close the modal.
   const downOnBackdropRef = useRef(false);
 
-  // Close on Escape
+  // Footer + dirty state registered by content via useModalChrome.
+  const [footer, setFooter] = useState<ReactNode>(null);
+  const [dirty, setDirty] = useState(false);
+  // Whether the discard-confirmation step is showing.
+  const [confirming, setConfirming] = useState(false);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  // Keep the latest dirty flag readable from event handlers without re-binding.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const confirmingRef = useRef(confirming);
+  confirmingRef.current = confirming;
+
+  const chrome = useMemo<ModalChromeValue>(() => ({ setFooter, setDirty }), []);
+
+  // Single funnel for every close path. When the content reports unsaved
+  // changes, intercept and show the discard confirmation instead of closing.
+  const requestClose = useCallback(() => {
+    if (dirtyRef.current) {
+      setConfirming(true);
+      return;
+    }
+    onClose();
+  }, [onClose]);
+
+  // Close on Escape. While the discard confirmation is open, Escape cancels
+  // the confirmation (back to editing) rather than closing the modal.
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (confirmingRef.current) {
+        e.stopPropagation();
+        setConfirming(false);
+        return;
+      }
+      requestClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [requestClose]);
 
-  // Trap focus inside dialog
+  // Move focus into the confirmation when it appears so it's immediately
+  // keyboard-operable (and the focus trap stays inside the dialog).
+  useEffect(() => {
+    if (confirming) confirmRef.current?.focus();
+  }, [confirming]);
+
+  // Trap focus inside dialog. Re-runs when the visible region swaps between the
+  // form view and the confirmation view so the trap covers whatever is shown.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `confirming` and `footer` are intentional triggers — they change the set of focusable elements.
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
@@ -140,9 +290,9 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
       }
     }
     document.addEventListener("keydown", handleTab);
-    first?.focus();
+    if (!confirming) first?.focus();
     return () => document.removeEventListener("keydown", handleTab);
-  }, []);
+  }, [confirming, footer]);
 
   return (
     <>
@@ -155,8 +305,10 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
             downOnBackdropRef.current = e.target === e.currentTarget;
           }}
           onMouseUp={(e) => {
+            // Run the existing press+release-on-backdrop detection first, then
+            // route through requestClose so the dirty guard can intercept.
             if (downOnBackdropRef.current && e.target === e.currentTarget) {
-              onClose();
+              requestClose();
             }
             downOnBackdropRef.current = false;
           }}
@@ -172,11 +324,37 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
               {entry.title && (
                 <DialogTitle id={titleId}>{entry.title}</DialogTitle>
               )}
-              <CloseButton onClick={onClose} aria-label="Close">
+              <CloseButton onClick={requestClose} aria-label="Close">
                 <CloseIcon size={16} />
               </CloseButton>
             </DialogHeader>
-            <DialogBody>{entry.content}</DialogBody>
+            <DialogBody>
+              <ModalChromeContext.Provider value={chrome}>
+                {entry.content}
+              </ModalChromeContext.Provider>
+            </DialogBody>
+            {footer && !confirming && <DialogFooter>{footer}</DialogFooter>}
+            {confirming && (
+              <DialogFooter
+                role="alertdialog"
+                aria-label="Discard unsaved changes?"
+              >
+                <DiscardPrompt>Discard unsaved changes?</DiscardPrompt>
+                <GhostButton type="button" onClick={() => setConfirming(false)}>
+                  Keep editing
+                </GhostButton>
+                <PrimaryButton
+                  ref={confirmRef}
+                  type="button"
+                  onClick={() => {
+                    setConfirming(false);
+                    onClose();
+                  }}
+                >
+                  Discard
+                </PrimaryButton>
+              </DialogFooter>
+            )}
           </Dialog>
         </Backdrop>,
         document.body,
@@ -259,4 +437,21 @@ const DialogBody = styled.div`
   /* iOS Safari momentum scrolling inside the dialog. */
   -webkit-overflow-scrolling: touch;
   flex: 1;
+`;
+
+/* Sticky action region. Lives outside DialogBody so it never scrolls away. */
+const DialogFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+`;
+
+const DiscardPrompt = styled.span`
+  margin-right: auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 `;

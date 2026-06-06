@@ -10,8 +10,8 @@ import {
   useDataValue,
   useScreen,
 } from "@gonogo/core";
-import { Field, FieldLabel, Input, PrimaryButton, Switch } from "@gonogo/ui";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { Field, FieldLabel, Input, Switch, useModalSaveBar } from "@gonogo/ui";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { VERSION } from "../version";
@@ -438,16 +438,22 @@ function GoNoGoConfigComponent({
     config?.triggerStageAtZero ?? DEFAULT_GONOGO_CONFIG.triggerStageAtZero,
   );
 
-  const handleSave = () => {
+  const candidate = useMemo<GoNoGoWidgetConfig>(() => {
     const secs = Number.parseFloat(countdownSeconds);
-    onSave({
+    return {
       countdownSeconds:
         Number.isFinite(secs) && secs > 0
           ? secs
           : DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,
       triggerStageAtZero: triggerStage,
-    });
-  };
+    };
+  }, [countdownSeconds, triggerStage]);
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
 
   return (
     <ConfigWrap>
@@ -470,7 +476,6 @@ function GoNoGoConfigComponent({
           label="Auto-trigger next stage at T-0"
         />
       </Field>
-      <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigWrap>
   );
 }

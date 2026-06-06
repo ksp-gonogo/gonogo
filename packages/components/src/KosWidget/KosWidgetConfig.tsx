@@ -10,9 +10,9 @@ import {
   FieldHint,
   FieldLabel,
   Input,
-  PrimaryButton,
+  useModalSaveBar,
 } from "@gonogo/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../kos/KosCpuPicker";
 import type { KosWidgetConfig } from "./types";
@@ -52,8 +52,8 @@ export function KosWidgetConfigComponent({
     updateArg(i, blankArg(type));
   };
 
-  const handleSave = () => {
-    onSave({
+  const candidate = useMemo<KosWidgetConfig>(
+    () => ({
       cpu: cpu.trim(),
       script: script.trim(),
       title: title.trim() || undefined,
@@ -63,8 +63,15 @@ export function KosWidgetConfigComponent({
           ? Math.max(100, Number.parseInt(intervalMs, 10) || 1000)
           : undefined,
       args,
-    });
-  };
+    }),
+    [cpu, script, title, mode, intervalMs, args],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
 
   return (
     <ConfigForm>
@@ -261,8 +268,6 @@ PRINT "[KOSDATA] dv=" + dv + ";stage=" + stage + " [/KOSDATA]".`}
           </HelpBox>
         )}
       </Field>
-
-      <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
     </ConfigForm>
   );
 }

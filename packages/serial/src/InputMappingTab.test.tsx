@@ -1,11 +1,34 @@
 import type { ActionDefinition } from "@gonogo/core";
+import { ModalProvider, useModal } from "@gonogo/ui";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
 import { SerialDeviceProvider } from "./SerialDeviceContext";
 import { SerialDeviceService } from "./SerialDeviceService";
 import type { VirtualTransport } from "./transports/VirtualTransport";
+
+// The tab's Save button now lives in the modal's sticky footer (registered via
+// useModalSaveBar), so the tab has to be rendered inside a real modal for that
+// button to exist. This helper opens the given content on mount.
+function AutoOpen({ content }: { content: ReactNode }) {
+  const { open } = useModal();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: open once on mount.
+  useEffect(() => {
+    open(content);
+  }, []);
+  return null;
+}
+
+function renderInModal(content: ReactNode) {
+  return render(
+    <ModalProvider>
+      <AutoOpen content={content} />
+    </ModalProvider>,
+  );
+}
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -73,7 +96,7 @@ describe("InputMappingTab press-to-map", () => {
     const onSave = vi.fn();
     const user = userEvent.setup();
 
-    render(
+    renderInModal(
       <SerialDeviceProvider service={svc}>
         <InputMappingTab
           actions={[buttonAction]}
@@ -110,7 +133,7 @@ describe("InputMappingTab press-to-map", () => {
     const onSave = vi.fn();
     const user = userEvent.setup();
 
-    render(
+    renderInModal(
       <SerialDeviceProvider service={svc}>
         <InputMappingTab
           actions={[analogAction]}
