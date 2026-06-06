@@ -1,5 +1,5 @@
 import { ACTION_GROUPS, useDataValue } from "@gonogo/core";
-import { useDataSchema } from "@gonogo/data";
+import { useDataSchema, useManeuverNodes } from "@gonogo/data";
 import {
   Badge,
   DataKeyPicker,
@@ -364,6 +364,8 @@ export function AlarmsModal({
         )}
       </Section>
 
+      <RecommendedPresets snapshotRef={snapshotRef} onAdd={onAdd} />
+
       <Section>
         <SectionTitle>Scheduled ({sorted.length})</SectionTitle>
         {sorted.length === 0 ? (
@@ -488,6 +490,143 @@ export function AlarmsModal({
         )}
       </Section>
     </Wrap>
+  );
+}
+
+/**
+ * A single quick-alarm preset: a label, the live value that determines
+ * both visibility and the resulting UT, and how to derive the trigger UT.
+ */
+interface PresetSpec {
+  id: string;
+  label: string;
+  /**
+   * Compute the absolute trigger UT from the freshest snapshot UT, or
+   * null when the underlying data isn't usable (off / on the pad / no
+   * node). A null result hides the preset entirely.
+   */
+  computeUt: (utNow: number) => number | null;
+}
+
+/**
+ * "Recommended" quick-time-alarm presets backed only by telemetry the app
+ * already subscribes to (`o.timeToAp`, `o.timeToPe`, `o.maneuverNodes`).
+ * Each preset appears only when its data is live and yields a future UT;
+ * clicking it creates a notify-only time alarm via the same `onAdd` path
+ * the manual form uses. It deliberately does NOT start a warp-to session —
+ * the operator drives that from the banner's existing affordance.
+ */
+function RecommendedPresets({
+  snapshotRef,
+  onAdd,
+}: {
+  snapshotRef: React.MutableRefObject<AlarmSnapshot>;
+  onAdd: AlarmsModalProps["onAdd"];
+}) {
+  // `o.timeToAp` / `o.timeToPe` are seconds-from-now; the maneuver node UT
+  // is absolute. We read them live so a preset reflects the current orbit
+  // at the moment of the click.
+  const timeToAp = useDataValue<number>("data", "o.timeToAp");
+  const timeToPe = useDataValue<number>("data", "o.timeToPe");
+  const nodes = useManeuverNodes();
+  const [open, setOpen] = useState(false);
+
+  const utNow = snapshotRef.current.ut;
+  // Soonest still-future maneuver node. A lingering past node is ignored so
+  // the preset never schedules an alarm in the past.
+  const nextNodeUt =
+    utNow !== null
+      ? (nodes
+          .map((n) => n.UT)
+          .filter((u) => Number.isFinite(u) && u > utNow)
+          .sort((a, b) => a - b)[0] ?? null)
+      : null;
+
+  const presets: PresetSpec[] = [
+    {
+      id: "apoapsis",
+      label: "Warp to apoapsis",
+      computeUt: (now) =>
+        typeof timeToAp === "number" &&
+        Number.isFinite(timeToAp) &&
+        timeToAp > 0
+          ? now + timeToAp
+          : null,
+    },
+    {
+      id: "periapsis",
+      label: "Warp to periapsis",
+      computeUt: (now) =>
+        typeof timeToPe === "number" &&
+        Number.isFinite(timeToPe) &&
+        timeToPe > 0
+          ? now + timeToPe
+          : null,
+    },
+    {
+      id: "maneuver",
+      label: "Warp to next maneuver",
+      computeUt: () => nextNodeUt,
+    },
+  ];
+
+  // Each preset must read a fresh UT at click time (snapshotRef), not the
+  // render-time `utNow`, for the same stale-anchor reason as the manual
+  // path. Visibility, however, can use the render-time `utNow` — the modal
+  // re-renders every tick.
+  const createPreset = (preset: PresetSpec) => {
+    const liveUt = snapshotRef.current.ut;
+    if (liveUt === null) return;
+    const ut = preset.computeUt(liveUt);
+    if (ut === null || !Number.isFinite(ut) || ut <= liveUt) return;
+    onAdd({
+      name: preset.label,
+      trigger: { kind: "time", ut, leadSeconds: DEFAULT_LEAD_SECONDS },
+    });
+  };
+
+  // Only presets whose data is live (and yield a future UT) are offered.
+  // Pair each with its render-time UT so the button can show a T−countdown.
+  const available =
+    utNow === null
+      ? []
+      : presets.flatMap((p) => {
+          const ut = p.computeUt(utNow);
+          if (ut === null || !Number.isFinite(ut) || ut <= utNow) return [];
+          return [{ preset: p, ut }];
+        });
+
+  if (available.length === 0) return null;
+
+  return (
+    <PresetSection>
+      <PresetSummary
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <PresetCaret aria-hidden="true">{open ? "▾" : "▸"}</PresetCaret>
+        Recommended ({available.length})
+      </PresetSummary>
+      {open && (
+        <PresetList>
+          {available.map(({ preset, ut }) => (
+            <PresetButton
+              key={preset.id}
+              type="button"
+              onClick={() => createPreset(preset)}
+            >
+              <PresetButtonLabel>{preset.label}</PresetButtonLabel>
+              {utNow !== null && (
+                <PresetButtonHint>
+                  {formatUt(ut)} · T−{formatSeconds(ut - utNow)}
+                </PresetButtonHint>
+              )}
+            </PresetButton>
+          ))}
+        </PresetList>
+      )}
+    </PresetSection>
   );
 }
 
@@ -771,6 +910,75 @@ const OpSelect = styled.select`
 const WaitingNote = styled.div`
   color: var(--color-text-muted);
   font-size: 11px;
+`;
+
+const PresetSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const PresetSummary = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  &:hover {
+    color: var(--color-status-go-fg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const PresetCaret = styled.span`
+  font-size: 10px;
+  line-height: 1;
+`;
+
+const PresetList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const PresetButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-raised);
+  border-radius: 3px;
+  cursor: pointer;
+  &:hover {
+    border-color: var(--color-status-go-bg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const PresetButtonLabel = styled.span`
+  font-size: 13px;
+  color: var(--color-status-go-fg);
+`;
+
+const PresetButtonHint = styled.span`
+  font-size: 11px;
+  color: var(--color-text-muted);
 `;
 
 const AddedNote = styled.div`
