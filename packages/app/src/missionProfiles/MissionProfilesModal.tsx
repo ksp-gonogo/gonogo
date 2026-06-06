@@ -161,14 +161,14 @@ export function MissionProfilesModal({
         <Button
           type="button"
           onClick={() => setPendingLoad(p)}
-          title="Replace the current dashboard with this profile"
+          title="Replace the current dashboard with this layout"
         >
           Load
         </Button>
         <GhostButton
           type="button"
           onClick={() => handleOverwrite(p)}
-          title="Overwrite this profile with the current dashboard"
+          title="Overwrite this layout with the current dashboard"
         >
           Overwrite
         </GhostButton>
@@ -227,7 +227,7 @@ export function MissionProfilesModal({
             title={
               newBindings.length === 0
                 ? "Pick at least one scene to enable auto-switch"
-                : "Skip the prompt and load this profile immediately on a matching scene"
+                : "Skip the prompt and load this layout immediately on a matching scene"
             }
           >
             <Switch
@@ -246,9 +246,9 @@ export function MissionProfilesModal({
       </Section>
 
       <Section>
-        <SectionTitle>Saved profiles</SectionTitle>
+        <SectionTitle>Saved layouts</SectionTitle>
         {profiles.length === 0 ? (
-          <Empty>No saved profiles yet for this screen.</Empty>
+          <Empty>No saved layouts yet for this screen.</Empty>
         ) : (
           <List>
             {profiles.map((p) => (
@@ -293,7 +293,7 @@ export function MissionProfilesModal({
                   title={
                     (p.sceneBindings?.length ?? 0) === 0
                       ? "Tag at least one scene to enable auto-switch"
-                      : "Skip the prompt and load this profile immediately on a matching scene"
+                      : "Skip the prompt and load this layout immediately on a matching scene"
                   }
                 >
                   <Switch
