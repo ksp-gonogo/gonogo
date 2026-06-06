@@ -5,6 +5,7 @@ import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
@@ -63,6 +64,11 @@ export function SettingsModal() {
     label: "Devices",
     content: <SerialDevicesMenu />,
     indicator: serialIssue,
+  });
+  tabs.push({
+    id: "backup",
+    label: "Backup & Restore",
+    content: <BackupManager />,
   });
   tabs.push({
     id: "diagnostics",
