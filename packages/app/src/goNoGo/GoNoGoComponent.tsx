@@ -14,6 +14,7 @@ import { Field, FieldLabel, Input, Switch, useModalSaveBar } from "@gonogo/ui";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
+import { playCountdownTone } from "../sound";
 import { VERSION } from "../version";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
@@ -268,6 +269,39 @@ export function CountdownAnnouncer({
   );
 }
 
+/**
+ * Fires a short audio blip on each whole-second countdown tick (T-9…T-1).
+ * The distinct T-0 commit tone is emitted by GoNoGoHostService (see the
+ * guard below). MAIN-ONLY (rendered only inside MainView) and gated by the
+ * "Sound effects" setting via playCountdownTone. Pairs with the on-screen
+ * CountdownBanner so audio is never the only cue.
+ *
+ * Renders nothing — it's a side-effect-only companion. Tracks the last
+ * whole second in a ref so the 10 Hz parent tick doesn't double-fire.
+ */
+export function CountdownTone({
+  secondsLeft,
+}: Readonly<{ secondsLeft: number }>) {
+  const lastWholeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const whole = Math.ceil(secondsLeft);
+    if (lastWholeRef.current === whole) return;
+    // Skip the very first observed value so mounting mid-countdown (e.g. a
+    // hot reload) doesn't fire a spurious blip for whatever second we land on.
+    const isFirst = lastWholeRef.current === null;
+    lastWholeRef.current = whole;
+    if (isFirst) return;
+    // T-0 is emitted by GoNoGoHostService.onCountdownReached — the component
+    // unmounts the instant the countdown clears, so we can't reliably observe
+    // secondsLeft === 0 here. Only emit the per-second blips (9…1).
+    if (whole === 0) return;
+    playCountdownTone(false);
+  }, [secondsLeft]);
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Main view
 // ---------------------------------------------------------------------------
@@ -342,6 +376,7 @@ function MainView({
           {secondsLeft !== null && (
             <CountdownAnnouncer secondsLeft={secondsLeft} />
           )}
+          {secondsLeft !== null && <CountdownTone secondsLeft={secondsLeft} />}
         </>
       )}
       {abort && (

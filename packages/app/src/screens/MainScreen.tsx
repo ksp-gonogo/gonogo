@@ -69,6 +69,7 @@ import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
 import { SettingsFab, SettingsProvider, SettingsService } from "../settings";
+import { initSoundSettings } from "../sound";
 import { DEMO_CONFIG } from "./demoConfig";
 
 // ---------------------------------------------------------------------------
@@ -138,6 +139,11 @@ export function MainScreen() {
     fogSyncHost.start();
     return () => fogSyncHost.stop();
   }, [fogSyncHost]);
+
+  // Prime the module-scoped sound flag from the persisted setting and keep
+  // it in sync. MAIN-ONLY — StationScreen never calls this, so station
+  // tones stay structurally impossible. Default ON.
+  useEffect(() => initSoundSettings(settingsService), [settingsService]);
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({
