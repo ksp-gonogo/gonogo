@@ -14,31 +14,80 @@ interface FabProps
  * FabClusterProvider is active, so the host + and existing FABs appear
  * as a single hoverable cluster. Used for the flight-history, serial,
  * and station-link buttons.
+ *
+ * When the cluster is active a persistent text label (Material Speed Dial
+ * `tooltipOpen` style) slides in to the LEFT of the round button. The label
+ * text is derived from `aria-label` (falling back to `title`) and is marked
+ * `aria-hidden` since the button already carries the accessible name.
  */
 export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
   const cluster = useFabCluster();
   const visible = cluster?.active ?? true;
+  const label =
+    (rest["aria-label"] as string | undefined) ??
+    (rest.title as string | undefined);
 
   return (
-    <StyledFab
+    <FabRow
       $visible={visible}
       $bottom={bottom}
       onMouseEnter={cluster?.onMouseEnter}
       onMouseLeave={cluster?.onMouseLeave}
       onFocus={cluster?.onFocus}
       onBlur={cluster?.onBlur}
-      tabIndex={visible ? 0 : -1}
-      {...rest}
     >
-      {children}
-    </StyledFab>
+      {label ? (
+        <FabLabel $visible={visible} aria-hidden="true">
+          {label}
+        </FabLabel>
+      ) : null}
+      <StyledFab $visible={visible} tabIndex={visible ? 0 : -1} {...rest}>
+        {children}
+      </StyledFab>
+    </FabRow>
   );
 }
 
-const StyledFab = styled.button<{ $visible: boolean; $bottom: number }>`
+/**
+ * Fixed-position row anchored to the same bottom/right as the old standalone
+ * button. The round button keeps its exact on-screen position and size: it is
+ * the tallest item, so `align-items: center` + `bottom`-anchoring places its
+ * bottom edge at `$bottom` and its right edge at `right: 24px`, identical to
+ * before. The label sits to its left and never affects the button's position.
+ */
+const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   position: fixed;
   bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));
   right: calc(24px + env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  z-index: 900;
+  pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
+`;
+
+const FabLabel = styled.span<{ $visible: boolean }>`
+  pointer-events: none;
+  white-space: nowrap;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+`;
+
+const StyledFab = styled.button<{ $visible: boolean }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -50,7 +99,7 @@ const StyledFab = styled.button<{ $visible: boolean; $bottom: number }>`
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  z-index: 900;
+  flex: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
