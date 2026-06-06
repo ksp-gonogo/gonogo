@@ -171,7 +171,7 @@ describe("ActionGroup component", () => {
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
   });
 
-  it("shows no toggle button for a read-only group (Precision Control)", async () => {
+  it("shows a disabled toggle for a read-only group (Precision Control)", async () => {
     setupTelemachus({ "v.precisionControlValue": false });
     await telemachusSource.connect();
     render(
@@ -187,10 +187,11 @@ describe("ActionGroup component", () => {
     await waitFor(() =>
       expect(screen.getByText("Precision Control")).toBeInTheDocument(),
     );
-    // The rename handle has role="button" too; assert only the toggle is absent.
+    // The state pill is now a toggle button at every size, but a read-only
+    // group (no toggle action) renders it disabled so it can't be actioned.
     expect(
-      screen.queryByRole("button", { name: /toggle/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /toggle precision control/i }),
+    ).toBeDisabled();
   });
 
   it("clears state to unknown when the connection drops", async () => {
