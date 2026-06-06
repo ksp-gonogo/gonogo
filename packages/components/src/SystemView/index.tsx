@@ -1,4 +1,8 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
+import type {
+  ComponentProps,
+  ConfigComponentProps,
+  OrbitPatch,
+} from "@gonogo/core";
 import {
   registerComponent,
   resolveTargetName,
@@ -17,8 +21,10 @@ import {
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { quantiseUt } from "../MapView/predictionThrottle";
 import { useElementSize } from "../shared/useElementSize";
 import { AlmanacPanel } from "./AlmanacPanel";
+import { scanEncounters } from "./predictedTrajectory";
 import { SystemDiagram } from "./SystemDiagram";
 import {
   angleDelta,
@@ -65,6 +71,10 @@ function SystemViewComponent({
   const encounterTime = useDataValue("data", "o.encounterTime");
   const nextApsisTypeRaw = useDataValue("data", "o.nextApsisType");
   const timeToNextApsis = useDataValue("data", "o.timeToNextApsis");
+  // Multi-SOI predicted trajectory — reuses the same patched-conic data that
+  // MapView consumes (o.orbitPatches), projected onto the top-down diagram.
+  const orbitPatches = useDataValue<OrbitPatch[]>("data", "o.orbitPatches");
+  const universalTime = useDataValue("data", "t.universalTime");
   const vesselOrbit =
     typeof vesselBody === "string" &&
     typeof vSma === "number" &&
@@ -81,6 +91,29 @@ function SystemViewComponent({
       : null;
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody ?? null);
+
+  // Predicted trajectory input for the diagram. Throttle `ut` into 1s buckets
+  // (same as MapView) so the patch projection only re-runs ~1/sec, not on
+  // every Telemachus tick — the orbit shape doesn't change between ticks.
+  const utBucket = quantiseUt(
+    typeof universalTime === "number" ? universalTime : undefined,
+    1,
+  );
+  const predicted = useMemo(
+    () =>
+      Array.isArray(orbitPatches) && orbitPatches.length > 0
+        ? { orbitPatches, ut: utBucket }
+        : null,
+    [orbitPatches, utBucket],
+  );
+  // Every future SOI crossing from the patch data — the multi-SOI source of
+  // truth for the almanac text. Richer than the single-event o.encounter* keys
+  // because the patch list covers the whole patched-conic chain.
+  const patchEncounters = useMemo(
+    () =>
+      predicted ? scanEncounters(predicted.orbitPatches, predicted.ut) : [],
+    [predicted],
+  );
 
   // Children of the chosen frame — the only bodies actually drawn. Phase
   // angles only get subscribed for these, so the b.o.phaseAngle[i] sub
@@ -126,6 +159,19 @@ function SystemViewComponent({
     [bodies, vesselBody],
   );
   const panelBody = focusedBody ?? vesselBodyRecord;
+  // Patch-derived encounter for the panel body, if the predicted trajectory
+  // crosses into (or out of) its SOI. Preferred over the single o.encounter*
+  // keys because it surfaces *any* future encounter with the focused body, not
+  // just the vessel's immediate next one.
+  const nowUt = typeof universalTime === "number" ? universalTime : null;
+  const panelPatchEncounter = useMemo(() => {
+    if (panelBody?.name == null) return null;
+    const target = panelBody.name.trim().toLowerCase();
+    return (
+      patchEncounters.find((e) => e.body.trim().toLowerCase() === target) ??
+      null
+    );
+  }, [patchEncounters, panelBody]);
   const panelPhaseAngle =
     panelBody && phaseAngles.has(panelBody.index)
       ? (phaseAngles.get(panelBody.index) ?? null)
@@ -196,7 +242,11 @@ function SystemViewComponent({
           ? "Waiting for Telemachus body data…"
           : parentName === null
             ? "Pick a frame in the widget config."
-            : `Frame: ${parentName}`}
+            : patchEncounters.length > 0
+              ? `Frame: ${parentName} · next ${
+                  patchEncounters[0].kind === "escape" ? "escape" : "encounter"
+                }: ${patchEncounters[0].body}`
+              : `Frame: ${parentName}`}
       </PanelSubtitle>
       {showDiagram ? (
         <Body
@@ -216,6 +266,7 @@ function SystemViewComponent({
                 phaseAngles={phaseAngles}
                 transferStatuses={transferStatuses}
                 onFocusBodyChange={setFocusedBody}
+                predicted={predicted}
                 width={size.w}
                 height={size.h}
               />
@@ -230,18 +281,27 @@ function SystemViewComponent({
               hohmannIdealDeg={panelHohmann?.ideal ?? null}
               hohmannDeltaDeg={panelHohmann?.delta ?? null}
               encounterDirection={
-                typeof encounterExists === "number" &&
-                encounterExists !== 0 &&
-                typeof encounterBody === "string" &&
-                panelBody !== null &&
-                panelBody.name === encounterBody
-                  ? encounterExists === -1
-                    ? "escape"
-                    : "encounter"
-                  : null
+                // Prefer the patch-derived encounter (multi-SOI: any future
+                // crossing with the focused body); fall back to the single
+                // o.encounter* keys for the vessel's immediate next event.
+                panelPatchEncounter !== null
+                  ? panelPatchEncounter.kind
+                  : typeof encounterExists === "number" &&
+                      encounterExists !== 0 &&
+                      typeof encounterBody === "string" &&
+                      panelBody !== null &&
+                      panelBody.name === encounterBody
+                    ? encounterExists === -1
+                      ? "escape"
+                      : "encounter"
+                    : null
               }
               encounterTimeSec={
-                typeof encounterTime === "number" ? encounterTime : null
+                panelPatchEncounter !== null && nowUt !== null
+                  ? panelPatchEncounter.ut - nowUt
+                  : typeof encounterTime === "number"
+                    ? encounterTime
+                    : null
               }
               nextApsisType={
                 nextApsisTypeRaw === -1 || nextApsisTypeRaw === 1
@@ -429,6 +489,8 @@ registerComponent<SystemViewConfig>({
     "o.encounterTime",
     "o.nextApsisType",
     "o.timeToNextApsis",
+    "o.orbitPatches",
+    "t.universalTime",
   ],
   defaultConfig: { frame: "auto" },
   actions: [],

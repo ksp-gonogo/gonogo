@@ -1,4 +1,4 @@
-import { getBody } from "@gonogo/core";
+import { getBody, type OrbitPatch } from "@gonogo/core";
 import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -10,6 +10,12 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import {
+  type PredictedTrajectory,
+  type ProjectedPatch,
+  type ProjectedPoint,
+  predictTrajectory,
+} from "./predictedTrajectory";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
@@ -76,6 +82,14 @@ export interface SystemDiagramProps {
    * leaves all dots.
    */
   onFocusBodyChange?: (body: CelestialBody | null) => void;
+  /**
+   * Multi-SOI predicted trajectory from `o.orbitPatches`. When supplied, each
+   * patch orbiting the rendered frame body (or a drawn child) is sampled and
+   * projected onto the diagram: the live patch is drawn solid green, upcoming
+   * patches dashed and de-emphasised, and SOI crossings get an encounter
+   * marker. `ut` is the current universal time, used to find the live patch.
+   */
+  predicted?: { orbitPatches: readonly OrbitPatch[]; ut: number } | null;
   width: number;
   height: number;
 }
@@ -93,6 +107,7 @@ export function SystemDiagram({
   phaseAngles,
   transferStatuses,
   onFocusBodyChange,
+  predicted,
   width,
   height,
 }: SystemDiagramProps) {
@@ -100,6 +115,55 @@ export function SystemDiagram({
     () => organise(bodies, parentName),
     [bodies, parentName],
   );
+
+  // Plot scale (metres → px). Independent of zoom/pan — those are applied via
+  // the SVG viewBox — so it only changes when the frame, geometry, or tile
+  // size do. Lifted above the empty-state return so the trajectory memo can
+  // depend on it without violating the rules of hooks.
+  const plotScale = useMemo(() => {
+    const baseRadius = Math.min(width, height) / 2 - PAD;
+    const effectiveMax = Math.max(
+      maxRadius,
+      vessel && nameMatches(vessel.parentName, parentName)
+        ? vessel.sma * (1 + Math.min(vessel.ecc, 0.999))
+        : 0,
+    );
+    return effectiveMax > 0 ? baseRadius / effectiveMax : 1;
+  }, [width, height, maxRadius, vessel, parentName]);
+
+  // Predicted multi-SOI trajectory. Memoised so panning/zooming/hovering —
+  // which re-render the SVG — don't re-run the Kepler propagation. Only a new
+  // patch set, a new `ut` bucket (parent throttles to 1 Hz), a frame change, or
+  // a geometry/size change invalidates it. Child offsets are the drawn moon
+  // positions so an encounter patch plots in that moon's local frame.
+  const trajectory = useMemo<PredictedTrajectory | null>(() => {
+    if (!predicted || predicted.orbitPatches.length === 0 || plotScale <= 0) {
+      return null;
+    }
+    const childOffsets = new Map<string, ProjectedPoint>();
+    for (const c of children) {
+      const sma = c.semiMajorAxis ?? 0;
+      if (sma <= 0 || c.name === null) continue;
+      childOffsets.set(
+        c.name,
+        bodyPosition(
+          sma,
+          c.eccentricity ?? 0,
+          c.lan ?? 0,
+          c.argumentOfPeriapsis ?? 0,
+          c.trueAnomaly ?? 0,
+          plotScale,
+        ),
+      );
+    }
+    return predictTrajectory({
+      patches: predicted.orbitPatches,
+      parentName,
+      ut: predicted.ut,
+      scale: plotScale,
+      childOffsets,
+    });
+  }, [predicted, plotScale, children, parentName]);
 
   // Zoom + pan state — kept above the empty-state return so the hook
   // count stays stable across renders.
@@ -207,18 +271,6 @@ export function SystemDiagram({
     );
   }
 
-  const baseRadius = Math.min(width, height) / 2 - PAD;
-  // Ensure the vessel orbit (if relevant to this frame) fits — if the
-  // vessel's apoapsis exceeds the largest child orbit, scale to it
-  // instead so the dot doesn't fall off-frame.
-  const effectiveMax = Math.max(
-    maxRadius,
-    vessel && nameMatches(vessel.parentName, parentName)
-      ? vessel.sma * (1 + Math.min(vessel.ecc, 0.999))
-      : 0,
-  );
-  const plotScale = effectiveMax > 0 ? baseRadius / effectiveMax : 1;
-
   // ViewBox is origin-centred so all orbital math operates around (0, 0).
   const halfW = width / 2 / zoom;
   const halfH = height / 2 / zoom;
@@ -300,6 +352,13 @@ export function SystemDiagram({
             </g>
           );
         })}
+
+        {/* Predicted multi-SOI trajectory — patch arcs. Drawn under the body
+            dots and vessel marker so they read as background path. The live
+            patch is solid green; upcoming patches are dashed + de-emphasised. */}
+        {trajectory?.patches.map((patch) => (
+          <PredictedPatchArc key={`pred-${patch.patchIndex}`} patch={patch} />
+        ))}
 
         {/* Vessel orbit (if any) — same focus-correct geometry. */}
         {showVessel && (
@@ -424,6 +483,19 @@ export function SystemDiagram({
             </g>
           );
         })}
+
+        {/* Encounter / escape markers — SOI crossings on the predicted path.
+            Drawn above the arcs and body dots so they're unmistakable. */}
+        {trajectory?.encounters.map((enc) => (
+          <EncounterMarker
+            key={`enc-${enc.patchIndex}`}
+            x={enc.x}
+            y={enc.y}
+            kind={enc.kind}
+            body={enc.body}
+            zoom={zoom}
+          />
+        ))}
 
         {/* Vessel marker — drawn last so it's always on top. */}
         {showVessel && (
@@ -582,6 +654,83 @@ function VesselMarker({
       />
     </g>
   );
+}
+
+function PredictedPatchArc({ patch }: Readonly<{ patch: ProjectedPatch }>) {
+  if (patch.points.length < 2) return null;
+  const d = pointsToPath(patch.points);
+  // Live patch: solid bright green (matches the vessel accent). Upcoming
+  // patches: dashed, dimmer info-blue, colour-coded by event so an
+  // encounter (warm) reads differently from an escape (cool/faint).
+  const stroke = patch.isCurrent
+    ? "var(--color-accent-fg)"
+    : patch.startEncounter === "escape"
+      ? "var(--color-status-info-fg)"
+      : "var(--color-status-warning-bg)";
+  return (
+    <path
+      d={d}
+      fill="none"
+      stroke={stroke}
+      strokeWidth={patch.isCurrent ? 1.6 : 1.2}
+      strokeDasharray={patch.isCurrent ? undefined : "5 4"}
+      opacity={patch.isCurrent ? 0.95 : 0.7}
+      pointerEvents="none"
+    />
+  );
+}
+
+function EncounterMarker({
+  x,
+  y,
+  kind,
+  body,
+  zoom,
+}: Readonly<{
+  x: number;
+  y: number;
+  kind: "encounter" | "escape";
+  body: string;
+  zoom: number;
+}>) {
+  const color =
+    kind === "escape"
+      ? "var(--color-status-info-fg)"
+      : "var(--color-status-warning-bg)";
+  const r = 4 / zoom;
+  const label = kind === "escape" ? `escape ${body}` : `↳ ${body}`;
+  return (
+    <g pointerEvents="none">
+      <circle
+        cx={x}
+        cy={y}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5 / zoom}
+      />
+      <circle cx={x} cy={y} r={r * 0.35} fill={color} />
+      <text
+        x={x + r + 3 / zoom}
+        y={y + 3 / zoom}
+        fill={color}
+        fontSize={8 / zoom}
+        fontWeight={600}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/** Build an SVG path `d` string from projected points (move to first, line to rest). */
+function pointsToPath(points: readonly ProjectedPoint[]): string {
+  if (points.length === 0) return "";
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return d;
 }
 
 // ── Math ──────────────────────────────────────────────────────────────────────
