@@ -1,4 +1,7 @@
-import { ManeuverTriggerProvider } from "@gonogo/components";
+import {
+  ManeuverTriggerProvider,
+  StationConnectView,
+} from "@gonogo/components";
 import {
   getDataSource,
   KosProxyContext,
@@ -22,7 +25,7 @@ import {
   SerialDeviceService,
   SerialPortRecoveryWatcher,
 } from "@gonogo/serial";
-import { BannerStack, FabClusterProvider, StatusIndicator } from "@gonogo/ui";
+import { BannerStack, FabClusterProvider } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -340,75 +343,16 @@ export function StationScreen() {
           <CpuRegistryProvider service={cpuRegistry}>
             <MissionProfilesProvider service={missionProfiles}>
               <ScopedStationIdentity>
-                <ConnectLayout
-                  as="main"
-                  aria-label="Connect to mission control"
-                >
-                  <ConnectBox>
-                    <h1>Connect to Mission Control</h1>
-                    <p>
-                      Enter the 4-character host ID shown on the main screen.
-                    </p>
-                    <Row>
-                      <HostInput
-                        value={hostInput}
-                        onChange={(e) => setHostInput(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && attemptConnect(hostInput)
-                        }
-                        placeholder="e.g. AB3K"
-                        maxLength={8}
-                        autoFocus
-                      />
-                      <ConnectButton
-                        onClick={() => attemptConnect(hostInput)}
-                        disabled={connStatus === "connecting"}
-                      >
-                        {connStatus === "connecting"
-                          ? "Connecting…"
-                          : "Connect"}
-                      </ConnectButton>
-                    </Row>
-                    <NameRow>
-                      <StationNameEditor />
-                    </NameRow>
-                    {hostNotFound && everConnected && (
-                      <ReconnectMsg role="status" aria-live="polite">
-                        Host reconnecting… The main screen is restarting and
-                        will be back shortly — this station reconnects
-                        automatically.
-                      </ReconnectMsg>
-                    )}
-                    {hostNotFound && !everConnected && (
-                      <ErrorMsg>
-                        Couldn't find code &ldquo;
-                        {hostInput.trim().toUpperCase()}&rdquo;. Check the main
-                        screen — the code may have changed, or the main-screen
-                        tab may be closed/asleep.
-                      </ErrorMsg>
-                    )}
-                    {!hostNotFound && connStatus === "disconnected" && (
-                      <ErrorMsg>
-                        Connection lost. Check the host ID and try again.
-                      </ErrorMsg>
-                    )}
-                    <StatusIndicator
-                      tone={statusTone(connStatus, hostNotFound, everConnected)}
-                      live
-                    >
-                      {describeConnStatus(
-                        connStatus,
-                        hostNotFound,
-                        everConnected,
-                      )}
-                    </StatusIndicator>
-                    <DiagnosticsRow>
-                      <DiagnosticsButton type="button" onClick={downloadLogs}>
-                        Download logs
-                      </DiagnosticsButton>
-                    </DiagnosticsRow>
-                  </ConnectBox>
-                </ConnectLayout>
+                <StationConnectView
+                  hostInput={hostInput}
+                  connStatus={connStatus}
+                  hostNotFound={hostNotFound}
+                  everConnected={everConnected}
+                  onHostInputChange={setHostInput}
+                  onConnect={attemptConnect}
+                  onDownloadLogs={downloadLogs}
+                  nameEditor={<StationNameEditor />}
+                />
               </ScopedStationIdentity>
             </MissionProfilesProvider>
           </CpuRegistryProvider>
@@ -574,162 +518,6 @@ function StationWakeLockBridge() {
   return null;
 }
 
-const ConnectLayout = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
-    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: var(--color-surface-app);
-`;
-
-const ConnectBox = styled.div`
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
-  padding: 40px 48px;
-  max-width: 420px;
-  width: 100%;
-  color: var(--color-text-primary);
-
-  h1 {
-    margin: 0 0 8px;
-    font-size: 20px;
-    color: var(--color-text-primary);
-  }
-
-  p {
-    margin: 0 0 20px;
-    font-size: 13px;
-    color: var(--color-text-muted);
-  }
-`;
-
-const Row = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const HostInput = styled.input`
-  flex: 1;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-text-faint);
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 20px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--color-status-info-fg);
-
-  &::placeholder {
-    color: var(--color-text-faint);
-    text-transform: none;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--color-status-info-fg);
-  }
-`;
-
-const ConnectButton = styled.button`
-  background: var(--color-status-info-bg);
-  border: 1px solid var(--color-status-info-bg);
-  border-radius: 4px;
-  padding: 8px 20px;
-  color: var(--color-status-info-fg);
-  font-size: 14px;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--color-status-info-bg);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-`;
-
-const ErrorMsg = styled.p`
-  margin-top: 12px !important;
-  color: var(--color-status-nogo-fg) !important;
-  font-size: 12px !important;
-`;
-
-const ReconnectMsg = styled.p`
-  margin-top: 12px !important;
-  color: var(--color-status-info-fg) !important;
-  font-size: 12px !important;
-`;
-
-const DiagnosticsRow = styled.div`
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const DiagnosticsButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--color-text-faint);
-  border-radius: 4px;
-  padding: 4px 10px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  cursor: pointer;
-
-  &:hover {
-    color: var(--color-text-primary);
-    border-color: var(--color-text-muted);
-  }
-`;
-
-function describeConnStatus(
-  status: ConnStatus,
-  hostNotFound: boolean,
-  everConnected: boolean,
-): string {
-  if (hostNotFound) {
-    return everConnected
-      ? "Host reconnecting — waiting for the main screen to come back…"
-      : "Broker doesn't know that code. Retrying in case it comes back…";
-  }
-  switch (status) {
-    case "idle":
-      return "Waiting for a host ID.";
-    case "connecting":
-      return "Reaching the broker and opening a peer channel…";
-    case "connected":
-      return "Connected.";
-    case "reconnecting":
-      return "Reconnecting — the host or broker may be briefly unavailable.";
-    case "disconnected":
-      return "No connection. Use Download logs if this persists.";
-  }
-}
-
-function statusTone(
-  status: ConnStatus,
-  hostNotFound: boolean,
-  everConnected: boolean,
-): "neutral" | "info" | "go" | "nogo" {
-  // A reclaim window (previously connected) is a transient "info" state, not
-  // the hard "nogo" of a wrong/dead code.
-  if (hostNotFound) return everConnected ? "info" : "nogo";
-  switch (status) {
-    case "idle":
-      return "neutral";
-    case "connecting":
-    case "reconnecting":
-      return "info";
-    case "connected":
-      return "go";
-    case "disconnected":
-      return "nogo";
-  }
-}
-
 const Layout = styled.div`
   padding: 24px;
   padding-top: calc(24px + env(safe-area-inset-top, 0px));
@@ -765,12 +553,6 @@ function StationInfoBroadcaster({ client }: { client: PeerClientService }) {
   }, [client, name]);
   return null;
 }
-
-const NameRow = styled.div`
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--color-border-subtle);
-`;
 
 const StationNameChip = styled.div`
   position: fixed;
