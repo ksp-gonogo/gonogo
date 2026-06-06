@@ -116,20 +116,49 @@ export function useDashboardState(
 
   const itemListeners = useRef(new Set<(items: DashboardItem[]) => void>());
   const hasMountedRef = useRef(false);
+  // The key the current items belong to. Updated only *after* a key change has
+  // loaded/seeded the incoming key, so the persist effect below never writes
+  // the outgoing scene's items under the incoming scene's key.
+  const activeKeyRef = useRef(storageKey);
 
   // Side effects (persistence + external subscribers) run from an effect, NOT
   // inside the setState updater — StrictMode double-invokes updaters to
   // detect impurity, which would duplicate writes and subscriber callbacks.
+  // Persist to the *active* key (not the prop) so a mid-render scene switch
+  // can't clobber the new scene's slot with the old scene's items.
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       return;
     }
-    if (storageKey) saveState(storageKey, { items, layouts });
+    const key = activeKeyRef.current;
+    if (key) saveState(key, { items, layouts });
     itemListeners.current.forEach((cb) => {
       cb(items);
     });
-  }, [items, layouts, storageKey]);
+  }, [items, layouts]);
+
+  // Scene-scoped key changed (e.g. the operator entered a different KSP
+  // scene): load that key's saved layout, or seed it from the current
+  // dashboard so a never-visited scene starts populated rather than empty.
+  // The outgoing scene's edits are already persisted under its own key by the
+  // effect above, so nothing is lost.
+  useEffect(() => {
+    if (storageKey === activeKeyRef.current) return;
+    const next = storageKey ? loadState(storageKey) : null;
+    activeKeyRef.current = storageKey;
+    if (next) {
+      setItemsInner(next.items);
+      setLayouts(next.layouts);
+      setCurrentLayouts(next.layouts);
+    } else if (storageKey) {
+      // Seed the new key from what's on screen now; keep showing it.
+      saveState(storageKey, {
+        items: itemsRef.current,
+        layouts: layoutsRef.current,
+      });
+    }
+  }, [storageKey]);
 
   const handleLayoutChange = useCallback((_current: Layout[], all: Layouts) => {
     setCurrentLayouts(all);
@@ -143,16 +172,30 @@ export function useDashboardState(
   const addItem = useCallback(
     (item: DashboardItem, layout: Partial<Layout>) => {
       setItemsInner((prev) => [...prev, item]);
-      const entry: Layout = {
-        i: item.i,
-        x: layout.x ?? 0,
-        y: layout.y ?? 9999,
-        w: layout.w ?? 3,
-        h: layout.h ?? 3,
-        ...layout,
-      };
+      const w = layout.w ?? 3;
+      const h = layout.h ?? 3;
+      // Compaction is off (free placement — see GridDashboard), so a new
+      // widget must be given a real, non-overlapping slot rather than relying
+      // on vertical compaction to pull it up from y=∞. Drop it just below
+      // everything currently in each breakpoint. A caller-supplied x/y still
+      // wins (via the trailing spread) for deliberate placement.
       const nextLayouts = Object.fromEntries(
-        COLS_KEYS.map((bp) => [bp, [...(currentLayouts[bp] ?? []), entry]]),
+        COLS_KEYS.map((bp) => {
+          const existing = currentLayouts[bp] ?? [];
+          const bottomY = existing.reduce(
+            (max, l) => Math.max(max, l.y + l.h),
+            0,
+          );
+          const entry: Layout = {
+            i: item.i,
+            x: layout.x ?? 0,
+            y: layout.y ?? bottomY,
+            w,
+            h,
+            ...layout,
+          };
+          return [bp, [...existing, entry]];
+        }),
       );
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
