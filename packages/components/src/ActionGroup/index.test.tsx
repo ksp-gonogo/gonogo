@@ -8,7 +8,9 @@ import {
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
 import { act, cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { ActionGroupComponent } from "./index";
 
 const KEYS: DataKey[] = [
@@ -25,10 +27,17 @@ const KEYS: DataKey[] = [
 describe("ActionGroupComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
+  let executed: string[];
 
   beforeEach(async () => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
+    executed = [];
+    source = new MockDataSource({
+      keys: KEYS,
+      onExecute: (action) => {
+        executed.push(action);
+      },
+    });
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
@@ -143,5 +152,52 @@ describe("ActionGroupComponent", () => {
       source.emit("v.gearValue", true);
     });
     expect(screen.getByText("ON")).toBeInTheDocument();
+  });
+
+  it("renders the state pill as a toggle button at the minimum 3×3 size", () => {
+    renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
+    act(() => {
+      source.emit("v.sasValue", false);
+    });
+    const pill = screen.getByRole("button", { name: /toggle sas/i });
+    expect(pill).toBeInTheDocument();
+    expect(pill).toHaveTextContent("OFF");
+    expect(pill).not.toBeDisabled();
+  });
+
+  it("reflects ON state via aria-pressed on the pill button", () => {
+    renderGroup({ actionGroupId: "SAS" });
+    act(() => {
+      source.emit("v.sasValue", true);
+    });
+    expect(screen.getByRole("button", { name: /toggle sas/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("fires the group toggle action when the pill button is clicked", async () => {
+    const user = userEvent.setup();
+    renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
+    act(() => {
+      source.emit("v.sasValue", false);
+    });
+    await user.click(screen.getByRole("button", { name: /toggle sas/i }));
+    expect(executed).toEqual(["f.sas"]);
+  });
+
+  it("disables the pill for a group with no toggle key (Precision Control)", () => {
+    renderGroup({ actionGroupId: "Precision Control" });
+    expect(
+      screen.getByRole("button", { name: /toggle precision control/i }),
+    ).toBeDisabled();
+  });
+
+  it("has no axe violations with the pill toggle button", async () => {
+    const { container } = renderGroup({ actionGroupId: "SAS" });
+    act(() => {
+      source.emit("v.sasValue", true);
+    });
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

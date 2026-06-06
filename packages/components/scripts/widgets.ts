@@ -431,14 +431,14 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",
     modes: [
-      // Minimum size (3×3) — tiny bucket (w<5): state pill + label only;
-      // no toggle button (rows<4), no UnavailableNotice, no bell.
+      // Minimum size (3×3) — tiny bucket (w<5): label + the ON/OFF state pill
+      // (itself the toggle button); no UnavailableNotice, no bell.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // 3×4 — toggle button unlocks (rows>=4); still tiny bucket (w<5) so
-      // OfficialName and bell are suppressed.
+      // 3×4 — still tiny bucket (w<5) so OfficialName and bell are suppressed;
+      // the state-pill toggle is present at every size.
       { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
-      // 6×4 — normal bucket: OfficialName visible (cols>=5), toggle present.
-      // Gear group with custom label exercises the OfficialName secondary line.
+      // 6×4 — normal bucket: OfficialName visible (cols>=5), state-pill toggle
+      // present. Gear group with custom label exercises the secondary line.
       {
         name: "normal-6x4",
         w: 6,

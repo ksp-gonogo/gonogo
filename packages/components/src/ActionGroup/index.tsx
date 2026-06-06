@@ -14,7 +14,6 @@ import {
 } from "@gonogo/core";
 import {
   BellIcon,
-  Button,
   ConfigForm,
   Field,
   FieldHint,
@@ -23,6 +22,7 @@ import {
   Panel,
   Placeholder,
   Select,
+  ToggleButton,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useMemo, useRef, useState } from "react";
@@ -104,11 +104,13 @@ function ActionGroupComponent({
   else if (commConnected === false) unavailableReason = "No signal";
 
   // Selective rendering — drop the secondary "official name" line when the
-  // widget is narrow; drop the toggle button when there's no vertical room.
+  // widget is narrow. The state pill is itself the toggle control, so it is
+  // present at every size (no separate vertical-room gate).
   const cols = w ?? 6;
-  const rows = h ?? 6;
   const showOfficialName = cols >= 5;
-  const showToggleButton = rows >= 4 && Boolean(group.toggle);
+  // Precision Control has no toggle key — the pill stays a read-only indicator
+  // there (disabled button) rather than a no-op clickable.
+  const canToggle = Boolean(group.toggle);
   // Bell is reachable from the alarms menu — at tiny size it just crowds the
   // pill and the size-locked button style breaks the layout.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
@@ -196,9 +198,16 @@ function ActionGroupComponent({
               <BellIcon />
             </AlarmIconButton>
           )}
-          <StateIndicator $on={isOn} $unknown={isUnknown}>
+          <ToggleButton
+            active={isOn}
+            size="sm"
+            disabled={!canToggle}
+            onClick={handleToggle}
+            aria-label={`Toggle ${currentLabel}`}
+            title={unavailableReason ?? `Toggle ${currentLabel}`}
+          >
             {isUnknown ? "—" : isOn ? "ON" : "OFF"}
-          </StateIndicator>
+          </ToggleButton>
         </HeaderRight>
       </Header>
       {unavailableReason && getSizeBucket(w, h) !== "tiny" && (
@@ -209,11 +218,6 @@ function ActionGroupComponent({
         >
           {unavailableReason}
         </UnavailableNotice>
-      )}
-      {showToggleButton && (
-        <Button onClick={handleToggle} aria-label={`Toggle ${currentLabel}`}>
-          TOGGLE
-        </Button>
       )}
     </Panel>
   );
@@ -356,19 +360,6 @@ const LabelInput = styled.input`
   &:focus {
     border-color: var(--color-accent-fg);
   }
-`;
-
-const StateIndicator = styled.span<{ $on: boolean; $unknown: boolean }>`
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-  color: ${({ $on, $unknown }) =>
-    $unknown
-      ? "var(--color-text-faint)"
-      : $on
-        ? "var(--color-accent-fg)"
-        : "var(--color-status-nogo-bg)"};
 `;
 
 const HeaderRight = styled.div`
