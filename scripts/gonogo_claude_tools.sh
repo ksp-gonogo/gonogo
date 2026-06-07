@@ -536,25 +536,12 @@ build_kerbcam() {
     fi
   fi
 
-  # Seed settings.cfg on first install only — never clobber user edits.
+  # Seed settings.cfg on first install only; never clobber user edits.
   local settings_dest="$gamedata/Kerbcam/settings.cfg"
   local settings_src="$HOME/personal/kerbcam/Plugin/settings.cfg"
   if [ ! -f "$settings_dest" ] && [ -f "$settings_src" ]; then
     cp "$settings_src" "$settings_dest"
-    echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 768x768)"
-  fi
-
-  # ALWAYS overwrite the bundled TUFX profile — kerbcam-curated content
-  # that needs to update across kerbcam versions, unlike settings.cfg
-  # which is operator-owned. KSP loads .cfg files anywhere under
-  # GameData/ that have a TUFX_PROFILE node, so path is cosmetic.
-  local profile_src="$HOME/personal/kerbcam/Plugin/Kerbcam/TUFXProfiles/kerbcam.cfg"
-  local profile_dest_dir="$gamedata/Kerbcam/TUFXProfiles"
-  local profile_dest="$profile_dest_dir/kerbcam.cfg"
-  if [ -f "$profile_src" ]; then
-    mkdir -p "$profile_dest_dir"
-    cp "$profile_src" "$profile_dest"
-    echo "installed TUFX profile: $profile_dest"
+    echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 1024x576)"
   fi
 
   # Pull the latest CI-built sidecar binary if gh is available + auth'd.
