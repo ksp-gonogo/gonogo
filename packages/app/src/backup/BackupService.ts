@@ -47,27 +47,24 @@ const TRANSIENT_KEYS = new Set<string>([
 ]);
 
 /**
- * Device-identity keys — they define *which* device this is, on both sides of
- * the peer link:
- *   - station: its stable key + (legacy) peer id;
- *   - host: its share code, from which the host's PeerJS peer id is derived
- *     (`gonogo-host-<CODE>`), so two devices sharing it would claim the same
- *     broker id.
- * Restoring any of these onto another device clones the identity, which is
- * usually wrong — so they're excluded unless the operator opts in via the
- * "Include device identity" checkbox. `gonogo.station.name` is deliberately
- * NOT here: it's a human label, safe to carry across devices.
+ * Per-device-instance identity keys — the station's stable key + (legacy) peer
+ * id. Restoring these onto another device clones the instance identity, which
+ * is usually wrong, so they're excluded unless the operator opts in via the
+ * "Include device identity" checkbox. `gonogo.station.name` is deliberately NOT
+ * here (it's a human label, safe to carry across devices), and neither is
+ * `gonogo-host-share-code` — that's a chosen, portable host address you'd want
+ * preserved on restore, not per-device identity, so it backs up like any other
+ * config key.
  */
 const IDENTITY_KEYS = new Set<string>([
   "gonogo.station.key",
   "gonogo.station.peer-id",
-  "gonogo-host-share-code",
 ]);
 
 export interface BuildBackupOptions {
   /**
-   * Include device-identity keys (station key + legacy peer id + host share
-   * code). Default false.
+   * Include per-device-instance identity keys (station key + legacy peer id).
+   * Default false.
    */
   includeIdentity?: boolean;
 }
