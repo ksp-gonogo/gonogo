@@ -5,7 +5,11 @@ import {
   resolveTargetName,
   useDataValue,
 } from "@gonogo/core";
-import { useKerbcamCameras, useKerbcamStream } from "@gonogo/kerbcam";
+import {
+  buildCameraLabeler,
+  useKerbcamCameras,
+  useKerbcamStream,
+} from "@gonogo/kerbcam";
 import {
   ConfigForm,
   Field,
@@ -467,6 +471,8 @@ function DistanceToTargetConfigComponent({
     config?.cameraFlightId ?? null,
   );
   const cameras = useKerbcamCameras();
+  // Same docking-port name disambiguation as the CameraFeed picker.
+  const cameraLabel = useMemo(() => buildCameraLabeler(cameras), [cameras]);
 
   const candidate = useMemo<DistanceToTargetConfig>(
     () => ({
@@ -522,7 +528,7 @@ function DistanceToTargetConfigComponent({
             <option value="">(first available)</option>
             {cameras.map((c) => (
               <option key={c.flightId} value={c.flightId}>
-                {c.cameraName} ({c.vesselName})
+                {cameraLabel(c)} ({c.vesselName})
               </option>
             ))}
           </Select>
