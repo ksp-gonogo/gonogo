@@ -650,7 +650,29 @@ export function CameraFeed({
   // Compact title (as a menu trigger) + optional debug metadata, overlaid on
   // the feed (top-left) with the Next/Prev step buttons floated top-right.
   // Shared by the live + empty states.
-  const title = camera?.cameraName ?? "Camera Feed";
+  // Two Hullcam cameras can share a cameraName — notably docking-port cams are
+  // all named "NavCam" by Hullcam's DockingPortCameraPatch, colliding with the
+  // dedicated NavCam. When names collide, append the part title so the operator
+  // can tell them apart (e.g. "NavCam — Clamp-O-Tron Docking Port Jr.").
+  const collidingNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of cameras)
+      counts.set(c.cameraName, (counts.get(c.cameraName) ?? 0) + 1);
+    return new Set(
+      [...counts].filter(([, n]) => n > 1).map(([name]) => name),
+    );
+  }, [cameras]);
+  const cameraLabel = useCallback(
+    (c: (typeof cameras)[number]): string =>
+      collidingNames.has(c.cameraName) &&
+      c.partTitle &&
+      c.partTitle !== c.cameraName
+        ? `${c.cameraName} — ${c.partTitle}`
+        : c.cameraName,
+    [collidingNames],
+  );
+
+  const title = camera ? cameraLabel(camera) : "Camera Feed";
   const topOverlay = (
     <TopOverlay>
       <TitleRow>
@@ -711,7 +733,7 @@ export function CameraFeed({
                 menuTriggerRef.current?.focus();
               }}
             >
-              {c.cameraName} ({c.vesselName})
+              {cameraLabel(c)} ({c.vesselName})
               {isCameraDestroyed(c) ? " — signal lost" : ""}
             </CameraMenuItem>
           ))}

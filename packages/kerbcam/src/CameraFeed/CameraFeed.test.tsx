@@ -370,6 +370,45 @@ describe("CameraFeed — camera selection", () => {
     ]);
   });
 
+  it("disambiguates same-named cameras (e.g. docking ports) by part title", async () => {
+    // Hullcam names every docking-port camera "NavCam", colliding with the
+    // dedicated NavCam. The colliding pair gets its part title appended; the
+    // non-colliding camera (and the NavCam whose title equals its name) stay
+    // plain.
+    await buildConnectedSource([
+      makeCamera({
+        flightId: 42,
+        cameraName: "NavCam",
+        vesselName: "Kerbal X",
+        partTitle: "NavCam",
+      }),
+      makeCamera({
+        flightId: 43,
+        cameraName: "NavCam",
+        vesselName: "Kerbal X",
+        partTitle: "Clamp-O-Tron Docking Port Jr.",
+      }),
+      makeCamera({
+        flightId: 44,
+        cameraName: "Tail Cam",
+        vesselName: "Kerbal X",
+        partTitle: "Some Other Part",
+      }),
+    ]);
+
+    renderFeed({ flightId: null });
+
+    fireEvent.click(screen.getByRole("button", { name: /navcam/i }));
+    const labels = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
+    expect(labels).toEqual([
+      "NavCam (Kerbal X)",
+      "NavCam — Clamp-O-Tron Docking Port Jr. (Kerbal X)",
+      "Tail Cam (Kerbal X)",
+    ]);
+  });
+
   it("auto-selects the first available camera when flightId is null", async () => {
     await buildConnectedSource(TWO_CAMERAS);
 
