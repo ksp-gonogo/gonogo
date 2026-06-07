@@ -16,6 +16,8 @@
 
 export type { CameraFeedConfig } from "./CameraFeed";
 export { CameraFeed } from "./CameraFeed";
+export type { LabelableCamera } from "./cameraLabels";
+export { buildCameraLabeler } from "./cameraLabels";
 export { useKerbcamCameras } from "./hooks/useKerbcamCameras";
 export { useKerbcamStream } from "./hooks/useKerbcamStream";
 export * from "./KerbcamDataSource";
