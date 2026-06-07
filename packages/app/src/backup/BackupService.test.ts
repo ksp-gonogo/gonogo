@@ -41,12 +41,8 @@ describe("isBackupKey", () => {
     }
   });
 
-  it("gates identity keys on the opt-in flag (station + host)", () => {
-    for (const k of [
-      "gonogo.station.key",
-      "gonogo.station.peer-id",
-      "gonogo-host-share-code",
-    ]) {
+  it("gates per-device-instance identity keys on the opt-in flag", () => {
+    for (const k of ["gonogo.station.key", "gonogo.station.peer-id"]) {
       expect(isBackupKey(k, false)).toBe(false);
       expect(isBackupKey(k, true)).toBe(true);
     }
@@ -54,6 +50,10 @@ describe("isBackupKey", () => {
 
   it("always includes the station name (a label, not identity)", () => {
     expect(isBackupKey("gonogo.station.name", false)).toBe(true);
+  });
+
+  it("includes the host share code by default (a portable address, not identity)", () => {
+    expect(isBackupKey("gonogo-host-share-code", false)).toBe(true);
   });
 });
 
