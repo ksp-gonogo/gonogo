@@ -754,7 +754,6 @@ export function CameraFeed({
             playsInline
             muted
             controls={false}
-            $destroyed={isDestroyed}
             onClick={() => setChromePinned((v) => !v)}
           />
           {topOverlay}
@@ -1234,24 +1233,21 @@ const OverlayIconButton = styled(IconButton)`
   }
 `;
 
-const StyledVideo = styled.video<{ $destroyed: boolean }>`
+const StyledVideo = styled.video`
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  ${({ $destroyed }) =>
-    $destroyed &&
-    css`
-      filter: grayscale(1) brightness(0.45);
-    `}
 `;
 
 /**
  * Full-frame overlay shown when the sidecar reports `lifecycle: "destroyed"`.
- * Keeps the last decoded frame visible behind it (HTML video element retains
- * the final frame naturally). The video element is additionally desaturated
- * and dimmed via CSS filter so the overlay reads clearly.
+ * The kerbcam SDK keeps the camera's noise pipeline alive when a part is
+ * destroyed, driving it to full static on the same `mediaStream`, so the video
+ * element behind this overlay shows live signal-loss static rather than a
+ * frozen last frame. The "SIGNAL LOST" label sits over that static behind a
+ * light scrim for legibility.
  */
 const SignalLostOverlay = styled.div`
   position: absolute;
@@ -1259,7 +1255,7 @@ const SignalLostOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.25);
 `;
 
 const SignalLostText = styled.span`
