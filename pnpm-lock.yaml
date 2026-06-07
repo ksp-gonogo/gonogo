@@ -327,8 +327,11 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcam':
-        specifier: ^0.11.0
-        version: 0.11.0
+        specifier: ^0.12.0
+        version: 0.12.0
+      '@jonpepler/kerbcam-react':
+        specifier: ^0.12.0
+        version: 0.12.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1336,8 +1339,15 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcam@0.11.0':
-    resolution: {integrity: sha512-6lDWA+F8yA5sl5GfwCR3hlIYRKZkgseeGTR4gsgkLH1q6FDlL5bmT7t1poID6xUjFD3IEtcBqmuS4XhIUY67nA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.11.0/9d3f925d40e9b7c970049630714c1f9bcc835685}
+  '@jonpepler/kerbcam-react@0.12.0':
+    resolution: {integrity: sha512-gLADDO+XAsCKgBTOHRwCDY6puWZuGeMe7jgvF5a6NLHFvel9TSXvUuuBe29CH5BmrxdjZ0QfFPUtJw9JKJtqcQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam-react/0.12.0/8781f5583a3777e4bc142d5945198fc78cdf0133}
+    peerDependencies:
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
+      styled-components: ^6
+
+  '@jonpepler/kerbcam@0.12.0':
+    resolution: {integrity: sha512-KI/VlRCZseZI4RUc8FPzswv9/3q9CJf8TcnVM5GAceaR6X6Udb7wZ00o58sAbLMd2mXWPcWij2z+0qydpCEM6g==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.12.0/0a808db33c6ad11407abe01a9b5c3872c459ccab}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3640,7 +3650,14 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcam@0.11.0': {}
+  '@jonpepler/kerbcam-react@0.12.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+    dependencies:
+      '@jonpepler/kerbcam': 0.12.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
+  '@jonpepler/kerbcam@0.12.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
