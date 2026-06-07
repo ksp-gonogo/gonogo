@@ -684,6 +684,167 @@ describe("CameraFeed — empty state and status", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Serial-action dispatch (zoom / pan) -- wrapper binding tests
+//
+// These tests drive the serial-input path: dispatchAction -> useActionInput
+// handler -> feedRef.current.setZoomRate / setPanAxis -> PanZoomController
+// -> client.camera(42).setZoomRate / setPanRate -> MockSidecar wire command.
+// The shared package tests cover the handle directly; these tests cover the
+// gonogo wrapper's useActionInput binding.
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed -- serial-action dispatch (zoom/pan)", () => {
+  it("zoomIn serial action holds a +1 zoom rate, releases to 0", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    // Press: +rate = zoom in (FoV decreases). The plugin integrates per frame.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: true,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content).toMatchObject({
+      flightId: 42,
+      rate: 1,
+    });
+
+    // Release: stop zooming.
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: false,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
+  });
+
+  it("zoomOut serial action holds a -1 zoom rate, releases to 0", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, { supportsZoom: true, fov: 60 });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomOut", {
+        kind: "button",
+        value: true,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content).toMatchObject({
+      flightId: 42,
+      rate: -1,
+    });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomOut", {
+        kind: "button",
+        value: false,
+      });
+    });
+    expect(sidecar.lastCommand("set-zoom-rate")?.content.rate).toBe(0);
+  });
+
+  it("zoom serial actions are no-ops when camera does not support zoom", async () => {
+    // Default camera fixture has supportsZoom: false -- handle guard blocks the command.
+    const { sidecar } = await buildConnectedSource();
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "zoomIn", {
+        kind: "button",
+        value: true,
+      });
+    });
+
+    expect(sidecar.lastCommand("set-zoom-rate")).toBeUndefined();
+  });
+
+  it("panYaw serial action sends a set-pan-rate on the yaw axis", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    // Enable pan with a non-zero pitch range so supportsPitch is true and the
+    // pitch axis is available (panPitchMax - panPitchMin > 0).
+    await act(async () => {
+      sidecar.updateCamera(42, {
+        supportsPan: true,
+        panYawMin: -45,
+        panYawMax: 45,
+        panPitchMin: -30,
+        panPitchMax: 30,
+      });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", {
+        kind: "analog",
+        value: 0.5,
+      });
+    });
+
+    expect(sidecar.lastCommand("set-pan-rate")?.content).toMatchObject({
+      flightId: 42,
+      yawRate: 0.5,
+      pitchRate: 0,
+    });
+  });
+
+  it("panPitch serial action sends a set-pan-rate on the pitch axis", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    await act(async () => {
+      sidecar.updateCamera(42, {
+        supportsPan: true,
+        panYawMin: -45,
+        panYawMax: 45,
+        panPitchMin: -30,
+        panPitchMax: 30,
+      });
+    });
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panPitch", {
+        kind: "analog",
+        value: 0.5,
+      });
+    });
+
+    expect(sidecar.lastCommand("set-pan-rate")?.content).toMatchObject({
+      flightId: 42,
+      yawRate: 0,
+      pitchRate: 0.5,
+    });
+  });
+
+  it("pan serial actions are no-ops when camera does not support pan", async () => {
+    // Default camera fixture has supportsPan: false -- handle guard blocks the command.
+    const { sidecar } = await buildConnectedSource();
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      dispatchAction(TEST_INSTANCE_ID, "panYaw", { kind: "analog", value: 1 });
+    });
+
+    expect(sidecar.lastCommand("set-pan-rate")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // CommNet degrade
 // ---------------------------------------------------------------------------
 
@@ -725,6 +886,91 @@ describe("CameraFeed — CommNet degrade", () => {
     expect(degradeMsg?.content.flightId).toBe(42);
     // 1 - 1.0 = 0
     expect(degradeMsg?.content.level).toBe(0);
+  });
+
+  it("weak signal maps to a proportional degrade level (1 - signalStrength)", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 0.3,
+      "comm.connected": true,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const degradeMsg = sidecar.lastCommand("set-degrade");
+    expect(degradeMsg?.content.flightId).toBe(42);
+    // 1 - 0.3 = 0.7, clamped to [0, 1]
+    expect(degradeMsg?.content.level).toBeCloseTo(0.7);
+  });
+
+  it("comm disconnected applies maximum degrade (level 1.0)", async () => {
+    const { sidecar } = await buildConnectedSource();
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 1.0,
+      "comm.connected": false,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    renderFeed({ flightId: 42 });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const degradeMsg = sidecar.lastCommand("set-degrade");
+    expect(degradeMsg?.content.flightId).toBe(42);
+    // commConnected === false -> level 1.0 regardless of signalStrength
+    expect(degradeMsg?.content.level).toBe(1.0);
+  });
+
+  it("auto-mode (flightId: null) degrade targets the auto-picked camera", async () => {
+    // When config.flightId is null, the wrapper resolves effectiveFlightId
+    // independently (same latch algorithm as the shared component) and routes
+    // degrade to the camera actually on screen, not to a null/undefined id.
+    const { sidecar } = await buildConnectedSource([
+      makeCamera({ flightId: 42, cameraName: "Starboard Cam" }),
+    ]);
+
+    const dataSource = makeDataSource("data", {
+      "comm.signalStrength": 0.5,
+      "comm.connected": true,
+    });
+    registerDataSource(
+      dataSource as unknown as Parameters<typeof registerDataSource>[0],
+    );
+
+    // Auto mode: no explicit flightId configured.
+    renderFeed({ flightId: null });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(501);
+    });
+
+    const degradeMsg = sidecar.lastCommand("set-degrade");
+    // The wrapper should have resolved effectiveFlightId = 42 (the auto-pick)
+    // and routed the degrade command there.
+    expect(degradeMsg?.content.flightId).toBe(42);
+    expect(degradeMsg?.content.level).toBeCloseTo(0.5);
   });
 });
 
