@@ -1,14 +1,7 @@
-import type { CameraState } from "@jonpepler/kerbcam";
-import { CameraLifecycle } from "@jonpepler/kerbcam";
-
-export type { CameraLifecycle };
-
-export function getCameraLifecycle(cam: CameraState): CameraLifecycle {
-  return cam.lifecycle === CameraLifecycle.Destroyed
-    ? CameraLifecycle.Destroyed
-    : CameraLifecycle.Active;
-}
-
-export function isCameraDestroyed(cam: CameraState): boolean {
-  return getCameraLifecycle(cam) === CameraLifecycle.Destroyed;
-}
+// Re-exports from the shared @jonpepler/kerbcam-react package.
+// The implementations are identical to what lived here previously.
+export {
+  type CameraLifecycle,
+  getCameraLifecycle,
+  isCameraDestroyed,
+} from "@jonpepler/kerbcam-react";

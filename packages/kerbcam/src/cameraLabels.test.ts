@@ -27,7 +27,7 @@ describe("buildCameraLabeler", () => {
     // Colliding pair: the one whose title differs gets disambiguated; the one
     // whose title equals its name stays bare.
     expect(label(cameras[0])).toBe("NavCam");
-    expect(label(cameras[1])).toBe("NavCam — Clamp-O-Tron Docking Port Jr.");
+    expect(label(cameras[1])).toBe("NavCam - Clamp-O-Tron Docking Port Jr.");
     // No collision → bare name even though the part title differs.
     expect(label(cameras[2])).toBe("TailCam");
   });
