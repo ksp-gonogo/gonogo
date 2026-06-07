@@ -32,7 +32,7 @@ export interface BackupPayload {
  * station-host-id, which is excluded as transient below). Bare keys like
  * `LOG_LEVEL` / `LOG_TAGS` have no prefix and are naturally skipped.
  */
-const GONOGO_KEY_PREFIX = /^gonogo[:.\-]/;
+const GONOGO_KEY_PREFIX = /^gonogo[:.-]/;
 
 /**
  * Keys that match the prefix but are transient / machine-local noise — never

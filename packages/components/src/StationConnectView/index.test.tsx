@@ -2,11 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
-import {
-  describeConnStatus,
-  StationConnectView,
-  statusTone,
-} from "./index";
+import { describeConnStatus, StationConnectView, statusTone } from "./index";
 
 const baseProps = {
   hostInput: "",
@@ -23,9 +19,7 @@ describe("StationConnectView", () => {
     render(<StationConnectView {...baseProps} />);
     expect(screen.getByText(/Connect to Mission Control/i)).not.toBeNull();
     expect(screen.getByLabelText(/host id/i)).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: /connect/i }),
-    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: /connect/i })).not.toBeNull();
   });
 
   it("calls onConnect on button click and onHostInputChange on typing", async () => {
