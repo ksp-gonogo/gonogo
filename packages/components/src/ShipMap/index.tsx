@@ -1,11 +1,6 @@
-import type {
-  ComponentProps,
-  ConfigComponentProps,
-  VesselTopology,
-} from "@gonogo/core";
+import type { ComponentProps, VesselTopology } from "@gonogo/core";
 import { registerComponent, useDataValue } from "@gonogo/core";
 import { usePartsLive, useTopology } from "@gonogo/data";
-import { ConfigForm, Field, FieldHint, FieldLabel } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ShipDiagram } from "./ShipDiagram";
@@ -16,7 +11,7 @@ import {
 } from "./shipTopology";
 
 interface ShipMapConfig {
-  /** Reserved — no widget-level options yet. Kept for forward
+  /** Reserved. No widget-level options yet; kept for forward
    *  compatibility so saved layouts don't break when options land. */
   _reserved?: never;
 }
@@ -183,26 +178,6 @@ function renderBody(
   );
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
-function ShipMapConfigComponent(
-  _props: Readonly<ConfigComponentProps<ShipMapConfig>>,
-) {
-  return (
-    <ConfigForm>
-      <Field>
-        <FieldLabel>Data source</FieldLabel>
-        <FieldHint>
-          Reads <code>v.topology</code> from Telemachus. The topology snapshot
-          is event-invalidated on the server side — the widget refreshes when
-          you stage, dock, decouple, or otherwise change the vessel graph; no
-          configurable interval.
-        </FieldHint>
-      </Field>
-    </ConfigForm>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const Panel = styled.div`
@@ -284,8 +259,6 @@ registerComponent<ShipMapConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
-  configComponent: ShipMapConfigComponent,
-  openConfigOnAdd: false,
   // useTopology internally subscribes to v.topologySeq + briefly to
   // v.topology on bump; per-part live data joins via usePartsLive.
   dataRequirements: [
