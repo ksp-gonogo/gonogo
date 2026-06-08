@@ -811,35 +811,20 @@ function renderPartShape(
       );
     }
     case "solar": {
-      // Thin flat panel: draw a skinny strip along the panel's longer
-      // projected axis. A panel lying across the stack (lateral-major
-      // box, w >= h) reads as a horizontal strip; one standing up the
-      // stack (axial-major, h > w) reads as a vertical strip. Picking the
-      // major axis stops a radial ring of OX-STAT panels, whose long axis
-      // is axial, from rendering as horizontal bands perpendicular to
-      // their real orientation. Mirrors the decoupler band logic.
-      if (w >= h) {
-        const thickness = Math.max(4 / zoom, Math.min(h, 8 / zoom));
-        return (
-          <rect
-            x={x}
-            y={cy - thickness / 2}
-            width={w}
-            height={thickness}
-            fill={fill}
-            stroke={stroke}
-            strokeWidth={strokeWidth}
-            opacity={opacity * 0.9}
-          />
-        );
-      }
-      const thickness = Math.max(4 / zoom, Math.min(w, 8 / zoom));
+      // Flat photovoltaic panel drawn as its projected rectangle. The box
+      // w/h already carry the azimuth foreshortening from buildShipMapPart:
+      // a panel facing the viewer keeps its full broad face, one seen
+      // edge-on collapses toward its thin edge. Floor the minor dimension
+      // so an edge-on panel stays a visible hairline rather than vanishing.
+      const minDim = 3 / zoom;
+      const rw = Math.max(w, minDim);
+      const rh = Math.max(h, minDim);
       return (
         <rect
-          x={cx - thickness / 2}
-          y={y}
-          width={thickness}
-          height={h}
+          x={cx - rw / 2}
+          y={cy - rh / 2}
+          width={rw}
+          height={rh}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
