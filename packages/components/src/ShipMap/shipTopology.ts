@@ -289,6 +289,7 @@ export function buildShipMapPart(
   resources: PartResources | undefined,
   useX: boolean,
   partState?: PartState | null,
+  parentOrgPos?: readonly [number, number, number] | null,
 ): ShipMapPart {
   const orgPos = part.orgPos;
   const ecFlow = resources?.ElectricCharge?.flow;
@@ -330,31 +331,49 @@ export function buildShipMapPart(
   const meshAxial = orgPos[1] + (center?.y ?? 0);
   const type = classifyPart(part, resources);
   // Lateral half-extent along the picked axis — normally just the picked-
-  // axis half of the prefab bounds. Flat solar panels in a radial ring are
-  // the exception: a 2D side view reads better when each panel is
-  // foreshortened by how face-on it is to the viewer. A panel pointing at
-  // the camera (on the collapsed depth axis) shows its full broad face; one
-  // seen edge-on (on the picked axis) collapses toward its thin edge.
-  // Azimuth comes from orgPos; true proportions from `size`. The broad-face
-  // normal isn't on the wire (only near-axial `up` is), so we assume the
-  // ring convention that the thin axis faces radially out. Exact for evenly
-  // clocked rings, a good approximation otherwise.
+  // axis half of the prefab bounds. Flat radial plates (solar panels and
+  // fins) are the exception: a 2D side view reads better when each is
+  // foreshortened by how face-on it is to the viewer. One on the collapsed
+  // depth axis shows its full broad silhouette; one on the picked axis
+  // collapses toward its thin edge. Azimuth comes from the part's offset
+  // from its parent; true proportions from `size`. The mount rotation isn't
+  // on the wire (only near-axial `up` is), so we assume the ring convention
+  // that the thin axis faces radially out (panels) / tangentially (fins).
+  // Exact for evenly clocked rings, a good approximation otherwise. Parent-
+  // relative (not root-relative): a plate on a docked or offset sub-stack
+  // must foreshorten by its mount direction on that stack, not by the
+  // stack's distance from the vessel root.
   let latHalfExtent = (useX ? size.x : size.z) / 2;
-  if (type === "solar") {
-    const pickedPos = useX ? orgPos[0] : orgPos[2];
-    const depthPos = useX ? orgPos[2] : orgPos[0];
+  if (type === "solar" || type === "fin") {
+    const parentLat = parentOrgPos
+      ? useX
+        ? parentOrgPos[0]
+        : parentOrgPos[2]
+      : 0;
+    const parentDepth = parentOrgPos
+      ? useX
+        ? parentOrgPos[2]
+        : parentOrgPos[0]
+      : 0;
+    const pickedPos = (useX ? orgPos[0] : orgPos[2]) - parentLat;
+    const depthPos = (useX ? orgPos[2] : orgPos[0]) - parentDepth;
     const radius = Math.hypot(pickedPos, depthPos);
     if (radius > 0.05) {
-      // Project the panel's oriented rectangle onto the picked axis: its
-      // broad-face width contributes through the depth component of the
-      // radial (face-normal) direction, its thickness through the picked
-      // component. size.y is the axial height, handled separately.
-      const faceWidth = Math.max(size.x, size.z);
-      const thickness = Math.min(size.x, size.z);
-      const ru = pickedPos / radius;
-      const rd = depthPos / radius;
+      // Project the flat plate onto the picked axis. The two lateral-plane
+      // extents are the broad dimension and the thin edge (size.y is the
+      // axial height, handled separately). A solar panel's broad face is
+      // tangential and its thin (cell-normal) axis is radial; a fin's broad
+      // dimension is its radial span and its thin (blade-normal) axis is
+      // tangential — so the two swap which extent rides the radial vs the
+      // tangential direction.
+      const broad = Math.max(size.x, size.z);
+      const thin = Math.min(size.x, size.z);
+      const ru = Math.abs(pickedPos / radius);
+      const rd = Math.abs(depthPos / radius);
       latHalfExtent =
-        (faceWidth / 2) * Math.abs(rd) + (thickness / 2) * Math.abs(ru);
+        type === "fin"
+          ? (broad / 2) * ru + (thin / 2) * rd
+          : (broad / 2) * rd + (thin / 2) * ru;
     }
   }
   return {

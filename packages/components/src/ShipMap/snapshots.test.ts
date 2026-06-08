@@ -6,6 +6,7 @@ import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import oxstatRing from "./__fixtures__/oxstat-ring-17parts.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
+import wingedLander from "./__fixtures__/winged-lander-31parts.json";
 import { renderShipMapToSvg } from "./render";
 import {
   buildShipMapPart,
@@ -39,12 +40,20 @@ function fixtureToParts(
 ): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
+  const orgPosById = new Map(topo.parts.map((p) => [p.flightId, p.orgPos]));
   return topo.parts.map((p) => {
     const modules = sidecar?.[String(p.flightId)];
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(p, undefined, undefined, useX, partState);
+    return buildShipMapPart(
+      p,
+      undefined,
+      undefined,
+      useX,
+      partState,
+      p.parentFlightId != null ? orgPosById.get(p.parentFlightId) : null,
+    );
   });
 }
 
@@ -95,6 +104,15 @@ describe("Ship Map SVG snapshots", () => {
     // The solar shape must orient as a vertical strip; a horizontal
     // strip here reads perpendicular to the real panel orientation.
     expect(renderFixture(oxstatRing as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders winged-lander (radial winglets + two solar rings)", () => {
+    // Real-capture fixture: AV-T1 + AV-R8 winglets and two OX-STAT rings.
+    // Exercises azimuth foreshortening for both flat-plate types — fins
+    // (broad span radial) and panels (broad face tangential) — on parts
+    // mounted to non-root parents, so it also guards the parent-relative
+    // radial basis.
+    expect(renderFixture(wingedLander as Fixture)).toMatchSnapshot();
   });
 
   it("renders an empty parts list as a placeholder", () => {

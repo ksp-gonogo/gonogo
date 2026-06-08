@@ -81,12 +81,20 @@ function fixtureToShipMapParts(
 ): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
+  const orgPosById = new Map(topo.parts.map((p) => [p.flightId, p.orgPos]));
   return topo.parts.map((p) => {
     const modules = sidecar?.[String(p.flightId)];
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(p, undefined, undefined, useX, partState);
+    return buildShipMapPart(
+      p,
+      undefined,
+      undefined,
+      useX,
+      partState,
+      p.parentFlightId != null ? orgPosById.get(p.parentFlightId) : null,
+    );
   });
 }
 
