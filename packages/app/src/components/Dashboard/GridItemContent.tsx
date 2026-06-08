@@ -73,23 +73,26 @@ export const GridItemContent = memo(function GridItemContent({
   return (
     <>
       <CellHeader className="drag-handle" title="Drag to reposition">
-        {(hasConfig || hasActions) && (
-          <GearWrapper>
-            <GearButton
-              item={item}
-              def={def}
-              onSaveConfig={onSaveConfig}
-              onSaveMappings={onSaveMappings}
-            />
-          </GearWrapper>
-        )}
-        <PushButton
-          item={item}
-          pushable={def.pushable === true}
-          w={w ?? 3}
-          h={h ?? 3}
-        />
-        <RemoveButton onRemove={onRemove} />
+        {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
+        <ActionButtons className="widget-action-buttons">
+          {(hasConfig || hasActions) && (
+            <GearWrapper>
+              <GearButton
+                item={item}
+                def={def}
+                onSaveConfig={onSaveConfig}
+                onSaveMappings={onSaveMappings}
+              />
+            </GearWrapper>
+          )}
+          <PushButton
+            item={item}
+            pushable={def.pushable === true}
+            w={w ?? 3}
+            h={h ?? 3}
+          />
+          <RemoveButton onRemove={onRemove} />
+        </ActionButtons>
       </CellHeader>
       <ComponentWrapper>
         <DashboardItemContext.Provider value={itemContext}>
@@ -130,4 +133,10 @@ const CellHeader = styled.div`
   &:active {
     cursor: grabbing;
   }
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  align-items: center;
+  margin-left: auto;
 `;
