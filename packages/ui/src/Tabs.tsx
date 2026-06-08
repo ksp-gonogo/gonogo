@@ -1,5 +1,5 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 export interface TabDescriptor {
@@ -23,6 +23,44 @@ export interface TabsProps {
 export function Tabs({ tabs, activeId, onChange }: Readonly<TabsProps>) {
   const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const barRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState({ left: false, right: false });
+
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const left = el.scrollLeft > 1;
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setOverflow((prev) =>
+        prev.left === left && prev.right === right ? prev : { left, right },
+      );
+    };
+
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) {
+      ro.observe(child);
+    }
+
+    const mo = new MutationObserver(() => {
+      for (const child of Array.from(el.children)) {
+        ro.observe(child);
+      }
+      update();
+    });
+    mo.observe(el, { childList: true });
+
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, []);
 
   const activateByIndex = useCallback(
     (idx: number) => {
@@ -63,30 +101,34 @@ export function Tabs({ tabs, activeId, onChange }: Readonly<TabsProps>) {
 
   return (
     <TabsRoot>
-      <TabBar role="tablist">
-        {tabs.map((tab) => {
-          const isActive = tab.id === active?.id;
-          return (
-            <TabButton
-              key={tab.id}
-              ref={(el) => {
-                if (el) buttonRefs.current.set(tab.id, el);
-                else buttonRefs.current.delete(tab.id);
-              }}
-              role="tab"
-              type="button"
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
-              $active={isActive}
-              onClick={() => onChange(tab.id)}
-              onKeyDown={handleKeyDown}
-            >
-              {tab.label}
-              {tab.indicator && <TabDot aria-hidden="true" />}
-            </TabButton>
-          );
-        })}
-      </TabBar>
+      <TabBarShell>
+        <TabBar ref={barRef} role="tablist">
+          {tabs.map((tab) => {
+            const isActive = tab.id === active?.id;
+            return (
+              <TabButton
+                key={tab.id}
+                ref={(el) => {
+                  if (el) buttonRefs.current.set(tab.id, el);
+                  else buttonRefs.current.delete(tab.id);
+                }}
+                role="tab"
+                type="button"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                $active={isActive}
+                onClick={() => onChange(tab.id)}
+                onKeyDown={handleKeyDown}
+              >
+                {tab.label}
+                {tab.indicator && <TabDot aria-hidden="true" />}
+              </TabButton>
+            );
+          })}
+        </TabBar>
+        <TabBarOverflowGlow $position="left" $visible={overflow.left} />
+        <TabBarOverflowGlow $position="right" $visible={overflow.right} />
+      </TabBarShell>
       <TabPanel role="tabpanel">{active?.content}</TabPanel>
     </TabsRoot>
   );
@@ -103,10 +145,55 @@ const TabsRoot = styled.div`
   min-height: 0;
 `;
 
+/* Positioned wrapper so the left/right overflow glows can sit over the tab
+   bar's edges. The bottom border lives here (not on the scrolling element) so
+   it spans the full width even while the tabs scroll underneath it. */
+const TabBarShell = styled.div`
+  position: relative;
+  border-bottom: 1px solid var(--color-border-subtle);
+`;
+
 const TabBar = styled.div`
   display: flex;
   gap: 2px;
-  border-bottom: 1px solid var(--color-border-subtle);
+  /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Hide the native scrollbar: the edge glows communicate scroll state.
+     Trackpads/wheels still scroll; keyboard arrows move between tabs. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+`;
+
+const TabBarOverflowGlow = styled.div<{
+  $position: "left" | "right";
+  $visible: boolean;
+}>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  ${({ $position }) => ($position === "left" ? "left: 0;" : "right: 0;")}
+  width: 28px;
+  pointer-events: none;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transition: opacity 150ms ease;
+  /* Dim white hue brightest at the overflown edge, tapering inward. */
+  background: linear-gradient(
+    to ${({ $position }) => ($position === "left" ? "right" : "left")},
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0) 100%
+  );
+  z-index: 1;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const TabDot = styled.span`
@@ -122,6 +209,9 @@ const TabDot = styled.span`
 const TabButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-surface-raised)" : "transparent")};
   border: none;
+  /* Keep every tab on one line and let the bar scroll rather than wrap. */
+  flex: 0 0 auto;
+  white-space: nowrap;
   color: ${({ $active }) => ($active ? "var(--color-text-primary)" : "var(--color-text-faint)")};
   cursor: pointer;
   font-size: var(--font-size-sm);
