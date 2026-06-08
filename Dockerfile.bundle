@@ -45,6 +45,12 @@ RUN pnpm install --frozen-lockfile
 # reaches the relay via the host's localhost:3002. The PeerJS broker stays
 # at the app's public default. turbo builds upstream workspace packages
 # first so the app's `tsc --noEmit` has their types/dist present.
+# Axiom log shipping is consent-gated at runtime, but the credential has to
+# be present at build time or the transport can never install (the same way
+# the GitHub Pages build bakes it in). Empty when the secret is absent (local
+# builds), which leaves the app tokenless and unable to ship, as before.
+ARG VITE_AXIOM_TOKEN
+ENV VITE_AXIOM_TOKEN=${VITE_AXIOM_TOKEN}
 ENV VITE_RELAY_URL=http://localhost:3002
 RUN pnpm turbo build --filter=@gonogo/app...
 

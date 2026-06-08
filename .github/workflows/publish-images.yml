@@ -107,5 +107,6 @@ jobs:
           # read:packages, same as the Pages deploy workflow's install step.
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            VITE_AXIOM_TOKEN=${{ secrets.VITE_AXIOM_TOKEN }}
           cache-from: type=gha,scope=gonogo-bundle
           cache-to: type=gha,mode=max,scope=gonogo-bundle
