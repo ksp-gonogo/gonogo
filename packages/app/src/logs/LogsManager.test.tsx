@@ -32,11 +32,11 @@ function renderManager() {
 async function openReportForm() {
   const user = userEvent.setup();
   renderManager();
-  await user.click(screen.getByRole("button", { name: /report a bug/i }));
+  await user.click(screen.getByRole("button", { name: /send feedback/i }));
   return user;
 }
 
-describe("LogsManager — Report bug", () => {
+describe("LogsManager — Feedback", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {
     // Fake timers (shouldAdvanceTime so userEvent's internal delays still
     // run) so the post-success setTimeout(5000) that resets the form can be
@@ -72,17 +72,45 @@ describe("LogsManager — Report bug", () => {
     expect(entry.message).toBe("[bug-report] Altitude gauge froze");
 
     const payload = entry.context?.bug_report as {
+      kind: string;
       timeWindowMinutes: number | null;
       recentLogsCount: number;
       recentLogs: unknown[];
       screenshot: unknown;
       reportedAt: string;
     };
+    expect(payload.kind).toBe("bug");
     expect(payload.timeWindowMinutes).toBe(5);
     expect(payload.recentLogsCount).toBeGreaterThanOrEqual(1);
     expect(payload.recentLogs.length).toBe(payload.recentLogsCount);
     expect(payload.screenshot).toBeNull();
     expect(typeof payload.reportedAt).toBe("string");
+  });
+
+  it("emits a feedback-tagged info entry when the type is set to Feedback", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = await openReportForm();
+
+    await user.selectOptions(screen.getByLabelText(/type/i), "Feedback");
+    await user.type(
+      screen.getByLabelText(/your feedback/i),
+      "Add a delta-v readout",
+    );
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/feedback sent/i)).toBeInTheDocument();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    const entries = logger.getBuffer().filter((e) => e.tag === "feedback");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].level).toBe("info");
+    expect(entries[0].message).toBe("[feedback] Add a delta-v readout");
+    const payload = entries[0].context?.bug_report as { kind: string };
+    expect(payload.kind).toBe("feedback");
   });
 
   it("disables the submit button until a description is entered", async () => {
@@ -136,7 +164,7 @@ describe("LogsManager — Report bug", () => {
     await waitFor(() => {
       expect(screen.queryByText(/bug report sent/i)).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /report a bug/i }),
+        screen.getByRole("button", { name: /send feedback/i }),
       ).toBeInTheDocument();
     });
   });
@@ -148,7 +176,7 @@ describe("LogsManager — Report bug", () => {
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
     expect(
-      screen.getByRole("button", { name: /report a bug/i }),
+      screen.getByRole("button", { name: /send feedback/i }),
     ).toBeInTheDocument();
     const reports = logger.getBuffer().filter((e) => e.tag === "bug-report");
     expect(reports).toHaveLength(0);
