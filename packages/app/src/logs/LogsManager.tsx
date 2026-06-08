@@ -81,6 +81,11 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     label: "bug-report",
     hint: "User-submitted bug reports (rare, kept on for triage)",
   },
+  {
+    id: "feedback",
+    label: "feedback",
+    hint: "User-submitted feedback / suggestions",
+  },
 ];
 
 type TimeWindowOption = {
@@ -217,7 +222,7 @@ export function LogsManager() {
       </Section>
 
       <Section>
-        <SectionTitle>Report bug</SectionTitle>
+        <SectionTitle>Feedback</SectionTitle>
         <ReportBug />
       </Section>
     </Container>
@@ -228,6 +233,7 @@ type FormPhase = "idle" | "encoding" | "submitting" | "sent";
 
 function ReportBug() {
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"bug" | "feedback">("bug");
   const [description, setDescription] = useState("");
   const [windowIndex, setWindowIndex] = useState(DEFAULT_WINDOW_INDEX);
   const [screenshot, setScreenshot] = useState<EncodedScreenshot | null>(null);
@@ -247,6 +253,7 @@ function ReportBug() {
     },
     [],
   );
+  const kindId = useId();
   const descriptionId = useId();
   const windowId = useId();
   const screenshotId = useId();
@@ -263,26 +270,29 @@ function ReportBug() {
     return (
       <>
         <Foot>
-          Sends a tagged report straight to our log store. Includes a slice of
+          Report a bug or send a suggestion. Either way it includes a slice of
           your recent log buffer and an optional screenshot.
         </Foot>
         <ActionRow>
-          <Button onClick={() => setOpen(true)}>Report a bug</Button>
+          <Button onClick={() => setOpen(true)}>Send feedback</Button>
         </ActionRow>
       </>
     );
   }
 
   if (phase === "sent") {
+    const sentTag = kind === "feedback" ? "feedback" : "bug-report";
+    const sentLabel = kind === "feedback" ? "Feedback" : "Bug report";
     return (
       <SentNotice role="status" aria-live="polite">
-        Bug report sent — thanks. The log store has it tagged{" "}
-        <code>bug-report</code>.
+        {sentLabel} sent, thanks. The log store has it tagged{" "}
+        <code>{sentTag}</code>.
       </SentNotice>
     );
   }
 
   function reset() {
+    setKind("bug");
     setDescription("");
     setWindowIndex(DEFAULT_WINDOW_INDEX);
     setScreenshot(null);
@@ -333,15 +343,22 @@ function ReportBug() {
       selectedWindow.windowMinutes,
     );
     try {
-      logger.tag("bug-report").error(trimmed, undefined, {
+      const tag = kind === "feedback" ? "feedback" : "bug-report";
+      const tagged = logger.tag(tag);
+      const payload = {
         bug_report: {
+          kind,
           timeWindowMinutes: selectedWindow.windowMinutes,
           recentLogsCount: recentLogs.length,
           recentLogs,
           screenshot,
           reportedAt: new Date().toISOString(),
         },
-      });
+      };
+      // A bug is an error so it shows up in error-rate views; feedback is
+      // informational. Same payload shape either way, distinguished by `kind`.
+      if (kind === "feedback") tagged.info(trimmed, payload);
+      else tagged.error(trimmed, undefined, payload);
       // The Axiom SDK auto-batches and retries on its own. Race the flush
       // against a 10s deadline so a slow transport (e.g. backpressure on
       // a large screenshot) doesn't trap the UI in "Submitting…" — the
@@ -359,7 +376,7 @@ function ReportBug() {
         // Don't error out — the entry is in the ring buffer and the SDK
         // will keep retrying. Tag a one-liner so the operator sees in
         // their own logs that delivery was slow.
-        logger.warn("[bug-report] flush did not complete within 10s", {
+        logger.warn("[report] flush did not complete within 10s", {
           screenshotEncodedSize: screenshot?.encodedSize ?? null,
         });
       }
@@ -370,6 +387,7 @@ function ReportBug() {
         // the form so a second report starts from a clean slate. We bail if
         // the user has already started another report by then.
         setPhase((p) => (p === "sent" ? "idle" : p));
+        setKind("bug");
         setDescription("");
         setScreenshot(null);
         setScreenshotName(null);
@@ -394,13 +412,31 @@ function ReportBug() {
   return (
     <ReportForm onSubmit={handleSubmit} noValidate>
       <Field>
-        <FieldLabel htmlFor={descriptionId}>What went wrong?</FieldLabel>
+        <FieldLabel htmlFor={kindId}>Type</FieldLabel>
+        <Select
+          id={kindId}
+          value={kind}
+          onChange={(e) => setKind(e.target.value as "bug" | "feedback")}
+        >
+          <option value="bug">Bug report</option>
+          <option value="feedback">Feedback</option>
+        </Select>
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor={descriptionId}>
+          {kind === "feedback" ? "Your feedback" : "What went wrong?"}
+        </FieldLabel>
         <Textarea
           id={descriptionId}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="What were you doing? What did you expect? What happened instead?"
+          placeholder={
+            kind === "feedback"
+              ? "What would you change, add, or like to see?"
+              : "What were you doing? What did you expect? What happened instead?"
+          }
           required
         />
       </Field>
