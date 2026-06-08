@@ -380,9 +380,15 @@ export function buildShipMapPart(
       const thin = Math.min(size.x, size.z);
       const ru = Math.abs(pickedPos / radius);
       const rd = Math.abs(depthPos / radius);
+      // A fin reads full when side-on (ru=1) and edge-on when it points at
+      // the camera (ru=0). The true orthographic falloff is linear in `ru`,
+      // but that's subtle at a glance — a 45° fin still shows ~71% span. We
+      // square it so angled fins read clearly shorter, leaving the side-on
+      // and camera-facing extremes untouched. (A panel's broad face is
+      // tangential, so it foreshortens on `rd` instead and isn't exaggerated.)
       latHalfExtent =
         type === "fin"
-          ? (broad / 2) * ru + (thin / 2) * rd
+          ? (broad / 2) * ru * ru + (thin / 2) * rd
           : (broad / 2) * rd + (thin / 2) * ru;
     }
   }
