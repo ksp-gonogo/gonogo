@@ -45,6 +45,13 @@ export interface ShipMapPart {
   /** Position along the spine (orgPos z). */
   axial: number;
   /**
+   * Position along the collapsed depth axis (the lateral axis NOT picked
+   * for the 2D side view). Not drawn, but it's the only depth cue we have:
+   * the renderer sorts parts back-to-front by it so a front-facing radial
+   * part (panel, winglet) paints over the fuselage instead of behind it.
+   */
+  depth: number;
+  /**
    * Screen-space CCW rotation in radians applied to the part's body box
    * when rendering. Derived from the part's vessel-local `up` vector
    * projected into the same 2D plane the diagram uses for positions:
@@ -328,6 +335,9 @@ export function buildShipMapPart(
   const meshLat =
     (useX ? orgPos[0] : orgPos[2]) +
     (center ? (useX ? center.x : center.z) : 0);
+  const meshDepth =
+    (useX ? orgPos[2] : orgPos[0]) +
+    (center ? (useX ? center.z : center.x) : 0);
   const meshAxial = orgPos[1] + (center?.y ?? 0);
   const type = classifyPart(part, resources);
   // Lateral half-extent along the picked axis — normally just the picked-
@@ -384,6 +394,7 @@ export function buildShipMapPart(
     type,
     lat: meshLat,
     axial: meshAxial,
+    depth: meshDepth,
     rotationRad,
     size,
     latHalfExtent,

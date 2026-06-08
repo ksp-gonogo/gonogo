@@ -116,12 +116,21 @@ export function ShipDiagramSvg({
   const transform = `translate(${cam.panX}, ${cam.panY}) scale(${cam.zoom})`;
   const stroke = (n: number) => n / cam.zoom;
 
-  // Draw outer parts first so the central stack overlaps cleanly on top.
+  // Painter's algorithm: draw back-to-front by depth (the collapsed axis)
+  // so a front-facing radial part paints over the fuselage and a rear one
+  // stays behind it. Depth is quantised to the mm so float noise doesn't
+  // disturb the tiebreak: parts at the same depth — the axial stack and any
+  // in-plane radial parts all sit at depth ~0 — fall back to drawing the
+  // outermost first, so the central column still overlaps cleanly on top.
   // Fuel-line parts come out of the main pass and render as source→target
   // arrows in a separate layer on top.
   const drawOrder = [...projected]
     .filter((p) => p.type !== "fuel-line")
-    .sort((a, b) => b.spineDist - a.spineDist);
+    .sort((a, b) => {
+      const depthOrder =
+        Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
+      return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
+    });
   const fuelLines = projected.filter((p) => p.type === "fuel-line");
   const partsById = new Map(projected.map((p) => [p.flightId, p]));
 
