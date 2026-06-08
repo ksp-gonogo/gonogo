@@ -328,24 +328,46 @@ export function buildShipMapPart(
     (useX ? orgPos[0] : orgPos[2]) +
     (center ? (useX ? center.x : center.z) : 0);
   const meshAxial = orgPos[1] + (center?.y ?? 0);
+  const type = classifyPart(part, resources);
+  // Lateral half-extent along the picked axis — normally just the picked-
+  // axis half of the prefab bounds. Flat solar panels in a radial ring are
+  // the exception: a 2D side view reads better when each panel is
+  // foreshortened by how face-on it is to the viewer. A panel pointing at
+  // the camera (on the collapsed depth axis) shows its full broad face; one
+  // seen edge-on (on the picked axis) collapses toward its thin edge.
+  // Azimuth comes from orgPos; true proportions from `size`. The broad-face
+  // normal isn't on the wire (only near-axial `up` is), so we assume the
+  // ring convention that the thin axis faces radially out. Exact for evenly
+  // clocked rings, a good approximation otherwise.
+  let latHalfExtent = (useX ? size.x : size.z) / 2;
+  if (type === "solar") {
+    const pickedPos = useX ? orgPos[0] : orgPos[2];
+    const depthPos = useX ? orgPos[2] : orgPos[0];
+    const radius = Math.hypot(pickedPos, depthPos);
+    if (radius > 0.05) {
+      // Project the panel's oriented rectangle onto the picked axis: its
+      // broad-face width contributes through the depth component of the
+      // radial (face-normal) direction, its thickness through the picked
+      // component. size.y is the axial height, handled separately.
+      const faceWidth = Math.max(size.x, size.z);
+      const thickness = Math.min(size.x, size.z);
+      const ru = pickedPos / radius;
+      const rd = depthPos / radius;
+      latHalfExtent =
+        (faceWidth / 2) * Math.abs(rd) + (thickness / 2) * Math.abs(ru);
+    }
+  }
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
     name: part.name,
     title: part.title,
-    type: classifyPart(part, resources),
+    type,
     lat: meshLat,
     axial: meshAxial,
     rotationRad,
     size,
-    // Vessel-local Y is the spine; the bounds emit in part-local frame
-    // where Y is also the axial extent, so this maps 1:1 for axially
-    // aligned parts (the majority). Lateral picks the picked axis to
-    // match the projected silhouette — using max(x,y) like the previous
-    // implementation mistook a part's axial extent for lateral, blowing
-    // up wing-shaped parts (e.g. radial solar panels would render as
-    // 1.6m wings instead of 0.16m thin strips).
-    latHalfExtent: (useX ? size.x : size.z) / 2,
+    latHalfExtent,
     axialHalfExtent: size.y / 2,
     dryMass: part.dryMass,
     stage: part.inverseStage,
