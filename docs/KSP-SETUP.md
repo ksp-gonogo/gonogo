@@ -12,9 +12,7 @@ Install all of these:
 - **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for in-game cameras
 - **[Kerbcam](https://github.com/jonpepler/kerbcam)** for streaming and controlling the cameras
 
-kOS and SCANsat are on CKAN. Telemachus is a hand install (below).
-
-Live in-game camera feeds come from a fourth mod, **kerbcam**, but you can't install it yet: the KSP-side install isn't documented (see [Camera feeds](#camera-feeds-kerbcam) at the bottom). Everything else works without it.
+kOS and SCANsat are on CKAN. The gonogo Telemachus build and kerbcam are hand installs; both are walked through below. Everything except the camera feeds works without kerbcam, so you can leave it for last, or skip it, if you like.
 
 ## Installing the gonogo build of Telemachus
 
@@ -57,6 +55,18 @@ Configure it from the **Data Sources** panel (the database button in the bottom-
 
 ## Camera feeds (kerbcam)
 
-Live in-game camera feeds come through **kerbcam**, a separate KSP-side camera-streaming mod. In gonogo you add the **Camera Feed** widget and point it at kerbcam from the **Data Sources** panel. Camera feeds follow the same CommNet rule as the rest of the data: they cut out when you lose the connection.
+Live in-game camera feeds come through **kerbcam**, a separate KSP-side camera-streaming mod.
 
-> **TODO: the KSP-side kerbcam install isn't documented yet.** The steps to install and run kerbcam inside KSP don't exist in this repo yet. This section needs those steps filled in by the owner.
+### Installing kerbcam
+
+1. Download the latest `kerbcam-<version>.zip` from the releases page: **<https://github.com/jonpepler/kerbcam/releases/>**. Take the full `kerbcam-<version>.zip`, not the bare `Kerbcam.dll`.
+2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder, the same way as Telemachus above.
+3. kerbcam uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
+
+By default kerbcam only accepts connections from the same computer. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, open `GameData/Kerbcam/settings.cfg` and change `BindAddress = 127.0.0.1` to the KSP computer's LAN address (or `0.0.0.0` for every interface). There's no password on the stream, so only open it up on a network you trust.
+
+Restart KSP. kerbcam starts automatically when a flight scene loads; there's nothing else to run. It serves on port **8088**.
+
+### Connecting the dashboard
+
+In gonogo, add the **Camera Feed** widget, then open the **Data Sources** panel (the database icon in the bottom-right **+** menu) and point the camera source at the KSP computer's address and port `8088`. Camera feeds follow the same CommNet rule as the rest of the data: they cut out when you lose the connection.
