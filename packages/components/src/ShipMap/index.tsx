@@ -50,6 +50,9 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
     const { useX } = pickLateralAxis(topology.parts);
+    const orgPosById = new Map(
+      topology.parts.map((p) => [p.flightId, p.orgPos]),
+    );
     return topology.parts.map((p) => {
       const live = liveByFlightId.get(p.flightId);
       return buildShipMapPart(
@@ -58,6 +61,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         live?.resources,
         useX,
         live?.partState,
+        p.parentFlightId != null ? orgPosById.get(p.parentFlightId) : null,
       );
     });
   }, [topology, liveByFlightId]);

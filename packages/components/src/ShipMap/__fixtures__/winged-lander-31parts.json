@@ -1,0 +1,1058 @@
+{
+  "v.topology": {
+    "topologySeq": 48,
+    "rootFlightId": 2941999825,
+    "parts": [
+      {
+        "modules": [
+          "ModuleCommand",
+          "ModuleReactionWheel",
+          "ModuleColorChanger",
+          "ModuleScienceExperiment",
+          "ModuleScienceContainer",
+          "ModuleConductionMultiplier",
+          "ModuleDataTransmitter",
+          "ModuleLiftingSurface",
+          "FlagDecal",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "ModuleInventoryPart",
+          "KOSNameTag",
+          "ModuleTripLogger"
+        ],
+        "dryMass": 0.800000071525574,
+        "persistentId": 2688690351,
+        "fuelLineTarget": null,
+        "orgPos": [0, 0, 0],
+        "title": "Mk1 Command Pod",
+        "up": [0, 1, 0],
+        "flightId": 2941999825,
+        "crewCapacity": 1,
+        "inverseStage": -1,
+        "category": "Pods",
+        "bounds": {
+          "center": {
+            "x": 0,
+            "y": 0.0914880037307739,
+            "z": 0
+          },
+          "size": {
+            "x": 1.25,
+            "y": 1.1390700340271,
+            "z": 1.25
+          }
+        },
+        "crashTolerance": 14,
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "maxTemp": 1200,
+        "parentFlightId": null,
+        "name": "mk1pod.v2"
+      },
+      {
+        "modules": [
+          "ModuleJettison",
+          "ModuleAblator",
+          "ModuleColorChanger",
+          "ModuleDecouple",
+          "ModuleTestSubject",
+          "ModuleLiftingSurface",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.100000001490116,
+        "persistentId": 3105258077,
+        "fuelLineTarget": null,
+        "orgPos": [0, -0.427038192749023, 0],
+        "title": "Heat Shield (1.25m)",
+        "up": [0, 1, 0],
+        "flightId": 1895481177,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Thermal",
+        "bounds": {
+          "center": {
+            "x": 0,
+            "y": -0.0512576103210449,
+            "z": 5.96046447753906e-8
+          },
+          "size": {
+            "x": 1.35549640655518,
+            "y": 0.283841103315353,
+            "z": 1.35549688339233
+          }
+        },
+        "crashTolerance": 9,
+        "manufacturer": "O.M.B. Demolition Enterprises",
+        "maxTemp": 3300,
+        "parentFlightId": 2941999825,
+        "name": "HeatShield1"
+      },
+      {
+        "modules": [
+          "ModuleDecouple",
+          "ModuleToggleCrossfeed",
+          "ModuleTestSubject",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.0399999991059303,
+        "persistentId": 487646474,
+        "fuelLineTarget": null,
+        "orgPos": [0, -0.647038459777832, 0],
+        "title": "TD-12 Decoupler",
+        "up": [0, 1, 0],
+        "flightId": 1079149477,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Coupling",
+        "bounds": {
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "size": {
+            "x": 1.25,
+            "y": 0.159999996423721,
+            "z": 1.25
+          }
+        },
+        "crashTolerance": 6,
+        "manufacturer": "O.M.B. Demolition Enterprises",
+        "maxTemp": 2000,
+        "parentFlightId": 1895481177,
+        "name": "Decoupler.1"
+      },
+      {
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.25,
+        "persistentId": 2083781742,
+        "fuelLineTarget": null,
+        "orgPos": [0, -1.6787633895874, 0],
+        "title": "FL-T400 Fuel Tank",
+        "up": [0, 1, 0],
+        "flightId": 2241953313,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "FuelTank",
+        "bounds": {
+          "center": {
+            "x": 3.45706939697266e-6,
+            "y": 0.0346160531044006,
+            "z": 3.45706939697266e-6
+          },
+          "size": {
+            "x": 1.25001692771912,
+            "y": 1.94930243492126,
+            "z": 1.25001728534698
+          }
+        },
+        "crashTolerance": 6,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2000,
+        "parentFlightId": 1079149477,
+        "name": "fuelTank"
+      },
+      {
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.25,
+        "persistentId": 2726745094,
+        "fuelLineTarget": null,
+        "orgPos": [0, -3.57298851013184, 0],
+        "title": "FL-T400 Fuel Tank",
+        "up": [0, 1, 0],
+        "flightId": 3780979633,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "FuelTank",
+        "bounds": {
+          "center": {
+            "x": 3.45706939697266e-6,
+            "y": 0.0346160531044006,
+            "z": 3.45706939697266e-6
+          },
+          "size": {
+            "x": 1.25001692771912,
+            "y": 1.94930243492126,
+            "z": 1.25001728534698
+          }
+        },
+        "crashTolerance": 6,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2000,
+        "parentFlightId": 2241953313,
+        "name": "fuelTank"
+      },
+      {
+        "modules": [
+          "ModuleEngines",
+          "ModuleGimbal",
+          "ModuleJettison",
+          "ModuleTestSubject",
+          "ModuleSurfaceFX",
+          "ModulePartVariants",
+          "FXModuleAnimateThrottle",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.5,
+        "persistentId": 582464068,
+        "fuelLineTarget": null,
+        "orgPos": [0, -4.48548889160156, 0],
+        "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+        "up": [0, 1, 0],
+        "flightId": 2266443446,
+        "crewCapacity": 0,
+        "inverseStage": 1,
+        "category": "Engine",
+        "bounds": {
+          "center": {
+            "x": -5.96046447753906e-8,
+            "y": -0.402831017971039,
+            "z": 4.76837158203125e-7
+          },
+          "size": {
+            "x": 1.26894187927246,
+            "y": 0.829957962036133,
+            "z": 1.26894307136536
+          }
+        },
+        "crashTolerance": 7,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2000,
+        "parentFlightId": 3780979633,
+        "name": "liquidEngine3.v2"
+      },
+      {
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.0370000004768372,
+        "persistentId": 4098904282,
+        "fuelLineTarget": null,
+        "orgPos": [-1.24699723720551, -3.66166114807129, 3.62740344428403e-8],
+        "title": "AV-T1 Winglet",
+        "up": [0, 1, 0],
+        "flightId": 3662670402,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": -0.11865770816803,
+            "y": 0.226770341396332,
+            "z": 0.00663786008954048
+          },
+          "size": {
+            "x": 1.4970498085022,
+            "y": 2.11000037193298,
+            "z": 0.0969592779874802
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2400,
+        "parentFlightId": 3780979633,
+        "name": "winglet"
+      },
+      {
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.0370000004768372,
+        "persistentId": 2401458782,
+        "fuelLineTarget": null,
+        "orgPos": [-3.80527964694011e-8, -3.66166114807129, 1.24699711799622],
+        "title": "AV-T1 Winglet",
+        "up": [0, 1, 0],
+        "flightId": 201851704,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": 0.00663787499070168,
+            "y": 0.226770341396332,
+            "z": 0.118657723069191
+          },
+          "size": {
+            "x": 1.4970498085022,
+            "y": 2.11000037193298,
+            "z": 0.0969592779874802
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2400,
+        "parentFlightId": 3780979633,
+        "name": "winglet"
+      },
+      {
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.0370000004768372,
+        "persistentId": 1927347622,
+        "fuelLineTarget": null,
+        "orgPos": [1.24699723720551, -3.66166114807129, -1.45290002251386e-7],
+        "title": "AV-T1 Winglet",
+        "up": [0, 1, 0],
+        "flightId": 108583432,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": 0.11865770816803,
+            "y": 0.226770341396332,
+            "z": -0.0066378703340888
+          },
+          "size": {
+            "x": 1.4970498085022,
+            "y": 2.11000037193298,
+            "z": 0.0969592779874802
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2400,
+        "parentFlightId": 3780979633,
+        "name": "winglet"
+      },
+      {
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.0370000004768372,
+        "persistentId": 3126024373,
+        "fuelLineTarget": null,
+        "orgPos": [-1.10600858249654e-7, -3.66166114807129, -1.24699711799622],
+        "title": "AV-T1 Winglet",
+        "up": [0, 1, 0],
+        "flightId": 2747692567,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": -0.00663784658536315,
+            "y": 0.226770341396332,
+            "z": -0.118657723069191
+          },
+          "size": {
+            "x": 1.4970498085022,
+            "y": 2.11000037193298,
+            "z": 0.0969592779874802
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Jebediah Kerman's Junkyard and Spacecraft Parts Co",
+        "maxTemp": 2400,
+        "parentFlightId": 3780979633,
+        "name": "winglet"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 742780607,
+        "fuelLineTarget": null,
+        "orgPos": [-0.608775734901428, -0.93522834777832, 3.62858649793907e-8],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 3479819312,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.0331548117101192,
+            "y": 0,
+            "z": 1.09488018651405e-8
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 1898570915,
+        "fuelLineTarget": null,
+        "orgPos": [-0.430469393730164, -0.93522834777832, 0.430469512939453],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 1360646511,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.023443978279829,
+            "y": 0,
+            "z": 0.0234440006315708
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 592523830,
+        "fuelLineTarget": null,
+        "orgPos": [1.38990758633613e-15, -0.93522834777832, 0.608775675296783],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 2676378420,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 1.49011611938477e-8,
+            "y": 0,
+            "z": 0.0331548079848289
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 1304670358,
+        "fuelLineTarget": null,
+        "orgPos": [0.430469423532486, -0.93522834777832, 0.430469423532486],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 2583308264,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.023444002494216,
+            "y": 0,
+            "z": 0.023443978279829
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 1777374216,
+        "fuelLineTarget": null,
+        "orgPos": [0.608775734901428, -0.93522834777832, -8.95067273631867e-8],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 1812181742,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.0331548117101192,
+            "y": 0,
+            "z": -2.6758247173575e-8
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 3416939400,
+        "fuelLineTarget": null,
+        "orgPos": [0.430469393730164, -0.93522834777832, -0.430469542741776],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 1015294957,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.0234439764171839,
+            "y": 0,
+            "z": -0.0234440099447966
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 598945542,
+        "fuelLineTarget": null,
+        "orgPos": [-7.2571722853354e-8, -0.93522834777832, -0.608775675296783],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 455188932,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -1.49011611938477e-8,
+            "y": 0,
+            "z": -0.0331548079848289
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 3256872842,
+        "fuelLineTarget": null,
+        "orgPos": [-0.43046960234642, -0.93522834777832, -0.430469304323196],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0, 1, 0],
+        "flightId": 1943673907,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.0234440099447966,
+            "y": 0,
+            "z": -0.0234439764171839
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2241953313,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.100000001490116,
+        "persistentId": 2044141486,
+        "fuelLineTarget": null,
+        "orgPos": [-0.820413947105408, -2.24246883392334, -0.820414006710052],
+        "title": "AV-R8 Winglet",
+        "up": [-1.26440511394321e-7, 1, -1.26440539816031e-7],
+        "flightId": 1796066123,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": -0.052560668438673,
+            "y": -0.0336923748254776,
+            "z": -0.0527336969971657
+          },
+          "size": {
+            "x": 1.62908625602722,
+            "y": 2.01635265350342,
+            "z": 0.106462851166725
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "maxTemp": 2400,
+        "parentFlightId": 2241953313,
+        "name": "R8winglet"
+      },
+      {
+        "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.100000001490116,
+        "persistentId": 693117156,
+        "fuelLineTarget": null,
+        "orgPos": [-0.820414006710052, -2.24246883392334, 0.820413827896118],
+        "title": "AV-R8 Winglet",
+        "up": [-1.26440525605176e-7, 1, 1.26440511394321e-7],
+        "flightId": 1729270810,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": -0.0527336969971657,
+            "y": -0.0336923748254776,
+            "z": 0.0525606721639633
+          },
+          "size": {
+            "x": 1.62908625602722,
+            "y": 2.01635265350342,
+            "z": 0.106462851166725
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "maxTemp": 2400,
+        "parentFlightId": 2241953313,
+        "name": "R8winglet"
+      },
+      {
+        "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.100000001490116,
+        "persistentId": 273145383,
+        "fuelLineTarget": null,
+        "orgPos": [0.820414006710052, -2.24246883392334, 0.820413947105408],
+        "title": "AV-R8 Winglet",
+        "up": [1.26440525605176e-7, 1, 1.26440511394321e-7],
+        "flightId": 371497062,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": 0.0525606833398342,
+            "y": -0.0336923748254776,
+            "z": 0.0527336932718754
+          },
+          "size": {
+            "x": 1.62908625602722,
+            "y": 2.01635265350342,
+            "z": 0.106462851166725
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "maxTemp": 2400,
+        "parentFlightId": 2241953313,
+        "name": "R8winglet"
+      },
+      {
+        "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+        "dryMass": 0.100000001490116,
+        "persistentId": 1807549198,
+        "fuelLineTarget": null,
+        "orgPos": [0.820413887500763, -2.24246883392334, -0.820413947105408],
+        "title": "AV-R8 Winglet",
+        "up": [1.26440525605176e-7, 1, -1.26440511394321e-7],
+        "flightId": 935297964,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Aero",
+        "bounds": {
+          "center": {
+            "x": 0.0527337081730366,
+            "y": -0.0336923748254776,
+            "z": -0.0525606721639633
+          },
+          "size": {
+            "x": 1.62908625602722,
+            "y": 2.01635265350342,
+            "z": 0.106462851166725
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "Kerlington Model Rockets and Paper Products Inc",
+        "maxTemp": 2400,
+        "parentFlightId": 2241953313,
+        "name": "R8winglet"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 4112762819,
+        "fuelLineTarget": null,
+        "orgPos": [
+          -0.518052399158478, -0.0677900314331055, 3.08783327795936e-8
+        ],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0.276844769716263, 0.960914671421051, -4.4703483581543e-8],
+        "flightId": 4286969683,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.0318589396774769,
+            "y": 0.00917873531579971,
+            "z": 2.14472581916425e-8
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 4158040187,
+        "fuelLineTarget": null,
+        "orgPos": [-0.366318315267563, -0.0677900314331055, 0.36631840467453],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0.195758759975433, 0.960914671421051, -0.195758849382401],
+        "flightId": 1904860168,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.0225276574492455,
+            "y": 0.00917873531579971,
+            "z": 0.022527689114213
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 1406676368,
+        "fuelLineTarget": null,
+        "orgPos": [
+          1.71222162221652e-15, -0.0677900314331055, 0.518052339553833
+        ],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [-4.44341878846899e-8, 0.960914671421051, -0.276844769716263],
+        "flightId": 2462808437,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 2.03380849939094e-8,
+            "y": 0.00917873531579971,
+            "z": 0.0318589396774769
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 2725043669,
+        "fuelLineTarget": null,
+        "orgPos": [0.366318345069885, -0.0677900314331055, 0.366318345069885],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [-0.195758849382401, 0.960914671421051, -0.195758789777756],
+        "flightId": 3050483918,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.0225276872515678,
+            "y": 0.00917873624712229,
+            "z": 0.0225276593118906
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 2823660951,
+        "fuelLineTarget": null,
+        "orgPos": [
+          0.518052399158478, -0.0677900314331055, -7.61679146421557e-8
+        ],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [-0.276844769716263, 0.960914671421051, 8.94069671630859e-8],
+        "flightId": 810388598,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.0318589396774769,
+            "y": 0.00917873531579971,
+            "z": -2.58936658781295e-8
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 2711620544,
+        "fuelLineTarget": null,
+        "orgPos": [0.366318315267563, -0.0677900314331055, -0.366318434476852],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [-0.195758745074272, 0.960914671421051, 0.195758864283562],
+        "flightId": 2190537061,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": 0.0225276555866003,
+            "y": 0.00917873438447714,
+            "z": -0.022527689114213
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 2576153874,
+        "fuelLineTarget": null,
+        "orgPos": [
+          -6.17566584537599e-8, -0.0677900314331055, -0.518052339553833
+        ],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [4.44341878846899e-8, 0.960914671421051, 0.276844769716263],
+        "flightId": 834190060,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -2.03380849939094e-8,
+            "y": 0.00917873531579971,
+            "z": -0.0318589396774769
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleDeployableSolarPanel",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.00499999988824129,
+        "persistentId": 2361981968,
+        "fuelLineTarget": null,
+        "orgPos": [-0.366318494081497, -0.0677900314331055, -0.366318255662918],
+        "title": "OX-STAT Photovoltaic Panels",
+        "up": [0.195758923888206, 0.960914671421051, 0.195758730173111],
+        "flightId": 4050092115,
+        "crewCapacity": 0,
+        "inverseStage": -1,
+        "category": "Electrical",
+        "bounds": {
+          "center": {
+            "x": -0.0225276947021484,
+            "y": 0.00917873624712229,
+            "z": -0.02252765186131
+          },
+          "size": {
+            "x": 0.346590518951416,
+            "y": 0.474671274423599,
+            "z": 0.0663096159696579
+          }
+        },
+        "crashTolerance": 8,
+        "manufacturer": "Probodobodyne Inc",
+        "maxTemp": 1200,
+        "parentFlightId": 2941999825,
+        "name": "solarPanels5"
+      },
+      {
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ],
+        "dryMass": 0.100000001490116,
+        "persistentId": 1782317137,
+        "fuelLineTarget": null,
+        "orgPos": [0, 0.65745735168457, 0],
+        "title": "Mk16 Parachute",
+        "up": [0, 1, 0],
+        "flightId": 2143422176,
+        "crewCapacity": 0,
+        "inverseStage": 0,
+        "category": "Utility",
+        "bounds": {
+          "center": {
+            "x": 6.73532485961914e-6,
+            "y": 0.103433951735497,
+            "z": 0.0184769332408905
+          },
+          "size": {
+            "x": 0.630669236183167,
+            "y": 0.36260974407196,
+            "z": 0.612354695796967
+          }
+        },
+        "crashTolerance": 12,
+        "manufacturer": "FreeFall Parachutes",
+        "maxTemp": 2500,
+        "parentFlightId": 2941999825,
+        "name": "parachuteSingle"
+      }
+    ]
+  }
+}
