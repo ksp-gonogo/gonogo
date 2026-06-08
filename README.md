@@ -54,7 +54,7 @@ Once the main screen is up and pointed at KSP (walked through in [docs/KSP-SETUP
 
 A station is any other browser: a tablet, a second laptop, a phone.
 
-1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the share button (the broadcast symbol) to get a share code
+1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the **Add station** button (the broadcast symbol) to get a share code
 2. On the other device, open the station page at [jonpepler.github.io/gonogo/station](https://jonpepler.github.io/gonogo/station)
 3. Enter the share code and connect
 
