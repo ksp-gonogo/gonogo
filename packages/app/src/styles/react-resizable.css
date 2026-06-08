@@ -5,12 +5,11 @@
   position: absolute;
   width: 20px;
   height: 20px;
-  background-repeat: no-repeat;
-  background-origin: content-box;
   box-sizing: border-box;
-  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2IDYiIHN0eWxlPSJiYWNrZ3JvdW5kLWNvbG9yOiNmZmZmZmYwMCIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI2cHgiIGhlaWdodD0iNnB4Ij48ZyBvcGFjaXR5PSIwLjMwMiI+PHBhdGggZD0iTSA2IDYgTCAwIDYgTCAwIDQuMiBMIDQgNC4yIEwgNC4yIDQuMiBMIDQuMiAwIEwgNiAwIEwgNiA2IEwgNiA2IFoiIGZpbGw9IiMwMDAwMDAiLz48L2c+PC9zdmc+");
-  background-position: bottom right;
-  padding: 0 3px 3px 0;
+  /* No glyph: the default react-resizable corner SVG is a black icon that's
+     invisible over dark chrome and looks broken where it does show. We keep
+     the handles as generous invisible hit zones and let the per-direction
+     cursor (below) signal resize affordance like an OS window edge. */
   /* Sits above widget content so SVG-heavy widgets (Ship Map, MapView)
      can't intercept the drag-to-resize gesture. Widget content is at
      the default stacking level inside the grid item; this handle needs
