@@ -98,7 +98,7 @@ function dashboardKeyForScene(scene: string | undefined): string {
 
 export function MainScreen() {
   useEffect(() => {
-    document.title = "gonogo — Main";
+    document.title = "gonogo - Main";
   }, []);
   const { scene } = useGameContext();
   const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);

@@ -88,7 +88,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
 
 export function StationScreen() {
   useEffect(() => {
-    document.title = "gonogo — Station";
+    document.title = "gonogo - Station";
   }, []);
   const [connected, setConnected] = useState(false);
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
