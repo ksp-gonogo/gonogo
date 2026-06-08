@@ -139,4 +139,10 @@ const ActionButtons = styled.div`
   display: flex;
   align-items: center;
   margin-left: auto;
+  /* Lift above the resize handles (z-index 5). The top-right "ne" handle
+     overlaps this tray; without this its invisible hit zone would swallow
+     taps meant for the gear/push/remove buttons. The gear modal portals to
+     body, so this stacking context doesn't trap it. */
+  position: relative;
+  z-index: 6;
 `;

@@ -78,15 +78,13 @@ export function GridDashboard({
         /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
         draggableCancel=".widget-action-buttons"
         resizeHandles={RESIZE_HANDLES}
-        // Free placement: widgets stay exactly where the operator drops them
-        // and may leave gaps. `compactType={null}` disables the float-to-top,
-        // and `preventCollision` makes a drop onto an occupied cell revert
-        // instead of shoving neighbours. New widgets are placed at a computed
-        // bottom row by `addItem` (see useDashboardState) so they never land
-        // on top of an existing one; deletes leave a hole the operator can
-        // fill by dragging.
-        compactType={null}
-        preventCollision
+        // Vertical compaction: widgets float up to fill gaps and neighbours
+        // reflow out of the way when one is moved or resized into them. This
+        // is the natural model — free placement (`compactType={null}` +
+        // `preventCollision`) left widgets unable to move when hemmed in by
+        // others. New widgets are dropped at the bottom (see `addItem`) and
+        // compaction pulls them up into the first available slot.
+        compactType="vertical"
         onLayoutChange={onLayoutChange}
         onBreakpointChange={onBreakpointChange}
       >

@@ -172,30 +172,19 @@ export function useDashboardState(
   const addItem = useCallback(
     (item: DashboardItem, layout: Partial<Layout>) => {
       setItemsInner((prev) => [...prev, item]);
-      const w = layout.w ?? 3;
-      const h = layout.h ?? 3;
-      // Compaction is off (free placement — see GridDashboard), so a new
-      // widget must be given a real, non-overlapping slot rather than relying
-      // on vertical compaction to pull it up from y=∞. Drop it just below
-      // everything currently in each breakpoint. A caller-supplied x/y still
-      // wins (via the trailing spread) for deliberate placement.
+      // Drop the widget below everything (y=9999) and let vertical compaction
+      // (see GridDashboard) float it up into the first available slot. A
+      // caller-supplied x/y still wins via the trailing spread.
+      const entry: Layout = {
+        i: item.i,
+        x: layout.x ?? 0,
+        y: layout.y ?? 9999,
+        w: layout.w ?? 3,
+        h: layout.h ?? 3,
+        ...layout,
+      };
       const nextLayouts = Object.fromEntries(
-        COLS_KEYS.map((bp) => {
-          const existing = currentLayouts[bp] ?? [];
-          const bottomY = existing.reduce(
-            (max, l) => Math.max(max, l.y + l.h),
-            0,
-          );
-          const entry: Layout = {
-            i: item.i,
-            x: layout.x ?? 0,
-            y: layout.y ?? bottomY,
-            w,
-            h,
-            ...layout,
-          };
-          return [bp, [...existing, entry]];
-        }),
+        COLS_KEYS.map((bp) => [bp, [...(currentLayouts[bp] ?? []), entry]]),
       );
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
