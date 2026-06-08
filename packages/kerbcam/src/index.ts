@@ -23,6 +23,7 @@ export { useKerbcamStream } from "./hooks/useKerbcamStream";
 export * from "./KerbcamDataSource";
 export type { CameraLifecycle } from "./lifecycle";
 export { getCameraLifecycle } from "./lifecycle";
+export { KerbcamSettings } from "./settings/KerbcamSettings";
 
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps

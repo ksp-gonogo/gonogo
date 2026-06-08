@@ -360,6 +360,9 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   // without a client-side round-trip (the sidecar pushes the SlotMaps on Hello).
   private desiredSubs = new Map<number, number>();
 
+  /* Listeners notified when the throttle state changes via settings-change. */
+  private throttleListeners = new Set<(enabled: boolean) => void>();
+
   private pingWatchdog: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
@@ -374,6 +377,22 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   /** Underlying client (hooks reach in directly via this). */
   getClient(): KerbcamClient {
     return this.client;
+  }
+
+  /* Current plugin-reported throttle state. False until the first SettingsState arrives. */
+  getThrottleMainScreen(): boolean {
+    return this.client.throttleMainScreen;
+  }
+
+  /* Subscribe to throttle state changes. Returns an unsubscribe function. */
+  onThrottleChange(cb: (enabled: boolean) => void): () => void {
+    this.throttleListeners.add(cb);
+    return () => this.throttleListeners.delete(cb);
+  }
+
+  /* Send a set-throttle-main-screen command to the sidecar. */
+  async setThrottleMainScreen(enabled: boolean): Promise<void> {
+    await this.client.setThrottleMainScreen(enabled);
   }
 
   /**
@@ -731,6 +750,11 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
         KERBCAM_CAMERAS_BUDGET.record();
         this.camerasKeySubs.forEach((cb) => {
           cb(cams);
+        });
+      }),
+      client.on("settings-change", (payload) => {
+        this.throttleListeners.forEach((cb) => {
+          cb(payload.throttleMainScreen);
         });
       }),
     );
