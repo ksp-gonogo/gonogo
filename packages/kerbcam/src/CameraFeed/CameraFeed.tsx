@@ -213,6 +213,8 @@ export function CameraFeed({
           })
         }
         showDebugInfo={showDebugInfo}
+        enableFullscreen
+        enablePictureInPicture
       />
     </KerbcamProvider>
   );
