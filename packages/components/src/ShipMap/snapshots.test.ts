@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
+import oxstatRing from "./__fixtures__/oxstat-ring-17parts.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
 import { renderShipMapToSvg } from "./render";
@@ -86,6 +87,14 @@ describe("Ship Map SVG snapshots", () => {
 
   it("renders fuelline-tester-poststage2 (minimum-survival craft)", () => {
     expect(renderFixture(fuellinePostStage2 as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders oxstat-ring (radial OX-STAT panels, axial-major)", () => {
+    // Regression guard: the eight OX-STAT panels ring the booster base
+    // with their long axis axial, so each body box is taller than wide.
+    // The solar shape must orient as a vertical strip; a horizontal
+    // strip here reads perpendicular to the real panel orientation.
+    expect(renderFixture(oxstatRing as Fixture)).toMatchSnapshot();
   });
 
   it("renders an empty parts list as a placeholder", () => {
