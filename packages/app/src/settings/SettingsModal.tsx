@@ -1,5 +1,6 @@
 import { DataSourceStatusComponent } from "@gonogo/components";
-import { useDataSources, useScreen } from "@gonogo/core";
+import { getDataSource, useDataSources, useScreen } from "@gonogo/core";
+import { type KerbcamDataSource, KerbcamSettings } from "@gonogo/kerbcam";
 import { SerialDevicesMenu, useSerialAggregateStatus } from "@gonogo/serial";
 import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
@@ -38,6 +39,12 @@ export function SettingsModal() {
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
+  /* The Kerbcam tab is main-screen-only and requires the source to be registered. */
+  const kerbcamSource =
+    screen === "main"
+      ? (getDataSource("kerbcam") as KerbcamDataSource | undefined)
+      : undefined;
+
   const hasGeneral = settings.length > 0 || showConsent;
 
   const tabs: TabDescriptor[] = [];
@@ -65,6 +72,13 @@ export function SettingsModal() {
     content: <SerialDevicesMenu />,
     indicator: serialIssue,
   });
+  if (kerbcamSource) {
+    tabs.push({
+      id: "kerbcam",
+      label: "Kerbcam",
+      content: <KerbcamSettings source={kerbcamSource} />,
+    });
+  }
   tabs.push({
     id: "backup",
     label: "Backup & Restore",
