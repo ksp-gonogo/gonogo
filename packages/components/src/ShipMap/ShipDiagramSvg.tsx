@@ -753,13 +753,19 @@ function renderPartShape(
       );
     }
     case "fin": {
-      // Outward-pointing triangle: wide base on the spine-side of the
-      // body box, tip pointing away from the spine.
-      const baseX = outerSign >= 0 ? x : x + w;
+      // Swept-winglet silhouette. We only have the bounding box (span `w`,
+      // axial chord `h`, thickness collapsed), not the real mesh outline,
+      // so this is a stylised fit. Aft is screen-down (spine runs pod-up /
+      // engine-down) and KSP winglets sweep aft, so the blade is widest at
+      // its base and rakes back: a vertical root edge on the spine side, a
+      // swept leading edge, a short tip chord, and the full-span trailing
+      // edge along the bottom.
+      const rootX = outerSign >= 0 ? x : x + w;
       const tipX = outerSign >= 0 ? x + w : x;
+      const tipLeadY = y + h * 0.7;
       return (
         <polygon
-          points={`${baseX},${y} ${baseX},${y + h} ${tipX},${y + h * 0.5}`}
+          points={`${rootX},${y} ${tipX},${tipLeadY} ${tipX},${y + h} ${rootX},${y + h}`}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
