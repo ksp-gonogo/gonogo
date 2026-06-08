@@ -108,7 +108,7 @@ afterEach(() => {
   clearRegistry();
 });
 
-describe("SettingsModal — Kerbcam tab gating", () => {
+describe("SettingsModal Kerbcam tab gating", () => {
   it("shows the Kerbcam tab on the main screen when the kerbcam source is registered", () => {
     registerDataSource(
       makeKerbcamStub() as unknown as Parameters<typeof registerDataSource>[0],
