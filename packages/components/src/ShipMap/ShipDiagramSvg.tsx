@@ -232,16 +232,28 @@ export function ShipDiagramSvg({
               }
             : {};
 
-          // Convert the projected rotationRad into an SVG-degrees rotate
-          // applied around the part's centre. Zero rotation (the legacy
-          // / fixture-fallback case) renders as today; non-zero rotation
-          // turns the body box + every overlay together so fuel bars,
-          // heat tint, EC + highlight rings stay locked to the part.
+          // Convert the projected rotationRad into an SVG transform applied
+          // around the part's centre. Zero rotation (the legacy / fixture-
+          // fallback case) renders as today.
+          //
+          // Solar panels skew instead of rotate. A flat panel viewed at an
+          // angle projects to a parallelogram, not a tilted rectangle: its
+          // width axis (tangential) stays horizontal while its length axis
+          // (up) tilts. A rigid rotate would slant the horizontal edges too,
+          // which reads wrong. A horizontal shear keeps the top/bottom edges
+          // level and slants only the sides — the projected up vector — so a
+          // skewX of -rotationRad matches the 2D perspective. Every other
+          // part keeps the rigid rotate so its box + overlays (fuel bars,
+          // heat tint, EC + highlight rings) stay locked to the part.
           const rotateDeg = (p.rotationRad * 180) / Math.PI;
+          const cx = center.x.toFixed(2);
+          const cy = center.y.toFixed(2);
           const rotateTransform =
-            Math.abs(rotateDeg) > 0.01
-              ? `rotate(${rotateDeg.toFixed(2)} ${center.x.toFixed(2)} ${center.y.toFixed(2)})`
-              : undefined;
+            Math.abs(rotateDeg) <= 0.01
+              ? undefined
+              : p.type === "solar"
+                ? `translate(${cx} ${cy}) skewX(${(-rotateDeg).toFixed(2)}) translate(${(-center.x).toFixed(2)} ${(-center.y).toFixed(2)})`
+                : `rotate(${rotateDeg.toFixed(2)} ${cx} ${cy})`;
 
           return (
             <PartGroup
