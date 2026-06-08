@@ -32,18 +32,30 @@ To host, you need:
 
 ## How to run it
 
-gonogo runs on your own computer, locally, to avoid the headache of setting up certificates. The hosted page at [jonpepler.github.io/gonogo](https://jonpepler.github.io/gonogo/) is where **station** screens can load the app from.
+gonogo runs on your own computer, locally, to avoid the headache of setting up certificates. Start it with one command, which pulls the image and runs the main screen, the relay, and the kOS bridge together:
 
-Bear in mind that if you run KSP and gonogo on the same computer, you may have trouble with KSP pausing when minimised.
+```bash
+docker run -d --name gonogo --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
+  -e KOS_HOST=host.docker.internal \
+  -p 8080:8080 -p 3001:3001 -p 3002:3002 \
+  -p 3478:3478/tcp -p 3478:3478/udp \
+  -p 49160-49170:49160-49170/udp \
+  ghcr.io/jonpepler/gonogo:latest
+```
 
-Once the main screen is up at [localhost:8080](http://localhost:8080) and pointed at KSP (walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. The **Data Sources** button — the database icon in the bottom-right **+** menu — is where you configure where the main screen points.
+If KSP runs on a different computer from gonogo, point the kOS bridge at it with `-e KOS_HOST=<ksp-host>`. The wide UDP range is only needed to relay station connections from outside your network; see [docs/NETWORKING.md](docs/NETWORKING.md) if you want that.
+
+Open [localhost:8080](http://localhost:8080) once it is running. Bear in mind that if you run KSP and gonogo on the same computer, you may have trouble with KSP pausing when minimised.
+
+Once the main screen is up and pointed at KSP (walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. The **Data Sources** button, the database icon in the bottom-right **+** menu, is where you configure where the main screen points.
 
 ### Adding a station screen
 
 A station is any other browser: a tablet, a second laptop, a phone.
 
-1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the share cost icon (looks like a broadcast symbol)
-2. On the other device, open the gonogo station page
+1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the share button (the broadcast symbol) to get a share code
+2. On the other device, open the station page at [jonpepler.github.io/gonogo/station](https://jonpepler.github.io/gonogo/station)
 3. Enter the share code and connect
 
 ---

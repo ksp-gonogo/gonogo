@@ -69,6 +69,6 @@ TURN_EXTERNAL_IP=<your public IP>
 
 The bundled `docker-compose.yml` builds from local source (so `pnpm dev`'s watcher can rebuild on code changes during development). For a clean deployment, write a minimal compose file that references the `ghcr.io` images directly.
 
-## What's not built yet
+## End-user bundle
 
-The intended **end-user** experience is a no-pnpm path: a packaged main-screen / app container plus a user-facing compose file, so a non-developer never installs Node or pnpm. The backend images above already exist, but the **packaged app/main-screen container and the user-facing compose are not built yet**. Until they are, the pnpm developer path in the README is the working setup.
+The end-user path is a single image, `ghcr.io/jonpepler/gonogo:latest`, that runs the app, the relay, and the telnet-proxy together under one supervisor (built from `Dockerfile.bundle`, published by the `publish-bundle` job in `.github/workflows/publish-images.yml`). A non-developer never installs Node or pnpm; they run the `docker run` line in the [README](../README.md). The per-service images and the dev `docker-compose.yml` above are still what contributors use day to day.
