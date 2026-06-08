@@ -18,6 +18,7 @@ export default defineConfig({
     name: "serial",
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./src/test/setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
   },
 });
