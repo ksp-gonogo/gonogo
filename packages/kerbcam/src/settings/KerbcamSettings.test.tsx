@@ -16,6 +16,12 @@ function isChecked(el: HTMLElement): boolean {
   return (el as HTMLInputElement).checked;
 }
 
+// Sources created during a test are torn down in afterEach AFTER cleanup() so
+// KerbcamSettings is already unmounted when disconnect() fires. Disconnecting a
+// live source while the component is still mounted triggers useSyncExternalStore
+// state updates outside act() -- the documented anti-pattern.
+const createdSources: Array<{ disconnect: () => void }> = [];
+
 /*
  * Helper: set up a connected MockSidecar + KerbcamDataSource pair.
  * Registers the source in the global registry so hooks can find it.
@@ -37,11 +43,14 @@ async function connectedFixture(): Promise<{
   await source.connect();
   sidecar.open();
   sidecar.setConnectionState("connected");
+  createdSources.push(source);
   return { sidecar, source };
 }
 
 afterEach(() => {
   cleanup();
+  for (const ds of createdSources) ds.disconnect();
+  createdSources.length = 0;
   clearRegistry();
 });
 
