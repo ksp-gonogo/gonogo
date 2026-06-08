@@ -75,6 +75,8 @@ export function GridDashboard({
         margin={[8, 8]}
         containerPadding={[0, 0]}
         draggableHandle=".drag-handle"
+        /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
+        draggableCancel=".widget-action-buttons"
         resizeHandles={RESIZE_HANDLES}
         // Free placement: widgets stay exactly where the operator drops them
         // and may leave gaps. `compactType={null}` disables the float-to-top,
