@@ -92,7 +92,14 @@ function resolveAxes(
   configs: GraphSeriesConfig[],
   metaMap: Map<string, DataKeyMeta>,
 ): Array<"primary" | "secondary"> {
-  if (configs.every((c) => c.axis !== "auto")) {
+  // A missing axis field means "auto": the config form writes "auto"
+  // explicitly, but programmatic / imported / older persisted configs omit
+  // the field entirely. Passing the raw undefined through put the series on
+  // NEITHER axis — the domain computation saw no data (fell back to [0,1])
+  // while the path builder still plotted real values against that
+  // degenerate scale, blasting the curves off-canvas.
+  const axisOf = (c: GraphSeriesConfig) => c.axis ?? "auto";
+  if (configs.every((c) => axisOf(c) !== "auto")) {
     return configs.map((c) => c.axis as "primary" | "secondary");
   }
   const units = configs.map((c) => metaMap.get(c.key)?.unit ?? "raw");
@@ -101,7 +108,7 @@ function resolveAxes(
     if (!seen.includes(u)) seen.push(u);
   }
   return configs.map((c) => {
-    if (c.axis !== "auto") return c.axis as "primary" | "secondary";
+    if (axisOf(c) !== "auto") return c.axis as "primary" | "secondary";
     const u = metaMap.get(c.key)?.unit ?? "raw";
     return seen.indexOf(u) === 0 ? "primary" : "secondary";
   });
