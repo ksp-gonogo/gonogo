@@ -597,8 +597,18 @@ export class PeerHostService {
     });
 
     this.peer.on("error", (err) => {
-      logger.error("[PeerHost] peer error", err);
       const peerErr = err as { type?: string };
+      // `network` accompanies every broker drop (the `disconnected` handler
+      // above owns the backed-off reconnect) and `unavailable-id` is owned
+      // by the reclaim loop below — both are recovered automatically, so
+      // they log at warn and the error stream stays meaningful.
+      if (peerErr.type === "network" || peerErr.type === "unavailable-id") {
+        logger.warn(
+          `[PeerHost] peer error (recovering) — type=${peerErr.type}`,
+        );
+      } else {
+        logger.error("[PeerHost] peer error", err);
+      }
       if (peerErr.type !== "unavailable-id") return;
       // The broker still holds a stale slot for our derived id — almost
       // always a prior tab/process that didn't send a clean leave (the
