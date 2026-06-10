@@ -2,7 +2,7 @@
 
 A mission control web app for [Kerbal Space Program](https://www.kerbalspaceprogram.com/).
 
-<!-- TODO: hero dashboard screenshot: full main screen mid-flight, several widgets live -->
+<img src="docs/assets/hero-dashboard.png" alt="The main screen mid-flight: navball, ascent graphs, orbit view, fuel and stage readouts, thermal and comm status, all updating live" />
 
 gonogo is a way to play KSP through a browser dashboard instead of the main game screen. With the exception of VAB/SPH, you can run the whole game from it: take contracts, run science, spend funds, launch, and take on missions.
 
@@ -10,7 +10,9 @@ The main screen dashboard is a widget-based interface that hooks into data in th
 
 You can use widget profiles to dynamically switch dashboards based on what you're doing in the game. You can also **use gonogo as a multiplayer experience**. 'Stations' can register with the main screen and connect via a share code generated on the main screen. Stations get all the same data as the main screen, and can even push data for viewing on the main screen. One way to play is having the main screen as a general screen for everyone, and then everyone uses their own station screen for specialised data.
 
-<!-- TODO: takeoff gif: launch clamp release through to gravity turn, telemetry widgets updating live -->
+<p align="center">
+  <img src="docs/assets/takeoff-ascent.gif" alt="A launch ascent replayed on the dashboard: altitude and speed climbing on the graphs, TWR gauge swinging, stages burning down" width="800" />
+</p>
 
 <p align="center">
   <img src="docs/assets/navball-adaptive-scaling.png" alt="The navball widget rendered at four grid sizes, from a numeric readout to a full GNC control surface" height="240" />
