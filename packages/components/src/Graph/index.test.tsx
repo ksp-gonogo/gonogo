@@ -92,6 +92,55 @@ describe("GraphComponent", () => {
     ).toBeInTheDocument();
   });
 
+  it("plots series with no axis field inside the chart bounds (defaults to auto)", async () => {
+    // Persisted configs from programmatic writes / older saves omit `axis`
+    // entirely — the config form writes "auto" explicitly, so only these
+    // configs hit the undefined branch. The regression: resolveAxes passed
+    // `undefined` through, the domain computation saw no primary/secondary
+    // series (fell back to [0,1]) while the path builder plotted real
+    // values against that degenerate scale — curves landed millions of
+    // pixels off-canvas and the chart looked empty.
+    const config = {
+      series: [
+        { id: "alt", key: "v.altitude" },
+        { id: "vs", key: "v.verticalSpeed" },
+      ],
+      windowSec: 300,
+    };
+
+    const { container } = render(
+      <GraphComponent config={config} id="graph-test" />,
+    );
+
+    act(() => {
+      source.emit("v.name", "Kerbal X");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 12_345);
+      source.emit("v.verticalSpeed", 42);
+    });
+
+    await waitFor(() => {
+      const paths = Array.from(
+        container.querySelectorAll(
+          'svg[aria-label="Telemetry line chart"] path[d]',
+        ),
+      ).filter((p) => (p.getAttribute("d") ?? "").length > 0);
+      expect(paths.length).toBe(2);
+      for (const p of paths) {
+        const ys = (p.getAttribute("d") ?? "")
+          .split(/[ML]\s*/)
+          .filter(Boolean)
+          .map((pt) => Number(pt.split(",")[1]));
+        for (const y of ys) {
+          expect(Number.isFinite(y)).toBe(true);
+          // Chart height is 300 in this harness; anything wildly outside
+          // means the series was scaled against the [0,1] fallback domain.
+          expect(Math.abs(y)).toBeLessThan(1_000);
+        }
+      }
+    });
+  });
+
   it("auto-splits two series with different units onto separate axes", async () => {
     const config = {
       series: [
