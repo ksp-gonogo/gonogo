@@ -74,8 +74,8 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
       ws:
-        specifier: ^8.0.0
-        version: 8.20.0
+        specifier: ^8.21.0
+        version: 8.21.0
 
   packages/app:
     dependencies:
@@ -99,7 +99,7 @@ importers:
         version: link:../serial
       '@gonogo/ui':
         specifier: workspace:*
-        version: link:../ui
+        version: file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.97.0(react@18.3.1)
@@ -190,7 +190,7 @@ importers:
         version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
-        version: link:../ui
+        version: file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0
@@ -285,7 +285,7 @@ importers:
         version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
-        version: link:../ui
+        version: file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -325,7 +325,7 @@ importers:
         version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
-        version: link:../ui
+        version: file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@jonpepler/kerbcam':
         specifier: ^0.18.0
         version: 0.18.0
@@ -389,8 +389,8 @@ importers:
         specifier: workspace:*
         version: link:../logger
       fastify:
-        specifier: ^5.0.0
-        version: 5.8.4
+        specifier: ^5.8.5
+        version: 5.8.5
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -414,8 +414,8 @@ importers:
         specifier: workspace:*
         version: link:../data
       fastify:
-        specifier: ^5.0.0
-        version: 5.8.4
+        specifier: ^5.8.5
+        version: 5.8.5
       tsx:
         specifier: ^4.0.0
         version: 4.21.0
@@ -433,8 +433,8 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
       ws:
-        specifier: ^8.0.0
-        version: 8.20.0
+        specifier: ^8.21.0
+        version: 8.21.0
 
   packages/serial:
     dependencies:
@@ -446,7 +446,7 @@ importers:
         version: link:../logger
       '@gonogo/ui':
         specifier: workspace:*
-        version: link:../ui
+        version: file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -485,8 +485,8 @@ importers:
         specifier: workspace:*
         version: link:../logger
       fastify:
-        specifier: ^5.0.0
-        version: 5.8.4
+        specifier: ^5.8.5
+        version: 5.8.5
       node-pty:
         specifier: ^1.1.0
         version: 1.1.0
@@ -571,6 +571,10 @@ packages:
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/code-frame@7.29.7':
+    resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/compat-data@7.29.0':
     resolution: {integrity: sha512-T1NCJqT/j9+cn8fvkt7jtwbLBfLC/1y1c7NtCeXFRgzGTsafi68MRv8yzkYSapBnFA6L3U2VSc02ciDzoAJhJg==}
     engines: {node: '>=6.9.0'}
@@ -613,6 +617,10 @@ packages:
     resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/helper-validator-identifier@7.29.7':
+    resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-validator-option@7.27.1':
     resolution: {integrity: sha512-YvjJow9FxbhFFKDSuFnVCe2WxXk1zWc22fFePVNEaWJEu8IrZVlda6N0uHwzZrUM1il7NC9Mlp4MaJYbYd9JSg==}
     engines: {node: '>=6.9.0'}
@@ -640,6 +648,10 @@ packages:
 
   '@babel/runtime@7.29.2':
     resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.28.6':
@@ -1257,6 +1269,21 @@ packages:
 
   '@fastify/websocket@11.2.0':
     resolution: {integrity: sha512-3HrDPbAG1CzUCqnslgJxppvzaAZffieOVbLp1DAy1huCSynUWPifSvfdEDUR8HlJLp3sp1A36uOM2tJogADS8w==}
+
+  '@gonogo/core@file:packages/core':
+    resolution: {directory: packages/core, type: directory}
+    peerDependencies:
+      react: ^18.0.0
+      styled-components: ^6.0.0
+
+  '@gonogo/logger@file:packages/logger':
+    resolution: {directory: packages/logger, type: directory}
+
+  '@gonogo/ui@file:packages/ui':
+    resolution: {directory: packages/ui, type: directory}
+    peerDependencies:
+      react: ^18.0.0
+      styled-components: ^6.0.0
 
   '@grpc/grpc-js@1.14.3':
     resolution: {integrity: sha512-Iq8QQQ/7X3Sac15oB6p0FmUg/klxQvXLeileoqrTRGJYLV+/9tubbr9ipz0GKHjmXVsgFPo/+W+2cA8eNcR+XA==}
@@ -2102,14 +2129,14 @@ packages:
   fast-querystring@1.1.2:
     resolution: {integrity: sha512-g6KuKWmFXc0fID8WWH0jit4g0AGBoJhCkJMb1RmbsSEUNvQ+ZC8D6CUZ+GtF8nMzSPXnhiePyyqqipzNNEnHjg==}
 
-  fast-uri@3.1.0:
-    resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
+  fast-uri@3.1.2:
+    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
 
   fastify-plugin@5.1.0:
     resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
 
-  fastify@5.8.4:
-    resolution: {integrity: sha512-sa42J1xylbBAYUWALSBoyXKPDUvM3OoNOibIefA+Oha57FryXKKCZarA1iDntOCWp3O35voZLuDg2mdODXtPzQ==}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-Yqptv59pQzPgQUSIm87hMqHJmdkb1+GPxdE6vW6FRyVE9G86mt7rOghitiU4JHRaTyDUk9pfeKmDeu70lAwM4Q==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -2359,6 +2386,11 @@ packages:
 
   lucide-react@1.14.0:
     resolution: {integrity: sha512-+1mdWcfSJVUsaTIjN9zoezmUhfXo5l0vP7ekBMPo3jcS/aIkxHnXqAPsByszMZx/Y8oQBRJxJx5xg+RH3urzxA==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@1.17.0:
+    resolution: {integrity: sha512-9FA9evdox/JQL5PT57fdA1x/yg8T7knJ98+zjTL3UfKza6pflQUUh3XtaQIHKvnsJw1lmsEyHVlt5jchYxOQ5w==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -3050,8 +3082,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.20.0:
-    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3118,6 +3150,12 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
+  '@babel/code-frame@7.29.7':
+    dependencies:
+      '@babel/helper-validator-identifier': 7.29.7
+      js-tokens: 4.0.0
+      picocolors: 1.1.1
+
   '@babel/compat-data@7.29.0': {}
 
   '@babel/core@7.29.0':
@@ -3180,6 +3218,8 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.28.5': {}
 
+  '@babel/helper-validator-identifier@7.29.7': {}
+
   '@babel/helper-validator-option@7.27.1': {}
 
   '@babel/helpers@7.29.2':
@@ -3202,6 +3242,8 @@ snapshots:
       '@babel/helper-plugin-utils': 7.28.6
 
   '@babel/runtime@7.29.2': {}
+
+  '@babel/runtime@7.29.7': {}
 
   '@babel/template@7.28.6':
     dependencies:
@@ -3537,7 +3579,7 @@ snapshots:
     dependencies:
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
-      fast-uri: 3.1.0
+      fast-uri: 3.1.2
 
   '@fastify/cors@11.2.0':
     dependencies:
@@ -3565,10 +3607,27 @@ snapshots:
     dependencies:
       duplexify: 4.1.3
       fastify-plugin: 5.1.0
-      ws: 8.20.0
+      ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@gonogo/core@file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+    dependencies:
+      '@gonogo/logger': file:packages/logger
+      react: 18.3.1
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
+  '@gonogo/logger@file:packages/logger':
+    dependencies:
+      '@axiomhq/js': 1.6.1
+
+  '@gonogo/ui@file:packages/ui(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+    dependencies:
+      '@gonogo/core': file:packages/core(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      lucide-react: 1.17.0(react@18.3.1)
+      react: 18.3.1
+      styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   '@grpc/grpc-js@1.14.3':
     dependencies:
@@ -3821,8 +3880,8 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.29.0
-      '@babel/runtime': 7.29.2
+      '@babel/code-frame': 7.29.7
+      '@babel/runtime': 7.29.7
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -4104,7 +4163,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.0
+      fast-uri: 3.1.2
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -4468,7 +4527,7 @@ snapshots:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
-      fast-uri: 3.1.0
+      fast-uri: 3.1.2
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
@@ -4476,11 +4535,11 @@ snapshots:
     dependencies:
       fast-decode-uri-component: 1.0.1
 
-  fast-uri@3.1.0: {}
+  fast-uri@3.1.2: {}
 
   fastify-plugin@5.1.0: {}
 
-  fastify@5.8.4:
+  fastify@5.8.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
@@ -4770,6 +4829,10 @@ snapshots:
     dependencies:
       react: 18.3.1
 
+  lucide-react@1.17.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -4894,7 +4957,7 @@ snapshots:
       cors: 2.8.6
       express: 4.22.2
       node-fetch: 3.3.2
-      ws: 8.20.0
+      ws: 8.21.0
       yargs: 17.7.2
     transitivePeerDependencies:
       - bufferutil
@@ -5434,7 +5497,7 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@8.20.0: {}
+  ws@8.21.0: {}
 
   xml-name-validator@5.0.0: {}
 
