@@ -6,10 +6,8 @@ import {
   type KerbcamSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@jonpepler/kerbcam-react";
-import { useEffect, useMemo, useRef } from "react";
-import { useKerbcamCameras } from "../hooks/useKerbcamCameras";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KerbcamDataSource } from "../KerbcamDataSource";
-import { isCameraDestroyed } from "../lifecycle";
 
 export interface CameraFeedConfig extends Record<string, unknown> {
   /**
@@ -138,37 +136,14 @@ export function CameraFeed({
   });
 
   // ---- CommNet degrade (500ms debounce) ----
-  // The shared component's internal selection may differ from config.flightId
-  // in auto mode (config.flightId === null). Resolve the same "displayed"
-  // camera the shared component would pick so degrade targets the right feed.
-  //
-  // Resolution order mirrors the shared component's logic:
-  //   1. Explicit pick, if still present in the list.
-  //   2. Auto: the previously latched camera (tracked via displayedRef).
-  //   3. Fresh auto-pick: first live camera, or first overall as fallback.
-  const cameras = useKerbcamCameras();
-  const displayedRef = useRef<number | null>(null);
-
-  const requestedStillPresent =
-    requested !== null && cameras.some((c) => c.flightId === requested);
-
-  let effectiveFlightId: number | null;
-  if (requestedStillPresent) {
-    effectiveFlightId = requested;
-  } else {
-    const latched = displayedRef.current;
-    const latchedPresent =
-      latched !== null && cameras.some((c) => c.flightId === latched);
-    effectiveFlightId = latchedPresent
-      ? latched
-      : (cameras.find((c) => !isCameraDestroyed(c))?.flightId ??
-        cameras[0]?.flightId ??
-        null);
-  }
-
-  useEffect(() => {
-    displayedRef.current = effectiveFlightId;
-  }, [effectiveFlightId]);
+  // In auto mode (config.flightId === null) the shared component picks the
+  // displayed camera itself, and that pick can differ from config.flightId.
+  // Rather than re-derive the same auto-latch resolution here, let the shared
+  // component report what it actually shows via onDisplayedCameraChange so
+  // degrade always targets the feed on screen (auto-picks included).
+  const [effectiveFlightId, setEffectiveFlightId] = useState<number | null>(
+    requested,
+  );
 
   const signalStrength = useDataValue<number>("data", "comm.signalStrength");
   const commConnected = useDataValue<boolean>("data", "comm.connected");
@@ -212,6 +187,7 @@ export function CameraFeed({
             showDebugInfo: config?.showDebugInfo ?? false,
           })
         }
+        onDisplayedCameraChange={setEffectiveFlightId}
         showDebugInfo={showDebugInfo}
         enableFullscreen
         enablePictureInPicture
