@@ -1,19 +1,49 @@
 name: Publish proxy images
 
+# Two publish channels share these jobs:
+#
+#   dev      every CI-green push to main (workflow_run). Images are tagged
+#            `dev` + `sha-…` and the bundle's app build carries a
+#            `-dev.<shortsha>` version suffix. Testers run `:dev`; end users
+#            never see it.
+#   release  dispatched by release.yml on a `v*` tag, with channel=release.
+#            Images are tagged `<version>` (from packages/app/package.json,
+#            which the release commit just bumped) + `latest`. The version
+#            also rides the peer `hello` handshake, so a station can tell
+#            which release a host is running and the matching image tag lets
+#            an operator pull (or pin) exactly that.
+#
+# Tag-driven `type=semver` can't work here: GITHUB_TOKEN-pushed tags never
+# fire push triggers, so this workflow only ever sees workflow_run/dispatch
+# events. The version is read from package.json instead.
+
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      channel:
+        description: "Publish channel"
+        required: false
+        default: dev
+        type: choice
+        options:
+          - dev
+          - release
 
 permissions:
   contents: read
   packages: write
 
 concurrency:
-  group: publish-images
+  group: publish-images-${{ inputs.channel || 'dev' }}
   cancel-in-progress: false
+
+env:
+  # workflow_run events have no inputs — they're always the dev channel.
+  CHANNEL: ${{ inputs.channel || 'dev' }}
 
 jobs:
   publish:
@@ -42,25 +72,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # The release version comes from packages/app/package.json, not a git
-      # tag — this workflow only ever sees workflow_run/dispatch events, so
-      # tag-driven `type=semver` would never fire. All three images share
-      # the app's version: the bundle bakes it into the peer `hello`
-      # handshake, so a station can tell which release a host is running,
-      # and the matching image tag lets the operator pull exactly that.
       - id: appver
         run: |
           echo "version=$(node -p "require('./packages/app/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - id: suffix
+        run: |
+          if [ "$CHANNEL" = "dev" ]; then
+            SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+            echo "value=-dev.${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: build-time
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
-            type=ref,event=branch
             type=sha,prefix=sha-
-            type=raw,value=${{ steps.appver.outputs.version }},enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable=${{ env.CHANNEL == 'dev' }}
+            type=raw,value=${{ steps.appver.outputs.version }},enable=${{ env.CHANNEL == 'release' }}
+            type=raw,value=latest,enable=${{ env.CHANNEL == 'release' }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -72,6 +108,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Runtime ENV for the services' log identity.
+          build-args: |
+            GONOGO_VERSION=${{ steps.appver.outputs.version }}${{ steps.suffix.outputs.value }}
+            GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
           cache-from: type=gha,scope=${{ matrix.package }}
           cache-to: type=gha,mode=max,scope=${{ matrix.package }}
 
@@ -96,20 +136,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Same app-version tag as the matrix job — see the comment there.
       - id: appver
         run: |
           echo "version=$(node -p "require('./packages/app/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Dev bundles bake a prerelease suffix into the app so a host running
+      # `:dev` announces e.g. 0.1.0-dev.a1b2c3d in the hello handshake.
+      - id: suffix
+        run: |
+          if [ "$CHANNEL" = "dev" ]; then
+            SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+            echo "value=-dev.${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: build-time
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/gonogo
           tags: |
-            type=ref,event=branch
             type=sha,prefix=sha-
-            type=raw,value=${{ steps.appver.outputs.version }},enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable=${{ env.CHANNEL == 'dev' }}
+            type=raw,value=${{ steps.appver.outputs.version }},enable=${{ env.CHANNEL == 'release' }}
+            type=raw,value=latest,enable=${{ env.CHANNEL == 'release' }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -125,5 +178,8 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             VITE_AXIOM_TOKEN=${{ secrets.VITE_AXIOM_TOKEN }}
+            GONOGO_VERSION_SUFFIX=${{ steps.suffix.outputs.value }}
+            GONOGO_VERSION=${{ steps.appver.outputs.version }}${{ steps.suffix.outputs.value }}
+            GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
           cache-from: type=gha,scope=gonogo-bundle
           cache-to: type=gha,mode=max,scope=gonogo-bundle

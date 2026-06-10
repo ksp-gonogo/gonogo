@@ -52,6 +52,10 @@ RUN pnpm install --frozen-lockfile
 ARG VITE_AXIOM_TOKEN
 ENV VITE_AXIOM_TOKEN=${VITE_AXIOM_TOKEN}
 ENV VITE_RELAY_URL=http://localhost:3002
+# Dev-channel builds pass "-dev.<shortsha>" so the bundled app announces a
+# prerelease version in the peer hello handshake. Empty for release builds.
+ARG GONOGO_VERSION_SUFFIX
+ENV GONOGO_VERSION_SUFFIX=${GONOGO_VERSION_SUFFIX}
 RUN pnpm turbo build --filter=@gonogo/app...
 
 # Build the two node services and deploy self-contained dirs (workspace deps

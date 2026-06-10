@@ -1,86 +1,121 @@
-name: Release
+name: release
 
-# Manual-only. From the Actions UI choose "Run workflow" and pick a tag
-# (e.g. v0.1.0) in the ref dropdown. The workflow:
-#   - validates the ref is a `v*` tag
-#   - rebuilds proxy images at that tag and pushes `:vX.Y.Z` and `:latest`
+# Publishes a release from a v* tag (normally dispatched by
+# prepare-release.yml — GITHUB_TOKEN tag pushes don't fire push triggers,
+# so the tag-push trigger below only matters for manually pushed tags).
 #
-# The Pages publish for the SPA is handled by deploy.yml on every main
-# commit (the index.html now carries `gonogo-version` + `gonogo-build-time`
-# meta tags so operators can confirm what's live without dev-tools).
+# A release is the deliberate act that moves what users see; pushes to
+# main only ever move the dev channel (/gonogo/dev/ + `:dev` images).
+# This workflow:
+#
+#   1. runs the full test suite at the tag (the release commit was pushed
+#      with GITHUB_TOKEN, so the CI workflow never ran on it — the gate
+#      lives here),
+#   2. builds the production site and uploads it as the GitHub Release
+#      asset `gonogo-site.tar.gz` (deploy.yml composes the Pages root
+#      from the newest release's asset),
+#   3. dispatches publish-images.yml with channel=release so all three
+#      GHCR images get `<version>` + `latest` tags,
+#   4. dispatches deploy.yml so the Pages root flips to this release
+#      immediately instead of on the next push to main.
+
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
+  actions: write
+  # @jonpepler/kerbcam comes from GitHub Packages; pnpm install needs
+  # read:packages even though the package is public.
+  packages: read
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  resolve:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.parse.outputs.version }}
-      tag: ${{ steps.parse.outputs.tag }}
-    steps:
-      - id: parse
-        run: |
-          ref="${GITHUB_REF_NAME}"
-          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
-            echo "::error::release.yml must be dispatched on a tag ref (got $GITHUB_REF)"
-            exit 1
-          fi
-          if [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]]; then
-            echo "::error::tag $ref is not a vM.m.p semver tag"
-            exit 1
-          fi
-          echo "tag=$ref" >> "$GITHUB_OUTPUT"
-          echo "version=${ref#v}" >> "$GITHUB_OUTPUT"
-
-  publish-images:
-    needs: resolve
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - package: telnet-proxy
-            image: gonogo-telnet-proxy
-          - package: relay
-            image: gonogo-relay
     steps:
       - uses: actions/checkout@v5
+
+      - name: Verify the ref is a release tag matching package.json
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            echo "::error::release.yml must run on a v* tag ref (got $GITHUB_REF). Cut releases via prepare-release.yml."
+            exit 1
+          fi
+          VERSION="$(node -p "require('./packages/app/package.json').version")"
+          TAG="${GITHUB_REF_NAME}"
+          if [ "$TAG" != "v${VERSION}" ]; then
+            echo "::error::tag ${TAG} does not match packages/app/package.json version ${VERSION}. Cut releases via prepare-release.yml so the two move together."
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v6
         with:
-          ref: ${{ needs.resolve.outputs.tag }}
+          node-version: '24'
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+      - uses: pnpm/action-setup@v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          run_install: false
 
-      - id: build-time
-        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-      - uses: docker/build-push-action@v6
+      - uses: actions/cache@v5
         with:
-          # Repo-root context so pnpm can resolve workspace deps inside
-          # the build (services depend on @gonogo/logger).
-          context: .
-          file: ./packages/${{ matrix.package }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ needs.resolve.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
-          build-args: |
-            GONOGO_VERSION=${{ needs.resolve.outputs.version }}
-            GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
-          cache-from: type=gha,scope=${{ matrix.package }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.package }}
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build production site
+        run: pnpm turbo build --filter=@gonogo/app...
+        env:
+          VITE_BASE_PATH: /gonogo/
+          VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
+
+      - name: Pack site asset
+        run: tar -czf gonogo-site.tar.gz -C packages/app/dist .
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            gonogo-site.tar.gz \
+            --repo "${{ github.repository }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes
+
+      - name: Publish release images
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run publish-images.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.version.outputs.tag }}" \
+            -f channel=release
+
+      - name: Redeploy Pages with the new release at the root
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy.yml \
+            --repo "${{ github.repository }}" \
+            --ref main
