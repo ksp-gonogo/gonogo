@@ -42,6 +42,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The release version comes from packages/app/package.json, not a git
+      # tag — this workflow only ever sees workflow_run/dispatch events, so
+      # tag-driven `type=semver` would never fire. All three images share
+      # the app's version: the bundle bakes it into the peer `hello`
+      # handshake, so a station can tell which release a host is running,
+      # and the matching image tag lets the operator pull exactly that.
+      - id: appver
+        run: |
+          echo "version=$(node -p "require('./packages/app/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - id: meta
         uses: docker/metadata-action@v5
         with:
@@ -49,6 +59,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
+            type=raw,value=${{ steps.appver.outputs.version }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - uses: docker/build-push-action@v6
@@ -85,6 +96,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Same app-version tag as the matrix job — see the comment there.
+      - id: appver
+        run: |
+          echo "version=$(node -p "require('./packages/app/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - id: meta
         uses: docker/metadata-action@v5
         with:
@@ -92,6 +108,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
+            type=raw,value=${{ steps.appver.outputs.version }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - uses: docker/build-push-action@v6

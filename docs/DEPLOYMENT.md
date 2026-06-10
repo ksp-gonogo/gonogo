@@ -72,3 +72,19 @@ The bundled `docker-compose.yml` builds from local source (so `pnpm dev`'s watch
 ## End-user bundle
 
 The end-user path is a single image, `ghcr.io/jonpepler/gonogo:latest`, that runs the app, the relay, and the telnet-proxy together under one supervisor (built from `Dockerfile.bundle`, published by the `publish-bundle` job in `.github/workflows/publish-images.yml`). A non-developer never installs Node or pnpm; they run the `docker run` line in the [README](../README.md). The per-service images and the dev `docker-compose.yml` above are still what contributors use day to day.
+
+## Versioning and release tags
+
+The release version is `packages/app/package.json`'s `version` — there are no git tags. Vite bakes it into both builds (`__GONOGO_VERSION__`), the host announces it in the peer `hello` handshake, stations report theirs back in `station-info`, and `publish-images.yml` tags all three images with it (alongside `latest`, `main`, and `sha-…`). That one number is what lets a station and a host notice they're on different releases.
+
+Bump it when a change is worth telling operators about, and let the bump size state the wire-compatibility promise — the station-side `HostVersionBanner` enforces exactly these semantics:
+
+| Bump | Meaning | Station UX against an older host |
+| --- | --- | --- |
+| patch | wire-compatible fix | silent (log line only) |
+| minor | new features, still interoperates | advisory mismatch banner |
+| major | peer protocol broke | mismatch banner; expect breakage |
+
+Because stations always load the newest Pages build while main screens run a container pulled at install time, skew is normal — the banner is the nudge to `docker pull`. Operators who want reproducibility can pin the bundle to a version tag (e.g. `ghcr.io/jonpepler/gonogo:0.1.0`) instead of `latest`.
+
+When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
