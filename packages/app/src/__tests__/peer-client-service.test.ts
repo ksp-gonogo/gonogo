@@ -884,4 +884,70 @@ describe("PeerClientService — relay-peer-id iceServers application", () => {
       }),
     ).not.toThrow();
   });
+
+  describe("countdown sticky replay", () => {
+    // gonogo-countdown-start is a fire-and-forget broadcast. A GoNoGo widget
+    // that subscribes after the message landed (page mounting, layout switch,
+    // remount) used to miss the running countdown entirely and show nothing
+    // until T-0 — the 2026-05-08 "Joel saw only T-0" bug.
+    it("replays a running countdown to a late subscriber", async () => {
+      const svc = new PeerClientService();
+      const t0Ms = Date.now() + 8_000;
+      (svc as unknown as PeerClientServiceInternal).handleMessage({
+        type: "gonogo-countdown-start",
+        t0Ms,
+      });
+
+      const received: number[] = [];
+      svc.onGonogoCountdownStart((t) => received.push(t));
+      // Replay is deferred a microtask so subscribe-then-replay can't
+      // re-enter React render.
+      await Promise.resolve();
+      expect(received).toEqual([t0Ms]);
+    });
+
+    it("does not replay after the countdown was cancelled", async () => {
+      const svc = new PeerClientService();
+      (svc as unknown as PeerClientServiceInternal).handleMessage({
+        type: "gonogo-countdown-start",
+        t0Ms: Date.now() + 8_000,
+      });
+      (svc as unknown as PeerClientServiceInternal).handleMessage({
+        type: "gonogo-countdown-cancel",
+        reason: "no-go",
+      });
+
+      const received: number[] = [];
+      svc.onGonogoCountdownStart((t) => received.push(t));
+      await Promise.resolve();
+      expect(received).toEqual([]);
+    });
+
+    it("does not replay a countdown whose t0 already passed", async () => {
+      const svc = new PeerClientService();
+      (svc as unknown as PeerClientServiceInternal).handleMessage({
+        type: "gonogo-countdown-start",
+        t0Ms: Date.now() - 1_000,
+      });
+
+      const received: number[] = [];
+      svc.onGonogoCountdownStart((t) => received.push(t));
+      await Promise.resolve();
+      expect(received).toEqual([]);
+    });
+
+    it("still delivers live countdown events to existing subscribers exactly once", async () => {
+      const svc = new PeerClientService();
+      const received: number[] = [];
+      svc.onGonogoCountdownStart((t) => received.push(t));
+
+      const t0Ms = Date.now() + 8_000;
+      (svc as unknown as PeerClientServiceInternal).handleMessage({
+        type: "gonogo-countdown-start",
+        t0Ms,
+      });
+      await Promise.resolve();
+      expect(received).toEqual([t0Ms]);
+    });
+  });
 });

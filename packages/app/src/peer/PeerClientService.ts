@@ -285,6 +285,15 @@ export class PeerClientService {
   // useFlight hook subscribes via `onFlightChange`.
   private currentFlight: FlightRecord | null = null;
 
+  // Sticky cache for the running countdown. `gonogo-countdown-start` is a
+  // fire-and-forget broadcast: a GoNoGo widget that subscribes after the
+  // message landed (page still mounting, layout switch, widget remount)
+  // used to miss the countdown entirely and show nothing until T-0 flipped
+  // the launch state via telemetry — the 2026-05-08 "Joel saw only T-0"
+  // bug. Replayed to late subscribers while t0 is still in the future;
+  // cleared on cancel.
+  private lastCountdownT0Ms: number | null = null;
+
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
@@ -886,7 +895,16 @@ export class PeerClientService {
   }
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
-    return this.events.on("gonogoCountdownStart", cb);
+    const unsub = this.events.on("gonogoCountdownStart", cb);
+    // Replay a countdown that's already running to late subscribers — a
+    // widget that mounts mid-countdown would otherwise show nothing until
+    // T-0. Stale entries (t0 already passed) are not replayed; the launch
+    // state takes over from telemetry at that point.
+    const t0Ms = this.lastCountdownT0Ms;
+    if (t0Ms !== null && t0Ms > Date.now()) {
+      queueMicrotask(() => cb(t0Ms));
+    }
+    return unsub;
   }
 
   onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
@@ -1041,9 +1059,11 @@ export class PeerClientService {
       this.events.emit("fogSnapshot", msg);
     },
     "gonogo-countdown-start": (msg) => {
+      this.lastCountdownT0Ms = msg.t0Ms;
       this.events.emit("gonogoCountdownStart", msg.t0Ms);
     },
     "gonogo-countdown-cancel": (msg) => {
+      this.lastCountdownT0Ms = null;
       this.events.emit("gonogoCountdownCancel", msg.reason);
     },
     "gonogo-abort-notify": (msg) => {
