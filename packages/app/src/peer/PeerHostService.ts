@@ -348,6 +348,12 @@ export class PeerHostService {
   private readonly onResume = () => this.resumeBroker();
 
   async start() {
+    // Stamp the log identity before anything that can fail — errors fired
+    // pre-`open` (unavailable-id, a broker that never answers) otherwise
+    // ship to Axiom with role "unknown" and no device id, which made the
+    // 2026-06-08 ID-taken errors untriageable. `open` re-stamps with the
+    // broker-confirmed peerId.
+    logger.setIdentity({ role: "host", id: this.shareCode });
     // Fetch the relay's TURN config before constructing Peer — ICE
     // gathers candidates the moment the Peer exists, so a late config
     // wouldn't make it into the offer. If the fetch fails we get an
