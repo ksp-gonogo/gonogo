@@ -73,18 +73,37 @@ The bundled `docker-compose.yml` builds from local source (so `pnpm dev`'s watch
 
 The end-user path is a single image, `ghcr.io/jonpepler/gonogo:latest`, that runs the app, the relay, and the telnet-proxy together under one supervisor (built from `Dockerfile.bundle`, published by the `publish-bundle` job in `.github/workflows/publish-images.yml`). A non-developer never installs Node or pnpm; they run the `docker run` line in the [README](../README.md). The per-service images and the dev `docker-compose.yml` above are still what contributors use day to day.
 
-## Versioning and release tags
+## Release and dev channels
 
-The release version is `packages/app/package.json`'s `version` — there are no git tags. Vite bakes it into both builds (`__GONOGO_VERSION__`), the host announces it in the peer `hello` handshake, stations report theirs back in `station-info`, and `publish-images.yml` tags all three images with it (alongside `latest`, `main`, and `sha-…`). That one number is what lets a station and a host notice they're on different releases.
+Everything user-facing moves only when a release is cut; pushes to `main` move a separate dev channel. Same model as kerbcam.
 
-Bump it when a change is worth telling operators about, and let the bump size state the wire-compatibility promise — the station-side `HostVersionBanner` enforces exactly these semantics:
+| Surface | Release channel | Dev channel (every CI-green push to `main`) |
+| --- | --- | --- |
+| Pages site | `jonpepler.github.io/gonogo/` | `jonpepler.github.io/gonogo/dev/` (stations: `/gonogo/dev/station`) |
+| Bundle image | `ghcr.io/jonpepler/gonogo:<version>` + `:latest` | `ghcr.io/jonpepler/gonogo:dev` (+ `:sha-…`) |
+| Service images | same pattern | same pattern |
+| App version | `X.Y.Z` | `X.Y.Z-dev.<shortsha>` |
 
-| Bump | Meaning | Station UX against an older host |
+**Cutting a release:**
+
+```bash
+gh workflow run prepare-release.yml --ref main
+```
+
+(or Actions → prepare-release → Run workflow; the `bump` input defaults to `auto`, which analyses conventional commits since the last tag — `feat:` → minor, `BREAKING CHANGE`/`!` → major, anything else → patch.)
+
+`prepare-release.yml` bumps `packages/app/package.json`, commits `release: vX.Y.Z`, tags, pushes, and dispatches `release.yml`, which runs the full test suite at the tag, builds the production site, uploads it as the GitHub Release asset `gonogo-site.tar.gz`, publishes the `:<version>`/`:latest` images, and redeploys Pages. The version in `package.json` should only ever change through this flow.
+
+**How the Pages site holds both channels:** `deploy.yml` runs on every CI-green push to `main`, builds the dev app (`base /gonogo/dev/`, `-dev.<shortsha>` suffix), downloads the newest release's `gonogo-site.tar.gz` for the root, and deploys the composed artifact. Until the first release exists, the dev build serves the root too.
+
+**Version-skew detection:** Vite bakes the version into the build (`__GONOGO_VERSION__`), the host announces it in the peer `hello` handshake, stations report theirs back in `station-info`. Stations render a mismatch banner per the table below, and the main screen's GO/NO-GO grid shows a version chip per skewed station. The bump size states the wire-compatibility promise:
+
+| Bump | Meaning | Station UX against a skewed host |
 | --- | --- | --- |
 | patch | wire-compatible fix | silent (log line only) |
 | minor | new features, still interoperates | advisory mismatch banner |
 | major | peer protocol broke | mismatch banner; expect breakage |
 
-Because stations always load the newest Pages build while main screens run a container pulled at install time, skew is normal — the banner is the nudge to `docker pull`. Operators who want reproducibility can pin the bundle to a version tag (e.g. `ghcr.io/jonpepler/gonogo:0.1.0`) instead of `latest`.
+Dev builds compare by their base `X.Y.Z` (the `-dev.…` suffix is ignored), so a dev station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal — the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
 
-When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
+**One caveat for dev testing:** `/gonogo/` and `/gonogo/dev/` share an origin, so a dev station and a release station on the same device share localStorage — layout, station identity, share-code. Convenient (your station keeps its identity across channels) but a dev-channel layout experiment edits the same saved layout the release station uses.

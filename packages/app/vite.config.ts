@@ -25,6 +25,13 @@ const pkg = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf-8"),
 ) as { version: string };
 
+// Dev-channel builds append a prerelease suffix (e.g. "-dev.a1b2c3d") so a
+// deployed dev station is distinguishable from the release it forked from —
+// in the hello handshake, the host's station chips, and the page meta tags.
+// compareVersions ignores the suffix, so dev↔release of the same base
+// version interoperate silently; a bumped release shows the mismatch banner.
+const VERSION = `${pkg.version}${process.env.GONOGO_VERSION_SUFFIX ?? ""}`;
+
 const BUILD_TIME = new Date().toISOString();
 
 // GitHub Pages has no server-side routing: a direct hit on /gonogo/station
@@ -47,7 +54,7 @@ const versionMeta = (): PluginOption => ({
   name: "gonogo-version-meta",
   transformIndexHtml(html) {
     return html
-      .replaceAll("%GONOGO_VERSION%", pkg.version)
+      .replaceAll("%GONOGO_VERSION%", VERSION)
       .replaceAll("%GONOGO_BUILD_TIME%", BUILD_TIME);
   },
 });
@@ -67,7 +74,7 @@ export default defineConfig({
   // when not using the deployed github.io page directly.
   preview: { host: true },
   define: {
-    __GONOGO_VERSION__: JSON.stringify(pkg.version),
+    __GONOGO_VERSION__: JSON.stringify(VERSION),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
 });

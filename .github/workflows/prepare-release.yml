@@ -1,0 +1,116 @@
+name: prepare-release
+
+# Cuts a release: analyzes conventional commits since the last v* tag to
+# determine the bump (or takes an explicit override), bumps
+# packages/app/package.json, commits `release: vX.Y.Z`, tags, pushes, and
+# dispatches release.yml on the new tag — same model as kerbcam's
+# prepare-release. The version is the single release number for the whole
+# deploy surface: the Pages site, all three GHCR images, and the peer
+# hello handshake.
+#
+# Run via the Actions tab (Actions -> prepare-release -> Run workflow) or:
+#   gh workflow run prepare-release.yml --ref main
+#
+# The bump size states the wire-compatibility promise (see
+# docs/DEPLOYMENT.md): patch = compatible/silent, minor = advisory
+# mismatch banner on skewed stations, major = peer protocol broke.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump (auto = analyze commits since last tag)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine bump level
+        id: bump
+        run: |
+          BUMP="${{ inputs.bump }}"
+
+          if [ "$BUMP" = "auto" ]; then
+            LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+            if [ -n "$LAST_TAG" ]; then
+              LOG="$(git log "${LAST_TAG}..HEAD" --format='%s%n%b')"
+            else
+              LOG="$(git log --format='%s%n%b')"
+            fi
+
+            echo "Commits since ${LAST_TAG:-the beginning}:"
+            echo "$LOG"
+
+            # BREAKING CHANGE in body, or ! after type/scope -> major
+            # feat -> minor, everything else -> patch
+            if echo "$LOG" | grep -qE '(^BREAKING CHANGE|^[a-z]+(\([^)]+\))?!:)'; then
+              BUMP=major
+            elif echo "$LOG" | grep -qE '^feat(\([^)]+\))?:'; then
+              BUMP=minor
+            else
+              BUMP=patch
+            fi
+          fi
+
+          echo "Bump level: $BUMP"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+
+      - name: Bump packages/app/package.json
+        id: version
+        run: |
+          NEW="$(node -e "
+            const fs = require('fs');
+            const path = 'packages/app/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const [maj, min, pat] = pkg.version.split('.').map(Number);
+            const bump = '${{ steps.bump.outputs.bump }}';
+            const next =
+              bump === 'major' ? [maj + 1, 0, 0] :
+              bump === 'minor' ? [maj, min + 1, 0] :
+                                 [maj, min, pat + 1];
+            pkg.version = next.join('.');
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log(pkg.version);
+          ")"
+          echo "Releasing ${NEW}"
+          echo "new=${NEW}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NEW}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag, push
+        run: |
+          NEW="${{ steps.version.outputs.new }}"
+          TAG="${{ steps.version.outputs.tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/app/package.json
+          git commit -m "release: v${NEW}"
+          git tag "${TAG}"
+          git push origin HEAD:main "${TAG}"
+
+      - name: Trigger release workflow
+        # GITHUB_TOKEN pushes don't fire push-tag triggers in other
+        # workflows. workflow_dispatch does, so dispatch release.yml on
+        # the new tag explicitly.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ steps.version.outputs.tag }}"
