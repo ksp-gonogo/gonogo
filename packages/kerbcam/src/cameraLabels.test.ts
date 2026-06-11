@@ -32,10 +32,13 @@ describe("buildCameraLabeler", () => {
     expect(label(cameras[2])).toBe("TailCam");
   });
 
-  it("falls back to the bare name when a colliding camera has no part title", () => {
-    const cameras = [cam(1, "NavCam"), cam(2, "NavCam")];
+  it("numbers colliding cameras that have no part title, by flightId order", () => {
+    // Upstream behaviour since @jonpepler/kerbcam-react 0.20: identical
+    // labels that can't be disambiguated by part title get a stable
+    // "#n" suffix ordered by flightId, instead of staying ambiguous.
+    const cameras = [cam(2, "NavCam"), cam(1, "NavCam")];
     const label = buildCameraLabeler(cameras);
-    expect(label(cameras[0])).toBe("NavCam");
-    expect(label(cameras[1])).toBe("NavCam");
+    expect(label(cameras[1])).toBe("NavCam #1");
+    expect(label(cameras[0])).toBe("NavCam #2");
   });
 });
