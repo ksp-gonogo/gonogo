@@ -327,11 +327,11 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcam':
-        specifier: ^0.18.0
-        version: 0.18.0
+        specifier: ^0.21.0
+        version: 0.21.0
       '@jonpepler/kerbcam-react':
-        specifier: ^0.18.0
-        version: 0.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: ^0.21.0
+        version: 0.21.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1351,15 +1351,15 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcam-react@0.18.0':
-    resolution: {integrity: sha512-54FU6N3a/o6I3EafIyevM038qBb2b9hke7KqmvWJbemX921rDo/HblvNeNyBkQQrC14xuYJ9iIuq2CoAzkqPog==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam-react/0.18.0/af963dc7fb2f3d577b100331aeff7a29b89b78a7}
+  '@jonpepler/kerbcam-react@0.21.0':
+    resolution: {integrity: sha512-TtakU27uufsaVAOlzFOI9QxU9NTJFBEuwDLmrEQK2gFpssRsukZYS0VE/Oy+1Ved1y6c9u2g3UcuMpfOG47M2w==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam-react/0.21.0/adbaf06198fe62df69779989cc1d1734a0692979}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
       styled-components: ^6
 
-  '@jonpepler/kerbcam@0.18.0':
-    resolution: {integrity: sha512-qqksjOyktHx31NUh5P7peQh7jDg85V3g4eVa5FK9Hkr/m9t4OYkwBL/Fx2fEMmEn4azZEzvF7j8gNTF35Qn6Tw==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.18.0/174d4e91ba4daf668e4aeac4b63f15d713df11d0}
+  '@jonpepler/kerbcam@0.21.0':
+    resolution: {integrity: sha512-6gWWIegnaTJ2Ui88Trxfqkta9Pm9oxYn28vMv9o5B6fN644O8fCwc8klwyNsmv9Jl3ecQ/LXYkcwEv14A0EgaQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.21.0/c56e6ed92ff16bcc2ec213ff7cd1c6a91c0476ab}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3672,14 +3672,14 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcam-react@0.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@jonpepler/kerbcam-react@0.21.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@jonpepler/kerbcam': 0.18.0
+      '@jonpepler/kerbcam': 0.21.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@jonpepler/kerbcam@0.18.0': {}
+  '@jonpepler/kerbcam@0.21.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

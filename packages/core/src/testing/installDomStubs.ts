@@ -43,6 +43,26 @@ export function installDomStubs(): void {
   // WebSocket inject their own fake.
   installNoopWebSocket();
 
+  // jsdom has no `window.matchMedia`; components that read media queries at
+  // mount (e.g. @jonpepler/kerbcam-react's CameraFeed since 0.21) crash
+  // without it. A never-matching stub keeps them on the default branch.
+  if (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia !== "function"
+  ) {
+    window.matchMedia = (query: string): MediaQueryList =>
+      ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList;
+  }
+
   // Same problem with `fetch`: PeerHostService now fetches /ice-config
   // from the relay on start(). Tests run with no relay listening, so an
   // un-mocked fetch hangs until the abort timeout, slowing every host
