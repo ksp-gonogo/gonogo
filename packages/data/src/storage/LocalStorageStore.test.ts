@@ -21,6 +21,23 @@ describe("LocalStorageStore", () => {
     expect(store.get()).toEqual(DEFAULTS);
   });
 
+  it("isStored() distinguishes persisted values from defaults", () => {
+    const storage = memoryStorage();
+    const store = new LocalStorageStore<Cfg>({
+      key: "k",
+      defaults: DEFAULTS,
+      storage,
+    });
+    expect(store.isStored()).toBe(false);
+    store.set({ host: "ksp", port: 8085 });
+    expect(store.isStored()).toBe(true);
+    store.clear();
+    expect(store.isStored()).toBe(false);
+    // Even a corrupt value counts as "the user stored something".
+    storage.setItem("k", "{not json");
+    expect(store.isStored()).toBe(true);
+  });
+
   it("returns a fresh defaults object each call (no shared reference)", () => {
     const store = new LocalStorageStore<Cfg>({
       key: "k",

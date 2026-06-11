@@ -39,18 +39,18 @@ gonogo runs on your own computer, locally, to avoid the headache of setting up c
 ```bash
 docker run -d --name gonogo --restart unless-stopped \
   --add-host=host.docker.internal:host-gateway \
-  -e KOS_HOST=host.docker.internal \
+  -e KSP_HOST=host.docker.internal \
   -p 8080:8080 -p 3001:3001 -p 3002:3002 \
   -p 3478:3478/tcp -p 3478:3478/udp \
   -p 49160-49170:49160-49170/udp \
   ghcr.io/jonpepler/gonogo:latest
 ```
 
-If KSP runs on a different computer from gonogo, point the kOS bridge at it with `-e KOS_HOST=<ksp-host>`. The wide UDP range is only needed to relay station connections from outside your network; see [docs/NETWORKING.md](docs/NETWORKING.md) if you want that.
+`KSP_HOST` tells the whole stack where KSP is — telemetry, the kOS bridge, and camera feeds all point at it out of the box. The command above assumes KSP runs on the same computer; if it runs on a different one, replace both `host.docker.internal` values with that computer's IP (e.g. `-e KSP_HOST=192.168.1.50`) — the `--add-host` line is then unnecessary. The wide UDP range is only needed to relay station connections from outside your network; see [docs/NETWORKING.md](docs/NETWORKING.md) if you want that.
 
 Open [localhost:8080](http://localhost:8080) once it is running. Bear in mind that if you run KSP and gonogo on the same computer, you may have trouble with KSP pausing when minimised.
 
-Once the main screen is up and pointed at KSP (walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. The **Data Sources** button, the database icon in the bottom-right **+** menu, is where you configure where the main screen points.
+Once the main screen is up (mod setup walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. To point the main screen somewhere else later, use **Settings → Data Sources** in the bottom-right **+** menu — anything you save there overrides `KSP_HOST`.
 
 ### Adding a station screen
 

@@ -43,6 +43,19 @@ export class LocalStorageStore<T> {
     this.onCorruption = opts.onCorruption ?? defaultCorruptionLogger(this.key);
   }
 
+  /**
+   * Whether a value has ever been persisted under this key (even a corrupt
+   * one). Lets callers distinguish "user saved something" from "running on
+   * defaults" — e.g. first-run seeding only applies when nothing is stored.
+   */
+  isStored(): boolean {
+    try {
+      return (this.storage?.getItem(this.key) ?? null) !== null;
+    } catch {
+      return false;
+    }
+  }
+
   get(): T {
     let raw: string | null = null;
     try {

@@ -403,6 +403,21 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
     void this.connect();
   }
 
+  /**
+   * Apply a first-run seeded host WITHOUT persisting — see
+   * `seedTelemachusHost`. If a connection attempt is already underway
+   * against the old host, restart it against the new one.
+   */
+  applySeededHost(host: string): void {
+    if (host === this.cfg.host) return;
+    const active = this.ws !== null || this.retryTimer !== null;
+    this.cfg = { ...this.cfg, host };
+    if (active) {
+      this.disconnect();
+      void this.connect();
+    }
+  }
+
   // --- Private ---
 
   private openWebSocket(): Promise<void> {
@@ -490,6 +505,18 @@ export class TelemachusDataSource implements DataSource<TelemachusConfig> {
 
 export const telemachusSource = new TelemachusDataSource();
 registerDataSource(telemachusSource);
+
+/**
+ * First-run seeding from the bundle's `KSP_HOST` (via the relay's
+ * `/bootstrap-config`). In-memory only and skipped the moment the user has
+ * saved a Telemachus config — so an explicit Settings save always wins, and
+ * a changed `KSP_HOST` env keeps taking effect on the next page load
+ * because nothing is persisted here.
+ */
+export function seedTelemachusHost(host: string): void {
+  if (configStore.isStored()) return;
+  telemachusSource.applySeededHost(host);
+}
 // Note: widgets should read from the `"data"` source (the BufferedDataSource
 // wrapping this one) so the CommNet signal-loss gate applies. Reading
 // `"telemachus"` directly bypasses the gate — intentional as a live escape

@@ -682,15 +682,29 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   configure(config: Record<string, unknown>): void {
-    const wasEnabled = this.reconnectEnabled;
-    this.cfg = {
+    const next = {
       host: typeof config.host === "string" ? config.host : this.cfg.host,
       port:
         typeof config.port === "number"
           ? config.port
           : Number(config.port) || this.cfg.port,
     };
-    persistConfig(this.cfg);
+    persistConfig(next);
+    this.applyConfig(next);
+  }
+
+  /**
+   * Apply a first-run seeded sidecar host WITHOUT persisting — see
+   * `seedKerbcamHost`.
+   */
+  applySeededHost(host: string): void {
+    if (host === this.cfg.host) return;
+    this.applyConfig({ ...this.cfg, host });
+  }
+
+  private applyConfig(next: KerbcamConfig): void {
+    const wasEnabled = this.reconnectEnabled;
+    this.cfg = next;
     this.reconnectEnabled = false;
     // A host/port change is a fresh start — re-probe STUN-only against the new
     // sidecar rather than carrying a stale escalation across the reconfigure.
@@ -888,6 +902,25 @@ function parseAction(action: string): [string, string[]] {
 
 export const kerbcamSource = new KerbcamDataSource();
 registerDataSource(kerbcamSource);
+
+/**
+ * First-run seeding from the bundle's `KSP_HOST` (via the relay's
+ * `/bootstrap-config`). In-memory only; skipped when the user has ever
+ * saved a kerbcam config, so an explicit Settings save always wins.
+ */
+export function seedKerbcamHost(host: string): void {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem(STORAGE_KEY) !== null
+    ) {
+      return;
+    }
+  } catch {
+    return;
+  }
+  kerbcamSource.applySeededHost(host);
+}
 
 // Dev-only debug handle: inspect the live stream-routing state from the console
 // (or via automation) to diagnose black-feed / no-track issues.
