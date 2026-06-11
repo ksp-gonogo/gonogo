@@ -8,7 +8,8 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
-      # KOS_HOST: IP or hostname of the machine running KSP.
+      # KOS_HOST: IP or hostname of the machine running KSP (kOS-specific
+      # override; falls back to KSP_HOST, then localhost).
       # host.containers.internal reaches the host from inside a Podman container.
       KOS_HOST: ${KOS_HOST:-host.containers.internal}
       KOS_PORT: ${KOS_PORT:-5410}

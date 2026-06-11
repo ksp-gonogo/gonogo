@@ -82,7 +82,9 @@ fastify.addHook("onResponse", async (req, reply) => {
 });
 
 registerKosBridge(fastify, {
-  kosHost: process.env.KOS_HOST ?? "localhost",
+  // KOS_HOST is the specific override; KSP_HOST is the bundle-wide "where
+  // is KSP" knob shared with the relay's /bootstrap-config.
+  kosHost: process.env.KOS_HOST ?? process.env.KSP_HOST ?? "localhost",
   kosPort: Number(process.env.KOS_PORT ?? 5410),
 });
 

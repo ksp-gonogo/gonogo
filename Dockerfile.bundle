@@ -103,10 +103,15 @@ ENV GONOGO_BUILD_TIME=${GONOGO_BUILD_TIME}
 ENV APP_PORT=8080
 ENV RELAY_PORT=3002
 ENV PROXY_PORT=3001
-# KSP/kOS host the proxy dials. host.containers.internal reaches the host
-# under Podman; on Docker (Linux) pass --add-host=host.docker.internal:...
-# or override KOS_HOST. Mirrors docker-compose.yml's default.
-ENV KOS_HOST=host.containers.internal
+# Where KSP is, as seen from this container. One knob for the whole stack:
+# the telnet-proxy dials it for kOS, and the relay republishes it at
+# /bootstrap-config so the SPA seeds Telemachus/kerbcam defaults from it
+# (mapping container-internal names to localhost browser-side).
+# host.containers.internal reaches the host under Podman; on Docker pass
+# --add-host=host.docker.internal:host-gateway and -e KSP_HOST=host.docker.internal,
+# or point it at the KSP computer's LAN IP. KOS_HOST remains an optional
+# kOS-specific override.
+ENV KSP_HOST=host.containers.internal
 ENV KOS_PORT=5410
 
 # app SPA, telnet-proxy ws, relay http, TURN signalling (udp+tcp), TURN

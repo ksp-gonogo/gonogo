@@ -401,6 +401,19 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
   }
 
   configure(config: Record<string, unknown>): void {
+    this.applyConfig(config, true);
+  }
+
+  /**
+   * Apply a first-run seeded kOS host WITHOUT persisting — see
+   * `seedKosHost`. Same teardown/notify path as `configure`, so any live
+   * terminal or compute loop re-dials against the seeded endpoint.
+   */
+  applySeededConfig(config: Record<string, unknown>): void {
+    this.applyConfig(config, false);
+  }
+
+  private applyConfig(config: Record<string, unknown>, persist: boolean): void {
     const prevActiveCpu = this.cfg.activeCpu;
     this.cfg = {
       host: typeof config.host === "string" ? config.host : this.cfg.host,
@@ -419,7 +432,7 @@ export class KosDataSource implements ScriptableDataSource<KosConfig> {
           ? config.activeCpu
           : this.cfg.activeCpu,
     };
-    configStore.set(this.cfg);
+    if (persist) configStore.set(this.cfg);
     // Tear down any open per-CPU sessions — they'd still be pointed at the
     // old endpoint. Next executeScript() will open fresh sessions against
     // the new config. Then notify config listeners (KosTerminal) so live
@@ -519,4 +532,20 @@ function readStoredPartial(key: string): Partial<KosConfig> {
   }
 }
 
-registerDataSource(new KosDataSource());
+export const kosSource = new KosDataSource();
+registerDataSource(kosSource);
+
+/**
+ * First-run seeding from the bundle's `KSP_HOST` (via the relay's
+ * `/bootstrap-config`). Seeds the KSP-side telnet host VERBATIM — the
+ * in-container proxy is the thing dialling it, so container-internal names
+ * like `host.containers.internal` are correct here (unlike the browser-side
+ * Telemachus/kerbcam seeds). In-memory only; any user-saved kOS config
+ * (current or legacy kos-compute key) wins.
+ */
+export function seedKosHost(kosHost: string): void {
+  if (configStore.isStored()) return;
+  if (Object.keys(readStoredPartial(LEGACY_KOS_COMPUTE_KEY)).length > 0) return;
+  if (kosSource.getConfig().kosHost === kosHost) return;
+  kosSource.applySeededConfig({ kosHost });
+}

@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
 import Fastify from "fastify";
 import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
+import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { type CoturnHandle, startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
@@ -245,6 +246,10 @@ registerAnalyticsConfigRoutes(fastify, {
     bridgeInfo(`analytics consent ${enabled ? "enabled" : "disabled"}`);
   },
 });
+
+// First-run bootstrap: republish the bundle's KSP_HOST so the SPA can seed
+// its data-source defaults. Unset outside the bundle → { kspHost: null }.
+registerBootstrapConfigRoutes(fastify, { kspHost: process.env.KSP_HOST });
 // Bound steady-state memory: lazy GET-time sweeps only touch looked-up
 // codes, so a host that stops heartbeating without anyone resolving it
 // would linger forever. Half the TTL is a comfortable cadence.
