@@ -24,6 +24,7 @@ const KEYS: DataKey[] = [
   { key: "ksp.canRevertToEditor" },
   { key: "crash.hasRecent" },
   { key: "crash.lastCrash" },
+  { key: "t.universalTime" },
   { key: "tar.availableVessels" },
 ];
 
@@ -263,6 +264,45 @@ describe("LaunchDirectorComponent", () => {
       source.emit("crash.hasRecent", true);
       // Debris from a different vessel earlier in the session.
       source.emit("crash.lastCrash", { vesselName: "Booster A Debris" });
+    });
+
+    expect(
+      screen.queryByText(/Crash in progress — return to Space Center/i),
+    ).toBeNull();
+    const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
+    expect(recoverBtn).not.toBeDisabled();
+  });
+
+  // 2026-06-12: after a crash + revert-to-launch, the chip blocked recovery
+  // forever — the reverted vessel shares the crashed vessel's name, and
+  // crash.hasRecent is session-sticky. Reverting rewinds universal time
+  // below the snapshot's capture ut, so a future-dated snapshot is provably
+  // from an undone timeline and must not gate recovery. (Telemachus now
+  // clears it server-side on the same rule; this is the client mirror for
+  // older deployed builds.)
+  it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "Doomed Probe");
+      source.emit("v.missionTime", 0);
+      source.emit("v.altitude", 87);
+      source.emit("ksp.canRevertToLaunch", true);
+      source.emit("ksp.canRevertToEditor", false);
+      source.emit("crash.hasRecent", true);
+      // Crash captured at ut 125371; the revert rewound the clock to 113270.
+      source.emit("crash.lastCrash", {
+        vesselName: "Doomed Probe",
+        ut: 125371,
+      });
+      source.emit("t.universalTime", 113270);
     });
 
     expect(

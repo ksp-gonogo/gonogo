@@ -123,7 +123,11 @@ function LaunchDirectorComponent({
   const lastCrash = useDataValue<{
     vesselName?: string;
     vesselId?: number;
+    ut?: number;
   } | null>("data", "crash.lastCrash");
+  // For the revert-staleness guard below — a revert rewinds universal time
+  // below the crash snapshot's capture ut.
+  const universalTime = useDataValue<number>("data", "t.universalTime");
   const availableVessels = useDataValue<AvailableVesselEntry[]>(
     "data",
     "tar.availableVessels",
@@ -197,7 +201,19 @@ function LaunchDirectorComponent({
   // Falls back to the session-wide flag if the snapshot hasn't arrived
   // yet (rare; the host emits both keys in the same WS tick) so the gate
   // is fail-safe rather than fail-open.
+  // A crash snapshot dated AFTER the current universal time belongs to a
+  // reverted (undone) timeline — reverting rewinds UT below the capture ut.
+  // Telemachus clears the snapshot server-side on the same rule; this
+  // mirror keeps the gate correct against older deployed builds. User hit
+  // this on 2026-06-12: post-revert, the chip blocked recovery forever
+  // because the reverted vessel shares the crashed vessel's name.
+  const crashStale =
+    lastCrash != null &&
+    typeof lastCrash.ut === "number" &&
+    typeof universalTime === "number" &&
+    lastCrash.ut > universalTime;
   const crashBlocked =
+    !crashStale &&
     crashHasRecent === true &&
     (lastCrash == null
       ? true
@@ -1022,6 +1038,7 @@ registerComponent<LaunchDirectorConfig>({
     "ksp.canRevertToEditor",
     "crash.hasRecent",
     "crash.lastCrash",
+    "t.universalTime",
     "tar.availableVessels",
   ],
   defaultConfig: {},
