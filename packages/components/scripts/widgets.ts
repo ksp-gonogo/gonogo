@@ -358,9 +358,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "mission-director",
-    fixturesPath: "MissionDirector/__fixtures__",
-    outPath: "renders/mission-director-widget",
+    widgetId: "contract-manager",
+    fixturesPath: "ContractManager/__fixtures__",
+    outPath: "renders/contract-manager-widget",
     modes: [
       // Minimum size — title only, no subtitle (h<4 branch). Catches
       // overflow on the tightest plausible placement.
