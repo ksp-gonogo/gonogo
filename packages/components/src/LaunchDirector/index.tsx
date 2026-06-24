@@ -34,7 +34,45 @@ export interface CrewMember {
   unavailableReason: string;
 }
 
+export interface LaunchSiteEntry {
+  name: string;
+  displayName: string;
+  facility: string;
+  body: string;
+  ready: boolean;
+  unlocked: boolean;
+}
+
 const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
+
+/**
+ * Parse `kc.launchSites`. Returns null when the key is absent (older fork
+ * without the handler) so the picker can collapse rather than render empty.
+ * Making History adds non-stock sites; without it only stock sites appear.
+ */
+export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
+  if (raw === null || raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  const out: LaunchSiteEntry[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    const name = typeof e.name === "string" ? e.name : null;
+    if (!name) continue;
+    out.push({
+      name,
+      displayName:
+        typeof e.displayName === "string" && e.displayName
+          ? e.displayName
+          : name,
+      facility: typeof e.facility === "string" ? e.facility : "",
+      body: typeof e.body === "string" ? e.body : "",
+      ready: e.ready === true,
+      unlocked: e.unlocked === true,
+    });
+  }
+  return out;
+}
 
 export function parseSavedShips(raw: unknown): SavedShip[] | null {
   if (raw === null || raw === undefined) return null;
@@ -100,6 +138,7 @@ function LaunchDirectorComponent({
   const launchSite = useDataValue("data", "kc.launchSite") as
     | string
     | undefined;
+  const launchSitesRaw = useDataValue("data", "kc.launchSites");
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
@@ -136,9 +175,19 @@ function LaunchDirectorComponent({
 
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
+  const launchSites = parseLaunchSites(launchSitesRaw);
+  // Only sites the save can actually launch from; a single option is no
+  // choice, so the picker collapses below.
+  const selectableSites = (launchSites ?? []).filter((s) => s.unlocked);
 
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
+  // Launch destination site; defaults to the stock pad to preserve prior
+  // behaviour. Per-launch context, deliberately not persisted in config.
+  const [selectedSite, setSelectedSite] = useState<string>("LaunchPad");
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
+  const selectedSiteLabel =
+    (launchSites ?? []).find((s) => s.name === selectedSite)?.displayName ??
+    selectedSite;
   const [armed, setArmed] = useState<
     "launch" | "recover" | "revert" | "tracking-station" | null
   >(null);
@@ -227,10 +276,10 @@ function LaunchDirectorComponent({
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {inFlight
-            ? `In flight: ${activeName}`
+            ? `In flight: ${activeName}${launchSite ? ` · from ${launchSite}` : ""}`
             : padOccupied
               ? `On pad: ${activeName}`
-              : `${launchableShips.length}/${ships.length} ready · ${launchSite ?? "LaunchPad"}`}
+              : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
           {typeof careerFunds === "number" && (
             <FundsReadout title="Available funds">
               · {Math.round(careerFunds).toLocaleString()}f
@@ -310,6 +359,7 @@ function LaunchDirectorComponent({
                   <ShipRow
                     key={`${s.facility}/${s.name}`}
                     type="button"
+                    data-ship-row
                     $selected={selectedShip === s.name}
                     $blocked={blocked}
                     aria-pressed={selectedShip === s.name}
@@ -389,6 +439,31 @@ function LaunchDirectorComponent({
                   ))}
                 </CrewGrid>
 
+                {selectableSites.length > 1 && (
+                  <>
+                    <SectionLabel>Launch site</SectionLabel>
+                    <SiteList>
+                      {selectableSites.map((s) => (
+                        <SiteChip
+                          key={s.name}
+                          type="button"
+                          $selected={selectedSite === s.name}
+                          aria-pressed={selectedSite === s.name}
+                          onClick={() => setSelectedSite(s.name)}
+                        >
+                          <SiteName>{s.displayName}</SiteName>
+                          <SiteMeta>
+                            {s.facility}
+                            {s.body && s.body !== "Kerbin"
+                              ? ` · ${s.body}`
+                              : ""}
+                          </SiteMeta>
+                        </SiteChip>
+                      ))}
+                    </SiteList>
+                  </>
+                )}
+
                 <LaunchControls>
                   <ArmedButton
                     kind="launch"
@@ -401,7 +476,7 @@ function LaunchDirectorComponent({
                       setArmed(null);
                       setLaunching(true);
                       const crewArg = Array.from(selectedCrew).join(";");
-                      const site = launchSite ?? "LaunchPad";
+                      const site = selectedSite;
                       void execute(
                         `ksp.launch[${ship.name},${ship.facility},${site},${crewArg}]`,
                       );
@@ -781,6 +856,42 @@ const CrewTrait = styled.span`
   letter-spacing: 0.04em;
 `;
 
+const SiteList = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 4px;
+`;
+
+const SiteChip = styled.button<{ $selected: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 8px;
+  background: ${(p) =>
+    p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
+  color: ${(p) =>
+    p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
+  border: 1px solid
+    ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+`;
+
+const SiteName = styled.span`
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const SiteMeta = styled.span`
+  font-size: 9px;
+  color: inherit;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+`;
+
 const LaunchControls = styled.div`
   display: flex;
   gap: 6px;
@@ -1029,6 +1140,7 @@ registerComponent<LaunchDirectorConfig>({
     "kc.padOccupied",
     "kc.padVesselTitle",
     "kc.launchSite",
+    "kc.launchSites",
     "kc.scene",
     "career.funds",
     "v.name",
