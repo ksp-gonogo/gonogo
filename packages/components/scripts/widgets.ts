@@ -441,6 +441,19 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "mission-status",
+    fixturesPath: "MissionStatus/__fixtures__",
+    outPath: "renders/mission-status-widget",
+    modes: [
+      // Minimum size — name + phase/banner, checklist tight.
+      { name: "min-3x4", w: 3, h: 4 },
+      // Default registered size — name, score, full checklist.
+      { name: "default-5x7", w: 5, h: 7 },
+      // Tall — long checklist with descriptions.
+      { name: "tall-5x12", w: 5, h: 12 },
+    ],
+  },
+  {
     widgetId: "rotor-tachometer",
     fixturesPath: "RotorTachometer/__fixtures__",
     outPath: "renders/rotor-tachometer-widget",

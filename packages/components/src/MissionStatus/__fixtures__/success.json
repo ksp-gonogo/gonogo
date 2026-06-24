@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "scenario": "success",
+    "notes": "Mission ended successfully — success banner."
+  },
+  "mh.available": true,
+  "mh.name": "Munar 1",
+  "mh.testMode": false,
+  "mh.phase": "",
+  "mh.score": { "current": 100, "max": 100, "enabled": true },
+  "mh.finished": true,
+  "mh.outcome": "success",
+  "mh.objectives": [
+    {
+      "title": "Land on the Mun",
+      "description": "",
+      "state": "reached",
+      "scoring": true
+    }
+  ]
+}
