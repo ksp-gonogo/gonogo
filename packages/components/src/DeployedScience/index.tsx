@@ -13,7 +13,7 @@ import styled from "styled-components";
  * state without Breaking Ground or when no base is deployed.
  */
 
-type DeployedBaseMonitorConfig = Record<string, never>;
+type DeployedScienceConfig = Record<string, never>;
 
 export interface DeployedExperiment {
   partId: number;
@@ -106,8 +106,8 @@ const POWER_LABEL: Record<PowerState, string> = {
   unpowered: "Unpowered",
 };
 
-function DeployedBaseMonitorComponent(
-  _: Readonly<ComponentProps<DeployedBaseMonitorConfig>>,
+function DeployedScienceComponent(
+  _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
   const basesRaw = useDataValue("data", "deployed.bases");
   const available = useDataValue<boolean>("data", "deployed.available");
@@ -274,19 +274,19 @@ const BarFill = styled.div`
   background: var(--color-status-go-bg);
 `;
 
-registerComponent<DeployedBaseMonitorConfig>({
-  id: "deployed-base-monitor",
-  name: "Deployed Base Monitor",
+registerComponent<DeployedScienceConfig>({
+  id: "deployed-science",
+  name: "Deployed Science",
   description:
     "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body — reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 4, h: 4 },
-  component: DeployedBaseMonitorComponent,
+  component: DeployedScienceComponent,
   dataRequirements: ["deployed.bases", "deployed.available"],
   defaultConfig: {},
   actions: [],
   pushable: true,
 });
 
-export { DeployedBaseMonitorComponent };
+export { DeployedScienceComponent };
