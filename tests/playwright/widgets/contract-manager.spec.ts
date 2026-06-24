@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror — MissionDirector. Asserts the panel chrome matches
+ * Widget DOM mirror — ContractManager. Asserts the panel chrome matches
  * on host and station.
  *
  * The recorded fixture has no `contracts.active` key (or any other
@@ -11,7 +11,7 @@
  *     placeholder.
  *   - Inside the widget, `parseContracts(undefined)` returns null, so
  *     the early-return branch renders:
- *         <PanelTitle>MISSION DIRECTOR</PanelTitle>
+ *         <PanelTitle>CONTRACT MANAGER</PanelTitle>
  *         <PanelSubtitle>Awaiting contract telemetry</PanelSubtitle>
  *     (The subtitle shows because the seeded layout uses h = 6 ≥ 4.)
  *
@@ -21,19 +21,19 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror — MissionDirector", () => {
+test.describe("widget DOM mirror — ContractManager", () => {
   test("panel chrome mirrors across host and station", async ({ browser }) => {
-    const pair = await bootstrapPair(browser, "mission-director", {
+    const pair = await bootstrapPair(browser, "contract-manager", {
       waitForMain: async (page) => {
         await expect(
-          page.getByText("MISSION DIRECTOR", { exact: true }),
+          page.getByText("CONTRACT MANAGER", { exact: true }),
         ).toBeVisible({ timeout: 30_000 });
       },
     });
 
     for (const page of [pair.main, pair.station]) {
       await expect(
-        page.getByText("MISSION DIRECTOR", { exact: true }),
+        page.getByText("CONTRACT MANAGER", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
       await expect(
         page.getByText("Awaiting contract telemetry", { exact: true }),
