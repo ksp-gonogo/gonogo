@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "scenario": "mission-and-contracts",
+    "notes": "Active mission objectives + an active contract's parameters, unified."
+  },
+  "mh.available": true,
+  "mh.name": "Munar 1",
+  "mh.phase": "Establish Mun orbit",
+  "mh.score": { "current": 40, "max": 100, "enabled": true },
+  "mh.finished": false,
+  "mh.outcome": "",
+  "mh.objectives": [
+    {
+      "id": "o1",
+      "title": "Launch from KSC",
+      "description": "",
+      "state": "reached",
+      "scoring": false
+    },
+    {
+      "id": "o2",
+      "title": "Enter Mun SOI",
+      "description": "Transfer to the Mun",
+      "state": "active",
+      "scoring": true
+    },
+    {
+      "id": "o3",
+      "title": "Land on the Mun",
+      "description": "",
+      "state": "pending",
+      "scoring": true
+    }
+  ],
+  "contracts.active": [
+    {
+      "id": "8001",
+      "title": "Explore the Mun",
+      "agency": "Kerbin World-Firsts",
+      "state": "Active",
+      "fundsAdvance": 12000,
+      "fundsCompletion": 45000,
+      "scienceCompletion": 12,
+      "repCompletion": 8,
+      "deadlineUt": 0,
+      "parameters": [
+        { "title": "Reach the Mun", "state": "Complete", "optional": false },
+        { "title": "Plant a flag", "state": "Incomplete", "optional": false },
+        {
+          "title": "Return home safely",
+          "state": "Incomplete",
+          "optional": true
+        }
+      ]
+    }
+  ]
+}

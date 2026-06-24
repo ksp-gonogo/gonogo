@@ -25,7 +25,7 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
  * `AlarmsLauncherBridge.tsx` accepts the shape via the generic
  * `AlarmCreator<TTrigger>` interface.
  */
-interface ContractParameterAlarmTrigger {
+export interface ContractParameterAlarmTrigger {
   kind: "contract-parameter";
   contractId: number;
   parameterTitle: string;

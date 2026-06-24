@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "scenario": "contracts-only",
+    "notes": "No mission running; two active contracts. Source tags distinguish them."
+  },
+  "mh.available": false,
+  "contracts.active": [
+    {
+      "id": "9001",
+      "title": "Test the LV-909 in flight",
+      "agency": "C7 Aerospace",
+      "state": "Active",
+      "fundsAdvance": 3000,
+      "fundsCompletion": 9000,
+      "scienceCompletion": 0,
+      "repCompletion": 2,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Test LV-909: Flying over Kerbin",
+          "state": "Incomplete",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "id": "9002",
+      "title": "Rescue a Kerbal from orbit",
+      "agency": "Rescue Inc",
+      "state": "Active",
+      "fundsAdvance": 8000,
+      "fundsCompletion": 30000,
+      "scienceCompletion": 0,
+      "repCompletion": 5,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Recover the stranded Kerbal",
+          "state": "Incomplete",
+          "optional": false
+        },
+        { "title": "Bring them home", "state": "Incomplete", "optional": false }
+      ]
+    }
+  ]
+}
