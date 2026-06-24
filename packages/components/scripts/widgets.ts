@@ -491,7 +491,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Minimum registered size (h<6) — gauge suppressed, controls + list.
       { name: "min-4x4", w: 4, h: 4 },
       // Default registered size — dial + controls + 2-rotor list.
-      { name: "default-5x9", w: 5, h: 9 },
+      { name: "default-6x10", w: 6, h: 10 },
       // Wide — controls and list get horizontal room.
       { name: "wide-9x7", w: 9, h: 7 },
       // DLC-absent empty state.

@@ -197,9 +197,10 @@ function RotorTachometerComponent({
   const showGauge = (h ?? 8) >= 6;
   const cap = Math.max(selected.rpmLimit, 1);
   // Size the dial to the column width, but also cap it by a slice of the
-  // widget's height so a short/wide slot doesn't let the gauge crowd the
-  // controls + rotor list off the bottom.
-  const gaugeMaxH = Math.max(72, (h ?? 9) * 25 * 0.42);
+  // widget's height so the controls (steppers + the full toggle row) stay
+  // visible without scrolling; the rotor list below may scroll. Kept modest
+  // so a short/wide slot doesn't let the gauge crowd the toggles off-bottom.
+  const gaugeMaxH = Math.max(64, (h ?? 9) * 25 * 0.32);
   const gaugeW = Math.min(
     gaugeSize.w || 180,
     240,
@@ -464,7 +465,7 @@ registerComponent<RotorTachometerConfig>({
   description:
     "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
   tags: ["telemetry", "robotics"],
-  defaultSize: { w: 5, h: 9 },
+  defaultSize: { w: 6, h: 10 },
   minSize: { w: 4, h: 4 },
   component: RotorTachometerComponent,
   dataRequirements: ["robotics.rotors", "robotics.available"],
