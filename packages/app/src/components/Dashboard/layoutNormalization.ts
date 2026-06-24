@@ -27,6 +27,8 @@ export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "mission-director": "contract-manager",
   // 2026-06-24: Mission Status was folded into the unified Objectives widget.
   "mission-status": "objectives",
+  // 2026-06-25: Deployed Base Monitor renamed to the simpler Deployed Science.
+  "deployed-base-monitor": "deployed-science",
 };
 
 /** Map a single (possibly renamed) component id forward to its current id. */

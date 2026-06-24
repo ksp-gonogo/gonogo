@@ -9,7 +9,7 @@ export * from "./ContractManager";
 export * from "./CrewManifest";
 export * from "./CurrentOrbit";
 export * from "./DataSourceStatus";
-export * from "./DeployedBaseMonitor";
+export * from "./DeployedScience";
 export * from "./DistanceToTarget";
 export * from "./EscapeProfile";
 export * from "./FuelStatus";

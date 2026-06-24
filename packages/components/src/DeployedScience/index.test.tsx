@@ -6,7 +6,7 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { DeployedBaseMonitorComponent, parseBases } from "./index";
+import { DeployedScienceComponent, parseBases } from "./index";
 
 const KEYS: DataKey[] = [
   { key: "deployed.bases" },
@@ -37,7 +37,7 @@ const base = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
   ...over,
 });
 
-describe("DeployedBaseMonitorComponent", () => {
+describe("DeployedScienceComponent", () => {
   let fixture: MockDataSourceFixture;
   let source: MockDataSource;
 
@@ -51,7 +51,7 @@ describe("DeployedBaseMonitorComponent", () => {
   });
 
   it("shows the DLC-absent state when deployed.available is false", () => {
-    render(<DeployedBaseMonitorComponent config={{}} id="db" />);
+    render(<DeployedScienceComponent config={{}} id="db" />);
     act(() => {
       source.emit("deployed.available", false);
       source.emit("deployed.bases", []);
@@ -62,7 +62,7 @@ describe("DeployedBaseMonitorComponent", () => {
   });
 
   it("shows the no-bases state when available but the list is empty", () => {
-    render(<DeployedBaseMonitorComponent config={{}} id="db" />);
+    render(<DeployedScienceComponent config={{}} id="db" />);
     act(() => {
       source.emit("deployed.available", true);
       source.emit("deployed.bases", []);
@@ -71,12 +71,12 @@ describe("DeployedBaseMonitorComponent", () => {
   });
 
   it("shows the no-bases state when the key is absent (older fork)", () => {
-    render(<DeployedBaseMonitorComponent config={{}} id="db" />);
+    render(<DeployedScienceComponent config={{}} id="db" />);
     expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument();
   });
 
   it("renders a base with power balance and experiment progress", () => {
-    render(<DeployedBaseMonitorComponent config={{}} id="db" />);
+    render(<DeployedScienceComponent config={{}} id="db" />);
     act(() => {
       source.emit("deployed.available", true);
       source.emit("deployed.bases", [base()]);
@@ -89,7 +89,7 @@ describe("DeployedBaseMonitorComponent", () => {
   });
 
   it("labels an unpowered base and a brownout base distinctly", () => {
-    render(<DeployedBaseMonitorComponent config={{}} id="db" />);
+    render(<DeployedScienceComponent config={{}} id="db" />);
     act(() => {
       source.emit("deployed.available", true);
       source.emit("deployed.bases", [

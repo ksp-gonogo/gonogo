@@ -441,9 +441,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "deployed-base-monitor",
-    fixturesPath: "DeployedBaseMonitor/__fixtures__",
-    outPath: "renders/deployed-base-monitor-widget",
+    widgetId: "deployed-science",
+    fixturesPath: "DeployedScience/__fixtures__",
+    outPath: "renders/deployed-science-widget",
     modes: [
       // Minimum size — base header + first experiment, rest scrolls.
       { name: "min-4x4", w: 4, h: 4 },
