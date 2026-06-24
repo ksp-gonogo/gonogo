@@ -8,6 +8,7 @@ import {
 import { EmptyState, Gauge, Panel, PanelTitle, ToggleButton } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
+import { useElementSize } from "../shared/useElementSize";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
@@ -118,6 +119,10 @@ function RotorTachometerComponent({
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
 
+  // Measure the gauge slot so the dial follows the column width instead of a
+  // fixed 180px that clips in a narrow slot.
+  const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
+
   const rotors = parseRotors(rotorsRaw) ?? [];
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const selected =
@@ -197,13 +202,13 @@ function RotorTachometerComponent({
       <PanelTitle>ROTORS</PanelTitle>
       <Body>
         {showGauge && (
-          <GaugeWrap>
+          <GaugeWrap ref={gaugeRef}>
             <Gauge
               value={clamp(selected.rpm, 0, ROTOR_MAX_RPM)}
               min={0}
               max={ROTOR_MAX_RPM}
-              width={180}
-              height={104}
+              width={Math.min(gaugeSize.w || 180, 240)}
+              height={Math.round(Math.min(gaugeSize.w || 180, 240) * 0.58)}
               valueLabel={`${Math.round(selected.rpm)}`}
               unitLabel="RPM"
               zones={[
@@ -348,6 +353,8 @@ const Body = styled.div`
 const GaugeWrap = styled.div`
   display: flex;
   justify-content: center;
+  width: 100%;
+  min-width: 0;
 `;
 
 const Controls = styled.div`
