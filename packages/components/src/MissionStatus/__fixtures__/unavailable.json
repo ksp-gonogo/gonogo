@@ -1,8 +1,0 @@
-{
-  "_meta": {
-    "scenario": "unavailable",
-    "notes": "No mission running (or Making History absent) — muted note."
-  },
-  "mh.available": false,
-  "mh.objectives": []
-}

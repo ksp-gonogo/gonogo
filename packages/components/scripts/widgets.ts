@@ -471,16 +471,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "mission-status",
-    fixturesPath: "MissionStatus/__fixtures__",
-    outPath: "renders/mission-status-widget",
+    widgetId: "objectives",
+    fixturesPath: "Objectives/__fixtures__",
+    outPath: "renders/objectives-widget",
     modes: [
-      // Minimum size — name + phase/banner, checklist tight.
+      // Minimum size — tight list, source tags wrap.
       { name: "min-3x4", w: 3, h: 4 },
-      // Default registered size — name, score, full checklist.
-      { name: "default-5x7", w: 5, h: 7 },
-      // Tall — long checklist with descriptions.
-      { name: "tall-5x12", w: 5, h: 12 },
+      // Default registered size — mission head + unified list.
+      { name: "default-5x8", w: 5, h: 8 },
+      // Tall — mission objectives + several contracts.
+      { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
   {
