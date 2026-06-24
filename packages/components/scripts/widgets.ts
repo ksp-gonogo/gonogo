@@ -441,6 +441,21 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "robotics-console",
+    fixturesPath: "RoboticsConsole/__fixtures__",
+    outPath: "renders/robotics-console-widget",
+    modes: [
+      // Minimum size — readout + controls, list tight.
+      { name: "min-4x4", w: 4, h: 4 },
+      // Default registered size — readout + controls + joint list.
+      { name: "default-5x8", w: 5, h: 8 },
+      // Wide — controls and list get horizontal room.
+      { name: "wide-9x6", w: 9, h: 6 },
+      // DLC-absent empty state.
+      { name: "unavailable-5x8", w: 5, h: 8, forFixtures: ["unavailable"] },
+    ],
+  },
+  {
     widgetId: "mission-status",
     fixturesPath: "MissionStatus/__fixtures__",
     outPath: "renders/mission-status-widget",
