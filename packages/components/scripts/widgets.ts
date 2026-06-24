@@ -441,6 +441,26 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "rotor-tachometer",
+    fixturesPath: "RotorTachometer/__fixtures__",
+    outPath: "renders/rotor-tachometer-widget",
+    modes: [
+      // Minimum registered size (h<6) — gauge suppressed, controls + list.
+      { name: "min-4x4", w: 4, h: 4 },
+      // Default registered size — dial + controls + 2-rotor list.
+      { name: "default-5x9", w: 5, h: 9 },
+      // Wide — controls and list get horizontal room.
+      { name: "wide-9x7", w: 9, h: 7 },
+      // DLC-absent empty state.
+      {
+        name: "unavailable-5x9",
+        w: 5,
+        h: 9,
+        forFixtures: ["unavailable"],
+      },
+    ],
+  },
+  {
     widgetId: "action-group",
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",

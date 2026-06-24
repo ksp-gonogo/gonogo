@@ -1,0 +1,460 @@
+import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import {
+  registerComponent,
+  useActionInput,
+  useDataValue,
+  useExecuteAction,
+} from "@gonogo/core";
+import { EmptyState, Gauge, Panel, PanelTitle, ToggleButton } from "@gonogo/ui";
+import { useState } from "react";
+import styled from "styled-components";
+
+/**
+ * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
+ * rotors and shows live RPM against the commanded cap, with motor / lock /
+ * brake / direction controls. The selected rotor (first by default) gets a
+ * tachometer dial and is the target of the serial-mappable actions.
+ *
+ * Reads `robotics.rotors` (array) + `robotics.available`; degrades to a
+ * muted empty state without Breaking Ground or when no rotor is present.
+ */
+
+type RotorTachometerConfig = Record<string, never>;
+
+const ROTOR_MAX_RPM = 460; // ModuleRoboticServoRotor.rpmLimit range ceiling.
+const RPM_STEP = 10;
+const TORQUE_STEP = 10;
+
+export interface RotorInfo {
+  partId: number;
+  name: string;
+  rpm: number;
+  rpmLimit: number;
+  torqueLimit: number;
+  maxTorque: number;
+  brakePercentage: number;
+  motorEngaged: boolean;
+  locked: boolean;
+  counterClockwise: boolean;
+  output: number;
+}
+
+function num(v: unknown, fallback = 0): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+}
+
+/**
+ * Parse `robotics.rotors`. Returns null when the key is absent (older fork
+ * without the handler) so the widget can tell "no DLC support" from "no
+ * rotors on this vessel".
+ */
+export function parseRotors(raw: unknown): RotorInfo[] | null {
+  if (raw === null || raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  const out: RotorInfo[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.partId !== "number") continue;
+    out.push({
+      partId: e.partId,
+      name: typeof e.name === "string" ? e.name : `Rotor ${e.partId}`,
+      rpm: num(e.rpm),
+      rpmLimit: num(e.rpmLimit),
+      torqueLimit: num(e.torqueLimit),
+      maxTorque: num(e.maxTorque),
+      brakePercentage: num(e.brakePercentage),
+      motorEngaged: e.motorEngaged === true,
+      locked: e.locked === true,
+      counterClockwise: e.counterClockwise === true,
+      output: num(e.output),
+    });
+  }
+  return out;
+}
+
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, v));
+
+const rotorActions = [
+  {
+    id: "rpmUp",
+    label: "RPM up",
+    accepts: ["button"],
+    description: "Raise the selected rotor's RPM cap.",
+  },
+  {
+    id: "rpmDown",
+    label: "RPM down",
+    accepts: ["button"],
+    description: "Lower the selected rotor's RPM cap.",
+  },
+  {
+    id: "toggleMotor",
+    label: "Toggle motor",
+    accepts: ["button"],
+    description: "Engage / disengage the selected rotor's motor.",
+  },
+  {
+    id: "toggleLock",
+    label: "Toggle lock",
+    accepts: ["button"],
+    description: "Lock / unlock the selected rotor.",
+  },
+  {
+    id: "reverse",
+    label: "Reverse",
+    accepts: ["button"],
+    description: "Flip the selected rotor's spin direction.",
+  },
+] as const satisfies readonly ActionDefinition[];
+
+export type RotorTachometerActions = typeof rotorActions;
+
+function RotorTachometerComponent({
+  h,
+}: Readonly<ComponentProps<RotorTachometerConfig>>) {
+  const rotorsRaw = useDataValue("data", "robotics.rotors");
+  const available = useDataValue<boolean>("data", "robotics.available");
+  const execute = useExecuteAction("data");
+
+  const rotors = parseRotors(rotorsRaw) ?? [];
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selected =
+    rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
+
+  const setRpmLimit = (id: number, rpm: number) =>
+    void execute(
+      `robotics.rotor.setRpmLimit[${id},${Math.round(clamp(rpm, 0, ROTOR_MAX_RPM))}]`,
+    );
+  const setTorqueLimit = (id: number, pct: number) =>
+    void execute(
+      `robotics.rotor.setTorqueLimit[${id},${Math.round(clamp(pct, 0, 100))}]`,
+    );
+  const setBrake = (id: number, pct: number) =>
+    void execute(
+      `robotics.rotor.setBrake[${id},${Math.round(clamp(pct, 0, 200))}]`,
+    );
+  const setMotor = (id: number, engaged: boolean) =>
+    void execute(`robotics.rotor.setMotor[${id},${engaged}]`);
+  const setLock = (id: number, locked: boolean) =>
+    void execute(`robotics.rotor.setLock[${id},${locked}]`);
+  const reverse = (id: number) => void execute(`robotics.rotor.reverse[${id}]`);
+
+  useActionInput<RotorTachometerActions>({
+    rpmUp: (p) => {
+      if (p.kind === "button" && p.value !== true) return undefined;
+      if (!selected) return undefined;
+      const next = clamp(selected.rpmLimit + RPM_STEP, 0, ROTOR_MAX_RPM);
+      setRpmLimit(selected.partId, next);
+      return { RPM: next };
+    },
+    rpmDown: (p) => {
+      if (p.kind === "button" && p.value !== true) return undefined;
+      if (!selected) return undefined;
+      const next = clamp(selected.rpmLimit - RPM_STEP, 0, ROTOR_MAX_RPM);
+      setRpmLimit(selected.partId, next);
+      return { RPM: next };
+    },
+    toggleMotor: (p) => {
+      if (p.kind === "button" && p.value !== true) return undefined;
+      if (!selected) return undefined;
+      setMotor(selected.partId, !selected.motorEngaged);
+      return { Motor: !selected.motorEngaged };
+    },
+    toggleLock: (p) => {
+      if (p.kind === "button" && p.value !== true) return undefined;
+      if (!selected) return undefined;
+      setLock(selected.partId, !selected.locked);
+      return { Locked: !selected.locked };
+    },
+    reverse: (p) => {
+      if (p.kind === "button" && p.value !== true) return undefined;
+      if (!selected) return undefined;
+      reverse(selected.partId);
+      return { Direction: selected.counterClockwise ? "CW" : "CCW" };
+    },
+  });
+
+  if (rotors.length === 0 || !selected) {
+    return (
+      <Panel>
+        <PanelTitle>ROTORS</PanelTitle>
+        <EmptyState role="status">
+          {available === false
+            ? "Breaking Ground not installed"
+            : "No rotors on this vessel"}
+        </EmptyState>
+      </Panel>
+    );
+  }
+
+  const showGauge = (h ?? 8) >= 6;
+  const cap = Math.max(selected.rpmLimit, 1);
+
+  return (
+    <Panel>
+      <PanelTitle>ROTORS</PanelTitle>
+      <Body>
+        {showGauge && (
+          <GaugeWrap>
+            <Gauge
+              value={clamp(selected.rpm, 0, ROTOR_MAX_RPM)}
+              min={0}
+              max={ROTOR_MAX_RPM}
+              width={180}
+              height={104}
+              valueLabel={`${Math.round(selected.rpm)}`}
+              unitLabel="RPM"
+              zones={[
+                { from: 0, to: cap, color: "var(--color-status-go-bg)" },
+                {
+                  from: cap,
+                  to: ROTOR_MAX_RPM,
+                  color: "var(--color-surface-raised)",
+                },
+              ]}
+              ariaLabel={`${selected.name}: ${Math.round(selected.rpm)} RPM, cap ${Math.round(selected.rpmLimit)}`}
+            />
+          </GaugeWrap>
+        )}
+
+        <Controls>
+          <ControlRow>
+            <ControlLabel>RPM cap</ControlLabel>
+            <Stepper>
+              <StepBtn
+                type="button"
+                aria-label="Lower RPM cap"
+                onClick={() =>
+                  setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
+                }
+              >
+                −
+              </StepBtn>
+              <StepValue>{Math.round(selected.rpmLimit)}</StepValue>
+              <StepBtn
+                type="button"
+                aria-label="Raise RPM cap"
+                onClick={() =>
+                  setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
+                }
+              >
+                +
+              </StepBtn>
+            </Stepper>
+          </ControlRow>
+
+          <ControlRow>
+            <ControlLabel>Torque</ControlLabel>
+            <Stepper>
+              <StepBtn
+                type="button"
+                aria-label="Lower torque limit"
+                onClick={() =>
+                  setTorqueLimit(
+                    selected.partId,
+                    selected.torqueLimit - TORQUE_STEP,
+                  )
+                }
+              >
+                −
+              </StepBtn>
+              <StepValue>{Math.round(selected.torqueLimit)}%</StepValue>
+              <StepBtn
+                type="button"
+                aria-label="Raise torque limit"
+                onClick={() =>
+                  setTorqueLimit(
+                    selected.partId,
+                    selected.torqueLimit + TORQUE_STEP,
+                  )
+                }
+              >
+                +
+              </StepBtn>
+            </Stepper>
+          </ControlRow>
+
+          <ToggleRow>
+            <ToggleButton
+              size="sm"
+              active={selected.motorEngaged}
+              tone="go"
+              onClick={() => setMotor(selected.partId, !selected.motorEngaged)}
+            >
+              Motor {selected.motorEngaged ? "on" : "off"}
+            </ToggleButton>
+            <ToggleButton
+              size="sm"
+              active={selected.locked}
+              tone="warn"
+              onClick={() => setLock(selected.partId, !selected.locked)}
+            >
+              {selected.locked ? "Locked" : "Unlocked"}
+            </ToggleButton>
+            <ToggleButton
+              size="sm"
+              active={selected.brakePercentage > 0}
+              tone="warn"
+              onClick={() =>
+                setBrake(
+                  selected.partId,
+                  selected.brakePercentage > 0 ? 0 : 100,
+                )
+              }
+            >
+              Brake {selected.brakePercentage > 0 ? "on" : "off"}
+            </ToggleButton>
+            <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
+              {selected.counterClockwise ? "↺ CCW" : "↻ CW"}
+            </ToggleButton>
+          </ToggleRow>
+        </Controls>
+
+        {rotors.length > 1 && (
+          <RotorList aria-label="Rotors">
+            {rotors.map((r) => (
+              <RotorRow
+                key={r.partId}
+                type="button"
+                $selected={r.partId === selected.partId}
+                aria-pressed={r.partId === selected.partId}
+                onClick={() => setSelectedId(r.partId)}
+              >
+                <RotorName>{r.name}</RotorName>
+                <RotorMeta>
+                  {Math.round(r.rpm)}/{Math.round(r.rpmLimit)} RPM
+                  {r.motorEngaged ? "" : " · off"}
+                  {r.locked ? " · locked" : ""}
+                </RotorMeta>
+              </RotorRow>
+            ))}
+          </RotorList>
+        )}
+      </Body>
+    </Panel>
+  );
+}
+
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 8px 8px;
+  overflow: auto;
+`;
+
+const GaugeWrap = styled.div`
+  display: flex;
+  justify-content: center;
+`;
+
+const Controls = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const ControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  /* Drop the stepper below the label when there isn't room side-by-side
+     (narrow widths) rather than clipping the +/value off the edge. */
+  flex-wrap: wrap;
+`;
+
+const Stepper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ControlLabel = styled.span`
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+`;
+
+const StepBtn = styled.button`
+  min-width: 26px;
+  padding: 2px 6px;
+  background: var(--color-surface-panel);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-surface-raised);
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+`;
+
+const StepValue = styled.span`
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+`;
+
+const ToggleRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const RotorList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const RotorRow = styled.button<{ $selected: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 8px;
+  background: ${(p) =>
+    p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
+  color: ${(p) =>
+    p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
+  border: 1px solid
+    ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+`;
+
+const RotorName = styled.span`
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const RotorMeta = styled.span`
+  font-size: 9px;
+  opacity: 0.7;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+`;
+
+registerComponent<RotorTachometerConfig>({
+  id: "rotor-tachometer",
+  name: "Rotor Tachometer",
+  description:
+    "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
+  tags: ["telemetry", "robotics"],
+  defaultSize: { w: 5, h: 9 },
+  minSize: { w: 4, h: 4 },
+  component: RotorTachometerComponent,
+  dataRequirements: ["robotics.rotors", "robotics.available"],
+  defaultConfig: {},
+  actions: rotorActions,
+  pushable: true,
+  requires: ["flight"],
+});
+
+export { RotorTachometerComponent };
