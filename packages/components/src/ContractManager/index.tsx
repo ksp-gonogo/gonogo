@@ -33,7 +33,7 @@ interface ContractParameterAlarmTrigger {
   sustainSeconds: number;
 }
 
-type MissionDirectorConfig = Record<string, never>;
+type ContractManagerConfig = Record<string, never>;
 
 export type ContractParameterState = "Incomplete" | "Complete" | "Failed";
 
@@ -191,10 +191,10 @@ export function formatDeadline(
   return `${mins}m left`;
 }
 
-function MissionDirectorComponent({
+function ContractManagerComponent({
   w,
   h,
-}: Readonly<ComponentProps<MissionDirectorConfig>>) {
+}: Readonly<ComponentProps<ContractManagerConfig>>) {
   const activeRaw = useDataValue("data", "contracts.active");
   const offeredRaw = useDataValue("data", "contracts.offered");
   const recentRaw = useDataValue("data", "contracts.completedRecent");
@@ -225,7 +225,7 @@ function MissionDirectorComponent({
   if (active === null) {
     return (
       <Panel>
-        <PanelTitle>MISSION DIRECTOR</PanelTitle>
+        <PanelTitle>CONTRACT MANAGER</PanelTitle>
         {showSubtitle && (
           <PanelSubtitle>Awaiting contract telemetry</PanelSubtitle>
         )}
@@ -239,7 +239,7 @@ function MissionDirectorComponent({
 
   return (
     <Panel>
-      <PanelTitle>MISSION DIRECTOR</PanelTitle>
+      <PanelTitle>CONTRACT MANAGER</PanelTitle>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {activeCount} active · {offeredCount} offered · {recentCount} recent
@@ -889,15 +889,15 @@ const Optional = styled.span`
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
-registerComponent<MissionDirectorConfig>({
-  id: "mission-director",
-  name: "Contracts Board",
+registerComponent<ContractManagerConfig>({
+  id: "contract-manager",
+  name: "Contract Manager",
   description:
     "Career contracts with active objectives, deadlines, and rewards. Accept new contracts from the offered list, decline ones you don't want, and cancel active ones (with a confirmation step). A bell next to each open objective sets an alarm that fires when the objective completes.",
   tags: ["career", "contracts"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
-  component: MissionDirectorComponent,
+  component: ContractManagerComponent,
   dataRequirements: [
     "contracts.active",
     "contracts.offered",
@@ -914,4 +914,4 @@ registerComponent<MissionDirectorConfig>({
   requires: ["career"],
 });
 
-export { MissionDirectorComponent };
+export { ContractManagerComponent };

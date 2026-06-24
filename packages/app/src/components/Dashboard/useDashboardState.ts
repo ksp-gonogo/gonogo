@@ -2,7 +2,7 @@ import type { InputMappings } from "@gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
-import { BREAKPOINTS } from "./layoutNormalization";
+import { BREAKPOINTS, migrateDashboardItems } from "./layoutNormalization";
 
 // Derived from the single source of truth in layoutNormalization.ts — RGL
 // warns at runtime if a key here isn't a valid breakpoint.
@@ -33,7 +33,13 @@ interface PersistedState {
 function loadState(key: string): PersistedState | null {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as PersistedState) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedState;
+    // Forward-map any renamed widget ids so old placements survive a rename.
+    return {
+      ...parsed,
+      items: migrateDashboardItems(parsed.items ?? []),
+    };
   } catch {
     return null;
   }
@@ -288,7 +294,8 @@ export function useDashboardState(
    */
   const replaceState = useCallback(
     (nextItems: DashboardItem[], nextLayouts: Layouts) => {
-      setItemsInner(nextItems);
+      // Mission-profile / peer-config loads also carry persisted ids — migrate.
+      setItemsInner(migrateDashboardItems(nextItems));
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
     },

@@ -5,6 +5,7 @@
 export * from "./ActionGroup";
 export * from "./AtmosphereProfile";
 export * from "./CommSignal";
+export * from "./ContractManager";
 export * from "./CrewManifest";
 export * from "./CurrentOrbit";
 export * from "./DataSourceStatus";
@@ -28,7 +29,6 @@ export * from "./ManeuverPlanner/presets";
 export * from "./ManeuverPlanner/triggerService";
 export * from "./ManeuverPlanner/triggerTypes";
 export * from "./MapView";
-export * from "./MissionDirector";
 export * from "./MissionStatus";
 export * from "./Navball";
 export * from "./OrbitalAscent";

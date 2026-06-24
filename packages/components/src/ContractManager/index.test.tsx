@@ -8,8 +8,8 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import {
+  ContractManagerComponent,
   formatDeadline,
-  MissionDirectorComponent,
   parseContracts,
 } from "./index";
 
@@ -20,7 +20,7 @@ const KEYS: DataKey[] = [
   { key: "t.universalTime" },
 ];
 
-describe("MissionDirectorComponent", () => {
+describe("ContractManagerComponent", () => {
   let fixture: MockDataSourceFixture;
   let source: MockDataSource;
 
@@ -34,14 +34,14 @@ describe("MissionDirectorComponent", () => {
   });
 
   it("shows the awaiting placeholder before any telemetry", () => {
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     expect(
       screen.getByText(/Awaiting contract telemetry/i),
     ).toBeInTheDocument();
   });
 
   it("shows empty-state copy when there are no active contracts", () => {
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       source.emit("contracts.active", []);
     });
@@ -49,7 +49,7 @@ describe("MissionDirectorComponent", () => {
   });
 
   it("renders an active contract with parameters and rewards", () => {
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       source.emit("t.universalTime", 0);
       source.emit("contracts.active", [
@@ -92,7 +92,7 @@ describe("MissionDirectorComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       // Emit active first so the widget exits the awaiting-telemetry
       // early-return — without active, offered isn't rendered.
@@ -113,7 +113,7 @@ describe("MissionDirectorComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       source.emit("contracts.active", [
         { id: 11, title: "Build a station", parameters: [] },
@@ -134,7 +134,7 @@ describe("MissionDirectorComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       source.emit("contracts.active", []);
       source.emit("contracts.offered", [
@@ -152,7 +152,7 @@ describe("MissionDirectorComponent", () => {
   });
 
   it("counts active / offered / recent in the subtitle", () => {
-    render(<MissionDirectorComponent config={{}} id="md" />);
+    render(<ContractManagerComponent config={{}} id="md" />);
     act(() => {
       source.emit("contracts.active", [
         {

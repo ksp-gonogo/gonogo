@@ -11,6 +11,45 @@ export const BREAKPOINT_KEYS = new Set(Object.keys(BREAKPOINTS));
 export const ROW_HEIGHT = 25;
 
 /**
+ * Widget ids that have been renamed. Persisted layouts (localStorage, mission
+ * profiles, station configs) store the OLD id; we map them forward on load so
+ * existing placements survive a rename instead of silently disappearing.
+ *
+ * MIGRATION CONVENTION (gonogo is 1.0+): whenever you change a registered
+ * component `id`, add an entry here — key = the old id, value = the new id.
+ * Never reuse a retired id for a different widget. This is the single source
+ * of truth for widget-id renames; every place that deserialises dashboard
+ * items routes through `migrateDashboardItems`.
+ */
+export const RENAMED_COMPONENT_IDS: Record<string, string> = {
+  // 2026-06-24: the "Contracts Board" became the management-focused
+  // "Contract Manager"; live objectives moved to the new Objectives widget.
+  "mission-director": "contract-manager",
+  // 2026-06-24: Mission Status was folded into the unified Objectives widget.
+  "mission-status": "objectives",
+};
+
+/** Map a single (possibly renamed) component id forward to its current id. */
+export function migrateComponentId(id: string): string {
+  return RENAMED_COMPONENT_IDS[id] ?? id;
+}
+
+/**
+ * Apply id renames to a persisted item list. Returns the same array reference
+ * when nothing changed so callers can cheaply skip re-renders.
+ */
+export function migrateDashboardItems(items: DashboardItem[]): DashboardItem[] {
+  let changed = false;
+  const next = items.map((it) => {
+    const migrated = migrateComponentId(it.componentId);
+    if (migrated === it.componentId) return it;
+    changed = true;
+    return { ...it, componentId: migrated };
+  });
+  return changed ? next : items;
+}
+
+/**
  * Drop any breakpoint keys RGL doesn't know about. A previous version
  * of COLS included `xxxs` which is now gone; persisted layouts in
  * localStorage still carry the stale entry and RGL warns on every
