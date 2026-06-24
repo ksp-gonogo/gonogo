@@ -196,6 +196,16 @@ function RotorTachometerComponent({
 
   const showGauge = (h ?? 8) >= 6;
   const cap = Math.max(selected.rpmLimit, 1);
+  // Size the dial to the column width, but also cap it by a slice of the
+  // widget's height so a short/wide slot doesn't let the gauge crowd the
+  // controls + rotor list off the bottom.
+  const gaugeMaxH = Math.max(72, (h ?? 9) * 25 * 0.42);
+  const gaugeW = Math.min(
+    gaugeSize.w || 180,
+    240,
+    Math.round(gaugeMaxH / 0.58),
+  );
+  const gaugeH = Math.round(gaugeW * 0.58);
 
   return (
     <Panel>
@@ -207,8 +217,8 @@ function RotorTachometerComponent({
               value={clamp(selected.rpm, 0, ROTOR_MAX_RPM)}
               min={0}
               max={ROTOR_MAX_RPM}
-              width={Math.min(gaugeSize.w || 180, 240)}
-              height={Math.round(Math.min(gaugeSize.w || 180, 240) * 0.58)}
+              width={gaugeW}
+              height={gaugeH}
               valueLabel={`${Math.round(selected.rpm)}`}
               unitLabel="RPM"
               zones={[

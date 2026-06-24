@@ -351,7 +351,7 @@ const Text = styled.div`
 
 const AlarmBell = styled.button<{ $set: boolean }>`
   flex: 0 0 auto;
-  align-self: center;
+  align-self: flex-start;
   display: inline-flex;
   padding: 2px;
   background: none;
@@ -402,7 +402,7 @@ registerComponent<ObjectivesConfig>({
     "Read-only unified list of what you're currently trying to achieve: Making History mission objectives and active-contract parameters, each tagged with its source. Manage contracts in the Contract Manager widget.",
   tags: ["mission", "contracts", "career"],
   defaultSize: { w: 5, h: 8 },
-  minSize: { w: 3, h: 3 },
+  minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
   dataRequirements: [
     "mh.available",
