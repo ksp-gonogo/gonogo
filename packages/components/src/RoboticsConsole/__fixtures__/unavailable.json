@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "scenario": "unavailable",
+    "notes": "Breaking Ground not installed — empty state."
+  },
+  "robotics.available": false,
+  "robotics.servos": []
+}

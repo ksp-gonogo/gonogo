@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "scenario": "servos",
+    "notes": "Hinge moving, piston at target, rotation servo locked."
+  },
+  "robotics.available": true,
+  "robotics.servos": [
+    {
+      "partId": 11,
+      "name": "Arm Hinge",
+      "type": "hinge",
+      "current": 22,
+      "target": 60,
+      "atTarget": false,
+      "motorEngaged": true,
+      "locked": false,
+      "torqueLimit": 100
+    },
+    {
+      "partId": 12,
+      "name": "Deploy Piston",
+      "type": "piston",
+      "current": 80,
+      "target": 80,
+      "atTarget": true,
+      "motorEngaged": true,
+      "locked": false,
+      "torqueLimit": 70
+    },
+    {
+      "partId": 13,
+      "name": "Base Rotator",
+      "type": "rotation",
+      "current": 0,
+      "target": 0,
+      "atTarget": true,
+      "motorEngaged": false,
+      "locked": true,
+      "torqueLimit": 50
+    }
+  ]
+}
