@@ -441,6 +441,21 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "deployed-base-monitor",
+    fixturesPath: "DeployedBaseMonitor/__fixtures__",
+    outPath: "renders/deployed-base-monitor-widget",
+    modes: [
+      // Minimum size — base header + first experiment, rest scrolls.
+      { name: "min-4x4", w: 4, h: 4 },
+      // Default registered size — a base card with its experiments.
+      { name: "default-5x9", w: 5, h: 9 },
+      // Tall — multiple bases stacked.
+      { name: "tall-5x16", w: 5, h: 16 },
+      // DLC-absent empty state.
+      { name: "unavailable-5x9", w: 5, h: 9, forFixtures: ["unavailable"] },
+    ],
+  },
+  {
     widgetId: "robotics-console",
     fixturesPath: "RoboticsConsole/__fixtures__",
     outPath: "renders/robotics-console-widget",

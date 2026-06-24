@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "scenario": "bases",
+    "notes": "Two bases: a powered Mun base with 2 experiments climbing, and an unpowered Minmus base at night."
+  },
+  "deployed.available": true,
+  "deployed.bases": [
+    {
+      "id": 101,
+      "body": "Mun",
+      "powered": true,
+      "partialPower": false,
+      "powerAvailable": 14,
+      "powerRequired": 9,
+      "controllerEnabled": true,
+      "experimentCount": 2,
+      "experiments": [
+        {
+          "id": "seismic",
+          "name": "Seismometer",
+          "total": 45,
+          "limit": 60,
+          "progress": 0.75,
+          "stored": 6,
+          "transmitted": 39,
+          "collecting": true
+        },
+        {
+          "id": "goo",
+          "name": "Mystery Goo",
+          "total": 12,
+          "limit": 30,
+          "progress": 0.4,
+          "stored": 2,
+          "transmitted": 10,
+          "collecting": true
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "body": "Minmus",
+      "powered": false,
+      "partialPower": false,
+      "powerAvailable": 0,
+      "powerRequired": 6,
+      "controllerEnabled": true,
+      "experimentCount": 1,
+      "experiments": [
+        {
+          "id": "weather",
+          "name": "Weather Station",
+          "total": 20,
+          "limit": 40,
+          "progress": 0.5,
+          "stored": 0,
+          "transmitted": 20,
+          "collecting": false
+        }
+      ]
+    }
+  ]
+}
