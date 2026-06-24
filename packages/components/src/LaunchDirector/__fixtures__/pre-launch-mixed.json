@@ -55,6 +55,32 @@
   "kc.padOccupied": false,
   "kc.padVesselTitle": null,
   "kc.launchSite": "LaunchPad",
+  "kc.launchSites": [
+    {
+      "name": "LaunchPad",
+      "displayName": "KSC Launch Pad",
+      "facility": "VAB",
+      "body": "Kerbin",
+      "ready": true,
+      "unlocked": true
+    },
+    {
+      "name": "Woomerang_Launch_Site",
+      "displayName": "Woomerang",
+      "facility": "VAB",
+      "body": "Kerbin",
+      "ready": true,
+      "unlocked": true
+    },
+    {
+      "name": "Desert_Launch_Site",
+      "displayName": "Desert Launch Site",
+      "facility": "VAB",
+      "body": "Kerbin",
+      "ready": true,
+      "unlocked": false
+    }
+  ],
   "kc.scene": "SpaceCenter",
   "career.funds": 42500
 }

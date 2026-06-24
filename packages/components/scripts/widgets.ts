@@ -428,6 +428,16 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[data-launch-action="arm-revert"]' }],
         forFixtures: ["in-flight-ascent", "pad-occupied"],
       },
+      // Launch-site picker — only renders after a ship is selected, so
+      // click the first (affordable) ship row to reveal it. Scoped to the
+      // pre-launch fixture that carries multi-site kc.launchSites.
+      {
+        name: "site-picker-7x18",
+        w: 7,
+        h: 18,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["pre-launch-mixed"],
+      },
     ],
   },
   {

@@ -7,7 +7,12 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { LaunchDirectorComponent, parseCrew, parseSavedShips } from "./index";
+import {
+  LaunchDirectorComponent,
+  parseCrew,
+  parseLaunchSites,
+  parseSavedShips,
+} from "./index";
 
 const KEYS: DataKey[] = [
   { key: "kc.savedShips" },
@@ -15,6 +20,7 @@ const KEYS: DataKey[] = [
   { key: "kc.padOccupied" },
   { key: "kc.padVesselTitle" },
   { key: "kc.launchSite" },
+  { key: "kc.launchSites" },
   { key: "kc.scene" },
   { key: "career.funds" },
   { key: "v.name" },
@@ -348,6 +354,134 @@ describe("LaunchDirectorComponent", () => {
     await user.click(screen.getByText("Jeb"));
     // Click should be a no-op; launch button should still say "unmanned".
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
+  });
+
+  async function setupForLaunch(
+    sites: unknown,
+    onExecute: ReturnType<typeof vi.fn>,
+  ) {
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("career.funds", 100_000);
+      source.emit("kc.padOccupied", false);
+      if (sites !== undefined) source.emit("kc.launchSites", sites);
+      source.emit("kc.savedShips", [
+        {
+          name: "Mun Hopper",
+          partCount: 12,
+          totalMass: 5.5,
+          facility: "VAB",
+          requiresFunds: 8000,
+          missingParts: [],
+        },
+      ]);
+      source.emit("kc.crewRoster", [
+        {
+          name: "Jeb",
+          trait: "Pilot",
+          experienceLevel: 5,
+          available: true,
+          unavailableReason: "",
+        },
+      ]);
+    });
+  }
+
+  const site = (
+    name: string,
+    displayName: string,
+    unlocked: boolean,
+  ): Record<string, unknown> => ({
+    name,
+    displayName,
+    facility: "VAB",
+    body: "Kerbin",
+    ready: true,
+    unlocked,
+  });
+
+  it("offers a picker and launches from the chosen unlocked site", async () => {
+    const user = userEvent.setup();
+    const onExecute = vi.fn();
+    await setupForLaunch(
+      [
+        site("LaunchPad", "KSC Launch Pad", true),
+        site("Woomerang_Launch_Site", "Woomerang", true),
+        site("Desert_Launch_Site", "Desert Site", false),
+      ],
+      onExecute,
+    );
+
+    await user.click(screen.getByText("Mun Hopper"));
+    // Locked site is not offered.
+    expect(screen.queryByText("Desert Site")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Woomerang"));
+    await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+    expect(onExecute).toHaveBeenCalledWith(
+      "ksp.launch[Mun Hopper,VAB,Woomerang_Launch_Site,]",
+    );
+  });
+
+  it("hides the picker when only one site is unlocked (DLC absent)", async () => {
+    const user = userEvent.setup();
+    const onExecute = vi.fn();
+    await setupForLaunch(
+      [site("LaunchPad", "KSC Launch Pad", true)],
+      onExecute,
+    );
+
+    await user.click(screen.getByText("Mun Hopper"));
+    expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+    expect(onExecute).toHaveBeenCalledWith(
+      "ksp.launch[Mun Hopper,VAB,LaunchPad,]",
+    );
+  });
+
+  it("hides the picker and defaults to LaunchPad when the key is absent", async () => {
+    const user = userEvent.setup();
+    const onExecute = vi.fn();
+    await setupForLaunch(undefined, onExecute);
+
+    await user.click(screen.getByText("Mun Hopper"));
+    expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+    expect(onExecute).toHaveBeenCalledWith(
+      "ksp.launch[Mun Hopper,VAB,LaunchPad,]",
+    );
+  });
+});
+
+describe("parseLaunchSites", () => {
+  it("returns null for absent or non-array input", () => {
+    expect(parseLaunchSites(undefined)).toBeNull();
+    expect(parseLaunchSites(null)).toBeNull();
+    expect(parseLaunchSites({})).toBeNull();
+  });
+
+  it("drops entries with no name and falls back displayName to name", () => {
+    const parsed = parseLaunchSites([
+      { name: "LaunchPad", unlocked: true },
+      { displayName: "orphan" },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed?.[0]?.displayName).toBe("LaunchPad");
+    expect(parsed?.[0]?.unlocked).toBe(true);
+  });
+
+  it("coerces ready/unlocked to booleans", () => {
+    const parsed = parseLaunchSites([{ name: "x" }]);
+    expect(parsed?.[0]?.ready).toBe(false);
+    expect(parsed?.[0]?.unlocked).toBe(false);
   });
 });
 
