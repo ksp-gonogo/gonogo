@@ -126,6 +126,7 @@ const ARM_TIMEOUT_MS = 4000;
 
 function LaunchDirectorComponent({
   h,
+  w,
 }: Readonly<ComponentProps<LaunchDirectorConfig>>) {
   const savedShipsRaw = useDataValue("data", "kc.savedShips");
   const crewRosterRaw = useDataValue("data", "kc.crewRoster");
@@ -276,7 +277,7 @@ function LaunchDirectorComponent({
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {inFlight
-            ? `In flight: ${activeName}${launchSite ? ` · from ${launchSite}` : ""}`
+            ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
             : padOccupied
               ? `On pad: ${activeName}`
               : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}

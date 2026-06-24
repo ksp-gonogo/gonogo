@@ -475,8 +475,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Objectives/__fixtures__",
     outPath: "renders/objectives-widget",
     modes: [
-      // Minimum size — tight list, source tags wrap.
-      { name: "min-3x4", w: 3, h: 4 },
+      // Minimum registered width — tight list, source tags wrap.
+      { name: "min-4x4", w: 4, h: 4 },
       // Default registered size — mission head + unified list.
       { name: "default-5x8", w: 5, h: 8 },
       // Tall — mission objectives + several contracts.
