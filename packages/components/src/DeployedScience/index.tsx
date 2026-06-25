@@ -214,7 +214,7 @@ const PowerPill = styled.span<{ $state: PowerState }>`
 
 const STATE_COLOR: Record<PowerState, string> = {
   powered: "var(--color-status-go-fg)",
-  partial: "var(--color-status-warn-fg, #e0b020)",
+  partial: "var(--color-status-warning-fg-muted)",
   unpowered: "var(--color-status-nogo-fg)",
 };
 
