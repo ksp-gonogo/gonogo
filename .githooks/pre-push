@@ -1,0 +1,49 @@
+#!/bin/sh
+# Pre-push gate — run what CI runs, before the push that triggers it.
+#
+# A push to main deploys the dev channel, and the deploy only fires when CI is
+# green (deploy.yml triggers on a successful CI workflow_run). So a push that
+# fails CI silently skips the deploy. This hook runs the same checks locally so
+# that failure surfaces here instead of after the push.
+#
+# Why `turbo run test --force` and not plain `pnpm test`:
+#   turbo caches the `test` task per package, keyed on that package's own
+#   source. The design-system ratchet (packages/core/src/styleguide.test.ts)
+#   scans EVERY package's src for raw hex colour literals — so a hex added in
+#   components/ui does NOT invalidate core#test's cache, and a plain `pnpm test`
+#   replays a stale pass. That exact gap cost a red CI + a skipped deploy once.
+#   --force reruns fresh and closes it for this and any other cross-package test.
+#
+#   CI=true so vitest treats snapshots as read-only — a mismatch fails the run
+#   instead of being silently rewritten (which a local `pnpm test` would do).
+#
+# Playwright e2e runs by default to match CI. For a quick push, skip it with:
+#   SKIP_E2E=1 git push          (CI will still run it.)
+# Bypass the whole hook in a pinch:
+#   git push --no-verify
+echo "pre-push: lint + fresh test gate (mirrors CI)…"
+
+if ! pnpm exec biome check .; then
+  echo "✖ pre-push: biome found issues — run 'pnpm lint' to auto-fix, then re-push."
+  exit 1
+fi
+
+# --force is load-bearing: see the header. Do not drop it for speed — that is
+# precisely how a cross-package regression slips past to CI.
+if ! CI=true pnpm exec turbo run test --force; then
+  echo "✖ pre-push: tests failed (this is what CI would have caught)."
+  exit 1
+fi
+
+if [ "$SKIP_E2E" = "1" ]; then
+  echo "pre-push: SKIP_E2E=1 set — skipping Playwright e2e (CI will still run it)."
+else
+  if ! pnpm exec playwright test; then
+    echo "✖ pre-push: Playwright e2e failed."
+    echo "  If browsers are missing: pnpm exec playwright install --with-deps chromium"
+    echo "  Skip e2e for a quick push: SKIP_E2E=1 git push   (CI still gates it)."
+    exit 1
+  fi
+fi
+
+echo "pre-push: all checks passed."
