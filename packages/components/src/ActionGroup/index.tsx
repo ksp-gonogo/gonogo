@@ -92,8 +92,20 @@ function ActionGroupComponent({
     );
   }
 
-  const isOn = value === true;
+  // Most groups are boolean (ON/OFF). A few — e.g. Stage's `v.currentStage` —
+  // report a numeric state, so coercing every non-true value to OFF mislabels
+  // them. Treat numbers as their own readout and only fall back to ON/OFF for
+  // genuine booleans.
+  const isNumeric = typeof value === "number";
+  const isOn = isNumeric ? value > 0 : value === true;
   const isUnknown = value === undefined;
+  const stateLabel = isUnknown
+    ? "—"
+    : isNumeric
+      ? String(value)
+      : value === true
+        ? "ON"
+        : "OFF";
 
   // Surface the most common reasons the action wouldn't fire if the user
   // pressed it now. Mirrors Telemachus's action-group response codes 1–4
@@ -206,7 +218,7 @@ function ActionGroupComponent({
             aria-label={`Toggle ${currentLabel}`}
             title={unavailableReason ?? `Toggle ${currentLabel}`}
           >
-            {isUnknown ? "—" : isOn ? "ON" : "OFF"}
+            {stateLabel}
           </ToggleButton>
         </HeaderRight>
       </Header>

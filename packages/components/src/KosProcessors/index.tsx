@@ -361,7 +361,7 @@ function modeColor(mode: string): string {
     case "READY":
       return "var(--color-accent-fg)";
     case "STARVED":
-      return "var(--color-status-warning-bg)";
+      return "var(--color-status-warning-fg-muted)";
     case "OFF":
       return "var(--color-text-dim)";
     default:

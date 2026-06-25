@@ -154,7 +154,25 @@ function StaffRosterComponent({
   const available = staff.filter((s) => s.available).length;
   const missing = staff.length - available;
 
+  // Kerbal names aren't guaranteed unique across the roster (e.g. a re-hired
+  // duplicate), so a name-only React key can collide. Build a stable composite
+  // key from name + trait, suffixed with an occurrence count so two identical
+  // (name, trait) pairs still get distinct, content-derived keys.
+  const rowKeys: string[] = [];
+  const seenKeyCounts = new Map<string, number>();
+  for (const kerbal of sorted) {
+    const base = `${kerbal.name}|${kerbal.trait}`;
+    const n = seenKeyCounts.get(base) ?? 0;
+    seenKeyCounts.set(base, n + 1);
+    rowKeys.push(`${base}#${n}`);
+  }
+
   if (sizeBucket === "tiny") {
+    // The big count + label already fill the shortest tiny boxes (h<4 ≈ 75px
+    // after the title). Showing the "N unavailable" line there overflows the
+    // panel and only a clipped digit peeks out, so omit it below 4 rows and
+    // keep it for the taller-but-narrow tiny boxes (e.g. 2×8) that have room.
+    const showMissing = missing > 0 && rows >= 4;
     return (
       <Panel>
         <PanelTitle>STAFF</PanelTitle>
@@ -164,7 +182,7 @@ function StaffRosterComponent({
             <TinyTotal>/{staff.length}</TinyTotal>
           </TinyCount>
           <TinyLabel>available</TinyLabel>
-          {missing > 0 && <TinyMissing>{missing} unavailable</TinyMissing>}
+          {showMissing && <TinyMissing>{missing} unavailable</TinyMissing>}
         </TinyBody>
       </Panel>
     );
@@ -180,9 +198,9 @@ function StaffRosterComponent({
       )}
       <Body>
         <List $multiColumn={multiColumn}>
-          {sorted.map((kerbal) => (
+          {sorted.map((kerbal, i) => (
             <Row
-              key={kerbal.name}
+              key={rowKeys[i]}
               $available={kerbal.available}
               title={buildTooltip(kerbal)}
             >

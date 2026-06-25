@@ -67,6 +67,24 @@ describe("CrewManifestComponent", () => {
     expect(screen.getByText(/Unmanned/i)).toBeInTheDocument();
   });
 
+  it("does not flash Unmanned when capacity arrives before count", () => {
+    render(<CrewManifestComponent config={{}} id="crew" />);
+    // crewCapacity (and crew names) can land a sample before crewCount.
+    // The widget must not conclude "Unmanned" from a still-undefined count.
+    act(() => {
+      prime();
+      source.emit("v.crewCapacity", 4);
+    });
+    expect(screen.queryByText(/Unmanned/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
+
+    act(() => {
+      source.emit("v.crew", ["Jebediah Kerman"]);
+      source.emit("v.crewCount", 1);
+    });
+    expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
+  });
+
   it("handles Kerbalism-style object payloads by extracting .name", () => {
     render(<CrewManifestComponent config={{}} id="crew" />);
     act(() => {

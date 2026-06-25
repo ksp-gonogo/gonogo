@@ -8,6 +8,7 @@ import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useFogDisplayCanvas } from "../MapView/useFogMask";
 import { useBiomeCanvas } from "../MapView/useScanLayerCanvas";
+import { useElementSize } from "../shared/useElementSize";
 
 /**
  * Live "camera view" of the active vessel's sub-point. Composites the
@@ -26,7 +27,8 @@ export interface MinimapProps {
   vesselLon: number | undefined;
 }
 
-const MINIMAP_PX = 240;
+/** Upper bound on the square minimap edge; shrinks to fit narrow panels. */
+const MAX_MINIMAP_PX = 240;
 /** Half-window in degrees of latitude. Square in lat space. */
 const WINDOW_HALF_DEG = 20;
 /** Source-canvas dimensions; must match useBiomeCanvas. */
@@ -39,12 +41,19 @@ export function Minimap({
   vesselLon,
 }: Readonly<MinimapProps>) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // The minimap is square; its edge tracks the container width, capped so it
+  // never overflows a narrow panel and never grows past the legible maximum.
+  const { ref: wrapRef, size } = useElementSize<HTMLDivElement>({
+    w: MAX_MINIMAP_PX,
+    h: MAX_MINIMAP_PX,
+  });
+  const minimapPx = Math.max(1, Math.min(MAX_MINIMAP_PX, size.w));
   const biome = useBiomeCanvas(body, true);
   const fog = useFogDisplayCanvas(body.name);
   const anomalies = useScanAnomalies(body.name);
   const scanningVessels = useScanningVessels();
 
-  // Repaint on body change, vessel-move, or upstream-canvas mutation.
+  // Repaint on body change, vessel-move, resize, or upstream-canvas mutation.
   // biome-ignore lint/correctness/useExhaustiveDependencies: biome.version / fog.version bump on canvas-bytes-changed; the canvas reference is stable across mutations
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -55,10 +64,10 @@ export function Minimap({
     // Reset.
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#0a0a0a";
-    ctx.fillRect(0, 0, MINIMAP_PX, MINIMAP_PX);
+    ctx.fillRect(0, 0, minimapPx, minimapPx);
 
     if (vesselLat === undefined || vesselLon === undefined) {
-      drawMissingVessel(ctx);
+      drawMissingVessel(ctx, minimapPx);
       return;
     }
 
@@ -75,10 +84,10 @@ export function Minimap({
     const sh = 2 * halfHpx;
 
     if (biome.canvas) {
-      drawWindowed(ctx, biome.canvas, sx, sy, sw, sh);
+      drawWindowed(ctx, biome.canvas, sx, sy, sw, sh, minimapPx);
     }
     if (fog.canvas) {
-      drawWindowed(ctx, fog.canvas, sx, sy, sw, sh);
+      drawWindowed(ctx, fog.canvas, sx, sy, sw, sh, minimapPx);
     }
 
     // Scanner footprints — drawn with SCANsat's own getFOV +
@@ -88,7 +97,7 @@ export function Minimap({
     if (scanningVessels) {
       for (const v of scanningVessels) {
         if (v.body !== body.name) continue;
-        drawScannerFootprint(ctx, body, v, texLat, texLon);
+        drawScannerFootprint(ctx, body, v, texLat, texLon, minimapPx);
       }
     }
 
@@ -102,9 +111,9 @@ export function Minimap({
         const dLon = shortestLonDelta(wrapLon(aTexLon), wrapLon(texLon));
         if (Math.abs(dLat) > WINDOW_HALF_DEG) continue;
         if (Math.abs(dLon) > WINDOW_HALF_DEG) continue;
-        const px = MINIMAP_PX / 2 + (dLon / WINDOW_HALF_DEG) * (MINIMAP_PX / 2);
+        const px = minimapPx / 2 + (dLon / WINDOW_HALF_DEG) * (minimapPx / 2);
         // Lat axis flips: north (positive lat) is up; minimap y=0 is top.
-        const py = MINIMAP_PX / 2 - (dLat / WINDOW_HALF_DEG) * (MINIMAP_PX / 2);
+        const py = minimapPx / 2 - (dLat / WINDOW_HALF_DEG) * (minimapPx / 2);
         ctx.fillStyle = a.detail ? "#ffeb3b" : "rgba(255, 235, 59, 0.55)";
         ctx.beginPath();
         ctx.arc(px, py, 4, 0, Math.PI * 2);
@@ -113,11 +122,12 @@ export function Minimap({
     }
 
     // Crosshair on top of everything.
-    drawCrosshair(ctx);
+    drawCrosshair(ctx, minimapPx);
   }, [
     body,
     vesselLat,
     vesselLon,
+    minimapPx,
     biome.canvas,
     biome.version,
     fog.canvas,
@@ -127,11 +137,11 @@ export function Minimap({
   ]);
 
   return (
-    <MinimapRoot>
+    <MinimapRoot ref={wrapRef}>
       <MinimapCanvas
         ref={canvasRef}
-        width={MINIMAP_PX}
-        height={MINIMAP_PX}
+        width={minimapPx}
+        height={minimapPx}
         aria-label={`Live scan view centred on ${body.name}`}
       />
       <MinimapLabel>
@@ -169,6 +179,7 @@ function drawWindowed(
   sy: number,
   sw: number,
   sh: number,
+  px: number,
 ): void {
   // Horizontal wrap on antimeridian: emit two slices.
   if (sx < 0) {
@@ -181,8 +192,8 @@ function drawWindowed(
       sh,
       0,
       0,
-      (left / sw) * MINIMAP_PX,
-      MINIMAP_PX,
+      (left / sw) * px,
+      px,
     );
     ctx.drawImage(
       source,
@@ -190,40 +201,30 @@ function drawWindowed(
       sy,
       sw - left,
       sh,
-      (left / sw) * MINIMAP_PX,
+      (left / sw) * px,
       0,
-      ((sw - left) / sw) * MINIMAP_PX,
-      MINIMAP_PX,
+      ((sw - left) / sw) * px,
+      px,
     );
     return;
   }
   if (sx + sw > SRC_W) {
     const right = SRC_W - sx;
-    ctx.drawImage(
-      source,
-      sx,
-      sy,
-      right,
-      sh,
-      0,
-      0,
-      (right / sw) * MINIMAP_PX,
-      MINIMAP_PX,
-    );
+    ctx.drawImage(source, sx, sy, right, sh, 0, 0, (right / sw) * px, px);
     ctx.drawImage(
       source,
       0,
       sy,
       sw - right,
       sh,
-      (right / sw) * MINIMAP_PX,
+      (right / sw) * px,
       0,
-      ((sw - right) / sw) * MINIMAP_PX,
-      MINIMAP_PX,
+      ((sw - right) / sw) * px,
+      px,
     );
     return;
   }
-  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, MINIMAP_PX, MINIMAP_PX);
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, px, px);
 }
 
 /**
@@ -241,6 +242,7 @@ function drawScannerFootprint(
   v: SCANScanningVessel,
   centerTexLat: number,
   centerTexLon: number,
+  px: number,
 ): void {
   const halfLat = v.groundTrackWidthDeg;
   const halfLon = v.groundTrackLonHalfDeg;
@@ -260,13 +262,13 @@ function drawScannerFootprint(
   if (dLatTop < -WINDOW_HALF_DEG && dLatBot < -WINDOW_HALF_DEG) return;
   if (dLatTop > WINDOW_HALF_DEG && dLatBot > WINDOW_HALF_DEG) return;
   const yTop =
-    MINIMAP_PX / 2 -
+    px / 2 -
     (clamp(dLatTop, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
-      (MINIMAP_PX / 2);
+      (px / 2);
   const yBot =
-    MINIMAP_PX / 2 -
+    px / 2 -
     (clamp(dLatBot, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
-      (MINIMAP_PX / 2);
+      (px / 2);
 
   // Horizontal extent — shortest delta-lon from the minimap centre.
   const dLon = shortestLonDelta(vTexLon, centerTexLon);
@@ -275,13 +277,13 @@ function drawScannerFootprint(
   if (dLonLeft > WINDOW_HALF_DEG && dLonRight > WINDOW_HALF_DEG) return;
   if (dLonLeft < -WINDOW_HALF_DEG && dLonRight < -WINDOW_HALF_DEG) return;
   const xLeft =
-    MINIMAP_PX / 2 +
+    px / 2 +
     (clamp(dLonLeft, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
-      (MINIMAP_PX / 2);
+      (px / 2);
   const xRight =
-    MINIMAP_PX / 2 +
+    px / 2 +
     (clamp(dLonRight, -WINDOW_HALF_DEG, WINDOW_HALF_DEG) / WINDOW_HALF_DEG) *
-      (MINIMAP_PX / 2);
+      (px / 2);
 
   ctx.fillStyle = fill;
   ctx.fillRect(xLeft, yTop, xRight - xLeft, yBot - yTop);
@@ -291,8 +293,8 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function drawCrosshair(ctx: CanvasRenderingContext2D): void {
-  const c = MINIMAP_PX / 2;
+function drawCrosshair(ctx: CanvasRenderingContext2D, px: number): void {
+  const c = px / 2;
   ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -307,11 +309,11 @@ function drawCrosshair(ctx: CanvasRenderingContext2D): void {
   ctx.stroke();
 }
 
-function drawMissingVessel(ctx: CanvasRenderingContext2D): void {
+function drawMissingVessel(ctx: CanvasRenderingContext2D, px: number): void {
   ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
   ctx.font = "12px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("no active vessel", MINIMAP_PX / 2, MINIMAP_PX / 2);
+  ctx.fillText("no active vessel", px / 2, px / 2);
 }
 
 function wrapLon(lon: number): number {
@@ -327,14 +329,17 @@ function shortestLonDelta(a: number, b: number): number {
 }
 
 const MinimapRoot = styled.div`
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
+  max-width: ${MAX_MINIMAP_PX}px;
 `;
 
 const MinimapCanvas = styled.canvas`
-  width: ${MINIMAP_PX}px;
-  height: ${MINIMAP_PX}px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: 3px;

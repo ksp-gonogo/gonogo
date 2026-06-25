@@ -283,8 +283,11 @@ function StrategiesComponent({
                 </CardHeader>
                 {s.description && <Description>{s.description}</Description>}
                 <EffectList>
-                  {parseEffectLines(s.effect).map((line) => (
-                    <EffectLine key={line}>{line}</EffectLine>
+                  {parseEffectLines(s.effect).map((line, i) => (
+                    // Effect lines are static, non-reorderable text; index keeps
+                    // otherwise-identical lines from colliding.
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+                    <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
                   ))}
                 </EffectList>
                 <CardFooter>
@@ -425,19 +428,24 @@ function AvailableRow({
   onToggleExpanded: () => void;
 }) {
   // Scale the cost displays by the factor slider — KSP costs scale
-  // linearly with the commitment factor inside the slider range.
-  const scaledFunds = s.initialCostFunds * (factor / s.factorSliderDefault);
-  const scaledScience = s.initialCostScience * (factor / s.factorSliderDefault);
-  const scaledRep =
-    s.effectiveCostReputation * (factor / s.factorSliderDefault);
+  // linearly with the commitment factor inside the slider range. A
+  // zero default would divide by zero (NaN/Infinity costs that silently
+  // slip past the affordability gate), so fall back to an unscaled 1×.
+  const factorScale =
+    s.factorSliderDefault > 0 ? factor / s.factorSliderDefault : 1;
+  const scaledFunds = s.initialCostFunds * factorScale;
+  const scaledScience = s.initialCostScience * factorScale;
+  const scaledRep = s.effectiveCostReputation * factorScale;
+
+  // Treat a non-finite scaled cost as unaffordable — a NaN comparison is
+  // always false, which would otherwise let a broken cost bypass the gate.
+  const overBudget = (cost: number, balance: number | null) =>
+    !Number.isFinite(cost) || (balance ?? Number.POSITIVE_INFINITY) < cost;
 
   const cantAfford =
-    (s.initialCostFunds > 0 &&
-      (funds ?? Number.POSITIVE_INFINITY) < scaledFunds) ||
-    (s.initialCostScience > 0 &&
-      (science ?? Number.POSITIVE_INFINITY) < scaledScience) ||
-    (s.initialCostReputation > 0 &&
-      (reputation ?? Number.POSITIVE_INFINITY) < scaledRep);
+    (s.initialCostFunds > 0 && overBudget(scaledFunds, funds)) ||
+    (s.initialCostScience > 0 && overBudget(scaledScience, science)) ||
+    (s.initialCostReputation > 0 && overBudget(scaledRep, reputation));
 
   return (
     <StrategyCard>
@@ -457,32 +465,29 @@ function AvailableRow({
       {s.description && <Description>{s.description}</Description>}
       {expanded && (
         <EffectList>
-          {parseEffectLines(s.effect).map((line) => (
-            <EffectLine key={line}>{line}</EffectLine>
+          {parseEffectLines(s.effect).map((line, i) => (
+            // Effect lines are static, non-reorderable text; index keeps
+            // otherwise-identical lines from colliding.
+            // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+            <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
           ))}
         </EffectList>
       )}
       <CostRow>
         {s.initialCostFunds > 0 && (
-          <CostChip
-            $insufficient={(funds ?? Number.POSITIVE_INFINITY) < scaledFunds}
-          >
+          <CostChip $insufficient={overBudget(scaledFunds, funds)}>
             {formatNumber(scaledFunds)}f
           </CostChip>
         )}
         {s.initialCostScience > 0 && (
-          <CostChip
-            $insufficient={
-              (science ?? Number.POSITIVE_INFINITY) < scaledScience
-            }
-          >
+          <CostChip $insufficient={overBudget(scaledScience, science)}>
             {formatNumber(scaledScience)} sci
           </CostChip>
         )}
         {s.initialCostReputation > 0 && (
           <CostChip
-            $insufficient={(reputation ?? Number.POSITIVE_INFINITY) < scaledRep}
-            title={`Nominal ${formatNumber(s.initialCostReputation * (factor / s.factorSliderDefault))}; the rep curve bumps the real charge to ${formatNumber(scaledRep)}.`}
+            $insufficient={overBudget(scaledRep, reputation)}
+            title={`Nominal ${formatNumber(s.initialCostReputation * factorScale)}; the rep curve bumps the real charge to ${formatNumber(scaledRep)}.`}
           >
             {formatNumber(scaledRep)} rep
           </CostChip>

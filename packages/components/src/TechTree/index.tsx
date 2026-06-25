@@ -823,7 +823,7 @@ function NodeRow({
         aria-expanded={expanded}
       >
         <NodeTitle>
-          {node.title}
+          <NodeTitleText>{node.title}</NodeTitleText>
           <NodeId>({node.id})</NodeId>
         </NodeTitle>
         <NodeMeta>
@@ -1023,9 +1023,18 @@ const NodeTitle = styled.span`
   font-size: 12px;
   color: var(--color-text-primary);
   font-weight: 600;
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+`;
+
+// The truncation lives on a flex child that is allowed to shrink: it needs
+// flex:1 + min-width:0 so it actually narrows (and ellipsises) within
+// NodeTitle instead of overflowing and colliding with the node id / meta.
+const NodeTitleText = styled.span`
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1038,6 +1047,7 @@ const NodeId = styled.span`
   font-family: monospace;
   color: var(--color-text-faint);
   font-weight: 400;
+  flex-shrink: 0;
 `;
 
 const NodeMeta = styled.span`

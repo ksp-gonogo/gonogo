@@ -363,7 +363,7 @@ function DockingHud(props: DockingHudProps) {
     Math.abs(ay) < 1;
 
   // Closing if relVel is negative (standard KSP convention: positive = opening).
-  const closing = relVel !== undefined && relVel < 0;
+  const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
 
   return (
     <HudPanel

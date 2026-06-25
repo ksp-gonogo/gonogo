@@ -452,8 +452,16 @@ const UpgradeRow = styled.div`
 
 const UpgradeCost = styled.span<{ $afford: boolean }>`
   font-size: 10px;
+  /* Unaffordable cost must read as a nogo signal on the dark cell
+     (--color-surface-panel #0d0d0d). The *-fg token (#ffdede) is the
+     foreground meant to sit on the red *-bg fill — as standalone text on
+     near-black it's a pale pink that reads like ordinary light copy and
+     the warning is lost. Use the saturated *-bg token (#ff4d4d) as the
+     text colour instead — the established "nogo text on a dark surface"
+     treatment (PerfBudgets, Twr, ShipMap) with adequate contrast. */
   color: ${(p) =>
-    p.$afford ? "var(--color-accent-fg)" : "var(--color-status-nogo-fg)"};
+    p.$afford ? "var(--color-accent-fg)" : "var(--color-status-nogo-bg)"};
+  font-weight: ${(p) => (p.$afford ? "inherit" : "600")};
   font-variant-numeric: tabular-nums;
 `;
 
