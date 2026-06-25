@@ -125,9 +125,17 @@ function renderBody({
 }): React.ReactNode {
   if (!known) return <EmptyState>Waiting for telemetry…</EmptyState>;
 
-  const unmanned =
-    crewCount === 0 || (crewCount === undefined && names.length === 0);
-  if (unmanned) return <EmptyState>Unmanned — no kerbals aboard.</EmptyState>;
+  // Only conclude "Unmanned" once the headcount itself has arrived. If
+  // `crewCapacity` (or another key) lands before `crewCount`, `known` is
+  // already true but `crewCount` is still undefined — treating that as
+  // unmanned flashes a wrong "no kerbals aboard" label on a crewed vessel.
+  if (crewCount === undefined) {
+    return <EmptyState>Waiting for telemetry…</EmptyState>;
+  }
+
+  if (crewCount === 0) {
+    return <EmptyState>Unmanned — no kerbals aboard.</EmptyState>;
+  }
 
   if (names.length === 0) {
     return (

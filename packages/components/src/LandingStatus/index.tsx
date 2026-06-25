@@ -6,7 +6,13 @@ import {
   registerComponent,
   useDataValue,
 } from "@gonogo/core";
-import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  EmptyState,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+} from "@gonogo/ui";
 import styled from "styled-components";
 import { formatDensity } from "../shared/formatDensity";
 
@@ -254,15 +260,24 @@ function LandingStatusComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled.div<{ $row?: boolean }>`
+/*
+ * Scrollable so no row is ever unreachable. At the rows>=9 gate boundary the
+ * safety-critical "Skin temp" ambient row would otherwise be clipped off the
+ * bottom by Panel's overflow:hidden — wrapping the body in ScrollArea lets the
+ * operator reach every row.
+ */
+const Body = styled(ScrollArea)<{ $row?: boolean }>`
   flex: 1;
-  display: flex;
-  flex-direction: ${(p) => (p.$row ? "row" : "column")};
-  align-items: ${(p) => (p.$row ? "flex-start" : "stretch")};
-  gap: ${(p) => (p.$row ? "16px" : "8px")};
   min-height: 0;
-  /* Wide-short: headline and metric grid each take half the width. */
-  ${(p) => p.$row && `& > * { flex: 1 1 0; min-width: 0; }`}
+
+  [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: ${(p) => (p.$row ? "row" : "column")};
+    align-items: ${(p) => (p.$row ? "flex-start" : "stretch")};
+    gap: ${(p) => (p.$row ? "16px" : "8px")};
+    /* Wide-short: headline and metric grid each take half the width. */
+    ${(p) => p.$row && `& > * { flex: 1 1 0; min-width: 0; }`}
+  }
 `;
 
 const SuicideRow = styled.div<{

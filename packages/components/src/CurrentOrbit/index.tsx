@@ -129,7 +129,15 @@ function CurrentOrbitComponent({
         <Grid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
           <Value $accent="ap">
-            {apoapsisA === undefined ? "—" : formatDistance(apoapsisA)}
+            {/* Hyperbolic/escape trajectories have no apoapsis — Telemachus
+                emits its sentinel (999999999 m) which would read as a real
+                "1000.00 Mm". Render an em-dash so the operator doesn't
+                mistake an escape trajectory for a vast bound orbit. */}
+            {apoapsisA === undefined
+              ? "—"
+              : hyperbolic
+                ? "—"
+                : formatDistance(apoapsisA)}
           </Value>
 
           <Label>Pe</Label>

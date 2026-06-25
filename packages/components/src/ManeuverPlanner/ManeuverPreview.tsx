@@ -356,9 +356,9 @@ function ShortfallBanner({
 }: ShortfallBannerProps) {
   if (feasible !== false || !plan) return null;
   return (
-    <FeasibilityBanner role="alert">
+    <FeasibilityBanner role="status" aria-live="polite">
       <FeasibilityBannerTitle>
-        ΔV shortfall — commit disabled
+        ΔV shortfall — can't add node
       </FeasibilityBannerTitle>
       <FeasibilityBannerBody>
         Required {requiredDeltaV.toFixed(0)} m/s · available{" "}

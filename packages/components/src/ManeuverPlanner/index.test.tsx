@@ -137,7 +137,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
   });
 
-  it("raises a role=alert shortfall banner and disables Add node when ΔV is insufficient", () => {
+  it("raises a role=status shortfall banner and disables Add node when ΔV is insufficient", () => {
     render(<ManeuverPlannerComponent id="mnv" config={{}} />);
     act(() => {
       emitFullOrbit(source);
@@ -171,9 +171,9 @@ describe("ManeuverPlannerComponent", () => {
       ]);
     });
 
-    const alert = screen.getByRole("alert");
-    expect(alert.textContent).toMatch(/shortfall/i);
-    expect(alert.textContent).toMatch(/short\.?$/i);
+    const banner = screen.getByRole("status");
+    expect(banner.textContent).toMatch(/shortfall/i);
+    expect(banner.textContent).toMatch(/short\.?$/i);
 
     const addBtn = screen.getByRole("button", { name: /^add node$/i });
     expect(addBtn).toBeDisabled();

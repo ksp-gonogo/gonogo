@@ -210,8 +210,10 @@ function FuelStatusComponent({
   const rows = h ?? 14;
   // Wide-short: width compensates for the height-gates, so show the resource
   // list + stage stack side-by-side beneath the totals row instead of leaving
-  // the box sparse.
-  const isLandscape = getWidgetShape(w, h).shape === "landscape";
+  // the box sparse. The boost still needs vertical room beneath the totals row
+  // — below ~6 rows even a single section overflows (landscape-18x5), so don't
+  // let the landscape override force the columns on at those heights.
+  const isLandscape = getWidgetShape(w, h).shape === "landscape" && rows >= 6;
   const showSubtitle = rows >= 5;
   const showTotals = rows >= 4;
   const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
@@ -521,7 +523,7 @@ const StageHeader = styled.div`
 
 const StageRow = styled.div<{ $active?: boolean }>`
   display: grid;
-  grid-template-columns: 3.5em 1fr auto;
+  grid-template-columns: 3.5em minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   font-size: 11px;

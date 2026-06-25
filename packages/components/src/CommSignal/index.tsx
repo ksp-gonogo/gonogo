@@ -171,10 +171,20 @@ function CommSignalComponent({
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 type Tone = "ok" | "warn" | "lost";
+// Bright fills for the signal bars (non-text UI — full-brightness chips).
 const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-bg)",
   lost: "var(--color-status-nogo-bg)",
+};
+
+// Foreground text variants for the same tones, legible on the dark panel.
+// Warning uses the muted cream (`-fg` is near-black, meant for the orange
+// chip, not standalone text); nogo's `-fg` is already a light pink.
+const TONE_TEXT_COLOR: Record<Tone, string> = {
+  ok: "var(--color-accent-fg)",
+  warn: "var(--color-status-warning-fg-muted)",
+  lost: "var(--color-status-nogo-fg)",
 };
 
 // Visually hidden, but read by screen readers. Only its text content changes
@@ -266,7 +276,7 @@ const GridLabel = styled.span`
 
 const GridValue = styled.span<{ $tone?: Tone }>`
   font-size: 12px;
-  color: ${({ $tone }) => ($tone ? TONE_COLOR[$tone] : "var(--color-text-primary)")};
+  color: ${({ $tone }) => ($tone ? TONE_TEXT_COLOR[$tone] : "var(--color-text-primary)")};
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

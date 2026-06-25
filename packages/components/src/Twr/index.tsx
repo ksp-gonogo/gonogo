@@ -72,6 +72,20 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // fixed defaults when ResizeObserver hasn't fired (initial render, tests).
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
 
+  // Size the dial to the measured slot width, but also cap it — both by an
+  // absolute width and by a slice of the widget's height — so the SVG can't
+  // overflow the slot. Without the cap the fallback 200px width clips at the
+  // 4×5 default and overflows almost entirely at the 3×3 small variant.
+  // Height is derived from the gauge's 0.55 aspect ratio so the SVG box never
+  // exceeds the room the sparkline + title leave it.
+  const gaugeMaxH = Math.max(64, rows * 25 * 0.4);
+  const gaugeW = Math.min(
+    gaugeSize.w || 200,
+    220,
+    Math.round(gaugeMaxH / 0.55),
+  );
+  const gaugeH = Math.round(gaugeW * 0.55);
+
   // Sparkline width follows its slot — fixed-pixel sparklines used to spill
   // out of narrow widget columns and overlap the title row.
   const sparkRef = useRef<HTMLDivElement>(null);
@@ -131,8 +145,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             min={GAUGE_MIN}
             max={GAUGE_MAX}
             zones={ZONES}
-            width={gaugeSize.w}
-            height={gaugeSize.h}
+            width={gaugeW}
+            height={gaugeH}
             valueLabel={twr.toFixed(2)}
             ariaLabel={`TWR ${twr.toFixed(2)}`}
           />
