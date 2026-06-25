@@ -36,7 +36,13 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
     if (t > max + step * 0.01) break;
     ticks.push(t);
   }
-  return ticks.length >= 2 ? ticks : [min, max];
+  if (ticks.length >= 2) return ticks;
+  // Fallback (e.g. count===2 where the nice step lands a single tick in
+  // range): return rounded bounds to the nice step rather than the raw
+  // min/max, which would otherwise render unrounded axis labels like "174.96".
+  const lo = Math.floor(min / step) * step;
+  const hi = Math.ceil(max / step) * step;
+  return hi > lo ? [lo, hi] : [lo, lo + step];
 }
 
 /** Format an x-axis timestamp. Uses mm:ss unless the span exceeds 1 hour. */

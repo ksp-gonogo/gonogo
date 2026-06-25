@@ -694,8 +694,13 @@ function hyperbolicBoundingBox(rMax: number): BBox {
  *  shoot off-screen. */
 function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
   const points: string[] = [];
+  // Hyperbolic orbits use a negative semi-major axis (the conic convention);
+  // telemetry/callers pass the magnitude, so a positive sma here makes
+  // r = sma·(1-e²)/(1+e·cosθ) negative across the whole near branch and the
+  // r<=0 guard drops every sample (no curve drawn). Normalise to negative.
+  const a = -Math.abs(sma);
   for (let theta = -180; theta <= 180; theta += 2) {
-    const r = trueAnomalyToRadius(sma, ecc, theta);
+    const r = trueAnomalyToRadius(a, ecc, theta);
     if (!Number.isFinite(r) || r <= 0 || r > rMax) {
       // Discontinuity / clipped — emit a path break so we don't draw a
       // straight line across the missing arc.

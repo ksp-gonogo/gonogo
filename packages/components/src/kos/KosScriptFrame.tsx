@@ -148,12 +148,19 @@ const Title = styled.div`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  /* Shrink the title (ellipsis) at tight widths so the Run button keeps its
+     room rather than clipping to "Ru". */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 `;
 
 const Spinner = styled.span`
@@ -169,6 +176,8 @@ const RunButton = styled.button`
   padding: 3px 10px;
   border-radius: 2px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   &:hover:not(:disabled) {
     background: var(--color-status-go-bg);
   }
