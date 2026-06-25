@@ -40,6 +40,10 @@ const WidgetHeader__Body = styled.div`
   gap: 8px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--color-border-subtle);
+  /* Never let the header collapse: at very short widget heights the flex
+     column would otherwise shrink this row toward zero and the body content
+     (e.g. a chart's top axis label) would overprint the title. */
+  flex-shrink: 0;
 `;
 
 const WidgetHeader__Title = styled.div`
