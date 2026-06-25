@@ -186,6 +186,31 @@ describe("LaunchDirectorComponent", () => {
     expect(onExecute).toHaveBeenCalledWith("ksp.revertToLaunch");
   });
 
+  it("requires arm-then-confirm for Revert to VAB (flight-ending)", async () => {
+    const user = userEvent.setup();
+    const onExecute = vi.fn();
+    teardownMockDataSource(fixture);
+    fixture = await setupMockDataSource({ keys: KEYS, onExecute });
+    source = fixture.source;
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    act(() => {
+      source.emit("kc.savedShips", []);
+      source.emit("kc.padOccupied", true);
+      source.emit("kc.scene", "Flight");
+      source.emit("v.name", "Stayputnik X");
+      source.emit("ksp.canRevertToEditor", true);
+      source.emit("crash.hasRecent", false);
+    });
+
+    // First click arms — must NOT fire the flight-ending revert yet.
+    await user.click(screen.getByText("Revert to VAB"));
+    expect(onExecute).not.toHaveBeenCalledWith("ksp.revertToEditor[vab]");
+
+    await user.click(screen.getByText(/Confirm revert to VAB/i));
+    expect(onExecute).toHaveBeenCalledWith("ksp.revertToEditor[vab]");
+  });
+
   it("surfaces a crash chip and disables recover when the active vessel itself crashed", async () => {
     const onExecute = vi.fn();
     teardownMockDataSource(fixture);

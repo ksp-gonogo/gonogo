@@ -94,10 +94,13 @@ export function Gauge({
   const safeValue = Number.isFinite(value) ? value : min;
 
   // Pad the bounding box so the half-circle isn't clipped at the edges.
-  // Arc lives in the upper half; reserve a strip below for the value label.
+  // Arc lives in the upper half; reserve a strip below for the value label
+  // (drawn at cy+18) plus the optional unit label below it (cy+32) so a
+  // unit-bearing gauge doesn't clip the unit out of the viewport.
+  const labelReserve = unitLabel ? 32 : 18;
   const radius = Math.min(
     (width - TRACK_THICKNESS) / 2,
-    height - TRACK_THICKNESS - 18,
+    height - TRACK_THICKNESS - labelReserve,
   );
 
   const needle = useMemo(

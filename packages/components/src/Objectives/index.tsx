@@ -99,9 +99,15 @@ export function contractObjectives(
       });
       continue;
     }
+    // A contract can legitimately carry two parameters with the same title;
+    // disambiguate the React key with a per-title occurrence count so the
+    // keys stay unique (and stable) without using the array index.
+    const seenTitles = new Map<string, number>();
     for (const p of c.parameters) {
+      const occurrence = seenTitles.get(p.title) ?? 0;
+      seenTitles.set(p.title, occurrence + 1);
       out.push({
-        id: `c:${c.id}::${p.title}`,
+        id: `c:${c.id}::${p.title}::${occurrence}`,
         title: p.title,
         state: contractParamState(p.state),
         source: c.title,

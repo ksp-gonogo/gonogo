@@ -190,7 +190,7 @@ function LaunchDirectorComponent({
     (launchSites ?? []).find((s) => s.name === selectedSite)?.displayName ??
     selectedSite;
   const [armed, setArmed] = useState<
-    "launch" | "recover" | "revert" | "tracking-station" | null
+    "launch" | "recover" | "revert" | "revert-vab" | "tracking-station" | null
   >(null);
   // While the launch RPC is in flight (and until the scene flips to Flight
   // or a 10s safety timeout elapses), suppress the launch button so an
@@ -520,8 +520,16 @@ function InFlightPanel({
   canRevertToLaunch: boolean;
   canRevertToEditor: boolean;
   crashBlocked: boolean;
-  armed: "launch" | "recover" | "revert" | "tracking-station" | null;
-  onArm: (k: "recover" | "revert" | "tracking-station" | null) => void;
+  armed:
+    | "launch"
+    | "recover"
+    | "revert"
+    | "revert-vab"
+    | "tracking-station"
+    | null;
+  onArm: (
+    k: "recover" | "revert" | "revert-vab" | "tracking-station" | null,
+  ) => void;
   availableVessels: AvailableVesselEntry[] | undefined;
   onRecover: () => void;
   onRevertToLaunch: () => void;
@@ -580,11 +588,11 @@ function InFlightPanel({
         />
         <ArmedButton
           kind="revert"
-          armed={false}
-          onArm={onRevertToVAB}
+          armed={armed === "revert-vab"}
+          onArm={() => onArm("revert-vab")}
           onConfirm={onRevertToVAB}
           label={canRevertToEditor ? "Revert to VAB" : "Revert to VAB (n/a)"}
-          confirmLabel="Revert to VAB"
+          confirmLabel="Confirm revert to VAB"
           disabled={!canRevertToEditor}
         />
         {armed === "tracking-station" ? (
