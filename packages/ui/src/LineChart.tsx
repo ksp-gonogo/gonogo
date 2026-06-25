@@ -176,16 +176,138 @@ export function LineChart({
     2,
     Math.min(7, Math.round(plotH / PX_PER_Y_TICK)),
   );
-  const xTicks = niceTicks(xDomain[0], xDomain[1], xTickCount);
-  const yTicksPrimary =
-    yScalePrimary === "log"
-      ? niceLogTicks(primaryDomain[0], primaryDomain[1], yTickCount)
-      : niceTicks(primaryDomain[0], primaryDomain[1], yTickCount);
+  // niceTicks/niceLogTicks round the *step* to a nice magnitude, so on a narrow,
+  // non-zero-based domain at a low tick count they can land every tick outside
+  // the domain (e.g. a 0.6–30 Mm SMA axis at 2 ticks → [0, 50 Mm]). Rendering
+  // those maps the labels off the plot — a top y-label floating over the title,
+  // or "0m"/"50.0Mm" out past the axes and clipped at the panel edge. So: keep
+  // only in-domain ticks, and if none land inside, retry with a finer count
+  // (which forces a smaller step that does) before falling back to the raw
+  // endpoints. The endpoints are always in-domain but unrounded, so they're the
+  // last resort, not the first.
+  const axisTicks = (
+    d0: number,
+    d1: number,
+    count: number,
+    kind: "linear" | "log",
+  ): number[] => {
+    const lo = Math.min(d0, d1);
+    const hi = Math.max(d0, d1);
+    const eps = (hi - lo) * 1e-6 || 1e-6;
+    const inDomain = (t: number) => t >= lo - eps && t <= hi + eps;
+    const gen = (n: number) =>
+      kind === "log" ? niceLogTicks(lo, hi, n) : niceTicks(lo, hi, n);
+    for (let n = count; n <= 64; n *= 2) {
+      const inView = gen(n).filter(inDomain);
+      if (inView.length < 1) continue;
+      // A finer retry can land many ticks at once; on a short axis rendering
+      // them all smears the labels into an illegible column. Keep ~count of
+      // them, evenly spaced (endpoints included), so density tracks the plot.
+      if (inView.length <= count) return inView;
+      const stepIdx = (inView.length - 1) / (count - 1);
+      const picked = Array.from(
+        { length: count },
+        (_, i) => inView[Math.round(i * stepIdx)],
+      );
+      return Array.from(new Set(picked));
+    }
+    return [lo, hi];
+  };
+  const xTicks = axisTicks(xDomain[0], xDomain[1], xTickCount, "linear");
+  const yTicksPrimary = axisTicks(
+    primaryDomain[0],
+    primaryDomain[1],
+    yTickCount,
+    yScalePrimary === "log" ? "log" : "linear",
+  );
   const yTicksSecondary = !hasSecondary
     ? []
-    : yScaleSecondary === "log"
-      ? niceLogTicks(secondaryDomain[0], secondaryDomain[1], yTickCount)
-      : niceTicks(secondaryDomain[0], secondaryDomain[1], yTickCount);
+    : axisTicks(
+        secondaryDomain[0],
+        secondaryDomain[1],
+        yTickCount,
+        yScaleSecondary === "log" ? "log" : "linear",
+      );
+
+  // X-axis label placement. Gridlines still draw for every tick, but labels
+  // are thinned so they never overlap a neighbour or clip past the plot edge:
+  // the first label is left-anchored, the last right-anchored, and interior
+  // labels are kept only where there's room. On a very narrow plot this
+  // collapses to just the first label instead of an illegible smear of glyphs.
+  const xTickLabels = useMemo(() => {
+    const out: {
+      x: number;
+      text: string;
+      anchor: "start" | "middle" | "end";
+    }[] = [];
+    const last = xTicks.length - 1;
+    if (last < 0) return out;
+    // Rough monospace-ish width estimate; gap keeps a little air between labels.
+    const estPx = (s: string) => s.length * 6.5 + 6;
+    const gap = 6;
+    const make = (idx: number) => {
+      const tick = xTicks[idx];
+      const text = xTickFormat(tick, xDomain);
+      const x = scaleX(tick);
+      const wpx = estPx(text);
+      const anchor: "start" | "middle" | "end" =
+        idx === 0 ? "start" : idx === last ? "end" : "middle";
+      const leftEdge =
+        anchor === "start" ? x : anchor === "end" ? x - wpx : x - wpx / 2;
+      return { x, text, anchor, leftEdge, rightEdge: leftEdge + wpx };
+    };
+    const first = make(0);
+    out.push({ x: first.x, text: first.text, anchor: first.anchor });
+    if (last >= 1) {
+      const end = make(last);
+      // Only show more than the first label when the endpoints clear each other.
+      if (end.leftEdge >= first.rightEdge + gap) {
+        let prevRight = first.rightEdge;
+        for (let i = 1; i < last; i++) {
+          const m = make(i);
+          if (
+            m.leftEdge >= prevRight + gap &&
+            m.rightEdge <= end.leftEdge - gap
+          ) {
+            out.push({ x: m.x, text: m.text, anchor: m.anchor });
+            prevRight = m.rightEdge;
+          }
+        }
+        out.push({ x: end.x, text: end.text, anchor: end.anchor });
+      }
+    }
+    return out;
+  }, [xTicks, xDomain, scaleX, xTickFormat]);
+
+  // Y-axis labels get the same overlap suppression as X, but vertically: on a
+  // very short plot the top and bottom ticks would otherwise stack into a
+  // touching, illegible column (e.g. "3.0k" sitting on "2.5k" at tiny sizes).
+  // Gridlines still draw for every tick; only the text is thinned. Returns the
+  // set of indices that should be labelled, preferring the two endpoints.
+  const yLabelKeep = (ticks: number[], pos: (t: number) => number) => {
+    const keep = new Set<number>();
+    const n = ticks.length;
+    if (n === 0) return keep;
+    keep.add(0);
+    if (n === 1) return keep;
+    const MIN = 16; // min center-to-center px so 11px labels never touch
+    const p0 = pos(ticks[0]);
+    const pLast = pos(ticks[n - 1]);
+    if (Math.abs(pLast - p0) >= MIN) {
+      let prev = p0;
+      for (let i = 1; i < n - 1; i++) {
+        const p = pos(ticks[i]);
+        if (Math.abs(p - prev) >= MIN && Math.abs(pLast - p) >= MIN) {
+          keep.add(i);
+          prev = p;
+        }
+      }
+      keep.add(n - 1);
+    }
+    return keep;
+  };
+  const yKeepPrimary = yLabelKeep(yTicksPrimary, scaleYPrimary);
+  const yKeepSecondary = yLabelKeep(yTicksSecondary, scaleYSecondary);
 
   // Per-series renderable. Dispatch on type — line/step/scatter share the
   // stroked-path render block; band gets a filled closed path.
@@ -304,29 +426,30 @@ export function LineChart({
               stroke="var(--color-border-subtle)"
               strokeWidth={1}
             />
-            <text
-              x={plotX0 - 4}
-              y={y}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fill="var(--color-text-faint)"
-              fontSize={11}
-            >
-              {yTickFormat(tick)}
-            </text>
+            {yKeepPrimary.has(idx) && (
+              <text
+                x={plotX0 - 4}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill="var(--color-text-faint)"
+                fontSize={11}
+              >
+                {yTickFormat(tick)}
+              </text>
+            )}
           </React.Fragment>
         );
       })}
 
       {/* Right y-axis ticks (secondary) */}
-      {yTicksSecondary.map((tick, idx) => {
-        const y = scaleYSecondary(tick);
-        return (
+      {yTicksSecondary.map((tick, idx) =>
+        yKeepSecondary.has(idx) ? (
           <text
             // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
             key={`sy-${idx}`}
             x={plotX1 + 4}
-            y={y}
+            y={scaleYSecondary(tick)}
             textAnchor="start"
             dominantBaseline="middle"
             fill="var(--color-text-faint)"
@@ -334,35 +457,37 @@ export function LineChart({
           >
             {yTickFormat(tick)}
           </text>
-        );
-      })}
+        ) : null,
+      )}
 
-      {/* Vertical grid lines + x-axis ticks */}
-      {xTicks.map((tick, idx) => {
-        const x = scaleX(tick);
-        return (
+      {/* Vertical grid lines (every tick) */}
+      {xTicks.map((tick, idx) => (
+        <line
           // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
-          <React.Fragment key={`xt-${idx}`}>
-            <line
-              x1={x}
-              y1={plotY0}
-              x2={x}
-              y2={plotY1}
-              stroke="var(--color-border-subtle)"
-              strokeWidth={1}
-            />
-            <text
-              x={x}
-              y={plotY1 + 14}
-              textAnchor="middle"
-              fill="var(--color-text-faint)"
-              fontSize={11}
-            >
-              {xTickFormat(tick, xDomain)}
-            </text>
-          </React.Fragment>
-        );
-      })}
+          key={`xg-${idx}`}
+          x1={scaleX(tick)}
+          y1={plotY0}
+          x2={scaleX(tick)}
+          y2={plotY1}
+          stroke="var(--color-border-subtle)"
+          strokeWidth={1}
+        />
+      ))}
+
+      {/* X-axis tick labels (thinned + edge-anchored to avoid overlap/clip) */}
+      {xTickLabels.map((lbl, idx) => (
+        <text
+          // biome-ignore lint/suspicious/noArrayIndexKey: label position IS identity
+          key={`xl-${idx}`}
+          x={lbl.x}
+          y={plotY1 + 14}
+          textAnchor={lbl.anchor}
+          fill="var(--color-text-faint)"
+          fontSize={11}
+        >
+          {lbl.text}
+        </text>
+      ))}
 
       {/* Axis borders */}
       <line
