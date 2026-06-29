@@ -118,7 +118,7 @@ jobs:
   # End-user bundle: app + relay + telnet-proxy in one image, served from
   # Dockerfile.bundle (repo-root context). Separate job from the matrix
   # because it needs a GITHUB_TOKEN build-arg (the app pulls @jonpepler/
-  # kerbcam from GitHub Packages) and a different Dockerfile shape.
+  # kerbcast from GitHub Packages) and a different Dockerfile shape.
   publish-bundle:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -173,7 +173,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # The app build authenticates to GitHub Packages for
-          # @jonpepler/kerbcam. The auto-injected GITHUB_TOKEN has
+          # @jonpepler/kerbcast. The auto-injected GITHUB_TOKEN has
           # read:packages, same as the Pages deploy workflow's install step.
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}

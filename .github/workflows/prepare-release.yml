@@ -3,7 +3,7 @@ name: prepare-release
 # Cuts a release: analyzes conventional commits since the last v* tag to
 # determine the bump (or takes an explicit override), bumps
 # packages/app/package.json, commits `release: vX.Y.Z`, tags, pushes, and
-# dispatches release.yml on the new tag — same model as kerbcam's
+# dispatches release.yml on the new tag — same model as kerbcast's
 # prepare-release. The version is the single release number for the whole
 # deploy surface: the Pages site, all three GHCR images, and the peer
 # hello handshake.

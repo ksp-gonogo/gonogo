@@ -491,7 +491,7 @@ export class PeerHostService {
         // container-bridge candidates are unreachable from the LAN).
         //
         // Send when there's a relay peer id (OCISLY) OR just TURN creds: a
-        // brokered kerbcam station has no relay *peer* (it streams direct from
+        // brokered kerbcast station has no relay *peer* (it streams direct from
         // the sidecar) but still needs the relay's TURN creds for the non-LAN
         // hop, and a station can't fetch /ice-config itself (localhost).
         if (this.relayPeerId !== null || this.iceServers.length > 0) {
@@ -1128,8 +1128,8 @@ export class PeerHostService {
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
     },
-    "kerbcam-negotiate-request": (msg, conn) => {
-      void this.handleKerbcamNegotiate(msg, conn);
+    "kerbcast-negotiate-request": (msg, conn) => {
+      void this.handleKerbcastNegotiate(msg, conn);
     },
     "flight-rpc-request": (msg, conn) => {
       void this.handleFlightRpcRequest(msg, conn);
@@ -1410,15 +1410,15 @@ export class PeerHostService {
     }
   }
 
-  // Station broker: relay a station's kerbcam offer to the local sidecar (only
+  // Station broker: relay a station's kerbcast offer to the local sidecar (only
   // the main screen can reach its address) and return the answer. Signaling
   // only — media flows station↔sidecar directly off the answer's ICE candidates.
-  private async handleKerbcamNegotiate(
-    msg: Extract<PeerMessage, { type: "kerbcam-negotiate-request" }>,
+  private async handleKerbcastNegotiate(
+    msg: Extract<PeerMessage, { type: "kerbcast-negotiate-request" }>,
     conn: DataConnection,
   ) {
     const { getDataSource } = await import("@gonogo/core");
-    const source = getDataSource("kerbcam") as
+    const source = getDataSource("kerbcast") as
       | (ReturnType<typeof getDataSource> & {
           relayOffer?: (offer: {
             sdp: string;
@@ -1432,14 +1432,14 @@ export class PeerHostService {
       error?: string,
     ) => {
       conn.send({
-        type: "kerbcam-negotiate-response",
+        type: "kerbcast-negotiate-response",
         requestId: msg.requestId,
         answer,
         error,
       } satisfies PeerMessage);
     };
     if (!source || typeof source.relayOffer !== "function") {
-      respond(undefined, "kerbcam source unavailable on host");
+      respond(undefined, "kerbcast source unavailable on host");
       return;
     }
     try {
@@ -1447,7 +1447,7 @@ export class PeerHostService {
       respond(answer);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error("[PeerHost] kerbcam negotiate failed", error);
+      logger.error("[PeerHost] kerbcast negotiate failed", error);
       respond(undefined, error.message);
     }
   }

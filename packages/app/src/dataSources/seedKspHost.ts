@@ -1,4 +1,4 @@
-import { seedKerbcamHost } from "@gonogo/kerbcam";
+import { seedKerbcastHost } from "@gonogo/kerbcast";
 import { logger } from "@gonogo/logger";
 import { relayBaseUrl } from "../peer/iceServers";
 import { seedKosHost } from "./kos";
@@ -21,7 +21,7 @@ import { seedTelemachusHost } from "./telemachus";
 
 /**
  * Container-internal aliases for "the machine the container runs on".
- * Sources the BROWSER dials (Telemachus WS, kerbcam sidecar) can't resolve
+ * Sources the BROWSER dials (Telemachus WS, kerbcast sidecar) can't resolve
  * these — the browser-side equivalent is `localhost`. The kOS seed keeps
  * the verbatim value because the in-container proxy is the dialler there.
  */
@@ -53,7 +53,7 @@ export async function seedKspHostDefaults(
     : kspHost;
 
   seedTelemachusHost(browserHost);
-  seedKerbcamHost(browserHost);
+  seedKerbcastHost(browserHost);
   seedKosHost(kspHost);
 
   logger.tag("bootstrap").info("Seeded KSP host defaults from relay", {

@@ -1,7 +1,7 @@
 /**
- * useKerbcamStream slot-subscription lifecycle.
+ * useKerbcastStream slot-subscription lifecycle.
  *
- * Renders a probe component through the real hook + real KerbcamDataSource,
+ * Renders a probe component through the real hook + real KerbcastDataSource,
  * with only the WebRTC transport faked by the SDK's canonical MockSidecar.
  * Asserts the hook drives the dynamic-mode subscription: a slot binds while a
  * camera is on screen, switches when the selected flightId changes, and frees
@@ -9,14 +9,14 @@
  */
 
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { MockSidecar } from "@jonpepler/kerbcam/testing";
+import { MockSidecar } from "@jonpepler/kerbcast/testing";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { KerbcamDataSource } from "../KerbcamDataSource";
-import { useKerbcamStream } from "./useKerbcamStream";
+import { KerbcastDataSource } from "../KerbcastDataSource";
+import { useKerbcastStream } from "./useKerbcastStream";
 
 function StreamProbe({ flightId }: { flightId: number | null }): null {
-  useKerbcamStream(flightId);
+  useKerbcastStream(flightId);
   return null;
 }
 
@@ -28,7 +28,7 @@ afterEach(() => {
 
 async function connectedSource(
   flightIds: number[] = [42, 43],
-): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+): Promise<{ ds: KerbcastDataSource; sidecar: MockSidecar }> {
   const sidecar = new MockSidecar();
   flightIds.forEach((flightId) => {
     sidecar.addCamera({ flightId });
@@ -40,7 +40,7 @@ async function connectedSource(
         : MockSidecar.makeOfferResponse([]),
     ),
   );
-  const ds = new KerbcamDataSource(
+  const ds = new KerbcastDataSource(
     { host: "h", port: 1 },
     sidecar.createTransport(),
   );
@@ -55,7 +55,7 @@ async function connectedSource(
   return { ds, sidecar };
 }
 
-describe("useKerbcamStream — slot subscription lifecycle", () => {
+describe("useKerbcastStream — slot subscription lifecycle", () => {
   it("subscribes the camera on mount and releases it on unmount", async () => {
     const { sidecar } = await connectedSource();
 

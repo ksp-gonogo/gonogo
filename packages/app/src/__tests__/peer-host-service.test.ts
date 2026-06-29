@@ -1165,7 +1165,7 @@ describe("PeerHostService — TURN-on-demand escalation", () => {
   });
 });
 
-describe("PeerHostService — kerbcam negotiate broker", () => {
+describe("PeerHostService — kerbcast negotiate broker", () => {
   beforeEach(() => {
     FakePeer.last = null;
   });
@@ -1174,7 +1174,7 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
     await new Promise((r) => setTimeout(r, 0));
   }
 
-  function kerbcamResponses(conn: FakeDataConnection): Array<{
+  function kerbcastResponses(conn: FakeDataConnection): Array<{
     type: string;
     requestId: string;
     answer?: { sdp: string; cameras: number[] };
@@ -1192,11 +1192,11 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
         typeof m === "object" &&
         m !== null &&
         "type" in m &&
-        (m as { type: string }).type === "kerbcam-negotiate-response",
+        (m as { type: string }).type === "kerbcast-negotiate-response",
     );
   }
 
-  it("relays a station offer to the host kerbcam source and returns its answer", async () => {
+  it("relays a station offer to the host kerbcast source and returns its answer", async () => {
     const { registerDataSource, clearRegistry } = await import("@gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry();
@@ -1208,8 +1208,8 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
       }),
     );
     registerDataSource({
-      id: "kerbcam",
-      name: "Kerbcam",
+      id: "kerbcast",
+      name: "Kerbcast",
       status: "connected",
       affectedBySignalLoss: false,
       connect: async () => {},
@@ -1234,7 +1234,7 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
     await flush();
 
     conn.emit("data", {
-      type: "kerbcam-negotiate-request",
+      type: "kerbcast-negotiate-request",
       requestId: "req-1",
       offer: { sdp: "offer-from-station", cameras: [42, 43], slots: 6 },
     });
@@ -1245,7 +1245,7 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
       cameras: [42, 43],
       slots: 6,
     });
-    const responses = kerbcamResponses(conn);
+    const responses = kerbcastResponses(conn);
     expect(responses).toHaveLength(1);
     expect(responses[0].requestId).toBe("req-1");
     expect(responses[0].answer).toEqual({
@@ -1257,10 +1257,10 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
     clearRegistry();
   });
 
-  it("responds with an error when the host has no kerbcam source", async () => {
+  it("responds with an error when the host has no kerbcast source", async () => {
     const { clearRegistry } = await import("@gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
-    clearRegistry(); // no kerbcam registered
+    clearRegistry(); // no kerbcast registered
 
     const service = new PeerHostService();
     await service.start();
@@ -1272,13 +1272,13 @@ describe("PeerHostService — kerbcam negotiate broker", () => {
     await flush();
 
     conn.emit("data", {
-      type: "kerbcam-negotiate-request",
+      type: "kerbcast-negotiate-request",
       requestId: "req-2",
       offer: { sdp: "offer", cameras: [], slots: 6 },
     });
     await flush();
 
-    const responses = kerbcamResponses(conn);
+    const responses = kerbcastResponses(conn);
     expect(responses).toHaveLength(1);
     expect(responses[0].answer).toBeUndefined();
     expect(responses[0].error).toMatch(/unavailable/);

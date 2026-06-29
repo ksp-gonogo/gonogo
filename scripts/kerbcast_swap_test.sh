@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# kerbcam_swap_test.sh — swap the deployed Kerbcam.dll (and TUFX profile)
+# kerbcast_swap_test.sh — swap the deployed Kerbcast.dll (and TUFX profile)
 # between pre-built test stages without rebuilding.
 #
-# Each stage corresponds to a kerbcam branch + a cached DLL in
-# /tmp/kerbcam-test-artifacts/. Swapping in a new DLL requires a KSP
+# Each stage corresponds to a kerbcast branch + a cached DLL in
+# /tmp/kerbcast-test-artifacts/. Swapping in a new DLL requires a KSP
 # restart — KSP loads plugin DLLs once at boot.
 #
 # Stages:
@@ -12,10 +12,10 @@
 #   test4   wip/test4-tufx-on-top           + TUFX integration + bundled profile
 #
 # Usage:
-#   ./scripts/kerbcam_swap_test.sh test1
-#   ./scripts/kerbcam_swap_test.sh test3
-#   ./scripts/kerbcam_swap_test.sh test4
-#   ./scripts/kerbcam_swap_test.sh status
+#   ./scripts/kerbcast_swap_test.sh test1
+#   ./scripts/kerbcast_swap_test.sh test3
+#   ./scripts/kerbcast_swap_test.sh test4
+#   ./scripts/kerbcast_swap_test.sh status
 #
 # settings.cfg is operator-owned; this script never touches it. The
 # fields EnableHullcamEffects / EnableTUFX / TUFXProfile are silently
@@ -24,10 +24,10 @@
 
 set -euo pipefail
 
-ARTIFACTS_ROOT="/tmp/kerbcam-test-artifacts"
-DEPLOY_ROOT="local_docs/syncthing/kspdata/GameData/Kerbcam"
-DLL_DEST="$DEPLOY_ROOT/Plugins/Kerbcam.dll"
-PROFILE_DEST="$DEPLOY_ROOT/TUFXProfiles/kerbcam.cfg"
+ARTIFACTS_ROOT="/tmp/kerbcast-test-artifacts"
+DEPLOY_ROOT="local_docs/syncthing/kspdata/GameData/Kerbcast"
+DLL_DEST="$DEPLOY_ROOT/Plugins/Kerbcast.dll"
+PROFILE_DEST="$DEPLOY_ROOT/TUFXProfiles/kerbcast.cfg"
 
 case "${1:-}" in
   test1)
@@ -50,7 +50,7 @@ case "${1:-}" in
     echo
     echo "Cached artifacts:"
     for stage in test1-baseline test3-hullcam test4-tufx; do
-      f="$ARTIFACTS_ROOT/$stage/Kerbcam.dll"
+      f="$ARTIFACTS_ROOT/$stage/Kerbcast.dll"
       if [ -f "$f" ]; then
         md5_src=$(md5 -q "$f")
         marker=""
@@ -68,17 +68,17 @@ case "${1:-}" in
     ;;
 esac
 
-if [ ! -f "$SRC/Kerbcam.dll" ]; then
-  echo "Missing artifact: $SRC/Kerbcam.dll" >&2
-  echo "Re-cache by checking out the branch and running ./scripts/gonogo_claude_tools.sh build kerbcam" >&2
+if [ ! -f "$SRC/Kerbcast.dll" ]; then
+  echo "Missing artifact: $SRC/Kerbcast.dll" >&2
+  echo "Re-cache by checking out the branch and running ./scripts/gonogo_claude_tools.sh build kerbcast" >&2
   exit 1
 fi
 
-cp "$SRC/Kerbcam.dll" "$DLL_DEST"
+cp "$SRC/Kerbcast.dll" "$DLL_DEST"
 echo "Deployed $1 DLL → $DLL_DEST ($(stat -f%z "$DLL_DEST") bytes)"
 
 if [ "$HAS_PROFILE" = "1" ]; then
-  cp "$SRC/kerbcam.cfg" "$PROFILE_DEST"
+  cp "$SRC/kerbcast.cfg" "$PROFILE_DEST"
   echo "Deployed TUFX profile → $PROFILE_DEST"
 else
   if [ -f "$PROFILE_DEST" ]; then

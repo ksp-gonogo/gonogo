@@ -6,7 +6,7 @@ import type { FastifyInstance } from "fastify";
  * The bundle takes a single `KSP_HOST` env var ("where is KSP, as seen
  * from this container") and the relay republishes it here so the SPA —
  * a static build that can't read container env — can seed the default
- * hosts for its data sources (Telemachus, kOS, kerbcam sidecar) on a
+ * hosts for its data sources (Telemachus, kOS, kerbcast sidecar) on a
  * browser that has never saved a config.
  *
  * `GET /bootstrap-config` → `{ kspHost: string | null }`

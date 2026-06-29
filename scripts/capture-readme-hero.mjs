@@ -153,7 +153,7 @@ async function newDashboardPage(browser, deviceScaleFactor) {
   }, DASHBOARD);
   const page = await context.newPage();
   await page.goto(APP_URL, { waitUntil: "networkidle" });
-  // Capture-presentation only: the kerbcam sidecar isn't running during a
+  // Capture-presentation only: the kerbcast sidecar isn't running during a
   // replay capture, so its sustained-failure "SOURCE OFFLINE" banner would
   // pop into later frames. Hide that one banner; everything else is real.
   await page.evaluate(() => {

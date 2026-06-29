@@ -9,7 +9,7 @@
 # are unchanged — contributors still use those.
 #
 # Build context is the REPO ROOT so pnpm can resolve workspace deps.
-# Unlike the per-service Dockerfiles, the app pulls @jonpepler/kerbcam from
+# Unlike the per-service Dockerfiles, the app pulls @jonpepler/kerbcast from
 # GitHub Packages, so the build stage needs a real GITHUB_TOKEN
 # (read:packages). Pass it with `--build-arg GITHUB_TOKEN=$(gh auth token)`.
 
@@ -28,13 +28,13 @@ RUN apt-get update \
 # pnpm via corepack — workspace-aware install.
 RUN corepack enable
 
-# The app build authenticates to GitHub Packages for @jonpepler/kerbcam.
+# The app build authenticates to GitHub Packages for @jonpepler/kerbcast.
 # .npmrc references ${GITHUB_TOKEN}; without it `pnpm install` 401s.
 ARG GITHUB_TOKEN
 ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 # Install the full workspace once (the app pulls in components/core/data/
-# kerbcam/serial/ui, so a partial --filter install buys little here and
+# kerbcast/serial/ui, so a partial --filter install buys little here and
 # the bundle wants all three packages anyway).
 COPY . .
 RUN pnpm install --frozen-lockfile
@@ -105,7 +105,7 @@ ENV RELAY_PORT=3002
 ENV PROXY_PORT=3001
 # Where KSP is, as seen from this container. One knob for the whole stack:
 # the telnet-proxy dials it for kOS, and the relay republishes it at
-# /bootstrap-config so the SPA seeds Telemachus/kerbcam defaults from it
+# /bootstrap-config so the SPA seeds Telemachus/kerbcast defaults from it
 # (mapping container-internal names to localhost browser-side).
 # host.containers.internal reaches the host under Podman; on Docker pass
 # --add-host=host.docker.internal:host-gateway and -e KSP_HOST=host.docker.internal,

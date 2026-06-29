@@ -28,7 +28,7 @@ on:
 permissions:
   contents: write
   actions: write
-  # @jonpepler/kerbcam comes from GitHub Packages; pnpm install needs
+  # @jonpepler/kerbcast comes from GitHub Packages; pnpm install needs
   # read:packages even though the package is public.
   packages: read
 

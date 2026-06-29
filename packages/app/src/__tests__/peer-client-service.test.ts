@@ -527,7 +527,7 @@ describe("PeerClientService.sendQueryRange", () => {
   });
 });
 
-describe("PeerClientService.sendKerbcamNegotiate", () => {
+describe("PeerClientService.sendKerbcastNegotiate", () => {
   beforeEach(() => {
     FakePeer.instances = [];
   });
@@ -545,7 +545,7 @@ describe("PeerClientService.sendKerbcamNegotiate", () => {
 
   it("rejects if called before the conn is open", async () => {
     const svc = new PeerClientService();
-    await expect(svc.sendKerbcamNegotiate(OFFER)).rejects.toThrow(
+    await expect(svc.sendKerbcastNegotiate(OFFER)).rejects.toThrow(
       /not connected/,
     );
   });
@@ -559,15 +559,15 @@ describe("PeerClientService.sendKerbcamNegotiate", () => {
       sent.push(msg);
     };
 
-    const pending = svc.sendKerbcamNegotiate(OFFER);
+    const pending = svc.sendKerbcastNegotiate(OFFER);
     const first = sent[0];
-    if (!first || first.type !== "kerbcam-negotiate-request") {
-      throw new Error("expected kerbcam-negotiate-request");
+    if (!first || first.type !== "kerbcast-negotiate-request") {
+      throw new Error("expected kerbcast-negotiate-request");
     }
     expect(first.offer).toEqual(OFFER);
 
     (svc as unknown as PeerClientServiceInternal).handleMessage({
-      type: "kerbcam-negotiate-response",
+      type: "kerbcast-negotiate-response",
       requestId: first.requestId,
       answer: { sdp: "answer-sdp", cameras: [42] },
     });
@@ -587,16 +587,16 @@ describe("PeerClientService.sendKerbcamNegotiate", () => {
       sent.push(msg);
     };
 
-    const pending = svc.sendKerbcamNegotiate(OFFER);
+    const pending = svc.sendKerbcastNegotiate(OFFER);
     const first = sent[0];
-    if (!first || first.type !== "kerbcam-negotiate-request") {
-      throw new Error("expected kerbcam-negotiate-request");
+    if (!first || first.type !== "kerbcast-negotiate-request") {
+      throw new Error("expected kerbcast-negotiate-request");
     }
 
     (svc as unknown as PeerClientServiceInternal).handleMessage({
-      type: "kerbcam-negotiate-response",
+      type: "kerbcast-negotiate-response",
       requestId: first.requestId,
-      error: "kerbcam source unavailable on host",
+      error: "kerbcast source unavailable on host",
     });
 
     await expect(pending).rejects.toThrow(/unavailable on host/);

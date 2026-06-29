@@ -1,27 +1,27 @@
 import type {
-  KerbcamDataChannel,
-  KerbcamPeer,
-  KerbcamTransport,
-} from "@jonpepler/kerbcam";
+  KerbcastDataChannel,
+  KerbcastPeer,
+  KerbcastTransport,
+} from "@jonpepler/kerbcast";
 
 /**
- * Controllable in-process fake for kerbcam sidecar sessions.
+ * Controllable in-process fake for kerbcast sidecar sessions.
  *
- * Prefer the SDK's `MockSidecar` (`@jonpepler/kerbcam/testing`) — the
+ * Prefer the SDK's `MockSidecar` (`@jonpepler/kerbcast/testing`) — the
  * protocol-level canonical fake, which speaks the full wire protocol including
  * the dynamic slot subscription. The component tests (`CameraFeed`) and the
- * dynamic/broker `KerbcamDataSource` tests already use it.
+ * dynamic/broker `KerbcastDataSource` tests already use it.
  *
- * This transport-level fake remains for the handful of `KerbcamDataSource`
+ * This transport-level fake remains for the handful of `KerbcastDataSource`
  * tests that assert data-source internals `MockSidecar` doesn't surface: the
  * captured `iceServers` (the relay-TURN threading path), the raw `sentMessages`
  * array (message ordering), and the `closed` flag. Those are a natural fit for
  * a transport fake; folding them into `MockSidecar` to delete this file is a
  * possible future cleanup, not a current need.
  */
-export interface MockKerbcamSession {
-  /** Pass to KerbcamDataSource or KerbcamClient constructor. */
-  readonly transport: KerbcamTransport;
+export interface MockKerbcastSession {
+  /** Pass to KerbcastDataSource or KerbcastClient constructor. */
+  readonly transport: KerbcastTransport;
   /**
    * The ICE servers the last `transport.createPeer(...)` was called with —
    * lets tests assert the relay's TURN creds were threaded through to the
@@ -61,13 +61,13 @@ export interface MockKerbcamSession {
    * camera order from the `/offer` answer's `cameras` array (default 0).
    *
    * Slot-aware (dynamic-mode) delivery and the subscribe → slot-map round-trip
-   * live in the SDK's canonical `MockSidecar` (`@jonpepler/kerbcam/testing`) —
+   * live in the SDK's canonical `MockSidecar` (`@jonpepler/kerbcast/testing`) —
    * use that for dynamic-subscription tests rather than extending this fake.
    */
   deliverTrack(track: MediaStreamTrack, idx?: number): void;
 }
 
-export function createMockKerbcamSession(): MockKerbcamSession {
+export function createMockKerbcastSession(): MockKerbcastSession {
   const _sentMessages: string[] = [];
   let _channelOpenHandler: (() => void) | undefined;
   let _messageHandler: ((raw: string) => void) | undefined;
@@ -80,7 +80,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
   let _closed = false;
   let _iceServers: RTCIceServer[] | undefined;
 
-  const channel: KerbcamDataChannel = {
+  const channel: KerbcastDataChannel = {
     send: (s) => _sentMessages.push(s),
     onOpen: (h) => {
       _channelOpenHandler = h;
@@ -91,7 +91,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     onClose: () => {},
   };
 
-  const peer: KerbcamPeer = {
+  const peer: KerbcastPeer = {
     addRecvOnlyTransceiver: () => {},
     createDataChannel: () => channel,
     onTrack: (h) => {
@@ -110,7 +110,7 @@ export function createMockKerbcamSession(): MockKerbcamSession {
     },
   };
 
-  const transport: KerbcamTransport = {
+  const transport: KerbcastTransport = {
     createPeer: (iceServers) => {
       _iceServers = iceServers;
       return peer;
@@ -146,17 +146,17 @@ export function createMockKerbcamSession(): MockKerbcamSession {
 }
 
 /**
- * Build a URL-aware `fetch` implementation for kerbcam tests. The data source
+ * Build a URL-aware `fetch` implementation for kerbcast tests. The data source
  * makes two distinct calls on connect: a GET `/ice-config` (TURN creds) and
  * the SDK client's POST `/offer` (SDP answer + camera flightIds). A single
  * shared `Response` can't serve both — its body is consumed on the first read
  * — so this returns a *fresh* Response per call, routed by URL.
  *
- * Pass to `vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl(...))`.
+ * Pass to `vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl(...))`.
  * `iceServers` defaults to `[]` (the no-relay case → SDK STUN fallback);
  * pass servers to exercise the TURN path.
  */
-export function kerbcamFetchImpl(opts?: {
+export function kerbcastFetchImpl(opts?: {
   cameras?: number[];
   iceServers?: RTCIceServer[];
 }): (input: RequestInfo | URL) => Promise<Response> {

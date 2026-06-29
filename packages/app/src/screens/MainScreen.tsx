@@ -185,7 +185,7 @@ export function MainScreen() {
   useEffect(() => {
     const sources = getDataSources();
     sources.forEach((s) => {
-      // A source that can't connect (e.g. kerbcam with no sidecar reachable)
+      // A source that can't connect (e.g. kerbcast with no sidecar reachable)
       // settles its own status + schedules its own reconnect; swallow the
       // rejection here so it doesn't surface as an unhandled promise rejection.
       void s.connect().catch(() => {});

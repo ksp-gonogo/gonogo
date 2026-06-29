@@ -1,5 +1,5 @@
 import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { MockSidecar } from "@jonpepler/kerbcam/testing";
+import { MockSidecar } from "@jonpepler/kerbcast/testing";
 import {
   act,
   cleanup,
@@ -8,32 +8,32 @@ import {
   screen,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { KerbcamDataSource } from "../KerbcamDataSource";
-import { kerbcamFetchImpl } from "../test/MockKerbcamSession";
-import { KerbcamSettings } from "./KerbcamSettings";
+import { KerbcastDataSource } from "../KerbcastDataSource";
+import { kerbcastFetchImpl } from "../test/MockKerbcastSession";
+import { KerbcastSettings } from "./KerbcastSettings";
 
 function isChecked(el: HTMLElement): boolean {
   return (el as HTMLInputElement).checked;
 }
 
 // Sources created during a test are torn down in afterEach AFTER cleanup() so
-// KerbcamSettings is already unmounted when disconnect() fires. Disconnecting a
+// KerbcastSettings is already unmounted when disconnect() fires. Disconnecting a
 // live source while the component is still mounted triggers useSyncExternalStore
 // state updates outside act() -- the documented anti-pattern.
 const createdSources: Array<{ disconnect: () => void }> = [];
 
 /*
- * Helper: set up a connected MockSidecar + KerbcamDataSource pair.
+ * Helper: set up a connected MockSidecar + KerbcastDataSource pair.
  * Registers the source in the global registry so hooks can find it.
  * Returns the sidecar (for inspecting commands / pushing settings-state) and
- * the source (for prop-drilling into KerbcamSettings).
+ * the source (for prop-drilling into KerbcastSettings).
  */
 async function connectedFixture(): Promise<{
   sidecar: MockSidecar;
-  source: KerbcamDataSource;
+  source: KerbcastDataSource;
 }> {
   const sidecar = new MockSidecar();
-  const source = new KerbcamDataSource(
+  const source = new KerbcastDataSource(
     { host: "h", port: 1 },
     sidecar.createTransport(),
   );
@@ -54,21 +54,21 @@ afterEach(() => {
   clearRegistry();
 });
 
-describe("KerbcamSettings", () => {
+describe("KerbcastSettings", () => {
   beforeEach(() => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
+    vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
   });
 
   it("renders a switch that defaults to off before any SettingsState arrives", async () => {
     const { source } = await connectedFixture();
-    render(<KerbcamSettings source={source} />);
+    render(<KerbcastSettings source={source} />);
     const toggle = screen.getByRole("checkbox");
     expect(isChecked(toggle)).toBe(false);
   });
 
   it("sends set-throttle-main-screen when the switch is toggled on", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcamSettings source={source} />);
+    render(<KerbcastSettings source={source} />);
 
     fireEvent.click(screen.getByRole("checkbox"));
 
@@ -79,7 +79,7 @@ describe("KerbcamSettings", () => {
 
   it("reflects state pushed by a SettingsState broadcast", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcamSettings source={source} />);
+    render(<KerbcastSettings source={source} />);
 
     act(() => {
       sidecar.fireSettingsState({ throttleMainScreen: true });
@@ -90,7 +90,7 @@ describe("KerbcamSettings", () => {
 
   it("reflects an externally-originated change (another client toggled it off)", async () => {
     const { sidecar, source } = await connectedFixture();
-    render(<KerbcamSettings source={source} />);
+    render(<KerbcastSettings source={source} />);
 
     /* Sidecar pushes throttle-on (e.g. from Hello or another client). */
     act(() => {

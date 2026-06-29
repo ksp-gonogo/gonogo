@@ -3,15 +3,15 @@
  *
  * Two halves:
  *  - the "SIGNAL LOST" overlay + zoom / pan / resize / CommNet feedback
- *    controls (carried over from the original kerbcam smoke);
+ *    controls (carried over from the original kerbcast smoke);
  *  - the camera-selection layer (picker, Next/Previous buttons, the
  *    `nextCamera` / `prevCamera` serial-input actions, status indicator
  *    and empty state) that mirrors the OCISLY `CameraFeed`.
  *
- * Everything drives the real `KerbcamDataSource` + real `useKerbcamCameras`
- * / `useKerbcamStream` hooks through the SDK's canonical `MockSidecar`
- * (`@jonpepler/kerbcam/testing`) — the protocol-level fake that owns a camera
- * registry and speaks the full kerbcam wire protocol. The only thing faked is
+ * Everything drives the real `KerbcastDataSource` + real `useKerbcastCameras`
+ * / `useKerbcastStream` hooks through the SDK's canonical `MockSidecar`
+ * (`@jonpepler/kerbcast/testing`) — the protocol-level fake that owns a camera
+ * registry and speaks the full kerbcast wire protocol. The only thing faked is
  * the WebRTC transport, because jsdom can't produce a real `MediaStream`.
  * Multi-camera scenarios are expressed by populating the sidecar's registry
  * (`addCamera` / `setCameras`); state changes go through `updateCamera` /
@@ -31,8 +31,8 @@ import {
   dispatchAction,
   registerDataSource,
 } from "@gonogo/core";
-import type { CameraLifecycle, Layer } from "@jonpepler/kerbcam";
-import { type MockCameraInit, MockSidecar } from "@jonpepler/kerbcam/testing";
+import type { CameraLifecycle, Layer } from "@jonpepler/kerbcast";
+import { type MockCameraInit, MockSidecar } from "@jonpepler/kerbcast/testing";
 import {
   act,
   cleanup,
@@ -43,7 +43,7 @@ import {
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { KerbcamDataSource } from "../KerbcamDataSource";
+import { KerbcastDataSource } from "../KerbcastDataSource";
 import { CameraFeed, type CameraFeedConfig } from "./CameraFeed";
 import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
@@ -60,7 +60,7 @@ const TEST_INSTANCE_ID = "camera-feed-test";
 
 // Sources created during a test are torn down in afterEach AFTER cleanup() so
 // the CameraFeed is already unmounted when disconnect() fires. Disconnecting a
-// live source while the widget is still mounted triggers useKerbcamStream state
+// live source while the widget is still mounted triggers useKerbcastStream state
 // updates outside act() — the documented anti-pattern in CLAUDE.md.
 const createdSources: Array<{ disconnect: () => void }> = [];
 
@@ -108,7 +108,7 @@ function renderStatefulFeed(
   return render(<Harness />);
 }
 
-// Note: importing KerbcamDataSource class directly (not the barrel index)
+// Note: importing KerbcastDataSource class directly (not the barrel index)
 // avoids the module-level registerDataSource() side effect. Tests register
 // their own instance explicitly via registerDataSource() in each fixture.
 
@@ -193,7 +193,7 @@ function toInit(c: CameraStateLike): MockCameraInit {
 // → an SDP answer carrying the given flightIds, so the client opens a track for
 // every camera it's about to learn about. `makeOfferResponse` is called per
 // invocation because a `Response` body is single-use.
-function kerbcamFetch(
+function kerbcastFetch(
   cameras: number[],
 ): (input: RequestInfo | URL) => Promise<Response> {
   return async (input) => {
@@ -223,7 +223,7 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetch([42]));
+  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetch([42]));
 });
 
 afterEach(() => {
@@ -237,7 +237,7 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Test fixture: builds and registers a KerbcamDataSource with a fake
+// Test fixture: builds and registers a KerbcastDataSource with a fake
 // transport, connects it, opens the control channel, and pushes an initial
 // camera snapshot. Defaults to a single active "Starboard Cam" (flightId 42)
 // matching the original single-camera fixture; pass `cameras` for the
@@ -248,12 +248,12 @@ async function buildConnectedSource(
   cameras: CameraStateLike[] = [
     makeCamera({ flightId: 42, cameraName: "Starboard Cam" }),
   ],
-): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+): Promise<{ ds: KerbcastDataSource; sidecar: MockSidecar }> {
   const sidecar = new MockSidecar();
   for (const c of cameras) {
     sidecar.addCamera(toInit(c));
   }
-  const ds = new KerbcamDataSource(
+  const ds = new KerbcastDataSource(
     { host: "h", port: 1 },
     sidecar.createTransport(),
   );
@@ -263,7 +263,7 @@ async function buildConnectedSource(
   // Keep the /offer answer's `cameras` array in sync with the snapshot so the
   // client opens a track for every flightId it's about to learn about.
   vi.spyOn(globalThis, "fetch").mockImplementation(
-    kerbcamFetch(cameras.map((c) => c.flightId)),
+    kerbcastFetch(cameras.map((c) => c.flightId)),
   );
 
   await act(async () => {
@@ -558,7 +558,7 @@ describe("CameraFeed — camera selection", () => {
 
     renderFeed({ flightId: 42 });
 
-    // jest-dom's toBeDisabled() isn't wired into the kerbcam setup, so assert
+    // jest-dom's toBeDisabled() isn't wired into the kerbcast setup, so assert
     // the underlying `disabled` property directly.
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: /next camera/i })
@@ -660,11 +660,11 @@ describe("CameraFeed — empty state and status", () => {
   });
 
   it("renders the empty state gracefully when the source is disconnected", async () => {
-    // A kerbcam source that never connects (status stays disconnected): build
+    // A kerbcast source that never connects (status stays disconnected): build
     // the transport but never call connect()/open(). The widget shows the same
     // neutral empty state and surfaces no in-widget connection status.
     const sidecar = new MockSidecar();
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -985,7 +985,7 @@ describe("CameraFeed — CommNet degrade", () => {
 describe("CameraFeed — station (brokered) mode", () => {
   async function buildBrokeredSource(
     cams: Array<{ flightId: number; cameraName: string; vesselName: string }>,
-  ): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+  ): Promise<{ ds: KerbcastDataSource; sidecar: MockSidecar }> {
     const sidecar = new MockSidecar();
     for (const c of cams) {
       sidecar.addCamera({
@@ -995,7 +995,7 @@ describe("CameraFeed — station (brokered) mode", () => {
         supportsZoom: false,
       });
     }
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -1044,7 +1044,7 @@ describe("CameraFeed — station (brokered) mode", () => {
 
     renderFeed({ flightId: 42 });
 
-    // The mounted widget's useKerbcamStream subscribed flightId 42, which the
+    // The mounted widget's useKerbcastStream subscribed flightId 42, which the
     // sidecar answered with a slot binding — same dynamic path as the main
     // screen, but every message rode the brokered connection.
     await waitFor(() => {

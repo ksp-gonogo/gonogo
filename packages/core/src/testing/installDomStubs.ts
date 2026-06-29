@@ -44,7 +44,7 @@ export function installDomStubs(): void {
   installNoopWebSocket();
 
   // jsdom has no `window.matchMedia`; components that read media queries at
-  // mount (e.g. @jonpepler/kerbcam-react's CameraFeed since 0.21) crash
+  // mount (e.g. @jonpepler/kerbcast-react's CameraFeed since 0.21) crash
   // without it. A never-matching stub keeps them on the default branch.
   if (
     typeof window !== "undefined" &&

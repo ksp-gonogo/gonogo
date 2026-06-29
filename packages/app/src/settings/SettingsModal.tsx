@@ -1,6 +1,6 @@
 import { DataSourceStatusComponent } from "@gonogo/components";
 import { getDataSource, useDataSources, useScreen } from "@gonogo/core";
-import { type KerbcamDataSource, KerbcamSettings } from "@gonogo/kerbcam";
+import { type KerbcastDataSource, KerbcastSettings } from "@gonogo/kerbcast";
 import { SerialDevicesMenu, useSerialAggregateStatus } from "@gonogo/serial";
 import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
@@ -39,10 +39,10 @@ export function SettingsModal() {
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
-  /* The Kerbcam tab is main-screen-only and requires the source to be registered. */
-  const kerbcamSource =
+  /* The Kerbcast tab is main-screen-only and requires the source to be registered. */
+  const kerbcastSource =
     screen === "main"
-      ? (getDataSource("kerbcam") as KerbcamDataSource | undefined)
+      ? (getDataSource("kerbcast") as KerbcastDataSource | undefined)
       : undefined;
 
   const hasGeneral = settings.length > 0 || showConsent;
@@ -72,11 +72,11 @@ export function SettingsModal() {
     content: <SerialDevicesMenu />,
     indicator: serialIssue,
   });
-  if (kerbcamSource) {
+  if (kerbcastSource) {
     tabs.push({
-      id: "kerbcam",
-      label: "Kerbcam",
-      content: <KerbcamSettings source={kerbcamSource} />,
+      id: "kerbcast",
+      label: "Kerbcast",
+      content: <KerbcastSettings source={kerbcastSource} />,
     });
   }
   tabs.push({

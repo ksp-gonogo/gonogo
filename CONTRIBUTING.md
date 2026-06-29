@@ -8,7 +8,7 @@ Thanks for taking an interest. This is a small project and contributions are wel
 
 You need **Node 24** (via nvm), **pnpm v10+**, and a container runtime (the dev tooling drives `podman compose`, so Podman is what's wired up).
 
-gonogo depends on `@jonpepler/kerbcam`, which is published to GitHub Packages. `.npmrc` reads an auth token from `$GITHUB_TOKEN`, so you need that exported in your shell before `pnpm install`, or the install fails. The token must be exported in the same shell you run `pnpm` from; pnpm reads it from the environment, not from any saved login.
+gonogo depends on `@jonpepler/kerbcast`, which is published to GitHub Packages. `.npmrc` reads an auth token from `$GITHUB_TOKEN`, so you need that exported in your shell before `pnpm install`, or the install fails. The token must be exported in the same shell you run `pnpm` from; pnpm reads it from the environment, not from any saved login.
 
 ```bash
 git clone https://github.com/jonpepler/gonogo.git

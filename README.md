@@ -6,7 +6,7 @@ A mission control web app for [Kerbal Space Program](https://www.kerbalspaceprog
 
 gonogo is a way to play KSP through a browser dashboard instead of the main game screen. With the exception of VAB/SPH, you can run the whole game from it: take contracts, run science, spend funds, launch, and take on missions.
 
-The main screen dashboard is a widget-based interface that hooks into data in the game. It pulls from Telemachus (the gonogo build), kOS, SCANsat, and HullCameraVDS/Kerbcam. Using this data you can see a live updating map view built from your scanners, watch video feeds from on-board cameras (and control them!), and customise live-updating graphs. There are lots of widgets for lots of different uses.
+The main screen dashboard is a widget-based interface that hooks into data in the game. It pulls from Telemachus (the gonogo build), kOS, SCANsat, and HullCameraVDS/Kerbcast. Using this data you can see a live updating map view built from your scanners, watch video feeds from on-board cameras (and control them!), and customise live-updating graphs. There are lots of widgets for lots of different uses.
 
 You can use widget profiles to dynamically switch dashboards based on what you're doing in the game. You can also **use gonogo as a multiplayer experience**. 'Stations' can register with the main screen and connect via a share code generated on the main screen. Stations get all the same data as the main screen, and can even push data for viewing on the main screen. One way to play is having the main screen as a general screen for everyone, and then everyone uses their own station screen for specialised data.
 
