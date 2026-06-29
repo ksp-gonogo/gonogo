@@ -8,26 +8,26 @@ import { PerfBudget, registerDataSource } from "@gonogo/core";
 import {
   type CameraState,
   type ClientMessage,
-  KerbcamClient,
-  type KerbcamConnectionState,
-  type KerbcamDataChannel,
-  type KerbcamPeer,
-  type KerbcamTransport,
+  KerbcastClient,
+  type KerbcastConnectionState,
+  type KerbcastDataChannel,
+  type KerbcastPeer,
+  type KerbcastTransport,
   type Layer,
-} from "@jonpepler/kerbcam";
+} from "@jonpepler/kerbcast";
 
 /**
- * gonogo `DataSource` wrapper around `KerbcamClient`. Surfaces the
+ * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the
  * sidecar connection in the Data Sources widget and re-exposes the
- * cached camera registry under the `kerbcam.cameras` data key.
+ * cached camera registry under the `kerbcast.cameras` data key.
  *
- * Video frames bind via {@link useKerbcamStream} (returns a
+ * Video frames bind via {@link useKerbcastStream} (returns a
  * `MediaStream` directly — not a value channel) and the camera list
- * via {@link useKerbcamCameras}, both of which reach into the
+ * via {@link useKerbcastCameras}, both of which reach into the
  * underlying client via {@link getClient}.
  */
 
-export interface KerbcamConfig extends Record<string, unknown> {
+export interface KerbcastConfig extends Record<string, unknown> {
   host: string;
   port: number;
 }
@@ -40,7 +40,7 @@ export interface KerbcamConfig extends Record<string, unknown> {
  * flows station↔sidecar directly off the answer's ICE candidates — nothing
  * about the video crosses PeerJS. The app builds this from `PeerClientService`.
  */
-export interface KerbcamBroker {
+export interface KerbcastBroker {
   /** Relay one offer to the sidecar via the host; resolve with the answer. */
   negotiate(offer: {
     sdp: string;
@@ -53,9 +53,9 @@ export interface KerbcamBroker {
   onIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void;
 }
 
-const DEFAULT_CONFIG: KerbcamConfig = { host: "127.0.0.1", port: 8088 };
+const DEFAULT_CONFIG: KerbcastConfig = { host: "127.0.0.1", port: 8088 };
 
-const STORAGE_KEY = "gonogo.datasource.kerbcam";
+const STORAGE_KEY = "gonogo.datasource.kerbcast";
 
 const PING_WATCHDOG_MS = 15_000;
 const RECONNECT_BASE_MS = 2_000;
@@ -68,12 +68,12 @@ const RECONNECT_MAX_MS = 30_000;
 // simultaneous on-screen feeds, not a steady-state cost.
 const SLOT_COUNT = 6;
 
-// The kerbcam WebRTC stream needs the same TURN relay the PeerJS host uses
+// The kerbcast WebRTC stream needs the same TURN relay the PeerJS host uses
 // for non-LAN delivery. The gonogo relay bundles coturn and serves the
 // rotated creds at `/ice-config` (see packages/relay). We fetch them here and
 // hand them to the SDK client; with no relay reachable we fall back to the
-// SDK's STUN-only default so kerbcam-on-LAN keeps working untouched. Mirrors
-// the host's app/peer/iceServers.ts (kerbcam can't import across that package
+// SDK's STUN-only default so kerbcast-on-LAN keeps working untouched. Mirrors
+// the host's app/peer/iceServers.ts (kerbcast can't import across that package
 // boundary, so the small fetch is duplicated rather than shared).
 const RELAY_DEFAULT_URL = "http://localhost:3002";
 const ICE_FETCH_TIMEOUT_MS = 4_000;
@@ -105,19 +105,19 @@ async function fetchRelayIceServers(): Promise<RTCIceServer[]> {
   }
 }
 
-const KERBCAM_CAMERAS_BUDGET = new PerfBudget({
-  name: "KerbcamDataSource cameras updates/sec",
+const KERBCAST_CAMERAS_BUDGET = new PerfBudget({
+  name: "KerbcastDataSource cameras updates/sec",
   threshold: 50,
   windowMs: 1000,
   unit: "updates",
 });
 
-function loadConfig(): KerbcamConfig {
+function loadConfig(): KerbcastConfig {
   if (typeof localStorage === "undefined") return DEFAULT_CONFIG;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CONFIG;
-    const parsed = JSON.parse(raw) as Partial<KerbcamConfig>;
+    const parsed = JSON.parse(raw) as Partial<KerbcastConfig>;
     return {
       host: typeof parsed.host === "string" ? parsed.host : DEFAULT_CONFIG.host,
       port: typeof parsed.port === "number" ? parsed.port : DEFAULT_CONFIG.port,
@@ -127,7 +127,7 @@ function loadConfig(): KerbcamConfig {
   }
 }
 
-function persistConfig(cfg: KerbcamConfig): void {
+function persistConfig(cfg: KerbcastConfig): void {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
@@ -137,12 +137,12 @@ function persistConfig(cfg: KerbcamConfig): void {
 }
 
 // ---------------------------------------------------------------------------
-// BrowserRTCTransport — mirrors the SDK's private BrowserKerbcamTransport.
-// Copied from @jonpepler/kerbcam/dist/client.js so KeepaliveTransport can
+// BrowserRTCTransport — mirrors the SDK's private BrowserKerbcastTransport.
+// Copied from @jonpepler/kerbcast/dist/client.js so KeepaliveTransport can
 // wrap it without depending on the SDK's unexported class.
 // ---------------------------------------------------------------------------
 
-function mapRTCState(state: RTCPeerConnectionState): KerbcamConnectionState {
+function mapRTCState(state: RTCPeerConnectionState): KerbcastConnectionState {
   switch (state) {
     case "new":
     case "connecting":
@@ -157,7 +157,7 @@ function mapRTCState(state: RTCPeerConnectionState): KerbcamConnectionState {
   }
 }
 
-function wrapRTCDataChannel(dc: RTCDataChannel): KerbcamDataChannel {
+function wrapRTCDataChannel(dc: RTCDataChannel): KerbcastDataChannel {
   let onOpen: (() => void) | null = null;
   let onMessage: ((raw: string) => void) | null = null;
   let onClose: (() => void) | null = null;
@@ -182,14 +182,14 @@ function wrapRTCDataChannel(dc: RTCDataChannel): KerbcamDataChannel {
   };
 }
 
-export class BrowserRTCTransport implements KerbcamTransport {
-  createPeer(iceServers: RTCIceServer[]): KerbcamPeer {
+export class BrowserRTCTransport implements KerbcastTransport {
+  createPeer(iceServers: RTCIceServer[]): KerbcastPeer {
     const pc = new RTCPeerConnection({ iceServers });
     let trackIdx = 0;
     let onTrack:
       | ((track: MediaStreamTrack, idx: number, mid: string) => void)
       | null = null;
-    let onStateChange: ((state: KerbcamConnectionState) => void) | null = null;
+    let onStateChange: ((state: KerbcastConnectionState) => void) | null = null;
     pc.ontrack = (ev) => {
       // mid is the stable transceiver id the sidecar keys SlotMap on (set by
       // the time ontrack fires, post-answer); the SDK routes dynamic-mode
@@ -241,25 +241,25 @@ export class BrowserRTCTransport implements KerbcamTransport {
 }
 
 // ---------------------------------------------------------------------------
-// KeepaliveTransport — wraps any inner KerbcamTransport and intercepts
+// KeepaliveTransport — wraps any inner KerbcastTransport and intercepts
 // ping messages on the data channel, responding with pong automatically.
 // Non-ping messages pass through to the SDK handler unchanged.
 //
-// TODO: ping→pong handling belongs in @jonpepler/kerbcam itself — move here
+// TODO: ping→pong handling belongs in @jonpepler/kerbcast itself — move here
 // once the SDK supports a reconnect policy hook.
 // ---------------------------------------------------------------------------
 
-export class KeepaliveTransport implements KerbcamTransport {
+export class KeepaliveTransport implements KerbcastTransport {
   constructor(
-    private readonly inner: KerbcamTransport,
+    private readonly inner: KerbcastTransport,
     private readonly onPingReceived: (
       sendFn: (msg: ClientMessage) => void,
     ) => void,
   ) {}
 
-  createPeer(iceServers: RTCIceServer[]): KerbcamPeer {
+  createPeer(iceServers: RTCIceServer[]): KerbcastPeer {
     const peer = this.inner.createPeer(iceServers);
-    const wrapChannel = (ch: KerbcamDataChannel): KerbcamDataChannel => {
+    const wrapChannel = (ch: KerbcastDataChannel): KerbcastDataChannel => {
       let sdkHandler: ((raw: string) => void) | null = null;
 
       // Install our ping filter on the inner channel immediately so
@@ -308,23 +308,23 @@ export class KeepaliveTransport implements KerbcamTransport {
 }
 
 // ---------------------------------------------------------------------------
-// KerbcamDataSource
+// KerbcastDataSource
 // ---------------------------------------------------------------------------
 
-export class KerbcamDataSource implements DataSource<KerbcamConfig> {
-  id = "kerbcam";
-  name = "Kerbcam";
+export class KerbcastDataSource implements DataSource<KerbcastConfig> {
+  id = "kerbcast";
+  name = "Kerbcast";
   status: DataSourceStatus = "disconnected";
   /**
-   * Kerbcam streams are independent of CommNet — losing the in-game
+   * Kerbcast streams are independent of CommNet — losing the in-game
    * antenna doesn't affect the WebRTC connection to the sidecar.
    * Camera widgets visualise signal loss via `set-degrade` instead.
    */
   affectedBySignalLoss = false;
 
-  private cfg: KerbcamConfig;
-  private baseTransport: KerbcamTransport | undefined;
-  private client: KerbcamClient;
+  private cfg: KerbcastConfig;
+  private baseTransport: KerbcastTransport | undefined;
+  private client: KerbcastClient;
   private clientUnsubs: Array<() => void> = [];
   // TURN creds: on the main screen, fetched from the relay's /ice-config; on a
   // brokered station, pushed in from the host's relay broadcast. Empty until
@@ -350,7 +350,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   private turnEscalated = false;
   // Set on a station via attachBroker(); switches connect() off the localhost
   // /offer + /ice-config path and onto the host-relayed handshake.
-  private broker: KerbcamBroker | undefined;
+  private broker: KerbcastBroker | undefined;
   private brokerIceUnsub: (() => void) | undefined;
   private statusListeners = new Set<(status: DataSourceStatus) => void>();
   private camerasKeySubs = new Set<(value: unknown) => void>();
@@ -368,14 +368,14 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   private reconnectAttempts = 0;
   private reconnectEnabled = false;
 
-  constructor(config?: KerbcamConfig, transport?: KerbcamTransport) {
+  constructor(config?: KerbcastConfig, transport?: KerbcastTransport) {
     this.cfg = config ?? loadConfig();
     this.baseTransport = transport;
     this.client = this.buildClient();
   }
 
   /** Underlying client (hooks reach in directly via this). */
-  getClient(): KerbcamClient {
+  getClient(): KerbcastClient {
     return this.client;
   }
 
@@ -476,7 +476,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
    * Refcounted: the first widget to show `flightId` sends `subscribe` to the
    * sidecar — allocating a slot and starting render/encode for that camera —
    * and the last one to stop showing it frees the slot. Called by
-   * {@link useKerbcamStream} on mount/unmount.
+   * {@link useKerbcastStream} on mount/unmount.
    *
    * Safe to call while disconnected: the camera is recorded and bound via the
    * initial set on the next connect, so a widget that mounts before the sidecar
@@ -542,7 +542,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
       body: JSON.stringify(offer),
     });
     if (!res.ok) {
-      throw new Error(`kerbcam /offer returned ${res.status}`);
+      throw new Error(`kerbcast /offer returned ${res.status}`);
     }
     return (await res.json()) as { sdp: string; cameras: number[] };
   }
@@ -558,7 +558,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
    * (Named `attachBroker`, not `useBroker`, to avoid the React-hook naming
    * heuristic — it's a plain method, safe to call outside render.)
    */
-  attachBroker(broker: KerbcamBroker): void {
+  attachBroker(broker: KerbcastBroker): void {
     this.broker = broker;
     this.iceServers = broker.iceServers();
     this.brokerIceUnsub?.();
@@ -592,11 +592,11 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 
   schema(): DataKey[] {
-    return [{ key: "kerbcam.cameras" }];
+    return [{ key: "kerbcast.cameras" }];
   }
 
   subscribe(key: string, cb: (value: unknown) => void): () => void {
-    if (key !== "kerbcam.cameras") return () => {};
+    if (key !== "kerbcast.cameras") return () => {};
     this.camerasKeySubs.add(cb);
     queueMicrotask(() => cb(this.client.cameras));
     return () => this.camerasKeySubs.delete(cb);
@@ -677,7 +677,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     ];
   }
 
-  getConfig(): KerbcamConfig {
+  getConfig(): KerbcastConfig {
     return { ...this.cfg };
   }
 
@@ -695,14 +695,14 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
 
   /**
    * Apply a first-run seeded sidecar host WITHOUT persisting — see
-   * `seedKerbcamHost`.
+   * `seedKerbcastHost`.
    */
   applySeededHost(host: string): void {
     if (host === this.cfg.host) return;
     this.applyConfig({ ...this.cfg, host });
   }
 
-  private applyConfig(next: KerbcamConfig): void {
+  private applyConfig(next: KerbcastConfig): void {
     const wasEnabled = this.reconnectEnabled;
     this.cfg = next;
     this.reconnectEnabled = false;
@@ -716,7 +716,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
 
   // -- private --
 
-  private buildClient(): KerbcamClient {
+  private buildClient(): KerbcastClient {
     const keepaliveTransport = new KeepaliveTransport(
       this.baseTransport ?? new BrowserRTCTransport(),
       (sendFn) => {
@@ -728,7 +728,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
     // Capture the broker locally so the negotiate closure is stable across a
     // later rebuild and doesn't re-read `this.broker` after a teardown.
     const broker = this.broker;
-    const client = new KerbcamClient(
+    const client = new KerbcastClient(
       {
         host: this.cfg.host,
         port: this.cfg.port,
@@ -761,7 +761,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
         }
       }),
       client.on("cameras-change", (cams) => {
-        KERBCAM_CAMERAS_BUDGET.record();
+        KERBCAST_CAMERAS_BUDGET.record();
         this.camerasKeySubs.forEach((cb) => {
           cb(cams);
         });
@@ -783,13 +783,13 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
    * reconnect after a relay bounce needs the fresh credentials.
    *
    * Crucially this sets the creds on the *existing* client rather than
-   * rebuilding it: `KerbcamClient.connect()` re-reads `cfg.iceServers` every
+   * rebuilding it: `KerbcastClient.connect()` re-reads `cfg.iceServers` every
    * time it creates a peer (so the connect that immediately follows, and each
    * reconnect, picks the mutation up), and swapping the instance instead would
-   * orphan the camera hooks. `useKerbcamStream` / `useKerbcamCameras` capture
+   * orphan the camera hooks. `useKerbcastStream` / `useKerbcastCameras` capture
    * `getClient()` once and bind to its events; a rebuilt client would fire
    * onto a dead instance — a black camera on exactly the TURN path this
-   * targets. `cfg` is private in the SDK, but we own kerbcam and the
+   * targets. `cfg` is private in the SDK, but we own kerbcast and the
    * "threads TURN servers" test drives the real client, so a field rename
    * reddens CI rather than silently regressing.
    */
@@ -873,7 +873,7 @@ export class KerbcamDataSource implements DataSource<KerbcamConfig> {
   }
 }
 
-function mapStatus(s: KerbcamConnectionState): DataSourceStatus {
+function mapStatus(s: KerbcastConnectionState): DataSourceStatus {
   switch (s) {
     case "connected":
       return "connected";
@@ -900,15 +900,15 @@ function parseAction(action: string): [string, string[]] {
   return [name, args];
 }
 
-export const kerbcamSource = new KerbcamDataSource();
-registerDataSource(kerbcamSource);
+export const kerbcastSource = new KerbcastDataSource();
+registerDataSource(kerbcastSource);
 
 /**
  * First-run seeding from the bundle's `KSP_HOST` (via the relay's
  * `/bootstrap-config`). In-memory only; skipped when the user has ever
- * saved a kerbcam config, so an explicit Settings save always wins.
+ * saved a kerbcast config, so an explicit Settings save always wins.
  */
-export function seedKerbcamHost(host: string): void {
+export function seedKerbcastHost(host: string): void {
   try {
     if (
       typeof localStorage !== "undefined" &&
@@ -919,15 +919,15 @@ export function seedKerbcamHost(host: string): void {
   } catch {
     return;
   }
-  kerbcamSource.applySeededHost(host);
+  kerbcastSource.applySeededHost(host);
 }
 
 // Dev-only debug handle: inspect the live stream-routing state from the console
 // (or via automation) to diagnose black-feed / no-track issues.
-//   __kerbcam.debugDump()  →  status, desiredSubs, slot routing, per-camera tracks
+//   __kerbcast.debugDump()  →  status, desiredSubs, slot routing, per-camera tracks
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
-  (globalThis as unknown as { __kerbcam?: KerbcamDataSource }).__kerbcam =
-    kerbcamSource;
+  (globalThis as unknown as { __kerbcast?: KerbcastDataSource }).__kerbcast =
+    kerbcastSource;
 }
 
 export type { CameraState };

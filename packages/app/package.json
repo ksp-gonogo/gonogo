@@ -15,7 +15,7 @@
     "@gonogo/components": "workspace:*",
     "@gonogo/core": "workspace:*",
     "@gonogo/data": "workspace:*",
-    "@gonogo/kerbcam": "workspace:*",
+    "@gonogo/kerbcast": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/serial": "workspace:*",
     "@gonogo/ui": "workspace:*",

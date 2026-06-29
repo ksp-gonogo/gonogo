@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   test: {
-    name: "kerbcam",
+    name: "kerbcast",
     environment: "jsdom",
     globals: true,
     exclude: ["dist/**", "node_modules/**"],

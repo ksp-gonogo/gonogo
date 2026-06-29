@@ -1,18 +1,18 @@
 import { Switch } from "@gonogo/ui";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
-import type { KerbcamDataSource } from "../KerbcamDataSource";
+import type { KerbcastDataSource } from "../KerbcastDataSource";
 
 /*
- * Settings tab content for the kerbcam connection.
+ * Settings tab content for the kerbcast connection.
  * Structured to grow: additional global controls slot in as new sections.
  */
 
-interface KerbcamSettingsProps {
-  source: KerbcamDataSource;
+interface KerbcastSettingsProps {
+  source: KerbcastDataSource;
 }
 
-export function KerbcamSettings({ source }: KerbcamSettingsProps) {
+export function KerbcastSettings({ source }: KerbcastSettingsProps) {
   return (
     <SectionStack>
       <Section>
@@ -23,7 +23,7 @@ export function KerbcamSettings({ source }: KerbcamSettingsProps) {
   );
 }
 
-function ThrottleRow({ source }: { source: KerbcamDataSource }) {
+function ThrottleRow({ source }: { source: KerbcastDataSource }) {
   const enabled = useSyncExternalStore(
     (cb) => source.onThrottleChange(cb),
     () => source.getThrottleMainScreen(),
@@ -33,7 +33,7 @@ function ThrottleRow({ source }: { source: KerbcamDataSource }) {
       <RowText>
         <RowLabel>Throttle KSP main render</RowLabel>
         <RowDesc>
-          Disables the main KSP flight cameras to free GPU headroom for kerbcam
+          Disables the main KSP flight cameras to free GPU headroom for kerbcast
           streams. Persists across saves.
         </RowDesc>
       </RowText>

@@ -75,7 +75,7 @@ The end-user path is a single image, `ghcr.io/jonpepler/gonogo:latest`, that run
 
 ## Release and dev channels
 
-Everything user-facing moves only when a release is cut; pushes to `main` move a separate dev channel. Same model as kerbcam.
+Everything user-facing moves only when a release is cut; pushes to `main` move a separate dev channel. Same model as kerbcast.
 
 | Surface | Release channel | Dev channel (every CI-green push to `main`) |
 | --- | --- | --- |

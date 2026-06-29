@@ -7,9 +7,9 @@ import {
 } from "@gonogo/core";
 import {
   buildCameraLabeler,
-  useKerbcamCameras,
-  useKerbcamStream,
-} from "@gonogo/kerbcam";
+  useKerbcastCameras,
+  useKerbcastStream,
+} from "@gonogo/kerbcast";
 import {
   ConfigForm,
   Field,
@@ -36,7 +36,7 @@ interface DistanceToTargetConfig {
   /** Which HUD variant auto-switch promotes to. Default "hud-with-camera". */
   hudMode?: DockingHudMode;
   /**
-   * kerbcam camera flightId used for the video backdrop. Unset → first
+   * kerbcast camera flightId used for the video backdrop. Unset → first
    * available. Meaningful only when `hudMode === "hud-with-camera"`.
    */
   cameraFlightId?: number | null;
@@ -434,13 +434,13 @@ function DockingHud(props: DockingHudProps) {
 }
 
 function HudCamera({ flightId }: { flightId: number | null | undefined }) {
-  const cameras = useKerbcamCameras();
+  const cameras = useKerbcastCameras();
   // Pick the configured camera if it's still available, otherwise first.
   const resolved =
     flightId != null && cameras.some((c) => c.flightId === flightId)
       ? flightId
       : (cameras[0]?.flightId ?? null);
-  const stream = useKerbcamStream(resolved);
+  const stream = useKerbcastStream(resolved);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -470,7 +470,7 @@ function DistanceToTargetConfigComponent({
   const [cameraFlightId, setCameraFlightId] = useState<number | null>(
     config?.cameraFlightId ?? null,
   );
-  const cameras = useKerbcamCameras();
+  const cameras = useKerbcastCameras();
   // Same docking-port name disambiguation as the CameraFeed picker.
   const cameraLabel = useMemo(() => buildCameraLabeler(cameras), [cameras]);
 

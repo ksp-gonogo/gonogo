@@ -5,7 +5,7 @@ import { bootstrapPair, expect, teardownPair } from "../helpers";
  * Tier-1 smoke test for the CameraFeed widget.
  *
  * Asserts the panel renders with the correct title and shows the
- * no-cameras placeholder when no kerbcam sidecar is reachable (always
+ * no-cameras placeholder when no kerbcast sidecar is reachable (always
  * the case in CI). The WebRTC handshake, stream playback, zoom/pan
  * controls, and SIGNAL LOST overlay are exercised by the vitest suite
  * (CameraFeed.test.tsx) where a controlled fake transport lets us drive

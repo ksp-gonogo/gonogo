@@ -540,7 +540,7 @@ registerDataSource(kosSource);
  * `/bootstrap-config`). Seeds the KSP-side telnet host VERBATIM — the
  * in-container proxy is the thing dialling it, so container-internal names
  * like `host.containers.internal` are correct here (unlike the browser-side
- * Telemachus/kerbcam seeds). In-memory only; any user-saved kOS config
+ * Telemachus/kerbcast seeds). In-memory only; any user-saved kOS config
  * (current or legacy kos-compute key) wins.
  */
 export function seedKosHost(kosHost: string): void {

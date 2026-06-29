@@ -21,7 +21,7 @@
   "dependencies": {
     "@gonogo/core": "workspace:*",
     "@gonogo/data": "workspace:*",
-    "@gonogo/kerbcam": "workspace:*",
+    "@gonogo/kerbcast": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/ui": "workspace:*",
     "@xterm/addon-fit": "^0.11.0",

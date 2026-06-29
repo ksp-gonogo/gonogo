@@ -9,13 +9,13 @@ import { bootstrapPair, expect, teardownPair } from "../helpers";
  * box. Root cause: a missing `mobileHeight` on the component
  * registration, so MobileDashboard falls back to
  * `defaultSize.h * ROW_HEIGHT` (5 * 25 = 125px) — far too short for a
- * 16:9 hullcam frame. The kerbcam CameraFeed sets `mobileHeight: 280`.
+ * 16:9 hullcam frame. The kerbcast CameraFeed sets `mobileHeight: 280`.
  *
  * This spec catches that regression by booting a touch-emulated context
  * (which routes through MobileDashboard rather than the responsive grid)
  * and asserting the widget's mobile cell actually gets the height it asks
  * for. It doesn't exercise the WebRTC media pipe or the relay — the
- * sizing holds whether or not a stream arrives (the kerbcam vitest suite
+ * sizing holds whether or not a stream arrives (the kerbcast vitest suite
  * drives the sidecar protocol).
  */
 

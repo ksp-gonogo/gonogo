@@ -12,8 +12,8 @@ packages/
   serial/      — Per-screen serial input platform: device types, transports,
                  render styles, InputDispatcher, VirtualDevice widget + UI
   ui/          — Reusable UI primitives (buttons, inputs, tabs, modal, icons)
-  kerbcam/     — Consumer of the kerbcam camera-streaming sidecar; registers
-                 a `kerbcam` data source + the Camera Feed widget
+  kerbcast/     — Consumer of the kerbcast camera-streaming sidecar; registers
+                 a `kerbcast` data source + the Camera Feed widget
   app/         — Vite + React SPA (main screen + station mode)
   telnet-proxy/— Fastify server: spawns system telnet via node-pty, bridges
                  to a WebSocket the browser can consume (kOS only)

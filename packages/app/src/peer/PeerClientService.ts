@@ -257,7 +257,7 @@ export class PeerClientService {
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
-  // kerbcam data source can feed them to its station↔sidecar PeerConnection —
+  // kerbcast data source can feed them to its station↔sidecar PeerConnection —
   // a path separate from PeerJS. Empty until the first broadcast carrying creds.
   private relayIceServers: RTCIceServer[] = [];
   private hostVersion: { version: string; buildTime: string } | null = null;
@@ -274,7 +274,7 @@ export class PeerClientService {
   }>();
   private pendingKosExecutes = new RequestTracker<KosData>();
   private pendingFlightRpc = new RequestTracker<unknown>();
-  private pendingKerbcamNegotiate = new RequestTracker<{
+  private pendingKerbcastNegotiate = new RequestTracker<{
     sdp: string;
     cameras: number[];
   }>();
@@ -681,12 +681,12 @@ export class PeerClientService {
   }
 
   /**
-   * Station broker: ask the host to relay a kerbcam WebRTC offer to the sidecar
+   * Station broker: ask the host to relay a kerbcast WebRTC offer to the sidecar
    * and return the answer. Pass as the `negotiate` seam to a station-side
-   * KerbcamClient so it never needs the sidecar's address — media still flows
+   * KerbcastClient so it never needs the sidecar's address — media still flows
    * station↔sidecar directly off the answer's ICE candidates.
    */
-  sendKerbcamNegotiate(
+  sendKerbcastNegotiate(
     offer: { sdp: string; cameras: number[]; slots?: number },
     timeoutMs = 15_000,
   ): Promise<{ sdp: string; cameras: number[] }> {
@@ -694,13 +694,13 @@ export class PeerClientService {
       return Promise.reject(new Error("not connected"));
     }
     const requestId = safeRandomUuid();
-    const pending = this.pendingKerbcamNegotiate.track(
+    const pending = this.pendingKerbcastNegotiate.track(
       requestId,
       timeoutMs,
-      "kerbcam negotiate timeout",
+      "kerbcast negotiate timeout",
     );
     this.conn.send({
-      type: "kerbcam-negotiate-request",
+      type: "kerbcast-negotiate-request",
       requestId,
       offer,
     } satisfies PeerMessage);
@@ -711,7 +711,7 @@ export class PeerClientService {
     this.pendingQueries.rejectAll(reason);
     this.pendingKosExecutes.rejectAll(reason);
     this.pendingFlightRpc.rejectAll(reason);
-    this.pendingKerbcamNegotiate.rejectAll(reason);
+    this.pendingKerbcastNegotiate.rejectAll(reason);
   }
 
   /**
@@ -986,14 +986,14 @@ export class PeerClientService {
         this.pendingQueries.resolve(msg.requestId, { t: msg.t, v: msg.v });
       }
     },
-    "kerbcam-negotiate-response": (msg) => {
+    "kerbcast-negotiate-response": (msg) => {
       if (msg.error || !msg.answer) {
-        this.pendingKerbcamNegotiate.reject(
+        this.pendingKerbcastNegotiate.reject(
           msg.requestId,
-          new Error(msg.error ?? "no answer in kerbcam negotiate response"),
+          new Error(msg.error ?? "no answer in kerbcast negotiate response"),
         );
       } else {
-        this.pendingKerbcamNegotiate.resolve(msg.requestId, msg.answer);
+        this.pendingKerbcastNegotiate.resolve(msg.requestId, msg.answer);
       }
     },
     "flight-rpc-response": (msg) => {
@@ -1108,8 +1108,8 @@ export class PeerClientService {
    * already-negotiated ICE pair and aren't disturbed.
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
-    // Expose for the brokered kerbcam data source regardless of whether the
-    // Peer is up yet — the kerbcam client reads these for its own connection.
+    // Expose for the brokered kerbcast data source regardless of whether the
+    // Peer is up yet — the kerbcast client reads these for its own connection.
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;

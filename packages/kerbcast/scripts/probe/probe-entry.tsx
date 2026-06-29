@@ -4,8 +4,8 @@
  * `window.__renderCamera` hook, then hovers the video to reveal the
  * hover-gated controls and screenshots #root.
  *
- * It mounts the REAL CameraFeed against a real KerbcamDataSource wired to
- * the in-process MockKerbcamSession (the same transport-level fake the vitest
+ * It mounts the REAL CameraFeed against a real KerbcastDataSource wired to
+ * the in-process MockKerbcastSession (the same transport-level fake the vitest
  * suite uses), mirroring `buildConnectedSource()`. The one thing jsdom can't
  * do — a live MediaStream — works here because this runs in real Chromium:
  * a canvas.captureStream() is delivered through the mock's onTrack path, so
@@ -18,8 +18,8 @@ import {
 } from "@gonogo/core";
 import { createRoot, type Root } from "react-dom/client";
 import { CameraFeed } from "../../src/CameraFeed/CameraFeed";
-import { KerbcamDataSource } from "../../src/KerbcamDataSource";
-import { createMockKerbcamSession } from "../../src/test/MockKerbcamSession";
+import { KerbcastDataSource } from "../../src/KerbcastDataSource";
+import { createMockKerbcastSession } from "../../src/test/MockKerbcastSession";
 
 interface Payload {
   camera: Record<string, unknown> & { flightId: number };
@@ -29,7 +29,7 @@ interface Payload {
 }
 
 let root: Root | null = null;
-let ds: KerbcamDataSource | null = null;
+let ds: KerbcastDataSource | null = null;
 let rafId = 0;
 
 function teardown(): void {
@@ -43,7 +43,7 @@ function teardown(): void {
   }
   if (ds) {
     try {
-      unregisterDataSource("kerbcam");
+      unregisterDataSource("kerbcast");
     } catch {
       /* not registered */
     }
@@ -134,8 +134,8 @@ function paintFeedBackdrop(): void {
 async function renderCamera(payload: Payload): Promise<void> {
   teardown();
 
-  const session = createMockKerbcamSession();
-  ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+  const session = createMockKerbcastSession();
+  ds = new KerbcastDataSource({ host: "h", port: 1 }, session.transport);
   registerDataSource(ds as unknown as Parameters<typeof registerDataSource>[0]);
 
   // /offer answer — flightIds in track order so the SDK opens a track for

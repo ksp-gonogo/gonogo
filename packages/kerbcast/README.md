@@ -1,41 +1,41 @@
-# @gonogo/kerbcam
+# @gonogo/kerbcast
 
-Consumer of the [kerbcam](https://github.com/jonpepler/kerbcam) KSP
-camera-streaming sidecar for gonogo. Registers a `kerbcam` DataSource
+Consumer of the [kerbcast](https://github.com/jonpepler/kerbcast) KSP
+camera-streaming sidecar for gonogo. Registers a `kerbcast` DataSource
 and a `camera-feed` dashboard widget on module import.
 
 Wire it into the app once, alongside the other data-source imports:
 
 ```ts
 // packages/app/src/dataSources/index.ts
-import "@gonogo/kerbcam";
+import "@gonogo/kerbcast";
 ```
 
-After that, "Kerbcam" appears in the Data Sources widget (with the
+After that, "Kerbcast" appears in the Data Sources widget (with the
 sidecar host/port configurable from the same UI) and "Camera Feed"
 appears in the dashboard widget picker.
 
 ## Shape
 
 ```
-KerbcamConnection      WebRTC peer + kerbcam-control data channel
+KerbcastConnection      WebRTC peer + kerbcast-control data channel
                        (transport-abstracted so unit tests don't
                        need a real RTCPeerConnection)
 
-KerbcamDataSource      gonogo DataSource wrapping the connection;
+KerbcastDataSource      gonogo DataSource wrapping the connection;
                        surfaces in the Data Sources widget
 
-useKerbcamCameras()    live CameraState[] from the sidecar's
+useKerbcastCameras()    live CameraState[] from the sidecar's
                        camera-snapshot / camera-state-changed pushes
 
-useKerbcamStream(id)   live MediaStream for one camera
+useKerbcastStream(id)   live MediaStream for one camera
 
 CameraFeed             dashboard widget rendering a single camera's
                        stream; auto-picks the first available live
                        camera when no flightId is configured
 ```
 
-Wire-protocol types come from `@jonpepler/kerbcam` (the typeshare-
+Wire-protocol types come from `@jonpepler/kerbcast` (the typeshare-
 generated TS bindings published from the sidecar's Rust types).
 
 ## Status

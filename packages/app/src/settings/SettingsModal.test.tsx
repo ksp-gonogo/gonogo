@@ -39,11 +39,11 @@ vi.mock("../logs/LogsManager", () => ({
   LogsManager: () => null,
 }));
 
-vi.mock("@gonogo/kerbcam", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@gonogo/kerbcam")>();
+vi.mock("@gonogo/kerbcast", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@gonogo/kerbcast")>();
   return {
     ...actual,
-    KerbcamSettings: () => <div>kerbcam-settings-stub</div>,
+    KerbcastSettings: () => <div>kerbcast-settings-stub</div>,
   };
 });
 
@@ -71,13 +71,13 @@ function renderModal(screen_: "main" | "station" = "main") {
 }
 
 /*
- * Minimal stub that satisfies KerbcamDataSource's interface for the tab
+ * Minimal stub that satisfies KerbcastDataSource's interface for the tab
  * gating check (only id is required by getDataSource / registerDataSource).
  */
-function makeKerbcamStub() {
+function makeKerbcastStub() {
   return {
-    id: "kerbcam",
-    name: "Kerbcam",
+    id: "kerbcast",
+    name: "Kerbcast",
     status: "disconnected",
     affectedBySignalLoss: false,
     connect: async () => {},
@@ -94,7 +94,7 @@ function makeKerbcamStub() {
     setThrottleMainScreen: async () => {},
     getClient: () =>
       ({}) as unknown as ReturnType<
-        import("@gonogo/kerbcam").KerbcamDataSource["getClient"]
+        import("@gonogo/kerbcast").KerbcastDataSource["getClient"]
       >,
   };
 }
@@ -108,29 +108,29 @@ afterEach(() => {
   clearRegistry();
 });
 
-describe("SettingsModal Kerbcam tab gating", () => {
-  it("shows the Kerbcam tab on the main screen when the kerbcam source is registered", () => {
+describe("SettingsModal Kerbcast tab gating", () => {
+  it("shows the Kerbcast tab on the main screen when the kerbcast source is registered", () => {
     registerDataSource(
-      makeKerbcamStub() as unknown as Parameters<typeof registerDataSource>[0],
+      makeKerbcastStub() as unknown as Parameters<typeof registerDataSource>[0],
     );
     renderModal("main");
-    expect(screen.getByRole("tab", { name: /kerbcam/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /kerbcast/i })).toBeInTheDocument();
   });
 
-  it("hides the Kerbcam tab when there is no kerbcam source", () => {
+  it("hides the Kerbcast tab when there is no kerbcast source", () => {
     renderModal("main");
     expect(
-      screen.queryByRole("tab", { name: /kerbcam/i }),
+      screen.queryByRole("tab", { name: /kerbcast/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("hides the Kerbcam tab on the station screen even when the source is registered", () => {
+  it("hides the Kerbcast tab on the station screen even when the source is registered", () => {
     registerDataSource(
-      makeKerbcamStub() as unknown as Parameters<typeof registerDataSource>[0],
+      makeKerbcastStub() as unknown as Parameters<typeof registerDataSource>[0],
     );
     renderModal("station");
     expect(
-      screen.queryByRole("tab", { name: /kerbcam/i }),
+      screen.queryByRole("tab", { name: /kerbcast/i }),
     ).not.toBeInTheDocument();
   });
 });

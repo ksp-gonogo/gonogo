@@ -88,9 +88,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
-      '@gonogo/kerbcam':
+      '@gonogo/kerbcast':
         specifier: workspace:*
-        version: link:../kerbcam
+        version: link:../kerbcast
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -182,9 +182,9 @@ importers:
       '@gonogo/data':
         specifier: workspace:*
         version: link:../data
-      '@gonogo/kerbcam':
+      '@gonogo/kerbcast':
         specifier: workspace:*
-        version: link:../kerbcam
+        version: link:../kerbcast
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -315,7 +315,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
 
-  packages/kerbcam:
+  packages/kerbcast:
     dependencies:
       '@gonogo/core':
         specifier: workspace:*
@@ -326,12 +326,12 @@ importers:
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
-      '@jonpepler/kerbcam':
-        specifier: ^0.21.0
-        version: 0.21.0
-      '@jonpepler/kerbcam-react':
-        specifier: ^0.21.0
-        version: 0.21.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@jonpepler/kerbcast':
+        specifier: ^1.0.0
+        version: 1.0.0
+      '@jonpepler/kerbcast-react':
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1351,15 +1351,15 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcam-react@0.21.0':
-    resolution: {integrity: sha512-TtakU27uufsaVAOlzFOI9QxU9NTJFBEuwDLmrEQK2gFpssRsukZYS0VE/Oy+1Ved1y6c9u2g3UcuMpfOG47M2w==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam-react/0.21.0/adbaf06198fe62df69779989cc1d1734a0692979}
+  '@jonpepler/kerbcast-react@1.0.0':
+    resolution: {integrity: sha512-df2k9mwoVg05Cx1d1pbVsKWsHbYpEbKJu43sXRTFM6hjz43HxgV/Kz4m2fUn4NtzqmF/oV8O/lnjYLFgdpeSvA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast-react/1.0.0/268e5f987b26a344fbe51c2f40face255d332524}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
       styled-components: ^6
 
-  '@jonpepler/kerbcam@0.21.0':
-    resolution: {integrity: sha512-6gWWIegnaTJ2Ui88Trxfqkta9Pm9oxYn28vMv9o5B6fN644O8fCwc8klwyNsmv9Jl3ecQ/LXYkcwEv14A0EgaQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcam/0.21.0/c56e6ed92ff16bcc2ec213ff7cd1c6a91c0476ab}
+  '@jonpepler/kerbcast@1.0.0':
+    resolution: {integrity: sha512-J72FXK3JwRTqj6WeynNJK9wezYZ9uh7fahvoeSBQT2oLPYiIPZlxiunf/tthpGc2K2WbyAFsYNbeBvB+REGKIA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast/1.0.0/f13bcc8244dc354de819223e19cd742a9a6d9188}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3672,14 +3672,14 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcam-react@0.21.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@jonpepler/kerbcast-react@1.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@jonpepler/kerbcam': 0.21.0
+      '@jonpepler/kerbcast': 1.0.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@jonpepler/kerbcam@0.21.0': {}
+  '@jonpepler/kerbcast@1.0.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

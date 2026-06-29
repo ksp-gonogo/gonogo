@@ -23,7 +23,7 @@ registerComponent<CameraFeedConfig>({
   // "Show debug info" lives in the gear modal's Settings tab (paired with the
   // Inputs tab the widget's actions add) — not in the in-feed camera dropdown.
   configComponent: CameraFeedConfigPanel,
-  // kerbcam.cameras is pulled direct from the kerbcam DataSource via
+  // kerbcast.cameras is pulled direct from the kerbcast DataSource via
   // custom hooks — not listed here to avoid a duplicate subscription.
   // CommNet keys are listed so the orchestrator knows to subscribe
   // the "data" source for signal strength / connection status.

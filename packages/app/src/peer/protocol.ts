@@ -117,7 +117,7 @@ export type PeerMessage =
       peerId: string | null;
       iceServers?: RTCIceServer[];
     }
-  // Station → host: relay ONE kerbcam WebRTC offer through the main screen so a
+  // Station → host: relay ONE kerbcast WebRTC offer through the main screen so a
   // station never needs the sidecar's address. The host forwards the offer to
   // the sidecar's HTTP `/offer` (only the main screen can reach it) and returns
   // the answer. Signaling ONLY — the PeerConnection this sets up carries media
@@ -126,12 +126,12 @@ export type PeerMessage =
   // hop. Nothing about the video frames crosses PeerJS. requestId-correlated
   // like `query-range-*`.
   | {
-      type: "kerbcam-negotiate-request";
+      type: "kerbcast-negotiate-request";
       requestId: string;
       offer: { sdp: string; cameras: number[]; slots?: number };
     }
   | {
-      type: "kerbcam-negotiate-response";
+      type: "kerbcast-negotiate-response";
       requestId: string;
       answer?: { sdp: string; cameras: number[] };
       error?: string;

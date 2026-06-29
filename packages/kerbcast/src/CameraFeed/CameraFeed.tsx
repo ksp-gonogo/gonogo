@@ -2,12 +2,12 @@ import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import { getDataSource, useActionInput, useDataValue } from "@gonogo/core";
 import {
   type CameraFeedHandle,
-  KerbcamProvider,
-  type KerbcamSubscriptions,
+  KerbcastProvider,
+  type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
-} from "@jonpepler/kerbcam-react";
+} from "@jonpepler/kerbcast-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KerbcamDataSource } from "../KerbcamDataSource";
+import type { KerbcastDataSource } from "../KerbcastDataSource";
 
 export interface CameraFeedConfig extends Record<string, unknown> {
   /**
@@ -76,7 +76,7 @@ export function CameraFeed({
   config,
   onConfigChange,
 }: Readonly<ComponentProps<CameraFeedConfig>>) {
-  const ds = getDataSource("kerbcam") as KerbcamDataSource | undefined;
+  const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
   const client = ds?.getClient();
 
   // Ensure the sidecar connection is open before we render.
@@ -86,7 +86,7 @@ export function CameraFeed({
 
   // Build the subscriptions adapter once per data source so acquire/release
   // calls are stable across re-renders.
-  const subscriptions: KerbcamSubscriptions | undefined = useMemo(
+  const subscriptions: KerbcastSubscriptions | undefined = useMemo(
     () =>
       ds
         ? {
@@ -177,7 +177,7 @@ export function CameraFeed({
   if (!client || !subscriptions) return null;
 
   return (
-    <KerbcamProvider client={client} subscriptions={subscriptions}>
+    <KerbcastProvider client={client} subscriptions={subscriptions}>
       <SharedCameraFeed
         ref={feedRef}
         flightId={requested}
@@ -192,6 +192,6 @@ export function CameraFeed({
         enableFullscreen
         enablePictureInPicture
       />
-    </KerbcamProvider>
+    </KerbcastProvider>
   );
 }

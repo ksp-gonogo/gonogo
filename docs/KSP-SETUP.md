@@ -10,9 +10,9 @@ Install all of these:
 - **[kOS](https://ksp-kos.github.io/KOS/)** for the kOS Terminal widget and the kOS-driven widgets
 - **[SCANsat](https://github.com/S-C-A-N/SCANsat)** for the map and scanning widgets
 - **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for in-game cameras
-- **[Kerbcam](https://github.com/jonpepler/kerbcam)** for streaming and controlling the cameras
+- **[Kerbcast](https://github.com/jonpepler/kerbcast)** for streaming and controlling the cameras
 
-kOS and SCANsat are on CKAN. The gonogo Telemachus build and kerbcam are hand installs; both are walked through below. Everything except the camera feeds works without kerbcam, so you can leave it for last, or skip it, if you like.
+kOS and SCANsat are on CKAN. The gonogo Telemachus build and kerbcast are hand installs; both are walked through below. Everything except the camera feeds works without kerbcast, so you can leave it for last, or skip it, if you like.
 
 ## Installing the gonogo build of Telemachus
 
@@ -53,19 +53,19 @@ The kOS Terminal and the kOS-driven widgets need **[kOS](https://ksp-kos.github.
 
 Configure it from the **Data Sources** panel (the database button in the bottom-right **+** menu) by opening the `kos` data source and setting the kOS host to the KSP computer's address (the kOS default port is `5410`). kOS-driven widgets run scripts on your active CPU and share the results with every widget that wants them, running each script once no matter how many widgets subscribe.
 
-## Camera feeds (kerbcam)
+## Camera feeds (kerbcast)
 
-Live in-game camera feeds come through **kerbcam**, a separate KSP-side camera-streaming mod.
+Live in-game camera feeds come through **kerbcast**, a separate KSP-side camera-streaming mod.
 
-### Installing kerbcam
+### Installing kerbcast
 
-1. Download the latest `kerbcam-<version>.zip` from the releases page: **<https://github.com/jonpepler/kerbcam/releases/>**. Take the full `kerbcam-<version>.zip`, not the bare `Kerbcam.dll`.
+1. Download the latest `kerbcast-<version>.zip` from the releases page: **<https://github.com/jonpepler/kerbcast/releases/>**. Take the full `kerbcast-<version>.zip`, not the bare `Kerbcast.dll`.
 2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder, the same way as Telemachus above.
-3. kerbcam uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
+3. kerbcast uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
 
-By default kerbcam only accepts connections from the same computer. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, open `GameData/Kerbcam/settings.cfg` and change `BindAddress = 127.0.0.1` to the KSP computer's LAN address (or `0.0.0.0` for every interface). There's no password on the stream, so only open it up on a network you trust.
+By default kerbcast only accepts connections from the same computer. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, open `GameData/Kerbcast/settings.cfg` and change `BindAddress = 127.0.0.1` to the KSP computer's LAN address (or `0.0.0.0` for every interface). There's no password on the stream, so only open it up on a network you trust.
 
-Restart KSP. kerbcam starts automatically when a flight scene loads; there's nothing else to run. It serves on port **8088**.
+Restart KSP. kerbcast starts automatically when a flight scene loads; there's nothing else to run. It serves on port **8088**.
 
 ### Connecting the dashboard
 

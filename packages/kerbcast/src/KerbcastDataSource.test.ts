@@ -1,21 +1,24 @@
-import { Layer } from "@jonpepler/kerbcam";
-import { MockSidecar } from "@jonpepler/kerbcam/testing";
+import { Layer } from "@jonpepler/kerbcast";
+import { MockSidecar } from "@jonpepler/kerbcast/testing";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { KerbcamDataSource } from "./KerbcamDataSource";
+import { KerbcastDataSource } from "./KerbcastDataSource";
 import {
-  createMockKerbcamSession,
-  kerbcamFetchImpl,
-} from "./test/MockKerbcamSession";
+  createMockKerbcastSession,
+  kerbcastFetchImpl,
+} from "./test/MockKerbcastSession";
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
+  vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
 });
 
-describe("KerbcamDataSource", () => {
+describe("KerbcastDataSource", () => {
   it("maps client state-change events onto DataSource status", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     expect(ds.status).toBe("disconnected");
 
     const seen: string[] = [];
@@ -30,13 +33,16 @@ describe("KerbcamDataSource", () => {
   });
 
   it("routes set-fov execute() onto the control channel", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     await ds.connect();
     session.openChannel();
     session.sentMessages.length = 0; // drop the hello
 
-    await ds.execute("kerbcam.set-fov[42,35.5]");
+    await ds.execute("kerbcast.set-fov[42,35.5]");
 
     expect(session.sentMessages[0]).toBe(
       JSON.stringify({
@@ -47,13 +53,16 @@ describe("KerbcamDataSource", () => {
   });
 
   it("routes set-layers execute() with NEAR / SCALED layer args", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     await ds.connect();
     session.openChannel();
     session.sentMessages.length = 0;
 
-    await ds.execute("kerbcam.set-layers[7,NEAR,SCALED]");
+    await ds.execute("kerbcast.set-layers[7,NEAR,SCALED]");
 
     expect(session.sentMessages[0]).toBe(
       JSON.stringify({
@@ -63,12 +72,15 @@ describe("KerbcamDataSource", () => {
     );
   });
 
-  it("subscribe('kerbcam.cameras') replays the current snapshot", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+  it("subscribe('kerbcast.cameras') replays the current snapshot", async () => {
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     const received: unknown[] = [];
-    ds.subscribe("kerbcam.cameras", (v) => received.push(v));
+    ds.subscribe("kerbcast.cameras", (v) => received.push(v));
 
     await new Promise<void>((r) => queueMicrotask(r));
 
@@ -77,7 +89,7 @@ describe("KerbcamDataSource", () => {
   });
 });
 
-describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () => {
+describe("KerbcastDataSource — relay TURN / ice-config (TURN-on-demand)", () => {
   const STUN_DEFAULT: RTCIceServer = {
     urls: "stun:stun.l.google.com:19302",
   };
@@ -99,11 +111,14 @@ describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () =>
     // relay's TURN creds; gathering a relay candidate it never uses is exactly
     // the per-feed coturn port burn TURN-on-demand removes.
     vi.spyOn(globalThis, "fetch").mockImplementation(
-      kerbcamFetchImpl({ iceServers: [TURN] }),
+      kerbcastFetchImpl({ iceServers: [TURN] }),
     );
 
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     await ds.connect();
 
     expect(session.iceServers).toEqual([STUN_DEFAULT]);
@@ -117,11 +132,14 @@ describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () =>
 
   it("escalates to the relay's TURN servers after a failed connection", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(
-      kerbcamFetchImpl({ iceServers: [TURN] }),
+      kerbcastFetchImpl({ iceServers: [TURN] }),
     );
 
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     await ds.connect();
     expect(session.iceServers).toEqual([STUN_DEFAULT]); // STUN-only first
 
@@ -141,11 +159,14 @@ describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () =>
     // escalation must mutate the existing client in place — a swap would leave
     // them bound to a dead instance (black camera on exactly the TURN path).
     vi.spyOn(globalThis, "fetch").mockImplementation(
-      kerbcamFetchImpl({ iceServers: [TURN] }),
+      kerbcastFetchImpl({ iceServers: [TURN] }),
     );
 
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     const clientBefore = ds.getClient();
     await ds.connect();
 
@@ -163,10 +184,13 @@ describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () =>
   it("stays on the SDK STUN default when the relay has no TURN, even after a failure", async () => {
     // Empty iceServers stands in for a 503 / unreachable relay — escalation must
     // not break the reconnect, leaving the client on its STUN default.
-    vi.spyOn(globalThis, "fetch").mockImplementation(kerbcamFetchImpl());
+    vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetchImpl());
 
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
     await ds.connect();
     expect(session.iceServers).toEqual([STUN_DEFAULT]);
 
@@ -181,7 +205,7 @@ describe("KerbcamDataSource — relay TURN / ice-config (TURN-on-demand)", () =>
   });
 });
 
-describe("KerbcamDataSource — keepalive + reconnect", () => {
+describe("KerbcastDataSource — keepalive + reconnect", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -191,8 +215,11 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
   });
 
   it("responds to ping with pong", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     await ds.connect();
     session.openChannel();
@@ -204,8 +231,11 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
   });
 
   it("ping resets the watchdog so no reconnect fires within 15s of last ping", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     await ds.connect();
     session.setState("connected");
@@ -233,8 +263,11 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
   });
 
   it("watchdog fires after 15s and triggers reconnect", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     await ds.connect();
     session.setState("connected");
@@ -254,8 +287,11 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
   });
 
   it("explicit disconnect() prevents reconnect after watchdog fires", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     await ds.connect();
     session.setState("connected");
@@ -274,8 +310,11 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
   });
 
   it("WebRTC 'failed' triggers exponential backoff", async () => {
-    const session = createMockKerbcamSession();
-    const ds = new KerbcamDataSource({ host: "h", port: 1 }, session.transport);
+    const session = createMockKerbcastSession();
+    const ds = new KerbcastDataSource(
+      { host: "h", port: 1 },
+      session.transport,
+    );
 
     await ds.connect();
     session.setState("connected");
@@ -302,7 +341,7 @@ describe("KerbcamDataSource — keepalive + reconnect", () => {
 // the real subscribe → slot-map round-trip the sidecar speaks.
 // ---------------------------------------------------------------------------
 
-describe("KerbcamDataSource — dynamic slot subscription", () => {
+describe("KerbcastDataSource — dynamic slot subscription", () => {
   function mockFetch(): void {
     vi.spyOn(globalThis, "fetch").mockImplementation((input) =>
       Promise.resolve(
@@ -315,13 +354,13 @@ describe("KerbcamDataSource — dynamic slot subscription", () => {
 
   async function connectedSidecar(
     flightIds: number[] = [42, 43],
-  ): Promise<{ ds: KerbcamDataSource; sidecar: MockSidecar }> {
+  ): Promise<{ ds: KerbcastDataSource; sidecar: MockSidecar }> {
     const sidecar = new MockSidecar();
     flightIds.forEach((flightId) => {
       sidecar.addCamera({ flightId });
     });
     mockFetch();
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -373,7 +412,7 @@ describe("KerbcamDataSource — dynamic slot subscription", () => {
     ds.subscribeCamera(42);
     expect(sidecar.slotMidFor(42)).toBeDefined();
 
-    // The flightId change useKerbcamStream drives: release old, bind new.
+    // The flightId change useKerbcastStream drives: release old, bind new.
     ds.unsubscribeCamera(42);
     ds.subscribeCamera(43);
 
@@ -388,7 +427,7 @@ describe("KerbcamDataSource — dynamic slot subscription", () => {
     sidecar.addCamera({ flightId: 42 });
     mockFetch();
     const fetchSpy = vi.mocked(globalThis.fetch);
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -424,7 +463,7 @@ describe("KerbcamDataSource — dynamic slot subscription", () => {
 // station's offer to the local sidecar's /offer and returns the answer.
 // ---------------------------------------------------------------------------
 
-describe("KerbcamDataSource — relayOffer (station broker)", () => {
+describe("KerbcastDataSource — relayOffer (station broker)", () => {
   it("POSTs the offer to the sidecar /offer and returns the answer", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ sdp: "answer-sdp", cameras: [42, 43] }), {
@@ -433,7 +472,7 @@ describe("KerbcamDataSource — relayOffer (station broker)", () => {
     );
     fetchSpy.mockClear();
 
-    const ds = new KerbcamDataSource({ host: "sidehost", port: 9090 });
+    const ds = new KerbcastDataSource({ host: "sidehost", port: 9090 });
     const answer = await ds.relayOffer({
       sdp: "offer-sdp",
       cameras: [42, 43],
@@ -456,7 +495,7 @@ describe("KerbcamDataSource — relayOffer (station broker)", () => {
       new Response("unavailable", { status: 503 }),
     );
 
-    const ds = new KerbcamDataSource({ host: "h", port: 1 });
+    const ds = new KerbcastDataSource({ host: "h", port: 1 });
     await expect(ds.relayOffer({ sdp: "o", cameras: [] })).rejects.toThrow(
       /503/,
     );
@@ -468,14 +507,14 @@ describe("KerbcamDataSource — relayOffer (station broker)", () => {
 // and takes TURN creds from the broadcast, never touching localhost.
 // ---------------------------------------------------------------------------
 
-describe("KerbcamDataSource — brokered (station) mode", () => {
+describe("KerbcastDataSource — brokered (station) mode", () => {
   const TURN: RTCIceServer = {
     urls: ["turn:relay.example:3478"],
     username: "u",
     credential: "c",
   };
 
-  function cfgIce(ds: KerbcamDataSource): RTCIceServer[] | undefined {
+  function cfgIce(ds: KerbcastDataSource): RTCIceServer[] | undefined {
     return (
       ds.getClient() as unknown as { cfg: { iceServers?: RTCIceServer[] } }
     ).cfg.iceServers;
@@ -493,7 +532,7 @@ describe("KerbcamDataSource — brokered (station) mode", () => {
     const negotiate = vi.fn((offer: { sdp: string; cameras: number[] }) =>
       sidecar.negotiate(offer),
     );
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -521,7 +560,7 @@ describe("KerbcamDataSource — brokered (station) mode", () => {
       MockSidecar.makeOfferResponse([]),
     );
 
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );
@@ -552,7 +591,7 @@ describe("KerbcamDataSource — brokered (station) mode", () => {
       sidecar.negotiate(offer),
     );
 
-    const ds = new KerbcamDataSource(
+    const ds = new KerbcastDataSource(
       { host: "h", port: 1 },
       sidecar.createTransport(),
     );

@@ -1,4 +1,4 @@
-import { kerbcamSource } from "@gonogo/kerbcam";
+import { kerbcastSource } from "@gonogo/kerbcast";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -27,7 +27,7 @@ beforeEach(() => {
   // in-memory hosts the same way the seed applies them (non-persisting).
   telemachusSource.applySeededHost("localhost");
   kosSource.applySeededConfig({ kosHost: "localhost" });
-  kerbcamSource.applySeededHost("127.0.0.1");
+  kerbcastSource.applySeededHost("127.0.0.1");
 });
 
 function bootstrapHandler(kspHost: string | null) {
@@ -35,18 +35,18 @@ function bootstrapHandler(kspHost: string | null) {
 }
 
 describe("seedKspHostDefaults", () => {
-  it("seeds Telemachus, kerbcam, and kOS from a LAN KSP_HOST", async () => {
+  it("seeds Telemachus, kerbcast, and kOS from a LAN KSP_HOST", async () => {
     server.use(bootstrapHandler("192.168.1.50"));
 
     await seedKspHostDefaults();
 
     expect(telemachusSource.getConfig().host).toBe("192.168.1.50");
-    expect(kerbcamSource.getConfig().host).toBe("192.168.1.50");
+    expect(kerbcastSource.getConfig().host).toBe("192.168.1.50");
     expect(kosSource.getConfig().kosHost).toBe("192.168.1.50");
     // The browser-dialled seeds are in-memory only — nothing persisted, so
     // a changed KSP_HOST takes effect on the next load.
     expect(localStorage.getItem("gonogo.datasource.telemachus")).toBeNull();
-    expect(localStorage.getItem("gonogo.datasource.kerbcam")).toBeNull();
+    expect(localStorage.getItem("gonogo.datasource.kerbcast")).toBeNull();
     expect(localStorage.getItem("gonogo.datasource.kos")).toBeNull();
   });
 
@@ -58,7 +58,7 @@ describe("seedKspHostDefaults", () => {
     // The browser can't resolve host.docker.internal — same machine means
     // localhost from its perspective.
     expect(telemachusSource.getConfig().host).toBe("localhost");
-    expect(kerbcamSource.getConfig().host).toBe("localhost");
+    expect(kerbcastSource.getConfig().host).toBe("localhost");
     // The kOS telnet host is dialled by the in-container proxy, where the
     // container-internal name is the correct one.
     expect(kosSource.getConfig().kosHost).toBe("host.docker.internal");
@@ -70,7 +70,7 @@ describe("seedKspHostDefaults", () => {
       JSON.stringify({ host: "my-ksp-box", port: 8085 }),
     );
     localStorage.setItem(
-      "gonogo.datasource.kerbcam",
+      "gonogo.datasource.kerbcast",
       JSON.stringify({ host: "my-ksp-box", port: 8088 }),
     );
     localStorage.setItem(
@@ -82,7 +82,7 @@ describe("seedKspHostDefaults", () => {
     await seedKspHostDefaults();
 
     expect(telemachusSource.getConfig().host).toBe("localhost");
-    expect(kerbcamSource.getConfig().host).toBe("127.0.0.1");
+    expect(kerbcastSource.getConfig().host).toBe("127.0.0.1");
     expect(kosSource.getConfig().kosHost).toBe("localhost");
   });
 
@@ -92,7 +92,7 @@ describe("seedKspHostDefaults", () => {
     await seedKspHostDefaults();
 
     expect(telemachusSource.getConfig().host).toBe("localhost");
-    expect(kerbcamSource.getConfig().host).toBe("127.0.0.1");
+    expect(kerbcastSource.getConfig().host).toBe("127.0.0.1");
     expect(kosSource.getConfig().kosHost).toBe("localhost");
   });
 
@@ -102,7 +102,7 @@ describe("seedKspHostDefaults", () => {
     await seedKspHostDefaults();
 
     expect(telemachusSource.getConfig().host).toBe("localhost");
-    expect(kerbcamSource.getConfig().host).toBe("127.0.0.1");
+    expect(kerbcastSource.getConfig().host).toBe("127.0.0.1");
     expect(kosSource.getConfig().kosHost).toBe("localhost");
   });
 });

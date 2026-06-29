@@ -17,7 +17,7 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
 } from "@gonogo/data";
-import type { KerbcamDataSource } from "@gonogo/kerbcam";
+import type { KerbcastDataSource } from "@gonogo/kerbcast";
 import { debugPeer, logger } from "@gonogo/logger";
 import {
   InputDispatcher,
@@ -183,16 +183,18 @@ export function StationScreen() {
     };
   }, [client]);
 
-  // Switch the globally-registered kerbcam source into brokered (station) mode:
+  // Switch the globally-registered kerbcast source into brokered (station) mode:
   // its WebRTC handshake relays through the host (no sidecar address) and its
   // TURN creds come from the host's relay broadcast. Wired here once — it stays
   // disconnected until a camera widget asks for a stream (lazy connect), and
   // the broker's negotiate just retries until the host link is up. Media flows
   // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
   useEffect(() => {
-    const kerbcam = getDataSource("kerbcam") as KerbcamDataSource | undefined;
-    kerbcam?.attachBroker({
-      negotiate: (offer) => client.sendKerbcamNegotiate(offer),
+    const kerbcast = getDataSource("kerbcast") as
+      | KerbcastDataSource
+      | undefined;
+    kerbcast?.attachBroker({
+      negotiate: (offer) => client.sendKerbcastNegotiate(offer),
       iceServers: () => client.getRelayIceServers(),
       onIceServersChange: (cb) => client.onRelayIceServersChange(cb),
     });
@@ -278,11 +280,11 @@ export function StationScreen() {
         if (schemaHandledRef.current) return;
         schemaHandledRef.current = true;
         for (const s of sources) {
-          // kerbcam is NOT peer-routed: its media streams direct from the
+          // kerbcast is NOT peer-routed: its media streams direct from the
           // sidecar, brokered through the host. Don't replace the real
           // (brokered) source with a peer-data one — it's wired in the
           // attachBroker mount effect, and connects lazily on first camera view.
-          if (s.id === "kerbcam") continue;
+          if (s.id === "kerbcast") continue;
           const source = new PeerClientDataSource(s.id, s.name, client);
           source.setSchema(s.keys);
           registerDataSource(source);

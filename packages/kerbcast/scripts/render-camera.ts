@@ -1,12 +1,12 @@
 #!/usr/bin/env tsx
 /**
  * Render the CameraFeed widget through a real Chromium page with a mocked
- * kerbcam sidecar + a canvas.captureStream() video — the camera-widget
+ * kerbcast sidecar + a canvas.captureStream() video — the camera-widget
  * equivalent of the components `render-widget` harness. CameraFeed can't
- * go through that harness (it needs a live MediaStream and the kerbcam
+ * go through that harness (it needs a live MediaStream and the kerbcast
  * session context), so this is its dedicated renderer.
  *
- * Run: `pnpm --filter @gonogo/kerbcam render-camera`
+ * Run: `pnpm --filter @gonogo/kerbcast render-camera`
  * Output: local_docs/renders/camera-feed/<scene>.png
  *
  * Each scene varies the camera's capability flags (pan / pitch / zoom) so a
@@ -137,7 +137,7 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `kerbcam-cam-probe-${process.pid}.html`);
+  const file = join(tmpdir(), `kerbcast-cam-probe-${process.pid}.html`);
   await writeFile(file, out, "utf8");
   return file;
 }

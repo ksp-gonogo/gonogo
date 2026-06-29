@@ -56,16 +56,16 @@
 #       Build the OCISLY fork at ~/personal/OfCourseIStillLoveYou/
 #       and copy OfCourseIStillLoveYou.dll into the synced
 #       kspdata GameData/OfCourseIStillLoveYou/Plugins/ directory.
-#       With --baseline, defines KERBCAM_BASELINE to enable per-frame
+#       With --baseline, defines KERBCAST_BASELINE to enable per-frame
 #       capture-timing CSV output + KSP-timestamp piggybacked on the
-#       Altitude metadata field. See local_docs/kerbcam/baseline_harness_plan.md.
+#       Altitude metadata field. See local_docs/kerbcast/baseline_harness_plan.md.
 #
-#   build kerbcam
-#       Build the kerbcam KSP plugin at ~/personal/kerbcam/Plugin/,
-#       install it into the synced kspdata at GameData/Kerbcam/Plugins/,
+#   build kerbcast
+#       Build the kerbcast KSP plugin at ~/personal/kerbcast/Plugin/,
+#       install it into the synced kspdata at GameData/Kerbcast/Plugins/,
 #       seed libAsyncGPUReadbackPlugin.so + settings.cfg on first
 #       install, and (best-effort) pull the latest CI-built sidecar
-#       binary into GameData/Kerbcam/sidecar/ via `gh run download`.
+#       binary into GameData/Kerbcast/sidecar/ via `gh run download`.
 #       Sidecar fetch is best-effort: skips silently if gh isn't
 #       installed / not authed / no successful run found.
 #
@@ -462,8 +462,8 @@ build_ocisly() {
   local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins"
   local baseline=""
   if [ "${1:-}" = "--baseline" ]; then
-    baseline="/p:KerbCamBaseline=true"
-    echo "=== building OCISLY fork (KERBCAM_BASELINE enabled) ==="
+    baseline="/p:KerbcastBaseline=true"
+    echo "=== building OCISLY fork (KERBCAST_BASELINE enabled) ==="
   else
     echo "=== building OCISLY fork ==="
   fi
@@ -490,17 +490,17 @@ build_ocisly() {
   ls -la "$install_dir/OfCourseIStillLoveYou.dll"
 }
 
-build_kerbcam() {
-  local proj="$HOME/personal/kerbcam/Plugin/Kerbcam.csproj"
+build_kerbcast() {
+  local proj="$HOME/personal/kerbcast/Plugin/Kerbcast.csproj"
   local ksp_root="$ROOT/local_docs/syncthing/kspdata"
   local managed="$ksp_root/KSP_Data/Managed"
   local gamedata="$ksp_root/GameData"
-  local install_dir="$gamedata/Kerbcam/Plugins"
+  local install_dir="$gamedata/Kerbcast/Plugins"
   local install_native="$install_dir/x86_64"
   local seed_so="$gamedata/OfCourseIStillLoveYou/Plugins/x86_64/libAsyncGPUReadbackPlugin.so"
 
   if [ ! -f "$proj" ]; then
-    echo "kerbcam csproj not found at $proj"
+    echo "kerbcast csproj not found at $proj"
     return 3
   fi
   if [ ! -d "$managed" ]; then
@@ -510,21 +510,21 @@ build_kerbcam() {
 
   mkdir -p "$install_dir" "$install_native"
 
-  echo "=== building kerbcam plugin ==="
+  echo "=== building kerbcast plugin ==="
   perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
     dotnet build "$proj" -c Release --nologo -v minimal \
       "/p:KspManaged=$managed" \
       "/p:KspGameData=$gamedata"
 
-  local out_dll="$HOME/personal/kerbcam/Plugin/bin/Release/Kerbcam.dll"
+  local out_dll="$HOME/personal/kerbcast/Plugin/bin/Release/Kerbcast.dll"
   if [ ! -f "$out_dll" ]; then
-    echo "Kerbcam.dll not produced at $out_dll"
+    echo "Kerbcast.dll not produced at $out_dll"
     return 4
   fi
-  cp "$out_dll" "$install_dir/Kerbcam.dll"
+  cp "$out_dll" "$install_dir/Kerbcast.dll"
 
   # Seed the native AsyncGPUReadback .so on first install. Reuses the
-  # copy already living in the OCISLY mod's tree; once kerbcam ships
+  # copy already living in the OCISLY mod's tree; once kerbcast ships
   # its own download path, this fallback drops away.
   if [ ! -f "$install_native/libAsyncGPUReadbackPlugin.so" ]; then
     if [ -f "$seed_so" ]; then
@@ -537,8 +537,8 @@ build_kerbcam() {
   fi
 
   # Seed settings.cfg on first install only; never clobber user edits.
-  local settings_dest="$gamedata/Kerbcam/settings.cfg"
-  local settings_src="$HOME/personal/kerbcam/Plugin/settings.cfg"
+  local settings_dest="$gamedata/Kerbcast/settings.cfg"
+  local settings_src="$HOME/personal/kerbcast/Plugin/settings.cfg"
   if [ ! -f "$settings_dest" ] && [ -f "$settings_src" ]; then
     cp "$settings_src" "$settings_dest"
     echo "seeded settings.cfg (defaults: 127.0.0.1:8088, 1024x576)"
@@ -552,17 +552,17 @@ build_kerbcam() {
   #
   # The CI artefact now contains both the binary and a sibling lib/
   # directory with bundled ffmpeg .so files (SteamOS doesn't ship
-  # libavutil.so.58 etc). fetch_kerbcam_sidecar takes the sidecar dir
+  # libavutil.so.58 etc). fetch_kerbcast_sidecar takes the sidecar dir
   # and writes both pieces in the layout the plugin's LD_LIBRARY_PATH
   # prepend expects.
-  local sidecar_dir="$gamedata/Kerbcam/sidecar"
-  local sidecar_dest="$sidecar_dir/kerbcam-sidecar"
+  local sidecar_dir="$gamedata/Kerbcast/sidecar"
+  local sidecar_dest="$sidecar_dir/kerbcast-sidecar"
   mkdir -p "$sidecar_dir"
-  fetch_kerbcam_sidecar "$sidecar_dir"
+  fetch_kerbcast_sidecar "$sidecar_dir"
 
   echo "=== installed ==="
   ls -la \
-    "$install_dir/Kerbcam.dll" \
+    "$install_dir/Kerbcast.dll" \
     "$install_native/libAsyncGPUReadbackPlugin.so" \
     "$settings_dest" \
     "$profile_dest" \
@@ -574,11 +574,11 @@ build_kerbcam() {
 }
 
 # Best-effort fetch of the latest successful sidecar-ci artefact from
-# github.com/jonpepler/kerbcam. Skips silently if `gh` isn't installed
+# github.com/jonpepler/kerbcast. Skips silently if `gh` isn't installed
 # / not authed / no successful run yet, so first-time-on-a-fresh-clone
 # users with no gh setup just keep the existing binary (or get a
-# "place it manually" warning from build_kerbcam's caller).
-fetch_kerbcam_sidecar() {
+# "place it manually" warning from build_kerbcast's caller).
+fetch_kerbcast_sidecar() {
   # Takes the sidecar *directory* (not the binary path) — the CI artefact
   # is a binary + sibling lib/ with bundled ffmpeg .so files, and the
   # plugin's LD_LIBRARY_PATH prepend expects them as siblings on disk.
@@ -592,9 +592,9 @@ fetch_kerbcam_sidecar() {
     return 0
   fi
 
-  local kerbcam_repo="$HOME/personal/kerbcam"
-  if [ ! -d "$kerbcam_repo/.git" ]; then
-    echo "kerbcam repo not at $kerbcam_repo — skipping sidecar fetch"
+  local kerbcast_repo="$HOME/personal/kerbcast"
+  if [ ! -d "$kerbcast_repo/.git" ]; then
+    echo "kerbcast repo not at $kerbcast_repo — skipping sidecar fetch"
     return 0
   fi
 
@@ -603,7 +603,7 @@ fetch_kerbcam_sidecar() {
   # Most recent successful sidecar-ci run on main, JSON-pluck the id.
   run_id="$(
     perl -e 'alarm shift; exec @ARGV' 30 \
-      gh -R jonpepler/kerbcam run list \
+      gh -R jonpepler/kerbcast run list \
         --workflow=sidecar-ci.yml \
         --branch main \
         --status success \
@@ -620,13 +620,13 @@ fetch_kerbcam_sidecar() {
   local tmpdir
   tmpdir="$(mktemp -d)"
   if perl -e 'alarm shift; exec @ARGV' 90 \
-       gh -R jonpepler/kerbcam run download "$run_id" \
-         -n kerbcam-sidecar-linux-x64-dev \
+       gh -R jonpepler/kerbcast run download "$run_id" \
+         -n kerbcast-sidecar-linux-x64-dev \
          -D "$tmpdir" >/dev/null 2>&1; then
-    if [ -f "$tmpdir/kerbcam-sidecar" ]; then
+    if [ -f "$tmpdir/kerbcast-sidecar" ]; then
       mkdir -p "$dest_dir"
-      cp "$tmpdir/kerbcam-sidecar" "$dest_dir/kerbcam-sidecar"
-      chmod +x "$dest_dir/kerbcam-sidecar"
+      cp "$tmpdir/kerbcast-sidecar" "$dest_dir/kerbcast-sidecar"
+      chmod +x "$dest_dir/kerbcast-sidecar"
 
       # Replace the bundled lib/ wholesale so stale .so files from a
       # previous run don't accumulate (e.g. ffmpeg minor-version bump
@@ -638,11 +638,11 @@ fetch_kerbcam_sidecar() {
         echo "deployed sidecar + lib/ from CI run $run_id"
         [ -f "$dest_dir/build-info.txt" ] && cat "$dest_dir/build-info.txt"
       else
-        echo "warning: artefact has kerbcam-sidecar but no lib/ — older CI run before bundling landed?"
+        echo "warning: artefact has kerbcast-sidecar but no lib/ — older CI run before bundling landed?"
         echo "deployed sidecar (no lib/) from CI run $run_id"
       fi
     else
-      echo "warning: artefact downloaded but no kerbcam-sidecar inside"
+      echo "warning: artefact downloaded but no kerbcast-sidecar inside"
     fi
   else
     echo "warning: sidecar artefact download failed; keeping existing binary"
@@ -842,10 +842,10 @@ case "${1:-help}" in
         shift
         build_ocisly "$@"
         ;;
-      kerbcam) build_kerbcam ;;
+      kerbcast) build_kerbcast ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcam"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast"
         exit 2
         ;;
     esac
