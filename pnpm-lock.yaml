@@ -327,11 +327,11 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@jonpepler/kerbcast':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^1.1.0
+        version: 1.1.0
       '@jonpepler/kerbcast-react':
-        specifier: ^1.0.0
-        version: 1.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: ^1.1.0
+        version: 1.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1351,15 +1351,15 @@ packages:
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  '@jonpepler/kerbcast-react@1.0.0':
-    resolution: {integrity: sha512-df2k9mwoVg05Cx1d1pbVsKWsHbYpEbKJu43sXRTFM6hjz43HxgV/Kz4m2fUn4NtzqmF/oV8O/lnjYLFgdpeSvA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast-react/1.0.0/268e5f987b26a344fbe51c2f40face255d332524}
+  '@jonpepler/kerbcast-react@1.1.0':
+    resolution: {integrity: sha512-lY2nd88zAQOff5tePlUrJegYKS4oKzzqq9TjusWHCRP1EE8IpYWf8IhqmehhP1Nq72RyxE2Gc9GHmmLXtzAwSA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast-react/1.1.0/41a04db5d8103d5d4a53bd0d79cd6b2860b7f878}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
       styled-components: ^6
 
-  '@jonpepler/kerbcast@1.0.0':
-    resolution: {integrity: sha512-J72FXK3JwRTqj6WeynNJK9wezYZ9uh7fahvoeSBQT2oLPYiIPZlxiunf/tthpGc2K2WbyAFsYNbeBvB+REGKIA==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast/1.0.0/f13bcc8244dc354de819223e19cd742a9a6d9188}
+  '@jonpepler/kerbcast@1.1.0':
+    resolution: {integrity: sha512-to2VwFegwtD0KB1Oxs/uLuZwx9q7Qkq4Y7MR/zkf3y6tSSUDW2LDHkczPLFS89gjtM1sNkQUa4u4rMvWKF2bzQ==, tarball: https://npm.pkg.github.com/download/@jonpepler/kerbcast/1.1.0/54730bb3605547fd6f3c776d9dc4ffd52d12fdb3}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3672,14 +3672,14 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jonpepler/kerbcast-react@1.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@jonpepler/kerbcast-react@1.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@jonpepler/kerbcast': 1.0.0
+      '@jonpepler/kerbcast': 1.1.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-components: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@jonpepler/kerbcast@1.0.0': {}
+  '@jonpepler/kerbcast@1.1.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
