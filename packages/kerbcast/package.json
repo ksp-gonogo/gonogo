@@ -23,8 +23,8 @@
     "@gonogo/core": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/ui": "workspace:*",
-    "@jonpepler/kerbcast": "^1.1.0",
-    "@jonpepler/kerbcast-react": "^1.1.0",
+    "@jonpepler/kerbcast": "^1.2.0",
+    "@jonpepler/kerbcast-react": "^1.2.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
