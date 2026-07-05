@@ -370,15 +370,17 @@ function TargetPickerComponent({
       <OrbitalEventChipsRow>
         <OrbitalEventChips />
       </OrbitalEventChipsRow>
-      <Tabs
-        tabs={[
-          { id: "bodies", label: "Bodies", content: bodiesContent },
-          { id: "vessels", label: "Vessels", content: vesselsContent },
-          { id: "current", label: "Current", content: currentContent },
-        ]}
-        activeId={tab}
-        onChange={(id) => setTab(id as TabId)}
-      />
+      <TabsScope>
+        <Tabs
+          tabs={[
+            { id: "bodies", label: "Bodies", content: bodiesContent },
+            { id: "vessels", label: "Vessels", content: vesselsContent },
+            { id: "current", label: "Current", content: currentContent },
+          ]}
+          activeId={tab}
+          onChange={(id) => setTab(id as TabId)}
+        />
+      </TabsScope>
     </Panel>
   );
 }
@@ -471,6 +473,26 @@ const OrbitalEventChipsRow = styled.div`
   margin-top: 4px;
   &:empty {
     display: none;
+  }
+`;
+
+/** Scoped override of the shared @gonogo/ui Tabs chrome. The three tab
+ *  labels here ("Bodies" / "Vessels" / "Current") are longer than the
+ *  shared component's default sizing was tuned for, so at this widget's
+ *  common narrower widths the last tab clips under the overflow glow
+ *  instead of just fitting. Trim the label type down a size and tighten
+ *  the letter-spacing/padding rather than touching the shared primitive's
+ *  defaults, which other (shorter-label) tab consumers may rely on. */
+const TabsScope = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  [role="tablist"] [role="tab"] {
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.04em;
+    padding: 6px 6px;
   }
 `;
 

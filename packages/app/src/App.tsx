@@ -2,6 +2,7 @@ import { PeerHostProvider } from "./peer/PeerHostProvider";
 import { HostedLanding } from "./screens/HostedLanding";
 import { MainScreen } from "./screens/MainScreen";
 import { StationScreen } from "./screens/StationScreen";
+import "./styles/fonts.css";
 import "./styles/global.css";
 
 export default function App() {

@@ -273,8 +273,24 @@ Add the data key to the widget's `dataRequirements` so the orchestrator's debug 
 
 ## CI/CD
 
-- `.github/workflows/ci.yml` — runs `pnpm test` on all PRs and pushes to any branch.
+- `.github/workflows/ci.yml` — runs on pushes to `main` and PRs targeting `main`. Three jobs run in parallel: `test` (lint + `pnpm test`), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way — see below).
 - `.github/workflows/deploy.yml` — triggers on `workflow_run` (CI passes on `main` only). **Channel model:** every main push deploys only the DEV channel (`https://jonpepler.github.io/gonogo/dev/`, images tagged `:dev`, app version `X.Y.Z-dev.<shortsha>`); the root site (`/gonogo/`) and `:latest`/`:<version>` images move only when a release is cut via `gh workflow run prepare-release.yml --ref main` (→ `release.yml`). The version in `packages/app/package.json` changes ONLY through that flow — never bump it by hand. Details in `docs/DEPLOYMENT.md`. GitHub Pages source must be set to **GitHub Actions** in repo settings.
+
+### Visual regression gate
+
+The `visual` CI job renders every widget through the probe harness (`packages/components/scripts/visual-gate.ts`) and diffs each render against a committed **per-engine** baseline under `packages/components/visual-baselines/<engine>/` (`pixelmatch`, 0.2% ratio). It is per-engine, never cross-engine — engines rasterise differently.
+
+**When the `visual` job goes red** (the job log prints the exact fix command):
+
+1. Download the `visual-diffs-<browser>` CI artifact — it contains `baseline / actual / diff` PNGs for each failing render. Decide whether the change is intended.
+2. **Intended change** → regenerate the baselines. They MUST be generated on Linux (font rasterisation is OS-specific — never commit locally-rendered macOS baselines):
+   ```
+   gh workflow run update-baselines.yml --ref <branch> [-f widget=<id>]
+   ```
+   That `workflow_dispatch` job renders on the CI runner and commits the new baselines back to the branch. Scope it to one widget with `-f widget=<id>`.
+3. **Unintended change** → it's a real cross-browser regression; fix the widget.
+
+Notes: the gate **soft-passes** (warns, exits 0) when an engine has *no* baselines yet, so first-land and bootstrap stay green. Determinism depends on the harness pinning `Date.now()` and disabling animations — a new time-based or animated widget may need matching handling. Bumping the `playwright` version changes rasterisation and requires a baseline regen. Run locally with `pnpm --filter @gonogo/components visual-gate --engine <e> [--update] [--widget <id>]`.
 
 ---
 

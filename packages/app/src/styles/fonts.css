@@ -1,0 +1,4 @@
+/* Self-hosted JetBrains Mono so every OS/engine draws the same glyphs.
+ * Imported once from the app entry; @fontsource ships the woff2 + @font-face. */
+@import "@fontsource/jetbrains-mono/latin-400.css";
+@import "@fontsource/jetbrains-mono/latin-700.css";

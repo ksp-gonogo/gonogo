@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
+import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
 
 // Resolve every @gonogo/* workspace package to its TypeScript source so
@@ -62,6 +63,10 @@ const versionMeta = (): PluginOption => ({
 export default defineConfig({
   plugins: [react(), versionMeta(), spaFallback()],
   resolve: { alias: workspaceAlias },
+  build: {
+    // Transpile the bundle for the supported matrix in `.browserslistrc`.
+    target: browserslistToEsbuild(),
+  },
   base: process.env.VITE_BASE_PATH ?? "/",
   // Bind to 0.0.0.0 so phones / second laptops on the same LAN can hit the
   // dev server at http://<host-lan-ip>:5173. Vite prints both the local and

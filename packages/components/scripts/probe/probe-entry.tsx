@@ -218,8 +218,26 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // emitting vessel-name + mission-time through the buffered
   // wrapper.
   if (payload.series && activeStore) {
-    activeSource.emit("v.name", "ProbeFlight");
-    activeSource.emit("v.missionTime", 0);
+    // Seed the flight identity from the fixture's OWN v.name / v.missionTime
+    // when present. If we seeded with a fixed placeholder name while the
+    // fixture carried a different v.name, the post-mount emit of the real
+    // identity would trip FlightDetector's name-change path and mint a
+    // SECOND flight — orphaning these seeded samples under the first flight
+    // id. useDataSeries' queryRange then resolves to whichever flight is
+    // current when its effect runs, which is effect-timing-dependent and so
+    // varies by engine (Chromium found the data; Firefox/WebKit rendered an
+    // empty graph). Matching the identity keeps it a single flight, so the
+    // seeded samples and the mounted widget's query always agree.
+    const seedName =
+      typeof payload.fixture["v.name"] === "string"
+        ? (payload.fixture["v.name"] as string)
+        : "ProbeFlight";
+    const seedMissionTime =
+      typeof payload.fixture["v.missionTime"] === "number"
+        ? (payload.fixture["v.missionTime"] as number)
+        : 0;
+    activeSource.emit("v.name", seedName);
+    activeSource.emit("v.missionTime", seedMissionTime);
     // Microtask lets the buffered handleSample → detector observe
     // path land before we read the current flight.
     await Promise.resolve();
@@ -237,6 +255,25 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         }
       }
     }
+  }
+
+  // Force-load BOTH locked-font weights before mounting so the very first
+  // layout uses JetBrains Mono metrics for regular AND bold text. Awaiting
+  // `document.fonts.ready` alone is not enough: it resolves once the fonts
+  // currently in the loading set are done, but a weight the layout hasn't
+  // requested yet may not be in that set — so in Firefox the 700 face could
+  // still be its (taller) fallback at screenshot time, inflating bold text
+  // (status pills, tags, labels) enough to overflow tight widgets like
+  // thermal and clip a row. Explicitly loading each weight then awaiting
+  // ready guarantees both faces are decoded and applied. This also removes
+  // the fallback-vs-real nondeterminism and lets ScrollArea's ResizeObserver
+  // see final sizes on mount (so its scroll-glow fires when content overflows).
+  if (document.fonts?.load) {
+    await Promise.all([
+      document.fonts.load('400 1em "JetBrains Mono"'),
+      document.fonts.load('700 1em "JetBrains Mono"'),
+    ]);
+    await document.fonts.ready;
   }
 
   const def = getComponent(payload.widgetId);

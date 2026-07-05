@@ -9,11 +9,56 @@
  * `--all`, so 10 widgets render in one launch instead of 10.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
-import { chromium, type Page } from "playwright";
+import { chromium, firefox, type Page, webkit } from "playwright";
+
+const require = createRequire(import.meta.url);
+
+type Engine = "chromium" | "firefox" | "webkit";
+const ENGINES = { chromium, firefox, webkit };
+// Every suffix `renderWidgets` can produce (chromium's default is empty).
+// Used to scope stale-artifact cleanup to one engine's own files so a
+// firefox/webkit render doesn't delete a sibling engine's PNGs that share
+// the same output directory.
+const ENGINE_SUFFIXES = [
+  "",
+  ...Object.keys(ENGINES).map((e) => `--${e}`),
+] as const;
+
+/** True if `name` was produced by a render using exactly `suffix` (not a
+ *  different, more specific engine suffix that happens to end the same way
+ *  once `.png` is appended). */
+function artifactMatchesSuffix(name: string, suffix: string): boolean {
+  if (!name.endsWith(`${suffix}.png`)) return false;
+  if (suffix !== "") return true;
+  return !ENGINE_SUFFIXES.some(
+    (other) => other !== "" && name.endsWith(`${other}.png`),
+  );
+}
+
+// Pin the page clock so time-based widgets render byte-deterministically.
+// The graph derives its X-axis domain (and tick labels) from Date.now(), so
+// without this two runs seconds apart differ — enough to trip the visual
+// gate's tight threshold on every run. A fixed epoch makes every render of a
+// given fixture reproducible across runs and machines. Chosen arbitrarily
+// (2023-11-14T22:13:20Z); only its stability matters.
+const FIXED_EPOCH_MS = 1_700_000_000_000;
+
+/** Freeze `Date.now()` in the page before any script runs, so `Date.now()`-
+ *  derived layout (the graph's time axis) renders reproducibly. Added via
+ *  addInitScript so it lands before the probe module and the widgets it
+ *  mounts read the clock. Note: only `Date.now()` is pinned — a future widget
+ *  deriving layout from `new Date()` / `performance.now()` would reintroduce
+ *  nondeterminism and need handling here. */
+async function installFixedClock(page: Page): Promise<void> {
+  await page.addInitScript((fixed) => {
+    Date.now = () => fixed;
+  }, FIXED_EPOCH_MS);
+}
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -135,11 +180,16 @@ export async function renderWidget(config: WidgetRenderConfig): Promise<void> {
  *  session. Bundle is built once, page is reused. */
 export async function renderWidgets(
   configs: WidgetRenderConfig[],
+  opts: { engine?: Engine; outSuffix?: string; outBase?: string } = {},
 ): Promise<void> {
   if (configs.length === 0) {
     console.error("renderWidgets: no widget configs provided");
     process.exit(1);
   }
+
+  const engine = opts.engine ?? "chromium";
+  const outSuffix = opts.outSuffix ?? "";
+  const outBase = opts.outBase ?? LOCAL_DOCS;
 
   const slug =
     configs.length === 1 ? (configs[0].slug ?? configs[0].widgetId) : "all";
@@ -151,12 +201,17 @@ export async function renderWidgets(
     slug,
   });
 
-  console.log("Launching Chromium…");
-  const browser = await chromium.launch();
+  console.log(`Launching ${engine}…`);
+  const browser = await ENGINES[engine].launch();
   try {
     const context = await browser.newContext({
       viewport: { width: 800, height: 800 },
       deviceScaleFactor: 2,
+      // Several widgets pulse with `animation: … infinite` guarded by
+      // `@media (prefers-reduced-motion: no-preference)`. Emulate reduce so
+      // those guards suppress the animation — otherwise a pulsing state is
+      // captured at an arbitrary opacity phase and the visual gate flakes.
+      reducedMotion: "reduce",
     });
     const page = await context.newPage();
     page.on("pageerror", (err) => {
@@ -168,6 +223,7 @@ export async function renderWidgets(
       }
     });
 
+    await installFixedClock(page);
     await page.goto(pathToFileURL(probeHtmlOut).toString(), {
       waitUntil: "domcontentloaded",
     });
@@ -180,7 +236,7 @@ export async function renderWidgets(
     );
 
     for (const config of configs) {
-      await renderOneWidget(page, config);
+      await renderOneWidget(page, config, outSuffix, outBase);
     }
   } finally {
     await browser.close();
@@ -248,6 +304,8 @@ async function renderOneScreen(
       deviceScaleFactor: 2,
       hasTouch: touch,
       isMobile: touch,
+      // Suppress prefers-reduced-motion-guarded pulses for deterministic shots.
+      reducedMotion: "reduce",
     });
     const page = await context.newPage();
     page.on("pageerror", (err) => {
@@ -259,6 +317,7 @@ async function renderOneScreen(
       }
     });
 
+    await installFixedClock(page);
     await page.goto(probeUrl, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(
       () =>
@@ -281,7 +340,10 @@ async function renderOneScreen(
       const outName = `${state.name}--${bp.name}.png`;
       // Full-page screenshot (not `#root`) so the captured frame is exactly
       // the breakpoint viewport — the whole point of a screen render.
-      await page.screenshot({ path: join(outDir, outName) });
+      await page.screenshot({
+        path: join(outDir, outName),
+        animations: "disabled",
+      });
       count++;
     }
     await context.close();
@@ -292,12 +354,16 @@ async function renderOneScreen(
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
+  outSuffix = "",
+  outBase: string = LOCAL_DOCS,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
-  const outDir = resolve(LOCAL_DOCS, config.outPath);
+  const outDir = resolve(outBase, config.outPath);
 
   await mkdir(outDir, { recursive: true });
-  await cleanArtifacts(outDir, ARTIFACT_EXTS);
+  await cleanArtifacts(outDir, ARTIFACT_EXTS, (name) =>
+    artifactMatchesSuffix(name, outSuffix),
+  );
 
   const fixtureFiles = (await readdir(fixturesDir)).filter((e) =>
     e.endsWith(".json"),
@@ -354,9 +420,12 @@ async function renderOneWidget(
       );
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");
-      const outName = `${fixture.name}--${mode.name}.png`;
+      const outName = `${fixture.name}--${mode.name}${outSuffix}.png`;
       const outPath = join(outDir, outName);
-      await root.screenshot({ path: outPath });
+      // animations:"disabled" cancels any still-running CSS animation to its
+      // initial state and fast-forwards finite transitions, so the capture is
+      // deterministic even for anything not covered by reducedMotion.
+      await root.screenshot({ path: outPath, animations: "disabled" });
       count++;
     }
   }
@@ -397,6 +466,7 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
 
   const htmlTemplate = await readFile(opts.htmlTemplate, "utf8");
   const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
+  const fontFace = await jetbrainsMonoFontFace();
 
   // Inline-script payload may contain `</script>` (rare but possible in
   // bundled React code embedded as strings); escape so the host page
@@ -408,7 +478,7 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   const htmlWithBundle = htmlTemplate
     .replace(
       /<style id="probe-theme">[\s\S]*?<\/style>/,
-      () => `<style id="probe-theme">${themeCss}</style>`,
+      () => `<style id="probe-theme">${fontFace}${themeCss}</style>`,
     )
     .replace(
       opts.scriptSrcPlaceholder,
@@ -421,6 +491,25 @@ async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
   return probeHtmlOut;
+}
+
+/** Inline JetBrains Mono as a data-URI @font-face so file:// renders use the
+ *  locked font deterministically, matching the app's self-hosted face. */
+async function jetbrainsMonoFontFace(): Promise<string> {
+  // @fontsource ships the woff2 under files/. Resolve via the package.
+  const regular = require.resolve(
+    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",
+  );
+  const bold = require.resolve(
+    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2",
+  );
+  const b64 = async (p: string) => (await readFile(p)).toString("base64");
+  return `
+    @font-face{font-family:"JetBrains Mono";font-weight:400;font-style:normal;
+      src:url(data:font/woff2;base64,${await b64(regular)}) format("woff2");}
+    @font-face{font-family:"JetBrains Mono";font-weight:700;font-style:normal;
+      src:url(data:font/woff2;base64,${await b64(bold)}) format("woff2");}
+  `;
 }
 
 function extractRootBlock(css: string): string {
@@ -437,6 +526,7 @@ function extractRootBlock(css: string): string {
 async function cleanArtifacts(
   dir: string,
   allow: ReadonlySet<string>,
+  matches: (name: string) => boolean = () => true,
 ): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true });
   let removed = 0;
@@ -446,6 +536,7 @@ async function cleanArtifacts(
     if (dot < 0) continue;
     const ext = entry.name.slice(dot).toLowerCase();
     if (!allow.has(ext)) continue;
+    if (!matches(entry.name)) continue;
     await rm(join(dir, entry.name));
     removed++;
   }

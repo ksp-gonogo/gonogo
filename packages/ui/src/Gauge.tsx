@@ -113,8 +113,10 @@ export function Gauge({
       <svg
         width={Math.max(0, width)}
         height={Math.max(0, height)}
+        viewBox={`0 0 ${Math.max(0, width)} ${Math.max(0, height)}`}
         role="img"
         aria-label={ariaLabel ?? `Gauge: ${safeValue}`}
+        style={{ display: "block", maxWidth: "100%", height: "auto" }}
       >
         <title>{ariaLabel ?? "Gauge"}</title>
       </svg>
@@ -131,9 +133,22 @@ export function Gauge({
     <svg
       width={width}
       height={height}
+      // `width`/`height` size the coordinate system (and the default
+      // rendered box); the viewBox + `max-width: 100%; height: auto` pair
+      // make that box responsive — if the actual slot is narrower than
+      // `width` (e.g. a tall/narrow portrait widget column), the SVG
+      // scales itself and its whole coordinate space down to fit instead
+      // of overflowing and getting clipped by an ancestor's
+      // `overflow: hidden`. No-op when the slot is already >= `width`.
+      viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={ariaLabel ?? `Gauge: ${safeValue}`}
-      style={{ display: "block", fontFamily: "monospace" }}
+      style={{
+        display: "block",
+        fontFamily: "monospace",
+        maxWidth: "100%",
+        height: "auto",
+      }}
     >
       <title>{ariaLabel ?? `Gauge: ${safeValue}`}</title>
       <g transform={`translate(${cx} ${cy})`}>

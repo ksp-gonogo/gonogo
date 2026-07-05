@@ -1,4 +1,5 @@
 export * from "./bindings";
+export { CHROMIUM_ONLY_SURFACES, hasWebSerial } from "./capabilities";
 export * from "./InputDispatcher";
 export { InputMappingTab } from "./InputMappingTab";
 export { InputTesterComponent } from "./InputTester";

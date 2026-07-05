@@ -51,6 +51,17 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      // Web Serial / real-camera specs can't run where the API is absent.
+      grepInvert: /@chromium-only/,
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+      grepInvert: /@chromium-only/,
+    },
   ],
   webServer: [
     {

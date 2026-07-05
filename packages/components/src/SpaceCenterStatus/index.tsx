@@ -411,6 +411,17 @@ const FacilityLabel = styled.span`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  line-height: 1.3;
+  /* Reserve room for a two-line wrap (e.g. "Launch Pad" / "Mission
+     Control" at the narrow default-6x7 3-col grid) on every cell, not
+     just the ones that need it. Without this, a facility with a
+     short one-line label (Runway, VAB) sits higher in its cell than
+     its row-mate with a two-line label (Launch Pad) — everything
+     below (tier value, cost, Upgrade button) inherits the offset, so
+     the Upgrade buttons across a row land at visibly different
+     heights even though each button box itself is the same size. */
+  display: block;
+  min-height: 2.6em;
 `;
 
 const FacilityValue = styled.span`
@@ -508,18 +519,26 @@ const UpgradeButtonStyled = styled.button`
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 2px;
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
-  /* "Upgrade" label clipped to "Upgr" at default-6x7 because flex
-     squeezed the button into the 1fr cost column's leftover space.
-     Keep the label whole and the button at its intrinsic width. */
-  white-space: nowrap;
-  flex-shrink: 0;
+  box-sizing: border-box;
+  text-align: center;
+  /* At the narrow default-6x7 3-col grid the facility cell interior is
+     only ~46px — narrower than "Upgrade" can render on one line. A
+     fixed nowrap width used to solve an old label-clipping bug by
+     refusing to shrink, but that just moved the problem: the button
+     kept its full intrinsic width and overflowed the cell (and, for
+     the last column, right past the panel's own padding, reading as
+     a "cut off" button). Let it shrink and wrap instead — every
+     character stays visible, just spread over two lines, and the box
+     never exceeds the space its row actually has. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 
   &:hover:not(:disabled) {
     color: var(--color-accent-fg);

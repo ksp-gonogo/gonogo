@@ -16,7 +16,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "nursery": {
+        "useBaseline": {
+          "level": "error",
+          "options": { "available": "newly" }
+        }
+      }
     }
   },
   "javascript": {
