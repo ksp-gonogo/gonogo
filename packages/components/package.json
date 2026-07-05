@@ -16,7 +16,9 @@
     "render-navball-gif": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-gif.ts",
     "render-navball-scaling": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-scaling.ts",
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
-    "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts"
+    "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts",
+    "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
+    "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts"
   },
   "dependencies": {
     "@gonogo/core": "workspace:*",
@@ -29,16 +31,20 @@
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest-axe": "^3.5.9",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.0.0",
     "@vitest/coverage-v8": "^4.1.4",
     "esbuild": "^0.28.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
     "msw": "^2.13.2",
+    "pixelmatch": "^7.2.0",
     "playwright": "^1.60.0",
+    "pngjs": "^7.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"

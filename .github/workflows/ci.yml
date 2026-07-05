@@ -45,21 +45,119 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
-      # `pnpm test` runs turbo `test` (dependsOn ^build), so all workspace
-      # dists exist afterwards — the Playwright webServers (relay via tsx →
-      # @gonogo/logger/dist, app via vite) rely on that.
       - run: pnpm test
 
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v5
 
-      - name: Playwright e2e
-        run: pnpm exec playwright test
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope
+          # registry on GitHub Packages.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      # turbo build so the Playwright webServers (relay via tsx, app via
+      # vite) have all workspace dists. Cache is local-only, so each matrix
+      # job builds independently — costs CPU, not wall-time (jobs run in
+      # parallel).
+      - name: Build workspace
+        run: pnpm build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Playwright e2e (${{ matrix.browser }})
+        run: pnpm exec playwright test --project=${{ matrix.browser }}
 
       - name: Upload Playwright traces on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.browser }}
           path: test-results/
+          retention-days: 7
+
+  # Per-engine visual regression gate. Renders every widget through the probe
+  # harness for one engine and diffs each against its committed baseline under
+  # packages/components/visual-baselines/<engine>/. Its own matrix job with no
+  # `needs`, so all three legs run concurrently with `test` and `e2e` — wall
+  # time stays ≈ one engine's run. Baselines are Linux-generated (see the
+  # update-baselines workflow); on drift the baseline/actual/diff PNGs upload
+  # as an artifact.
+  visual:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      # The render harness esbuild-bundles component source, which imports the
+      # workspace packages from their built dists — so build components and its
+      # dependency graph (lighter than a full `pnpm build`; no app/relay needed
+      # since the harness doesn't use Playwright webServers).
+      - name: Build render dependencies
+        run: pnpm --filter "@gonogo/components..." build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Visual gate (${{ matrix.browser }})
+        run: pnpm --filter @gonogo/components visual-gate --engine ${{ matrix.browser }}
+
+      - name: Upload visual diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs-${{ matrix.browser }}
+          path: local_docs/renders/_visual-gate-diffs/
           retention-days: 7

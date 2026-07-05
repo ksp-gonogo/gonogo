@@ -191,9 +191,9 @@ function ThermalStatusComponent({
             role={anyCritical ? "alert" : "status"}
             aria-live={anyCritical ? "assertive" : "polite"}
           >
-            <StatusPill $tone={BAND_TONE[worstBand]}>
+            <CompactStatusPill $tone={BAND_TONE[worstBand]}>
               {BAND_LABEL[worstBand]}
-            </StatusPill>
+            </CompactStatusPill>
             {showInlineAlert && (
               <CriticalNote>
                 {engineOverheat
@@ -209,7 +209,12 @@ function ThermalStatusComponent({
             <RowsScroll>
               {showHottestRow && (
                 <Row>
-                  <RowLabel>Hottest part</RowLabel>
+                  <RowHeader>
+                    <RowLabel>Hottest part</RowLabel>
+                    <BandTag $band={hottestBand}>
+                      {BAND_LABEL[hottestBand]}
+                    </BandTag>
+                  </RowHeader>
                   <RowBody>
                     <PartName>{hottestName ?? "—"}</PartName>
                     <TempMeter>
@@ -225,9 +230,6 @@ function ThermalStatusComponent({
                       {hottestMaxC !== undefined && (
                         <MaxTag>/ {formatTempC(hottestMaxC)} max</MaxTag>
                       )}
-                      <BandTag $band={hottestBand}>
-                        {BAND_LABEL[hottestBand]}
-                      </BandTag>
                     </TempReadout>
                   </RowBody>
                 </Row>
@@ -235,7 +237,12 @@ function ThermalStatusComponent({
 
               {showEngineRow && (
                 <Row>
-                  <RowLabel>Hottest engine</RowLabel>
+                  <RowHeader>
+                    <RowLabel>Hottest engine</RowLabel>
+                    <BandTag $band={engineBand}>
+                      {BAND_LABEL[engineBand]}
+                    </BandTag>
+                  </RowHeader>
                   <RowBody>
                     <TempMeter>
                       <TempBar
@@ -250,9 +257,6 @@ function ThermalStatusComponent({
                       {engineMaxC !== undefined && (
                         <MaxTag>/ {formatTempC(engineMaxC)} max</MaxTag>
                       )}
-                      <BandTag $band={engineBand}>
-                        {BAND_LABEL[engineBand]}
-                      </BandTag>
                     </TempReadout>
                   </RowBody>
                 </Row>
@@ -298,6 +302,25 @@ const PillRow = styled.div`
   gap: 8px;
 `;
 
+// The shared StatusPill sizes itself to its label at a fixed padding —
+// fine everywhere it's used except this widget's narrowest "pill-only"
+// mode (minSize is 3 cols wide), where "CRITICAL" no longer fits and was
+// overflowing past the panel's right edge under Panel's overflow:hidden.
+// min-width: 0 lets the flex item shrink below its intrinsic content
+// width (the flexbox default is min-width: auto, which blocks exactly
+// that); the tighter padding/letter-spacing buys back room so common
+// labels ("nominal", "critical") still render whole, and the ellipsis
+// is a legible fallback if a future label is even longer.
+const CompactStatusPill = styled(StatusPill)`
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 10px;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;
+
 const CriticalNote = styled.span`
   font-size: 11px;
   color: var(--color-status-nogo-fg);
@@ -307,6 +330,15 @@ const CriticalNote = styled.span`
 const RowsScroll = styled(ScrollArea)`
   flex: 1;
   min-height: 0;
+  /* Bleed the scroll viewport down through the panel's bottom padding so
+     overflowing rows are revealed — and clipped — right at the widget's
+     bottom edge, with the scroll fade drawn over the top of them. Without
+     this the rows cut off ~12px short of the border, leaving a dead gap
+     that reads as "content truncated even though there's space". The panel
+     publishes its own bottom padding as --scroll-glow-pad-y (the same value
+     the fade already extends by), so the content edge now lines up with the
+     fade and the chrome. */
+  margin-bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));
 `;
 
 const Row = styled.div`
@@ -319,11 +351,26 @@ const Row = styled.div`
   }
 `;
 
+// Label + band badge share the row's top line so the band reads as a
+// top-right badge and the value readout below stays short — at the
+// narrowest sizes the readout no longer wraps the band tag onto a second
+// line that then gets clipped.
+const RowHeader = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
 const RowLabel = styled.div`
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const RowBody = styled.div`
@@ -375,7 +422,7 @@ const MaxTag = styled.span`
 `;
 
 const BandTag = styled.span<{ $band: Band }>`
-  margin-left: auto;
+  flex-shrink: 0;
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;

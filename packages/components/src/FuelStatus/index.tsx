@@ -219,6 +219,13 @@ function FuelStatusComponent({
   const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
   const showStageStack = cols >= 5 && (rows >= 10 || isLandscape);
   const showHeroDv = !showTotals && totalDv !== undefined;
+  // At the narrowest width the stage stack ever renders at (cols === 5,
+  // portrait-5x18), "<burn> · TWR <n>" doesn't fit next to the ΔV bar even
+  // with the bar's 28px floor honoured — the row overflows past the panel
+  // edge and gets clipped. Splitting burn time and TWR onto their own lines
+  // shortens the longest line enough to fit; there's always vertical room
+  // to spare here since the stage stack only shows once rows >= 10.
+  const compactStageMeta = cols < 7;
 
   return (
     <Panel>
@@ -231,10 +238,10 @@ function FuelStatusComponent({
       )}
 
       {showHeroDv && (
-        <BigReadout $tone="alert">
-          {`${fmtFixed(totalDv, 0)} m/s`}
+        <HeroReadout $tone="alert">
+          <HeroValue>{`${fmtFixed(totalDv, 0)} m/s`}</HeroValue>
           <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
-        </BigReadout>
+        </HeroReadout>
       )}
 
       {/* No engine data + no totals row to fall back on → render an
@@ -319,9 +326,16 @@ function FuelStatusComponent({
                   </Bar>
                   <StageReadout>
                     <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
-                    <StageMeta>
-                      {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
-                    </StageMeta>
+                    {compactStageMeta ? (
+                      <>
+                        <StageMeta>{formatDuration(s.burnTime)}</StageMeta>
+                        <StageMeta>TWR {fmtFixed(twr, 2)}</StageMeta>
+                      </>
+                    ) : (
+                      <StageMeta>
+                        {formatDuration(s.burnTime)} · TWR {fmtFixed(twr, 2)}
+                      </StageMeta>
+                    )}
                   </StageReadout>
                 </StageRow>
               );
@@ -396,6 +410,29 @@ function formatDuration(s: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+/**
+ * `BigReadout`'s font-size clamps up to 38px regardless of the widget's own
+ * grid size — it reads from viewport width, not container width — which is
+ * fine for a lone short value (see other consumers) but overflows badly for
+ * "<n> m/s": at the 3x3 minSize the string wraps at the space and the
+ * wrapped "m/s" line gets clipped by `Panel`'s `overflow: hidden`. We can't
+ * touch the shared `BigReadout` (same constraint CrewManifest hit), so cap
+ * the font lower here, scoped to the hero branch only.
+ */
+const HeroReadout = styled(BigReadout)`
+  font-size: clamp(13px, 3.5vw, 17px);
+`;
+
+/**
+ * Keeps the value and its unit glued to one line — a number must never wrap
+ * away from (or get clipped apart from) its unit. Paired with `HeroReadout`'s
+ * smaller font so the whole string actually fits at tiny widget sizes
+ * instead of merely refusing to wrap while still overflowing.
+ */
+const HeroValue = styled.span`
+  white-space: nowrap;
+`;
 
 // Wrapper around the resource list + stage stack. Transparent (`display:
 // contents`) by default so the normal vertical stack is unchanged; at
@@ -523,7 +560,14 @@ const StageHeader = styled.div`
 
 const StageRow = styled.div<{ $active?: boolean }>`
   display: grid;
-  grid-template-columns: 3.5em minmax(0, 1fr) auto;
+  /* Bar column needs a real floor (28px, matching Bar's own min-width and
+     ResourceRow's identical column below) — not minmax(0, …). With a 0
+     base, a narrow row (e.g. portrait-5x18) collapses this track to 0 and
+     the Bar div's min-width then overflows the 0-width cell to the right,
+     landing directly under the StageReadout column. StageReadout paints
+     after Bar in DOM order, so the burn-time/TWR text rendered on top of
+     the ΔV bar instead of beside it. */
+  grid-template-columns: 3.5em minmax(28px, 1fr) auto;
   align-items: center;
   gap: 8px;
   font-size: 11px;

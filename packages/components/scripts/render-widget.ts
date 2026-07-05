@@ -6,13 +6,16 @@
  * — no package.json change, no new CLI script.
  *
  * Run via `pnpm --filter @gonogo/components render-widget …`.
+ * Pass `--engine chromium|firefox|webkit` to pick the browser (default
+ * chromium); non-chromium engines suffix output filenames with
+ * `--<engine>` so renders from different browsers don't clobber each other.
  */
 import { renderScreens, renderWidgets } from "./widgetRenderHarness";
 import { getScreen, getWidget, listScreens, listWidgets } from "./widgets";
 
 function usage(): never {
   console.error(
-    "Usage: render-widget <widget-id> | --all | --list\n" +
+    "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit]\n" +
       "       render-widget --screen <screen-id> | --screens\n" +
       "       Known widget ids: " +
       listWidgets()
@@ -29,6 +32,18 @@ function usage(): never {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length === 0) usage();
+
+  const engineFlag = args.indexOf("--engine");
+  const engineArg = engineFlag !== -1 ? args[engineFlag + 1] : undefined;
+  if (engineArg && !["chromium", "firefox", "webkit"].includes(engineArg)) {
+    console.error(`Unknown engine: ${engineArg}`);
+    usage();
+  }
+  const engine = (engineArg ?? "chromium") as "chromium" | "firefox" | "webkit";
+  const renderOpts = {
+    engine,
+    outSuffix: engine === "chromium" ? "" : `--${engine}`,
+  };
 
   if (args.includes("--list")) {
     for (const w of listWidgets()) {
@@ -63,7 +78,7 @@ async function main(): Promise<void> {
   }
 
   if (args.includes("--all")) {
-    await renderWidgets([...listWidgets()]);
+    await renderWidgets([...listWidgets()], renderOpts);
     return;
   }
 
@@ -74,7 +89,7 @@ async function main(): Promise<void> {
     console.error(`Unknown widget id: ${id}`);
     usage();
   }
-  await renderWidgets([config]);
+  await renderWidgets([config], renderOpts);
 }
 
 main().catch((err) => {

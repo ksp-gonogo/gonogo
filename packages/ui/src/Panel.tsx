@@ -85,17 +85,20 @@ const ScrollOverflowGlow = styled.div<{
     $position === "top"
       ? "top: calc(-1 * var(--scroll-glow-pad-y, 0px));"
       : "bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));"}
-  height: calc(13px + var(--scroll-glow-pad-y, 0px));
+  height: calc(16px + var(--scroll-glow-pad-y, 0px));
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity 150ms ease;
-  /* Radial ellipse centred on the chrome edge — tapers off horizontally so the
-     glow sits brightest at the middle of the widget and fades toward the
-     left/right borders. */
-  background: radial-gradient(
-    ellipse 75% 100% at center ${({ $position }) => ($position === "top" ? "top" : "bottom")},
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0) 75%
+  /* Full-width linear fade anchored on the chrome edge — brightest right at
+     the scrollable boundary and tapering inward across the whole width. A
+     centred radial ellipse read as a discrete glowing blob floating over the
+     content; a full-width edge fade reads as the content itself dissolving
+     under a soft overlay at the edge, which is the intended "there's more,
+     scroll" affordance. */
+  background: linear-gradient(
+    ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
+    rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, 0)
   );
   z-index: 1;
 

@@ -499,7 +499,7 @@ function AvailableRow({
       {s.hasFactorSlider && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>
-          <input
+          <Slider
             type="range"
             min={s.factorSliderDefault}
             max={1}
@@ -726,6 +726,71 @@ const FactorRow = styled.div`
   align-items: center;
   gap: 8px;
   margin-top: 4px;
+`;
+
+/**
+ * A bare `<input type="range">` has no cross-engine styling, so each
+ * browser paints its own native track/thumb colours (was mismatched
+ * Chromium blue vs. WebKit/Firefox default grey — the "wrong colour" /
+ * "different coloured blobs" reports). It also has no explicit width, so
+ * as a flex child its intrinsic size doesn't shrink to fit a narrow card
+ * (was overflowing the widget at portrait/tall sizes). `min-width: 0` +
+ * `width: 100%` let it shrink with the row; `appearance: none` plus the
+ * per-engine track/thumb pseudo-elements give it one consistent look on
+ * Chromium, Firefox and WebKit.
+ */
+const Slider = styled.input`
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+
+  &::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-border-strong);
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--color-accent-fg);
+  }
+
+  &::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-border-strong);
+  }
+
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-accent-fg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+
+  &::-moz-focus-outer {
+    border: 0;
+  }
 `;
 
 const FactorLabel = styled.span`

@@ -13,3 +13,6 @@ local_docs/
 /test-results/
 /playwright-report/
 .playwright-mcp/
+# Superpowers process artifacts (design specs + implementation plans) stay
+# local, like .superpowers/ scratch — they're working docs, not repo history.
+docs/superpowers/

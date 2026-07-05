@@ -711,7 +711,7 @@ export class KerbcastDataSource implements DataSource<KerbcastConfig> {
     this.turnEscalated = false;
     this.teardownClient();
     this.client = this.buildClient();
-    if (wasEnabled) void this.connect();
+    if (wasEnabled) void this.connect().catch(() => {});
   }
 
   // -- private --

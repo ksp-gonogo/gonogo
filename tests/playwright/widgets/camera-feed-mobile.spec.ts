@@ -34,7 +34,17 @@ const CELL_SELECTOR = '[data-i="widget-camera-feed"]';
 test.describe("CameraFeed mobile sizing", () => {
   test("renders at the registered mobileHeight on host + station", async ({
     browser,
+    browserName,
   }) => {
+    // Firefox's Playwright driver rejects `isMobile` in newContext() outright
+    // (unsupported by the engine, not a gonogo bug) — bootstrapPair below
+    // passes it straight through via contextOptions. Chromium and WebKit both
+    // support it, so this is a Firefox-only skip, not a `@chromium-only` tag.
+    test.skip(
+      browserName === "firefox",
+      "Firefox does not support the isMobile context option",
+    );
+
     const pair = await bootstrapPair(browser, "camera-feed", {
       widget: {
         config: {

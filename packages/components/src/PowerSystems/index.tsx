@@ -713,8 +713,22 @@ const CompactResource = styled.div`
   color: var(--color-text-faint);
 `;
 
+/* At the tiny (3×3) size the panel's inner width is ~80px, and a value
+   like "+49.50/s" has no natural break point — the browser's shrink-to-fit
+   sizing can't shrink an unbreakable run below its own rendered width, so it
+   overflows the panel and the panel's overflow:hidden clips whatever spills
+   past the edge. Chromium's metrics for this string happened to just fit;
+   Firefox's are a hair wider and lopped off the trailing "s". Dropping the
+   font-size a notch buys headroom for the common case, and max-width +
+   ellipsis is the safety net for genuinely long values (3-digit rates,
+   longer unit strings) so any residual overflow degrades to a visible "…"
+   instead of an abruptly amputated character. */
 const CompactNet = styled.div<{ $tone: "go" | "warn" | "neutral" }>`
-  font-size: 18px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: ${({ $tone }) =>

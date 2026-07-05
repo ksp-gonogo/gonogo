@@ -1,6 +1,7 @@
 import { Button, GhostButton, Tabs } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
+import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
 import {
   useSerialDeviceService,
   useSerialDeviceStatus,
@@ -13,6 +14,24 @@ import { getWebSerialSupport } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
 import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
+
+// The capability registry is the source of truth for "what's Chromium-only" —
+// pull the feature label shown in the unsupported-browser banner from there
+// instead of hardcoding it a second time in this component.
+const foundWebSerialFeature = CHROMIUM_ONLY_SURFACES.find(
+  (s) => s.id === "web-serial",
+);
+if (!foundWebSerialFeature) {
+  throw new Error(
+    "capabilities registry is missing the web-serial entry SerialDevicesMenu depends on",
+  );
+}
+// Re-bind with the narrowed (non-undefined) type — the guard above narrows
+// `foundWebSerialFeature` only within this scope, not for the closures below
+// that reference it, so assign it once to a const whose inferred type
+// already excludes `undefined`.
+const WEB_SERIAL_FEATURE: (typeof CHROMIUM_ONLY_SURFACES)[number] =
+  foundWebSerialFeature;
 
 export function SerialDevicesMenu() {
   const [tab, setTab] = useState<"devices" | "types">("devices");
@@ -109,8 +128,9 @@ function WebSerialBanner({
       typeof window !== "undefined" ? window.location.origin : "this page";
     return (
       <WebSerialUnavailableBanner role="status">
-        Web Serial is blocked because <code>{origin}</code> isn't a secure
-        context. Chrome only exposes USB serial over HTTPS or{" "}
+        <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable —</BannerLabel> Web
+        Serial is blocked because <code>{origin}</code> isn't a secure context.
+        Chrome only exposes USB serial over HTTPS or{" "}
         <code>http://localhost</code>. Either open the app via{" "}
         <code>localhost</code>/HTTPS, or whitelist this origin at{" "}
         <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>{" "}
@@ -120,8 +140,9 @@ function WebSerialBanner({
   }
   return (
     <WebSerialUnavailableBanner role="status">
-      Web Serial is not available in this browser. Virtual devices still work;
-      real USB hardware needs a Chromium-based browser on desktop or Android.
+      <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable —</BannerLabel> Web
+      Serial is not available in this browser. Virtual devices still work; real
+      USB hardware needs a Chromium-based browser on desktop or Android.
     </WebSerialUnavailableBanner>
   );
 }
@@ -325,6 +346,10 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: 12px;
   padding: 8px 0;
+`;
+
+const BannerLabel = styled.strong`
+  font-weight: 700;
 `;
 
 const WebSerialUnavailableBanner = styled.div`

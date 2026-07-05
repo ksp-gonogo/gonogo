@@ -56,6 +56,11 @@ const MIRRORED_KEYS: ReadonlyArray<{
 const initScript = (config: string) => `
   try {
     localStorage.setItem("gonogo.datasource.telemachus", ${JSON.stringify(config)});
+    // Pre-answer analytics consent so the blocking boot modal doesn't sit
+    // over the dashboard — without this it stays open for the whole test
+    // (see helpers.ts's seedContext, which every other multi-screen spec
+    // routes through).
+    localStorage.setItem("gonogo.analytics.consent", "disabled");
   } catch (e) {
     // localStorage might be locked in early init — addInitScript runs in
     // every fresh document, so swallowing is safe; the assignment retries
@@ -65,41 +70,46 @@ const initScript = (config: string) => `
 
 /**
  * Wait until `__gonogo_get_value__(key)` returns a value matching `shape`,
- * then return it. Wrapper around waitForFunction with the right
- * signature (passing options as the third positional, not the second).
+ * then return it.
+ *
+ * Polls from the Node side via plain `page.evaluate` calls rather than a
+ * single `page.waitForFunction` whose page-side predicate returns a
+ * `new Promise(...)`. That nested-promise-inside-waitForFunction pattern
+ * turned out to be unreliable on the Firefox driver specifically: under the
+ * load of a long test run, Firefox's polling would occasionally accept an
+ * unsettled/falsy intermediate resolution as "done", short-circuiting to
+ * `null` well before the 60s timeout instead of retrying (reproduced by
+ * running this spec after ~30 preceding tests in the same firefox project —
+ * it never reproduced in isolation). A plain per-attempt `evaluate` +
+ * Node-side delay sidesteps the driver's promise-polling code path
+ * entirely and behaves identically across engines.
  */
 async function waitForValue(
   page: Page,
   key: string,
   shape: "string" | "number" | "boolean",
 ): Promise<unknown> {
-  const handle = await page.waitForFunction(
-    ({ key, shape }) => {
-      return new Promise<unknown>((resolve) => {
-        const w = window as unknown as {
-          __gonogo_get_value__?: (key: string) => Promise<unknown>;
-        };
-        const lookup = w.__gonogo_get_value__;
-        if (!lookup) return resolve(null);
-        const timer = setTimeout(() => resolve(null), 500);
-        lookup(key).then((value) => {
-          clearTimeout(timer);
-          if (shape === "number") {
-            resolve(
-              typeof value === "number" && Number.isFinite(value)
-                ? value
-                : null,
-            );
-          } else {
-            resolve(typeof value === shape ? value : null);
-          }
-        });
-      });
-    },
-    { key, shape },
-    { timeout: 60_000 },
-  );
-  return await handle.jsonValue();
+  const deadline = Date.now() + 60_000;
+  for (;;) {
+    const value = await page.evaluate((key: string) => {
+      const w = window as unknown as {
+        __gonogo_get_value__?: (key: string) => Promise<unknown>;
+      };
+      const lookup = w.__gonogo_get_value__;
+      return lookup ? lookup(key) : null;
+    }, key);
+    const matches =
+      shape === "number"
+        ? typeof value === "number" && Number.isFinite(value)
+        : typeof value === shape;
+    if (matches) return value;
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `waitForValue: "${key}" never resolved to shape "${shape}" within 60s (last value: ${JSON.stringify(value)})`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
 }
 
 test.describe("recorded launch — main + station mirror", () => {
