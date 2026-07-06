@@ -283,6 +283,53 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Track C's fix, proven headlessly: <c>ReplayBodiesServer</c> is the
+        /// documented 1:1 stand-in for <c>Gonogo.KSP.GonogoBodiesServer</c>
+        /// (see that class's doc comment), so this is direct coverage of the
+        /// production wiring. Ticks with ZERO subscribers must never even
+        /// reach the emitter (proven via <see cref="ReplayBodiesServer.BodiesEmitterCounters"/>,
+        /// since "nothing arrived on the wire" alone doesn't distinguish this
+        /// from the pre-fix behavior of no one being subscribed to receive it
+        /// either way) -- and the moment a client subscribes, the very next
+        /// tick both reaches the emitter AND streams immediately (the
+        /// subscribe-triggered keyframe), with no wait for a change or a
+        /// keyframe-cadence rollover.
+        /// </summary>
+        [Fact]
+        public async Task ZeroSubscribersNeverReachTheEmitterButStreamImmediatelyOnceSomeoneSubscribes()
+        {
+            using var server = new ReplayBodiesServer("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            server.Start();
+            try
+            {
+                // No client connected at all -- three ticks land with zero
+                // subscribers. The SubscriptionRegistry/ChannelEmitter outer
+                // gate means Decide is never called for any of them.
+                server.Tick(0.0, BodiesPayload(1));
+                server.Tick(1.0, BodiesPayload(2));
+                server.Tick(2.0, BodiesPayload(3));
+                Assert.Equal(0, server.BodiesEmitterCounters.Considered);
+                Assert.Equal(0, server.BodiesEmitterCounters.Emitted);
+
+                await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
+                await SubscribeAsync(client, ReplayBodiesServer.BodiesTopic, Timeout);
+
+                // The genuine 0 -> 1 subscribe transition forces a keyframe
+                // on the very next tick, regardless of keyframe cadence.
+                server.Tick(3.0, BodiesPayload(4));
+                Assert.Equal(1, server.BodiesEmitterCounters.Considered);
+                Assert.Equal(1, server.BodiesEmitterCounters.Emitted);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                AssertSma(delivered, 4);
+            }
+            finally
+            {
+                server.Stop();
+            }
+        }
+
         private static object BodiesPayload(double sma)
         {
             return new Dictionary<string, object?> { ["sma"] = sma };

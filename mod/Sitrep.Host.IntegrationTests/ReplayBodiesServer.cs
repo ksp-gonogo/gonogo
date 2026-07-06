@@ -42,6 +42,12 @@ namespace Sitrep.Host.IntegrationTests
 
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
+        // Paired 1:1 with Gonogo.KSP.GonogoBodiesServer.BodiesEmissionPolicy
+        // -- keep both in sync.
+        private static readonly EmissionPolicy BodiesEmissionPolicy = new EmissionPolicy(
+            keyframeIntervalUt: 30,
+            quantum: EmissionQuantum.Absolute(0));
+
         private readonly ManualClock _clock;
         private readonly INetwork _network;
         private readonly Courier _courier;
@@ -51,11 +57,27 @@ namespace Sitrep.Host.IntegrationTests
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
 
+        // Paired 1:1 with Gonogo.KSP.GonogoBodiesServer's SubscriptionRegistry
+        // / ChannelEmitter gate -- keep both in sync.
+        private readonly SubscriptionRegistry _subscriptions = new SubscriptionRegistry();
+        private readonly ChannelEmitter _bodiesEmitter = new ChannelEmitter(BodiesEmissionPolicy);
+
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
 
         private long _ackSeq;
 
         public int BoundPort => _listener.BoundPort;
+
+        /// <summary>
+        /// Test-only visibility into whether the SubscriptionRegistry gate
+        /// ever let a system.bodies tick reach the ChannelEmitter -- "no
+        /// message arrived on the wire" alone can't distinguish the Track C
+        /// fix (Decide never even called with zero subscribers) from the
+        /// pre-fix behavior (nobody was subscribed to receive it either
+        /// way), so tests assert on this directly. See
+        /// <c>ZeroSubscribersNeverReachTheEmitterButStreamImmediatelyOnceSomeoneSubscribes</c>.
+        /// </summary>
+        internal EmissionCounters BodiesEmitterCounters => _bodiesEmitter.CountersFor(BodiesTopic);
 
         public ReplayBodiesServer(string bindUri, double networkDelaySeconds)
         {
@@ -150,9 +172,21 @@ namespace Sitrep.Host.IntegrationTests
                             if (tick.Ut < _clock.Now())
                             {
                                 _courier.ResetTimeline(tick.Ut);
+                                _bodiesEmitter.Reset(tick.Ut);
                                 BroadcastTimelineReset();
                             }
-                            _courier.Record(SystemNode, BodiesTopic, tick.Payload, tick.Ut);
+
+                            // Paired 1:1 with GonogoBodiesServer's
+                            // subscription-gated stream -- keep in sync.
+                            if (_subscriptions.IsSubscribed(BodiesTopic))
+                            {
+                                var decision = _bodiesEmitter.Decide(BodiesTopic, tick.Payload, tick.Ut);
+                                if (decision.ShouldEmit)
+                                {
+                                    _courier.Record(SystemNode, BodiesTopic, decision.Value, tick.Ut);
+                                }
+                            }
+
                             _clock.AdvanceTo(tick.Ut);
                             tick.Done.Set();
                             break;
@@ -175,6 +209,12 @@ namespace Sitrep.Host.IntegrationTests
             if (topic != BodiesTopic || session.Unsubscribers.ContainsKey(topic))
             {
                 return;
+            }
+
+            // Paired 1:1 with GonogoBodiesServer.ProcessSubscribe -- keep in sync.
+            if (_subscriptions.Subscribe(topic))
+            {
+                _bodiesEmitter.NotifySubscribed(topic);
             }
 
             var vantage = session.Connection.Id;
@@ -236,17 +276,22 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private static void ProcessUnsubscribe(ClientSession session, string topic)
+        private void ProcessUnsubscribe(ClientSession session, string topic)
         {
             if (session.Unsubscribers.TryGetValue(topic, out var unsubscribe))
             {
                 unsubscribe();
                 session.Unsubscribers.Remove(topic);
+                _subscriptions.Unsubscribe(topic);
             }
         }
 
-        private static void ProcessDisconnect(ClientSession session)
+        private void ProcessDisconnect(ClientSession session)
         {
+            foreach (var topic in session.Unsubscribers.Keys)
+            {
+                _subscriptions.Unsubscribe(topic);
+            }
             foreach (var unsubscribe in session.Unsubscribers.Values)
             {
                 unsubscribe();

@@ -41,6 +41,18 @@ namespace Gonogo.KSP
 
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
+        // system.bodies is a static structured channel (orbital elements
+        // barely change tick to tick) - a 30s keyframe cadence plus
+        // accepting a re-emit at whatever cadence GonogoAddon samples at
+        // (currently ~1s UT) is fine per the streaming-slice-1 plan. The
+        // quantum is irrelevant here: the payload is a Dictionary, so
+        // ChannelEmitter's change-gate falls back to reference/Equals
+        // comparison, and BuildSystemBodies hands back a fresh Dictionary
+        // every call - so every considered sample reads as "changed".
+        private static readonly EmissionPolicy BodiesEmissionPolicy = new EmissionPolicy(
+            keyframeIntervalUt: 30,
+            quantum: EmissionQuantum.Absolute(0));
+
         private readonly ManualClock _clock;
         private readonly INetwork _network;
         private readonly Courier _courier;
@@ -49,6 +61,17 @@ namespace Gonogo.KSP
         private readonly ConcurrentQueue<ICourierJob> _jobs = new ConcurrentQueue<ICourierJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
+
+        // The OUTER (SubscriptionRegistry) / INNER (ChannelEmitter) gate
+        // pair from Sitrep.Core, Courier-thread-only: a zero-subscriber
+        // system.bodies channel is never even considered by the emitter,
+        // let alone recorded into the Courier's delayed-delivery timeline.
+        // This is exactly the call-site shape SubscriptionRegistry's own
+        // doc comment names this class as the intended caller of. Distinct
+        // from Sitrep.Host.Recorder (wired in GonogoAddon), which samples
+        // and records UNCONDITIONALLY regardless of this gate.
+        private readonly SubscriptionRegistry _subscriptions = new SubscriptionRegistry();
+        private readonly ChannelEmitter _bodiesEmitter = new ChannelEmitter(BodiesEmissionPolicy);
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
 
@@ -140,13 +163,39 @@ namespace Gonogo.KSP
                             // pre-quickload timeline (deliveries scheduled
                             // against the old peak UT never fire) until game
                             // UT re-climbs past that old peak -- a
-                            // multi-minute live stall of system.bodies.
+                            // multi-minute live stall of system.bodies. The
+                            // emitter is reset alongside the courier so the
+                            // next Decide (once someone is subscribed) is an
+                            // unconditional keyframe on the new timeline too,
+                            // rather than staying gated by pre-quickload
+                            // cadence/deadband state.
                             if (tick.Ut < _clock.Now())
                             {
                                 _courier.ResetTimeline(tick.Ut);
+                                _bodiesEmitter.Reset(tick.Ut);
                                 BroadcastTimelineReset();
                             }
-                            _courier.Record(SystemNode, BodiesTopic, tick.Payload, tick.Ut);
+
+                            // Subscription-gated STREAM: zero subscribers for
+                            // system.bodies means Decide is never even
+                            // called, let alone recorded into the courier's
+                            // delayed-delivery timeline (see
+                            // SubscriptionRegistry's doc comment for this
+                            // exact outer/inner gate shape). The Recorder
+                            // dev-capture path in GonogoAddon.FixedUpdate
+                            // already captured this same sample
+                            // UNCONDITIONALLY, before this job was ever
+                            // enqueued -- this gate affects only the live WS
+                            // stream.
+                            if (_subscriptions.IsSubscribed(BodiesTopic))
+                            {
+                                var decision = _bodiesEmitter.Decide(BodiesTopic, tick.Payload, tick.Ut);
+                                if (decision.ShouldEmit)
+                                {
+                                    _courier.Record(SystemNode, BodiesTopic, decision.Value, tick.Ut);
+                                }
+                            }
+
                             _clock.AdvanceTo(tick.Ut);
                             break;
                         case SubscribeJob subscribe:
@@ -168,6 +217,15 @@ namespace Gonogo.KSP
             if (topic != BodiesTopic || session.Unsubscribers.ContainsKey(topic))
             {
                 return;
+            }
+
+            // A genuine 0 -> 1 subscriber transition for system.bodies:
+            // force an immediate keyframe on the emitter's NEXT Decide call
+            // so this newly-joined subscriber doesn't wait out whatever
+            // fraction of the keyframe cadence remains.
+            if (_subscriptions.Subscribe(topic))
+            {
+                _bodiesEmitter.NotifySubscribed(topic);
             }
 
             var vantage = session.Connection.Id;
@@ -233,17 +291,22 @@ namespace Gonogo.KSP
             }
         }
 
-        private static void ProcessUnsubscribe(ClientSession session, string topic)
+        private void ProcessUnsubscribe(ClientSession session, string topic)
         {
             if (session.Unsubscribers.TryGetValue(topic, out var unsubscribe))
             {
                 unsubscribe();
                 session.Unsubscribers.Remove(topic);
+                _subscriptions.Unsubscribe(topic);
             }
         }
 
-        private static void ProcessDisconnect(ClientSession session)
+        private void ProcessDisconnect(ClientSession session)
         {
+            foreach (var topic in session.Unsubscribers.Keys)
+            {
+                _subscriptions.Unsubscribe(topic);
+            }
             foreach (var unsubscribe in session.Unsubscribers.Values)
             {
                 unsubscribe();

@@ -33,10 +33,19 @@ namespace Gonogo.KSP
         // LAN-wide bind). ws:// only - read-only telemetry, home-LAN scope.
         private const string BindUri = "ws://0.0.0.0:8090";
 
+        // UT-cadence sampling (Track C): the v1 mod sampled the host every
+        // physics tick, which under time-warp is far more often than any
+        // consumer needs. FixedUpdate below checks NowUt() cheaply every
+        // tick but only calls the (comparatively expensive) Sample() once
+        // this many UT seconds have elapsed since the last sample - warp
+        // safe because it's gated on game time, not wall-clock/tick count.
+        private const double SampleIntervalUt = 1.0;
+
         private KspHost? _host;
         private Recorder? _recorder;
         private GonogoBodiesServer? _server;
         private bool _shutDown;
+        private double? _lastSampledUt;
 
         private void Awake()
         {
@@ -65,20 +74,37 @@ namespace Gonogo.KSP
 
             try
             {
-                // Recorder.Tick() calls host.Sample()/NowUt() itself and
-                // appends the raw snapshot to the session timeline; the
-                // System-View payload below is a SEPARATE Sample() call
-                // (KspSnapshot has no mutable shared state, so sampling
-                // twice per tick is harmless - just two independent reads
-                // of the same live game state) mapped through the KSP-free
-                // SystemViewProvider before it ever reaches the server.
-                _recorder.Tick();
+                // NowUt() is cheap (wraps Planetarium.GetUniversalTime()) so
+                // it's fine to call every physics tick just to check the
+                // cadence gate; Sample() is the comparatively expensive call
+                // (walks live KSP/Unity state), so it's only made once this
+                // much UT has actually elapsed since the last sample - warp
+                // safe, since it's driven by game time, not tick count.
+                var ut = _host.NowUt();
+                if (_lastSampledUt.HasValue && ut - _lastSampledUt.Value < SampleIntervalUt)
+                {
+                    return;
+                }
+                _lastSampledUt = ut;
 
+                // ONE Sample() call per cadence tick feeds BOTH the recorder
+                // and the system.bodies emit path below - the v1 mod sampled
+                // the host twice (once for the recorder, once here) and
+                // called NowUt() a third time; that redundancy is gone.
                 var snapshot = _host.Sample();
+
+                // The recorder is a dev-capture tool: it records this
+                // snapshot UNCONDITIONALLY, regardless of whether any client
+                // is subscribed to the live stream. Subscription-gating
+                // applies only to the emit path below (inside
+                // GonogoBodiesServer.Tick, via SubscriptionRegistry +
+                // ChannelEmitter) - never to the recorder.
+                _recorder.Record(snapshot.Ut, snapshot);
+
                 var payload = SystemViewProvider.BuildSystemBodies(snapshot);
                 if (payload != null)
                 {
-                    _server.Tick(_host.NowUt(), payload);
+                    _server.Tick(snapshot.Ut, payload);
                 }
             }
             catch (Exception ex)

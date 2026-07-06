@@ -36,11 +36,29 @@ namespace Sitrep.Host
         /// <summary>The timeline captured so far. Grows in place as <see cref="Tick"/> is called and <see cref="IKspHost.Lifecycle"/> events fire.</summary>
         public RecordedSession Session => _session;
 
-        /// <summary>Captures one <see cref="IKspHost.Sample"/> as a snapshot entry, stamped with the host's current <see cref="IKspHost.NowUt"/>.</summary>
+        /// <summary>Captures one <see cref="IKspHost.Sample"/> as a snapshot entry, stamped with that same sample's own <see cref="KspSnapshot.Ut"/>.</summary>
         public void Tick()
         {
-            var ut = _host.NowUt();
             var snapshot = _host.Sample();
+            Record(snapshot.Ut, snapshot);
+        }
+
+        /// <summary>
+        /// Captures an ALREADY-SAMPLED <paramref name="snapshot"/> as a
+        /// snapshot entry stamped at <paramref name="ut"/>, without calling
+        /// <see cref="IKspHost.Sample"/> itself. This is the Track C fix:
+        /// the recorder is a dev-capture tool and must record every
+        /// UT-cadence tick UNCONDITIONALLY, regardless of whether any client
+        /// is subscribed to the live stream — subscription-gating applies
+        /// only to that stream (see <c>Gonogo.KSP.GonogoBodiesServer</c>),
+        /// never to this method. The caller (<c>GonogoAddon.FixedUpdate</c>)
+        /// samples the host exactly ONCE per cadence tick and hands the same
+        /// snapshot to both this method and the emit path, rather than each
+        /// side calling <see cref="IKspHost.Sample"/>/<see cref="IKspHost.NowUt"/>
+        /// separately.
+        /// </summary>
+        public void Record(double ut, KspSnapshot snapshot)
+        {
             _session.Entries.Add(new RecordedEntry
             {
                 T = ut,
