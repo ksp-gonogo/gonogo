@@ -80,8 +80,16 @@ namespace Gonogo.KSP
                 // (walks live KSP/Unity state), so it's only made once this
                 // much UT has actually elapsed since the last sample - warp
                 // safe, since it's driven by game time, not tick count.
+                //
+                // SampleCadence.ShouldSample also forces an immediate
+                // resample on a BACKWARD UT jump (F9 quickload): a
+                // forward-only `<` comparison goes strongly negative and
+                // never trips, stalling the recorder AND the live stream
+                // (GonogoBodiesServer's rewind-detection can't fire because
+                // Tick is never reached) across exactly the event most worth
+                // capturing. See SampleCadence's doc comment.
                 var ut = _host.NowUt();
-                if (_lastSampledUt.HasValue && ut - _lastSampledUt.Value < SampleIntervalUt)
+                if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleIntervalUt))
                 {
                     return;
                 }
