@@ -97,6 +97,14 @@ namespace Sitrep.Propagation
                 }
             }
 
+            // If the loop above never satisfies the tolerance (e.g. some
+            // future caller passes ecc arbitrarily close to the ecc<1
+            // boundary, where convergence slows sharply), this simply
+            // returns the last iterate rather than throwing or flagging
+            // non-convergence. Fine today -- callers only ever pass
+            // well-behaved elliptical elements -- but a guard point to
+            // revisit if this solver is ever exposed to untrusted/arbitrary
+            // input.
             return eccentricAnomaly;
         }
 
