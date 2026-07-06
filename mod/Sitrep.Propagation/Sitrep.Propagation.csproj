@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <!-- Sitrep.Propagation is BCL-only, ZERO external PackageReferences — same
+       invariant as Sitrep.Core (KSP's Unity-2019 Mono + AppDomain
+       first-assembly-name-wins collision risk). This is a standalone
+       capability project on purpose: propagation is swappable (a future
+       Principia-backed provider would be a second IPropagationProvider
+       implementation living beside this one), so it does not reference
+       Sitrep.Core or any other Sitrep project. Do not add a
+       PackageReference without updating that invariant deliberately and in
+       the open. -->
+</Project>
