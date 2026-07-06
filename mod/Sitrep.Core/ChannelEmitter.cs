@@ -17,14 +17,18 @@ namespace Sitrep.Core
     ///    channel (one <see cref="Decide"/> has never been called for)
     ///    starts in this state, so the very first call for any channel is
     ///    always a keyframe.
-    /// 2. UT-cadence gate — skip if <c>ut - lastSampledUt &lt;
-    ///    MinSampleIntervalUt</c>; the channel isn't even considered this
-    ///    call. This is the INNER gate; <see cref="SubscriptionRegistry"/>
-    ///    is the OUTER one (zero subscribers ⇒ the caller should never reach
-    ///    this method at all — see that class's doc comment).
-    /// 3. Keyframe cadence — unconditional emit if
+    /// 2. Keyframe cadence — unconditional emit if
     ///    <c>ut - lastKeyframeUt &gt;= KeyframeIntervalUt</c>, regardless of
-    ///    whether the value changed.
+    ///    whether the value changed. Evaluated BEFORE the UT-cadence gate
+    ///    below and independent of it — a due keyframe is the correctness
+    ///    baseline and must not be starved even when
+    ///    <c>MinSampleIntervalUt &gt;= KeyframeIntervalUt</c>.
+    /// 3. UT-cadence gate — skip if <c>ut - lastSampledUt &lt;
+    ///    MinSampleIntervalUt</c>; the channel isn't even considered for a
+    ///    CHANGE emission this call. This is the INNER gate;
+    ///    <see cref="SubscriptionRegistry"/> is the OUTER one (zero
+    ///    subscribers ⇒ the caller should never reach this method at all —
+    ///    see that class's doc comment).
     /// 4. Deadband change-gate, itself capped by the max-rate clamp — emit
     ///    only if the value cleared the quantum (numeric) or is not-equal
     ///    (discrete/structured) to the last emitted value, AND at least
@@ -88,17 +92,23 @@ namespace Sitrep.Core
 
             var policy = _policyFor(channelId);
 
-            if (state.LastSampledUt.HasValue && ut - state.LastSampledUt.Value < policy.MinSampleIntervalUt)
-            {
-                return EmissionDecision.Skip(ut);
-            }
-            state.LastSampledUt = ut;
-
+            // Keyframe cadence is the correctness baseline -- it must fire on
+            // its own schedule regardless of MinSampleIntervalUt, so it's
+            // evaluated before that gate (previously this was inverted: a
+            // MinSampleIntervalUt >= KeyframeIntervalUt would silently starve
+            // every due keyframe). The min-sample gate below now only
+            // throttles the CHANGE path.
             var keyframeDue = !state.LastKeyframeUt.HasValue || ut - state.LastKeyframeUt.Value >= policy.KeyframeIntervalUt;
             if (keyframeDue)
             {
                 return EmitKeyframe(state, value, ut);
             }
+
+            if (state.LastSampledUt.HasValue && ut - state.LastSampledUt.Value < policy.MinSampleIntervalUt)
+            {
+                return EmissionDecision.Skip(ut);
+            }
+            state.LastSampledUt = ut;
 
             if (!HasChangedBeyondQuantum(state.LastEmittedValue, value, policy.Quantum))
             {
@@ -145,6 +155,7 @@ namespace Sitrep.Core
         /// </summary>
         public void Reset(double ut)
         {
+            _ = ut; // intentionally unused -- see doc comment above.
             foreach (var state in _channels.Values)
             {
                 state.ForceKeyframe = true;
@@ -188,7 +199,8 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Numeric values (double/float/int/long/short/decimal — boxed, same
+        /// Numeric values (double/float/int/long/short/sbyte/byte/uint/ulong/
+        /// decimal — boxed, same
         /// as every other heterogeneous channel-value path in this project;
         /// see <c>StreamData&lt;object?&gt;</c> in Courier.cs) compare via the
         /// resolved <see cref="EmissionQuantum"/> deadband. Anything else
@@ -226,6 +238,18 @@ namespace Sitrep.Core
                     return true;
                 case short s:
                     result = s;
+                    return true;
+                case sbyte sb:
+                    result = sb;
+                    return true;
+                case byte b:
+                    result = b;
+                    return true;
+                case uint ui:
+                    result = ui;
+                    return true;
+                case ulong ul:
+                    result = ul;
                     return true;
                 case decimal m:
                     result = (double)m;

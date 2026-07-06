@@ -214,6 +214,88 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void KeyframeCadenceFiresIndependentlyOfMinSampleGate()
+        {
+            // Regression for the critical review fix: a due keyframe must
+            // not be delayed by MinSampleIntervalUt, even when
+            // MinSampleIntervalUt >= KeyframeIntervalUt. Against the OLD gate
+            // order (min-sample checked before keyframe-due), the keyframe
+            // due at ut=50 would have been skipped -- the min-sample gate
+            // (100 UT) would have swallowed the call entirely -- and the
+            // keyframe would not fire until ut=100.
+            var emitter = new ChannelEmitter(Policy(
+                keyframeIntervalUt: 50,
+                quantum: EmissionQuantum.Absolute(9999), // value never changes anyway
+                minSampleIntervalUt: 100));
+
+            emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1
+
+            EmissionDecision? keyframeAt50 = null;
+            for (double ut = 10; ut <= 90; ut += 10)
+            {
+                var decision = emitter.Decide("v.altitude", 1000.0, ut); // unchanged value
+                if (decision.ShouldEmit)
+                {
+                    Assert.Null(keyframeAt50); // only expect exactly one emission in this loop
+                    keyframeAt50 = decision;
+                    Assert.Equal(50, ut);
+                }
+            }
+
+            Assert.NotNull(keyframeAt50);
+            Assert.Equal(EmissionReason.Keyframe, keyframeAt50!.Value.Reason);
+            Assert.Equal(50, keyframeAt50.Value.Ut);
+        }
+
+        [Fact]
+        public void HugeUtJumpUnderTimeWarpEmitsExactlyOneCatchUpKeyframeWithoutStalling()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 50, quantum: EmissionQuantum.Absolute(1)));
+
+            emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1
+
+            // A single Decide call after a massive time-warp UT jump (e.g.
+            // physics catching up after 4x-10,000x warp) must emit exactly
+            // one catch-up keyframe -- LastKeyframeUt is stamped directly to
+            // the new ut, not back-filled with a keyframe per missed
+            // interval -- and must not throw / stall.
+            var decision = emitter.Decide("v.altitude", 1000.0, 100000);
+
+            Assert.True(decision.ShouldEmit);
+            Assert.Equal(EmissionReason.Keyframe, decision.Reason);
+            Assert.Equal(100000, decision.Ut);
+            Assert.Equal(2, emitter.CountersFor("v.altitude").Emitted);
+
+            // Immediately after, nowhere near due for another keyframe or
+            // change -- confirms no runaway/burst state was left behind.
+            var next = emitter.Decide("v.altitude", 1000.0, 100010);
+            Assert.False(next.ShouldEmit);
+        }
+
+        [Fact]
+        public void ByteAndUintChannelsGoThroughDeadbandQuantum()
+        {
+            var byteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            byteEmitter.Decide("v.byte", (byte)100, 0); // keyframe
+            Assert.False(byteEmitter.Decide("v.byte", (byte)103, 1).ShouldEmit); // |Δ|=3 < 5
+            Assert.True(byteEmitter.Decide("v.byte", (byte)110, 2).ShouldEmit); // |Δ|=10 > 5
+
+            var uintEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            uintEmitter.Decide("v.uint", 1000u, 0); // keyframe
+            Assert.False(uintEmitter.Decide("v.uint", 1003u, 1).ShouldEmit); // |Δ|=3 < 5
+            Assert.True(uintEmitter.Decide("v.uint", 1010u, 2).ShouldEmit); // |Δ|=10 > 5
+
+            var sbyteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            sbyteEmitter.Decide("v.sbyte", (sbyte)-10, 0); // keyframe
+            Assert.False(sbyteEmitter.Decide("v.sbyte", (sbyte)-8, 1).ShouldEmit); // |Δ|=2 < 5
+
+            var ulongEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            ulongEmitter.Decide("v.ulong", 1000ul, 0); // keyframe
+            Assert.False(ulongEmitter.Decide("v.ulong", 1003ul, 1).ShouldEmit); // |Δ|=3 < 5
+            Assert.True(ulongEmitter.Decide("v.ulong", 1010ul, 2).ShouldEmit); // |Δ|=10 > 5
+        }
+
+        [Fact]
         public void PurelyUtDrivenRepeatedCallsAtTheSameUtNeverReEmit()
         {
             var emitter = new ChannelEmitter(Policy(
