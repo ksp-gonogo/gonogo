@@ -9,6 +9,8 @@
     "replay": "pnpm --filter @gonogo/replay-server start",
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "turbo build",
+    "codegen": "bash mod/codegen.sh",
+    "codegen:check": "bash mod/codegen.sh && git diff --exit-code -- packages/telemetry-sdk/src/__generated__",
     "test": "turbo test",
     "test:playwright": "playwright test",
     "typecheck": "turbo typecheck",

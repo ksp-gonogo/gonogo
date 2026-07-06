@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/test/recorded_fixtures", "!**/dist", "!.claude"]
+    "includes": [
+      "**",
+      "!**/test/recorded_fixtures",
+      "!**/dist",
+      "!.claude",
+      "!**/__generated__"
+    ]
   },
   "formatter": {
     "enabled": true,
