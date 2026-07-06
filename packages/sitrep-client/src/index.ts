@@ -8,6 +8,8 @@ export {
   type TelemetryProviderProps,
   useTelemetryClient,
 } from "./context";
+export type { OrbitElements, StateVector, Vector3 } from "./kepler";
+export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export { StubTransport } from "./stub-transport";
 export type { Transport, TransportStatus } from "./transport";
