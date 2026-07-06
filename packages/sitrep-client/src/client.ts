@@ -1,9 +1,18 @@
 import type { ServerMessage } from "@gonogo/sitrep-sdk";
+import { type Clock, RealTimeClock } from "./clock";
 import type { CommandStatus } from "./lifecycle";
 import type { Transport } from "./transport";
 
 type Callback = (value: unknown) => void;
 type StoreListener = () => void;
+
+/**
+ * Grace period (UT seconds) added on top of a transport's predicted
+ * `etaConfirm` before silence is inferred as loss. Sized to absorb small
+ * scheduling jitter around the predicted round trip, not to model any
+ * additional delay itself — the prediction already IS the round trip.
+ */
+export const LOSS_MARGIN = 2;
 
 /**
  * One record per `subscribe()` call, not per callback identity — the same
@@ -14,11 +23,33 @@ interface Subscription {
   cb: Callback;
 }
 
-/** Bookkeeping for one in-flight (or resolved) command dispatch. */
+/**
+ * Bookkeeping for one dispatched command, in-flight or settled.
+ *
+ * `resolve`/`reject` are nulled once the command settles (confirmed/failed)
+ * — the Promise they close over has already been settled by then, so
+ * holding onto them serves no purpose beyond leaking closures and inviting a
+ * duplicate late `command-response`/`error` to re-settle (and silently
+ * overwrite) an already-terminal `status`. The entry itself is intentionally
+ * NOT deleted from `commands` on settle: `getCommand` must keep returning
+ * the terminal status forever after, and deleting it would make an unknown
+ * request look identical to a *known, settled* one (both would read back as
+ * `{ phase: "idle" }`), which reverts `useCommand`'s `getSnapshot` to a
+ * fresh object identity on every call and infinite-loops
+ * `useSyncExternalStore`.
+ */
 interface PendingCommand {
   status: CommandStatus;
-  resolve: (result: unknown) => void;
-  reject: (error: { code: string; message: string }) => void;
+  resolve: ((result: unknown) => void) | null;
+  reject: ((error: { code: string; message: string }) => void) | null;
+  /**
+   * Cancels this command's loss-inference timer (only set when the
+   * transport predicted an `etaConfirm`). Called whenever the command
+   * settles by any other means (response, error, or dispose) so a command
+   * that already confirmed/failed can never later flip to `lost`. `null`
+   * once cancelled (or if no timer was ever scheduled, e.g. `StubTransport`).
+   */
+  cancelLossTimer: (() => void) | null;
 }
 
 /**
@@ -32,6 +63,7 @@ interface PendingCommand {
  */
 export class TelemetryClient {
   private readonly transport: Transport;
+  private readonly clock: Clock;
   private readonly subscribers = new Map<string, Set<Subscription>>();
   private readonly lastValues = new Map<string, unknown>();
   private readonly storeListeners = new Set<StoreListener>();
@@ -39,8 +71,22 @@ export class TelemetryClient {
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
 
-  constructor(transport: Transport) {
+  /**
+   * `clock` defaults to `RealTimeClock` — every real transport uses it
+   * unmodified. Tests inject a deterministic `Clock` (or a structurally
+   * compatible one, like sitrep-server's `ManualClock`) so loss-inference
+   * timing is controllable instead of racing real timers.
+   *
+   * Whichever `Clock` is injected MUST share the same time domain as the
+   * transport's `predictConfirmEta()` (the UT clock the server/courier
+   * advances) — see the domain note on the `Clock` interface in `./clock`.
+   * A mismatched domain makes loss inference meaningless: the
+   * `etaConfirm - now()` delta can clamp to zero (false near-instant "lost")
+   * or never fire (loss never inferred).
+   */
+  constructor(transport: Transport, clock: Clock = new RealTimeClock()) {
     this.transport = transport;
+    this.clock = clock;
     this.unsubscribeFromTransport = transport.onMessage((message) =>
       this.handleMessage(message),
     );
@@ -105,19 +151,43 @@ export class TelemetryClient {
    * response settles) is the transport's responsibility, not the client's:
    * even a zero-latency stub must answer on a later tick, since a real
    * transport never resolves in the same call stack as the request.
+   *
+   * Loss inference (D3): the client asks the transport to *predict* an
+   * `etaConfirm` (never computes delay itself). When the transport can't
+   * predict one (`predictConfirmEta` omitted or returning `undefined`, e.g.
+   * `StubTransport`), `etaConfirm` falls back to "now" and no loss timer is
+   * started — the command just waits, as at M2. When a prediction IS
+   * available, a loss timer is armed for `etaConfirm + LOSS_MARGIN`; if the
+   * command is still `in-flight` when it fires, silence is inferred as
+   * `lost` and the promise rejects. Any real settle (response or error)
+   * cancels that timer first, so a confirmed/failed command can never later
+   * flip to `lost`.
    */
   dispatch(
     command: string,
     args?: unknown,
   ): { requestId: string; result: Promise<unknown> } {
     const requestId = `c${this.nextRequestId++}`;
+    const predictedEta = this.transport.predictConfirmEta?.();
+    const etaConfirm = predictedEta ?? this.clock.now();
+
     const result = new Promise<unknown>((resolve, reject) => {
       this.commands.set(requestId, {
-        status: { phase: "in-flight", requestId },
+        status: { phase: "in-flight", requestId, etaConfirm },
         resolve,
         reject,
+        cancelLossTimer: null,
       });
     });
+
+    if (predictedEta !== undefined) {
+      const cancel = this.clock.schedule(predictedEta + LOSS_MARGIN, () =>
+        this.handleLoss(requestId),
+      );
+      const pending = this.commands.get(requestId);
+      if (pending) pending.cancelLossTimer = cancel;
+    }
+
     this.notifyStore();
     this.transport.send({
       type: "command-request",
@@ -134,9 +204,37 @@ export class TelemetryClient {
     return this.commands.get(requestId)?.status ?? { phase: "idle" };
   }
 
-  /** Tear down the transport listener and clear all local state. */
+  /**
+   * Tear down the transport listener and clear all local state.
+   *
+   * Before clearing: sends `unsubscribe` for every topic that still has
+   * active subscribers (the transport doesn't know the client is going
+   * away otherwise), and rejects every still-pending command's `result`
+   * promise with a disposed error, so callers awaiting `dispatch()` don't
+   * hang forever on a client that will never receive their response.
+   */
   dispose(): void {
     this.unsubscribeFromTransport();
+
+    for (const topic of this.subscribers.keys()) {
+      this.transport.send({ type: "unsubscribe", topic });
+    }
+
+    for (const [requestId, pending] of this.commands) {
+      pending.cancelLossTimer?.();
+      pending.cancelLossTimer = null;
+      if (!pending.reject) continue; // already settled, nothing to reject
+      const error = {
+        code: "E_DISPOSED",
+        message: "TelemetryClient disposed while command was in flight",
+      };
+      const reject = pending.reject;
+      pending.status = { phase: "failed", requestId, error };
+      pending.resolve = null;
+      pending.reject = null;
+      reject(error);
+    }
+
     this.subscribers.clear();
     this.lastValues.clear();
     this.storeListeners.clear();
@@ -163,9 +261,17 @@ export class TelemetryClient {
 
   private handleCommandResponse(requestId: string, result: unknown): void {
     const pending = this.commands.get(requestId);
-    if (!pending) return;
+    // No entry (unknown requestId) or already settled (a duplicate/late
+    // response) — either way there's no live resolve() to call, and a
+    // duplicate must not clobber the terminal status already recorded.
+    if (!pending?.resolve) return;
+    pending.cancelLossTimer?.();
+    pending.cancelLossTimer = null;
+    const resolve = pending.resolve;
     pending.status = { phase: "confirmed", requestId, result };
-    pending.resolve(result);
+    pending.resolve = null;
+    pending.reject = null;
+    resolve(result);
     this.notifyStore();
   }
 
@@ -176,10 +282,37 @@ export class TelemetryClient {
   ): void {
     if (!requestId) return;
     const pending = this.commands.get(requestId);
-    if (!pending) return;
+    if (!pending?.reject) return;
+    pending.cancelLossTimer?.();
+    pending.cancelLossTimer = null;
     const error = { code, message };
+    const reject = pending.reject;
     pending.status = { phase: "failed", requestId, error };
-    pending.reject(error);
+    pending.resolve = null;
+    pending.reject = null;
+    reject(error);
+    this.notifyStore();
+  }
+
+  /**
+   * Fires when a command's loss-inference timer reaches `etaConfirm +
+   * LOSS_MARGIN` with no response yet. A no-op if the command has already
+   * settled (or is unknown) — the timer is always cancelled on settle, but
+   * this guard covers the case where cancellation and firing raced within
+   * the same clock-driven callback batch.
+   */
+  private handleLoss(requestId: string): void {
+    const pending = this.commands.get(requestId);
+    if (!pending || pending.status.phase !== "in-flight") return;
+    const reject = pending.reject;
+    pending.status = { phase: "lost", requestId, reason: "signal-lost" };
+    pending.resolve = null;
+    pending.reject = null;
+    pending.cancelLossTimer = null;
+    reject?.({
+      code: "E_LOST",
+      message: "command lost: no confirmation received by predicted ETA",
+    });
     this.notifyStore();
   }
 

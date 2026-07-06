@@ -1,6 +1,8 @@
 export const CLIENT_VERSION = "0.0.0";
 
-export { TelemetryClient } from "./client";
+export { LOSS_MARGIN, TelemetryClient } from "./client";
+export type { Clock } from "./clock";
+export { RealTimeClock } from "./clock";
 export {
   TelemetryProvider,
   type TelemetryProviderProps,

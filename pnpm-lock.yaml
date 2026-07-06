@@ -79,6 +79,12 @@ importers:
 
   mod/sitrep-sdk: {}
 
+  mod/sitrep-server:
+    dependencies:
+      '@gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../sitrep-sdk
+
   packages/app:
     dependencies:
       '@fontsource/jetbrains-mono':
@@ -499,6 +505,9 @@ importers:
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
     devDependencies:
+      '@gonogo/sitrep-server':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-server
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.1

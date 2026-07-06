@@ -106,6 +106,17 @@ export class StubTransport implements Transport {
     return this.subscribedTopics.has(topic);
   }
 
+  /**
+   * Test helper: deliver an arbitrary raw `ServerMessage` straight to
+   * listeners, bypassing topic-subscription gating. Useful for simulating
+   * things a real transport can do that `emit`/`setCommandHandler` can't
+   * script directly, e.g. a duplicate or late `command-response` arriving
+   * for a `requestId` that already settled.
+   */
+  emitRaw(message: ServerMessage): void {
+    this.deliver(message);
+  }
+
   private deliver(message: ServerMessage): void {
     for (const listener of this.messageListeners) {
       try {

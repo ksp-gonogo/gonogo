@@ -27,4 +27,19 @@ export interface Transport {
 
   /** Register a listener for status changes. Returns an unsubscribe function. */
   onStatusChange(listener: (status: TransportStatus) => void): () => void;
+
+  /**
+   * OPTIONAL: if a command were dispatched right now, the absolute UT this
+   * transport expects its confirmation to arrive by — or `undefined` if the
+   * transport doesn't model network delay at all.
+   *
+   * This is a *prediction*, not a commitment: the client never computes
+   * delay itself, it only consumes whatever the transport hands back here
+   * to size its own loss-inference timeout (see `TelemetryClient.dispatch`).
+   * `StubTransport` (M2, zero simulated latency) omits this method entirely
+   * — `eta` comes back `undefined` and the client never starts a loss timer
+   * for it. `CourierTransport` (M3) implements it using the courier's own
+   * round-trip model.
+   */
+  predictConfirmEta?(): number | undefined;
 }

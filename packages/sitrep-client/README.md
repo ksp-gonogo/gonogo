@@ -98,24 +98,51 @@ const client = new TelemetryClient(new StubTransport());
 
 `src/integration.test.tsx` exercises exactly this shape end-to-end — through
 a real `TelemetryProvider`, `TelemetryClient`, and `StubTransport` — as the
-milestone's proof: typed telemetry in, typed command out, hooks reactive, no
-real transport.
+M2 milestone's proof: typed telemetry in, typed command out, hooks reactive,
+no real transport.
 
-## What's out of scope here (M3+)
+## Delayed comms (M3)
 
-This milestone (M2, "core spine") is deliberately synchronous and
-zero-latency. Deferred to later milestones:
+Delayed streams and delayed command round trips now work, with nothing above
+the `Transport` boundary changing. `@gonogo/sitrep-server`'s `Courier` +
+`CourierTransport` implement the exact same `Transport` interface
+`StubTransport` does — swap the transport passed to `TelemetryClient` and
+every hook behaves identically, just lagged by whatever network delay the
+courier's `StubNetwork` is configured with:
 
-- **Delay** — configurable one-way light-speed delay between dispatch and
-  delivery. The client's timing is isolated to `dispatch`/`handleMessage`
-  today specifically so a scheduler can be inserted later without changing
-  this package's public shape.
-- **Courier / archive / Vantage** — the DTN-style courier boundary, contact-
-  plan routing, the per-vessel archive with monotonic cursors, and Vantage as
-  a connection parameter, all driven by a stub network graph.
+- **`useStream`** renders `undefined` until a sample's delay elapses, then
+  the delayed value — same "sticky last value" contract as M2, just later.
+- **`useCommand`**'s `in-flight` status now carries a real `etaConfirm`
+  (`CourierTransport.predictConfirmEta()`, rather than the same-tick
+  fallback `StubTransport` produces), and a command whose node goes
+  unreachable resolves to the `lost` phase once silence outlasts
+  `etaConfirm + LOSS_MARGIN` (see `LOSS_MARGIN` and the `Clock` seam in
+  `client.ts`/`clock.ts` — the client infers loss from a transport-predicted
+  ETA, it never computes delay itself).
+- **Delay 0 collapses to M2**: an unconfigured `StubNetwork` pair (or
+  `setScale(0)`) makes the courier deliver immediately, matching
+  `StubTransport`'s zero-latency behavior exactly.
+
+`src/delayed-integration.test.tsx` is the M3 proof: the same
+`useStream`+`useCommand` component as the M2 test, wired to a real
+`ManualClock` + `StubNetwork` + `Courier` + `CourierTransport` sharing one
+clock with the `TelemetryClient` — asserting a lagged stream value, an
+in-flight `etaConfirm` that resolves to `confirmed` after the full
+uplink+downlink round trip, and a `lost` status when the node is
+unreachable. See `mod/sitrep-server/README.md` for the delay-engine
+internals (`Clock`/`Network`/`Archive`/`Courier`/`CourierTransport`).
+
+## What's out of scope here (M3b+)
+
+- **Contact-plan routing** (moving relays, CGR, store-and-forward) — M3b,
+  lives entirely in `@gonogo/sitrep-server`'s `Network`/`Courier`; this
+  package's `Transport` boundary doesn't change either way.
 - **Real transports** — WebSocket and PeerJS implementations of `Transport`,
-  replacing `StubTransport` in real usage without any change to
-  `TelemetryClient` or the hooks.
+  replacing `StubTransport`/`CourierTransport` in real usage without any
+  change to `TelemetryClient` or the hooks.
+- **A real RemoteTech-style `[H]` signal-delay handler** wired into the
+  actual C# mod — M5. This package and `sitrep-server` are the app-side and
+  reference-engine halves of the design, not the mod itself.
 
 See `docs/superpowers/plans/2026-07-06-telemetry-mod-roadmap.md` for the full
 milestone breakdown.

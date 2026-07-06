@@ -1,6 +1,80 @@
+import type { ServerMessage } from "@gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
-import { TelemetryClient } from "./client";
-import { StubTransport } from "./stub-transport";
+import { LOSS_MARGIN, TelemetryClient } from "./client";
+import type { Clock } from "./clock";
+import { makeMeta, StubTransport } from "./stub-transport";
+import type { Transport, TransportStatus } from "./transport";
+
+/**
+ * Minimal deterministic `Clock` test double. Mirrors sitrep-server's
+ * `ManualClock` semantics (time only moves on `advanceTo`, never reads
+ * wall-clock time) without sitrep-client taking a dependency on that
+ * package — the two stay structurally compatible by design, not by import.
+ */
+class FakeClock implements Clock {
+  private currentUt: number;
+  private pending: { atUt: number; fn: () => void; cancelled: boolean }[] = [];
+
+  constructor(startUt = 0) {
+    this.currentUt = startUt;
+  }
+
+  now(): number {
+    return this.currentUt;
+  }
+
+  schedule(atUt: number, fn: () => void): () => void {
+    const callback = { atUt, fn, cancelled: false };
+    this.pending.push(callback);
+    return () => {
+      callback.cancelled = true;
+    };
+  }
+
+  advanceTo(ut: number): void {
+    this.currentUt = ut;
+    const due = this.pending.filter((cb) => !cb.cancelled && cb.atUt <= ut);
+    this.pending = this.pending.filter((cb) => cb.cancelled || cb.atUt > ut);
+    for (const cb of due) cb.fn();
+  }
+}
+
+/**
+ * Minimal `Transport` test double that predicts a fixed `etaConfirm` and
+ * lets the test deliver responses on demand — `StubTransport` deliberately
+ * doesn't implement `predictConfirmEta` (that's the M2 shape under test
+ * elsewhere), and its microtask-based auto-response can't be held open long
+ * enough to exercise the loss-inference window.
+ */
+class EtaTransport implements Transport {
+  readonly status: TransportStatus = "connected";
+  private readonly messageListeners = new Set<
+    (message: ServerMessage) => void
+  >();
+
+  constructor(private readonly eta: number | undefined) {}
+
+  predictConfirmEta(): number | undefined {
+    return this.eta;
+  }
+
+  send(): void {
+    // Test drives responses manually via `deliver`.
+  }
+
+  onMessage(listener: (message: ServerMessage) => void): () => void {
+    this.messageListeners.add(listener);
+    return () => this.messageListeners.delete(listener);
+  }
+
+  onStatusChange(): () => void {
+    return () => {};
+  }
+
+  deliver(message: ServerMessage): void {
+    for (const listener of this.messageListeners) listener(message);
+  }
+}
 
 describe("TelemetryClient subscriptions", () => {
   it("sends subscribe on first subscriber, fans out values, replays sticky value to late subscribers", () => {
@@ -81,7 +155,10 @@ describe("TelemetryClient commands", () => {
     t.setCommandHandler((c, a) => ({ ok: c, a }));
     const client = new TelemetryClient(t);
     const { requestId, result } = client.dispatch("deploy", 7);
-    expect(client.getCommand(requestId)).toEqual({
+    // StubTransport doesn't implement predictConfirmEta, so etaConfirm falls
+    // back to "now" (real wall-clock time from the default RealTimeClock) —
+    // not asserted precisely here, just that the rest of the shape holds.
+    expect(client.getCommand(requestId)).toMatchObject({
       phase: "in-flight",
       requestId,
     });
@@ -104,6 +181,188 @@ describe("TelemetryClient commands", () => {
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "failed",
       requestId,
+    });
+  });
+
+  it("retains the command-map entry after settle: getCommand keeps returning the terminal status, not idle", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler((c) => ({ ok: c }));
+    const client = new TelemetryClient(t);
+    const { requestId, result } = client.dispatch("deploy");
+    await result;
+
+    const first = client.getCommand(requestId);
+    expect(first).toEqual({
+      phase: "confirmed",
+      requestId,
+      result: { ok: "deploy" },
+    });
+    // Reading again must return the same terminal status, not a fresh
+    // `{ phase: "idle" }` — that reversion is exactly what breaks
+    // useSyncExternalStore's getSnapshot stability.
+    expect(client.getCommand(requestId)).toEqual(first);
+  });
+
+  it("ignores a duplicate/late command-response for an already-settled requestId instead of clobbering the terminal status", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler((c) => ({ ok: c }));
+    const client = new TelemetryClient(t);
+    const { requestId, result } = client.dispatch("deploy");
+    await result;
+
+    expect(() =>
+      t.emitRaw({
+        type: "command-response",
+        requestId,
+        result: { ok: "duplicate" },
+        meta: makeMeta(),
+      } satisfies ServerMessage),
+    ).not.toThrow();
+
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "confirmed",
+      requestId,
+      result: { ok: "deploy" },
+    });
+  });
+
+  it("dispose() rejects every still-pending command and sends unsubscribe for every active topic", async () => {
+    const t = new StubTransport();
+    const sendSpy = vi.spyOn(t, "send");
+    const client = new TelemetryClient(t);
+
+    client.subscribe("v.alt", () => {});
+    client.subscribe("v.speed", () => {});
+    // No command handler installed, so dispatch's transport-side response
+    // never arrives synchronously — dispose() runs before it ever would.
+    const { requestId, result } = client.dispatch("deploy");
+    expect(client.getCommand(requestId)).toMatchObject({
+      phase: "in-flight",
+      requestId,
+    });
+
+    client.dispose();
+
+    await expect(result).rejects.toMatchObject({ code: "E_DISPOSED" });
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: "unsubscribe",
+      topic: "v.alt",
+    });
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: "unsubscribe",
+      topic: "v.speed",
+    });
+  });
+});
+
+describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
+  it("carries the transport's predicted etaConfirm on the in-flight status", () => {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId } = client.dispatch("deploy");
+
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "in-flight",
+      requestId,
+      etaConfirm: 4,
+    });
+  });
+
+  it("does not infer loss before etaConfirm + LOSS_MARGIN", () => {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId } = client.dispatch("deploy");
+    clock.advanceTo(4 + LOSS_MARGIN - 0.001);
+
+    expect(client.getCommand(requestId)).toMatchObject({ phase: "in-flight" });
+  });
+
+  it("infers lost + rejects on silence past etaConfirm + LOSS_MARGIN", async () => {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId, result } = client.dispatch("deploy");
+    clock.advanceTo(4 + LOSS_MARGIN);
+
+    await expect(result).rejects.toMatchObject({ code: "E_LOST" });
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "lost",
+      requestId,
+      reason: "signal-lost",
+    });
+  });
+
+  it("cancels the loss timer on confirm: a settled command never later flips to lost", async () => {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId, result } = client.dispatch("deploy");
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { ok: true },
+      meta: makeMeta(),
+    });
+    await expect(result).resolves.toEqual({ ok: true });
+
+    // Well past the would-be loss deadline: status must still be confirmed.
+    clock.advanceTo(4 + LOSS_MARGIN + 10);
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "confirmed",
+      requestId,
+      result: { ok: true },
+    });
+  });
+
+  it("cancels the loss timer on error: a failed command never later flips to lost", async () => {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId, result } = client.dispatch("deploy");
+    transport.deliver({
+      type: "error",
+      requestId,
+      code: "E_NO",
+      message: "nope",
+    });
+    await expect(result).rejects.toMatchObject({ code: "E_NO" });
+
+    clock.advanceTo(4 + LOSS_MARGIN + 10);
+    expect(client.getCommand(requestId)).toMatchObject({
+      phase: "failed",
+      requestId,
+    });
+  });
+
+  it("StubTransport (no predictConfirmEta) still dispatches immediately with no false loss", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler((c) => ({ ok: c }));
+    const clock = new FakeClock(0);
+    const client = new TelemetryClient(t, clock);
+
+    const { requestId, result } = client.dispatch("deploy");
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "in-flight",
+      requestId,
+      etaConfirm: 0,
+    });
+
+    // No loss timer was ever scheduled (predictConfirmEta is undefined), so
+    // advancing time — even far past any plausible deadline — must not
+    // flip this to lost before the stub's microtask response arrives.
+    clock.advanceTo(1000);
+    await expect(result).resolves.toEqual({ ok: "deploy" });
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "confirmed",
+      requestId,
+      result: { ok: "deploy" },
     });
   });
 });
