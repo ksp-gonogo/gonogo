@@ -1,0 +1,291 @@
+using System;
+using System.Collections.Generic;
+
+namespace Sitrep.Core
+{
+    /// <summary>
+    /// One recorded, SCET-stamped sample: <c>value</c> valid as of
+    /// <c>ValidAt</c> (UT seconds). Returned from <see cref="Archive.Samples"/>
+    /// and <see cref="Archive.ReadAtVantage"/>.
+    /// </summary>
+    public readonly struct ArchiveSample
+    {
+        public object? Value { get; }
+        public double ValidAt { get; }
+
+        public ArchiveSample(object? value, double validAt)
+        {
+            Value = value;
+            ValidAt = validAt;
+        }
+    }
+
+    /// <summary>
+    /// C# port of <c>mod/sitrep-server/src/archive.ts</c>'s READ behavior
+    /// (<see cref="Record"/>, <see cref="ReadAtVantage"/>, <see cref="Samples"/>).
+    /// Semantics MUST stay byte-for-byte identical to the TS reference —
+    /// conformance is asserted by <c>Sitrep.Core.Tests</c> against the shared
+    /// golden fixtures in <c>mod/golden-fixtures/archive.json</c>, not by
+    /// re-deriving semantics here. If you touch the read path, regenerate the
+    /// fixture from the TS side
+    /// (`pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`) and re-run
+    /// `dotnet test` to confirm the two still agree.
+    ///
+    /// <see cref="Snapshot"/> / <see cref="Restore"/> are a C#-ONLY addition —
+    /// the TS reference has no equivalent. They exist so the delayed archive
+    /// (samples AND per-(topic, vantage) cursor positions) can survive a
+    /// quicksave/quickload round trip (M5b); see
+    /// <c>Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs</c> for the
+    /// round-trip proof, including that a frozen (receded) cursor position
+    /// survives restore rather than resetting.
+    ///
+    /// Archive is the single per-vessel SCET-stamped history the Courier reads
+    /// through. There is ONE archive per vessel (per topic within it); each
+    /// Vantage (observer) is a monotonic read-cursor into that archive at its
+    /// own delay offset. That split — one shared history, many independent
+    /// cursors — is what makes delay honest (every vantage sees its own
+    /// light-lagged scene of the same underlying truth) and what powers
+    /// "freeze-on-recession": if a vantage's delay grows faster than time
+    /// advances (the observer recedes), the cursor holds its last position
+    /// rather than rewinding to an earlier sample.
+    /// </summary>
+    public sealed class Archive
+    {
+        private sealed class Sample
+        {
+            public object? Value;
+            public double ValidAt;
+        }
+
+        // topic -> samples, kept ascending by validAt.
+        private readonly Dictionary<string, List<Sample>> _samplesByTopic =
+            new Dictionary<string, List<Sample>>();
+
+        // topic -> vantage -> last clamped sceneUt used for that cursor.
+        private readonly Dictionary<string, Dictionary<string, double>> _cursors =
+            new Dictionary<string, Dictionary<string, double>>();
+
+        /// <summary>
+        /// Ascending per-topic sample list (by ValidAt). Returns a fresh copy
+        /// (not a reference to internal state), so callers can't mutate
+        /// archive state through it. Empty list for a topic with no recorded
+        /// samples.
+        /// </summary>
+        public IReadOnlyList<ArchiveSample> Samples(string topic)
+        {
+            if (!_samplesByTopic.TryGetValue(topic, out var list))
+            {
+                return Array.Empty<ArchiveSample>();
+            }
+
+            var copy = new ArchiveSample[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt);
+            }
+            return copy;
+        }
+
+        /// <summary>Record a SCET-stamped sample for <paramref name="topic"/>, valid as of <paramref name="validAtUt"/>.</summary>
+        public void Record(string topic, object? value, double validAtUt)
+        {
+            if (!_samplesByTopic.TryGetValue(topic, out var list))
+            {
+                list = new List<Sample>();
+                _samplesByTopic[topic] = list;
+            }
+
+            var sample = new Sample { Value = value, ValidAt = validAtUt };
+
+            // Common case: appended in ascending order already.
+            if (list.Count == 0 || validAtUt >= list[list.Count - 1].ValidAt)
+            {
+                list.Add(sample);
+                return;
+            }
+
+            // Out-of-order record: insert to keep the list ascending by ValidAt.
+            var insertAt = list.Count;
+            while (insertAt > 0 && list[insertAt - 1].ValidAt > validAtUt)
+            {
+                insertAt--;
+            }
+            list.Insert(insertAt, sample);
+        }
+
+        /// <summary>
+        /// Read <paramref name="topic"/> through <paramref name="vantage"/>'s
+        /// cursor. sceneUt = nowUt - delaySeconds, clamped to be monotonic
+        /// non-decreasing per (topic, vantage) so the scene never rewinds even
+        /// if delaySeconds grows faster than nowUt advances
+        /// (freeze-on-recession). Returns the latest sample with
+        /// ValidAt &lt;= scene, or null if nothing has "arrived" yet at that
+        /// vantage.
+        /// </summary>
+        public ArchiveSample? ReadAtVantage(string topic, string vantage, double delaySeconds, double nowUt)
+        {
+            var rawScene = nowUt - delaySeconds;
+
+            if (!_cursors.TryGetValue(topic, out var byVantage))
+            {
+                byVantage = new Dictionary<string, double>();
+                _cursors[topic] = byVantage;
+            }
+
+            var scene = byVantage.TryGetValue(vantage, out var lastScene)
+                ? Math.Max(rawScene, lastScene)
+                : rawScene;
+            byVantage[vantage] = scene;
+
+            if (!_samplesByTopic.TryGetValue(topic, out var list) || list.Count == 0)
+            {
+                return null;
+            }
+
+            Sample? found = null;
+            foreach (var sample in list)
+            {
+                if (sample.ValidAt > scene)
+                {
+                    break;
+                }
+                found = sample;
+            }
+
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt);
+        }
+
+        /// <summary>
+        /// Capture the FULL archive state — every topic's samples plus every
+        /// (topic, vantage) cursor's clamped scene — as a plain <see cref="ArchiveState"/>
+        /// POCO (BCL types only; no serialization happens here). Turning this
+        /// into the ScenarioModule blob persisted across quicksave/quickload
+        /// is an M5b concern (generated Contract serializers), deliberately
+        /// out of scope for <c>Sitrep.Core</c>. Cursor entries are captured
+        /// even for a topic with no recorded samples: <see cref="ReadAtVantage"/>
+        /// sets a cursor unconditionally, before checking whether the topic
+        /// has any samples, so an "arrived nothing yet" read still has cursor
+        /// state worth preserving.
+        /// </summary>
+        public ArchiveState Snapshot()
+        {
+            var topics = new HashSet<string>(_samplesByTopic.Keys);
+            topics.UnionWith(_cursors.Keys);
+
+            var state = new ArchiveState();
+            foreach (var topic in topics)
+            {
+                var topicState = new ArchiveTopicState { Topic = topic };
+
+                if (_samplesByTopic.TryGetValue(topic, out var list))
+                {
+                    foreach (var sample in list)
+                    {
+                        topicState.Samples.Add(new ArchiveSampleState
+                        {
+                            Value = sample.Value,
+                            ValidAt = sample.ValidAt,
+                        });
+                    }
+                }
+
+                if (_cursors.TryGetValue(topic, out var byVantage))
+                {
+                    foreach (var pair in byVantage)
+                    {
+                        topicState.Cursors.Add(new ArchiveCursorState
+                        {
+                            Vantage = pair.Key,
+                            Scene = pair.Value,
+                        });
+                    }
+                }
+
+                state.Topics.Add(topicState);
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Reconstruct an <see cref="Archive"/> from a previously-captured
+        /// <see cref="Snapshot"/>, identical in both samples and cursor
+        /// positions — including a frozen (receded) cursor, which is restored
+        /// as-is rather than reset, so a subsequent <see cref="ReadAtVantage"/>
+        /// call on the restored archive reproduces exactly what the original
+        /// archive would have returned.
+        /// </summary>
+        public static Archive Restore(ArchiveState state)
+        {
+            var archive = new Archive();
+
+            foreach (var topicState in state.Topics)
+            {
+                if (topicState.Samples.Count > 0)
+                {
+                    var list = new List<Sample>(topicState.Samples.Count);
+                    foreach (var sampleState in topicState.Samples)
+                    {
+                        list.Add(new Sample { Value = sampleState.Value, ValidAt = sampleState.ValidAt });
+                    }
+                    archive._samplesByTopic[topicState.Topic] = list;
+                }
+
+                if (topicState.Cursors.Count > 0)
+                {
+                    var byVantage = new Dictionary<string, double>(topicState.Cursors.Count);
+                    foreach (var cursorState in topicState.Cursors)
+                    {
+                        byVantage[cursorState.Vantage] = cursorState.Scene;
+                    }
+                    archive._cursors[topicState.Topic] = byVantage;
+                }
+            }
+
+            return archive;
+        }
+    }
+
+    /// <summary>
+    /// Plain BCL-only POCO snapshot of an <see cref="Archive"/>'s full state
+    /// (all topics' samples + all (topic, vantage) cursor positions). See
+    /// <see cref="Archive.Snapshot"/> / <see cref="Archive.Restore"/>.
+    ///
+    /// Deliberately NOT serialization-aware: <c>Sitrep.Core</c> has ZERO
+    /// external dependencies (BCL-only, netstandard2.0), so this type carries
+    /// no JSON attributes and no converter. Turning it into a persisted blob
+    /// (e.g. for a quicksave/quickload ScenarioModule) is an M5b concern,
+    /// done with the generated Contract serializers, outside this project.
+    /// Because no serialization happens here, each sample's <c>object?</c>
+    /// <see cref="ArchiveSampleState.Value"/> is copied as-is by
+    /// <see cref="Archive.Snapshot"/> / <see cref="Archive.Restore"/>, so its
+    /// original CLR type (double / string / bool / null) is preserved
+    /// trivially.
+    /// </summary>
+    public sealed class ArchiveState
+    {
+        public List<ArchiveTopicState> Topics { get; set; } = new List<ArchiveTopicState>();
+    }
+
+    /// <summary>One topic's samples and cursor positions within an <see cref="ArchiveState"/>.</summary>
+    public sealed class ArchiveTopicState
+    {
+        public string Topic { get; set; } = string.Empty;
+        public List<ArchiveSampleState> Samples { get; set; } = new List<ArchiveSampleState>();
+        public List<ArchiveCursorState> Cursors { get; set; } = new List<ArchiveCursorState>();
+    }
+
+    /// <summary>One recorded sample within an <see cref="ArchiveTopicState"/>.</summary>
+    public sealed class ArchiveSampleState
+    {
+        public object? Value { get; set; }
+        public double ValidAt { get; set; }
+    }
+
+    /// <summary>One vantage's clamped cursor scene within an <see cref="ArchiveTopicState"/>.</summary>
+    public sealed class ArchiveCursorState
+    {
+        public string Vantage { get; set; } = string.Empty;
+        public double Scene { get; set; }
+    }
+}

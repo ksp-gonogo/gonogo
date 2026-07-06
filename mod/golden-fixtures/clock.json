@@ -1,0 +1,257 @@
+[
+  {
+    "name": "ascending-order",
+    "description": "Due callbacks fire in ascending atUt order regardless of schedule/insertion order.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "eight",
+        "atUt": 8
+      },
+      {
+        "op": "schedule",
+        "id": "three",
+        "atUt": 3
+      },
+      {
+        "op": "advanceTo",
+        "ut": 10
+      }
+    ],
+    "expected": {
+      "fired": ["three", "eight"],
+      "nowAfter": 10
+    }
+  },
+  {
+    "name": "inclusive-boundary",
+    "description": "A callback scheduled exactly at the target UT fires (atUt <= ut is inclusive).",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "at-five",
+        "atUt": 5
+      },
+      {
+        "op": "advanceTo",
+        "ut": 5
+      }
+    ],
+    "expected": {
+      "fired": ["at-five"],
+      "nowAfter": 5
+    }
+  },
+  {
+    "name": "not-yet-due-is-held",
+    "description": "advanceTo only fires callbacks with atUt <= target; later ones stay pending until a later advance.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "ten",
+        "atUt": 10
+      },
+      {
+        "op": "schedule",
+        "id": "five",
+        "atUt": 5
+      },
+      {
+        "op": "advanceTo",
+        "ut": 7
+      },
+      {
+        "op": "advanceTo",
+        "ut": 12
+      }
+    ],
+    "expected": {
+      "fired": ["five", "ten"],
+      "nowAfter": 12
+    }
+  },
+  {
+    "name": "future-schedule-not-fired",
+    "description": "A callback scheduled after the target UT never fires on that advance.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "twenty",
+        "atUt": 20
+      },
+      {
+        "op": "advanceTo",
+        "ut": 10
+      }
+    ],
+    "expected": {
+      "fired": [],
+      "nowAfter": 10
+    }
+  },
+  {
+    "name": "cancel-before-due",
+    "description": "A cancelled callback never fires even once its atUt is reached.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "a",
+        "atUt": 10
+      },
+      {
+        "op": "cancel",
+        "id": "a"
+      },
+      {
+        "op": "advanceTo",
+        "ut": 10
+      }
+    ],
+    "expected": {
+      "fired": [],
+      "nowAfter": 10
+    }
+  },
+  {
+    "name": "backward-advance-is-strict-noop",
+    "description": "advanceTo to a UT strictly before currentUt is a full no-op: now() doesn't move and nothing fires (strict '<' guard, not '<=').",
+    "startUt": 10,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "five",
+        "atUt": 5
+      },
+      {
+        "op": "advanceTo",
+        "ut": 3
+      }
+    ],
+    "expected": {
+      "fired": [],
+      "nowAfter": 10
+    }
+  },
+  {
+    "name": "same-ut-reschedule-drains",
+    "description": "A callback that schedules another callback at the SAME ut it just fired at is drained within the same advanceTo (re-entrancy-safe drain), not stranded for a later advance.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "outer",
+        "atUt": 5,
+        "onFire": [
+          {
+            "op": "schedule",
+            "id": "inner-same-ut",
+            "atUt": 5
+          }
+        ]
+      },
+      {
+        "op": "advanceTo",
+        "ut": 5
+      }
+    ],
+    "expected": {
+      "fired": ["outer", "inner-same-ut"],
+      "nowAfter": 5
+    }
+  },
+  {
+    "name": "reentrant-future-due-drains-in-order",
+    "description": "A callback that re-entrantly schedules another callback at a still-due future UT (<= target) fires it within the SAME advanceTo, in ascending-atUt order relative to anything else pending.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "three",
+        "atUt": 3,
+        "onFire": [
+          {
+            "op": "schedule",
+            "id": "eight",
+            "atUt": 8
+          }
+        ]
+      },
+      {
+        "op": "advanceTo",
+        "ut": 10
+      }
+    ],
+    "expected": {
+      "fired": ["three", "eight"],
+      "nowAfter": 10
+    }
+  },
+  {
+    "name": "repeat-advance-to-same-ut-still-fires-new-schedule",
+    "description": "advanceTo(ut) is idempotent w.r.t. now() but NOT a no-op for freshly scheduled callbacks: scheduling at the current ut and calling advanceTo(ut) again still fires it.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "advanceTo",
+        "ut": 5
+      },
+      {
+        "op": "schedule",
+        "id": "late-at-five",
+        "atUt": 5
+      },
+      {
+        "op": "advanceTo",
+        "ut": 5
+      }
+    ],
+    "expected": {
+      "fired": ["late-at-five"],
+      "nowAfter": 5
+    }
+  },
+  {
+    "name": "chained-reentrant-drain-multiple-levels",
+    "description": "Re-entrancy drains through more than one level: a fires, schedules b at <= ut, b fires and schedules c at <= ut, all within one advanceTo, plus an unrelated already-pending callback interleaves by atUt order.",
+    "startUt": 0,
+    "ops": [
+      {
+        "op": "schedule",
+        "id": "mid",
+        "atUt": 6
+      },
+      {
+        "op": "schedule",
+        "id": "a",
+        "atUt": 2,
+        "onFire": [
+          {
+            "op": "schedule",
+            "id": "b",
+            "atUt": 4,
+            "onFire": [
+              {
+                "op": "schedule",
+                "id": "c",
+                "atUt": 6
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "op": "advanceTo",
+        "ut": 10
+      }
+    ],
+    "expected": {
+      "fired": ["a", "b", "mid", "c"],
+      "nowAfter": 10
+    }
+  }
+]

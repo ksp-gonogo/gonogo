@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <!-- Sitrep.Host is the KSP-free seam between the game and the pure Sitrep.Core
+       logic: IKspHost (the mod's only window into KSP, implemented in-game by
+       Gonogo.KSP in Task 4, or by a headless Task-2 ReplayKspHost) and the
+       RecordedSession/RecordedEntry recording-format POCOs. Every type in this
+       assembly is primitives/POCOs only — no KSP/Unity reference type may ever
+       appear on IKspHost.Sample()'s return value, or anywhere else here. Zero
+       external PackageReferences, matching Sitrep.Core/Sitrep.Transport/
+       Sitrep.Skeleton — see their README/csproj comments for why (KSP's
+       Unity-2019 Mono + AppDomain first-assembly-name-wins collision risk). Do
+       not add one without revisiting that invariant deliberately and in the
+       open. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+  </ItemGroup>
+</Project>

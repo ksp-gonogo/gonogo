@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../golden-fixtures/version.json" Link="golden-fixtures/version.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/clock.json" Link="golden-fixtures/clock.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/stub-network.json" Link="golden-fixtures/stub-network.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/archive.json" Link="golden-fixtures/archive.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/courier.json" Link="golden-fixtures/courier.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/kernel.json" Link="golden-fixtures/kernel.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../golden-fixtures/serialization.json" Link="golden-fixtures/serialization.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

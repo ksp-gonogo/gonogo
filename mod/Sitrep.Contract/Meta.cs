@@ -1,11 +1,22 @@
+#if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
+#endif
 
 namespace Sitrep.Contract;
 
-[TsEnum] public enum Quality { OnRails, Loaded }
-[TsEnum] public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+public enum Quality { OnRails, Loaded }
 
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
+
+#if NETSTANDARD2_0
 [TsInterface]
+#endif
 public class Meta
 {
     public string Source { get; set; } = "";

@@ -7,9 +7,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "gen:golden-fixtures": "tsx ../golden-fixtures/gen/version.gen.ts && tsx ../golden-fixtures/gen/kernel.gen.ts"
   },
   "dependencies": {
     "@gonogo/sitrep-server": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
   }
 }

@@ -1,3 +1,4 @@
+#if NETSTANDARD2_0
 using Reinforced.Typings.Fluent;
 
 namespace Sitrep.Contract;
@@ -40,3 +41,4 @@ public static class RtConfig
         builder.ExportAsEnum<Staleness>();
     }
 }
+#endif

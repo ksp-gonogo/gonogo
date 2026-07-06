@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <!-- Sitrep.Skeleton is the M5a walking-skeleton: it wires Sitrep.Core's Courier
+       (delay engine) + Sitrep.Transport's Fleck-backed ITransportListener + the
+       Sitrep.Core.Serialization envelope codec into one headless, KSP-free server,
+       proving the three-domain threading model (main-loop / courier / socket) end
+       to end over a real WebSocket. Zero external PackageReferences, matching
+       Sitrep.Core/Sitrep.Transport — see their README/csproj comments for why
+       (KSP's Unity-2019 Mono + AppDomain first-assembly-name-wins collision risk).
+       Do not add one without revisiting that invariant deliberately and in the
+       open. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+    <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sitrep.Skeleton.Tests" />
+  </ItemGroup>
+</Project>

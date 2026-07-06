@@ -69,6 +69,11 @@
 #       Sidecar fetch is best-effort: skips silently if gh isn't
 #       installed / not authed / no successful run found.
 #
+#   build gonogo
+#       Build the first-party Gonogo.KSP mod (mod/Gonogo.KSP/Gonogo.KSP.csproj)
+#       and copy Gonogo.dll + the net472-flavored Sitrep.*.dll deps into the
+#       synced kspdata GameData/Gonogo/Plugins/ directory.
+#
 #   tele read <key1> [<key2>...]
 #       GET /telemachus/datalink with each key as a `?k=k` pair against
 #       the running KSP install. Pretty-prints JSON when possible. The
@@ -681,6 +686,41 @@ build_telemachus() {
   ls -la "$install_dir/Telemachus.dll"
 }
 
+build_gonogo() {
+  local proj="$ROOT/mod/Gonogo.KSP/Gonogo.KSP.csproj"
+  local out_dir="$ROOT/mod/Gonogo.KSP/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/Gonogo/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "Gonogo.KSP csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building Gonogo.KSP ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/Gonogo.dll" ]; then
+    echo "Gonogo.dll not produced (missing at $out_dir/Gonogo.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Gonogo.dll + every net472-flavored Sitrep.*.dll dep copied alongside it
+  # by CopyLocalLockFileAssemblies (Sitrep.Host/Core/Transport/Contract) —
+  # deploy the whole set, no ILRepack single-file merge yet.
+  local deployed=()
+  local dll
+  for dll in "$out_dir"/Gonogo.dll "$out_dir"/Sitrep.*.dll; do
+    [ -f "$dll" ] || continue
+    cp "$dll" "$install_dir/"
+    deployed+=("$(basename "$dll")")
+  done
+  echo "=== deployed to $install_dir ==="
+  printf '  %s\n' "${deployed[@]}"
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -843,9 +883,10 @@ case "${1:-help}" in
         build_ocisly "$@"
         ;;
       kerbcast) build_kerbcast ;;
+      gonogo) build_gonogo ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo"
         exit 2
         ;;
     esac
