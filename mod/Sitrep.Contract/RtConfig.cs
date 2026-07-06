@@ -1,6 +1,6 @@
 using Reinforced.Typings.Fluent;
 
-namespace Gonogo.Contract;
+namespace Sitrep.Contract;
 
 public static class RtConfig
 {

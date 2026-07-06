@@ -1,4 +1,6 @@
-# @gonogo/telemetry-sdk
+# @gonogo/sitrep-sdk
+
+`@gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 TypeScript client SDK for the gonogo-native telemetry mod. The wire contract
 (message envelopes, `Meta`, enums) is defined once in C# and generated into
@@ -8,10 +10,10 @@ this package — the SDK never redefines the shape by hand.
 
 `src/__generated__/contract.ts` is produced by
 [Reinforced.Typings](https://github.com/reinforced/Reinforced.Typings) from
-the C# source of truth in `mod/Gonogo.Contract/`. The file carries its own
+the C# source of truth in `mod/Sitrep.Contract/`. The file carries its own
 "generated, changes will be lost" header — treat that as load-bearing, not
 boilerplate. If a type needs to change, change the C# class (or
-`mod/Gonogo.Contract/RtConfig.cs` for export configuration) and regenerate;
+`mod/Sitrep.Contract/RtConfig.cs` for export configuration) and regenerate;
 never patch the emitted `.ts` directly.
 
 Regenerate from the repo root:
@@ -20,7 +22,7 @@ Regenerate from the repo root:
 pnpm codegen
 ```
 
-This runs `mod/codegen.sh`, which builds `Gonogo.Contract.csproj` and invokes
+This runs `mod/codegen.sh`, which builds `Sitrep.Contract.csproj` and invokes
 the `rtcli` tool against the compiled assembly to rewrite
 `src/__generated__/contract.ts`.
 
@@ -42,7 +44,7 @@ Regenerates the contract and then runs `git diff --exit-code` against
 
 This is the check that should run in CI once dotnet is wired into the CI
 image (tracked separately) — for now, run it locally before committing any
-change under `mod/Gonogo.Contract/`.
+change under `mod/Sitrep.Contract/`.
 
 ## The hand-owned seams: `envelope.ts` and `client.ts`
 
@@ -67,7 +69,7 @@ without adding its tag to `SERVER_TYPE_TAGS` fails `tsc`.
 ## Usage
 
 ```ts
-import { parseServerMessage, type ServerMessage } from "@gonogo/telemetry-sdk";
+import { parseServerMessage, type ServerMessage } from "@gonogo/sitrep-sdk";
 
 const msg: ServerMessage = parseServerMessage(rawJson);
 ```

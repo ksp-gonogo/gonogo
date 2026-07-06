@@ -1,6 +1,6 @@
 using Reinforced.Typings.Attributes;
 
-namespace Gonogo.Contract;
+namespace Sitrep.Contract;
 
 [TsEnum] public enum Quality { OnRails, Loaded }
 [TsEnum] public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }

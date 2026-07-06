@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds — it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@jonpepler/kerbcast` SDK and the `CameraFeed` widget lives in `@gonogo/kerbcast`. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
 
+## Telemetry mod — brand "Gonogo", codename "Sitrep"
+
+The new first-party KSP telemetry mod (a from-scratch replacement for the Telemachus fork) is **branded Gonogo** — it ships on CKAN/SpaceDock and in-game as `gonogo-*` (e.g. `gonogo-core`, `gonogo-scansat`), keeping the app + mod + extensions one unified ecosystem. Its **engineering codename is "Sitrep"**, used *only in code* to disambiguate the mod from the app (both were "Gonogo"). So: C# `Sitrep.Contract`; npm `@gonogo/sitrep-sdk` (generated typed contract) + `@gonogo/sitrep-client` (app-side spine + hooks). **Folder rule:** `mod/` = the mod (C# + the generated `sitrep-sdk`, and future bundled extensions); `packages/` = the app (incl. `@gonogo/sitrep-client`, and the app's own `@gonogo/core`, which is untouched — do not confuse it with the mod). Sitrep must **never** appear on end-user surfaces (CKAN/GameData/UI/user docs = Gonogo). Design + milestone plans live in `local_docs/telemetry-mod/` and `docs/superpowers/plans/2026-07-06-telemetry-*` (both gitignored).
+
 ## Project Vision
 
 **gonogo** is a mission control SPA for Kerbal Space Program. It operates in two modes within the same app:

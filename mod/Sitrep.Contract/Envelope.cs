@@ -1,6 +1,6 @@
 using Reinforced.Typings.Attributes;
 
-namespace Gonogo.Contract;
+namespace Sitrep.Contract;
 
 [TsInterface]
 public class StreamData<T>
