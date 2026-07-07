@@ -94,10 +94,22 @@ namespace Sitrep.Host
 
             if (isRewind)
             {
-                if (currentId != null)
-                {
-                    _lastVesselId = currentId;
-                }
+                // Unconditional, even when this rewind tick's own snapshot
+                // has NO vessel at all (currentId == null): a real
+                // quickload's rewound Ut becomes visible in the loading
+                // scene BEFORE any vessel does (KspHost.Sample omits the
+                // "vessel" group entirely until FlightGlobals.ready). If
+                // this only resynchronized _lastVesselId "when currentId !=
+                // null", that loading-scene tick would leave the stale
+                // PRE-load vessel id in place; the loaded save's vessel
+                // (which can perfectly ordinarily differ from the pre-load
+                // one) would then appear on a LATER forward tick and get
+                // mis-read as a genuine switch, undoing the archive
+                // recompute all over again. Clearing unconditionally means
+                // the next observed vessel -- on whichever tick it turns up
+                // -- is absorbed by the first-observation exclusion below
+                // (a cold start), never a spurious switch.
+                _lastVesselId = currentId;
                 return;
             }
 

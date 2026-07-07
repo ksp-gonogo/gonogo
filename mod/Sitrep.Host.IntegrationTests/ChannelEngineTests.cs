@@ -2098,6 +2098,118 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// M2 re-verification fix3 — a third pass over the same rewind edge
+        /// as <see cref="RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth"/>,
+        /// closing the one gap that fix left open. That fix's own rewind
+        /// tick always carried an identifiable vessel in its snapshot; a
+        /// REAL quickload's rewound Ut becomes visible in the loading scene
+        /// BEFORE any vessel does — <c>KspHost.Sample</c> omits the
+        /// "vessel" group entirely until <c>FlightGlobals.ready</c>. Pre-fix,
+        /// <see cref="VesselEpochSampler"/> only resynchronized
+        /// <c>_lastVesselId</c> on a rewind tick when THAT tick's own
+        /// snapshot had a vessel (<c>if (currentId != null)</c>), so the
+        /// stale pre-load vessel id survived the rewind tick untouched. When
+        /// the loaded save's DIFFERENT vessel then appeared on a LATER
+        /// forward tick (FlightGlobals going ready one or more ticks after
+        /// the rewind), the sampler's plain guid comparison mis-read it as a
+        /// genuine switch and called <c>ResetChannelBirth</c> — undoing the
+        /// archive recompute that had already correctly run on the rewind
+        /// tick itself. This whole sequence happens with zero subscribers on
+        /// the topic (the ordinary "no client connected during the load"
+        /// case), so nothing catches the corrective tombstone until a late
+        /// subscriber joins afterwards — exactly when it would otherwise be
+        /// served the stale pre-rewind target as Fresh, forever.
+        ///
+        /// The fix: clear <c>_lastVesselId</c> to null UNCONDITIONALLY on a
+        /// rewind tick — even when that tick's own snapshot has no vessel —
+        /// so the later, different vessel is a cold start (no prior subject
+        /// to switch away from), never a spurious switch.
+        /// </summary>
+        [Fact]
+        public async Task RewindTickWithNoVesselStillColdStartsSoALaterDifferentVesselDoesNotUndoTheArchiveRecomputedBirth()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TestVesselExtension());
+            engine.Start();
+            try
+            {
+                const string vesselA = "aaaaaaaa-0000-0000-0000-000000000000";
+                const string vesselB = "bbbbbbbb-0000-0000-0000-000000000000";
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, VesselViewProvider.TargetTopic, Timeout);
+
+                // Vessel A has a target @UT0 -- the very first observation,
+                // not a switch. Born + archived + delivered.
+                engine.TickAndWait(0.0, VesselSnapshotForRewindTest(0.0, vesselA, hasTarget: true), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.NotNull(real.Payload);
+
+                // Unsubscribe: "zero subscribers across the gap" -- the
+                // ordinary case where no client is connected while the
+                // player quickloads. The archive's tail for the target
+                // topic stays pinned at the real "Mun"@0 value.
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = VesselViewProvider.TargetTopic }));
+                var unsubDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                while (engine.SubscriberCountFor(VesselViewProvider.TargetTopic) != 0 && DateTime.UtcNow < unsubDeadline)
+                {
+                    await Task.Delay(25);
+                }
+                Assert.Equal(0, engine.SubscriberCountFor(VesselViewProvider.TargetTopic));
+
+                // Keep playing forward on A, unsubscribed, just advancing
+                // the clock so a rewind to a UT still >= 0 (letting the
+                // archived target@0 sample survive the prune) is genuinely
+                // BACKWARD relative to the engine's clock.
+                engine.TickAndWait(3.0, VesselSnapshotForRewindTest(3.0, vesselA, hasTarget: true), Timeout);
+
+                // THE QUICKLOAD: rewind to UT2.0 (< 3.0, genuine rewind;
+                // >= 0.0, so the archived target@0 SURVIVES the prune) --
+                // but THIS rewind tick's own snapshot has NO "vessel" group
+                // at all: the loading-scene tick, before FlightGlobals is
+                // ready. The engine's archive recompute correctly re-derives
+                // born=true for the target topic from its surviving "Mun"
+                // tail. VesselEpochSampler sees isRewind=true, currentId==null.
+                engine.TickAndWait(2.0, NoVesselSnapshotForRewindGapTest(2.0), Timeout);
+
+                // A LATER forward tick (still ahead of the rewind's own Ut,
+                // still no subscribers) reveals the loaded save's ACTIVE
+                // vessel -- B, targetless -- differing from the pre-load
+                // vessel A. Pre-fix, the sampler's stale, unresynchronized
+                // _lastVesselId (still A) mis-reads this as a genuine switch
+                // and calls ResetChannelBirth, undoing the archive recompute
+                // from the rewind tick moments earlier.
+                engine.TickAndWait(2.5, VesselSnapshotForRewindTest(2.5, vesselB, hasTarget: false), Timeout);
+
+                // A late subscriber's synchronous catch-up still reads the
+                // stale "Mun" from the archive -- expected (this fix
+                // corrects forward, not retroactively); not what's under
+                // test here.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = VesselViewProvider.TargetTopic }));
+                var catchUp = await ReceiveStreamDataAsync(late, Timeout);
+                Assert.NotNull(catchUp.Payload);
+
+                // The null mapper result for the now-subscribed, still
+                // targetless vessel B must now flow into Decide and emit a
+                // corrective tombstone -- NOT hit a birth-gate skip left
+                // over from a spuriously reset birth.
+                engine.TickAndWait(2.6, VesselSnapshotForRewindTest(2.6, vesselB, hasTarget: false), Timeout);
+
+                var corrected = await ReceiveStreamDataAsync(late, Timeout);
+                Assert.Null(corrected.Payload);
+                Assert.Equal(Staleness.Fresh, corrected.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot NoVesselSnapshotForRewindGapTest(double ut) =>
+            new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?>() };
+
+        /// <summary>
         /// Defect B — the wire <c>CommandResponse</c>'s <c>Meta.TimelineEpoch</c>
         /// was hand-rolled in <c>ChannelEngine.OnMessageReceived</c> and
         /// never stamped at all (always the wire default, 0), even though
