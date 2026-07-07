@@ -16,6 +16,7 @@ import {
   SCAN_TYPE,
   splitOnLongitudeWrap,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
 import {
@@ -24,7 +25,7 @@ import {
   useScanningVessels,
   useScanSatFogSync,
 } from "@gonogo/data";
-import { Panel, PanelTitle, Switch } from "@gonogo/ui";
+import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -220,6 +221,20 @@ function MapViewComponent({
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
   const encounterExists = useDataValue("data", "o.encounterExists");
+  // Connectivity indicator (M3 mechanical-tail batch). `v.lat` is this
+  // widget's representative MAPPED key (-> raw `vessel.flight.latitude`) —
+  // `v.long`/`v.dynamicPressure`/`v.mach`/`v.surfaceSpeed`/`v.verticalSpeed`
+  // are mapped the same way (raw `vessel.flight.*` fields) and `v.altitude`
+  // is mapped to the DERIVED `vessel.state.altitudeAsl` subtopic, so one
+  // badge speaks for the whole telemetry-row set. `v.body`, `o.orbitPatches`/
+  // `o.maneuverNodes` (trajectory + maneuver overlays), `t.universalTime`,
+  // `land.predictedLat`/`land.predictedLon`, `a.physicsMode`, and
+  // `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
+  // `o.encounterTime`) are all GAPPED (map-topic.ts) and stay legacy. The
+  // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*`
+  // SCANsat channel are out of M1/M2/M3 scope entirely — `mapTopic` has no
+  // entry for them, so `useDataValue` falls back to legacy automatically.
+  const streamStatus = useDataStreamStatus("data", "v.lat");
   // Principia (N-body) breaks patched-conic assumptions, so stock o.* and our
   // Keplerian propagator are both wrong. Suppress the prediction entirely and
   // show a chip. On Principia installs this field can briefly flap to
@@ -884,6 +899,7 @@ function MapViewComponent({
       <Panel>
         <Header>
           <PanelTitle>MAP VIEW</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
           {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
         </Header>
         <CompactReadout>
@@ -914,6 +930,7 @@ function MapViewComponent({
     <Panel>
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
         {showBodyLabel && displayName && (
           <BodyLabel>
             {displayName}

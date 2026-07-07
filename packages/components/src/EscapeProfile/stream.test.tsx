@@ -12,12 +12,26 @@ import { EscapeProfileComponent } from "./index";
  *
  * - Its only `useDataValue` call, `v.body`, is a declared GAP in
  *   `map-topic.ts`.
- * - `v.orbitalVelocity` (itself MAPPED -> `vessel.state.orbitalSpeed`, but
- *   irrelevantly so) and `v.altitude` (also MAPPED ->
- *   `vessel.state.altitudeAsl`, same story) are both read only via
- *   `GraphView` -> `GraphSeries` -> `useDataSeries`, which has no
- *   `mapTopic` awareness at all (the batch-2 `SemiMajorAxis` footgun,
- *   reproduced here since EscapeProfile is another `GraphView` consumer).
+ * - `v.orbitalVelocity` (MAPPED -> `vessel.state.orbitalSpeed`) and
+ *   `v.altitude` (MAPPED -> `vessel.state.altitudeAsl`) are both read only
+ *   via `GraphView` -> `GraphSeries` -> `useDataSeries`.
+ *
+ * **Re-verified in the M3 mechanical-tail batch**, after `useDataSeries`
+ * grew its own stream shim: unlike `OrbitalAscent`/`KeplerPeriod`,
+ * EscapeProfile's plot was genuinely the best CANDIDATE for this unlock —
+ * both `xKey` (`v.altitude`) and the series `key` (`v.orbitalVelocity`) are
+ * mapped, so a migrated plot wouldn't hit the `alignXY` unit-mismatch
+ * problem the other two widgets' comments describe (both axes would read
+ * off the same UT-seconds clock). It's still blocked, but for a different,
+ * structural reason: both mapped topics are DERIVED `vessel.state.*`
+ * field-subtopics. `TimelineStore.isDerivedTopic` gates `sampleRange` to
+ * return `undefined` for any derived channel (a derived value is computed
+ * fresh per frame from its inputs, never buffered as its own history), so
+ * `useDataSeries` can NEVER serve a `vessel.state.*` series regardless of
+ * carried-channel status — the SAME structural block `OrbitalAscent` hits
+ * on `v.altitude` alone, just doubled up here since EscapeProfile's *other*
+ * axis is derived too. Only a RAW-topic mapped pair (like `SemiMajorAxis`'s
+ * `o.sma`) can ever unlock a `GraphView` plot.
  *
  * No `useDataStreamStatus`/`StreamStatusBadge` were added to `index.tsx` —
  * there is no representative mapped key. This test locks in that the

@@ -16,9 +16,12 @@ import { EscapeProfileComponent } from "./index";
  * `dual-run.test.tsx` doc comments): nothing is migratable, so all 3 keys
  * the widget actually reads (`v.body` directly, `v.altitude`/
  * `v.orbitalVelocity` via `GraphView`'s `useDataSeries` fetchers) stay on a
- * legacy AUX source in the "stream" leg. Proves the `TelemetryProvider`
- * wrapper is functionally inert for this widget and doesn't regress its
- * (fully legacy) rendered output.
+ * legacy AUX source in the "stream" leg. Re-verified unchanged (both mapped
+ * topics are DERIVED `vessel.state.*` field-subtopics, structurally
+ * series-ineligible — see `stream.test.tsx`'s doc comment) in the M3
+ * mechanical-tail batch now that `useDataSeries` has its own stream shim.
+ * Proves the `TelemetryProvider` wrapper is functionally inert for this
+ * widget and doesn't regress its (fully legacy) rendered output.
  */
 afterEach(() => {
   cleanup();

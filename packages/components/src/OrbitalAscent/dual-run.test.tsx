@@ -14,9 +14,11 @@ import { OrbitalAscentComponent } from "./index";
  * OrbitalAscent's M3 batch-3 behavior-preservation golden dual-run — same
  * degenerate shape as `KeplerPeriod`'s (see its `dual-run.test.tsx` doc
  * comment): nothing is migratable, so all 3 keys the widget actually reads
- * stay on a legacy AUX source in the "stream" leg. Proves the
- * `TelemetryProvider` wrapper is functionally inert for this widget and
- * doesn't regress its (fully legacy) rendered output.
+ * stay on a legacy AUX source in the "stream" leg. Re-verified unchanged
+ * (doubly blocked — see `stream.test.tsx`'s doc comment) in the M3
+ * mechanical-tail batch now that `useDataSeries` has its own stream shim.
+ * Proves the `TelemetryProvider` wrapper is functionally inert for this
+ * widget and doesn't regress its (fully legacy) rendered output.
  */
 afterEach(() => {
   cleanup();

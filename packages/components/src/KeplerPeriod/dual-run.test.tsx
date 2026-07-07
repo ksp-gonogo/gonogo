@@ -14,10 +14,12 @@ import { KeplerPeriodComponent } from "./index";
  * KeplerPeriod's M3 batch-3 behavior-preservation golden dual-run — a
  * degenerate case, unlike every prior widget's dual-run: since NOTHING is
  * migratable (see `stream.test.tsx`'s doc comment — both `useDataValue`
- * calls are GAPPED, and the graph series/xKey route through
- * `useDataSeries`, which the shim never touches), all 4 fixture keys stay
- * on a legacy AUX source in the "stream" leg. This test still earns its
- * keep: it proves mounting the widget inside a `TelemetryProvider`
+ * calls are GAPPED, and `o.period`, the graph series's paired key, is a
+ * hard gap that blocks the whole plot regardless of `o.sma`'s own mapped
+ * status), all 4 fixture keys stay on a legacy AUX source in the "stream"
+ * leg. Re-verified unchanged in the M3 mechanical-tail batch now that
+ * `useDataSeries` has its own stream shim. This test still earns its keep:
+ * it proves mounting the widget inside a `TelemetryProvider`
  * (harness-present but functionally inert for this widget) produces
  * byte-identical DOM to a bare legacy mount — the migration wave didn't
  * regress a widget it left untouched.

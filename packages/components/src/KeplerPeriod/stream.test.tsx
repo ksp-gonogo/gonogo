@@ -14,13 +14,22 @@ import { KeplerPeriodComponent } from "./index";
  *   field subtopic; migrate in M3") — there is no mapped key to stream.
  * - `o.sma` and `o.period` (the graph's `xKey`/series `key`) are never read
  *   via `useDataValue` at all — they flow through `GraphView` ->
- *   `GraphSeries` -> `useDataSeries` (`@gonogo/data`), which has no
- *   `mapTopic` awareness whatsoever (the batch-2 `SemiMajorAxis` footgun).
- *   Even though `o.sma` itself IS mapped (-> `vessel.orbit.sma`) at the
- *   `useDataValue`/`mapTopic` level, that mapping is irrelevant here because
- *   nothing in this widget calls `useDataValue("data", "o.sma")` — the only
- *   consumer is `useDataSeries`, a completely different hook the shim
- *   doesn't touch.
+ *   `GraphSeries` -> `useDataSeries` (`@gonogo/data`).
+ *
+ * **Re-verified in the M3 mechanical-tail batch**, after `useDataSeries`
+ * grew its own stream shim (mirroring `useDataValue`'s — see
+ * `SemiMajorAxis/index.tsx`): the conclusion is UNCHANGED, but for a
+ * different, now-structural reason. `o.sma` itself IS mapped
+ * (-> raw `vessel.orbit.sma`) and is in principle series-eligible, but its
+ * paired series key, `o.period`, has no mapped home at all (a hard GAP —
+ * `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`). Migrating `xKey` alone while
+ * `key` stays on the legacy `BufferedDataSource` would pair a stream-sourced
+ * x (UT seconds, `TimelineStore.sampleRange`) against a legacy-sourced y
+ * (wall-clock `Date.now()` milliseconds) — `Graph/align.ts`'s `alignXY`
+ * nearest-prior-match pairing (1s tolerance) would never pair a single point
+ * across that unit mismatch, silently blanking the plot instead of erroring.
+ * So the whole graph must stay on one source or the other, and with `o.
+ * period` permanently gapped, that source is legacy.
  *
  * So this widget stays 100% legacy — no `useDataStreamStatus`/
  * `StreamStatusBadge` were added to `index.tsx` (there is no representative

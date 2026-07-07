@@ -3,6 +3,7 @@ import {
   getBody,
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useOrbitElements,
 } from "@gonogo/core";
@@ -12,6 +13,7 @@ import {
   PanelTitle,
   type ReadoutTone,
   StatusPill,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -58,6 +60,17 @@ function OrbitViewComponent({
     useOrbitElements();
   const argPe = useDataValue("data", "o.argumentOfPeriapsis");
   const bodyName = useDataValue("data", "v.body");
+  // Connectivity indicator (M3 mechanical-tail batch). `o.sma` is this
+  // widget's representative MAPPED key (-> raw `vessel.orbit.sma`) —
+  // `o.eccentricity`/`o.argumentOfPeriapsis` are mapped the same way
+  // (`vessel.orbit.ecc`/`vessel.orbit.argPe`) and ride the same
+  // `vessel.orbit` carried-channel gate, so one badge speaks for all three.
+  // `o.trueAnomaly`/`v.body` and `useOrbitElements`'s six keys (o.ApR/o.PeR/
+  // o.ApA/o.PeA/o.timeToAp/o.timeToPe) are all GAPPED (map-topic.ts) and stay
+  // legacy. `useBodyRotation` (below) is fed by `useCelestialBodies`, which
+  // calls `getDataSource()` directly — a custom-hook bypass the shim never
+  // touches — so the rotation marker stays legacy regardless of mapping.
+  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
@@ -147,7 +160,10 @@ function OrbitViewComponent({
       <Panel>
         <LandscapeRow>
           <LandscapeChrome>
-            <PanelTitle>ORBIT VIEW</PanelTitle>
+            <TitleRow>
+              <PanelTitle>ORBIT VIEW</PanelTitle>
+              <StreamStatusBadge status={streamStatus} />
+            </TitleRow>
             {bodyName !== undefined && (
               <PanelSubtitle>{bodyName}</PanelSubtitle>
             )}
@@ -161,7 +177,10 @@ function OrbitViewComponent({
 
   return (
     <Panel>
-      <PanelTitle>ORBIT VIEW</PanelTitle>
+      <TitleRow>
+        <PanelTitle>ORBIT VIEW</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && bodyName !== undefined && (
         <PanelSubtitle>{bodyName}</PanelSubtitle>
       )}
@@ -207,6 +226,14 @@ registerComponent<OrbitViewConfig>({
 });
 
 export { OrbitViewComponent };
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const NoData = styled.div`
   font-size: 11px;
