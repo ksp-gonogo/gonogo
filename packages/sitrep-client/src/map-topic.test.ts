@@ -16,6 +16,12 @@ describe("mapTopic", () => {
     );
   });
 
+  it("redirects a widget asking for the raw orbital-speed topic directly onto the derived surface — the real raw twin lives on vessel.flight, not vessel.orbit (elements-only, no orbitalSpeed field)", () => {
+    expect(mapTopic("vessel.flight.orbitalSpeed")).toBe(
+      "vessel.state.orbitalSpeed",
+    );
+  });
+
   it("leaves non-kinematic keys, including other raw vessel.flight fields, unchanged", () => {
     expect(mapTopic("vessel.flight.mach")).toBe("vessel.flight.mach");
     expect(mapTopic("vessel.flight.dynamicPressureKPa")).toBe(
@@ -23,5 +29,11 @@ describe("mapTopic", () => {
     );
     expect(mapTopic("vessel.identity.name")).toBe("vessel.identity.name");
     expect(mapTopic("some.unrelated.topic")).toBe("some.unrelated.topic");
+    // vessel.orbit is elements-only (referenceBodyIndex/sma/ecc/inc/lan/
+    // argPe/meanAnomalyAtEpoch/epoch/mu) — it never had an orbitalSpeed
+    // field, so nothing should route away from it under that name either.
+    expect(mapTopic("vessel.orbit.orbitalSpeed")).toBe(
+      "vessel.orbit.orbitalSpeed",
+    );
   });
 });

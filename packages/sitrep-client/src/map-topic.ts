@@ -17,8 +17,14 @@
  *   `"vessel.flight.altitudeAsl"` is redirected to `"vessel.state.altitudeAsl"`
  *   even though the raw field genuinely exists on the wire, because binding a
  *   widget straight to it reproduces the dual-altitude wart `vessel.state`
- *   exists to kill (M1 §6.2). Non-kinematic keys (surface-frame-only
- *   measurements with no elements-derived twin, e.g. `vessel.flight.mach`,
+ *   exists to kill (M1 §6.2). Same story for `"vessel.flight.orbitalSpeed"`
+ *   → `"vessel.state.orbitalSpeed"` — `vessel.flight` (`VesselFlightPayload`)
+ *   is the actual raw twin carrying `orbitalSpeed` on the wire; `vessel.orbit`
+ *   (`VesselOrbitPayload`) is elements-only (sma/ecc/inc/lan/argPe/…) and has
+ *   no `orbitalSpeed` field at all, so a redirect keyed on that topic would
+ *   never fire and leave the real raw measurement unguarded (V-12 risk).
+ *   Non-kinematic keys (surface-frame-only measurements with no
+ *   elements-derived twin, e.g. `vessel.flight.mach`,
  *   `vessel.flight.dynamicPressureKPa`) are deliberately NOT redirected —
  *   per the M1 §5.1 migration table those stay raw; there's no dual
  *   representation to collapse.
@@ -36,7 +42,7 @@ const KINEMATIC_REDIRECTS: Readonly<Record<string, string>> = {
   // Raw-topic interception — a widget asking for these directly still lands
   // on the quality-picked surface, never the raw measurement/element field.
   "vessel.flight.altitudeAsl": "vessel.state.altitudeAsl",
-  "vessel.orbit.orbitalSpeed": "vessel.state.orbitalSpeed",
+  "vessel.flight.orbitalSpeed": "vessel.state.orbitalSpeed",
 };
 
 /**

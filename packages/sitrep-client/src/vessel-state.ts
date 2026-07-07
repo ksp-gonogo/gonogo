@@ -111,19 +111,25 @@ function degToRad(deg: number): number {
  *   for it, per its own doc comment — deferred here to keep this task's
  *   surface small). `basis: "measured"`.
  *
- * **Missing inputs → `null`, never a fabricated zero** (this task's explicit
- * contract): no `vessel.orbit` point at-or-before `viewUt` yet (cold start,
- * post-epoch-reset resync, or a tombstoned orbit) means there is no quality
- * signal to pick with, so the whole record is `null`. Loaded quality with no
- * `vessel.flight` point yet is `null` for the same reason — the measured
- * regime has nothing to interpolate/hold.
+ * **`undefined` vs `null`, never conflated** (M2 design §2.1/§2.4 — this
+ * task's explicit contract): no `vessel.orbit` point at-or-before `viewUt`
+ * yet means the input isn't whole yet (cold start, or resynchronizing after
+ * an epoch reset until the first post-reset keyframe lands) — there is no
+ * quality signal to pick with, but nothing has confirmed the vessel is gone
+ * either, so the whole record is `undefined` ("resynchronizing"). A
+ * *tombstoned* `vessel.orbit` point (a real point whose `payload` is `null`)
+ * means the vessel itself is confirmed absent, so the record is `null`.
+ * Loaded quality with no `vessel.flight` point yet is `undefined` for the
+ * same not-whole-yet reason; a tombstoned `vessel.flight` is `null`. Never a
+ * fabricated zero-valued record either way.
  */
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
-): VesselState | null {
+): VesselState | null | undefined {
   const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
-  if (!orbitPoint || orbitPoint.payload === null) return null;
+  if (!orbitPoint) return undefined; // not whole yet — no point at all
+  if (orbitPoint.payload === null) return null; // tombstone — vessel confirmed absent
 
   const quality = orbitPoint.meta.quality;
   const subjectId = orbitPoint.meta.source;
@@ -156,7 +162,8 @@ export function deriveVesselState(
 
   // Loaded.
   const flightPoint = get<VesselFlightPayload>("vessel.flight");
-  if (!flightPoint || flightPoint.payload === null) return null;
+  if (!flightPoint) return undefined; // not whole yet — no point at all
+  if (flightPoint.payload === null) return null; // tombstone — vessel confirmed absent
   const flight = flightPoint.payload;
 
   return {

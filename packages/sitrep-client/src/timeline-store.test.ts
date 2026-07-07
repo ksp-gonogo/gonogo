@@ -333,6 +333,92 @@ describe("TimelineStore", () => {
       expect(store.sample<number>("derived.sum.sum")?.payload).toBeNull();
     });
 
+    describe("undefined-vs-null distinction (Critical fix)", () => {
+      it("derive returning undefined means 'not whole yet' -> sample() returns undefined, not a tombstone point", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        store.registerDerivedChannel<{ n: number }>({
+          topic: "derived.notWhole",
+          inputs: ["a"],
+          fields: true,
+          derive: (get) => {
+            const a = get<number>("a");
+            if (a === undefined) return undefined; // input not whole yet
+            return { n: a.payload };
+          },
+        });
+
+        // Nothing ever ingested for "a" — cold start.
+        store.beginFrame();
+
+        expect(store.sample<{ n: number }>("derived.notWhole")).toBeUndefined();
+        // A field subtopic of a not-whole-yet parent is undefined too, not
+        // a field read off a fabricated tombstone.
+        expect(store.sample<number>("derived.notWhole.n")).toBeUndefined();
+      });
+
+      it("derive returning null still materializes a real tombstone point (payload: null), distinct from undefined", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        store.registerDerivedChannel<{ n: number }>({
+          topic: "derived.tombstone",
+          inputs: [],
+          derive: () => null,
+        });
+
+        store.beginFrame();
+
+        const result = store.sample<{ n: number }>("derived.tombstone");
+        expect(result).not.toBeUndefined();
+        expect(result?.payload).toBeNull();
+      });
+    });
+
+    describe("epoch in the derived memo key (mid-frame rewind, Minor fix)", () => {
+      it("a mid-frame epoch bump forces the derived memo to recompute rather than serving the pre-bump value for the rest of the frame", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        const computeSpy = vi.fn();
+        let counter = 0;
+        store.registerDerivedChannel<{ n: number }>({
+          topic: "derived.counter",
+          inputs: [],
+          derive: () => {
+            computeSpy();
+            counter += 1;
+            return { n: counter };
+          },
+        });
+
+        const token = store.beginFrame();
+        const first = store.sample<{ n: number }>("derived.counter", token);
+        expect(first?.payload.n).toBe(1);
+        expect(computeSpy).toHaveBeenCalledTimes(1);
+
+        // Quickload rewind mid-frame — epoch bumps via an unrelated topic's
+        // ingest, no new beginFrame() yet, so `token` is still current.
+        store.ingest("unrelated", point(0, 0, { epoch: 1 }));
+        expect(store.clock.getEpoch()).toBe(1);
+
+        const second = store.sample<{ n: number }>("derived.counter", token);
+
+        // Not stale: recomputed (spy called again), not the frozen
+        // pre-bump `{ n: 1 }` served for the rest of the frame.
+        expect(computeSpy).toHaveBeenCalledTimes(2);
+        expect(second?.payload.n).toBe(2);
+        expect(second).not.toBe(first);
+      });
+    });
+
     describe("memoization", () => {
       it("same frame + unchanged inputs: derive runs exactly once, even across multiple reads and field subtopics", () => {
         const clock = new ViewClock({

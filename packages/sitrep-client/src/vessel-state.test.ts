@@ -255,14 +255,14 @@ describe("deriveVesselState", () => {
     });
   });
 
-  describe("missing input -> absent (null), never a fabricated zero", () => {
-    it("no vessel.orbit point yet at viewUt -> null (no quality signal to pick with)", () => {
+  describe("undefined (not whole yet) vs null (confirmed absent) — never conflated", () => {
+    it("no vessel.orbit point yet at viewUt -> undefined (inputs not whole, cold-start/resync — not a confirmed absence)", () => {
       const { get } = fakeGet({});
 
-      expect(deriveVesselState(get, 0)).toBeNull();
+      expect(deriveVesselState(get, 0)).toBeUndefined();
     });
 
-    it("vessel.orbit is a tombstone (payload null) -> null", () => {
+    it("vessel.orbit is a tombstone (payload null) -> null (subject confirmed absent)", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(null, { quality: Quality.OnRails }),
       });
@@ -270,13 +270,13 @@ describe("deriveVesselState", () => {
       expect(deriveVesselState(get, 0)).toBeNull();
     });
 
-    it("Loaded quality but no vessel.flight point yet -> null, not a zeroed record", () => {
+    it("Loaded quality but no vessel.flight point yet -> undefined, not a zeroed record and not a tombstone", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
         // vessel.flight deliberately omitted
       });
 
-      expect(deriveVesselState(get, 0)).toBeNull();
+      expect(deriveVesselState(get, 0)).toBeUndefined();
     });
 
     it("Loaded quality with a tombstoned vessel.flight -> null", () => {
@@ -286,6 +286,19 @@ describe("deriveVesselState", () => {
       });
 
       expect(deriveVesselState(get, 0)).toBeNull();
+    });
+
+    it("a real orbit resolves to a value, never undefined/null", () => {
+      const { get } = fakeGet({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+          quality: Quality.OnRails,
+        }),
+      });
+
+      const state = deriveVesselState(get, 0);
+
+      expect(state).not.toBeUndefined();
+      expect(state).not.toBeNull();
     });
   });
 });

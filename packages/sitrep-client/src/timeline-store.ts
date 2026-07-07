@@ -62,11 +62,18 @@ export interface DerivedChannelDefinition<T> {
   inputs: string[];
   /**
    * Pure function: same `(get, viewUt)` inputs must produce the same output,
-   * always (the replay/scrub contract, M2 design §7.3). Return `null` for a
-   * confirmed "nothing to derive yet" (e.g. a required input is missing) —
-   * never a fabricated zero-valued record.
+   * always (the replay/scrub contract, M2 design §7.3). Two distinct
+   * "nothing" results, per §2.1/§2.4 — never conflate them:
+   * - Return `undefined` when an input has no point at-or-before `viewUt`
+   *   yet in the current epoch — "not whole yet" (cold start, or
+   *   resynchronizing after an epoch reset until the first post-reset
+   *   keyframe lands per input, §3.4). `sample()`/`sampleDerived` propagate
+   *   this as "no point at all", never a fabricated tombstone.
+   * - Return `null` for a confirmed absence (a tombstoned input, or the
+   *   channel's own subject genuinely gone) — never a fabricated
+   *   zero-valued record.
    */
-  derive: (get: DerivedGet, viewUt: number) => T | null;
+  derive: (get: DerivedGet, viewUt: number) => T | null | undefined;
   /**
    * Expose `"<topic>.<field>"` subtopics that read a single field off the
    * one memoized record (M2 design §2.4) — e.g. `vessel.state.altitudeAsl`.
@@ -263,8 +270,18 @@ export class TimelineStore {
       // inner memoize inside `sampleDerived` that keeps `derive` itself
       // running only once per frame regardless of how many field subtopics
       // of the same parent are read.
-      return this.memoize(effectiveToken, topic, () =>
-        this.sampleDerived<T>(resolved, effectiveToken),
+      //
+      // The key folds in the CURRENT epoch (M2 design §2.3/§3.4: "memos die
+      // by epoch") — unlike the frame-coherent raw-topic path below (which
+      // deliberately freezes for the token's whole lifetime, M2 fix-report
+      // Defect 3), a derived value must NOT survive a mid-frame epoch bump
+      // (quickload rewind) for the rest of the frame. Folding epoch into the
+      // key makes a post-bump read a fresh cache miss, so it falls through to
+      // `sampleDerived` and recomputes against the new epoch instead of
+      // serving pre-reset output.
+      const epoch = this.clock.getEpoch();
+      return this.memoize(effectiveToken, `${topic}\0epoch\0${epoch}`, () =>
+        this.sampleDerived<T>(resolved, effectiveToken, epoch),
       );
     }
 
@@ -305,11 +322,16 @@ export class TimelineStore {
    * once (M2 design §2.3: "memoized to once per (topic, frame)"). `get`
    * (passed to `derive`) is `sample` bound to this SAME `token` — the
    * structural single-view-time invariant (§7.4): there is no other way for
-   * a `derive` implementation to read a UT.
+   * a `derive` implementation to read a UT. `epoch` is threaded in from the
+   * caller (rather than re-read via `this.clock.getEpoch()`) so the value
+   * used to build the memo key and the value stamped on the resulting point
+   * are guaranteed to agree, even though `derive` itself may cause further
+   * ingests via side effects it has no business having.
    */
   private sampleDerived<T>(
     resolved: { def: DerivedChannelDefinition<unknown>; field?: string },
     token: FrameToken,
+    epoch: number,
   ): TimelinePoint<T> | undefined {
     const { def, field } = resolved;
 
@@ -318,21 +340,38 @@ export class TimelineStore {
     // `sample()` also uses `def.topic` as its key when the parent topic
     // (not a field subtopic) is what's requested, so sharing the same key
     // here would let that outer wrapped `TimelinePoint` clobber this raw
-    // derive() value in the shared per-token cache.
-    const value = this.memoize(token, `\0derived\0${def.topic}`, () => {
-      const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
-      return def.derive(get, token.viewUt);
-    });
+    // derive() value in the shared per-token cache. Also folds in `epoch`
+    // (see `sample()`'s matching comment) — this is the memo that actually
+    // calls `derive`, so it's the one that must recompute on a mid-frame
+    // epoch bump; the outer memoize in `sample()` only needs a matching key
+    // so it doesn't short-circuit before ever reaching this one.
+    const value = this.memoize(
+      token,
+      `\0derived\0${def.topic}\0epoch\0${epoch}`,
+      () => {
+        const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+        return def.derive(get, token.viewUt);
+      },
+    );
+
+    if (value === undefined) {
+      // Not whole yet — an input has no point at-or-before `viewUt` in the
+      // current epoch (cold start, or resynchronizing after an epoch reset,
+      // M2 design §2.1/§3.4). There is no point to serve at all here, NOT a
+      // tombstone — propagates through field subtopics too, since there's
+      // nothing to extract a field from yet.
+      return undefined;
+    }
 
     if (value === null) {
-      // Confirmed absence (a required input was missing, or the channel
-      // itself returned null) — not "no point yet". Still a real point, per
-      // the tombstone model (M2 design §4): `payload: null`.
+      // Confirmed absence (a required input was tombstoned, or the channel
+      // itself returned null) — a real point, per the tombstone model (M2
+      // design §4): `payload: null`.
       return {
         validAt: token.viewUt,
         payload: null as T,
-        meta: derivedMeta(token.viewUt, this.clock.getEpoch()),
-        epoch: this.clock.getEpoch(),
+        meta: derivedMeta(token.viewUt, epoch),
+        epoch,
       };
     }
 
@@ -345,8 +384,8 @@ export class TimelineStore {
     return {
       validAt: token.viewUt,
       payload,
-      meta: derivedMeta(token.viewUt, this.clock.getEpoch()),
-      epoch: this.clock.getEpoch(),
+      meta: derivedMeta(token.viewUt, epoch),
+      epoch,
     };
   }
 
