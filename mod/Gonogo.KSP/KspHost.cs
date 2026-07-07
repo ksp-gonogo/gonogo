@@ -231,23 +231,39 @@ namespace Gonogo.KSP
         /// dead-reckoning on the replay/consumer side), the
         /// apoapsis/periapsis altitudes callers actually display, the
         /// GROUND-TRUTH state vector (<c>truthPosition</c>/<c>truthVelocity</c>
-        /// - see below), and the next patch/encounter (see below).
+        /// - see below) plus the <c>truthFrameRotating</c> flag that gates
+        /// whether that vector is even comparable to a propagator, and the
+        /// next patch/encounter (see below).
         ///
         /// <para><b>Ground truth (G-6):</b> <c>orbit.pos</c>/<c>orbit.vel</c>
         /// are KSP's OWN maintained state vectors - <c>Orbit.UpdateFromUT</c>
         /// derives them from the exact same six elements captured above
         /// (sma/ecc/inc/lan/argPe/meanAnomalyAtEpoch/epoch) via a
         /// perifocal-to-inertial rotation built from <c>OrbitFrame</c>
-        /// (itself constructed from those same elements), then expressed in
-        /// the body's "Zup" frame (<c>Planetarium.ZupAtT</c>) - the fixed
-        /// (non-rotating, non-Principia) reference frame those six elements
-        /// are themselves defined against everywhere else in this class. That
-        /// makes it the correct ground truth to diff a client-side propagator
-        /// against: an elements-based reconstruction using the standard
+        /// (itself constructed from those same elements). Critically, the
+        /// frame that rotation lands in depends on <c>referenceBody.
+        /// inverseRotation</c>, captured here as <c>truthFrameRotating</c>:
+        /// KSP flips a body into the ROTATING regime
+        /// (<c>inverseRotation == true</c>) whenever the vessel drops below
+        /// that body's <c>inverseRotThresholdAltitude</c> - i.e. low orbit,
+        /// atmospheric flight, or landed, which is the common case in any
+        /// real recording. <c>truthFrameRotating == false</c> (the INERTIAL
+        /// regime, high orbit) is the ONLY case where <c>truthPosition</c>/
+        /// <c>truthVelocity</c> sit in the fixed, non-rotating "Zup" frame
+        /// (<c>Planetarium.ZupAtT</c>) that the six elements above are
+        /// themselves defined against, and are therefore directly comparable
+        /// to an elements-based reconstruction using the standard
         /// Vallado/AIAA 3-1-3 rotation (inc, then LAN, then argPe - see
-        /// <c>Sitrep.Propagation.KeplerProvider</c>) targets this same
-        /// frame. Reported parent-body-relative, matching every other vector
-        /// in this dictionary.</para>
+        /// <c>Sitrep.Propagation.KeplerProvider</c>). When
+        /// <c>truthFrameRotating == true</c>, the truth vectors are instead
+        /// expressed in a frame CO-ROTATING with the body's spin, so they
+        /// diverge from <c>KeplerProvider.Solve</c>'s fixed-frame output by a
+        /// rotation about the body's polar axis that GROWS with elapsed
+        /// time - any M1 propagator diff MUST gate on this flag (or restrict
+        /// the comparison to inertial-regime windows) rather than assume a
+        /// single fixed frame throughout a recording. Reported
+        /// parent-body-relative, matching every other vector in this
+        /// dictionary.</para>
         ///
         /// <para><b>Encounter (G-9):</b> <c>nextPatch</c> is null whenever
         /// there's no upcoming SOI transition on the current trajectory (the
@@ -297,6 +313,12 @@ namespace Gonogo.KSP
                 ["referenceBody"] = body != null ? body.bodyName : null,
                 ["truthPosition"] = new[] { pos.x, pos.y, pos.z },
                 ["truthVelocity"] = new[] { vel.x, vel.y, vel.z },
+                // See the doc comment above: gates whether truthPosition/
+                // truthVelocity are directly comparable to KeplerProvider's
+                // fixed-frame output (false) or are in the body-co-rotating
+                // frame instead (true) - null only if referenceBody itself
+                // is unavailable, never a default guess.
+                ["truthFrameRotating"] = body != null ? (bool?)body.inverseRotation : null,
                 ["encounter"] = encounter,
             };
         }
