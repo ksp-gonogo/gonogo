@@ -135,4 +135,108 @@ describe("TimelineStore", () => {
       expect(store.getTimeline("vessel.orbit").range(0, 10000)).toHaveLength(1);
     });
   });
+
+  describe("cross-topic epoch ghost — store is the epoch authority (Defect 1+2)", () => {
+    it("a slow topic that hasn't re-sampled since a rewind reads cold, not its dead-epoch point", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      // Both topics have epoch-0 history before the rewind.
+      store.ingest("fast.a", point(100, 1, { epoch: 0 }));
+      store.ingest("slow.b", point(100, 2, { epoch: 0 }));
+      store.beginFrame();
+      expect(store.sample<number>("slow.b")?.payload).toBe(2);
+
+      // Quickload rewind confirmed on the fast topic only — the slow topic
+      // never re-samples.
+      store.ingest("fast.a", point(50, 999, { epoch: 1 }));
+      const token = store.beginFrame();
+
+      expect(store.clock.getEpoch()).toBe(1);
+      // The client ghost: slow.b's ClientTimeline still physically holds its
+      // epoch-0 point (nothing told IT to reset) and would happily serve it
+      // forever without the store-level guard.
+      expect(store.sample<number>("slow.b", token)).toBeUndefined();
+      // Proactive sweep: the dead-epoch point is actually gone, not just
+      // masked at read time.
+      expect(store.getTimeline("slow.b").range(0, 10000)).toEqual([]);
+    });
+
+    it("an epoch-0 straggler for a topic that never saw the epoch bump is refused, not admitted", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("fast.a", point(50, 999, { epoch: 1 }));
+      const token = store.beginFrame();
+      expect(store.clock.getEpoch()).toBe(1);
+
+      // topic.c's very first-ever sample arrives late, still tagged epoch 0
+      // (queued behind the rewind broadcast) — it must not be admitted.
+      store.ingest("topic.c", point(40, 111, { epoch: 0 }));
+
+      expect(store.sample<number>("topic.c", token)).toBeUndefined();
+      expect(store.getTimeline("topic.c").latest()).toBeUndefined();
+    });
+  });
+
+  describe("frame coherence — memoized reads (Defect 3)", () => {
+    it("a mid-frame late sample below viewUt doesn't flip sample() until the next beginFrame()", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      // Establish a viewUt of 100 with no points yet on topic "b".
+      store.ingest("a", point(100, 1));
+      const token = store.beginFrame(); // viewUt frozen at 100
+
+      const firstRead = store.sample<number>("b", token);
+      expect(firstRead).toBeUndefined(); // cold: nothing ingested for "b" yet
+
+      // A late out-of-order sample arrives mid-frame, validAt (50) <= viewUt
+      // (100) — a fresh, unmemoized `at(100)` read WOULD now find it.
+      store.ingest("b", point(50, 777));
+
+      const secondRead = store.sample<number>("b", token);
+      expect(secondRead).toBe(firstRead); // frame-coherent: no tearing within the frame
+
+      // The change surfaces only once the frame actually advances.
+      const nextToken = store.beginFrame();
+      expect(store.sample<number>("b", nextToken)?.payload).toBe(777);
+    });
+
+    it("two reads of the same topic within one frame agree even if a listener ingests in between", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("c", point(10, 1));
+      const token = store.beginFrame(); // viewUt frozen at 10
+
+      const componentOneRead = store.sample<number>("c", token);
+      store.ingest("c", point(5, 999)); // late backfill below viewUt
+      const componentTwoRead = store.sample<number>("c", token);
+
+      expect(componentTwoRead).toBe(componentOneRead);
+      expect(componentOneRead?.payload).toBe(1);
+    });
+  });
+
+  describe("FrameToken generation validity", () => {
+    it("a token cached across beginFrame() calls falls back to the current frame instead of reading a frozen-in-the-past viewUt forever", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("x", point(10, 1));
+      const staleToken = store.beginFrame(); // viewUt frozen at 10
+      expect(store.sample<number>("x", staleToken)?.payload).toBe(1);
+
+      // Frame advances — staleToken is now from a superseded frame.
+      store.ingest("x", point(20, 2));
+      store.beginFrame(); // new frame, viewUt now 20
+
+      // A caller that held onto staleToken across the frame boundary (a bug
+      // on its own) can't use it to read a frozen-in-the-past viewUt
+      // forever — it gets routed to the current frame instead.
+      const result = store.sample<number>("x", staleToken);
+      expect(result?.payload).toBe(2);
+    });
+  });
 });

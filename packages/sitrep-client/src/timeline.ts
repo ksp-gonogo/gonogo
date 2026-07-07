@@ -135,6 +135,26 @@ export class ClientTimeline<T = unknown> {
     return this.points[this.points.length - 1];
   }
 
+  /**
+   * Proactively adopt a higher epoch with no incoming sample — a no-op if
+   * `epoch` isn't actually higher than the one this timeline currently
+   * holds. Used by `TimelineStore`'s cross-topic sweep (M2 fix-report
+   * Defect 1+2, "the client ghost"): a rewind confirmed by one topic's
+   * ingest doesn't, on its own, tell every OTHER topic's `ClientTimeline` to
+   * reset — each timeline only ever learns about a rewind from its own next
+   * `append`. Without this, a slow/change-gated topic that hasn't re-sampled
+   * since the rewind keeps serving its dead-epoch points indefinitely. The
+   * store calls this on every registered timeline the instant any topic's
+   * `append` bumps the shared epoch, so the drop happens immediately rather
+   * than waiting for that topic's next sample.
+   */
+  adoptEpoch(epoch: number): void {
+    if (epoch <= this.currentEpoch) return;
+    this.points = [];
+    this.currentEpoch = epoch;
+    this.revision++;
+  }
+
   /** Drop every point with `validAt < ut`. Used to enforce an externally-computed retention bound (e.g. the real delay window). */
   evictBelow(ut: number): void {
     const next = this.points.filter((p) => p.validAt >= ut);

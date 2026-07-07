@@ -114,5 +114,30 @@ describe("ClientTimeline", () => {
       expect(timeline.revision).toBe(revisionAfterBump); // no-op, not appended
       expect(timeline.at(1000)?.payload).toBe(999);
     });
+
+    it("adoptEpoch proactively drops points and adopts a higher epoch with no incoming sample", () => {
+      const timeline = new ClientTimeline<number | null>();
+      timeline.append(point(100, 111, { epoch: 0 }));
+      expect(timeline.epoch).toBe(0);
+
+      timeline.adoptEpoch(1);
+
+      expect(timeline.epoch).toBe(1);
+      expect(timeline.at(1000)).toBeUndefined();
+      expect(timeline.range(0, 1000)).toEqual([]);
+    });
+
+    it("adoptEpoch is a no-op for an epoch at-or-below the current one", () => {
+      const timeline = new ClientTimeline<number | null>();
+      timeline.append(point(100, 111, { epoch: 1 }));
+      const revisionBefore = timeline.revision;
+
+      timeline.adoptEpoch(1); // same epoch
+      timeline.adoptEpoch(0); // lower epoch
+
+      expect(timeline.epoch).toBe(1);
+      expect(timeline.revision).toBe(revisionBefore);
+      expect(timeline.at(1000)?.payload).toBe(111);
+    });
   });
 });
