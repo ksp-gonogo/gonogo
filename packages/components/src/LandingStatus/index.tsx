@@ -4,6 +4,7 @@ import {
   getWidgetShape,
   kelvinToCelsius,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
 import {
@@ -12,6 +13,7 @@ import {
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import styled from "styled-components";
 import { formatDensity } from "../shared/formatDensity";
@@ -92,6 +94,19 @@ function LandingStatusComponent({
   const atmTemperature = useDataValue("data", "v.atmosphericTemperature");
   const externalTemperature = useDataValue("data", "v.externalTemperature");
 
+  // Connectivity indicator (M3 batch-3, mirroring batch-1/2's TitleRow
+  // pattern). `v.heightFromTerrain` is this widget's representative MAPPED
+  // key (-> raw `vessel.flight.altitudeTerrain`); `v.verticalSpeed` (->
+  // `vessel.flight.verticalSpeed`) and `v.atmosphericDensity` (->
+  // `vessel.flight.atmDensity`) are also mapped. Every `land.*` key (the
+  // whole suicide-burn/impact/prediction family — G's "no channel yet" gap)
+  // plus `v.body`/`v.atmosphericTemperature`/`v.externalTemperature` stay
+  // GAPPED/legacy — since `noPrediction` gates the entire metrics `Body` on
+  // the GAPPED `land.timeToImpact`, a stream-only mount (no legacy source)
+  // always shows the empty state regardless of the 3 mapped fields having
+  // landed (see `stream.test.tsx`).
+  const streamStatus = useDataStreamStatus("data", "v.heightFromTerrain");
+
   // No trajectory solution at all — hide the full readout.
   const noPrediction =
     notNumber(timeToImpact) ||
@@ -143,7 +158,10 @@ function LandingStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>LANDING</PanelTitle>
+      <TitleRow>
+        <PanelTitle>LANDING</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && bodyName !== undefined && (
         <PanelSubtitle>
           {bodyName}
@@ -259,6 +277,15 @@ function LandingStatusComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 /*
  * Scrollable so no row is ever unreachable. At the rows>=9 gate boundary the
