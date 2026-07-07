@@ -22,6 +22,13 @@ namespace Sitrep.Host
         private readonly RecordedSession _session;
         private bool _disposed;
 
+        /// <summary>
+        /// Backs <see cref="RecordedEntry.Seq"/> - one shared counter across
+        /// BOTH snapshots and events, incremented once per entry appended,
+        /// so it reflects true capture order regardless of kind.
+        /// </summary>
+        private long _nextSeq;
+
         public Recorder(IKspHost host, int schemaVersion = RecordedSessionCodec.CurrentSchemaVersion)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
@@ -63,6 +70,8 @@ namespace Sitrep.Host
             {
                 T = ut,
                 Kind = "snapshot",
+                WallClockUtc = DateTime.UtcNow,
+                Seq = _nextSeq++,
                 Snapshot = new RecordedSnapshotPayload
                 {
                     Values = new Dictionary<string, object?>(snapshot.Values),
@@ -76,6 +85,8 @@ namespace Sitrep.Host
             {
                 T = evt.Ut,
                 Kind = "event",
+                WallClockUtc = DateTime.UtcNow,
+                Seq = _nextSeq++,
                 Event = new RecordedEventPayload
                 {
                     EventKind = evt.Kind,

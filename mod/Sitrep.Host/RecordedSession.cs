@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Sitrep.Host
@@ -45,6 +46,32 @@ namespace Sitrep.Host
 
         /// <summary><c>"snapshot"</c> | <c>"event"</c>.</summary>
         public string Kind { get; set; } = "";
+
+        /// <summary>
+        /// Recorder provenance: the REAL wall-clock instant (UTC) this entry
+        /// was captured at, alongside the in-game <see cref="T"/> (UT).
+        /// Wall-clock is fine to stamp here specifically because
+        /// <see cref="Recorder"/> is the runtime edge (see its doc comment) -
+        /// this is never reconstructed or derived post-hoc, only ever set
+        /// once, at capture time. Useful for correlating a recording against
+        /// out-of-band evidence (screen recording, Axiom logs, a user's own
+        /// account of "what happened") that only has wall-clock timestamps,
+        /// since UT alone can't be mapped back to a real-world moment once
+        /// warp/pause have been in play.
+        /// </summary>
+        public DateTime WallClockUtc { get; set; }
+
+        /// <summary>
+        /// Recorder provenance: a monotonically increasing counter, one per
+        /// <see cref="RecordedEntry"/>, assigned by <see cref="Recorder"/> in
+        /// capture order (snapshots and events share one counter - it is NOT
+        /// per-kind). Redundant with the entry's position in
+        /// <see cref="RecordedSession.Entries"/> today, but self-describing:
+        /// a future consumer that filters, reorders, or partially transmits
+        /// entries can still detect gaps/duplicates without needing to trust
+        /// list order.
+        /// </summary>
+        public long Seq { get; set; }
 
         /// <summary>Set when <see cref="Kind"/> == <c>"snapshot"</c>: the <see cref="IKspHost.Sample"/> values captured at <see cref="T"/>.</summary>
         public RecordedSnapshotPayload? Snapshot { get; set; }

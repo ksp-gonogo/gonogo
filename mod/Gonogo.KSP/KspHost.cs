@@ -118,6 +118,19 @@ namespace Gonogo.KSP
                         values["vessel"] = BuildVesselEntry(activeVessel);
                     }
                 }
+
+                // Time-warp/pause (G-5) is global game state, not tied to a
+                // vessel or even FlightGlobals readiness - guarded in its own
+                // try so a TimeWarp/FlightDriver hiccup can't take out
+                // bodies/vessel above.
+                try
+                {
+                    values["time"] = BuildTime();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] time snapshot build failed, omitting: " + ex);
+                }
             }
             catch (Exception ex)
             {
@@ -171,10 +184,22 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "control", () => BuildControl(vessel));
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
+            TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
+            TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel));
+            TryBuildGroup(entry, "target", () => BuildTarget(vessel));
             return entry;
         }
 
-        private static void TryBuildGroup(Dictionary<string, object?> entry, string key, Func<Dictionary<string, object?>?> build)
+        /// <summary>
+        /// <paramref name="build"/> returns <c>object?</c> rather than
+        /// <c>Dictionary&lt;string, object?&gt;?</c> so this same helper covers
+        /// both per-group dictionaries (identity/orbit/flight/...) and
+        /// per-group LISTS (maneuverNodes) - both are valid
+        /// <see cref="KspSnapshot.Values"/> shapes, and a single
+        /// try/catch-and-omit helper keeps one group's failure from
+        /// degrading any other.
+        /// </summary>
+        private static void TryBuildGroup(Dictionary<string, object?> entry, string key, Func<object?> build)
         {
             try
             {
@@ -203,8 +228,33 @@ namespace Gonogo.KSP
         /// Same raw shape <see cref="BuildBodyEntry"/> uses for a body's
         /// orbit (sma/ecc/inc/lan/argPe/meanAnomalyAtEpoch/epoch), plus
         /// <c>mu</c> (the parent body's <c>gravParameter</c>, for
-        /// dead-reckoning on the replay/consumer side) and the
-        /// apoapsis/periapsis altitudes callers actually display.
+        /// dead-reckoning on the replay/consumer side), the
+        /// apoapsis/periapsis altitudes callers actually display, the
+        /// GROUND-TRUTH state vector (<c>truthPosition</c>/<c>truthVelocity</c>
+        /// - see below), and the next patch/encounter (see below).
+        ///
+        /// <para><b>Ground truth (G-6):</b> <c>orbit.pos</c>/<c>orbit.vel</c>
+        /// are KSP's OWN maintained state vectors - <c>Orbit.UpdateFromUT</c>
+        /// derives them from the exact same six elements captured above
+        /// (sma/ecc/inc/lan/argPe/meanAnomalyAtEpoch/epoch) via a
+        /// perifocal-to-inertial rotation built from <c>OrbitFrame</c>
+        /// (itself constructed from those same elements), then expressed in
+        /// the body's "Zup" frame (<c>Planetarium.ZupAtT</c>) - the fixed
+        /// (non-rotating, non-Principia) reference frame those six elements
+        /// are themselves defined against everywhere else in this class. That
+        /// makes it the correct ground truth to diff a client-side propagator
+        /// against: an elements-based reconstruction using the standard
+        /// Vallado/AIAA 3-1-3 rotation (inc, then LAN, then argPe - see
+        /// <c>Sitrep.Propagation.KeplerProvider</c>) targets this same
+        /// frame. Reported parent-body-relative, matching every other vector
+        /// in this dictionary.</para>
+        ///
+        /// <para><b>Encounter (G-9):</b> <c>nextPatch</c> is null whenever
+        /// there's no upcoming SOI transition on the current trajectory (the
+        /// overwhelmingly common case) - <c>encounter</c> is null then too,
+        /// never a sentinel. When present, <c>transitionType</c> is
+        /// <c>orbit.patchEndTransition</c> (ENCOUNTER/ESCAPE/etc.) and
+        /// <c>body</c> is the body of the patch being transitioned INTO.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildOrbit(Orbit? orbit)
         {
@@ -214,6 +264,22 @@ namespace Gonogo.KSP
             }
 
             var body = orbit.referenceBody;
+            var pos = orbit.pos;
+            var vel = orbit.vel;
+
+            Dictionary<string, object?>? encounter = null;
+            var nextPatch = orbit.nextPatch;
+            if (nextPatch != null)
+            {
+                var encounterBody = nextPatch.referenceBody;
+                encounter = new Dictionary<string, object?>
+                {
+                    ["transitionType"] = orbit.patchEndTransition.ToString(),
+                    ["transitionUt"] = orbit.EndUT,
+                    ["body"] = encounterBody != null ? encounterBody.bodyName : null,
+                };
+            }
+
             return new Dictionary<string, object?>
             {
                 ["sma"] = orbit.semiMajorAxis,
@@ -228,6 +294,10 @@ namespace Gonogo.KSP
                 // only safe to call once we know body != null.
                 ["apoapsisAlt"] = body != null ? (double?)orbit.ApA : null,
                 ["periapsisAlt"] = body != null ? (double?)orbit.PeA : null,
+                ["referenceBody"] = body != null ? body.bodyName : null,
+                ["truthPosition"] = new[] { pos.x, pos.y, pos.z },
+                ["truthVelocity"] = new[] { vel.x, vel.y, vel.z },
+                ["encounter"] = encounter,
             };
         }
 
@@ -235,6 +305,11 @@ namespace Gonogo.KSP
         {
             return new Dictionary<string, object?>
             {
+                // latitude/longitude/altitude are NOT derivable post-hoc from
+                // anything else this class captures - they're read directly
+                // off Vessel's own fields (G-1), not computed.
+                ["latitude"] = vessel.latitude,
+                ["longitude"] = vessel.longitude,
                 ["altitudeAsl"] = vessel.altitude,
                 // radarAltitude is KSP's actual height-above-terrain (AGL)
                 // reading - "altitudeTerrain" in the plan's naming.
@@ -246,6 +321,12 @@ namespace Gonogo.KSP
                 ["dynamicPressure"] = vessel.dynamicPressurekPa,
                 ["mach"] = vessel.mach,
                 ["atmDensity"] = vessel.atmDensity,
+                // missionTime (G-3): confirmed via decompile as a plain
+                // Vessel field. The snapshot's own game-UT (KspSnapshot.Ut)
+                // already comes from Planetarium.GetUniversalTime() via
+                // NowUt() above - this is the vessel-specific "time since
+                // launch" clock, a different quantity.
+                ["missionTime"] = vessel.missionTime,
             };
         }
 
@@ -343,6 +424,14 @@ namespace Gonogo.KSP
         /// by internal-temperature ratio. A part with <c>maxTemp &lt;= 0</c>
         /// (seen on some part configs) is excluded from that ratio rather
         /// than producing a divide-by-zero/NaN.
+        ///
+        /// <c>maxSkinRatio</c>/<c>maxInternalRatio</c> seed at
+        /// <see cref="double.NegativeInfinity"/> (mirroring the
+        /// <c>hottestRatio</c> guard two lines below) rather than 0 - a
+        /// vessel where every part has <c>maxTemp &lt;= 0</c> now reports
+        /// <c>null</c> for that ratio instead of an indistinguishable-from-
+        /// real-data <c>0.0</c> ("no valid part" vs. "coldest possible
+        /// part").
         /// </summary>
         private static Dictionary<string, object?>? BuildThermal(Vessel vessel)
         {
@@ -352,8 +441,8 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            double maxSkinRatio = 0;
-            double maxInternalRatio = 0;
+            var maxSkinRatio = double.NegativeInfinity;
+            var maxInternalRatio = double.NegativeInfinity;
             Part? hottest = null;
             var hottestRatio = double.NegativeInfinity;
 
@@ -390,8 +479,8 @@ namespace Gonogo.KSP
 
             var result = new Dictionary<string, object?>
             {
-                ["maxSkinTempRatio"] = maxSkinRatio,
-                ["maxInternalTempRatio"] = maxInternalRatio,
+                ["maxSkinTempRatio"] = double.IsNegativeInfinity(maxSkinRatio) ? (double?)null : maxSkinRatio,
+                ["maxInternalTempRatio"] = double.IsNegativeInfinity(maxInternalRatio) ? (double?)null : maxInternalRatio,
             };
 
             if (hottest != null)
@@ -485,11 +574,222 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Mass and thrust (G-4) - the TWR / dead-reckoning-under-thrust
+        /// foundation. <c>dryMass</c> is summed from <c>Part.mass</c> (which
+        /// is itself the part's dry mass - <c>Part.resourceMass</c> is
+        /// tracked separately by KSP), NOT derived from
+        /// <c>vessel.totalMass</c> minus anything, since summing the
+        /// per-part field neither needs nor risks a resource-mass mismatch.
+        /// Thrust sums every <c>ModuleEngines</c> (covers
+        /// <c>ModuleEnginesFX</c> too - confirmed via decompile that it
+        /// subclasses <c>ModuleEngines</c>, so <c>GetModules&lt;ModuleEngines&gt;()</c>
+        /// already returns both) across every part: <c>finalThrust</c> for
+        /// CURRENT thrust (kN, zero when not firing), and <c>GetMaxThrust()</c>
+        /// for AVAILABLE thrust - but only from engines that are actually
+        /// <c>EngineIgnited &amp;&amp; !flameout</c>, so a shut-down or
+        /// flamed-out stage's rated thrust doesn't inflate "what can this
+        /// vessel produce right now."
+        /// </summary>
+        private static Dictionary<string, object?> BuildPropulsion(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            double dryMass = 0;
+            double currentThrust = 0;
+            double availableThrust = 0;
+
+            if (parts != null)
+            {
+                foreach (var part in parts)
+                {
+                    if (part == null)
+                    {
+                        continue;
+                    }
+
+                    dryMass += part.mass;
+
+                    var engines = part.Modules != null ? part.Modules.GetModules<ModuleEngines>() : null;
+                    if (engines == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var engine in engines)
+                    {
+                        if (engine == null)
+                        {
+                            continue;
+                        }
+
+                        currentThrust += engine.finalThrust;
+                        if (engine.EngineIgnited && !engine.flameout)
+                        {
+                            availableThrust += engine.GetMaxThrust();
+                        }
+                    }
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["totalMass"] = vessel.totalMass,
+                ["dryMass"] = dryMass,
+                ["currentThrust"] = currentThrust,
+                ["availableThrust"] = availableThrust,
+            };
+        }
+
+        /// <summary>
+        /// Planned burns (G-7) - null (not an empty list) whenever the
+        /// vessel has no maneuver nodes queued, which is the common case;
+        /// present whenever the player (or MechJeb, or a script) has queued
+        /// at least one. <c>ManeuverNode.DeltaV</c> is in the node's own
+        /// radial/normal/prograde frame - see the project's own
+        /// "Telemachus maneuver-node arg order" finding: x=radial,
+        /// y=normal, z=prograde. <c>solver.maneuverNodes</c> is already
+        /// ordered by <c>UT</c> (the order the player queued them / the
+        /// order they'll execute).
+        /// </summary>
+        private static List<object?>? BuildManeuverNodes(Vessel vessel)
+        {
+            var solver = vessel.patchedConicSolver;
+            var nodes = solver != null ? solver.maneuverNodes : null;
+            if (nodes == null || nodes.Count == 0)
+            {
+                return null;
+            }
+
+            var list = new List<object?>(nodes.Count);
+            foreach (var node in nodes)
+            {
+                if (node == null)
+                {
+                    continue;
+                }
+
+                var dv = node.DeltaV;
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["ut"] = node.UT,
+                    ["dvRadial"] = dv.x,
+                    ["dvNormal"] = dv.y,
+                    ["dvPrograde"] = dv.z,
+                    ["dvTotal"] = dv.magnitude,
+                });
+            }
+
+            return list.Count > 0 ? list : null;
+        }
+
+        /// <summary>
+        /// Current docking/rendezvous/tracking target (G-8) - null when
+        /// nothing is targeted (the common case). <c>ITargetable</c> covers
+        /// vessels, celestial bodies, and docking ports/waypoints alike;
+        /// <c>GetVessel()</c> is non-null only for the vessel case (a
+        /// docking port target's <c>GetVessel()</c> returns the vessel it's
+        /// attached to, so that's classified as a vessel target too).
+        /// Relative position/velocity are computed against THIS vessel
+        /// (target minus self), in the same world-space transform frame
+        /// <see cref="BuildAttitude"/> already reads from
+        /// <c>Vessel.GetTransform()</c> - safe here because both vessel and
+        /// target sit inside the same floating-origin frame while relevant
+        /// (rendezvous range), which is the only time a target's relative
+        /// state matters.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildTarget(Vessel vessel)
+        {
+            var fetch = FlightGlobals.fetch;
+            if (fetch == null)
+            {
+                return null;
+            }
+
+            var target = fetch.VesselTarget;
+            if (target == null)
+            {
+                return null;
+            }
+
+            var targetVessel = target.GetVessel();
+            string targetType;
+            if (targetVessel != null)
+            {
+                targetType = targetVessel.vesselType.ToString();
+            }
+            else if (target is CelestialBody)
+            {
+                targetType = "CelestialBody";
+            }
+            else
+            {
+                targetType = target.GetType().Name;
+            }
+
+            double[]? relativePosition = null;
+            var targetTransform = target.GetTransform();
+            var vesselTransform = vessel.GetTransform();
+            if (targetTransform != null && vesselTransform != null)
+            {
+                var relPos = (Vector3d)targetTransform.position - (Vector3d)vesselTransform.position;
+                relativePosition = new[] { relPos.x, relPos.y, relPos.z };
+            }
+
+            var relVel = (Vector3d)target.GetObtVelocity() - vessel.obt_velocity;
+
+            var result = new Dictionary<string, object?>
+            {
+                ["name"] = target.GetName(),
+                ["type"] = targetType,
+                ["relativePosition"] = relativePosition,
+                ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
+            };
+
+            var targetOrbit = target.GetOrbit();
+            if (targetOrbit != null)
+            {
+                result["orbit"] = BuildOrbit(targetOrbit);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Global (not per-vessel) time-warp/pause state (G-5) - drives
+        /// WarpControl and disambiguates "paused" from "1x" in replay.
+        /// <c>TimeWarp.CurrentRate</c>/<c>CurrentRateIndex</c>/<c>WarpMode</c>
+        /// are confirmed via decompile to already guard their own
+        /// <c>!fetch</c> case internally (returning 1x/HIGH defaults) - no
+        /// extra null check needed here, unlike the Unity-object guards
+        /// elsewhere in this class. <c>FlightDriver.Pause</c> reads a
+        /// private STATIC field (not instance-backed), so it's always safe
+        /// to call too.
+        /// </summary>
+        private static Dictionary<string, object?> BuildTime()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["warpRate"] = (double)TimeWarp.CurrentRate,
+                ["warpRateIndex"] = TimeWarp.CurrentRateIndex,
+                ["warpMode"] = TimeWarp.WarpMode.ToString(),
+                ["paused"] = FlightDriver.Pause,
+            };
+        }
+
+        /// <summary>
         /// Raw per-body dictionary in the exact shape
         /// <c>Sitrep.Host.SystemViewProvider.BuildSystemBodies</c> expects
         /// (see that class's doc comment) - primitives only, keyed exactly:
         /// name/index/parentIndex/radius/sma/ecc/inc/lan/argPe/
-        /// meanAnomalyAtEpoch/epoch.
+        /// meanAnomalyAtEpoch/epoch/mu - plus the physical parameters added
+        /// for G-2 (gravParameter/mass/sphereOfInfluence/geeASL/
+        /// rotationPeriod/initialRotation/rotationAngle), which
+        /// <c>BuildSystemBodies</c> simply ignores (additive-only mapping -
+        /// see its doc comment). <c>mu</c> is the PARENT body's
+        /// <c>gravParameter</c> (needed to propagate THIS body's own orbit -
+        /// before G-2 only the vessel's orbit carried a <c>mu</c>), not this
+        /// body's own <c>gravParameter</c> (that's the separate
+        /// <c>gravParameter</c> key, this body's own µ for satellites
+        /// orbiting IT).
         /// </summary>
         private static Dictionary<string, object?> BuildBodyEntry(CelestialBody body)
         {
@@ -505,6 +805,13 @@ namespace Gonogo.KSP
                 ["index"] = body.flightGlobalsIndex,
                 ["parentIndex"] = parentIndex,
                 ["radius"] = body.Radius,
+                ["gravParameter"] = body.gravParameter,
+                ["mass"] = body.Mass,
+                ["sphereOfInfluence"] = body.sphereOfInfluence,
+                ["geeASL"] = body.GeeASL,
+                ["rotationPeriod"] = body.rotationPeriod,
+                ["initialRotation"] = body.initialRotation,
+                ["rotationAngle"] = body.rotationAngle,
             };
 
             var orbit = body.orbit;
@@ -517,6 +824,7 @@ namespace Gonogo.KSP
                 entry["argPe"] = orbit.argumentOfPeriapsis;
                 entry["meanAnomalyAtEpoch"] = orbit.meanAnomalyAtEpoch;
                 entry["epoch"] = orbit.epoch;
+                entry["mu"] = refBody != null ? (double?)refBody.gravParameter : null;
             }
 
             return entry;

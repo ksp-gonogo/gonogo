@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Sitrep.Core.Serialization;
 
@@ -87,6 +88,17 @@ namespace Sitrep.Host
             AppendField(sb, "kind");
             JsonWriter.AppendString(sb, entry.Kind);
 
+            // Recorder provenance (wall-clock + monotonic seq) - see
+            // RecordedEntry's doc comments. Written unconditionally
+            // (matching "t"/"kind" above); read back optionally in
+            // ParseEntries below so this stays additive rather than a
+            // schemaVersion bump.
+            AppendField(sb, "wallClockUtc");
+            JsonWriter.AppendString(sb, entry.WallClockUtc.ToString("o", CultureInfo.InvariantCulture));
+
+            AppendField(sb, "seq");
+            JsonWriter.AppendInteger(sb, entry.Seq);
+
             if (entry.Kind == "snapshot" && entry.Snapshot != null)
             {
                 AppendField(sb, "snapshot");
@@ -144,6 +156,8 @@ namespace Sitrep.Host
                 {
                     T = RequireDouble(obj, "t"),
                     Kind = kind,
+                    WallClockUtc = GetDateTimeOrDefault(obj, "wallClockUtc"),
+                    Seq = GetLongOrDefault(obj, "seq"),
                 };
 
                 if (kind == "snapshot")
@@ -217,6 +231,33 @@ namespace Sitrep.Host
                 return d;
             }
             throw new FormatException($"Missing or non-numeric required field \"{key}\".");
+        }
+
+        /// <summary>
+        /// Optional-read counterpart to <see cref="RequireDouble"/>/etc for
+        /// the provenance fields (see <see cref="RecordedEntry"/>): a
+        /// document written before provenance existed, or by some other
+        /// future producer that omits them, parses fine instead of throwing -
+        /// this stays additive rather than forcing a schemaVersion bump.
+        /// </summary>
+        private static long GetLongOrDefault(Dictionary<string, object?> raw, string key)
+        {
+            if (raw.TryGetValue(key, out var value) && value is double d)
+            {
+                return (long)d;
+            }
+            return 0;
+        }
+
+        /// <summary>Same optional-read rationale as <see cref="GetLongOrDefault"/>, for <see cref="RecordedEntry.WallClockUtc"/>.</summary>
+        private static DateTime GetDateTimeOrDefault(Dictionary<string, object?> raw, string key)
+        {
+            if (raw.TryGetValue(key, out var value) && value is string s
+                && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                return parsed;
+            }
+            return default;
         }
 
         private static Dictionary<string, object?> RequireDictionary(Dictionary<string, object?> raw, string key)
