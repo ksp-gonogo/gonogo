@@ -72,6 +72,7 @@ namespace Gonogo.KSP
                 _recorder = new Recorder(_host);
                 _engine = new ChannelEngine(BindUri);
                 _engine.RegisterExtension(new SystemExtension());
+                _engine.RegisterExtension(new VesselExtension());
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,
@@ -84,7 +85,8 @@ namespace Gonogo.KSP
                 _sessionPath = Path.Combine(dir, "session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
                 _lastFlushRealtime = Time.realtimeSinceStartup;
 
-                Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " on " + BindUri);
+                Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " + " +
+                    VesselViewProvider.Topics.Count + " vessel.* channels on " + BindUri);
             }
             catch (Exception ex)
             {

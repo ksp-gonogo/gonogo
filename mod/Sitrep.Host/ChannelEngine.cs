@@ -279,6 +279,19 @@ namespace Sitrep.Host
             }
         }
 
+        // Courier-thread-only (see IExtensionHost.ForceKeyframe's doc
+        // comment) -- every legitimate call site (a registered
+        // ISnapshotSampler's Sample, or a command handler invoked via
+        // InvokeCommandHandler) already runs on this thread, per
+        // ProcessTick's sampler loop / ProcessDispatchCommand /
+        // Courier.SetCommandHandler, so this touches _emitter's per-channel
+        // state directly rather than enqueuing a job.
+        public void ForceKeyframe(string topic)
+        {
+            RequireChannelDeclared(topic, nameof(ForceKeyframe));
+            _emitter.NotifySubscribed(topic);
+        }
+
         private void RequireChannelDeclared(string topic, string caller)
         {
             if (!_channelDeclarations.ContainsKey(topic))

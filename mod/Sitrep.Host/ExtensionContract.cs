@@ -158,6 +158,24 @@ namespace Sitrep.Host
 
         /// <summary>Fail-soft: flag the CURRENTLY-registering extension as unavailable (see <see cref="Availability"/>).</summary>
         void SetAvailability(Availability availability);
+
+        /// <summary>
+        /// Force an unconditional keyframe on <paramref name="topic"/>'s
+        /// NEXT <c>ChannelEmitter.Decide</c> call — the same mechanism a
+        /// genuine 0→1 subscribe transition already uses (see
+        /// <c>ChannelEmitter.NotifySubscribed</c>). The load-bearing use
+        /// case is a subject-provenance epoch (see
+        /// <see cref="VesselEpochSampler"/>): when the thing a channel
+        /// describes changes identity mid-stream, the NEXT sample must be
+        /// an unconditional keyframe, not something a deadband/cadence gate
+        /// can suppress or delay. MUST be called only from within a
+        /// registered <see cref="ISnapshotSampler.Sample"/> or a command
+        /// handler — both of which the engine already runs exclusively on
+        /// its Courier thread; calling this from arbitrary main-thread code
+        /// would race the emitter's per-channel state with no
+        /// synchronization.
+        /// </summary>
+        void ForceKeyframe(string topic);
     }
 
     /// <summary>

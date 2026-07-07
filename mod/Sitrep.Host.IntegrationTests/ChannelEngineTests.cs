@@ -806,6 +806,65 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// M1 vessel-extension foundation: proves <c>IExtensionHost.
+        /// ForceKeyframe</c> actually reaches <c>ChannelEmitter</c> and makes
+        /// the NEXT <c>Decide</c> call unconditional, even for a value that
+        /// would otherwise be suppressed by the deadband/rate-clamp gates --
+        /// the mechanism <c>Sitrep.Host.VesselEpochSampler</c> relies on to
+        /// turn a vessel-guid change into a clean epoch boundary (see
+        /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1).
+        /// <c>VesselEpochSampler</c> itself is unit-tested against a fake
+        /// <c>IExtensionHost</c> in <c>Sitrep.Host.Tests</c> (no real engine
+        /// needed there); THIS test is the complementary proof that the
+        /// engine-level plumbing behind <c>ForceKeyframe</c> is real.
+        /// </summary>
+        [Fact]
+        public async Task ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new ForceKeyframeTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ForceKeyframeTestExtension.Topic, Timeout);
+
+                // Initial subscribe-triggered keyframe.
+                engine.TickAndWait(0.0, ForceKeyframeTestExtension.Snapshot(0), Timeout);
+                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                // A small change, well within the wide (100-unit) deadband --
+                // Considered goes up, Emitted does not.
+                engine.TickAndWait(1.0, ForceKeyframeTestExtension.Snapshot(10), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Considered);
+                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+
+                // Force a keyframe via a command handler (the Courier-thread-
+                // safe call site ForceKeyframe's contract requires).
+                var forced = false;
+                engine.DispatchCommandAndWait(
+                    ForceKeyframeTestExtension.ForceCommand, null, "vantage-1",
+                    _ => forced = true,
+                    Timeout);
+                Assert.True(forced);
+
+                // SAME value as the last (skipped) tick -- still within the
+                // deadband -- but the forced keyframe makes this Decide call
+                // unconditional: it emits anyway.
+                engine.TickAndWait(2.0, ForceKeyframeTestExtension.Snapshot(10), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(ForceKeyframeTestExtension.Topic, delivered.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A structured payload that serializes FINE (it's a
         /// <c>Dictionary&lt;string, object?&gt;</c> subclass, so
         /// <c>JsonWriter.AppendValue</c> writes it as a plain JSON object --
@@ -887,6 +946,44 @@ namespace Sitrep.Host.IntegrationTests
             {
                 return new KspSnapshot { Values = new Dictionary<string, object?> { ["value"] = value } };
             }
+        }
+
+        /// <summary>Backs <c>ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband</c> — a wide deadband (100) and long keyframe cadence (10,000 UT) so an in-deadband re-tick would ordinarily be skipped, isolating the forced-keyframe path from cadence/change-gate noise.</summary>
+        private sealed class ForceKeyframeTestExtension : ISitrepExtension
+        {
+            public const string Topic = "force.keyframe.topic";
+            public const string ForceCommand = "force.keyframe.command";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-force-keyframe",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 10_000, quantum: EmissionQuantum.Absolute(100)),
+                    },
+                },
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = ForceCommand, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("v", out var v) ? v : null);
+                host.AddCommandHandler<object?, object?>(ForceCommand, _ =>
+                {
+                    host.ForceKeyframe(Topic);
+                    return null;
+                });
+            }
+
+            public static KspSnapshot Snapshot(double v) => new KspSnapshot { Values = new Dictionary<string, object?> { ["v"] = v } };
         }
 
         private sealed class PoisonPayload
