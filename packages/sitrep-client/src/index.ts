@@ -8,10 +8,17 @@ export {
   type TelemetryProviderProps,
   useTelemetryClient,
 } from "./context";
+export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
+export {
+  DEFAULT_KEYFRAME_INTERVAL_UT,
+  HeartbeatTracker,
+} from "./heartbeat-tracker";
 export type { OrbitElements, StateVector, Vector3 } from "./kepler";
 export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export { mapTopic } from "./map-topic";
+export type { StreamStatusValue } from "./stream-status";
+export { worstStatus } from "./stream-status";
 export { StubTransport } from "./stub-transport";
 export type { ClientTimelineOptions, TimelinePoint } from "./timeline";
 export { ClientTimeline } from "./timeline";
@@ -25,13 +32,18 @@ export { TimelineStore } from "./timeline-store";
 export type { Transport, TransportStatus } from "./transport";
 export { type UseCommandResult, useCommand } from "./use-command";
 export { useStream } from "./use-stream";
+export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
 export type {
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselState,
 } from "./vessel-state";
-export { deriveVesselState, vesselStateChannel } from "./vessel-state";
+export {
+  deriveVesselState,
+  deriveVesselStateStatus,
+  vesselStateChannel,
+} from "./vessel-state";
 export type {
   ViewClockConfidence,
   ViewClockMode,

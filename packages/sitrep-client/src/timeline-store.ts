@@ -1,6 +1,12 @@
 import type { Meta } from "@gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@gonogo/sitrep-sdk";
 import {
+  HeartbeatTracker,
+  type HeartbeatTrackerOptions,
+} from "./heartbeat-tracker";
+import type { StreamStatusValue } from "./stream-status";
+import { worstStatus } from "./stream-status";
+import {
   ClientTimeline,
   type ClientTimelineOptions,
   type TimelinePoint,
@@ -29,6 +35,8 @@ export interface FrameToken {
 
 export interface TimelineStoreOptions {
   timelineOptions?: ClientTimelineOptions;
+  /** Options for the store's `HeartbeatTracker` (M2 design §4.3's keyframe-cadence heartbeat, T4) — per-topic keyframe intervals, staleness-margin tuning. */
+  heartbeatOptions?: HeartbeatTrackerOptions;
 }
 
 /**
@@ -81,6 +89,25 @@ export interface DerivedChannelDefinition<T> {
    * no static field list is needed here.
    */
   fields?: boolean;
+  /**
+   * Optional override for this channel's own `StreamStatusValue` (M2 design
+   * §4.4: "derived channels propagate the worst input staleness into their
+   * own status", T4). `getStatus(topic)` resolves an input topic's own
+   * status — recursively, through the same `sampleStatus` machinery, for a
+   * derived-on-derived input. `get`/`viewUt` are the SAME arguments
+   * `derive` receives, for channels (like `vessel.state`) whose
+   * quality-picking means not every declared `input` is actually consulted
+   * for a given record — only override this when the default would be
+   * wrong (e.g. penalizing a channel for an input it never even read).
+   *
+   * When omitted, the default is `worstStatus(inputs.map(getStatus))` — the
+   * worst status across every declared input, unconditionally.
+   */
+  deriveStatus?: (
+    getStatus: (topic: string) => StreamStatusValue,
+    get: DerivedGet,
+    viewUt: number,
+  ) => StreamStatusValue;
 }
 
 /** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (M2 design §4.4: "derived channels propagate the worst input staleness") is deferred to a later task — this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
@@ -140,11 +167,15 @@ export class TimelineStore {
    */
   private readonly frameCache = new WeakMap<FrameToken, Map<string, unknown>>();
 
+  /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"` (M2 design §4.3, T4). */
+  readonly heartbeats: HeartbeatTracker;
+
   constructor(
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
   ) {
     this.currentToken = { viewUt: clock.viewUt(), generation: this.generation };
+    this.heartbeats = new HeartbeatTracker(options.heartbeatOptions);
   }
 
   /**
@@ -173,12 +204,26 @@ export class TimelineStore {
       return;
     }
 
+    if (point.epoch > priorEpoch) {
+      // Rewind confirmed by THIS point — clear heartbeat history BEFORE
+      // recording its own arrival below, so a pre-reset expectation can
+      // never wrongly flag (or wrongly clear) a HeldStale during the
+      // resynchronizing period that follows. This point's own arrival still
+      // counts as a fresh heartbeat for its topic once the clear has run.
+      this.heartbeats.reset();
+    }
+
     this.timelineFor<T>(topic).append(point);
     this.clock.observeSample(
       point.validAt,
       point.meta.deliveredAt,
       point.epoch,
     );
+    // Every ingested sample — keyframe or change-emission alike — confirms
+    // the link is alive as of this arrival. Deliberately keyed on
+    // `meta.deliveredAt`, never `point.validAt` (M2 design §4.3; see
+    // `HeartbeatTracker`'s doc comment for why).
+    this.heartbeats.noteArrival(topic, point.meta.deliveredAt);
 
     const newEpoch = this.clock.getEpoch();
     if (newEpoch > priorEpoch) {
@@ -290,6 +335,79 @@ export class TimelineStore {
       if (timeline.epoch < this.clock.getEpoch()) return undefined;
       return timeline.at(effectiveToken.viewUt);
     });
+  }
+
+  /**
+   * The topic's `StreamStatusValue` at a frame token's frozen `viewUt` (M2
+   * design §4.4, T4) — the staleness/absence surface, read alongside
+   * `sample()` never inside it. Mirrors `sample()`'s stale-token fallback
+   * and frame-coherent memoization exactly (same generation check, the same
+   * per-`(token, key)` cache) so a status read and a value read for the
+   * same topic in the same frame always agree about which frame they
+   * describe. Field subtopics (`"<topic>.<field>"`) share their parent
+   * derived channel's status outright — a field is just one slice of the
+   * one memoized record, staleness applies to the whole record.
+   */
+  sampleStatus(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): StreamStatusValue {
+    const effectiveToken =
+      token.generation === this.generation ? token : this.currentToken;
+
+    const resolved = this.resolveDerivedTopic(topic);
+    if (resolved) {
+      const parentTopic = resolved.def.topic;
+      return this.memoize(effectiveToken, `\0status\0${parentTopic}`, () =>
+        this.sampleDerivedStatus(resolved.def, effectiveToken),
+      );
+    }
+
+    return this.memoize(effectiveToken, `\0status\0${topic}`, () =>
+      this.sampleRawStatus(topic, effectiveToken),
+    );
+  }
+
+  /**
+   * Server-stamped `meta.staleness` wins outright when present (M2 design
+   * §4.3: a catch-up/late-joiner mark is authoritative — no client
+   * inference needed for it). Otherwise: a tombstone is `"absent"`, no
+   * point at all in the current epoch is `"resyncing"`, and the
+   * `HeartbeatTracker` (missed-keyframe inference, never `validAt` age)
+   * decides live vs. held-stale.
+   */
+  private sampleRawStatus(topic: string, token: FrameToken): StreamStatusValue {
+    const point = this.sample(topic, token);
+    if (!point) return "resyncing";
+    if (point.payload === null) return "absent";
+    if (point.meta.staleness === Staleness.LastBeforeBlackout) {
+      return "last-before-blackout";
+    }
+    if (point.meta.staleness === Staleness.HeldStale) return "held-stale";
+    return this.heartbeats.isOverdue(
+      topic,
+      token.viewUt,
+      this.clock.confidence(),
+    )
+      ? "held-stale"
+      : "live";
+  }
+
+  /**
+   * A derived channel's own status: `def.deriveStatus` if it declared one
+   * (quality-picked channels like `vessel.state` need this — see
+   * `vessel-state.ts`), else the generic default of worst-of-every-declared-
+   * input (M2 design §4.4's baseline rule).
+   */
+  private sampleDerivedStatus(
+    def: DerivedChannelDefinition<unknown>,
+    token: FrameToken,
+  ): StreamStatusValue {
+    const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+    const getStatus = (inputTopic: string) =>
+      this.sampleStatus(inputTopic, token);
+    if (def.deriveStatus) return def.deriveStatus(getStatus, get, token.viewUt);
+    return worstStatus(def.inputs.map(getStatus));
   }
 
   /**

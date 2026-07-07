@@ -1,11 +1,13 @@
 import { Quality } from "@gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { type OrbitElements, solve } from "./kepler";
+import type { StreamStatusValue } from "./stream-status";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
 import {
   deriveVesselState,
+  deriveVesselStateStatus,
   type VesselFlightPayload,
   type VesselOrbitPayload,
 } from "./vessel-state";
@@ -299,6 +301,108 @@ describe("deriveVesselState", () => {
 
       expect(state).not.toBeUndefined();
       expect(state).not.toBeNull();
+    });
+  });
+});
+
+/** Builds a `getStatus` callback from a fixed topic -> status map, defaulting anything unlisted to "resyncing" (the safe "never heard from it" default). */
+function fakeGetStatus(
+  statuses: Partial<Record<string, StreamStatusValue>>,
+): (topic: string) => StreamStatusValue {
+  return (topic) => statuses[topic] ?? "resyncing";
+}
+
+describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", () => {
+  describe("OnRails — status is the orbit input's own status, vessel.flight ignored entirely", () => {
+    it("passes the orbit status straight through when the orbit sample is OnRails", () => {
+      const { get } = fakeGet({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+          quality: Quality.OnRails,
+        }),
+      });
+      const getStatus = fakeGetStatus({
+        "vessel.orbit": "held-stale",
+        "vessel.flight": "live",
+      });
+
+      expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("held-stale");
+    });
+
+    it("a worse vessel.flight status does NOT drag down an OnRails reading that never consults it", () => {
+      const { get } = fakeGet({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+          quality: Quality.OnRails,
+        }),
+      });
+      const getStatus = fakeGetStatus({
+        "vessel.orbit": "live",
+        "vessel.flight": "absent", // worst possible — must be ignored
+      });
+
+      expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("live");
+    });
+  });
+
+  describe("Loaded — worst of (orbit, flight), tested for each input status", () => {
+    const cases: Array<{
+      orbit: StreamStatusValue;
+      flight: StreamStatusValue;
+      expected: StreamStatusValue;
+    }> = [
+      { orbit: "live", flight: "live", expected: "live" },
+      { orbit: "held-stale", flight: "live", expected: "held-stale" },
+      { orbit: "live", flight: "held-stale", expected: "held-stale" },
+      {
+        orbit: "live",
+        flight: "last-before-blackout",
+        expected: "last-before-blackout",
+      },
+      {
+        orbit: "last-before-blackout",
+        flight: "held-stale",
+        expected: "last-before-blackout",
+      },
+    ];
+
+    for (const { orbit, flight, expected } of cases) {
+      it(`orbit=${orbit} + flight=${flight} -> ${expected}`, () => {
+        const { get } = fakeGet({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.Loaded,
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
+        });
+        const getStatus = fakeGetStatus({
+          "vessel.orbit": orbit,
+          "vessel.flight": flight,
+        });
+
+        expect(deriveVesselStateStatus(getStatus, get, 0)).toBe(expected);
+      });
+    }
+  });
+
+  describe("orbit resyncing/absent dominates outright, before quality is even consulted", () => {
+    it("vessel.orbit resyncing -> the whole channel is 'resyncing', regardless of vessel.flight", () => {
+      const { get } = fakeGet({}); // nothing ingested yet — orbit not whole
+      const getStatus = fakeGetStatus({
+        "vessel.orbit": "resyncing",
+        "vessel.flight": "live",
+      });
+
+      expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("resyncing");
+    });
+
+    it("vessel.orbit absent (tombstoned) -> the whole channel is 'absent', regardless of vessel.flight", () => {
+      const { get } = fakeGet({
+        "vessel.orbit": orbitPoint(null, { quality: Quality.OnRails }),
+      });
+      const getStatus = fakeGetStatus({
+        "vessel.orbit": "absent",
+        "vessel.flight": "live",
+      });
+
+      expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("absent");
     });
   });
 });

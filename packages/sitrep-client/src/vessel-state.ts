@@ -1,6 +1,8 @@
 import { Quality } from "@gonogo/sitrep-sdk";
 import type { OrbitElements, Vector3 } from "./kepler";
 import { solve } from "./kepler";
+import type { StreamStatusValue } from "./stream-status";
+import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 
 /**
@@ -179,6 +181,42 @@ export function deriveVesselState(
 }
 
 /**
+ * `vessel.state`'s own `StreamStatusValue` (M2 design §4.4: "derived
+ * channels propagate the worst input staleness into their own status", T4).
+ * Mirrors `deriveVesselState`'s own branching EXACTLY — worst of
+ * ACTUALLY-consulted inputs, not worst of every declared input: the OnRails
+ * basis never reads `vessel.flight` at all (see the "does not read
+ * vessel.flight at all" test above), so a `vessel.flight` that's
+ * held-stale/resyncing must not drag down an OnRails `vessel.state` reading
+ * that has nothing to do with it. `getStatus`/`get` are threaded in by
+ * `TimelineStore.sampleDerivedStatus` — same shape as `deriveVesselState`'s
+ * own `(get, viewUt)`, plus the status lookup.
+ *
+ * `undefined`/`null` on the orbit input map straight onto `"resyncing"`/
+ * `"absent"` — the orbit sample's OWN status already encodes exactly that
+ * distinction (`sampleRawStatus`: no point at all -> `"resyncing"`,
+ * tombstone -> `"absent"`), so returning it directly here reuses that
+ * classification instead of re-deriving it from `get()`.
+ */
+export function deriveVesselStateStatus(
+  getStatus: (topic: string) => StreamStatusValue,
+  get: DerivedGet,
+  _viewUt: number,
+): StreamStatusValue {
+  const orbitStatus = getStatus("vessel.orbit");
+  if (orbitStatus === "resyncing" || orbitStatus === "absent") {
+    return orbitStatus;
+  }
+
+  const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
+  if (orbitPoint?.meta.quality === Quality.OnRails) return orbitStatus;
+
+  // Loaded (or, defensively, an orbit point that's unexpectedly missing
+  // despite a non-resyncing/absent status) — vessel.flight is consulted too.
+  return worstStatus([orbitStatus, getStatus("vessel.flight")]);
+}
+
+/**
  * Ready-to-register definition — `store.registerDerivedChannel(vesselStateChannel)`.
  * `fields: true` exposes `vessel.state.<field>` subtopics (e.g.
  * `vessel.state.altitudeAsl`) reading off this one memoized record, per
@@ -188,5 +226,6 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   topic: "vessel.state",
   inputs: ["vessel.orbit", "vessel.flight"],
   derive: deriveVesselState,
+  deriveStatus: deriveVesselStateStatus,
   fields: true,
 };
