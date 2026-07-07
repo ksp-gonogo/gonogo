@@ -1725,6 +1725,93 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Re-verification Edge 1 (post-defect-A) — a loyal, CONTINUOUSLY
+        /// CONNECTED subscriber must also get corrected, not just a late
+        /// catch-up subscriber. Defect A's own fix (see
+        /// <see cref="RewindRecomputesBirthFromTheArchiveTailSoAStaleValueGetsCorrectedByATombstoneInsteadOfGhostingForever"/>)
+        /// defined "born" as "the archive's surviving tail is a NON-NULL
+        /// value" (<c>Archive.HasNonNullTail</c>, first fix pass). That
+        /// definition still ghosts this scenario: a real value gets
+        /// recorded, then the channel goes absent (a tombstone is recorded),
+        /// but that tombstone's OWN wire delivery is still in flight (a
+        /// non-zero network delay) when a quickload rewinds to a UT at/after
+        /// the tombstone's own ValidAt -- the tombstone SURVIVES
+        /// <c>Archive.ResetTimeline</c>'s prune, but <c>Courier.ResetTimeline</c>
+        /// drops the still-scheduled delivery outright (see its own doc
+        /// comment), so this continuously-connected subscriber was NEVER
+        /// actually told of the absence on the wire. Under the
+        /// non-null-tail definition, the surviving tail IS a tombstone (null
+        /// Value), so the topic gets recomputed as UNBORN -- the null mapper
+        /// result on every subsequent tick keeps hitting the birth-gate skip
+        /// forever, and the subscriber's last wire frame stays the stale
+        /// real value, served as Fresh, permanently.
+        ///
+        /// The fix (<c>Archive.HasAnyTail</c>): born iff the tail is ANY
+        /// surviving sample, value or tombstone. A born-but-tombstoned topic
+        /// hits <c>Decide</c> (not the birth-gate skip) on the very next
+        /// mapper-null tick; the rewind's own <c>ChannelEmitter.Reset</c>
+        /// already made that Decide call unconditional, so it emits a fresh
+        /// tombstone keyframe -- re-announcing the absence exactly as the
+        /// streaming-delay design's keyframe-cadence rule intends (§4.2/
+        /// §9.2(a): keyframes keep re-emitting the tombstone on cadence).
+        /// </summary>
+        [Fact]
+        public async Task RewindOntoASurvivingTombstoneTailReAnnouncesTheAbsenceToAContinuouslyConnectedSubscriber()
+        {
+            const double delaySeconds = 2.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
+            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+
+                // Real value recorded @UT0; with a 2s network delay it isn't
+                // delivered until UT2 -- tick forward to let it arrive.
+                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(1.0, Convert.ToDouble(real.Payload));
+
+                // Absence @UT8: born (real value seen before) -> Decide
+                // flows -> a tombstone is recorded @UT8, its OWN delivery
+                // scheduled for UT10 (8 + the 2s delay) -- still in flight.
+                engine.TickAndWait(8.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                // Advance forward a bit further WITHOUT yet reaching UT10,
+                // so that scheduled tombstone delivery is still pending when
+                // the rewind below hits.
+                engine.TickAndWait(9.5, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                // THE QUICKLOAD: rewind to UT9 (9 < 9.5, and 9 >= 8 so the
+                // archived tombstone @UT8 SURVIVES Archive.ResetTimeline's
+                // prune). Courier.ResetTimeline drops the still-in-flight
+                // UT10 delivery outright -- this continuously-connected
+                // subscriber was NEVER actually delivered that tombstone on
+                // the wire, even though the archive's own tail now reflects
+                // the absence.
+                engine.TickAndWait(9.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                // Advance far enough (UT12) for the corrective tombstone --
+                // re-recorded at the rewind's own UT9, delivery due @UT11
+                // (9 + 2s delay) -- to actually reach the wire.
+                // ReceiveStreamDataAsync skips the "timeline-reset" EventMsg
+                // this rewind also broadcasts (a different wire message
+                // type), so no explicit drain of it is needed here.
+                engine.TickAndWait(12.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                var corrected = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Null(corrected.Payload);
+                Assert.Equal(Staleness.Fresh, corrected.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         // ----------------------------------------------------------------
         // M2 Task 1 fix — adversarial-review defects A (HIGH, rewind
         // archive-derived birth), B (command-response epoch), C
@@ -1892,6 +1979,122 @@ namespace Sitrep.Host.IntegrationTests
                 };
             }
             return new KspSnapshot { Values = new Dictionary<string, object?> { ["vessel"] = vessel } };
+        }
+
+        /// <summary>
+        /// Re-verification Edge 6 — <see cref="VesselEpochSampler"/> was not
+        /// rewind-aware: <c>ChannelEngine.ProcessTick</c> runs the rewind's
+        /// archive-birth recompute FIRST, then every registered sampler
+        /// (including <see cref="VesselEpochSampler"/>), THEN the channel
+        /// loop, all within the SAME tick. On a quickload to a save whose
+        /// active vessel differs from whatever vessel was active
+        /// immediately pre-load (a completely ordinary thing to have
+        /// happened -- the player switched vessels one or more times after
+        /// the save was taken, then quickloaded back to it), the sampler's
+        /// plain non-null-to-different-non-null guid check mis-detects this
+        /// as a GENUINE subject switch and calls
+        /// <c>IExtensionHost.ResetChannelBirth</c> for every <c>vessel.*</c>
+        /// topic -- undoing the archive recompute's correct result (the
+        /// target topic's surviving tail is the real "Mun" value, so it was
+        /// correctly recomputed as born) moments after it ran, in the very
+        /// same tick. With birth wrongly cleared again, the channel loop's
+        /// null-mapper-for-the-now-targetless-vessel result hits the
+        /// birth-gate skip instead of flowing into <c>Decide</c> -- no
+        /// corrective tombstone is ever emitted, and the stale "Mun" target
+        /// (recorded under the OLD vessel, before the rewind) keeps being
+        /// served to a late catch-up as Fresh forever.
+        ///
+        /// The fix: <see cref="VesselEpochSampler"/> tracks the last
+        /// snapshot UT it saw. A BACKWARD Ut (this same tick's rewind) is
+        /// treated as a cold start -- it resynchronizes <c>_lastVesselId</c>
+        /// to the snapshot's current vessel WITHOUT calling
+        /// <c>ForceKeyframe</c>/<c>ResetChannelBirth</c>, so the archive
+        /// recompute's correct born=true stands. The channel loop's
+        /// null-mapper result then flows into <c>Decide</c> as usual --
+        /// unconditional thanks to the rewind's own <c>ChannelEmitter.Reset</c>
+        /// -- and emits the corrective tombstone.
+        /// </summary>
+        [Fact]
+        public async Task RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TestVesselExtension());
+            engine.Start();
+            try
+            {
+                const string vesselA = "aaaaaaaa-0000-0000-0000-000000000000";
+                const string vesselB = "bbbbbbbb-0000-0000-0000-000000000000";
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, VesselViewProvider.TargetTopic, Timeout);
+
+                // Vessel A has a target @UT0 -- the very first observation,
+                // not a switch. Born + archived + delivered.
+                engine.TickAndWait(0.0, VesselSnapshotForRewindTest(0.0, vesselA, hasTarget: true), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.NotNull(real.Payload);
+
+                // Switch to targetless B @UT1 -- a genuine switch: force
+                // keyframe + ResetChannelBirth. The null mapper result then
+                // hits the (correct, Defect-D) birth-gate skip -- no message.
+                engine.TickAndWait(1.0, VesselSnapshotForRewindTest(1.0, vesselB, hasTarget: false), Timeout);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(200));
+
+                // Switch back to A @UT2 -- target re-recorded. The archive's
+                // tail for the target topic is now the real "Mun" value @UT2.
+                engine.TickAndWait(2.0, VesselSnapshotForRewindTest(2.0, vesselA, hasTarget: true), Timeout);
+                var reacquired = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.NotNull(reacquired.Payload);
+
+                // Keep playing forward on A -- just advancing the clock past
+                // UT2 so a rewind to a UT still >= 2 (letting the UT2 target
+                // sample survive the prune) is genuinely BACKWARD relative
+                // to the engine's clock. VesselTarget is a plain class (no
+                // Equals override), so re-recording the "same" target every
+                // tick is still a reference-different value to Decide's
+                // object.Equals deadband fallback -- it re-emits here too;
+                // that's an orthogonal, pre-existing property of structured
+                // payloads, not what this test is about, so just drain it.
+                engine.TickAndWait(3.0, VesselSnapshotForRewindTest(3.0, vesselA, hasTarget: true), Timeout);
+                var reEmitted = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.NotNull(reEmitted.Payload);
+
+                // THE QUICKLOAD: rewind to UT2.2 (< 3.0, so a genuine
+                // rewind; >= 2.0, so the archived target@UT2 SURVIVES the
+                // prune) -- loading a save whose active vessel is the
+                // targetless B, i.e. exactly the "differs from the
+                // pre-load vessel" scenario. The archive recompute correctly
+                // re-derives born=true for the target topic (its surviving
+                // tail is the real "Mun" value); VesselEpochSampler must not
+                // undo that via a spurious switch-detect against its own
+                // rewind-oblivious _lastVesselId (A, from the UT3 tick).
+                engine.TickAndWait(2.2, VesselSnapshotForRewindTest(2.2, vesselB, hasTarget: false), Timeout);
+
+                var corrected = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Null(corrected.Payload);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot VesselSnapshotForRewindTest(double ut, string vesselId, bool hasTarget)
+        {
+            var vessel = new Dictionary<string, object?>
+            {
+                ["identity"] = new Dictionary<string, object?> { ["id"] = vesselId },
+            };
+            if (hasTarget)
+            {
+                vessel["target"] = new Dictionary<string, object?>
+                {
+                    ["name"] = "Mun",
+                    ["type"] = "CelestialBody",
+                    ["relativeVelocity"] = new[] { 1.0, 2.0, 3.0 },
+                };
+            }
+            return new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["vessel"] = vessel } };
         }
 
         /// <summary>

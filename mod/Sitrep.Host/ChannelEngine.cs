@@ -107,16 +107,22 @@ namespace Sitrep.Host
         //
         // On a quickload rewind, this is RECOMPUTED (not blanket-cleared --
         // see RecomputeChannelBirthFromArchive) from the archive's own
-        // post-prune tail: a topic whose surviving sample is a real value
-        // stays born (so a subsequent null mapper result still corrects it
-        // with a tombstone instead of leaving the stale value archived
-        // forever as a frozen "ghost" a late subscriber's catch-up would
-        // serve as Fresh); a topic with no surviving sample, or whose
-        // surviving sample is ALREADY a tombstone, is NOT born (so a null
-        // mapper result keeps being skipped, matching pre-rewind behavior).
-        // An unconditionally-cleared _born used to make EVERY channel
-        // unborn on rewind, silently suppressing the corrective tombstone
-        // for exactly the stale-non-null-tail case above.
+        // post-prune tail: a topic with ANY surviving sample -- a real
+        // value OR a tombstone -- stays born (so a subsequent null mapper
+        // result still corrects a stale real value with a tombstone instead
+        // of leaving it archived forever as a frozen "ghost" a late
+        // subscriber's catch-up would serve as Fresh, AND a surviving
+        // tombstone tail keeps re-announcing the absence on the normal
+        // cadence/reset-keyframe path rather than going silent for a
+        // continuously-connected subscriber whose actual tombstone delivery
+        // got dropped by the rewind -- see Archive.HasAnyTail's doc comment).
+        // Only a topic with NO surviving sample at all is NOT born (so a
+        // null mapper result keeps being skipped, matching pre-rewind
+        // behavior). An unconditionally-cleared _born used to make EVERY
+        // channel unborn on rewind, silently suppressing the corrective
+        // tombstone for the stale-non-null-tail case; a "non-null tail"
+        // definition of born (the first fix pass) still silently suppressed
+        // it for the stale-tombstone-tail case above.
         //
         // Subject-scoped (vessel-switch) resets are a SEPARATE, narrower
         // mechanism: see ResetChannelBirth/IExtensionHost.ResetChannelBirth,
@@ -344,16 +350,18 @@ namespace Sitrep.Host
         /// from the archive's own post-prune state instead of blanket-clearing
         /// it (see <see cref="_born"/>'s doc comment). MUST be called AFTER
         /// <see cref="Courier.ResetTimeline"/> has already dropped every
-        /// sample ahead of the new timeline, so <see cref="Courier.HasNonNullArchiveTail"/>
+        /// sample ahead of the new timeline, so <see cref="Courier.HasAnyArchiveTail"/>
         /// reflects what actually SURVIVED the rewind, not the abandoned
-        /// timeline's peak.
+        /// timeline's peak. Born iff ANY sample (value or tombstone)
+        /// survived — see <see cref="Archive.HasAnyTail"/>'s doc comment for
+        /// why a tombstone tail must count too.
         /// </summary>
         private void RecomputeChannelBirthFromArchive()
         {
             _born.Clear();
             foreach (var topic in _channelDeclarations.Keys)
             {
-                if (_courier.HasNonNullArchiveTail(NodeId, topic))
+                if (_courier.HasAnyArchiveTail(NodeId, topic))
                 {
                     _born.Add(topic);
                 }

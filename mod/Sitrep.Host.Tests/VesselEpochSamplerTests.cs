@@ -121,9 +121,60 @@ namespace Sitrep.Host.Tests
             Assert.Equal(VesselViewProvider.Topics, birthReset[0]);
         }
 
-        private static KspSnapshot SnapshotFor(string vesselId) => new KspSnapshot
+        /// <summary>
+        /// Re-verification Edge 6 — <see cref="VesselEpochSampler"/> was not
+        /// rewind-aware: it only ever compared vessel guids, never noticing
+        /// that a snapshot's own Ut had gone BACKWARD (a quickload). On a
+        /// rewind, whatever vessel happens to be active in the loaded save
+        /// can legitimately differ from whatever vessel was active
+        /// immediately pre-load — the sampler's plain guid check mis-reads
+        /// that as a genuine subject switch and force-keyframes + resets
+        /// birth, undoing <c>ChannelEngine</c>'s own archive-derived birth
+        /// recompute (which already ran, correctly, earlier in the SAME
+        /// tick — see <c>ChannelEngineTests.
+        /// RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth</c>
+        /// for the full engine/wire-level proof of this same fix). The fix:
+        /// track the last snapshot Ut seen; a backward Ut is a cold start —
+        /// resynchronize <c>_lastVesselId</c> to the current vessel WITHOUT
+        /// forcing a keyframe or resetting birth. A genuine FORWARD switch
+        /// (no rewind involved) must still force + reset exactly as before.
+        /// </summary>
+        [Fact]
+        public void ARewindThatLandsOnADifferentVesselIsTreatedAsAColdStartNotASwitch()
         {
-            Ut = 0.0,
+            var forced = new List<string>();
+            var birthReset = new List<IReadOnlyCollection<string>>();
+            var sampler = new VesselEpochSampler(new FakeExtensionHost(
+                t => forced.Add(t),
+                topics => birthReset.Add(new List<string>(topics))));
+
+            sampler.Sample(SnapshotFor(VesselA, ut: 0.0));
+            sampler.Sample(SnapshotFor(VesselA, ut: 1.0)); // same vessel, forward -- no force
+
+            // THE REWIND: Ut goes backward (1.0 -> 0.5), landing on a
+            // DIFFERENT vessel (B) than was active pre-rewind (A). Must be
+            // treated as a cold start: no force, no birth reset.
+            sampler.Sample(SnapshotFor(VesselB, ut: 0.5));
+
+            Assert.Empty(forced);
+            Assert.Empty(birthReset);
+
+            // A genuine FORWARD switch after the rewind's cold start (Ut
+            // 0.5 -> 0.6, still ahead of the rewind's own Ut) must still
+            // force + reset exactly as before -- the rewind fix must not
+            // suppress real switches, only rewind-induced false positives.
+            sampler.Sample(SnapshotFor(VesselA, ut: 0.6));
+
+            Assert.Equal(VesselViewProvider.Topics, forced);
+            Assert.Single(birthReset);
+            Assert.Equal(VesselViewProvider.Topics, birthReset[0]);
+        }
+
+        private static KspSnapshot SnapshotFor(string vesselId) => SnapshotFor(vesselId, ut: 0.0);
+
+        private static KspSnapshot SnapshotFor(string vesselId, double ut) => new KspSnapshot
+        {
+            Ut = ut,
             Values = new Dictionary<string, object?>
             {
                 ["vessel"] = new Dictionary<string, object?>

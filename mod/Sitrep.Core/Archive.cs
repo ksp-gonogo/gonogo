@@ -226,27 +226,33 @@ namespace Sitrep.Core
         /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix —
         /// see <c>Sitrep.Host.ChannelEngine</c>'s <c>_born</c> field and its
         /// rewind branch in <c>ProcessTick</c>. Whether <paramref name="topic"/>
-        /// currently has a surviving sample (post-prune, i.e. call this
-        /// AFTER <see cref="ResetTimeline"/> has already dropped everything
-        /// ahead of the new timeline) whose <c>Value</c> is non-null.
+        /// currently has ANY surviving sample at all (post-prune, i.e. call
+        /// this AFTER <see cref="ResetTimeline"/> has already dropped
+        /// everything ahead of the new timeline) — a real value OR a
+        /// tombstone (null <c>Value</c>) both count.
         ///
         /// This is what lets <c>ChannelEngine</c> recompute its per-topic
-        /// "has this channel ever emitted a real value" birth-guard directly
+        /// "has this channel ever emitted a sample" birth-guard directly
         /// from ground truth (the archive) rather than blanket-clearing it
         /// on every rewind: a topic whose surviving tail is a real value
         /// stays "born" so the NEXT null mapper result still flows into
         /// <c>Decide</c> and corrects the stale archived value with a
-        /// tombstone; a topic with no surviving sample, or whose surviving
-        /// tail is ALREADY a tombstone (null), is NOT born, so a null mapper
-        /// result keeps being skipped rather than emitting a spurious
-        /// tombstone for a subject that never had this data in the first
-        /// place.
+        /// tombstone; a topic whose surviving tail is ALREADY a tombstone
+        /// ALSO stays "born" — otherwise a continuously-connected subscriber
+        /// who was never actually delivered that tombstone (e.g. its
+        /// delivery was still in flight and got dropped by the rewind, see
+        /// <c>Sitrep.Core.Courier.ResetTimeline</c>) would never be told of
+        /// the absence: no cadence/reset keyframe would ever re-announce it,
+        /// contradicting the streaming-delay design's keyframe-re-emits-on-
+        /// cadence rule. Only a topic with NO surviving sample at all (never
+        /// recorded, or everything recorded got pruned by the rewind) is NOT
+        /// born, so a null mapper result keeps being skipped rather than
+        /// emitting a spurious tombstone for a subject that never had this
+        /// data in the first place.
         /// </summary>
-        public bool HasNonNullTail(string topic)
+        public bool HasAnyTail(string topic)
         {
-            return _samplesByTopic.TryGetValue(topic, out var list)
-                && list.Count > 0
-                && list[list.Count - 1].Value != null;
+            return _samplesByTopic.TryGetValue(topic, out var list) && list.Count > 0;
         }
 
         /// <summary>

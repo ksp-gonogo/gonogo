@@ -37,11 +37,29 @@ namespace Sitrep.Host
     /// <see cref="IExtensionHost.ForceKeyframe"/> makes the very next
     /// <c>Decide</c> call unconditional, immediately emit a spurious
     /// tombstone for data the new subject never had in the first place.
+    ///
+    /// REWIND-AWARE (M2 re-verification fix): a plain vessel-guid comparison
+    /// alone is not safe across a quickload -- a loaded save can perfectly
+    /// ordinarily have had a different vessel active than whatever was
+    /// flying immediately pre-load. <see cref="Sample"/> tracks the last
+    /// snapshot Ut it saw and treats a BACKWARD jump as a cold start (just
+    /// resynchronize <c>_lastVesselId</c>, no force/reset) rather than a
+    /// genuine switch -- see its own doc comment for why: the engine's own
+    /// rewind branch (<c>ChannelEngine.ProcessTick</c>) already recomputed
+    /// birth correctly from the archive BEFORE this sampler runs, and a
+    /// mis-detected "switch" here would silently undo that.
     /// </summary>
     public sealed class VesselEpochSampler : ISnapshotSampler
     {
         private readonly IExtensionHost _host;
         private string? _lastVesselId;
+
+        // The M2 re-verification "rewind-aware sampler" fix: tracks the Ut
+        // of the last snapshot this sampler observed, purely to detect a
+        // BACKWARD jump (a quickload) -- see Sample's doc comment below for
+        // why a plain guid comparison alone is not safe across a rewind.
+        // Null before the first observation.
+        private double? _lastUt;
 
         public VesselEpochSampler(IExtensionHost host)
         {
@@ -51,6 +69,37 @@ namespace Sitrep.Host
         public void Sample(KspSnapshot snapshot)
         {
             var currentId = VesselViewProvider.TryGetActiveVesselId(snapshot);
+
+            // Rewind detection: ChannelEngine.ProcessTick runs its own
+            // rewind branch (Courier.ResetTimeline + ChannelEmitter.Reset +
+            // RecomputeChannelBirthFromArchive) BEFORE running any sampler,
+            // all within the SAME tick -- so by the time this Sample call
+            // sees a backward Ut, the engine has ALREADY correctly
+            // recomputed _born from the archive's own surviving tail. A
+            // quickload's loaded save can perfectly ordinarily have had a
+            // DIFFERENT vessel active than whatever was flying immediately
+            // pre-load (the player switched vessels one or more times after
+            // the save was taken, then loaded back to it) -- that is an
+            // ARTIFACT of the rewind, not a genuine subject switch. Treating
+            // it as one here would call ResetChannelBirth and silently undo
+            // the engine's own just-computed correct result. So: a backward
+            // Ut is treated as a COLD START -- resynchronize _lastVesselId
+            // to whatever vessel this snapshot shows WITHOUT forcing a
+            // keyframe or resetting birth (mirroring how the very first-ever
+            // observation, _lastVesselId == null, is already excluded from
+            // the switch check below) -- and skip the switch-detect entirely
+            // for this tick.
+            var isRewind = _lastUt.HasValue && snapshot.Ut < _lastUt.Value;
+            _lastUt = snapshot.Ut;
+
+            if (isRewind)
+            {
+                if (currentId != null)
+                {
+                    _lastVesselId = currentId;
+                }
+                return;
+            }
 
             // Only a genuine non-null-to-DIFFERENT-non-null transition
             // counts as a subject switch -- the very first observation

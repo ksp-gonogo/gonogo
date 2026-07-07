@@ -501,20 +501,20 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Whether <paramref name="node"/>'s archive currently has a
-        /// non-null tail sample for <paramref name="topic"/> — see
-        /// <see cref="Archive.HasNonNullTail"/>. Deliberately reads
-        /// <see cref="_archives"/> directly (rather than through
-        /// <see cref="ArchiveFor"/>) so querying a node/topic that has never
-        /// recorded anything doesn't side-effect an empty <see cref="Archive"/>
-        /// into existence. Exposed here because <c>ChannelEngine</c> only
-        /// ever holds a <see cref="Courier"/> reference, never an
-        /// <see cref="Archive"/> directly (one archive per node, private to
-        /// this class).
+        /// Whether <paramref name="node"/>'s archive currently has ANY
+        /// surviving tail sample (value or tombstone) for
+        /// <paramref name="topic"/> — see <see cref="Archive.HasAnyTail"/>.
+        /// Deliberately reads <see cref="_archives"/> directly (rather than
+        /// through <see cref="ArchiveFor"/>) so querying a node/topic that
+        /// has never recorded anything doesn't side-effect an empty
+        /// <see cref="Archive"/> into existence. Exposed here because
+        /// <c>ChannelEngine</c> only ever holds a <see cref="Courier"/>
+        /// reference, never an <see cref="Archive"/> directly (one archive
+        /// per node, private to this class).
         /// </summary>
-        public bool HasNonNullArchiveTail(string node, string topic)
+        public bool HasAnyArchiveTail(string node, string topic)
         {
-            return _archives.TryGetValue(node, out var archive) && archive.HasNonNullTail(topic);
+            return _archives.TryGetValue(node, out var archive) && archive.HasAnyTail(topic);
         }
 
         /// <summary>
