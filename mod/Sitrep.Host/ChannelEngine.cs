@@ -73,7 +73,12 @@ namespace Sitrep.Host
         private readonly Dictionary<string, CommandDeclaration> _commandDeclarations = new Dictionary<string, CommandDeclaration>();
         private readonly Dictionary<string, Func<object?, object?>> _commandHandlers = new Dictionary<string, Func<object?, object?>>();
 
-        private readonly List<ISnapshotSampler> _samplers = new List<ISnapshotSampler>();
+        // Owner travels WITH each sampler (rather than a parallel dictionary
+        // keyed by the sampler instance) because a sampler has no natural
+        // string key the way a channel/command topic does. Populated in
+        // AddSampler from _currentRegisteringExtensionId, same mechanism
+        // _channelOwner/_commandOwner use below.
+        private readonly List<(string OwnerId, ISnapshotSampler Sampler)> _samplers = new List<(string OwnerId, ISnapshotSampler Sampler)>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
         // topic/command -> owning extension id, populated in RegisterExtension
@@ -86,7 +91,8 @@ namespace Sitrep.Host
         // throws at RUNTIME (see FailSoftChannel/FailSoftCommand), now takes
         // the WHOLE owning extension's channels/commands inert together,
         // rather than leaving already-registered ones live against a
-        // half-broken extension.
+        // half-broken extension. The sampler loop (see ProcessTick) applies
+        // the exact same rule via each pair's OwnerId above.
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
 
@@ -223,7 +229,12 @@ namespace Sitrep.Host
         // stale value but never a torn (half-written) one.
         double IExtensionHost.NowUt() => _clock.Now();
 
-        public void AddSampler(ISnapshotSampler sampler) => _samplers.Add(sampler);
+        // Recorded against the CURRENTLY-registering extension id, same
+        // mechanism AddChannelSource/AddCommandHandler rely on implicitly via
+        // _channelOwner/_commandOwner — see the sampler loop in ProcessTick
+        // for how this is consulted (skip-if-Unavailable) and acted on
+        // (attribute-and-disable on a throw).
+        public void AddSampler(ISnapshotSampler sampler) => _samplers.Add((_currentRegisteringExtensionId ?? "", sampler));
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
         {
@@ -338,27 +349,71 @@ namespace Sitrep.Host
 
         private void FailSoftCommand(string command, Exception ex)
         {
-            var reason = $"command \"{command}\" handler threw: {ex.Message}";
+            // Attribution must not depend on reading the offending
+            // exception's Message: `ex.Message` is an ordinary virtual
+            // getter — legal (if perverse) third-party code can override it
+            // to throw. The pre-fix `$"...{ex.Message}"` interpolation ran
+            // BEFORE the _commandOwner lookup/MarkExtensionUnavailable call,
+            // so a throwing getter aborted this method early, escaping to
+            // CourierLoop's non-attributing backstop try/catch and leaving
+            // the offending extension's command live (and re-throwing)
+            // forever. SafeExceptionMessage below can never throw, so the
+            // owner lookup + MarkExtensionUnavailable are now guaranteed to
+            // run regardless of what ex.Message does.
             if (_commandOwner.TryGetValue(command, out var ownerId))
             {
-                MarkExtensionUnavailable(ownerId, reason);
+                MarkExtensionUnavailable(ownerId, $"command \"{command}\" handler threw: {SafeExceptionMessage(ex)}");
             }
-            Console.Error.WriteLine("[ChannelEngine] " + reason);
+            Console.Error.WriteLine("[ChannelEngine] command \"" + command + "\" handler threw: " + SafeExceptionMessage(ex));
         }
 
         private void FailSoftChannel(string topic, Exception ex)
         {
-            var reason = $"channel \"{topic}\" mapper threw: {ex.Message}";
+            // Same rationale as FailSoftCommand above — see its doc comment.
             if (_channelOwner.TryGetValue(topic, out var ownerId))
             {
-                MarkExtensionUnavailable(ownerId, reason);
+                MarkExtensionUnavailable(ownerId, $"channel \"{topic}\" mapper threw: {SafeExceptionMessage(ex)}");
             }
-            Console.Error.WriteLine("[ChannelEngine] " + reason);
+            Console.Error.WriteLine("[ChannelEngine] channel \"" + topic + "\" mapper threw: " + SafeExceptionMessage(ex));
+        }
+
+        /// <summary>
+        /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>
+        /// — the coverage-sweep fix for the sampler loop's missing owner
+        /// attribution (see <see cref="ProcessTick"/>'s sampler loop). Marks
+        /// the sampler's owning extension Unavailable so it (and every other
+        /// sampler/channel/command it owns) is skipped from the next tick
+        /// onward, instead of the same throwing sampler recurring forever.
+        /// </summary>
+        private void FailSoftSampler(string ownerId, ISnapshotSampler sampler, Exception ex)
+        {
+            MarkExtensionUnavailable(ownerId, $"sampler \"{sampler.GetType().Name}\" threw: {SafeExceptionMessage(ex)}");
+            Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + SafeExceptionMessage(ex));
         }
 
         private void MarkExtensionUnavailable(string extensionId, string reason)
         {
             _availability[extensionId] = Availability.Unavailable(reason);
+        }
+
+        /// <summary>
+        /// Reads <see cref="Exception.Message"/> defensively — it is an
+        /// ordinary virtual getter, so a hostile/buggy custom exception type
+        /// can legally override it to throw. Every fail-soft guard in this
+        /// class reads a caught exception's Message only through here, so
+        /// attribution (<see cref="MarkExtensionUnavailable"/>) can never be
+        /// skipped by a poisoned Message getter.
+        /// </summary>
+        private static string SafeExceptionMessage(Exception ex)
+        {
+            try
+            {
+                return ex.Message;
+            }
+            catch (Exception)
+            {
+                return "<" + ex.GetType().Name + ".Message threw>";
+            }
         }
 
         // ----------------------------------------------------------------
@@ -499,23 +554,35 @@ namespace Sitrep.Host
 
             if (tick.Snapshot != null)
             {
-                foreach (var sampler in _samplers)
+                foreach (var (ownerId, sampler) in _samplers)
                 {
-                    // CRITICAL-2: a sampler is third-party (extension) code
-                    // running on the Courier thread — an unguarded throw
-                    // here used to kill the thread. Caught + logged, and the
-                    // loop moves on to the next sampler; samplers aren't
-                    // individually attributed to an owning extension (unlike
-                    // channels/commands — see IsChannelAvailable/
-                    // IsCommandAvailable), so this is a plain fail-soft with
-                    // no availability flip.
+                    // Coverage-sweep fix: a sampler is third-party
+                    // (extension) code running on the Courier thread — an
+                    // unguarded throw here used to kill the thread, so this
+                    // catch is CRITICAL-2's original guard. But it used to
+                    // stop there: no owner attribution meant a Sample() that
+                    // throws every tick just logged forever and was
+                    // re-invoked next tick regardless — unlike a channel
+                    // mapper or command handler (see IsChannelAvailable/
+                    // IsCommandAvailable), the extension never actually went
+                    // Unavailable. Now mirrors that same pattern: skip a
+                    // sampler whose owner already went Unavailable (from a
+                    // PRIOR tick's throw, or a throwing Register()), and on a
+                    // throw here, attribute it to the owning extension via
+                    // FailSoftSampler so it stops recurring from the NEXT
+                    // tick onward.
+                    if (!IsExtensionAvailable(ownerId))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         sampler.Sample(tick.Snapshot);
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + ex.Message);
+                        FailSoftSampler(ownerId, sampler, ex);
                     }
                 }
             }

@@ -713,6 +713,99 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// Coverage-sweep Finding 1 (round 3): <c>_samplers</c> used to be a
+        /// bare <c>List&lt;ISnapshotSampler&gt;</c> with no owner
+        /// attribution at all — unlike a channel mapper or command handler
+        /// (see <see cref="IsChannelAvailable"/>/<see cref="IsCommandAvailable"/>),
+        /// a sampler that throws was caught (so the Courier thread survived
+        /// — CRITICAL-2) but never marked its owning extension
+        /// <see cref="Availability.Unavailable"/>, so the SAME throwing
+        /// sampler was re-invoked, and re-logged, every single tick forever.
+        /// Proves both halves of the fix: the owning extension goes
+        /// Unavailable after the first throw, AND the sampler is skipped
+        /// (not re-invoked) on the very next tick.
+        /// </summary>
+        [Fact]
+        public void ThrowingSamplerFailSoftsItsOwningExtensionAndIsSkippedOnTheNextTick()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var extension = new ThrowingSamplerTestExtension();
+            engine.RegisterExtension(extension);
+            engine.Start();
+            try
+            {
+                var snapshot = new KspSnapshot { Values = new Dictionary<string, object?>() };
+
+                engine.TickAndWait(0.0, snapshot, Timeout);
+                Assert.Equal(1, extension.Sampler.CallCount);
+
+                // Pre-fix: no owner attribution means the extension stays
+                // Available no matter how many times its sampler throws.
+                Assert.False(
+                    engine.AvailabilityOf(ThrowingSamplerTestExtension.ExtensionId).IsAvailable,
+                    "owning extension should be Unavailable after its sampler threw");
+
+                engine.TickAndWait(1.0, snapshot, Timeout);
+
+                // Pre-fix: the sampler loop unconditionally re-invokes every
+                // registered sampler every tick, so CallCount would climb to
+                // 2 here. Post-fix: the owner is Unavailable, so this second
+                // tick must SKIP it entirely — CallCount stays pinned at 1.
+                Assert.Equal(1, extension.Sampler.CallCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Coverage-sweep Finding 2 (round 3): <c>FailSoftCommand</c>/
+        /// <c>FailSoftChannel</c> used to build their log <c>reason</c> via
+        /// an unguarded <c>$"...{ex.Message}"</c> interpolation BEFORE the
+        /// owner lookup + <c>MarkExtensionUnavailable</c> call. <c>Message</c>
+        /// is an ordinary virtual getter — a legal (if hostile) custom
+        /// exception can override it to throw — so a poisoned Message getter
+        /// aborted the fail-soft guard before it ever attributed the
+        /// failure, escaping to <c>CourierLoop</c>'s own non-attributing
+        /// backstop try/catch. The offending extension never went
+        /// Unavailable and (for a non-delayed command, as here) the
+        /// dispatch's <c>onResult</c>/<c>Done</c> callback never fired
+        /// either, since the escape happens before <c>ProcessDispatchCommand</c>
+        /// reaches them.
+        /// </summary>
+        [Fact]
+        public void CommandHandlerThrowingAnExceptionWhoseMessageGetterThrowsStillMarksTheOwnerUnavailable()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new MessageGetterThrowsCommandTestExtension());
+            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.Start();
+            try
+            {
+                var resolved = false;
+                engine.DispatchCommandAndWait(
+                    MessageGetterThrowsCommandTestExtension.Command, null, "vantage-1",
+                    _ => resolved = true,
+                    TimeSpan.FromMilliseconds(500));
+
+                // Pre-fix: the poisoned Message getter aborts FailSoftCommand
+                // before MarkExtensionUnavailable runs, so the owner stays
+                // Available and onResult/Done never fire (resolved stays
+                // false) -- the whole thing silently vanishes into
+                // CourierLoop's backstop instead.
+                Assert.True(resolved, "onResult should still fire (with a graceful null) once the guard attributes and returns");
+                Assert.False(
+                    engine.AvailabilityOf(MessageGetterThrowsCommandTestExtension.ExtensionId).IsAvailable,
+                    "owning extension should be Unavailable even though ex.Message itself throws");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A structured payload that serializes FINE (it's a
         /// <c>Dictionary&lt;string, object?&gt;</c> subclass, so
         /// <c>JsonWriter.AppendValue</c> writes it as a plain JSON object --
@@ -1028,6 +1121,62 @@ namespace Sitrep.Host.IntegrationTests
             public static KspSnapshot Snapshot(double a, double b)
             {
                 return new KspSnapshot { Values = new Dictionary<string, object?> { ["a"] = a, ["b"] = b } };
+            }
+        }
+
+        private sealed class ThrowingSampler : ISnapshotSampler
+        {
+            public int CallCount { get; private set; }
+
+            public void Sample(KspSnapshot snapshot)
+            {
+                CallCount++;
+                throw new InvalidOperationException("boom -- sampler throws");
+            }
+        }
+
+        private sealed class ThrowingSamplerTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-throwing-sampler";
+
+            public ThrowingSampler Sampler { get; } = new ThrowingSampler();
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddSampler(Sampler);
+            }
+        }
+
+        /// <summary>A legal but hostile exception whose own Message getter throws — see <see cref="MessageGetterThrowsCommandTestExtension"/>.</summary>
+        private sealed class MessageThrowsException : Exception
+        {
+            public override string Message => throw new InvalidOperationException("boom -- Message getter itself throws");
+        }
+
+        private sealed class MessageGetterThrowsCommandTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-message-getter-throws-command";
+            public const string Command = "message.getter.throws.command";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddCommandHandler<object?, object?>(Command, _ => throw new MessageThrowsException());
             }
         }
 
