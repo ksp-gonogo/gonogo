@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
+import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
@@ -237,6 +238,170 @@ describe("TimelineStore", () => {
       // forever — it gets routed to the current frame instead.
       const result = store.sample<number>("x", staleToken);
       expect(result?.payload).toBe(2);
+    });
+  });
+
+  describe("derived channels (T3)", () => {
+    /** A trivial derived channel: sums two raw numeric inputs at the frozen viewUt. */
+    function sumChannel(spy?: () => void): DerivedChannelDefinition<{
+      sum: number;
+      viewUtSeenByA: number;
+      viewUtSeenByB: number;
+    }> {
+      return {
+        topic: "derived.sum",
+        inputs: ["a", "b"],
+        fields: true,
+        derive: (get, viewUt) => {
+          spy?.();
+          const a = get<number>("a");
+          const b = get<number>("b");
+          if (a === undefined || b === undefined) return null;
+          return {
+            sum: a.payload + b.payload,
+            viewUtSeenByA: viewUt,
+            viewUtSeenByB: viewUt,
+          };
+        },
+      };
+    }
+
+    it("registers a derived channel and reads it through sample() like any raw topic", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+      store.registerDerivedChannel(sumChannel());
+
+      store.ingest("a", point(10, 2));
+      store.ingest("b", point(10, 3));
+      store.beginFrame();
+
+      expect(store.sample<{ sum: number }>("derived.sum")?.payload.sum).toBe(5);
+    });
+
+    it("single-view-time: get() reads every input at the SAME frozen viewUt the derive call was invoked for", () => {
+      const wall = fakeWall();
+      const clock = new ViewClock({
+        nowWall: wall.now,
+        delaySeconds: () => 50,
+        warpRate: () => 1,
+      });
+      const store = new TimelineStore(clock);
+      store.registerDerivedChannel(sumChannel());
+
+      store.ingest("a", point(0, 1));
+      store.ingest("a", point(100, 2));
+      store.ingest("b", point(0, 10));
+      store.ingest("b", point(100, 20));
+      const token = store.beginFrame(); // viewUt = 100 - 50 = 50
+
+      const result = store.sample<{
+        sum: number;
+        viewUtSeenByA: number;
+        viewUtSeenByB: number;
+      }>("derived.sum", token);
+
+      expect(token.viewUt).toBe(50);
+      expect(result?.payload.viewUtSeenByA).toBe(50);
+      expect(result?.payload.viewUtSeenByB).toBe(50);
+      // At viewUt 50, both timelines are still holding their UT-0 point.
+      expect(result?.payload.sum).toBe(11);
+    });
+
+    it("fields subtopics: a '<topic>.<field>' read exposes one field off the memoized record", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+      store.registerDerivedChannel(sumChannel());
+
+      store.ingest("a", point(10, 4));
+      store.ingest("b", point(10, 5));
+      store.beginFrame();
+
+      expect(store.sample<number>("derived.sum.sum")?.payload).toBe(9);
+    });
+
+    it("missing input -> the derived value is null, not a fabricated zero", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+      store.registerDerivedChannel(sumChannel());
+
+      store.ingest("a", point(10, 4));
+      // "b" never ingested.
+      store.beginFrame();
+
+      expect(store.sample<{ sum: number }>("derived.sum")?.payload).toBeNull();
+      // A field subtopic off a null parent is also null, not undefined.
+      expect(store.sample<number>("derived.sum.sum")?.payload).toBeNull();
+    });
+
+    describe("memoization", () => {
+      it("same frame + unchanged inputs: derive runs exactly once, even across multiple reads and field subtopics", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        const computeSpy = vi.fn();
+        store.registerDerivedChannel(sumChannel(computeSpy));
+
+        store.ingest("a", point(10, 4));
+        store.ingest("b", point(10, 5));
+        const token = store.beginFrame();
+
+        store.sample("derived.sum", token);
+        store.sample("derived.sum", token);
+        store.sample("derived.sum.sum", token);
+        store.sample("derived.sum.viewUtSeenByA", token);
+
+        expect(computeSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it("a new frame recomputes, even with unchanged inputs", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        const computeSpy = vi.fn();
+        store.registerDerivedChannel(sumChannel(computeSpy));
+
+        store.ingest("a", point(10, 4));
+        store.ingest("b", point(10, 5));
+        store.beginFrame();
+        store.sample("derived.sum");
+        expect(computeSpy).toHaveBeenCalledTimes(1);
+
+        store.beginFrame(); // no new ingest at all
+        store.sample("derived.sum");
+        expect(computeSpy).toHaveBeenCalledTimes(2);
+      });
+
+      it("an input revision within the same frame does NOT retroactively change an already-memoized read (frame coherence, Defect 3)", () => {
+        const clock = new ViewClock({
+          delaySeconds: () => 0,
+          warpRate: () => 1,
+        });
+        const store = new TimelineStore(clock);
+        const computeSpy = vi.fn();
+        store.registerDerivedChannel(sumChannel(computeSpy));
+
+        store.ingest("a", point(10, 4));
+        store.ingest("b", point(10, 5));
+        const token = store.beginFrame();
+
+        const first = store.sample<{ sum: number }>("derived.sum", token);
+        expect(first?.payload.sum).toBe(9);
+
+        store.ingest("a", point(10, 100)); // mid-frame revision bump
+        const second = store.sample<{ sum: number }>("derived.sum", token);
+
+        expect(second).toBe(first); // same memoized object, not recomputed
+        expect(computeSpy).toHaveBeenCalledTimes(1);
+
+        const nextToken = store.beginFrame();
+        const third = store.sample<{ sum: number }>("derived.sum", nextToken);
+        expect(third?.payload.sum).toBe(105); // the new frame picks up the revision
+        expect(computeSpy).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });

@@ -1,3 +1,5 @@
+import type { Meta } from "@gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@gonogo/sitrep-sdk";
 import {
   ClientTimeline,
   type ClientTimelineOptions,
@@ -30,6 +32,66 @@ export interface TimelineStoreOptions {
 }
 
 /**
+ * What a `derive()` function reads inputs through (M2 design §2.1/§7.4's
+ * "single-view-time invariant"). Deliberately NOT `(topic) => value` — it
+ * returns the whole `TimelinePoint` (so `derive` can read `meta.quality`/
+ * `meta.source` for quality-picking and subject-provenance, per
+ * `vessel-state.ts`'s `deriveVesselState`), and it is always bound to one
+ * frame's frozen `viewUt` by `TimelineStore.sample`/`sampleDerived` — there
+ * is no overload that takes a UT, and no way to ask for "latest" from inside
+ * a derivation. That is what makes the invariant structural rather than a
+ * convention derive authors have to remember: `get` physically cannot read
+ * any UT but the one this derive call was invoked for. `get` also resolves
+ * derived-on-derived inputs transparently (it's just another `sample()`
+ * call), so a derived channel can list another derived channel as an input.
+ */
+export type DerivedGet = <T = unknown>(
+  topic: string,
+) => TimelinePoint<T> | undefined;
+
+export interface DerivedChannelDefinition<T> {
+  /** The topic this channel registers as, e.g. `"vessel.state"`. */
+  topic: string;
+  /**
+   * Declarative list of input topics this channel reads. Not currently used
+   * to drive subscription ref-counting (that requires wiring `TimelineStore`
+   * to `TelemetryClient`'s subscribe machinery, per M2 design §2.1 — a later
+   * task) — recorded here as the channel's own documentation of its
+   * dependencies, and reserved for that wiring.
+   */
+  inputs: string[];
+  /**
+   * Pure function: same `(get, viewUt)` inputs must produce the same output,
+   * always (the replay/scrub contract, M2 design §7.3). Return `null` for a
+   * confirmed "nothing to derive yet" (e.g. a required input is missing) —
+   * never a fabricated zero-valued record.
+   */
+  derive: (get: DerivedGet, viewUt: number) => T | null;
+  /**
+   * Expose `"<topic>.<field>"` subtopics that read a single field off the
+   * one memoized record (M2 design §2.4) — e.g. `vessel.state.altitudeAsl`.
+   * Field names are resolved dynamically off whatever `derive` returns, so
+   * no static field list is needed here.
+   */
+  fields?: boolean;
+}
+
+/** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (M2 design §4.4: "derived channels propagate the worst input staleness") is deferred to a later task — this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
+function derivedMeta(viewUt: number, epoch: number): Meta {
+  return {
+    source: "derived",
+    validAt: viewUt,
+    seq: 0,
+    deliveredAt: viewUt,
+    vantage: "derived",
+    quality: Quality.OnRails,
+    active: true,
+    staleness: Staleness.Fresh,
+    timelineEpoch: epoch,
+  };
+}
+
+/**
  * Ties per-topic `ClientTimeline`s to the one shared `ViewClock` and mints
  * the frozen `FrameToken` every read goes through.
  *
@@ -43,12 +105,18 @@ export interface TimelineStoreOptions {
  *   (canvas widgets) — pass the token from `currentFrame()` (or one you
  *   minted yourself with `beginFrame()`) explicitly.
  *
- * This is the foundation derived channels (T3), staleness consumption (T4),
- * and confirmed-vs-predicted (T5) all build on — none of that is
- * implemented here.
+ * This is the foundation derived channels (T3) build on, and that staleness
+ * consumption (T4) and confirmed-vs-predicted (T5) will build on next.
+ * Derived-channel registration (`registerDerivedChannel`) is implemented
+ * here — see `sample`/`sampleDerived` for how a derived topic is resolved
+ * and memoized through the exact same per-frame cache raw topics use.
  */
 export class TimelineStore {
   private readonly timelines = new Map<string, ClientTimeline<unknown>>();
+  private readonly derivedChannels = new Map<
+    string,
+    DerivedChannelDefinition<unknown>
+  >();
   private readonly frameListeners = new Set<() => void>();
   private currentToken: FrameToken;
   private generation = 0;
@@ -119,6 +187,25 @@ export class TimelineStore {
   }
 
   /**
+   * Register a derived channel (M2 design §2.1). From this point on,
+   * `sample(def.topic, token)` (and `useTimelineStream(store, def.topic)`,
+   * which is built on `sample`) transparently returns the memoized derived
+   * value instead of reading a raw `ClientTimeline` — callers never need to
+   * know whether a topic is raw or derived (M2 design §6: "raw-vs-derived
+   * invisible"). If `def.fields` is set, `"<topic>.<field>"` subtopics are
+   * resolved too (`resolveDerivedTopic`).
+   *
+   * Registering the same `topic` twice replaces the previous definition —
+   * useful for hot-reload/test setup, not a guarded no-op.
+   */
+  registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {
+    this.derivedChannels.set(
+      def.topic,
+      def as DerivedChannelDefinition<unknown>,
+    );
+  }
+
+  /**
    * Mint a new frozen `FrameToken` from the clock's current `viewUt()` and
    * make it `currentFrame()`'s value. Call once per animation frame / read
    * cycle (e.g. from `clock.onFrame` or a widget's own rAF loop) — never
@@ -167,11 +254,100 @@ export class TimelineStore {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
 
+    const resolved = this.resolveDerivedTopic(topic);
+    if (resolved) {
+      // Outer memoize keyed by the EXACT requested topic (parent or a field
+      // subtopic) — this is what gives a re-read within the same frame back
+      // the identical `TimelinePoint` object (referential stability for
+      // React bail-out, mirroring the raw-topic path below), on top of the
+      // inner memoize inside `sampleDerived` that keeps `derive` itself
+      // running only once per frame regardless of how many field subtopics
+      // of the same parent are read.
+      return this.memoize(effectiveToken, topic, () =>
+        this.sampleDerived<T>(resolved, effectiveToken),
+      );
+    }
+
     return this.memoize(effectiveToken, topic, () => {
       const timeline = this.timelineFor<T>(topic);
       if (timeline.epoch < this.clock.getEpoch()) return undefined;
       return timeline.at(effectiveToken.viewUt);
     });
+  }
+
+  /**
+   * `topic` is either a registered derived channel's own topic, or (when
+   * that channel opted into `fields: true`) a `"<topic>.<field>"` subtopic
+   * of one. Anything else (including a raw topic that happens to contain a
+   * dot, e.g. `"vessel.orbit"` itself) resolves to `undefined` here and
+   * falls through to the raw-timeline path in `sample()`.
+   */
+  private resolveDerivedTopic(
+    topic: string,
+  ): { def: DerivedChannelDefinition<unknown>; field?: string } | undefined {
+    const exact = this.derivedChannels.get(topic);
+    if (exact) return { def: exact };
+
+    const dot = topic.lastIndexOf(".");
+    if (dot === -1) return undefined;
+    const parentTopic = topic.slice(0, dot);
+    const field = topic.slice(dot + 1);
+    const parent = this.derivedChannels.get(parentTopic);
+    if (!parent?.fields) return undefined;
+    return { def: parent, field };
+  }
+
+  /**
+   * Compute (or reuse the frame-memoized) value for a derived channel — the
+   * SAME `memoize` seam raw `sample()` reads use, keyed by the channel's own
+   * topic so N field-subtopic reads (`vessel.state.altitudeAsl`,
+   * `vessel.state.orbitalSpeed`, …) in one frame still call `derive` exactly
+   * once (M2 design §2.3: "memoized to once per (topic, frame)"). `get`
+   * (passed to `derive`) is `sample` bound to this SAME `token` — the
+   * structural single-view-time invariant (§7.4): there is no other way for
+   * a `derive` implementation to read a UT.
+   */
+  private sampleDerived<T>(
+    resolved: { def: DerivedChannelDefinition<unknown>; field?: string },
+    token: FrameToken,
+  ): TimelinePoint<T> | undefined {
+    const { def, field } = resolved;
+
+    // Keyed distinctly from `def.topic` itself (a `\0`-prefixed key can
+    // never collide with a real topic string) — the OUTER `memoize` call in
+    // `sample()` also uses `def.topic` as its key when the parent topic
+    // (not a field subtopic) is what's requested, so sharing the same key
+    // here would let that outer wrapped `TimelinePoint` clobber this raw
+    // derive() value in the shared per-token cache.
+    const value = this.memoize(token, `\0derived\0${def.topic}`, () => {
+      const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+      return def.derive(get, token.viewUt);
+    });
+
+    if (value === null) {
+      // Confirmed absence (a required input was missing, or the channel
+      // itself returned null) — not "no point yet". Still a real point, per
+      // the tombstone model (M2 design §4): `payload: null`.
+      return {
+        validAt: token.viewUt,
+        payload: null as T,
+        meta: derivedMeta(token.viewUt, this.clock.getEpoch()),
+        epoch: this.clock.getEpoch(),
+      };
+    }
+
+    if (field && !(field in (value as object))) return undefined; // unknown field name — nothing to serve
+
+    const payload = field
+      ? ((value as Record<string, unknown>)[field] as T)
+      : (value as T);
+
+    return {
+      validAt: token.viewUt,
+      payload,
+      meta: derivedMeta(token.viewUt, this.clock.getEpoch()),
+      epoch: this.clock.getEpoch(),
+    };
   }
 
   /**
