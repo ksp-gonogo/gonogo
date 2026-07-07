@@ -50,6 +50,23 @@ namespace Gonogo.KSP
                 // dev-only BY CONVENTION: never bind it from a widget.
                 Channel(VesselViewProvider.OrbitTruthTopic),
                 Channel(VesselViewProvider.FlightTopic),
+                // ---- M1 Task 2 channels -- same pattern, same cadence;
+                // per-channel deadband/rate-clamp tuning is deferred exactly
+                // like Task 1's (see the OrbitTopic comment above).
+                Channel(VesselViewProvider.AttitudeTopic),
+                Channel(VesselViewProvider.ResourcesTopic),
+                Channel(VesselViewProvider.ThermalTopic),
+                Channel(VesselViewProvider.ControlTopic),
+                Channel(VesselViewProvider.CommsTopic),
+                Channel(VesselViewProvider.PropulsionTopic),
+                Channel(VesselViewProvider.ManeuverTopic),
+                Channel(VesselViewProvider.TargetTopic),
+                Channel(VesselViewProvider.CrewTopic),
+                Channel(VesselViewProvider.StructureTopic),
+                // time.warp -- see WarpState's doc comment for why this
+                // vessel-gated channel is still declared/registered here
+                // alongside the genuinely vessel-scoped ones.
+                Channel(VesselViewProvider.WarpTopic),
             },
         };
 
@@ -59,6 +76,17 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire);
             host.AddChannelSource(VesselViewProvider.OrbitTruthTopic, VesselViewProvider.BuildOrbitTruthWire);
             host.AddChannelSource(VesselViewProvider.FlightTopic, VesselViewProvider.BuildFlightWire);
+            host.AddChannelSource(VesselViewProvider.AttitudeTopic, VesselViewProvider.BuildAttitudeWire);
+            host.AddChannelSource(VesselViewProvider.ResourcesTopic, VesselViewProvider.BuildResourcesWire);
+            host.AddChannelSource(VesselViewProvider.ThermalTopic, VesselViewProvider.BuildThermalWire);
+            host.AddChannelSource(VesselViewProvider.ControlTopic, VesselViewProvider.BuildControlWire);
+            host.AddChannelSource(VesselViewProvider.CommsTopic, VesselViewProvider.BuildCommsWire);
+            host.AddChannelSource(VesselViewProvider.PropulsionTopic, VesselViewProvider.BuildPropulsionWire);
+            host.AddChannelSource(VesselViewProvider.ManeuverTopic, VesselViewProvider.BuildManeuverWire);
+            host.AddChannelSource(VesselViewProvider.TargetTopic, VesselViewProvider.BuildTargetWire);
+            host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
+            host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
+            host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
 
             host.AddSampler(new VesselEpochSampler(host));
         }

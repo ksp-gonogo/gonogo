@@ -442,6 +442,491 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
+        // M1 Task 2 -- remaining vessel read channels + time.warp
+        // ----------------------------------------------------------------
+
+        // ---- vessel.attitude ----
+
+        [Fact]
+        public void BuildAttitudeMapsTheOneDocumentedFrame()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                attitude: new Dictionary<string, object?> { ["pitch"] = 12.5, ["heading"] = 270.0, ["roll"] = -3.0 });
+
+            var attitude = VesselViewProvider.BuildAttitude(snapshot);
+
+            Assert.NotNull(attitude);
+            Assert.Equal(12.5, attitude!.Pitch);
+            Assert.Equal(270.0, attitude.Heading);
+            Assert.Equal(-3.0, attitude.Roll);
+            Assert.Equal("vessel:" + VesselGuid, attitude.Meta.Source);
+        }
+
+        [Fact]
+        public void BuildAttitudeReturnsNullWhenGroupIsMissingNoReferenceBodyOrTransform()
+        {
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildAttitude(snapshot));
+        }
+
+        // ---- vessel.resources ----
+
+        [Fact]
+        public void BuildResourcesMapsThreeWayAbsenceNotCarriedVsEmptyVsWholeChannelAbsent()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                resources: new Dictionary<string, object?>
+                {
+                    // Carried but currently empty -- a real, meaningful {0, >0}, never Telemachus's -1 sentinel (R-1).
+                    ["ElectricCharge"] = new Dictionary<string, object?> { ["current"] = 0.0, ["max"] = 150.0 },
+                    ["LiquidFuel"] = new Dictionary<string, object?> { ["current"] = 40.0, ["max"] = 100.0 },
+                    // "MonoPropellant" deliberately NOT included -- not-carried (structural, R-1/R-3/R-4).
+                });
+
+            var resources = VesselViewProvider.BuildResources(snapshot);
+
+            Assert.NotNull(resources);
+            Assert.Equal("vessel:" + VesselGuid, resources!.Meta.Source);
+            Assert.True(resources.Resources.ContainsKey("ElectricCharge"));
+            Assert.Equal(0.0, resources.Resources["ElectricCharge"].Current);
+            Assert.Equal(150.0, resources.Resources["ElectricCharge"].Max);
+            Assert.Equal(40.0, resources.Resources["LiquidFuel"].Current);
+            Assert.False(resources.Resources.ContainsKey("MonoPropellant")); // not-carried -> key absent, never a sentinel
+        }
+
+        [Fact]
+        public void BuildResourcesReturnsEmptyMapNotNullWhenVesselCarriesNoTrackedResourcesAtAll()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                resources: new Dictionary<string, object?>());
+
+            var resources = VesselViewProvider.BuildResources(snapshot);
+
+            Assert.NotNull(resources); // vessel present -> channel present, even though the map is empty
+            Assert.Empty(resources!.Resources);
+        }
+
+        [Fact]
+        public void BuildResourcesReturnsNullWhenNoVesselAtAll()
+        {
+            Assert.Null(VesselViewProvider.BuildResources(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+        }
+
+        // ---- vessel.thermal ----
+
+        [Fact]
+        public void BuildThermalMapsRatiosAndHottestPart()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                thermal: new Dictionary<string, object?>
+                {
+                    ["maxSkinTempRatio"] = 0.4,
+                    ["maxInternalTempRatio"] = 0.6,
+                    ["hottestPartInternalTemp"] = 500.0,
+                    ["hottestPartMaxTemp"] = 1200.0,
+                    ["hottestPartSkinTemp"] = 800.0,
+                    ["hottestPartSkinMaxTemp"] = 2400.0,
+                });
+
+            var thermal = VesselViewProvider.BuildThermal(snapshot);
+
+            Assert.NotNull(thermal);
+            Assert.Equal(0.4, thermal!.MaxSkinTempRatio);
+            Assert.Equal(0.6, thermal.MaxInternalTempRatio);
+            Assert.NotNull(thermal.HottestPart);
+            Assert.Equal(500.0, thermal.HottestPart!.InternalTemp);
+            Assert.Equal(2400.0, thermal.HottestPart.SkinMaxTemp);
+        }
+
+        [Fact]
+        public void BuildThermalLeavesRatiosNullWhenNoPartHasAValidMaxTempTypedNotZero()
+        {
+            // KspHost seeds these at -Infinity and maps that to an omitted/null
+            // key when no part qualifies -- P-5's "no valid part" case must
+            // surface as a typed null ratio, never an indistinguishable-from-
+            // real-data 0.0.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                thermal: new Dictionary<string, object?>());
+
+            var thermal = VesselViewProvider.BuildThermal(snapshot);
+
+            Assert.NotNull(thermal); // vessel HAS parts (thermal group present) -- just none with a valid maxTemp
+            Assert.Null(thermal!.MaxSkinTempRatio);
+            Assert.Null(thermal.MaxInternalTempRatio);
+            Assert.Null(thermal.HottestPart);
+        }
+
+        [Fact]
+        public void BuildThermalReturnsNullWhenVesselHasNoPartsAtAll()
+        {
+            // Distinct, coarser absence: no "thermal" group at all (KspHost's
+            // BuildThermal returns null outright when parts.Count == 0).
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildThermal(snapshot));
+        }
+
+        // ---- vessel.control ----
+
+        [Fact]
+        public void BuildControlMapsEveryFieldAndActionGroupArray()
+        {
+            var control = new Dictionary<string, object?>
+            {
+                ["sas"] = true,
+                ["sasMode"] = "Prograde",
+                ["rcs"] = false,
+                ["gear"] = true,
+                ["brakes"] = false,
+                ["lights"] = true,
+                ["throttle"] = 2.0, // V-3: deliberately unclamped -- not silently "fixed"
+            };
+            for (var i = 1; i <= 10; i++)
+            {
+                control["ag" + i] = i % 2 == 0;
+            }
+
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, control: control);
+
+            var vesselControl = VesselViewProvider.BuildControl(snapshot);
+
+            Assert.NotNull(vesselControl);
+            Assert.True(vesselControl!.Sas);
+            Assert.Equal(SasMode.Prograde, vesselControl.SasMode);
+            Assert.False(vesselControl.Rcs);
+            Assert.Equal(2.0, vesselControl.Throttle); // NOT clamped to 1.0
+            Assert.NotNull(vesselControl.ActionGroups);
+            Assert.Equal(10, vesselControl.ActionGroups!.Length);
+            Assert.False(vesselControl.ActionGroups[0]); // ag1
+            Assert.True(vesselControl.ActionGroups[1]); // ag2
+        }
+
+        [Fact]
+        public void BuildControlLeavesEveryFieldNullWhenControlGroupIsEmptyNeverASentinel()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                control: new Dictionary<string, object?>());
+
+            var control = VesselViewProvider.BuildControl(snapshot);
+
+            Assert.NotNull(control); // vessel present -> record present
+            Assert.Null(control!.Sas);
+            Assert.Null(control.SasMode);
+            Assert.Null(control.Throttle);
+            Assert.Null(control.ActionGroups);
+        }
+
+        // ---- vessel.comms ----
+
+        [Fact]
+        public void BuildCommsMapsTypedControlStateEnum()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                comms: new Dictionary<string, object?> { ["connected"] = true, ["signalStrength"] = 0.85, ["controlState"] = "Full" });
+
+            var comms = VesselViewProvider.BuildComms(snapshot);
+
+            Assert.NotNull(comms);
+            Assert.True(comms!.Connected);
+            Assert.Equal(0.85, comms.SignalStrength);
+            Assert.Equal(ControlState.Full, comms.ControlState);
+        }
+
+        [Fact]
+        public void BuildCommsReturnsNullWhenVesselHasNoConnectionNeverAFakeZeroReading()
+        {
+            // KspHost.BuildComms returns null outright when vessel.connection
+            // is null -- M-4: never a 0/0d disconnected-looking reading.
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildComms(snapshot));
+        }
+
+        // ---- vessel.propulsion ----
+
+        [Fact]
+        public void BuildPropulsionMapsMassAndThrustTheTwrInputs()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                propulsion: new Dictionary<string, object?>
+                {
+                    ["totalMass"] = 12.5,
+                    ["dryMass"] = 8.0,
+                    ["currentThrust"] = 200.0,
+                    ["availableThrust"] = 250.0,
+                });
+
+            var propulsion = VesselViewProvider.BuildPropulsion(snapshot);
+
+            Assert.NotNull(propulsion);
+            Assert.Equal(12.5, propulsion!.TotalMass);
+            Assert.Equal(8.0, propulsion.DryMass);
+            Assert.Equal(200.0, propulsion.CurrentThrust);
+            Assert.Equal(250.0, propulsion.AvailableThrust);
+        }
+
+        [Fact]
+        public void BuildPropulsionReturnsNullWhenGroupIsMissing()
+        {
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildPropulsion(snapshot));
+        }
+
+        // ---- vessel.maneuver ----
+
+        [Fact]
+        public void BuildManeuverMapsNamedDvComponentsImpossibleToMisOrder()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["ut"] = 12345.0, ["dvRadial"] = 1.0, ["dvNormal"] = 2.0, ["dvPrograde"] = 300.0, ["dvTotal"] = 300.02 },
+                });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.NotNull(maneuver);
+            var node = Assert.Single(maneuver!.Nodes);
+            Assert.Equal(12345.0, node.Ut);
+            Assert.Equal(1.0, node.DvRadial);
+            Assert.Equal(2.0, node.DvNormal);
+            Assert.Equal(300.0, node.DvPrograde);
+            Assert.Equal(300.02, node.DvTotal);
+        }
+
+        [Fact]
+        public void BuildManeuverNormalizesNullNodesListToEmptyArrayNeverNull()
+        {
+            // KspHost.BuildManeuverNodes returns null for "no nodes queued" --
+            // R2: the mapper must normalize that to [], never propagate null.
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, maneuverNodesKeyPresent: true);
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.NotNull(maneuver);
+            Assert.Empty(maneuver!.Nodes);
+        }
+
+        [Fact]
+        public void BuildManeuverNormalizesAbsentKeyToEmptyArrayToo()
+        {
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.NotNull(maneuver);
+            Assert.Empty(maneuver!.Nodes);
+        }
+
+        [Fact]
+        public void BuildManeuverReturnsNullOnlyWhenThereIsNoVesselAtAll()
+        {
+            Assert.Null(VesselViewProvider.BuildManeuver(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+        }
+
+        // ---- vessel.target ----
+
+        [Fact]
+        public void BuildTargetMapsOneVec3ShapeForVesselTarget()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Munar Relay",
+                    ["type"] = "Relay", // a VesselType-shaped string -> classified as Vessel
+                    ["relativePosition"] = new[] { 10.0, 20.0, 30.0 },
+                    ["relativeVelocity"] = new[] { 1.0, 2.0, 3.0 },
+                });
+
+            var target = VesselViewProvider.BuildTarget(snapshot);
+
+            Assert.NotNull(target);
+            Assert.Equal("Munar Relay", target!.Name);
+            Assert.Equal(TargetKind.Vessel, target.Kind);
+            Assert.Equal(10.0, target.RelativePosition!.X);
+            Assert.Equal(1.0, target.RelativeVelocity.X);
+            Assert.Null(target.Orbit);
+        }
+
+        [Fact]
+        public void BuildTargetClassifiesCelestialBodyAndOtherKinds()
+        {
+            var bodySnapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Mun",
+                    ["type"] = "CelestialBody",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+            Assert.Equal(TargetKind.Body, VesselViewProvider.BuildTarget(bodySnapshot)!.Kind);
+
+            var otherSnapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Docking Port",
+                    ["type"] = "ModuleDockingNode",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+            Assert.Equal(TargetKind.Other, VesselViewProvider.BuildTarget(otherSnapshot)!.Kind);
+        }
+
+        [Fact]
+        public void BuildTargetMapsNestedOrbitReusingVesselOrbitForSingleViewTimePropagation()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Munar Relay",
+                    ["type"] = "Relay",
+                    ["relativeVelocity"] = new[] { 1.0, 2.0, 3.0 },
+                    ["orbit"] = new Dictionary<string, object?>
+                    {
+                        ["sma"] = 800_000.0,
+                        ["ecc"] = 0.0,
+                        ["inc"] = 0.0,
+                        ["lan"] = 0.0,
+                        ["argPe"] = 0.0,
+                        ["meanAnomalyAtEpoch"] = 0.0,
+                        ["epoch"] = 0.0,
+                        ["mu"] = 3.5316e12,
+                        ["referenceBody"] = "Kerbin",
+                    },
+                },
+                bodies: KerbinAndMun());
+
+            var target = VesselViewProvider.BuildTarget(snapshot);
+
+            Assert.NotNull(target!.Orbit);
+            Assert.Equal(800_000.0, target.Orbit!.Sma);
+            Assert.Equal(1, target.Orbit.ReferenceBodyIndex);
+        }
+
+        [Fact]
+        public void BuildTargetReturnsNullWhenNothingTargetedTheCommonCase()
+        {
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildTarget(snapshot));
+        }
+
+        // ---- vessel.crew ----
+
+        [Fact]
+        public void BuildCrewMapsCount()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 3 });
+
+            var crew = VesselViewProvider.BuildCrew(snapshot);
+
+            Assert.NotNull(crew);
+            Assert.Equal(3, crew!.Count);
+        }
+
+        [Fact]
+        public void BuildCrewReturnsNullWhenNoVessel()
+        {
+            Assert.Null(VesselViewProvider.BuildCrew(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+        }
+
+        // ---- vessel.structure ----
+
+        [Fact]
+        public void BuildStructureMapsCurrentStageStageCountAndPartCount()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["currentStage"] = 2, ["stageCount"] = 5, ["partCount"] = 42 });
+
+            var structure = VesselViewProvider.BuildStructure(snapshot);
+
+            Assert.NotNull(structure);
+            Assert.Equal(2, structure!.CurrentStage);
+            Assert.Equal(5, structure.StageCount);
+            Assert.Equal(42, structure.PartCount);
+        }
+
+        [Fact]
+        public void BuildStructureLeavesStageCountAndPartCountNullWhenVesselHasNoParts()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["currentStage"] = 0 });
+
+            var structure = VesselViewProvider.BuildStructure(snapshot);
+
+            Assert.NotNull(structure);
+            Assert.Null(structure!.StageCount);
+            Assert.Null(structure.PartCount);
+        }
+
+        // ---- time.warp ----
+
+        [Fact]
+        public void BuildWarpMapsOrthogonalTypedFieldsNeverAMagicInt()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 4.0, ["warpRateIndex"] = 3, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Equal(4.0, warp!.WarpRate);
+            Assert.Equal(3, warp.WarpRateIndex);
+            Assert.Equal(WarpMode.High, warp.WarpMode);
+            Assert.False(warp.Paused);
+        }
+
+        [Fact]
+        public void BuildWarpMapsPausedOrthogonallyFromWarpMode()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "LOW", ["paused"] = true });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.True(warp!.Paused);
+            Assert.Equal(WarpMode.Low, warp.WarpMode);
+        }
+
+        [Fact]
+        public void BuildWarpReturnsNullWhenNoActiveVessel()
+        {
+            // M1 scoping choice documented on WarpState -- see its class doc
+            // comment: time.warp is gated on vessel presence for this task,
+            // even though the underlying data is genuinely global.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["time"] = new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false },
+                },
+            };
+
+            Assert.Null(VesselViewProvider.BuildWarp(snapshot));
+        }
+
+        // ----------------------------------------------------------------
         // ParseSituation -- table-driven over EVERY raw string the private
         // switch handles, so a typo'd literal (which would silently degrade
         // to Situation.Unknown) can't hide untested. Exercised through the
@@ -573,6 +1058,105 @@ namespace Sitrep.Host.Tests
             yield return new object[] { new Vec3(1, 2, 3) };
 
             yield return new object[] { meta };
+
+            // ---- M1 Task 2 POCOs ----
+
+            yield return new object[]
+            {
+                new VesselAttitude { Pitch = 12.5, Heading = 270.0, Roll = -3.0, Meta = meta },
+            };
+
+            yield return new object[]
+            {
+                new VesselResources
+                {
+                    Resources = new Dictionary<string, ResourceAmount>
+                    {
+                        ["ElectricCharge"] = new ResourceAmount { Current = 0, Max = 150 },
+                    },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new ResourceAmount { Current = 0, Max = 150 } };
+
+            yield return new object[]
+            {
+                new VesselThermal
+                {
+                    MaxSkinTempRatio = 0.4,
+                    MaxInternalTempRatio = 0.6,
+                    HottestPart = new ThermalHottestPart { InternalTemp = 500, MaxTemp = 1200, SkinTemp = 800, SkinMaxTemp = 2400 },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new ThermalHottestPart { InternalTemp = 500, MaxTemp = 1200, SkinTemp = 800, SkinMaxTemp = 2400 } };
+
+            yield return new object[]
+            {
+                new VesselControl
+                {
+                    Sas = true,
+                    SasMode = SasMode.Prograde,
+                    Rcs = false,
+                    Gear = true,
+                    Brakes = false,
+                    Lights = true,
+                    Throttle = 0.5,
+                    ActionGroups = new[] { true, false, true, false, true, false, true, false, true, false },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[]
+            {
+                new VesselComms { Connected = true, SignalStrength = 0.85, ControlState = ControlState.Full, Meta = meta },
+            };
+
+            yield return new object[]
+            {
+                new VesselPropulsion { TotalMass = 12.5, DryMass = 8.0, CurrentThrust = 200.0, AvailableThrust = 250.0, Meta = meta },
+            };
+
+            yield return new object[]
+            {
+                new VesselManeuver
+                {
+                    Nodes = new List<ManeuverNode>
+                    {
+                        new ManeuverNode { Ut = 12345.0, DvRadial = 1.0, DvNormal = 2.0, DvPrograde = 300.0, DvTotal = 300.02 },
+                    },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new ManeuverNode { Ut = 12345.0, DvRadial = 1.0, DvNormal = 2.0, DvPrograde = 300.0, DvTotal = 300.02 } };
+
+            yield return new object[]
+            {
+                new VesselTarget
+                {
+                    Name = "Munar Relay",
+                    Kind = TargetKind.Vessel,
+                    RelativePosition = new Vec3(10, 20, 30),
+                    RelativeVelocity = new Vec3(1, 2, 3),
+                    Orbit = null,
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new VesselCrew { Count = 3, Meta = meta } };
+
+            yield return new object[]
+            {
+                new VesselStructure { CurrentStage = 2, StageCount = 5, PartCount = 42, Meta = meta },
+            };
+
+            yield return new object[]
+            {
+                new WarpState { WarpRate = 4.0, WarpRateIndex = 3, WarpMode = WarpMode.High, Paused = false, Meta = meta },
+            };
         }
 
         [Theory]
@@ -624,7 +1208,18 @@ namespace Sitrep.Host.Tests
             Dictionary<string, object?>? identity = null,
             Dictionary<string, object?>? flight = null,
             Dictionary<string, object?>? orbit = null,
-            List<object?>? bodies = null)
+            List<object?>? bodies = null,
+            Dictionary<string, object?>? attitude = null,
+            Dictionary<string, object?>? resources = null,
+            Dictionary<string, object?>? thermal = null,
+            Dictionary<string, object?>? control = null,
+            Dictionary<string, object?>? comms = null,
+            Dictionary<string, object?>? propulsion = null,
+            Dictionary<string, object?>? misc = null,
+            Dictionary<string, object?>? target = null,
+            List<object?>? maneuverNodes = null,
+            bool maneuverNodesKeyPresent = false,
+            Dictionary<string, object?>? time = null)
         {
             var vessel = new Dictionary<string, object?>();
             if (identity != null)
@@ -639,11 +1234,51 @@ namespace Sitrep.Host.Tests
             {
                 vessel["orbit"] = orbit;
             }
+            if (attitude != null)
+            {
+                vessel["attitude"] = attitude;
+            }
+            if (resources != null)
+            {
+                vessel["resources"] = resources;
+            }
+            if (thermal != null)
+            {
+                vessel["thermal"] = thermal;
+            }
+            if (control != null)
+            {
+                vessel["control"] = control;
+            }
+            if (comms != null)
+            {
+                vessel["comms"] = comms;
+            }
+            if (propulsion != null)
+            {
+                vessel["propulsion"] = propulsion;
+            }
+            if (misc != null)
+            {
+                vessel["misc"] = misc;
+            }
+            if (target != null)
+            {
+                vessel["target"] = target;
+            }
+            if (maneuverNodes != null || maneuverNodesKeyPresent)
+            {
+                vessel["maneuverNodes"] = maneuverNodes;
+            }
 
             var values = new Dictionary<string, object?> { ["vessel"] = vessel };
             if (bodies != null)
             {
                 values["bodies"] = bodies;
+            }
+            if (time != null)
+            {
+                values["time"] = time;
             }
 
             return new KspSnapshot { Ut = 0.0, Values = values };

@@ -298,6 +298,162 @@ namespace Sitrep.Host.Tests
             }
         }
 
+        /// <summary>
+        /// M1 Task 2 replay validation: replays the whole real recording
+        /// through <see cref="VesselViewProvider"/>'s 11 new mappers
+        /// (attitude/resources/thermal/control/comms/propulsion/maneuver/
+        /// target/crew/structure/time.warp) and asserts each emits sane,
+        /// typed values somewhere across the session — per the build plan's
+        /// "replay-validate against the recording" requirement, with extra
+        /// weight on <c>vessel.maneuver</c> (281 snapshots per the recording
+        /// manifest) and <c>vessel.target</c> (107 snapshots) since those two
+        /// have real, non-trivial data in this specific recording. Skips
+        /// cleanly (like the tests above) when the gitignored recording is
+        /// absent.
+        /// </summary>
+        [Fact]
+        public void RealReferenceRecordingProducesTypedTask2ChannelsWithSaneValues()
+        {
+            var path = RecordingPath();
+            if (!File.Exists(path))
+            {
+                _output.WriteLine(
+                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
+                return;
+            }
+
+            var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
+            var session = RecordedSessionCodec.Parse(json);
+            var replay = new ReplayKspHost(session);
+
+            var sawAttitude = false;
+            var sawResourcesNonEmpty = false;
+            var sawThermal = false;
+            var sawControl = false;
+            var sawComms = false;
+            var sawPropulsionWithMass = false;
+            var maneuverEmissions = 0;
+            var maneuverWithNodes = 0;
+            var targetEmissions = 0;
+            var sawTargetWithOrbit = false;
+            var sawCrew = false;
+            var sawStructure = false;
+            var sawWarp = false;
+
+            while (replay.Step())
+            {
+                var snapshot = replay.Sample();
+
+                var attitude = VesselViewProvider.BuildAttitude(snapshot);
+                if (attitude != null)
+                {
+                    sawAttitude = true;
+                    Assert.StartsWith("vessel:", attitude.Meta.Source);
+                }
+
+                var resources = VesselViewProvider.BuildResources(snapshot);
+                if (resources is { Resources.Count: > 0 })
+                {
+                    sawResourcesNonEmpty = true;
+                    Assert.StartsWith("vessel:", resources.Meta.Source);
+                }
+
+                var thermal = VesselViewProvider.BuildThermal(snapshot);
+                if (thermal != null)
+                {
+                    sawThermal = true;
+                }
+
+                var control = VesselViewProvider.BuildControl(snapshot);
+                if (control != null)
+                {
+                    sawControl = true;
+                }
+
+                var comms = VesselViewProvider.BuildComms(snapshot);
+                if (comms != null)
+                {
+                    sawComms = true;
+                }
+
+                var propulsion = VesselViewProvider.BuildPropulsion(snapshot);
+                if (propulsion is { TotalMass: > 0 })
+                {
+                    sawPropulsionWithMass = true;
+                }
+
+                var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+                if (maneuver != null)
+                {
+                    maneuverEmissions++;
+                    Assert.StartsWith("vessel:", maneuver.Meta.Source);
+                    if (maneuver.Nodes.Count > 0)
+                    {
+                        maneuverWithNodes++;
+                        // Named components -- kills O-4's arg-order footgun.
+                        // Every node must be a finite, real dv breakdown.
+                        foreach (var node in maneuver.Nodes)
+                        {
+                            Assert.False(double.IsNaN(node.DvTotal));
+                        }
+                    }
+                }
+
+                var target = VesselViewProvider.BuildTarget(snapshot);
+                if (target != null)
+                {
+                    targetEmissions++;
+                    Assert.StartsWith("vessel:", target.Meta.Source);
+                    if (target.Orbit != null)
+                    {
+                        sawTargetWithOrbit = true;
+                    }
+                }
+
+                var crew = VesselViewProvider.BuildCrew(snapshot);
+                if (crew != null)
+                {
+                    sawCrew = true;
+                }
+
+                var structure = VesselViewProvider.BuildStructure(snapshot);
+                if (structure != null)
+                {
+                    sawStructure = true;
+                }
+
+                var warp = VesselViewProvider.BuildWarp(snapshot);
+                if (warp != null)
+                {
+                    sawWarp = true;
+                }
+            }
+
+            Assert.True(sawAttitude, "expected at least one vessel.attitude emission across the recording");
+            Assert.True(sawResourcesNonEmpty, "expected at least one non-empty vessel.resources emission across the recording");
+            Assert.True(sawThermal, "expected at least one vessel.thermal emission across the recording");
+            Assert.True(sawControl, "expected at least one vessel.control emission across the recording");
+            Assert.True(sawComms, "expected at least one vessel.comms emission across the recording");
+            Assert.True(sawPropulsionWithMass, "expected at least one vessel.propulsion emission with real mass across the recording");
+            Assert.True(sawCrew, "expected at least one vessel.crew emission across the recording");
+            Assert.True(sawStructure, "expected at least one vessel.structure emission across the recording");
+            Assert.True(sawWarp, "expected at least one time.warp emission across the recording");
+
+            // The recording manifest specifically calls out maneuver (281
+            // snapshots) and target (107 snapshots) as having real data --
+            // hold those two to a much stronger bar than "at least one."
+            Assert.True(maneuverEmissions > 0, "expected vessel.maneuver to emit across the recording");
+            Assert.True(maneuverWithNodes > 0, "expected at least one vessel.maneuver emission with real queued nodes (recording manifest: 281 maneuver snapshots)");
+            Assert.True(targetEmissions > 0, "expected vessel.target to emit across the recording (recording manifest: 107 target snapshots)");
+
+            _output.WriteLine(
+                $"vessel.attitude seen: {sawAttitude}, resources(non-empty): {sawResourcesNonEmpty}, thermal: {sawThermal}, " +
+                $"control: {sawControl}, comms: {sawComms}, propulsion(mass>0): {sawPropulsionWithMass}, " +
+                $"maneuver emissions: {maneuverEmissions} ({maneuverWithNodes} with queued nodes), " +
+                $"target emissions: {targetEmissions} (with orbit: {sawTargetWithOrbit}), crew: {sawCrew}, structure: {sawStructure}, warp: {sawWarp}.");
+        }
+
         [Fact]
         public void MissingRecordingFileIsSkippedNotFailed()
         {

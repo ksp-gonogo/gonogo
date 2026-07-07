@@ -57,8 +57,26 @@ namespace Sitrep.Host
         public const string OrbitTruthTopic = "vessel.orbit.truth";
         public const string FlightTopic = "vessel.flight";
 
-        /// <summary>All four M1 vessel topics — shared by <see cref="Gonogo.KSP.VesselExtension"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
-        public static readonly IReadOnlyList<string> Topics = new[] { IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic };
+        // ---- M1 Task 2 topics ----
+        public const string AttitudeTopic = "vessel.attitude";
+        public const string ResourcesTopic = "vessel.resources";
+        public const string ThermalTopic = "vessel.thermal";
+        public const string ControlTopic = "vessel.control";
+        public const string CommsTopic = "vessel.comms";
+        public const string PropulsionTopic = "vessel.propulsion";
+        public const string ManeuverTopic = "vessel.maneuver";
+        public const string TargetTopic = "vessel.target";
+        public const string CrewTopic = "vessel.crew";
+        public const string StructureTopic = "vessel.structure";
+        public const string WarpTopic = "time.warp";
+
+        /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselExtension"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
+        public static readonly IReadOnlyList<string> Topics = new[]
+        {
+            IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
+            AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, CommsTopic,
+            PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
+        };
 
         // ----------------------------------------------------------------
         // Typed mappers
@@ -127,6 +145,20 @@ namespace Sitrep.Host
                 return null;
             }
 
+            return MapOrbit(orbit, vesselId, snapshot!);
+        }
+
+        /// <summary>
+        /// The typed-mapping half of <see cref="BuildOrbit"/>, factored out
+        /// so <see cref="BuildTarget"/> can reuse the EXACT same elements
+        /// mapping for a target's orbit (<c>VesselTarget.Orbit</c> reuses
+        /// <see cref="VesselOrbit"/> itself -- see that field's doc comment
+        /// on why that reuse is load-bearing, not incidental). Returns
+        /// <c>null</c> on any missing required field, same rules as
+        /// <see cref="BuildOrbit"/>.
+        /// </summary>
+        private static VesselOrbit? MapOrbit(IDictionary<string, object?> orbit, string vesselId, KspSnapshot snapshot)
+        {
             var sma = GetDouble(orbit, "sma");
             var ecc = GetDouble(orbit, "ecc");
             var inc = GetDouble(orbit, "inc");
@@ -157,7 +189,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var referenceBodyIndex = ResolveBodyIndex(snapshot!, referenceBodyName);
+            var referenceBodyIndex = ResolveBodyIndex(snapshot, referenceBodyName);
             if (referenceBodyIndex == null)
             {
                 return null;
@@ -173,7 +205,7 @@ namespace Sitrep.Host
                     var encounterBodyName = GetString(rawEncounter, "body");
                     if (encounterBodyName != null)
                     {
-                        encounterBodyIndex = ResolveBodyIndex(snapshot!, encounterBodyName);
+                        encounterBodyIndex = ResolveBodyIndex(snapshot, encounterBodyName);
                     }
 
                     encounter = new OrbitEncounter
@@ -197,7 +229,7 @@ namespace Sitrep.Host
                 Epoch = epoch.Value,
                 Mu = mu.Value,
                 Encounter = encounter,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId, snapshot.Ut),
             };
         }
 
@@ -285,6 +317,433 @@ namespace Sitrep.Host
             };
         }
 
+        public static VesselAttitude? BuildAttitude(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "attitude", out var attitude))
+            {
+                // KspHost.BuildAttitude returns null when there's no
+                // reference body / no reference transform yet (e.g. a
+                // just-spawned EVA) -- one documented frame or nothing,
+                // never a partial/undefined-frame record (kills V-9).
+                return null;
+            }
+
+            var pitch = GetDouble(attitude, "pitch");
+            var heading = GetDouble(attitude, "heading");
+            var roll = GetDouble(attitude, "roll");
+            if (!pitch.HasValue || !heading.HasValue || !roll.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselAttitude
+            {
+                Pitch = pitch.Value,
+                Heading = heading.Value,
+                Roll = roll.Value,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselResources? BuildResources(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "resources", out var resources))
+            {
+                // No vessel data at all this tick -- distinct from the
+                // (much more common) "vessel present, carries zero tracked
+                // resources" case, which is an EMPTY map below, not a null
+                // channel (R1/R-1/R-3/R-4 -- see VesselResources' class doc
+                // comment for the full three-way absence rule).
+                return null;
+            }
+
+            var map = new Dictionary<string, ResourceAmount>();
+            foreach (var kvp in resources)
+            {
+                if (kvp.Value is not IDictionary<string, object?> raw)
+                {
+                    continue;
+                }
+
+                var current = GetDouble(raw, "current");
+                var max = GetDouble(raw, "max");
+                if (!current.HasValue || !max.HasValue)
+                {
+                    // A malformed per-resource entry is skipped, not
+                    // fabricated with a sentinel -- this key is simply
+                    // absent from the map this tick (R1(c)).
+                    continue;
+                }
+
+                map[kvp.Key] = new ResourceAmount { Current = current.Value, Max = max.Value };
+            }
+
+            return new VesselResources
+            {
+                Resources = map,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselThermal? BuildThermal(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "thermal", out var thermal))
+            {
+                // KspHost.BuildThermal returns null when the vessel
+                // currently has no parts at all -- a coarser absence than
+                // an individual null ratio (see VesselThermal's class doc
+                // comment for the two-tier distinction).
+                return null;
+            }
+
+            ThermalHottestPart? hottestPart = null;
+            var hottestInternal = GetDouble(thermal, "hottestPartInternalTemp");
+            var hottestMax = GetDouble(thermal, "hottestPartMaxTemp");
+            var hottestSkin = GetDouble(thermal, "hottestPartSkinTemp");
+            var hottestSkinMax = GetDouble(thermal, "hottestPartSkinMaxTemp");
+            if (hottestInternal.HasValue && hottestMax.HasValue && hottestSkin.HasValue && hottestSkinMax.HasValue)
+            {
+                hottestPart = new ThermalHottestPart
+                {
+                    InternalTemp = hottestInternal.Value,
+                    MaxTemp = hottestMax.Value,
+                    SkinTemp = hottestSkin.Value,
+                    SkinMaxTemp = hottestSkinMax.Value,
+                };
+            }
+
+            return new VesselThermal
+            {
+                // Individually null (never 0.0) whenever no part this tick
+                // had a valid maxTemp/skinMaxTemp to ratio against -- kills
+                // P-5's int-where-object-expected sentinel and the implied
+                // divide-by-zero risk.
+                MaxSkinTempRatio = GetDouble(thermal, "maxSkinTempRatio"),
+                MaxInternalTempRatio = GetDouble(thermal, "maxInternalTempRatio"),
+                HottestPart = hottestPart,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselControl? BuildControl(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "control", out var control))
+            {
+                return null;
+            }
+
+            bool[]? actionGroups = null;
+            var ag1 = GetBool(control, "ag1");
+            var ag2 = GetBool(control, "ag2");
+            var ag3 = GetBool(control, "ag3");
+            var ag4 = GetBool(control, "ag4");
+            var ag5 = GetBool(control, "ag5");
+            var ag6 = GetBool(control, "ag6");
+            var ag7 = GetBool(control, "ag7");
+            var ag8 = GetBool(control, "ag8");
+            var ag9 = GetBool(control, "ag9");
+            var ag10 = GetBool(control, "ag10");
+            if (ag1.HasValue && ag2.HasValue && ag3.HasValue && ag4.HasValue && ag5.HasValue &&
+                ag6.HasValue && ag7.HasValue && ag8.HasValue && ag9.HasValue && ag10.HasValue)
+            {
+                // KspHost only ever writes all ten (when actionGroups != null)
+                // or none of them -- never a partial set.
+                actionGroups = new[] { ag1.Value, ag2.Value, ag3.Value, ag4.Value, ag5.Value, ag6.Value, ag7.Value, ag8.Value, ag9.Value, ag10.Value };
+            }
+
+            return new VesselControl
+            {
+                // Every field here is individually nullable (R1(a)) -- the
+                // record itself is present whenever a vessel is, per
+                // VesselControl's class doc comment.
+                Sas = GetBool(control, "sas"),
+                SasMode = ParseSasMode(GetString(control, "sasMode")),
+                Rcs = GetBool(control, "rcs"),
+                Gear = GetBool(control, "gear"),
+                Brakes = GetBool(control, "brakes"),
+                Lights = GetBool(control, "lights"),
+                // V-3: deliberately NOT clamped to [0,1] -- see VesselControl.Throttle's doc comment.
+                Throttle = GetDouble(control, "throttle"),
+                ActionGroups = actionGroups,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselComms? BuildComms(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "comms", out var comms))
+            {
+                // KspHost.BuildComms returns null when vessel.connection is
+                // null -- the whole channel is absent (M-4: never a fake
+                // 0/0d/disconnected-looking reading).
+                return null;
+            }
+
+            var connected = GetBool(comms, "connected");
+            var signalStrength = GetDouble(comms, "signalStrength");
+            if (!connected.HasValue || !signalStrength.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselComms
+            {
+                Connected = connected.Value,
+                SignalStrength = signalStrength.Value,
+                ControlState = ParseControlState(GetString(comms, "controlState")),
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselPropulsion? BuildPropulsion(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "propulsion", out var propulsion))
+            {
+                return null;
+            }
+
+            var totalMass = GetDouble(propulsion, "totalMass");
+            var dryMass = GetDouble(propulsion, "dryMass");
+            var currentThrust = GetDouble(propulsion, "currentThrust");
+            var availableThrust = GetDouble(propulsion, "availableThrust");
+            if (!totalMass.HasValue || !dryMass.HasValue || !currentThrust.HasValue || !availableThrust.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselPropulsion
+            {
+                TotalMass = totalMass.Value,
+                DryMass = dryMass.Value,
+                CurrentThrust = currentThrust.Value,
+                AvailableThrust = availableThrust.Value,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselManeuver? BuildManeuver(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            var nodes = new List<ManeuverNode>();
+            if (vessel.TryGetValue("maneuverNodes", out var rawNodes) && rawNodes is IEnumerable<object?> list)
+            {
+                foreach (var rawNode in list)
+                {
+                    if (rawNode is not IDictionary<string, object?> node)
+                    {
+                        continue;
+                    }
+
+                    var ut = GetDouble(node, "ut");
+                    var dvRadial = GetDouble(node, "dvRadial");
+                    var dvNormal = GetDouble(node, "dvNormal");
+                    var dvPrograde = GetDouble(node, "dvPrograde");
+                    var dvTotal = GetDouble(node, "dvTotal");
+                    if (!ut.HasValue || !dvRadial.HasValue || !dvNormal.HasValue || !dvPrograde.HasValue || !dvTotal.HasValue)
+                    {
+                        continue;
+                    }
+
+                    nodes.Add(new ManeuverNode
+                    {
+                        Ut = ut.Value,
+                        DvRadial = dvRadial.Value,
+                        DvNormal = dvNormal.Value,
+                        DvPrograde = dvPrograde.Value,
+                        DvTotal = dvTotal.Value,
+                    });
+                }
+            }
+
+            // ALWAYS an array (R2) -- absent/null "maneuverNodes" (the
+            // common no-nodes-queued case) normalizes to [], never a null
+            // collection. The record itself only goes null when there's no
+            // vessel to attribute it to.
+            return new VesselManeuver
+            {
+                Nodes = nodes,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselTarget? BuildTarget(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "target", out var target))
+            {
+                // The common case -- nothing targeted. Never a sentinel
+                // zero-distance/zero-vector record (V-8/O-9).
+                return null;
+            }
+
+            var relativeVelocity = GetVec3(target, "relativeVelocity");
+            if (relativeVelocity == null)
+            {
+                // Required field missing -- a partial target record is
+                // worse than none, same convention as vessel.orbit/flight.
+                return null;
+            }
+
+            VesselOrbit? orbit = null;
+            if (TryGetGroup(target, "orbit", out var rawOrbit))
+            {
+                orbit = MapOrbit(rawOrbit, vesselId, snapshot!);
+            }
+
+            return new VesselTarget
+            {
+                Name = GetString(target, "name") ?? "",
+                Kind = ClassifyTargetKind(GetString(target, "type")),
+                // Null only when the transform data needed to compute it
+                // wasn't available this tick -- see Vec3 in the class doc
+                // comment (one canonical shape everywhere -- kills V-8).
+                RelativePosition = GetVec3(target, "relativePosition"),
+                RelativeVelocity = relativeVelocity,
+                Orbit = orbit,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselCrew? BuildCrew(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "misc", out var misc))
+            {
+                return null;
+            }
+
+            var count = GetInt(misc, "crewCount");
+            if (!count.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselCrew
+            {
+                Count = count.Value,
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        public static VesselStructure? BuildStructure(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "misc", out var misc))
+            {
+                return null;
+            }
+
+            var currentStage = GetInt(misc, "currentStage");
+            if (!currentStage.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselStructure
+            {
+                CurrentStage = currentStage.Value,
+                // Null when the vessel has no parts this tick (R1(a)) --
+                // never -1 or 0 masquerading as a real stage/part count.
+                StageCount = GetInt(misc, "stageCount"),
+                PartCount = GetInt(misc, "partCount"),
+                Meta = BuildMeta(vesselId, snapshot!.Ut),
+            };
+        }
+
+        /// <summary>
+        /// The <c>time.warp</c> channel -- see <see cref="WarpState"/>'s
+        /// class doc comment for why this is gated on active-vessel
+        /// presence (a deliberate M1 scoping simplification) even though the
+        /// underlying raw data (<c>snapshot.Values["time"]</c>) is global,
+        /// not vessel-scoped.
+        /// </summary>
+        public static WarpState? BuildWarp(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (snapshot?.Values == null || !TryGetGroup(snapshot.Values, "time", out var time))
+            {
+                return null;
+            }
+
+            var warpRate = GetDouble(time, "warpRate");
+            var warpRateIndex = GetInt(time, "warpRateIndex");
+            var paused = GetBool(time, "paused");
+            if (!warpRate.HasValue || !warpRateIndex.HasValue || !paused.HasValue)
+            {
+                return null;
+            }
+
+            return new WarpState
+            {
+                WarpRate = warpRate.Value,
+                WarpRateIndex = warpRateIndex.Value,
+                WarpMode = ParseWarpMode(GetString(time, "warpMode")),
+                Paused = paused.Value,
+                Meta = BuildMeta(vesselId, snapshot.Ut),
+            };
+        }
+
         /// <summary>
         /// The active vessel's subject id (KSP's <c>Vessel.id</c> GUID, as a
         /// string) if a vessel + its identity group are both present this
@@ -313,6 +772,39 @@ namespace Sitrep.Host
 
         public static object? BuildFlightWire(KspSnapshot? snapshot) =>
             BuildFlight(snapshot) is { } flight ? ToWire(flight) : null;
+
+        public static object? BuildAttitudeWire(KspSnapshot? snapshot) =>
+            BuildAttitude(snapshot) is { } attitude ? ToWire(attitude) : null;
+
+        public static object? BuildResourcesWire(KspSnapshot? snapshot) =>
+            BuildResources(snapshot) is { } resources ? ToWire(resources) : null;
+
+        public static object? BuildThermalWire(KspSnapshot? snapshot) =>
+            BuildThermal(snapshot) is { } thermal ? ToWire(thermal) : null;
+
+        public static object? BuildControlWire(KspSnapshot? snapshot) =>
+            BuildControl(snapshot) is { } control ? ToWire(control) : null;
+
+        public static object? BuildCommsWire(KspSnapshot? snapshot) =>
+            BuildComms(snapshot) is { } comms ? ToWire(comms) : null;
+
+        public static object? BuildPropulsionWire(KspSnapshot? snapshot) =>
+            BuildPropulsion(snapshot) is { } propulsion ? ToWire(propulsion) : null;
+
+        public static object? BuildManeuverWire(KspSnapshot? snapshot) =>
+            BuildManeuver(snapshot) is { } maneuver ? ToWire(maneuver) : null;
+
+        public static object? BuildTargetWire(KspSnapshot? snapshot) =>
+            BuildTarget(snapshot) is { } target ? ToWire(target) : null;
+
+        public static object? BuildCrewWire(KspSnapshot? snapshot) =>
+            BuildCrew(snapshot) is { } crew ? ToWire(crew) : null;
+
+        public static object? BuildStructureWire(KspSnapshot? snapshot) =>
+            BuildStructure(snapshot) is { } structure ? ToWire(structure) : null;
+
+        public static object? BuildWarpWire(KspSnapshot? snapshot) =>
+            BuildWarp(snapshot) is { } warp ? ToWire(warp) : null;
 
         private static Dictionary<string, object?> ToWire(VesselIdentity id) => new Dictionary<string, object?>
         {
@@ -376,6 +868,120 @@ namespace Sitrep.Host
             ["mach"] = flight.Mach,
             ["atmDensity"] = flight.AtmDensity,
             ["meta"] = ToWire(flight.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselAttitude attitude) => new Dictionary<string, object?>
+        {
+            ["pitch"] = attitude.Pitch,
+            ["heading"] = attitude.Heading,
+            ["roll"] = attitude.Roll,
+            ["meta"] = ToWire(attitude.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselResources resources) => new Dictionary<string, object?>
+        {
+            ["resources"] = resources.Resources.ToDictionary(kvp => kvp.Key, kvp => (object?)ToWire(kvp.Value)),
+            ["meta"] = ToWire(resources.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(ResourceAmount amount) => new Dictionary<string, object?>
+        {
+            ["current"] = amount.Current,
+            ["max"] = amount.Max,
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselThermal thermal) => new Dictionary<string, object?>
+        {
+            ["maxSkinTempRatio"] = thermal.MaxSkinTempRatio,
+            ["maxInternalTempRatio"] = thermal.MaxInternalTempRatio,
+            ["hottestPart"] = thermal.HottestPart != null ? ToWire(thermal.HottestPart) : null,
+            ["meta"] = ToWire(thermal.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(ThermalHottestPart part) => new Dictionary<string, object?>
+        {
+            ["internalTemp"] = part.InternalTemp,
+            ["maxTemp"] = part.MaxTemp,
+            ["skinTemp"] = part.SkinTemp,
+            ["skinMaxTemp"] = part.SkinMaxTemp,
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselControl control) => new Dictionary<string, object?>
+        {
+            ["sas"] = control.Sas,
+            ["sasMode"] = control.SasMode.HasValue ? (int)control.SasMode.Value : null,
+            ["rcs"] = control.Rcs,
+            ["gear"] = control.Gear,
+            ["brakes"] = control.Brakes,
+            ["lights"] = control.Lights,
+            ["throttle"] = control.Throttle,
+            ["actionGroups"] = control.ActionGroups?.Select(b => (object?)b).ToList(),
+            ["meta"] = ToWire(control.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselComms comms) => new Dictionary<string, object?>
+        {
+            ["connected"] = comms.Connected,
+            ["signalStrength"] = comms.SignalStrength,
+            ["controlState"] = (int)comms.ControlState,
+            ["meta"] = ToWire(comms.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselPropulsion propulsion) => new Dictionary<string, object?>
+        {
+            ["totalMass"] = propulsion.TotalMass,
+            ["dryMass"] = propulsion.DryMass,
+            ["currentThrust"] = propulsion.CurrentThrust,
+            ["availableThrust"] = propulsion.AvailableThrust,
+            ["meta"] = ToWire(propulsion.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselManeuver maneuver) => new Dictionary<string, object?>
+        {
+            ["nodes"] = maneuver.Nodes.Select(n => (object?)ToWire(n)).ToList(),
+            ["meta"] = ToWire(maneuver.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(ManeuverNode node) => new Dictionary<string, object?>
+        {
+            ["ut"] = node.Ut,
+            ["dvRadial"] = node.DvRadial,
+            ["dvNormal"] = node.DvNormal,
+            ["dvPrograde"] = node.DvPrograde,
+            ["dvTotal"] = node.DvTotal,
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselTarget target) => new Dictionary<string, object?>
+        {
+            ["name"] = target.Name,
+            ["kind"] = (int)target.Kind,
+            ["relativePosition"] = target.RelativePosition != null ? ToWire(target.RelativePosition) : null,
+            ["relativeVelocity"] = ToWire(target.RelativeVelocity),
+            ["orbit"] = target.Orbit != null ? ToWire(target.Orbit) : null,
+            ["meta"] = ToWire(target.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselCrew crew) => new Dictionary<string, object?>
+        {
+            ["count"] = crew.Count,
+            ["meta"] = ToWire(crew.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselStructure structure) => new Dictionary<string, object?>
+        {
+            ["currentStage"] = structure.CurrentStage,
+            ["stageCount"] = structure.StageCount,
+            ["partCount"] = structure.PartCount,
+            ["meta"] = ToWire(structure.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(WarpState warp) => new Dictionary<string, object?>
+        {
+            ["warpRate"] = warp.WarpRate,
+            ["warpRateIndex"] = warp.WarpRateIndex,
+            ["warpMode"] = (int)warp.WarpMode,
+            ["paused"] = warp.Paused,
+            ["meta"] = ToWire(warp.Meta),
         };
 
         private static Dictionary<string, object?> ToWire(Meta meta) => new Dictionary<string, object?>
@@ -510,6 +1116,49 @@ namespace Sitrep.Host
             return raw != null && Enum.TryParse<TransitionType>(raw, ignoreCase: true, out var parsed)
                 ? parsed
                 : TransitionType.Unknown;
+        }
+
+        private static SasMode? ParseSasMode(string? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            return Enum.TryParse<SasMode>(raw, ignoreCase: true, out var parsed) ? parsed : SasMode.Unknown;
+        }
+
+        private static ControlState ParseControlState(string? raw)
+        {
+            return raw != null && Enum.TryParse<ControlState>(raw, ignoreCase: true, out var parsed)
+                ? parsed
+                : ControlState.Unknown;
+        }
+
+        private static WarpMode ParseWarpMode(string? raw)
+        {
+            return raw != null && Enum.TryParse<WarpMode>(raw, ignoreCase: true, out var parsed)
+                ? parsed
+                : WarpMode.Unknown;
+        }
+
+        /// <summary>
+        /// See <see cref="TargetKind"/>'s doc comment: <c>type</c> is a
+        /// <see cref="VesselType"/>-shaped string when the target IS a
+        /// vessel, the literal <c>"CelestialBody"</c> for a body target, or
+        /// an arbitrary CLR type name for anything else (docking port,
+        /// waypoint, ...) -- collapsed to the three cases a consumer needs.
+        /// </summary>
+        private static TargetKind ClassifyTargetKind(string? raw)
+        {
+            if (raw == "CelestialBody")
+            {
+                return TargetKind.Body;
+            }
+            if (raw != null && Enum.TryParse<VesselType>(raw, ignoreCase: true, out _))
+            {
+                return TargetKind.Vessel;
+            }
+            return TargetKind.Other;
         }
 
         // Scalar readers (GetString/GetBool/GetInt/GetDouble/GetVec3) live in
