@@ -209,10 +209,26 @@ namespace Sitrep.Core
         /// expected to immediately follow this with a normal
         /// <see cref="Record"/> at the new UT so the stream resumes there
         /// for every surviving subscriber.
+        ///
+        /// ALSO resets every node's <see cref="Archive"/> (see
+        /// <see cref="Archive.ResetTimeline"/>) — dropping this method's own
+        /// pending callbacks is not enough on its own: the archive's
+        /// per-(topic, vantage) cursor is a SEPARATE piece of state that
+        /// survives a bare <see cref="IClock.Reset"/>, and its monotonic
+        /// "never rewinds" clamp (valid only within one timeline) would
+        /// otherwise keep pinning every post-reset read to the abandoned
+        /// timeline's peak, serving stale data (or, once no sample above
+        /// that pinned peak survives a prune, freezing outright) forever.
+        /// This is what makes a rewind fully clean rather than merely
+        /// stopping the wedge.
         /// </summary>
         public void ResetTimeline(double ut)
         {
             _pendingCommands.Clear();
+            foreach (var archive in _archives.Values)
+            {
+                archive.ResetTimeline(ut);
+            }
             _clock.Reset(ut);
         }
 

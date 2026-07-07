@@ -156,6 +156,52 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// C#-ONLY addition, for the timeline-reset (quickload/rewind) fix —
+        /// see <see cref="Courier.ResetTimeline"/>'s call site, which invokes
+        /// this for EVERY node's archive right before resetting the clock.
+        ///
+        /// Drops every sample recorded ahead of the new timeline
+        /// (<c>ValidAt &gt; ut</c>), for EVERY topic, and clears every
+        /// (topic, vantage) cursor outright. Both are necessary:
+        ///
+        /// <list type="bullet">
+        /// <item><description>Without dropping future samples, a subscriber
+        /// reading through <see cref="ReadAtVantage"/> after the reset can
+        /// still find (and keep re-returning) the abandoned pre-reset
+        /// timeline's LATEST sample — the "stale ghost data" defect: with
+        /// zero delay, a vantage's cursor gets pinned to the old timeline's
+        /// peak UT, and every read after a rewind to a lower UT clamps back
+        /// up to that stale peak (<c>Math.Max(rawScene, lastScene)</c>) and
+        /// finds the old high-ValidAt sample instead of anything freshly
+        /// recorded on the new timeline.</description></item>
+        /// <item><description>Dropping samples alone is not enough: the
+        /// cursor clamp itself must also be cleared, because
+        /// <see cref="ReadAtVantage"/>'s monotonic "never rewinds" guarantee
+        /// is only a valid invariant WITHIN one timeline. A cursor value
+        /// computed against the abandoned timeline (e.g. pinned to UT 100)
+        /// would otherwise keep clamping every post-reset read at UT 20 back
+        /// up to 100 even though no sample above 20 still exists after the
+        /// prune above — silently freezing the vantage forever instead of
+        /// merely serving stale data once.</description></item>
+        /// </list>
+        ///
+        /// Deliberately archive-wide (every topic, every vantage) rather than
+        /// scoped to one topic: a quickload abandons the WHOLE timeline, not
+        /// one channel's slice of it, and <see cref="Courier.ResetTimeline"/>
+        /// already resets its OWN unrelated state (pending commands, the
+        /// clock) unconditionally for the same reason.
+        /// </summary>
+        public void ResetTimeline(double ut)
+        {
+            foreach (var list in _samplesByTopic.Values)
+            {
+                list.RemoveAll(s => s.ValidAt > ut);
+            }
+
+            _cursors.Clear();
+        }
+
+        /// <summary>
         /// Capture the FULL archive state — every topic's samples plus every
         /// (topic, vantage) cursor's clamped scene — as a plain <see cref="ArchiveState"/>
         /// POCO (BCL types only; no serialization happens here). Turning this

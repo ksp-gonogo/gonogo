@@ -65,6 +65,21 @@ namespace Sitrep.Host
 
         private readonly List<ISnapshotSampler> _samplers = new List<ISnapshotSampler>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
+
+        // topic/command -> owning extension id, populated in RegisterExtension
+        // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
+        // channel loop and ProcessDispatchCommand consult _availability
+        // per-channel/per-command (see IsChannelAvailable/IsCommandAvailable)
+        // instead of only tracking availability without ever acting on it —
+        // the fail-soft half of the contract that used to be missing: a
+        // throwing Register(), or a channel mapper/command handler that
+        // throws at RUNTIME (see FailSoftChannel/FailSoftCommand), now takes
+        // the WHOLE owning extension's channels/commands inert together,
+        // rather than leaving already-registered ones live against a
+        // half-broken extension.
+        private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
+
         private string? _currentRegisteringExtensionId;
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
@@ -85,14 +100,28 @@ namespace Sitrep.Host
             _clock = new ManualClock();
             _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
             _courier = new Courier(_clock, _network);
-            _courier.SetCommandHandler((command, args, node) =>
-                _commandHandlers.TryGetValue(command, out var handler) ? handler(args) : null);
+            // Routed through InvokeCommandHandler (not a raw dictionary
+            // lookup + call) so a handler that throws on THIS delayed path —
+            // fired from the Courier thread's own clock callback, see
+            // Courier.ScheduleCommand — fail-softs its owning extension
+            // instead of unwinding out of the Courier's scheduled callback
+            // and killing the thread. See InvokeCommandHandler's doc comment.
+            _courier.SetCommandHandler((command, args, node) => InvokeCommandHandler(command, args));
             _listener = new FleckTransportListener(bindUri);
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
             _emitter = new ChannelEmitter(topic => _channelDeclarations[topic].Emission);
         }
 
+        // NOTE: every RegisterExtension call MUST happen before Start().
+        // Registration mutates plain (non-concurrent) Dictionary/List fields
+        // (_channelDeclarations, _channelSources, _commandDeclarations,
+        // _commandHandlers, _samplers, _channelOwner, _commandOwner) that the
+        // Courier thread — started by Start() — later only ever ENUMERATES,
+        // never mutates itself. That single-writer-before-start / read-only-
+        // after-start split is what makes those plain collections safe
+        // without locks; registering an extension AFTER Start() would race
+        // the Courier thread's enumeration of them with no synchronization.
         public void Start()
         {
             _courierThread.Start();
@@ -140,10 +169,12 @@ namespace Sitrep.Host
             foreach (var channel in extension.Manifest.Channels)
             {
                 _channelDeclarations[channel.Topic] = channel;
+                _channelOwner[channel.Topic] = id;
             }
             foreach (var command in extension.Manifest.Commands)
             {
                 _commandDeclarations[command.Command] = command;
+                _commandOwner[command.Command] = id;
             }
 
             _currentRegisteringExtensionId = id;
@@ -172,6 +203,14 @@ namespace Sitrep.Host
         // IExtensionHost
         // ----------------------------------------------------------------
 
+        // NOTE: called from the main thread (a registered extension calling
+        // this via its IExtensionHost during e.g. a command handler that
+        // wants "now") while _clock itself is Courier-thread-owned — a
+        // cross-thread READ of ManualClock's private double _currentUt with
+        // no lock. This is fine on any 64-bit target (this mod's only
+        // target — see the .csproj): a naturally-aligned double field read/
+        // write is atomic on x86-64/ARM64, so this can observe a slightly
+        // stale value but never a torn (half-written) one.
         double IExtensionHost.NowUt() => _clock.Now();
 
         public void AddSampler(ISnapshotSampler sampler) => _samplers.Add(sampler);
@@ -196,6 +235,16 @@ namespace Sitrep.Host
                     $"AddCommandHandler(\"{command}\") has no matching CommandDeclaration — " +
                     "declare it in the registering extension's Manifest.Commands first.");
             }
+            // The raw (TArgs)args! cast below throws InvalidCastException for
+            // any wire-shaped arg that doesn't match TArgs (EnvelopeCodec
+            // deserializes command args to a generic double/string/bool/
+            // Dictionary shape, not a typed TArgs — see EnvelopeCodec's doc
+            // comment). That throw is deliberately left as-is here (a full
+            // declared-payload-type conversion is a bigger feature, not
+            // needed to close this out); it's caught one layer up, in
+            // InvokeCommandHandler, which is the SOLE call site for every
+            // registered command handler and fail-softs just this command's
+            // owning extension instead of crashing the Courier thread.
             _commandHandlers[command] = args => handler((TArgs)args!);
         }
 
@@ -217,6 +266,89 @@ namespace Sitrep.Host
                     $"{caller}(\"{topic}\") has no matching ChannelDeclaration — " +
                     "declare it in the registering extension's Manifest.Channels first.");
             }
+        }
+
+        // ----------------------------------------------------------------
+        // Availability-gated dispatch (IMPORTANT-A) + Courier-thread
+        // exception fail-soft (CRITICAL-2) — Courier-thread-only.
+        // ----------------------------------------------------------------
+
+        /// <summary>Whether <paramref name="topic"/>'s owning extension (if tracked) is currently available — an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
+        private bool IsChannelAvailable(string topic)
+        {
+            return !_channelOwner.TryGetValue(topic, out var ownerId) || IsExtensionAvailable(ownerId);
+        }
+
+        /// <summary>Whether <paramref name="command"/>'s owning extension (if tracked) is currently available.</summary>
+        private bool IsCommandAvailable(string command)
+        {
+            return !_commandOwner.TryGetValue(command, out var ownerId) || IsExtensionAvailable(ownerId);
+        }
+
+        private bool IsExtensionAvailable(string extensionId)
+        {
+            return !_availability.TryGetValue(extensionId, out var availability) || availability.IsAvailable;
+        }
+
+        /// <summary>
+        /// The SOLE call site that actually invokes a registered command
+        /// handler — shared by <see cref="ProcessDispatchCommand"/>'s
+        /// non-delayed (ground-infrastructure) branch and the delayed path's
+        /// Courier clock-callback (wired via <see cref="Courier.SetCommandHandler"/>
+        /// in the constructor). A command whose owning extension has gone
+        /// <see cref="Availability.Unavailable"/> (whether from a throwing
+        /// <see cref="ISitrepExtension.Register"/> or a PRIOR runtime throw
+        /// caught here) is skipped entirely, matching "unknown command"
+        /// behavior. Otherwise the handler runs inside a try/catch: a
+        /// mismatched-type wire arg (<see cref="AddCommandHandler{TArgs,TResult}"/>'s
+        /// <c>(TArgs)args!</c> cast) or any other handler-author bug throws
+        /// HERE rather than unwinding onto the Courier thread — caught,
+        /// fail-softs just this command's owning extension (every other
+        /// registered channel/command is unaffected), and returns
+        /// <c>null</c> as a graceful failure result instead of propagating
+        /// and killing the thread (the CRITICAL-2 fix).
+        /// </summary>
+        private object? InvokeCommandHandler(string command, object? args)
+        {
+            if (!IsCommandAvailable(command) || !_commandHandlers.TryGetValue(command, out var handler))
+            {
+                return null;
+            }
+
+            try
+            {
+                return handler(args);
+            }
+            catch (Exception ex)
+            {
+                FailSoftCommand(command, ex);
+                return null;
+            }
+        }
+
+        private void FailSoftCommand(string command, Exception ex)
+        {
+            var reason = $"command \"{command}\" handler threw: {ex.Message}";
+            if (_commandOwner.TryGetValue(command, out var ownerId))
+            {
+                MarkExtensionUnavailable(ownerId, reason);
+            }
+            Console.Error.WriteLine("[ChannelEngine] " + reason);
+        }
+
+        private void FailSoftChannel(string topic, Exception ex)
+        {
+            var reason = $"channel \"{topic}\" mapper threw: {ex.Message}";
+            if (_channelOwner.TryGetValue(topic, out var ownerId))
+            {
+                MarkExtensionUnavailable(ownerId, reason);
+            }
+            Console.Error.WriteLine("[ChannelEngine] " + reason);
+        }
+
+        private void MarkExtensionUnavailable(string extensionId, string reason)
+        {
+            _availability[extensionId] = Availability.Unavailable(reason);
         }
 
         // ----------------------------------------------------------------
@@ -288,28 +420,46 @@ namespace Sitrep.Host
 
                 while (_jobs.TryDequeue(out var job))
                 {
-                    switch (job)
+                    // Outer safety net (CRITICAL-2): the per-channel
+                    // (ProcessTick's channel loop) and per-command
+                    // (InvokeCommandHandler) fail-soft above already catch
+                    // the specific, expected failure shapes and attribute
+                    // them to the right extension. This try/catch is the
+                    // backstop for anything else that still manages to
+                    // throw here (a bug in subscribe/unsubscribe/disconnect
+                    // bookkeeping, say) — the Courier thread must NEVER die:
+                    // a dead Courier thread wedges the WHOLE engine (every
+                    // subscriber, every channel, every command), permanently,
+                    // which is strictly worse than dropping one bad job.
+                    try
                     {
-                        case StopJob:
-                            return;
-                        case TickJob tick:
-                            ProcessTick(tick);
-                            break;
-                        case PublishJob publish:
-                            ProcessPublish(publish);
-                            break;
-                        case DispatchCommandJob dispatch:
-                            ProcessDispatchCommand(dispatch);
-                            break;
-                        case SubscribeJob subscribe:
-                            ProcessSubscribe(subscribe.Session, subscribe.Topic);
-                            break;
-                        case UnsubscribeJob unsubscribe:
-                            ProcessUnsubscribe(unsubscribe.Session, unsubscribe.Topic);
-                            break;
-                        case DisconnectJob disconnect:
-                            ProcessDisconnect(disconnect.Session);
-                            break;
+                        switch (job)
+                        {
+                            case StopJob:
+                                return;
+                            case TickJob tick:
+                                ProcessTick(tick);
+                                break;
+                            case PublishJob publish:
+                                ProcessPublish(publish);
+                                break;
+                            case DispatchCommandJob dispatch:
+                                ProcessDispatchCommand(dispatch);
+                                break;
+                            case SubscribeJob subscribe:
+                                ProcessSubscribe(subscribe.Session, subscribe.Topic);
+                                break;
+                            case UnsubscribeJob unsubscribe:
+                                ProcessUnsubscribe(unsubscribe.Session, unsubscribe.Topic);
+                                break;
+                            case DisconnectJob disconnect:
+                                ProcessDisconnect(disconnect.Session);
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine("[ChannelEngine] Courier job " + job.GetType().Name + " threw: " + ex);
                     }
                 }
             }
@@ -338,20 +488,61 @@ namespace Sitrep.Host
             {
                 foreach (var sampler in _samplers)
                 {
-                    sampler.Sample(tick.Snapshot);
+                    // CRITICAL-2: a sampler is third-party (extension) code
+                    // running on the Courier thread — an unguarded throw
+                    // here used to kill the thread. Caught + logged, and the
+                    // loop moves on to the next sampler; samplers aren't
+                    // individually attributed to an owning extension (unlike
+                    // channels/commands — see IsChannelAvailable/
+                    // IsCommandAvailable), so this is a plain fail-soft with
+                    // no availability flip.
+                    try
+                    {
+                        sampler.Sample(tick.Snapshot);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + ex.Message);
+                    }
                 }
             }
 
             foreach (var channelSource in _channelSources)
             {
                 var topic = channelSource.Key;
+                if (!IsChannelAvailable(topic))
+                {
+                    // IMPORTANT-A: the owning extension went Unavailable
+                    // (registration threw, or a PRIOR tick's mapper threw
+                    // below) — every channel it owns goes inert together,
+                    // not just the one that originally failed.
+                    continue;
+                }
+
                 var map = channelSource.Value;
                 if (!_subscriptions.IsSubscribed(topic))
                 {
                     continue;
                 }
 
-                var value = map(tick.Snapshot);
+                object? value;
+                try
+                {
+                    value = map(tick.Snapshot);
+                }
+                catch (Exception ex)
+                {
+                    // CRITICAL-2: a channel mapper is extension-authored
+                    // code; a throw here (e.g. an unexpected snapshot shape)
+                    // used to kill the Courier thread. Caught here instead:
+                    // fail-softs ONLY this channel's owning extension (see
+                    // FailSoftChannel) and skips to the NEXT channel this
+                    // same tick — every other registered channel keeps
+                    // ticking normally.
+                    FailSoftChannel(topic, ex);
+                    continue;
+                }
+
                 if (value == null)
                 {
                     // No data yet for this topic this tick (e.g. main menu,
@@ -388,10 +579,13 @@ namespace Sitrep.Host
 
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
-            if (!_commandHandlers.TryGetValue(job.Command, out var handler))
+            // IMPORTANT-A: an unknown command AND a command whose owning
+            // extension has gone Unavailable are treated identically —
+            // "unknown/unavailable command" — a future wire-level
+            // E_UNAVAILABLE response is the natural extension of this, not
+            // built here.
+            if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
             {
-                // Unknown/unavailable command — a future wire-level E_UNAVAILABLE
-                // response is the natural extension of this, not built here.
                 job.Done?.Set();
                 return;
             }
@@ -402,8 +596,12 @@ namespace Sitrep.Host
             {
                 // Ground infrastructure (e.g. kerbcast negotiate): bypasses
                 // the Courier's light-time delay model entirely — see the
-                // design doc §4.3.
-                var result = handler(job.Args);
+                // design doc §4.3. Routed through InvokeCommandHandler (the
+                // SAME funnel the delayed path uses via
+                // Courier.SetCommandHandler) so a throwing handler
+                // fail-softs its own extension instead of killing the
+                // Courier thread — the CRITICAL-2 fix.
+                var result = InvokeCommandHandler(job.Command, job.Args);
                 job.OnResult(result);
                 job.Done?.Set();
                 return;
@@ -420,7 +618,14 @@ namespace Sitrep.Host
 
         private void ProcessSubscribe(ClientSession session, string topic)
         {
-            if (!_channelSources.ContainsKey(topic) || session.Unsubscribers.ContainsKey(topic))
+            // MEDIUM-3: gate on any DECLARED channel (_channelDeclarations),
+            // not just source-backed ones (_channelSources) — a
+            // Publisher(topic)-only channel (event-driven, no
+            // AddChannelSource mapper) is a legitimate channel too, and used
+            // to be permanently unsubscribable because this check only ever
+            // recognized the pull-style half of the two ways a channel can
+            // be backed (see IExtensionHost.AddChannelSource vs. Publisher).
+            if (!_channelDeclarations.ContainsKey(topic) || session.Unsubscribers.ContainsKey(topic))
             {
                 return;
             }
@@ -488,6 +693,19 @@ namespace Sitrep.Host
             {
                 foreach (var topic in session.Unsubscribers.Keys.ToArray())
                 {
+                    // LOW-4 (cross-lane ordering): a lossy-latest sample
+                    // recorded on the OLD (now-abandoned) timeline can
+                    // already be sitting in this session's outbox — written
+                    // by a delivery that fired moments before this reset was
+                    // detected, still waiting for the independent pump
+                    // thread to drain it — and would otherwise reach the
+                    // wire AFTER the timeline-reset event below, showing
+                    // stale data. Clearing it here (before the reset event
+                    // is queued) guarantees no pre-reset frame for this
+                    // topic can drain post-reset; it's a genuine no-op if
+                    // nothing was pending.
+                    session.Outbox.ClearTopic(topic);
+
                     var reset = new EventMsg
                     {
                         Topic = topic,
@@ -758,6 +976,20 @@ namespace Sitrep.Host
             _reliable.Enqueue(payload);
             _signal.Release();
         }
+
+        /// <summary>
+        /// Courier-thread-only: drop any currently-queued (not yet pumped)
+        /// lossy-latest frame for <paramref name="topic"/> — the LOW-4
+        /// timeline-reset fix. Called from <c>ChannelEngine.BroadcastTimelineReset</c>
+        /// for every topic a session is subscribed to, right before the
+        /// reset event itself is queued, so an abandoned pre-reset frame can
+        /// never drain to the wire after that event. A genuine no-op if
+        /// nothing was queued for the topic (the common case).
+        /// </summary>
+        public void ClearTopic(string topic) => _latestByTopic.TryRemove(topic, out _);
+
+        /// <summary>Test-only: whether a lossy-latest frame is currently queued (not yet pumped) for <paramref name="topic"/>. See <see cref="ChannelEngine.AnySessionHasQueuedFrame"/>.</summary>
+        internal bool HasQueuedFrame(string topic) => _latestByTopic.ContainsKey(topic);
 
         private void PumpLoop()
         {

@@ -50,6 +50,16 @@ namespace Sitrep.Host
         public double Ut { get; set; }
 
         public Dictionary<string, object?> Values { get; set; } = new Dictionary<string, object?>();
+
+        // NOTE: a KspSnapshot handed to ChannelEngine.Tick MUST be treated as
+        // immutable once Sample() returns it. ChannelEngine hands the SAME
+        // instance to every registered ISnapshotSampler and every
+        // AddChannelSource mapper for that tick — a sampler/mapper that
+        // mutates Values in place would corrupt what every OTHER
+        // sampler/mapper sees for the same tick, and (worse) could race with
+        // whatever the caller does with its own reference after Tick()
+        // returns, since Tick() only enqueues a job — the Courier thread
+        // reads this snapshot asynchronously, on its own schedule.
     }
 
     /// <summary>

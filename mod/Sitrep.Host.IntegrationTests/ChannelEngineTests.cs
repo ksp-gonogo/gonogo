@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Sitrep.Contract;
 using Sitrep.Core;
+using Sitrep.Core.Serialization;
 using Sitrep.Host;
 using Xunit;
 
@@ -201,6 +203,339 @@ namespace Sitrep.Host.IntegrationTests
             finally
             {
                 engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL-2 (concurrency red-team, probe-verified): a wire command
+        /// whose args mismatch its handler's declared TArgs used to throw
+        /// <c>InvalidCastException</c> straight out of
+        /// <see cref="ChannelEngine.AddCommandHandler{TArgs,TResult}"/>'s
+        /// <c>(TArgs)args!</c> cast, on the Courier thread, with nothing
+        /// catching it — killing the thread and wedging the ENTIRE engine
+        /// (every subscriber, every channel, every command) permanently.
+        /// Dispatched here via the REAL socket path (a raw wire
+        /// <c>CommandRequest</c>, the same shape <c>OnMessageReceived</c>
+        /// parses in production) rather than the internal
+        /// <see cref="ChannelEngine.DispatchCommand"/> entry point, so this
+        /// proves the fix end to end from where a hostile/buggy client
+        /// input actually enters the engine.
+        /// </summary>
+        [Fact]
+        public async Task UnguardedCommandHandlerExceptionFailSoftsOnlyThatCommandAndKeepsTheCourierThreadAlive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new CrashyCommandTestExtension());
+            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "chan.a", Timeout);
+
+                // Sanity: the unrelated, healthy channel works before we do
+                // anything to the crashy one.
+                engine.TickAndWait(0.0, MultiChannelTestExtension.Snapshot(a: 1, b: 100), Timeout);
+                var before = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(1.0, Convert.ToDouble(before.Payload));
+
+                // The wire sends a raw double (5) against a handler declared
+                // for a string TArgs — exactly the InvalidCastException
+                // shape a malformed/hostile client argument produces.
+                await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r1",
+                    Command = CrashyCommandTestExtension.Command,
+                    Args = 5.0,
+                    SentAt = 0.0,
+                }));
+
+                // Pre-fix: this throws on the Courier thread and kills it —
+                // no response ever arrives, and the engine is permanently
+                // wedged (proven below). Post-fix: InvokeCommandHandler
+                // catches it, fail-softs just this command's owning
+                // extension, and the caller still gets a (graceful, null)
+                // response instead of hanging forever.
+                var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+                Assert.Equal("r1", response.RequestId);
+                Assert.Null(response.Result);
+                Assert.False(engine.AvailabilityOf(CrashyCommandTestExtension.ExtensionId).IsAvailable);
+
+                // The engine STAYS ALIVE: a subsequent tick on the
+                // completely unrelated, healthy channel still delivers
+                // normally — proof the Courier thread never died.
+                engine.TickAndWait(1.0, MultiChannelTestExtension.Snapshot(a: 2, b: 200), Timeout);
+                var after = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(2.0, Convert.ToDouble(after.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// IMPORTANT-B: the SAME fail-soft mechanism as the test above, but
+        /// with a genuinely STRUCTURED (JSON-object) wire arg — the shape
+        /// <c>EnvelopeCodec</c> parses a command's args into by default
+        /// (double/string/bool/<c>Dictionary&lt;string, object?&gt;</c> — see
+        /// its own doc comment) — mismatched against a handler declared for
+        /// a scalar <c>double</c>. Covers the "structured-args command"
+        /// shape distinctly from the scalar-vs-scalar mismatch above.
+        /// </summary>
+        [Fact]
+        public async Task StructuredWireArgsMismatchedAgainstADeclaredScalarHandlerFailSoftsInsteadOfCrashing()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new ScalarArgCommandTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r-structured",
+                    Command = ScalarArgCommandTestExtension.Command,
+                    Args = new Dictionary<string, object?> { ["x"] = 1.0, ["y"] = 2.0 },
+                    SentAt = 0.0,
+                }));
+
+                var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+                Assert.Equal("r-structured", response.RequestId);
+                Assert.Null(response.Result);
+                Assert.False(engine.AvailabilityOf(ScalarArgCommandTestExtension.ExtensionId).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// IMPORTANT-A (task-review): availability was TRACKED but never
+        /// CONSULTED — a throwing <see cref="ISitrepExtension.Register"/>
+        /// flipped <see cref="ChannelEngine.AvailabilityOf"/> but every
+        /// channel that extension had already registered (before the throw)
+        /// stayed live forever. Here the extension registers TWO channels
+        /// successfully, then throws — proving NEITHER channel ever emits
+        /// afterward (checked via <see cref="ChannelEngine.ChannelCounters"/>'s
+        /// <c>Considered</c>, since "nothing arrived on the wire" alone
+        /// doesn't distinguish this from nobody subscribing either way —
+        /// same rationale <c>ZeroSubscribersNeverReachTheEmitter...</c> in
+        /// <c>ReplayToWebSocketEndToEndTests</c> uses it for), while a
+        /// totally unrelated, healthy extension's channel is unaffected.
+        /// </summary>
+        [Fact]
+        public async Task ExtensionThatThrowsAfterRegisteringChannelsTakesBothItsChannelsInertButLeavesOthersUnaffected()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new ThrowsAfterRegisteringTwoChannelsExtension());
+            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.Start();
+            try
+            {
+                Assert.False(engine.AvailabilityOf(ThrowsAfterRegisteringTwoChannelsExtension.ExtensionId).IsAvailable);
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsExtension.Chan1, Timeout);
+                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsExtension.Chan2, Timeout);
+                await SubscribeAsync(client, "chan.a", Timeout);
+
+                var snapshot = new KspSnapshot
+                {
+                    Values = new Dictionary<string, object?>
+                    {
+                        ["chan1"] = 1.0,
+                        ["chan2"] = 2.0,
+                        ["a"] = 3.0,
+                        ["b"] = 4.0,
+                    },
+                };
+                engine.TickAndWait(0.0, snapshot, Timeout);
+
+                // NEITHER of the broken extension's channels was even
+                // considered — registration having thrown after both
+                // AddChannelSource calls succeeded takes the WHOLE
+                // extension's channels inert together.
+                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan1).Considered);
+                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan2).Considered);
+
+                // A totally unrelated, healthy extension's channel is
+                // unaffected.
+                Assert.Equal(1, engine.ChannelCounters("chan.a").Considered);
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal("chan.a", delivered.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// MEDIUM-3 (task-review): <see cref="ChannelEngine"/>'s subscribe
+        /// handler used to bail unless the topic had a pull-style
+        /// <c>AddChannelSource</c> mapper registered — a
+        /// <see cref="IExtensionHost.Publisher"/>-only (event-driven) channel
+        /// was DECLARED (in the manifest) but could never actually be
+        /// subscribed, so <see cref="IChannelPublisher.Publish"/> for it was
+        /// permanently a no-op (nobody could ever be "subscribed" to receive
+        /// it).
+        /// </summary>
+        [Fact]
+        public async Task PublisherOnlyChannelCanBeSubscribedAndPublishReachesTheSubscriber()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var extension = new PublisherOnlyTestExtension();
+            engine.RegisterExtension(extension);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await SubscribeAsync(client, PublisherOnlyTestExtension.Topic, Timeout);
+
+                // Publish an event-driven payload at UT 1, then advance the
+                // clock (an ordinary empty tick) to fire its scheduled
+                // delivery — in production the main loop is always ticking,
+                // so a publish is picked up on the next clock advance. The
+                // point this test proves is that a Publisher-only channel is
+                // now SUBSCRIBABLE at all (pre-fix ProcessSubscribe bailed on
+                // it, so Publish could never reach anyone); the delivery
+                // mechanism itself is the same Courier path every channel
+                // uses.
+                extension.Publisher!.Publish(42.0, 1.0);
+                engine.TickAndWait(1.0, null, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(PublisherOnlyTestExtension.Topic, delivered.Topic);
+                Assert.Equal(42.0, Convert.ToDouble(delivered.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        // NOTE (LOW-4): the ClearTopic lossy-lane flush that
+        // BroadcastTimelineReset performs on a rewind is proven
+        // DETERMINISTICALLY at the outbox level by
+        // Sitrep.Host.Tests.ChannelOutboxClearTopicTests (a gated connection
+        // parks the pump so the reliable-then-lossy drain ordering is
+        // asserted exactly). An engine-level version isn't a valid
+        // fail-first test: ChannelEngine builds its own outbox from the real
+        // Fleck connection, whose independent pump thread drains a queued
+        // lossy frame to the wire almost immediately — so the queued-at-reset
+        // window the fix closes can't be forced deterministically from here.
+        // The data-plane guarantee (no stale pre-rewind VALUE reaches a
+        // subscriber after a reset) is covered separately by CRITICAL-1's
+        // CourierTimelineResetTests and the wire-level
+        // ServerClockRewindResets... test.
+
+        private sealed class CrashyCommandTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-crashy-command";
+            public const string Command = "crashy.command";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddCommandHandler<string, string>(Command, args => "pong:" + args);
+            }
+        }
+
+        private sealed class ScalarArgCommandTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-scalar-arg-command";
+            public const string Command = "scalar.command";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddCommandHandler<double, double>(Command, x => x * 2);
+            }
+        }
+
+        private sealed class ThrowsAfterRegisteringTwoChannelsExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-throws-after-registering";
+            public const string Chan1 = "broken.chan1";
+            public const string Chan2 = "broken.chan2";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Chan1,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                    new ChannelDeclaration
+                    {
+                        Topic = Chan2,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Chan1, s => s != null && s.Values.TryGetValue("chan1", out var v) ? v : null);
+                host.AddChannelSource(Chan2, s => s != null && s.Values.TryGetValue("chan2", out var v) ? v : null);
+                throw new InvalidOperationException("boom -- simulated bad extension");
+            }
+        }
+
+        private sealed class PublisherOnlyTestExtension : ISitrepExtension
+        {
+            public const string Topic = "publisher.only";
+
+            public IChannelPublisher? Publisher { get; private set; }
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-publisher-only",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                Publisher = host.Publisher(Topic);
             }
         }
 
