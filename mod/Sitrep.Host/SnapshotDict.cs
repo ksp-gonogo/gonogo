@@ -49,6 +49,16 @@ namespace Sitrep.Host
         /// <see cref="ReplayKspHost"/> snapshot always carries <c>double</c>.
         /// Returns <c>null</c> -- never a sentinel like <c>-1</c> -- when the
         /// key is absent or explicitly <c>null</c>.
+        ///
+        /// <para><b>Fix E (R1/F-1, mirrors <see cref="GetDouble"/>):</b> a
+        /// <c>double</c>/<c>float</c> source that is <c>NaN</c>/<c>Infinity</c>
+        /// is ALSO treated as absent, never cast through to a fabricated
+        /// integer. Before this guard, an unchecked <c>(int)d</c> conversion
+        /// silently produced <c>0</c> for <c>NaN</c> and <c>int.MaxValue</c>/
+        /// <c>int.MinValue</c> for +/-<c>Infinity</c> -- reachable via a
+        /// replay decode of a literal <c>"NaN"</c>/<c>"Infinity"</c> string
+        /// landing in an integral field. <c>int</c>/<c>long</c> sources are
+        /// always finite by construction and never hit this branch.</para>
         /// </summary>
         public static int? GetInt(IDictionary<string, object?> raw, string key)
         {
@@ -61,8 +71,8 @@ namespace Sitrep.Host
             {
                 int i => i,
                 long l => (int)l,
-                double d => (int)d,
-                float f => (int)f,
+                double d => IsFinite(d) ? (int)d : (int?)null,
+                float f => IsFinite(f) ? (int)f : (int?)null,
                 _ => (int?)null,
             };
         }

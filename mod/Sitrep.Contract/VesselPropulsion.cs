@@ -31,5 +31,5 @@ public class VesselPropulsion
 
     public double AvailableThrust { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

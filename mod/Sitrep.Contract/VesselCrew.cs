@@ -19,5 +19,5 @@ public class VesselCrew
 {
     public int Count { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

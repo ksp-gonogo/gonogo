@@ -44,5 +44,5 @@ public class VesselFlight
 
     public double AtmDensity { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

@@ -60,5 +60,5 @@ public class WarpState
 
     public bool Paused { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

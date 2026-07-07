@@ -69,5 +69,5 @@ public class VesselTarget
     /// <summary>Null when the target has no orbit (e.g. it's landed, or its orbit couldn't be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

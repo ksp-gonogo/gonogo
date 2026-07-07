@@ -91,7 +91,9 @@ namespace Sitrep.Host.Tests
             Assert.Equal(100.0, identity.LaunchUt); // sampleUt(140) - missionTime(40)
             Assert.Equal("vessel:" + VesselGuid, identity.Meta.Source);
             Assert.Equal(Quality.OnRails, identity.Meta.Quality);
-            Assert.Equal(140.0, identity.Meta.ValidAt);
+            // NOTE: no ValidAt assertion here (Fix C) -- PayloadMeta no
+            // longer carries it at all; see the dedicated "payload meta is
+            // slim" tests below for the positive/negative proof.
         }
 
         [Fact]
@@ -210,6 +212,90 @@ namespace Sitrep.Host.Tests
             Assert.Equal(TransitionType.Encounter, orbit.Encounter!.TransitionType);
             Assert.Equal(12345.0, orbit.Encounter.TransitionUt);
             Assert.Equal(2, orbit.Encounter.BodyIndex); // Mun resolved
+        }
+
+        [Fact]
+        public void BuildOrbitMapsAPresentEscapeEncounterToATypedRecordToo()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.01,
+                    ["inc"] = 0.0,
+                    ["lan"] = 0.0,
+                    ["argPe"] = 0.0,
+                    ["meanAnomalyAtEpoch"] = 0.0,
+                    ["epoch"] = 0.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    ["encounter"] = new Dictionary<string, object?>
+                    {
+                        ["transitionType"] = "ESCAPE",
+                        ["transitionUt"] = 54321.0,
+                        ["body"] = "Kerbin",
+                    },
+                },
+                bodies: KerbinAndMun());
+
+            var orbit = VesselViewProvider.BuildOrbit(snapshot);
+
+            Assert.NotNull(orbit!.Encounter);
+            Assert.Equal(TransitionType.Escape, orbit.Encounter!.TransitionType);
+        }
+
+        // ---- Fix A (O-9 reproduced): KSP's own nextPatch is routinely
+        // non-null but INACTIVE, or ends the current patch in a FINAL/
+        // INITIAL transition rather than a genuine SOI change -- neither is
+        // a real upcoming encounter/escape. Gonogo.KSP.KspHost gates the raw
+        // capture on nextPatch.activePatch + transitionType in
+        // {ENCOUNTER,ESCAPE} (layer 1); this defensive backstop (layer 2)
+        // means even an ALREADY-RECORDED phantom payload (captured before
+        // that fix existed -- exactly what the real reference recording
+        // contains, 809/816 orbit samples) maps to encounter:null on
+        // replay too, never a fabricated transition. ----
+
+        [Theory]
+        [InlineData("FINAL")]
+        [InlineData("INITIAL")]
+        public void BuildOrbitRejectsAPhantomEncounterFromAnInactiveOrNonTransitionPatch(string transitionType)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.01,
+                    ["inc"] = 0.0,
+                    ["lan"] = 0.0,
+                    ["argPe"] = 0.0,
+                    ["meanAnomalyAtEpoch"] = 0.0,
+                    ["epoch"] = 0.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    // Exactly the raw shape KspHost captured for the 809/816
+                    // phantom orbit samples in the real reference recording --
+                    // a finite transitionUt and a real-looking body, but a
+                    // FINAL/INITIAL transitionType (never a genuine encounter).
+                    ["encounter"] = new Dictionary<string, object?>
+                    {
+                        ["transitionType"] = transitionType,
+                        ["transitionUt"] = 99999.0,
+                        ["body"] = (string?)null,
+                    },
+                },
+                bodies: KerbinAndMun());
+
+            var orbit = VesselViewProvider.BuildOrbit(snapshot);
+
+            Assert.NotNull(orbit);
+            Assert.Null(orbit!.Encounter);
+
+            // Prove it on the real wire path too, not just the typed record.
+            var wire = VesselViewProvider.BuildOrbitWire(snapshot);
+            Assert.IsType<Dictionary<string, object?>>(wire);
+            Assert.Null(((Dictionary<string, object?>)wire!)["encounter"]);
         }
 
         [Fact]
@@ -735,6 +821,54 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildManeuver(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
         }
 
+        // ---- Fix F: a non-finite dv component must never silently drop the
+        // WHOLE node -- only that one component goes null, the rest (and the
+        // node itself) are preserved. ----
+
+        [Fact]
+        public void BuildManeuverPreservesANodeWithANonFiniteDvComponentInsteadOfDroppingIt()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["ut"] = 12345.0, ["dvRadial"] = 1.0, ["dvNormal"] = double.NaN, ["dvPrograde"] = 300.0, ["dvTotal"] = 300.02 },
+                });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.NotNull(maneuver);
+            // Before the fix, GetDouble("dvNormal") mapping to null caused
+            // the WHOLE node to be filtered out by the old "all dv fields
+            // required" guard -- Nodes would be empty here.
+            var node = Assert.Single(maneuver!.Nodes);
+            Assert.Equal(12345.0, node.Ut);
+            Assert.Equal(1.0, node.DvRadial);
+            Assert.Null(node.DvNormal); // the non-finite component -> null, never NaN, never a dropped node
+            Assert.Equal(300.0, node.DvPrograde);
+            Assert.Equal(300.02, node.DvTotal);
+        }
+
+        [Fact]
+        public void BuildManeuverStillDropsANodeMissingItsRequiredUt()
+        {
+            // Ut is the one field a node can't do without -- it's the whole
+            // reason the node exists (when to burn). Every dv component is
+            // now individually optional (Fix F), but Ut alone remains fatal
+            // to the node, same as before.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["dvRadial"] = 1.0, ["dvNormal"] = 2.0, ["dvPrograde"] = 300.0, ["dvTotal"] = 300.02 },
+                });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.NotNull(maneuver);
+            Assert.Empty(maneuver!.Nodes);
+        }
+
         // ---- vessel.target ----
 
         [Fact]
@@ -934,7 +1068,8 @@ namespace Sitrep.Host.Tests
 
             Assert.NotNull(warp);
             Assert.Equal(1.0, warp!.WarpRate);
-            Assert.Equal(42.0, warp.Meta.ValidAt);
+            // NOTE: no ValidAt assertion here (Fix C) -- PayloadMeta no
+            // longer carries it; see the "payload meta is slim" tests below.
             // Not "vessel:<guid>" -- there is no vessel to attribute this to,
             // and the channel must not pretend otherwise.
             Assert.Equal("game", warp.Meta.Source);
@@ -997,17 +1132,14 @@ namespace Sitrep.Host.Tests
 
         public static IEnumerable<object[]> PocoToWireFixtures()
         {
-            var meta = new Meta
+            // PayloadMeta (Fix C), not the full envelope Meta -- these are
+            // PAYLOAD POCOs (VesselOrbit.Meta etc.), which only ever carry
+            // source+quality; seq/deliveredAt/vantage/validAt live solely on
+            // the envelope Meta Sitrep.Core.Courier stamps.
+            var meta = new PayloadMeta
             {
                 Source = "vessel:" + VesselGuid,
-                ValidAt = 100.0,
-                Seq = 7,
-                DeliveredAt = 101.0,
-                Vantage = "host",
                 Quality = Quality.Loaded,
-                Active = true,
-                Staleness = Staleness.HeldStale,
-                Confidence = 0.5,
             };
 
             yield return new object[]
@@ -1214,6 +1346,64 @@ namespace Sitrep.Host.Tests
                     wire!.ContainsKey(wireKey),
                     $"{pocoType.Name}.{property.Name} has no corresponding \"{wireKey}\" key in ToWire's output -- a POCO field was added without wiring it onto the wire.");
             }
+        }
+
+        // ----------------------------------------------------------------
+        // Fix C: payload meta is slim -- source/quality only, never a
+        // fabricated duplicate of the ENVELOPE meta's real
+        // seq/deliveredAt/vantage/validAt (those are stamped once, for
+        // real, by Sitrep.Core.Courier.MakeMeta onto StreamData<T>.Meta).
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void PayloadMetaWireShapeCarriesOnlySourceAndQualityNeverEnvelopeDuplicateFields()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid, ["name"] = "Kerbal X", ["vesselType"] = "Ship", ["situation"] = "ORBITING" });
+
+            var wire = VesselViewProvider.BuildIdentityWire(snapshot);
+            var wireDict = Assert.IsType<Dictionary<string, object?>>(wire);
+            var metaDict = Assert.IsType<Dictionary<string, object?>>(wireDict["meta"]);
+
+            Assert.True(metaDict.ContainsKey("source"));
+            Assert.Equal("vessel:" + VesselGuid, metaDict["source"]);
+            Assert.True(metaDict.ContainsKey("quality"));
+
+            // Before Fix C these four were always present, fabricated as
+            // 0/""/0/"" every time (dead duplicates of the real values the
+            // envelope alone stamps).
+            Assert.False(metaDict.ContainsKey("seq"), "payload meta must not fabricate a duplicate of the envelope's real seq");
+            Assert.False(metaDict.ContainsKey("deliveredAt"), "payload meta must not fabricate a duplicate of the envelope's real deliveredAt");
+            Assert.False(metaDict.ContainsKey("vantage"), "payload meta must not fabricate a duplicate of the envelope's real vantage");
+            Assert.False(metaDict.ContainsKey("validAt"), "payload meta must not fabricate a duplicate of the envelope's real validAt");
+        }
+
+        [Fact]
+        public void PayloadMetaHasNoValidAtEvenAtTheNowUtSentinelZero()
+        {
+            // KspHost.NowUt() returns 0 as a fallback sentinel when
+            // Planetarium.GetUniversalTime() throws -- e.g. at the main
+            // menu, before any save is loaded (KspHost.cs:79-83). Before
+            // Fix C that 0 leaked onto EVERY payload's own meta as a
+            // fabricated "validAt":0; PayloadMeta doesn't carry the field
+            // at all now, so there's nothing left for the sentinel to leak
+            // into. Uses time.warp (BuildWarp), the one channel that
+            // legitimately emits with snapshot.Ut == 0 and no active vessel.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["time"] = new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false },
+                },
+            };
+
+            var wire = VesselViewProvider.BuildWarpWire(snapshot);
+            var wireDict = Assert.IsType<Dictionary<string, object?>>(wire);
+            var metaDict = Assert.IsType<Dictionary<string, object?>>(wireDict["meta"]);
+
+            Assert.False(metaDict.ContainsKey("validAt"));
+            Assert.Equal("game", metaDict["source"]);
         }
 
         // ----------------------------------------------------------------

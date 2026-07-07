@@ -271,12 +271,32 @@ namespace Gonogo.KSP
         /// parent-body-relative, matching every other vector in this
         /// dictionary.</para>
         ///
-        /// <para><b>Encounter (G-9):</b> <c>nextPatch</c> is null whenever
-        /// there's no upcoming SOI transition on the current trajectory (the
-        /// overwhelmingly common case) - <c>encounter</c> is null then too,
-        /// never a sentinel. When present, <c>transitionType</c> is
-        /// <c>orbit.patchEndTransition</c> (ENCOUNTER/ESCAPE/etc.) and
-        /// <c>body</c> is the body of the patch being transitioned INTO.</para>
+        /// <para><b>Encounter (G-9, fixed - see the M1 Task 4 wart-fix
+        /// report):</b> <c>nextPatch</c> is routinely non-null WITHOUT there
+        /// being a genuine upcoming SOI transition - KSP leaves a stale/
+        /// inactive patch attached in the common case, which the ORIGINAL
+        /// (buggy) version of this method reported as a fabricated encounter
+        /// on essentially every tick (809/816 orbit samples in the M1
+        /// reference recording, transitionType <c>FINAL</c> every time - never
+        /// a real encounter or escape). Fixed by requiring BOTH
+        /// <c>nextPatch.activePatch</c> (the patch is actually part of the
+        /// currently active patched-conics solution, not a leftover/
+        /// beyond-the-conics-patch-limit one - mirrors the old Telemachus
+        /// fork's <c>OrbitPatches.getPatchesForOrbit</c>, which walks the
+        /// <c>nextPatch</c> chain only <c>while (activePatch)</c>) AND
+        /// <c>orbit.patchEndTransition</c> being genuinely <c>ENCOUNTER</c> or
+        /// <c>ESCAPE</c> (never <c>FINAL</c>/<c>INITIAL</c>/<c>MANEUVER</c>/
+        /// <c>COLLISION</c>). Confirmed via decompile:
+        /// <c>Orbit.activePatch</c> is a plain <c>bool</c> field on the patch
+        /// itself (read off <c>nextPatch</c>, not the current <c>orbit</c>).
+        /// <c>encounter</c> is null whenever either condition fails - never a
+        /// sentinel. When present, <c>transitionType</c> is
+        /// <c>orbit.patchEndTransition</c> and <c>body</c> is the body of the
+        /// patch being transitioned INTO.
+        /// <see cref="Sitrep.Host.VesselViewProvider.MapOrbit"/> applies the
+        /// SAME transitionType restriction defensively on the mapping side,
+        /// so even a payload recorded before this fix existed maps to a null
+        /// encounter on replay.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildOrbit(Orbit? orbit)
         {
@@ -291,12 +311,14 @@ namespace Gonogo.KSP
 
             Dictionary<string, object?>? encounter = null;
             var nextPatch = orbit.nextPatch;
-            if (nextPatch != null)
+            var transition = orbit.patchEndTransition;
+            if (nextPatch != null && nextPatch.activePatch &&
+                (transition == Orbit.PatchTransitionType.ENCOUNTER || transition == Orbit.PatchTransitionType.ESCAPE))
             {
                 var encounterBody = nextPatch.referenceBody;
                 encounter = new Dictionary<string, object?>
                 {
-                    ["transitionType"] = orbit.patchEndTransition.ToString(),
+                    ["transitionType"] = transition.ToString(),
                     ["transitionUt"] = orbit.EndUT,
                     ["body"] = encounterBody != null ? encounterBody.bodyName : null,
                 };

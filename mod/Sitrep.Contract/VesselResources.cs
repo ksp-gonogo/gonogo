@@ -55,5 +55,5 @@ public class VesselResources
 {
     public Dictionary<string, ResourceAmount> Resources { get; set; } = new();
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

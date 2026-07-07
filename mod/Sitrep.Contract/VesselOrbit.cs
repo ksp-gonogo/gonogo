@@ -53,7 +53,7 @@ public class VesselOrbit
     /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case) — NEVER a sentinel (kills O-9).</summary>
     public OrbitEncounter? Encounter { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>One upcoming SOI patch transition — see <see cref="VesselOrbit.Encounter"/>.</summary>

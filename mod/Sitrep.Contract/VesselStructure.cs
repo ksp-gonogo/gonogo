@@ -30,5 +30,5 @@ public class VesselStructure
     /// <summary>Null when the vessel has no parts this tick.</summary>
     public int? PartCount { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

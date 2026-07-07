@@ -299,6 +299,87 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// Fix A (O-9 reproduced): this real recording was captured BEFORE
+        /// the phantom-encounter fix existed, so its raw
+        /// <c>vessel.orbit.encounter</c> sub-dicts are exactly the buggy
+        /// payloads the old <c>KspHost</c> produced -- 809 of its 816
+        /// orbit-bearing snapshots carry a non-null raw "encounter" whose
+        /// <c>transitionType</c> is <c>FINAL</c> (KSP's own <c>nextPatch</c>
+        /// was non-null but never an active, genuine upcoming SOI
+        /// transition). <see cref="VesselViewProvider.MapOrbit"/>'s
+        /// defensive layer-2 filter (gating on <c>transitionType</c> ∈
+        /// {Encounter, Escape}) must reject every one of them on replay,
+        /// even though the raw recording itself is unchanged and still
+        /// carries the fabricated data.
+        /// </summary>
+        [Fact]
+        public void RealReferenceRecordingOrbitSamplesRejectEveryPhantomInactivePatchEncounter()
+        {
+            var path = RecordingPath();
+            if (!File.Exists(path))
+            {
+                _output.WriteLine(
+                    $"SKIPPING: reference recording not found at \"{path}\" — it is a gitignored " +
+                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
+                return;
+            }
+
+            var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
+            var session = RecordedSessionCodec.Parse(json);
+            var replay = new ReplayKspHost(session);
+
+            var rawOrbitWithEncounterCount = 0;
+            var rawPhantomEncounterCount = 0; // raw transitionType FINAL/INITIAL
+            var typedNonNullEncounterCount = 0;
+            var typedNonNullEncounterDespitePhantomRawCount = 0;
+
+            while (replay.Step())
+            {
+                var snapshot = replay.Sample();
+
+                if (snapshot.Values.TryGetValue("vessel", out var vesselRaw) &&
+                    vesselRaw is IDictionary<string, object?> vesselDict &&
+                    vesselDict.TryGetValue("orbit", out var orbitRaw) &&
+                    orbitRaw is IDictionary<string, object?> orbitDict &&
+                    orbitDict.TryGetValue("encounter", out var encounterRaw) &&
+                    encounterRaw is IDictionary<string, object?> encounterDict)
+                {
+                    rawOrbitWithEncounterCount++;
+                    var rawTransitionType = encounterDict.TryGetValue("transitionType", out var tt) ? tt as string : null;
+                    var isPhantom = rawTransitionType == "FINAL" || rawTransitionType == "INITIAL";
+                    if (isPhantom)
+                    {
+                        rawPhantomEncounterCount++;
+                    }
+
+                    var orbit = VesselViewProvider.BuildOrbit(snapshot);
+                    if (orbit?.Encounter != null)
+                    {
+                        typedNonNullEncounterCount++;
+                        if (isPhantom)
+                        {
+                            typedNonNullEncounterDespitePhantomRawCount++;
+                        }
+                    }
+                }
+            }
+
+            _output.WriteLine(
+                $"Raw orbit-with-encounter samples: {rawOrbitWithEncounterCount}, phantom (FINAL/INITIAL): {rawPhantomEncounterCount}, " +
+                $"typed non-null Encounter after the fix: {typedNonNullEncounterCount}.");
+
+            // Pins the exact wart-audit numbers for this recording (809/816)
+            // so this test can't silently pass against a differently-shaped
+            // future recording without anyone noticing the ballpark moved.
+            Assert.True(rawOrbitWithEncounterCount >= 800, $"expected ~816 raw orbit-with-encounter samples, found {rawOrbitWithEncounterCount}");
+            Assert.True(rawPhantomEncounterCount >= 800, $"expected ~809 phantom (FINAL/INITIAL) raw encounters, found {rawPhantomEncounterCount}");
+
+            // The fix: not one phantom raw encounter may surface as a typed,
+            // non-null Encounter -- they must all map to null.
+            Assert.Equal(0, typedNonNullEncounterDespitePhantomRawCount);
+        }
+
+        /// <summary>
         /// M1 Task 2 replay validation: replays the whole real recording
         /// through <see cref="VesselViewProvider"/>'s 11 new mappers
         /// (attitude/resources/thermal/control/comms/propulsion/maneuver/
@@ -392,10 +473,13 @@ namespace Sitrep.Host.Tests
                     {
                         maneuverWithNodes++;
                         // Named components -- kills O-4's arg-order footgun.
-                        // Every node must be a finite, real dv breakdown.
+                        // Dv components are individually nullable (Fix F) --
+                        // a non-finite one maps to null (GetDouble's R1/F-1
+                        // rule), never a NaN/Infinity leaking through, and
+                        // never drops the whole node.
                         foreach (var node in maneuver.Nodes)
                         {
-                            Assert.False(double.IsNaN(node.DvTotal));
+                            Assert.False(node.DvTotal.HasValue && double.IsNaN(node.DvTotal.Value));
                         }
                     }
                 }

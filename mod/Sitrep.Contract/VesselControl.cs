@@ -71,5 +71,5 @@ public class VesselControl
     /// <summary>[ag1..ag10], in that fixed order. Null when action-group data wasn't available this tick (never a partial/short array).</summary>
     public bool[]? ActionGroups { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

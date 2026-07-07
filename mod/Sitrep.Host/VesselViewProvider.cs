@@ -124,7 +124,7 @@ namespace Sitrep.Host
                 Situation = ParseSituation(GetString(identity, "situation")),
                 ParentBodyIndex = parentBodyIndex,
                 LaunchUt = launchUt,
-                Meta = BuildMeta(vesselId!, snapshot!.Ut),
+                Meta = BuildMeta(vesselId!),
             };
         }
 
@@ -198,8 +198,18 @@ namespace Sitrep.Host
             OrbitEncounter? encounter = null;
             if (TryGetGroup(orbit, "encounter", out var rawEncounter))
             {
+                var transitionType = ParseTransitionType(GetString(rawEncounter, "transitionType"));
                 var transitionUt = GetDouble(rawEncounter, "transitionUt");
-                if (transitionUt.HasValue)
+                // Fix A (O-9 reproduced) defensive backstop: KspHost.BuildOrbit
+                // now gates the RAW capture on nextPatch.activePatch +
+                // transitionType in {ENCOUNTER,ESCAPE} (see its doc comment),
+                // but this mapper applies the SAME transitionType restriction
+                // again here so an ALREADY-RECORDED phantom payload (captured
+                // before that fix existed - e.g. the 809/816 FINAL-transition
+                // orbit samples in the M1 reference recording) still maps to
+                // a null encounter on replay, not a fabricated one.
+                if (transitionUt.HasValue &&
+                    (transitionType == TransitionType.Encounter || transitionType == TransitionType.Escape))
                 {
                     int? encounterBodyIndex = null;
                     var encounterBodyName = GetString(rawEncounter, "body");
@@ -210,7 +220,7 @@ namespace Sitrep.Host
 
                     encounter = new OrbitEncounter
                     {
-                        TransitionType = ParseTransitionType(GetString(rawEncounter, "transitionType")),
+                        TransitionType = transitionType,
                         TransitionUt = transitionUt.Value,
                         BodyIndex = encounterBodyIndex,
                     };
@@ -229,7 +239,7 @@ namespace Sitrep.Host
                 Epoch = epoch.Value,
                 Mu = mu.Value,
                 Encounter = encounter,
-                Meta = BuildMeta(vesselId, snapshot.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -260,7 +270,7 @@ namespace Sitrep.Host
                 Position = position,
                 Velocity = velocity,
                 FrameRotating = frameRotating.Value,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -313,7 +323,7 @@ namespace Sitrep.Host
                 DynamicPressureKPa = dynamicPressure.Value,
                 Mach = mach.Value,
                 AtmDensity = atmDensity.Value,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -347,7 +357,7 @@ namespace Sitrep.Host
                 Pitch = pitch.Value,
                 Heading = heading.Value,
                 Roll = roll.Value,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -393,7 +403,7 @@ namespace Sitrep.Host
             return new VesselResources
             {
                 Resources = map,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -439,7 +449,7 @@ namespace Sitrep.Host
                 MaxSkinTempRatio = GetDouble(thermal, "maxSkinTempRatio"),
                 MaxInternalTempRatio = GetDouble(thermal, "maxInternalTempRatio"),
                 HottestPart = hottestPart,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -489,7 +499,7 @@ namespace Sitrep.Host
                 // V-3: deliberately NOT clamped to [0,1] -- see VesselControl.Throttle's doc comment.
                 Throttle = GetDouble(control, "throttle"),
                 ActionGroups = actionGroups,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -521,7 +531,7 @@ namespace Sitrep.Host
                 Connected = connected.Value,
                 SignalStrength = signalStrength.Value,
                 ControlState = ParseControlState(GetString(comms, "controlState")),
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -553,7 +563,7 @@ namespace Sitrep.Host
                 DryMass = dryMass.Value,
                 CurrentThrust = currentThrust.Value,
                 AvailableThrust = availableThrust.Value,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -576,22 +586,27 @@ namespace Sitrep.Host
                     }
 
                     var ut = GetDouble(node, "ut");
-                    var dvRadial = GetDouble(node, "dvRadial");
-                    var dvNormal = GetDouble(node, "dvNormal");
-                    var dvPrograde = GetDouble(node, "dvPrograde");
-                    var dvTotal = GetDouble(node, "dvTotal");
-                    if (!ut.HasValue || !dvRadial.HasValue || !dvNormal.HasValue || !dvPrograde.HasValue || !dvTotal.HasValue)
+                    if (!ut.HasValue)
                     {
+                        // Ut is the one field a node can't do without -- it's
+                        // the whole reason the node exists (when to burn).
+                        // Fix F: every dv component below is now individually
+                        // optional (a non-finite one maps to null via
+                        // GetDouble's R1/F-1 rule) -- ONLY a missing/non-finite
+                        // Ut is still fatal to the whole node, never a dv
+                        // component alone (a non-finite dv used to silently
+                        // drop the entire node, understating how many burns
+                        // were actually queued).
                         continue;
                     }
 
                     nodes.Add(new ManeuverNode
                     {
                         Ut = ut.Value,
-                        DvRadial = dvRadial.Value,
-                        DvNormal = dvNormal.Value,
-                        DvPrograde = dvPrograde.Value,
-                        DvTotal = dvTotal.Value,
+                        DvRadial = GetDouble(node, "dvRadial"),
+                        DvNormal = GetDouble(node, "dvNormal"),
+                        DvPrograde = GetDouble(node, "dvPrograde"),
+                        DvTotal = GetDouble(node, "dvTotal"),
                     });
                 }
             }
@@ -603,7 +618,7 @@ namespace Sitrep.Host
             return new VesselManeuver
             {
                 Nodes = nodes,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -646,7 +661,7 @@ namespace Sitrep.Host
                 RelativePosition = GetVec3(target, "relativePosition"),
                 RelativeVelocity = relativeVelocity,
                 Orbit = orbit,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -672,7 +687,7 @@ namespace Sitrep.Host
             return new VesselCrew
             {
                 Count = count.Value,
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -702,7 +717,7 @@ namespace Sitrep.Host
                 // never -1 or 0 masquerading as a real stage/part count.
                 StageCount = GetInt(misc, "stageCount"),
                 PartCount = GetInt(misc, "partCount"),
-                Meta = BuildMeta(vesselId, snapshot!.Ut),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -737,7 +752,7 @@ namespace Sitrep.Host
                 WarpRateIndex = warpRateIndex.Value,
                 WarpMode = ParseWarpMode(GetString(time, "warpMode")),
                 Paused = paused.Value,
-                Meta = BuildGameMeta(snapshot.Ut),
+                Meta = BuildGameMeta(),
             };
         }
 
@@ -981,29 +996,31 @@ namespace Sitrep.Host
             ["meta"] = ToWire(warp.Meta),
         };
 
-        private static Dictionary<string, object?> ToWire(Meta meta) => new Dictionary<string, object?>
+        /// <summary>
+        /// Fix C: the PAYLOAD's own nested "meta" key carries only what a
+        /// payload mapper actually produces -- <c>source</c>/<c>quality</c>
+        /// -- never a fabricated duplicate of the envelope's real
+        /// <c>seq</c>/<c>deliveredAt</c>/<c>vantage</c>/<c>validAt</c> (those
+        /// are stamped once, for real, by <c>Sitrep.Core.Courier.MakeMeta</c>
+        /// onto <c>StreamData&lt;T&gt;.Meta</c> at delivery time). See
+        /// <see cref="PayloadMeta"/>'s class doc comment for the full
+        /// rationale.
+        /// </summary>
+        private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>
         {
             ["source"] = meta.Source,
-            ["validAt"] = meta.ValidAt,
-            ["seq"] = meta.Seq,
-            ["deliveredAt"] = meta.DeliveredAt,
-            ["vantage"] = meta.Vantage,
             ["quality"] = (int)meta.Quality,
-            ["active"] = meta.Active,
-            ["staleness"] = (int)meta.Staleness,
-            ["confidence"] = meta.Confidence,
         };
 
         // ----------------------------------------------------------------
         // Shared helpers
         // ----------------------------------------------------------------
 
-        private static Meta BuildMeta(string vesselId, double ut)
+        private static PayloadMeta BuildMeta(string vesselId)
         {
-            return new Meta
+            return new PayloadMeta
             {
                 Source = "vessel:" + vesselId,
-                ValidAt = ut,
                 // Quality defaults to OnRails -- KspHost doesn't yet capture
                 // the vessel's packed/loaded (on-rails vs off-rails) state
                 // (a future capture addition), so this is a documented,
@@ -1013,27 +1030,22 @@ namespace Sitrep.Host
                 // capture (mirrors O-2's "deliberately deferred" ruling in
                 // the taxonomy design doc).
                 Quality = Quality.OnRails,
-                Active = true,
-                Staleness = Staleness.Fresh,
             };
         }
 
         /// <summary>
-        /// <see cref="Meta"/> for the genuinely-global <c>time.warp</c>
+        /// <see cref="PayloadMeta"/> for the genuinely-global <c>time.warp</c>
         /// channel (fold-in fix, M1 Task 3 review) -- <c>Source = "game"</c>,
         /// never <c>"vessel:&lt;guid&gt;"</c>, since warp/pause isn't
         /// attributable to any vessel (it emits with no active vessel at
         /// all -- see <see cref="BuildWarp"/>).
         /// </summary>
-        private static Meta BuildGameMeta(double ut)
+        private static PayloadMeta BuildGameMeta()
         {
-            return new Meta
+            return new PayloadMeta
             {
                 Source = "game",
-                ValidAt = ut,
                 Quality = Quality.OnRails,
-                Active = true,
-                Staleness = Staleness.Fresh,
             };
         }
 

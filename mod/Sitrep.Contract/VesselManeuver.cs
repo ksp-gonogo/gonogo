@@ -21,13 +21,22 @@ public class ManeuverNode
 {
     public double Ut { get; set; }
 
-    public double DvRadial { get; set; }
+    /// <summary>
+    /// Null only if KSP's own dv component was non-finite (NaN/Infinity) this
+    /// tick — the NODE is still preserved (never silently dropped just
+    /// because one component came back bad); see
+    /// <c>VesselViewProvider.BuildManeuver</c>.
+    /// </summary>
+    public double? DvRadial { get; set; }
 
-    public double DvNormal { get; set; }
+    /// <summary>Null only if KSP's own dv component was non-finite this tick — see <see cref="DvRadial"/>'s doc comment.</summary>
+    public double? DvNormal { get; set; }
 
-    public double DvPrograde { get; set; }
+    /// <summary>Null only if KSP's own dv component was non-finite this tick — see <see cref="DvRadial"/>'s doc comment.</summary>
+    public double? DvPrograde { get; set; }
 
-    public double DvTotal { get; set; }
+    /// <summary>Null only if KSP's own dv magnitude was non-finite this tick — see <see cref="DvRadial"/>'s doc comment.</summary>
+    public double? DvTotal { get; set; }
 }
 
 /// <summary>
@@ -46,5 +55,5 @@ public class VesselManeuver
 {
     public List<ManeuverNode> Nodes { get; set; } = new();
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

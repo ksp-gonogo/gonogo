@@ -29,5 +29,5 @@ public class VesselAttitude
     /// <summary>Degrees, -180..180.</summary>
     public double Roll { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }

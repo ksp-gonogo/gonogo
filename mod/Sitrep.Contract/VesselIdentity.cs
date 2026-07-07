@@ -34,5 +34,5 @@ public class VesselIdentity
     /// <summary>sampleUt - missionTime; null before the vessel's launch clock has started. See the class doc comment.</summary>
     public double? LaunchUt { get; set; }
 
-    public Meta Meta { get; set; } = new();
+    public PayloadMeta Meta { get; set; } = new();
 }
