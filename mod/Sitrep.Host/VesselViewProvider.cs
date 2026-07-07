@@ -130,6 +130,16 @@ namespace Sitrep.Host
             var sma = GetDouble(orbit, "sma");
             var ecc = GetDouble(orbit, "ecc");
             var inc = GetDouble(orbit, "inc");
+            // lan/argPe are DELIBERATELY excluded from the "all required"
+            // guard below: KSP's own Orbit.LAN is NaN for a near-equatorial
+            // orbit (inc ~ 0) and argumentOfPeriapsis is NaN for a
+            // near-circular orbit (ecc ~ 0) -- both routine, common orbit
+            // shapes, not error states. GetDouble already maps that non-finite
+            // input to null (R1/F-1); gating the WHOLE record on them being
+            // present would silently drop vessel.orbit for every equatorial/
+            // circular orbit, which is worse than the wart this channel
+            // exists to kill. VesselOrbit.Lan/ArgPe are individually nullable
+            // for exactly this reason -- see their doc comments.
             var lan = GetDouble(orbit, "lan");
             var argPe = GetDouble(orbit, "argPe");
             var maae = GetDouble(orbit, "meanAnomalyAtEpoch");
@@ -137,12 +147,13 @@ namespace Sitrep.Host
             var mu = GetDouble(orbit, "mu");
             var referenceBodyName = GetString(orbit, "referenceBody");
 
-            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !lan.HasValue ||
-                !argPe.HasValue || !maae.HasValue || !epoch.HasValue || !mu.HasValue ||
+            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue ||
+                !maae.HasValue || !epoch.HasValue || !mu.HasValue ||
                 referenceBodyName == null)
             {
                 // A partial orbit record is worse than none -- every field
-                // here is required for self-sufficient propagation.
+                // here (other than lan/argPe, see above) is required for
+                // self-sufficient propagation.
                 return null;
             }
 
@@ -180,8 +191,8 @@ namespace Sitrep.Host
                 Sma = sma.Value,
                 Ecc = ecc.Value,
                 Inc = inc.Value,
-                Lan = lan.Value,
-                ArgPe = argPe.Value,
+                Lan = lan,
+                ArgPe = argPe,
                 MeanAnomalyAtEpoch = maae.Value,
                 Epoch = epoch.Value,
                 Mu = mu.Value,
@@ -501,108 +512,13 @@ namespace Sitrep.Host
                 : TransitionType.Unknown;
         }
 
-        private static string? GetString(IDictionary<string, object?> raw, string key)
-        {
-            return raw.TryGetValue(key, out var v) && v is string s ? s : null;
-        }
-
-        private static bool? GetBool(IDictionary<string, object?> raw, string key)
-        {
-            return raw.TryGetValue(key, out var v) && v is bool b ? b : (bool?)null;
-        }
-
-        private static int? GetInt(IDictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var v) || v == null)
-            {
-                return null;
-            }
-
-            return v switch
-            {
-                int i => i,
-                long l => (int)l,
-                double d => (int)d,
-                float f => (int)f,
-                _ => (int?)null,
-            };
-        }
-
-        /// <summary>Same numeric-flexibility rationale as <see cref="SystemViewProvider"/>'s GetDouble: a live KspHost may store a raw int/float, a ReplayKspHost snapshot (post JSON round-trip) always carries double.</summary>
-        private static double? GetDouble(IDictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var v) || v == null)
-            {
-                return null;
-            }
-
-            return v switch
-            {
-                double d => d,
-                float f => f,
-                int i => i,
-                long l => l,
-                _ => (double?)null,
-            };
-        }
-
-        /// <summary>
-        /// Reads a 3-element numeric array/list field into a <see cref="Vec3"/>.
-        /// KspHost emits a real <c>double[]</c> directly; a
-        /// <see cref="ReplayKspHost"/> snapshot (post JSON round-trip via
-        /// <see cref="RecordedSessionCodec"/>) carries a
-        /// <c>List&lt;object?&gt;</c> instead -- both are accepted. Returns
-        /// null (never a partial/NaN-carrying vector) if the field is
-        /// missing, isn't length-3, or any element isn't a finite number
-        /// (F-1: a non-finite value in the mapper is a bug, not a wire
-        /// value).
-        /// </summary>
-        private static Vec3? GetVec3(IDictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var v) || v == null)
-            {
-                return null;
-            }
-
-            double[]? components = v switch
-            {
-                double[] d => d,
-                IList<object?> list when list.Count == 3 => TryConvertTriple(list),
-                _ => null,
-            };
-
-            if (components == null || components.Length != 3 || components.Any(double.IsNaN))
-            {
-                return null;
-            }
-
-            return new Vec3(components[0], components[1], components[2]);
-        }
-
-        private static double[]? TryConvertTriple(IList<object?> list)
-        {
-            var result = new double[3];
-            for (var i = 0; i < 3; i++)
-            {
-                switch (list[i])
-                {
-                    case double d:
-                        result[i] = d;
-                        break;
-                    case float f:
-                        result[i] = f;
-                        break;
-                    case int n:
-                        result[i] = n;
-                        break;
-                    case long n:
-                        result[i] = n;
-                        break;
-                    default:
-                        return null;
-                }
-            }
-            return result;
-        }
+        // Scalar readers (GetString/GetBool/GetInt/GetDouble/GetVec3) live in
+        // the shared SnapshotDict -- see that class's doc comment for the
+        // R1/F-1 non-finite-is-absent rule GetDouble/GetVec3 both apply.
+        private static string? GetString(IDictionary<string, object?> raw, string key) => SnapshotDict.GetString(raw, key);
+        private static bool? GetBool(IDictionary<string, object?> raw, string key) => SnapshotDict.GetBool(raw, key);
+        private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
+        private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);
+        private static Vec3? GetVec3(IDictionary<string, object?> raw, string key) => SnapshotDict.GetVec3(raw, key);
     }
 }

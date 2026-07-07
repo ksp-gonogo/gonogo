@@ -158,5 +158,68 @@ namespace Sitrep.Host.Tests
 
             Assert.Null(SystemViewProvider.BuildSystemBodies(snapshot));
         }
+
+        [Fact]
+        public void BuildSystemBodiesTreatsNonFiniteOrbitElementsAsAbsentNotAsNaNOnTheWire()
+        {
+            // Same R1/F-1 rule as vessel.orbit (VesselViewProviderTests'
+            // BuildOrbitTreatsNonFiniteLanAndArgPeAsAbsentNotAsNaNOnTheWire):
+            // a body with a near-equatorial/near-circular orbit can
+            // genuinely have NaN lan/argPe from KSP -- this must map to
+            // null, never a NaN/Infinity token on the wire, and (via the
+            // shared SnapshotDict.GetDouble) it does so without needing any
+            // "all required" gating here since BuildOrbit maps each element
+            // independently.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbin",
+                            ["index"] = 0,
+                            ["parentIndex"] = null,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Mun",
+                            ["index"] = 1,
+                            ["parentIndex"] = 0,
+                            ["radius"] = 200_000.0,
+                            ["sma"] = 12_000_000.0,
+                            ["ecc"] = 0.0,
+                            ["inc"] = 0.0,
+                            ["lan"] = double.NaN,
+                            ["argPe"] = double.PositiveInfinity,
+                            ["meanAnomalyAtEpoch"] = 1.7,
+                            ["epoch"] = 0.0,
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemBodies(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var bodies = Assert.IsType<List<object?>>(root["bodies"]);
+            var moon = Assert.IsType<Dictionary<string, object?>>(bodies[1]);
+            var moonOrbit = Assert.IsType<Dictionary<string, object?>>(moon["orbit"]);
+            Assert.Null(moonOrbit["lan"]);
+            Assert.Null(moonOrbit["argPe"]);
+            Assert.Equal(12_000_000.0, moonOrbit["sma"]); // rest of the record unaffected
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SystemViewProvider.Topic,
+                Payload = payload,
+                Meta = new Meta { Source = "system", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+            var json = EnvelopeCodec.WriteStreamData(streamData);
+            Assert.DoesNotContain("NaN", json);
+            Assert.DoesNotContain("Infinity", json);
+        }
     }
 }

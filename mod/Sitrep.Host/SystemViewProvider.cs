@@ -156,52 +156,13 @@ namespace Sitrep.Host
             };
         }
 
-        private static string? GetString(IDictionary<string, object?> raw, string key)
-        {
-            return raw.TryGetValue(key, out var v) && v is string s ? s : null;
-        }
-
-        /// <summary>
-        /// Reads an integral field. Accepts any boxed CLR numeric type,
-        /// because a live <c>KspHost</c> may store a raw <c>int</c> while a
-        /// <see cref="ReplayKspHost"/> snapshot (post JSON round-trip via
-        /// <see cref="RecordedSessionCodec"/>) always carries <c>double</c>.
-        /// Returns <c>null</c> — never a sentinel like <c>-1</c> — when the
-        /// key is absent or explicitly <c>null</c>.
-        /// </summary>
-        private static int? GetInt(IDictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var v) || v == null)
-            {
-                return null;
-            }
-
-            switch (v)
-            {
-                case int i: return i;
-                case long l: return (int)l;
-                case double d: return (int)d;
-                case float f: return (int)f;
-                default: return null;
-            }
-        }
-
-        /// <summary>Same numeric-flexibility rationale as <see cref="GetInt"/>, for double-valued fields.</summary>
-        private static double? GetDouble(IDictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var v) || v == null)
-            {
-                return null;
-            }
-
-            switch (v)
-            {
-                case double d: return d;
-                case float f: return f;
-                case int i: return i;
-                case long l: return l;
-                default: return null;
-            }
-        }
+        // Scalar readers live in the shared SnapshotDict — see that class's
+        // doc comment for the R1/F-1 non-finite-is-absent rule GetDouble
+        // applies (this is also why a body with a near-equatorial/
+        // near-circular orbit gets a null lan/argPe here rather than a
+        // NaN-carrying wire value, same as vessel.orbit).
+        private static string? GetString(IDictionary<string, object?> raw, string key) => SnapshotDict.GetString(raw, key);
+        private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
+        private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);
     }
 }

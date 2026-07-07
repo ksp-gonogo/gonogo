@@ -36,12 +36,15 @@ public class VesselOrbit
 
     public double Inc { get; set; }
 
-    public double Lan { get; set; }
+    /// <summary>Null = undefined ascending node (KSP's own LAN is NaN for a near-equatorial orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    public double? Lan { get; set; }
 
-    public double ArgPe { get; set; }
+    /// <summary>Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    public double? ArgPe { get; set; }
 
     public double MeanAnomalyAtEpoch { get; set; }
 
+    /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
     public double Epoch { get; set; }
 
     /// <summary>Parent body's standard gravitational parameter (GM) — self-sufficient propagation, no separate body lookup required.</summary>

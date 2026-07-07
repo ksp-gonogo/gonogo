@@ -238,6 +238,84 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildOrbitTreatsNonFiniteLanAndArgPeAsAbsentNotAsNaNOnTheWire()
+        {
+            // Routine, not edge: KSP's Orbit.LAN is NaN for a near-equatorial
+            // orbit (inc ~ 0) and argumentOfPeriapsis is NaN for a
+            // near-circular orbit (ecc ~ 0) -- both happen on ordinary
+            // launches. R1/F-1: a non-finite value in the mapper is a bug,
+            // never a wire value -- it must surface as an absent (null)
+            // field, NOT gate the whole vessel.orbit record to null (an
+            // equatorial-circular orbit is still a perfectly valid orbit).
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.0,
+                    ["inc"] = 0.0,
+                    ["lan"] = double.NaN,
+                    ["argPe"] = double.NaN,
+                    ["meanAnomalyAtEpoch"] = 1.2,
+                    ["epoch"] = 90.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                },
+                bodies: KerbinAndMun());
+
+            var orbit = VesselViewProvider.BuildOrbit(snapshot);
+
+            Assert.NotNull(orbit); // NOT gated to null just because lan/argPe are undefined
+            Assert.Null(orbit!.Lan); // undefined ascending node -> null, never NaN or 0
+            Assert.Null(orbit.ArgPe); // undefined periapsis -> null, never NaN or 0
+            Assert.Equal(700_000.0, orbit.Sma); // the rest of the record is unaffected
+
+            // Prove it holds through the REAL wire-serialization path too --
+            // a bare NaN token isn't valid JSON, and a stringified "NaN"
+            // would poison a numeric field.
+            var wire = VesselViewProvider.BuildOrbitWire(snapshot);
+            var streamData = new Sitrep.Contract.StreamData<object?>
+            {
+                Topic = VesselViewProvider.OrbitTopic,
+                Payload = wire,
+                Meta = new Meta { Source = "vessel", ValidAt = 0, Vantage = "host", Quality = Quality.OnRails, Active = true, Staleness = Staleness.Fresh },
+            };
+            var json = EnvelopeCodec.WriteStreamData(streamData);
+            Assert.DoesNotContain("NaN", json);
+            Assert.DoesNotContain("Infinity", json);
+            Assert.Contains("\"lan\":null", json);
+            Assert.Contains("\"argPe\":null", json);
+        }
+
+        [Fact]
+        public void BuildOrbitTreatsInfiniteScalarsAsAbsentToo()
+        {
+            // Same rule (R1/F-1) applied to +/-Infinity, not just NaN --
+            // GetDouble's non-finite check must cover both.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.0,
+                    ["inc"] = 0.0,
+                    ["lan"] = double.PositiveInfinity,
+                    ["argPe"] = double.NegativeInfinity,
+                    ["meanAnomalyAtEpoch"] = 1.2,
+                    ["epoch"] = 90.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                },
+                bodies: KerbinAndMun());
+
+            var orbit = VesselViewProvider.BuildOrbit(snapshot);
+
+            Assert.NotNull(orbit);
+            Assert.Null(orbit!.Lan);
+            Assert.Null(orbit.ArgPe);
+        }
+
+        [Fact]
         public void BuildOrbitReturnsNullWhenReferenceBodyCannotBeResolved()
         {
             var snapshot = SnapshotWith(
@@ -361,6 +439,175 @@ namespace Sitrep.Host.Tests
                 });
 
             Assert.Null(VesselViewProvider.BuildFlight(snapshot));
+        }
+
+        // ----------------------------------------------------------------
+        // ParseSituation -- table-driven over EVERY raw string the private
+        // switch handles, so a typo'd literal (which would silently degrade
+        // to Situation.Unknown) can't hide untested. Exercised through the
+        // public BuildIdentity surface since ParseSituation itself is
+        // private.
+        // ----------------------------------------------------------------
+
+        public static IEnumerable<object?[]> SituationCases()
+        {
+            yield return new object?[] { "LANDED", Situation.Landed };
+            yield return new object?[] { "SPLASHED", Situation.Splashed };
+            yield return new object?[] { "PRELAUNCH", Situation.PreLaunch };
+            yield return new object?[] { "ORBITING", Situation.Orbiting };
+            yield return new object?[] { "ESCAPING", Situation.Escaping };
+            yield return new object?[] { "FLYING", Situation.Flying };
+            yield return new object?[] { "SUB_ORBITAL", Situation.SubOrbital };
+            yield return new object?[] { "DOCKED", Situation.Docked };
+            yield return new object?[] { "SOME_TYPO_OR_FUTURE_VALUE", Situation.Unknown };
+            yield return new object?[] { null, Situation.Unknown };
+        }
+
+        [Theory]
+        [MemberData(nameof(SituationCases))]
+        public void BuildIdentityMapsEveryRawSituationStringToItsTypedEnumValue(string? raw, Situation expected)
+        {
+            var identityGroup = new Dictionary<string, object?> { ["id"] = VesselGuid };
+            if (raw != null)
+            {
+                identityGroup["situation"] = raw;
+            }
+            var snapshot = SnapshotWith(identity: identityGroup);
+
+            var identity = VesselViewProvider.BuildIdentity(snapshot);
+
+            Assert.Equal(expected, identity!.Situation);
+        }
+
+        // ----------------------------------------------------------------
+        // Fix 2: POCO <-> ToWire drift guard. Reflection-based so a future
+        // POCO field added without updating the corresponding private
+        // ToWire(...) flattening method fails LOUDLY here instead of
+        // silently vanishing off the wire -- see VesselViewProvider's class
+        // doc comment on why ToWire exists at all (JsonWriter can't
+        // serialize an arbitrary POCO directly).
+        // ----------------------------------------------------------------
+
+        public static IEnumerable<object[]> PocoToWireFixtures()
+        {
+            var meta = new Meta
+            {
+                Source = "vessel:" + VesselGuid,
+                ValidAt = 100.0,
+                Seq = 7,
+                DeliveredAt = 101.0,
+                Vantage = "host",
+                Quality = Quality.Loaded,
+                Active = true,
+                Staleness = Staleness.HeldStale,
+                Confidence = 0.5,
+            };
+
+            yield return new object[]
+            {
+                new VesselIdentity
+                {
+                    VesselId = VesselGuid,
+                    Name = "Kerbal X",
+                    VesselType = VesselType.Ship,
+                    Situation = Situation.Orbiting,
+                    ParentBodyIndex = 1,
+                    LaunchUt = 40.0,
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[]
+            {
+                new VesselOrbit
+                {
+                    ReferenceBodyIndex = 1,
+                    Sma = 700_000.0,
+                    Ecc = 0.01,
+                    Inc = 5.0,
+                    Lan = 10.0,
+                    ArgPe = 20.0,
+                    MeanAnomalyAtEpoch = 1.2,
+                    Epoch = 90.0,
+                    Mu = 3.5316e12,
+                    Encounter = new OrbitEncounter { TransitionType = TransitionType.Encounter, TransitionUt = 12345.0, BodyIndex = 2 },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[]
+            {
+                new OrbitEncounter { TransitionType = TransitionType.Encounter, TransitionUt = 12345.0, BodyIndex = 2 },
+            };
+
+            yield return new object[]
+            {
+                new VesselOrbitTruth
+                {
+                    Position = new Vec3(1, 2, 3),
+                    Velocity = new Vec3(4, 5, 6),
+                    FrameRotating = true,
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[]
+            {
+                new VesselFlight
+                {
+                    Latitude = -0.05,
+                    Longitude = 179.9,
+                    AltitudeAsl = 71000.0,
+                    AltitudeTerrain = 70500.0,
+                    VerticalSpeed = 12.5,
+                    SurfaceSpeed = 2200.0,
+                    OrbitalSpeed = 2300.0,
+                    GForce = 1.1,
+                    DynamicPressureKPa = 3.4,
+                    Mach = 6.2,
+                    AtmDensity = 0.02,
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new Vec3(1, 2, 3) };
+
+            yield return new object[] { meta };
+        }
+
+        [Theory]
+        [MemberData(nameof(PocoToWireFixtures))]
+        public void ToWireIncludesAKeyForEveryPublicReadablePropertyOfThePoco(object pocoInstance)
+        {
+            var pocoType = pocoInstance.GetType();
+
+            var toWireMethod = typeof(VesselViewProvider).GetMethod(
+                "ToWire",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+                binder: null,
+                types: new[] { pocoType },
+                modifiers: null);
+
+            Assert.True(toWireMethod != null, $"VesselViewProvider has no private static ToWire({pocoType.Name}) overload -- either it was renamed/removed, or this test fixture needs updating.");
+
+            var wire = toWireMethod!.Invoke(null, new[] { pocoInstance }) as IDictionary<string, object?>;
+            Assert.NotNull(wire);
+
+            var properties = pocoType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            Assert.NotEmpty(properties);
+
+            foreach (var property in properties)
+            {
+                if (!property.CanRead)
+                {
+                    continue;
+                }
+
+                var wireKey = char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1);
+                Assert.True(
+                    wire!.ContainsKey(wireKey),
+                    $"{pocoType.Name}.{property.Name} has no corresponding \"{wireKey}\" key in ToWire's output -- a POCO field was added without wiring it onto the wire.");
+            }
         }
 
         // ----------------------------------------------------------------
