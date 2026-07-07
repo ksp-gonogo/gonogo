@@ -7,6 +7,7 @@ export {
   TelemetryProvider,
   type TelemetryProviderProps,
   useTelemetryClient,
+  useTelemetryClientOptional,
 } from "./context";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
@@ -16,7 +17,12 @@ export {
 export type { OrbitElements, StateVector, Vector3 } from "./kepler";
 export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
-export { mapTopic } from "./map-topic";
+export {
+  isKnownTelemachusGap,
+  mapTopic,
+  redirectKinematicSubtopic,
+  TELEMACHUS_KNOWN_GAPS,
+} from "./map-topic";
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
 export { StubTransport } from "./stub-transport";

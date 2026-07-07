@@ -32,3 +32,17 @@ export function useTelemetryClient(): TelemetryClient {
   }
   return client;
 }
+
+/**
+ * Non-throwing variant of `useTelemetryClient` — `undefined` when no
+ * `TelemetryProvider` is mounted, instead of throwing.
+ *
+ * Exists for compatibility shims (`@gonogo/core`'s `useDataValue` →
+ * `useStream` migration, M2 Task 7) that must keep working — falling back to
+ * a legacy code path — during the migration window before every screen
+ * mounts a `TelemetryProvider`. Ordinary SDK-native call sites should keep
+ * using `useTelemetryClient` so a missing provider fails loudly.
+ */
+export function useTelemetryClientOptional(): TelemetryClient | undefined {
+  return useContext(TelemetryClientContext);
+}

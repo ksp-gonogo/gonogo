@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/logger": "workspace:*"
+    "@gonogo/logger": "workspace:*",
+    "@gonogo/sitrep-client": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",

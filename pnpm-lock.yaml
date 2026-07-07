@@ -289,6 +289,9 @@ importers:
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
+      '@gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
       react:
         specifier: ^18.0.0
         version: 18.3.1
