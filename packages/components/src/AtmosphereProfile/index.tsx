@@ -4,8 +4,10 @@ import {
   kelvinToCelsius,
   pressureAtAltitude,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
+import { formatStreamStatus, StreamStatusBadge } from "@gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -63,6 +65,15 @@ function AtmosphereProfileComponent({
   const liveDensity = useDataValue<number>("data", "v.atmosphericDensity");
   const liveAirTemp = useDataValue<number>("data", "v.atmosphericTemperature");
   const liveSkinTemp = useDataValue<number>("data", "v.externalTemperature");
+  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
+  // `v.altitude` is this widget's representative MAPPED key — it resolves
+  // to the DERIVED `vessel.state.altitudeAsl` subtopic (map-topic.ts's
+  // `TELEMACHUS_CLEAN_HOMES`), the first widget in this migration to route
+  // its badge through a derived channel rather than a raw wire topic.
+  // `v.atmosphericDensity` is also mapped (raw `vessel.flight.atmDensity`);
+  // `v.body`/`v.atmosphericTemperature`/`v.externalTemperature` are all
+  // GAPPED and stay legacy regardless.
+  const streamStatus = useDataStreamStatus("data", "v.altitude");
 
   const cols = w ?? 8;
   const rows = h ?? 8;
@@ -161,6 +172,17 @@ function AtmosphereProfileComponent({
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
+          // `GraphView`'s `WidgetHeader` always renders its actions wrapper
+          // when the prop is truthy, even if the child itself renders
+          // nothing — unlike the other migrated widgets (which inline
+          // `StreamStatusBadge` directly in a flex title row), this leaves
+          // an empty `<div>` in the header for the common "live" case
+          // unless we gate on `formatStreamStatus` ourselves.
+          headerActions={
+            formatStreamStatus(streamStatus) !== null ? (
+              <StreamStatusBadge status={streamStatus} />
+            ) : undefined
+          }
           emptyState={
             body
               ? `No atmosphere on ${body.name}.`

@@ -5,10 +5,16 @@ import {
   getBody,
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useOrbitElements,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  StreamStatusBadge,
+} from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -63,6 +69,13 @@ function CurrentOrbitComponent({
   const period = useDataValue("data", "o.period");
   const refBody = useDataValue("data", "o.referenceBody");
   const bodyName = useDataValue("data", "v.body");
+  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
+  // `o.sma` is this widget's representative MAPPED key (-> `vessel.orbit.
+  // sma`; `o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are also
+  // mapped to `vessel.orbit.*`) — Ap/Pe (via `useOrbitElements`),
+  // trueAnomaly/period/timeToAp/timeToPe, and referenceBody/v.body are all
+  // GAPPED (map-topic.ts) and stay legacy regardless.
+  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const body =
     (bodyName ?? refBody) === undefined
@@ -120,7 +133,10 @@ function CurrentOrbitComponent({
 
   return (
     <Panel>
-      <PanelTitle>ORBIT</PanelTitle>
+      <TitleRow>
+        <PanelTitle>ORBIT</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && refBody !== undefined && (
         <PanelSubtitle>{refBody}</PanelSubtitle>
       )}
@@ -259,6 +275,14 @@ registerComponent<CurrentOrbitConfig>({
 });
 
 export { CurrentOrbitComponent };
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div<{ $landscape: boolean }>`
   flex: 1;

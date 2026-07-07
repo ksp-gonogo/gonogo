@@ -21,7 +21,14 @@ import {
   useModalSaveBar,
   WidgetHeader,
 } from "@gonogo/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styled from "styled-components";
 import { alignXY } from "./align";
 import { GraphSeries } from "./GraphSeries";
@@ -149,6 +156,12 @@ interface GraphViewProps {
   title?: string;
   /** Replaces the empty-state copy when no series are configured. */
   emptyState?: string;
+  /**
+   * Right-aligned slot in the header row, next to the title (e.g. a
+   * `StreamStatusBadge`). Renders nothing when omitted — every existing
+   * `GraphView` consumer is unaffected.
+   */
+  headerActions?: ReactNode;
   /** Current widget grid size — used to resolve the `"auto"` display variant. */
   w?: number;
   h?: number;
@@ -159,6 +172,7 @@ export function GraphView({
   referenceCurves,
   title = "GRAPH",
   emptyState = "Configure series to begin graphing.",
+  headerActions,
   w,
   h,
 }: GraphViewProps) {
@@ -332,7 +346,7 @@ export function GraphView({
 
     return (
       <Panel>
-        <WidgetHeader>
+        <WidgetHeader actions={headerActions}>
           <PanelTitle>{title}</PanelTitle>
         </WidgetHeader>
         <PanelSubtitle>{seriesLabel}</PanelSubtitle>
@@ -367,7 +381,7 @@ export function GraphView({
 
   return (
     <Panel>
-      <WidgetHeader>
+      <WidgetHeader actions={headerActions}>
         <PanelTitle>{title}</PanelTitle>
       </WidgetHeader>
       {/* ChartArea is always rendered so the ResizeObserver effect (deps:

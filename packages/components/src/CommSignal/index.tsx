@@ -1,6 +1,17 @@
 import type { ComponentProps } from "@gonogo/core";
-import { getWidgetShape, registerComponent, useDataValue } from "@gonogo/core";
-import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import {
+  getWidgetShape,
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+} from "@gonogo/core";
+import {
+  EmptyState,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  StreamStatusBadge,
+} from "@gonogo/ui";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -53,6 +64,13 @@ function CommSignalComponent({
   const controlState = useDataValue("data", "comm.controlState");
   const controlStateName = useDataValue("data", "comm.controlStateName");
   const delay = useDataValue("data", "comm.signalDelay");
+  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
+  // `comm.connected` is this widget's representative MAPPED key
+  // (-> `vessel.comms.connected`; `comm.signalStrength` is also mapped to
+  // `vessel.comms.signalStrength`) — `comm.controlState`/
+  // `comm.controlStateName`/`comm.signalDelay` are all GAPPED
+  // (map-topic.ts's shape-mismatch / no-home gaps) and stay legacy.
+  const streamStatus = useDataStreamStatus("data", "comm.connected");
 
   const hasData =
     connected !== undefined ||
@@ -62,7 +80,10 @@ function CommSignalComponent({
   if (!hasData) {
     return (
       <Panel>
-        <PanelTitle>COMMNET</PanelTitle>
+        <TitleRow>
+          <PanelTitle>COMMNET</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState>No signal data</EmptyState>
       </Panel>
     );
@@ -132,7 +153,10 @@ function CommSignalComponent({
         : "";
   return (
     <Panel>
-      <PanelTitle>COMMNET</PanelTitle>
+      <TitleRow>
+        <PanelTitle>COMMNET</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle>
           {connected === false ? "No signal" : "Signal to KSC"}
@@ -186,6 +210,14 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   warn: "var(--color-status-warning-fg-muted)",
   lost: "var(--color-status-nogo-fg)",
 };
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 // Visually hidden, but read by screen readers. Only its text content changes
 // (and only on a connection-state transition), so the polite live region

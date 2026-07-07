@@ -1,5 +1,10 @@
 import type { ComponentProps } from "@gonogo/core";
-import { formatDistance, registerComponent, useDataValue } from "@gonogo/core";
+import {
+  formatDistance,
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+} from "@gonogo/core";
 import { useDataSeries } from "@gonogo/data";
 import {
   EmptyState,
@@ -7,6 +12,7 @@ import {
   PanelSubtitle,
   PanelTitle,
   Sparkline,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
@@ -21,8 +27,17 @@ function SemiMajorAxisComponent({
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
   const sma = useDataValue<number>("data", "o.sma");
   const referenceBody = useDataValue<string>("data", "o.referenceBody");
+  // `useDataSeries` (sparkline history) is NOT part of the M3 read shim —
+  // only `useDataValue`/`useExecuteAction`/`useDataStreamStatus` route
+  // through `mapTopic`. The sparkline below always reads the legacy
+  // `DataSource`'s buffered series regardless of whether the headline `sma`
+  // value above is streaming.
   const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
+  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
+  // `o.sma` is this widget's one MAPPED key (-> `vessel.orbit.sma`);
+  // `o.referenceBody` is GAPPED (map-topic.ts) and stays legacy.
+  const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const cols = w ?? 4;
   const rows = h ?? 4;
@@ -73,7 +88,10 @@ function SemiMajorAxisComponent({
   if (sma === undefined || !Number.isFinite(sma)) {
     return (
       <Panel>
-        <PanelTitle>SMA</PanelTitle>
+        <TitleRow>
+          <PanelTitle>SMA</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState>No orbit data</EmptyState>
       </Panel>
     );
@@ -81,7 +99,10 @@ function SemiMajorAxisComponent({
 
   return (
     <Panel>
-      <PanelTitle>SMA</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SMA</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle>
           Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
@@ -109,6 +130,14 @@ function SemiMajorAxisComponent({
     </Panel>
   );
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div`
   flex: 1;
