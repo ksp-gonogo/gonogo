@@ -358,8 +358,16 @@ export class TimelineStore {
     const resolved = this.resolveDerivedTopic(topic);
     if (resolved) {
       const parentTopic = resolved.def.topic;
-      return this.memoize(effectiveToken, `\0status\0${parentTopic}`, () =>
-        this.sampleDerivedStatus(resolved.def, effectiveToken),
+      // Fold epoch into the key exactly like the derived-VALUE path in
+      // sample() (M2 design §2.3/§3.4): a derived status must NOT survive a
+      // mid-frame epoch bump (quickload rewind) for the rest of the frame, or
+      // a status read and a value read for the same topic in the same frame
+      // could disagree about which epoch they describe.
+      const epoch = this.clock.getEpoch();
+      return this.memoize(
+        effectiveToken,
+        `\0status\0${parentTopic}\0epoch\0${epoch}`,
+        () => this.sampleDerivedStatus(resolved.def, effectiveToken),
       );
     }
 
