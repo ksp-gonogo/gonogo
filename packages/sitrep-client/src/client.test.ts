@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { makeMeta, StubTransport } from "./stub-transport";
+import { TimelineStore } from "./timeline-store";
 import type { Transport, TransportStatus } from "./transport";
+import { ViewClock } from "./view-clock";
 
 /**
  * Minimal deterministic `Clock` test double. Mirrors sitrep-server's
@@ -146,6 +148,80 @@ describe("TelemetryClient subscriptions", () => {
     expect(throwing).toHaveBeenCalledWith(42);
     expect(normal).toHaveBeenCalledWith(42);
     expect(storeListener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TelemetryClient.attachStore — feeds the wire into a TimelineStore (M2 bridge task, Fix 1 item 1)", () => {
+  function makeStore(): TimelineStore {
+    return new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+  }
+
+  it("ingests every stream-data frame into an attached store", () => {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    const store = makeStore();
+    client.attachStore(store);
+
+    client.subscribe("vessel.orbit", () => {});
+    t.emit("vessel.orbit", { sma: 700_000 });
+    store.beginFrame();
+
+    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
+      700_000,
+    );
+  });
+
+  it("feeds every attached store, not just the first", () => {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    const storeA = makeStore();
+    const storeB = makeStore();
+    client.attachStore(storeA);
+    client.attachStore(storeB);
+
+    client.subscribe("vessel.orbit", () => {});
+    t.emit("vessel.orbit", { sma: 1 });
+    storeA.beginFrame();
+    storeB.beginFrame();
+
+    expect(storeA.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(1);
+    expect(storeB.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(1);
+  });
+
+  it("detaching stops feeding that store, without affecting other subscribers", () => {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    const store = makeStore();
+    const detach = client.attachStore(store);
+
+    client.subscribe("vessel.orbit", () => {});
+    detach();
+    t.emit("vessel.orbit", { sma: 2 });
+    store.beginFrame();
+
+    expect(store.sample<{ sma: number }>("vessel.orbit")).toBeUndefined();
+  });
+
+  it("stamps the ingested point's validAt/epoch from the message's own meta", () => {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    const store = makeStore();
+    client.attachStore(store);
+
+    client.subscribe("vessel.orbit", () => {});
+    t.emitRaw({
+      type: "stream-data",
+      topic: "vessel.orbit",
+      payload: { sma: 3 },
+      meta: makeMeta({ validAt: 42, timelineEpoch: 0 }),
+    });
+    store.beginFrame();
+
+    const point = store.getTimeline<{ sma: number }>("vessel.orbit").latest();
+    expect(point?.validAt).toBe(42);
+    expect(point?.epoch).toBe(0);
   });
 });
 

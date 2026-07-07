@@ -528,6 +528,85 @@ export class TimelineStore {
   }
 
   /**
+   * The raw wire topics that must actually be subscribed (via
+   * `TelemetryClient.subscribe`) to keep `topic` resolvable (M2 bridge task,
+   * Fix 1 item 3 — "derived-input ref-counting"). A derived channel's own
+   * topic (or one of its `"<topic>.<field>"` subtopics) is NEVER itself a
+   * subscribable wire topic — no server channel produces it — so a caller
+   * that naively subscribed to the derived topic NAME would never receive
+   * any data and the channel would silently stay "not whole yet" forever.
+   * This resolves `topic` down to the declared `inputs` it actually needs,
+   * recursively (a derived channel's own `inputs` can themselves be derived,
+   * per `DerivedGet`'s doc — `derive` can read another derived channel as an
+   * input), de-duplicated, and defended against a malformed cyclical
+   * declaration (an authoring bug, never expected in practice) via a
+   * visited-set guard rather than an infinite loop.
+   *
+   * Identity (`[topic]`) for a topic that isn't derived at all — a genuinely
+   * raw topic subscribes to itself, same as before this method existed.
+   */
+  resolveSubscriptionTopics(topic: string): string[] {
+    const out = new Set<string>();
+    this.collectSubscriptionTopics(topic, out, new Set());
+    return [...out];
+  }
+
+  private collectSubscriptionTopics(
+    topic: string,
+    out: Set<string>,
+    visiting: Set<string>,
+  ): void {
+    const resolved = this.resolveDerivedTopic(topic);
+    if (!resolved) {
+      out.add(topic);
+      return;
+    }
+    const parentTopic = resolved.def.topic;
+    if (visiting.has(parentTopic)) return; // cyclical declaration — break, don't loop forever
+    visiting.add(parentTopic);
+    for (const input of resolved.def.inputs) {
+      this.collectSubscriptionTopics(input, out, visiting);
+    }
+  }
+
+  /**
+   * True when `topic` names a `"<parent>.<field>"` subtopic whose PARENT
+   * resolved to a whole, non-tombstoned derived record (the derivation
+   * genuinely ran) but `field` is not a key on the record it produced — a
+   * structurally dead mapping (e.g. a stale migration-table entry pointing
+   * at a field a `derive()` function never emits), as opposed to ordinary
+   * "not whole yet" loading (parent has no point at all yet) or a confirmed
+   * absence (parent tombstoned) — both of which return `false` here, same as
+   * a healthy field that just hasn't arrived.
+   *
+   * `sample()` alone can't make this distinction: `sampleDerived`'s field
+   * lookup collapses "unknown field name" and "not whole yet" onto the same
+   * `undefined` return, deliberately (see its own doc comment). This is a
+   * SEPARATE diagnostic read for a caller (the `@gonogo/core` `useDataValue`
+   * compatibility shim, M2 bridge task Fix 1 item 4 — belt-and-suspenders
+   * fallback safety) that needs to tell "still loading, keep waiting" apart
+   * from "this can never resolve, fall back to another source" — never
+   * folded into `sample()`'s own return value.
+   */
+  isUnresolvableField(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): boolean {
+    const dot = topic.lastIndexOf(".");
+    if (dot === -1) return false;
+    const parentTopic = topic.slice(0, dot);
+    const field = topic.slice(dot + 1);
+    if (!this.derivedChannels.has(parentTopic)) return false;
+
+    const parentPoint = this.sample<Record<string, unknown>>(
+      parentTopic,
+      token,
+    );
+    if (!parentPoint || parentPoint.payload === null) return false;
+    return !(field in parentPoint.payload);
+  }
+
+  /**
    * Imperative tier: read `topic` at a frame token's frozen `viewUt`
    * (defaults to `currentFrame()` — there is no per-read "now").
    *

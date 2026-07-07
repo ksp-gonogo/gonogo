@@ -91,10 +91,26 @@ export class StubTransport implements Transport {
     return () => this.statusListeners.delete(listener);
   }
 
-  /** Test helper: fake an inbound stream-data sample. Only delivered if the topic is subscribed. */
-  emit(topic: string, payload: unknown): void {
+  /**
+   * Test helper: fake an inbound stream-data sample. Only delivered if the
+   * topic is subscribed. `metaOverrides` lets a test control quality/source/
+   * validAt/etc. (e.g. to feed a derived channel's OnRails vs. Loaded basis)
+   * without dropping to `emitRaw`, which bypasses the subscription-gating
+   * this method deliberately keeps (the realistic case for proving
+   * ref-counted subscribe actually happened).
+   */
+  emit(
+    topic: string,
+    payload: unknown,
+    metaOverrides: Partial<Meta> = {},
+  ): void {
     if (!this.subscribedTopics.has(topic)) return;
-    this.deliver({ type: "stream-data", topic, payload, meta: makeMeta() });
+    this.deliver({
+      type: "stream-data",
+      topic,
+      payload,
+      meta: makeMeta({ validAt: 0, deliveredAt: 0, ...metaOverrides }),
+    });
   }
 
   /** Test helper: install the handler that answers command-request messages. */

@@ -492,6 +492,133 @@ describe("TimelineStore", () => {
   });
 });
 
+describe("TimelineStore.resolveSubscriptionTopics — derived-input ref-counting (M2 bridge task, Fix 1 item 3)", () => {
+  function makeStore(): TimelineStore {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    return new TimelineStore(clock);
+  }
+
+  it("a plain raw topic resolves to itself (identity — nothing to redirect)", () => {
+    const store = makeStore();
+    expect(store.resolveSubscriptionTopics("vessel.orbit")).toEqual([
+      "vessel.orbit",
+    ]);
+  });
+
+  it("a registered derived channel's own topic resolves to its declared inputs, not itself", () => {
+    const store = makeStore();
+    store.registerDerivedChannel({
+      topic: "vessel.state",
+      inputs: ["vessel.orbit", "vessel.flight"],
+      fields: true,
+      derive: () => null,
+    });
+
+    expect(store.resolveSubscriptionTopics("vessel.state").sort()).toEqual(
+      ["vessel.flight", "vessel.orbit"].sort(),
+    );
+  });
+
+  it("a field subtopic of a derived channel resolves to the PARENT channel's inputs", () => {
+    const store = makeStore();
+    store.registerDerivedChannel({
+      topic: "vessel.state",
+      inputs: ["vessel.orbit", "vessel.flight"],
+      fields: true,
+      derive: () => null,
+    });
+
+    expect(
+      store.resolveSubscriptionTopics("vessel.state.altitudeAsl").sort(),
+    ).toEqual(["vessel.flight", "vessel.orbit"].sort());
+  });
+
+  it("derived-on-derived: resolves transitively down to genuinely raw topics, deduplicated", () => {
+    const store = makeStore();
+    store.registerDerivedChannel({
+      topic: "derived.inner",
+      inputs: ["raw.a", "raw.b"],
+      derive: () => null,
+    });
+    store.registerDerivedChannel({
+      topic: "derived.outer",
+      inputs: ["derived.inner", "raw.b", "raw.c"],
+      derive: () => null,
+    });
+
+    expect(store.resolveSubscriptionTopics("derived.outer").sort()).toEqual(
+      ["raw.a", "raw.b", "raw.c"].sort(),
+    );
+  });
+
+  it("a cyclical derived-channel declaration (author bug) does not infinite-loop", () => {
+    const store = makeStore();
+    store.registerDerivedChannel({
+      topic: "derived.x",
+      inputs: ["derived.y"],
+      derive: () => null,
+    });
+    store.registerDerivedChannel({
+      topic: "derived.y",
+      inputs: ["derived.x", "raw.z"],
+      derive: () => null,
+    });
+
+    expect(store.resolveSubscriptionTopics("derived.x")).toEqual(["raw.z"]);
+  });
+});
+
+describe("TimelineStore.isUnresolvableField — phantom-field diagnostic (M2 bridge task, Fix 1 item 4)", () => {
+  function makeStore(): TimelineStore {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+    store.registerDerivedChannel<{ real: number }>({
+      topic: "derived.thing",
+      inputs: ["raw.input"],
+      fields: true,
+      derive: (get) => {
+        const input = get<number>("raw.input");
+        if (!input) return undefined;
+        if (input.payload === null) return null;
+        return { real: input.payload };
+      },
+    });
+    return store;
+  }
+
+  it("false while the parent hasn't produced a whole record yet (ordinary loading, not phantom)", () => {
+    const store = makeStore();
+    store.beginFrame();
+    expect(store.isUnresolvableField("derived.thing.ghost")).toBe(false);
+  });
+
+  it("false when the parent is tombstoned (confirmed absence, not phantom)", () => {
+    const store = makeStore();
+    store.ingest("raw.input", point(0, null));
+    store.beginFrame();
+    expect(store.isUnresolvableField("derived.thing.ghost")).toBe(false);
+  });
+
+  it("false for a field the parent's record actually has", () => {
+    const store = makeStore();
+    store.ingest("raw.input", point(0, 5));
+    store.beginFrame();
+    expect(store.isUnresolvableField("derived.thing.real")).toBe(false);
+  });
+
+  it("true once the parent has a whole record but the requested field is genuinely not on it", () => {
+    const store = makeStore();
+    store.ingest("raw.input", point(0, 5));
+    store.beginFrame();
+    expect(store.isUnresolvableField("derived.thing.ghost")).toBe(true);
+  });
+
+  it("false for a topic that isn't a dotted field subtopic at all", () => {
+    const store = makeStore();
+    expect(store.isUnresolvableField("derived.thing")).toBe(false);
+  });
+});
+
 describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
   it("wraps a longitude field the SHORT way around the antimeridian, instead of lerping straight through the planet", () => {
     // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a

@@ -27,6 +27,7 @@
     "@gonogo/sitrep-client": "workspace:*"
   },
   "devDependencies": {
+    "@gonogo/sitrep-sdk": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",

@@ -2,7 +2,10 @@ import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
+  type VesselFlightPayload,
+  type VesselOrbitPayload,
 } from "@gonogo/sitrep-client";
+import { Quality } from "@gonogo/sitrep-sdk";
 import { act, render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
@@ -54,38 +57,91 @@ function makeLegacySource(id = "data") {
   return source;
 }
 
+const ORBIT: VesselOrbitPayload = {
+  referenceBodyIndex: 1,
+  sma: 700_000,
+  ecc: 0,
+  inc: 0,
+  lan: null,
+  argPe: null,
+  meanAnomalyAtEpoch: 0,
+  epoch: 0,
+  mu: 3.5316e12,
+};
+
+const FLIGHT: VesselFlightPayload = {
+  latitude: -0.05,
+  longitude: 42.3,
+  altitudeAsl: 71_234,
+  altitudeTerrain: 71_234,
+  verticalSpeed: 12.5,
+  surfaceSpeed: 1780.2,
+  orbitalSpeed: 1790.9,
+  gForce: 1.1,
+  dynamicPressureKPa: 3.2,
+  mach: 5.1,
+  atmDensity: 0.01,
+};
+
 beforeEach(() => clearRegistry());
 
 describe("useDataValue shim — mapped key routes to useStream when a TelemetryProvider is mounted", () => {
-  it("reads a mapped key ('v.altitude' -> vessel.state.altitudeAsl) from the TelemetryClient, not the legacy DataSource", () => {
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    const legacySource = makeLegacySource();
-    registerDataSource(legacySource);
+  it(
+    "the M2 bridge's key end-to-end proof: 'v.altitude' (-> vessel.state.altitudeAsl, a DERIVED " +
+      "channel) resolves through the real client -> TimelineStore -> hooks pipeline once real " +
+      "vessel.orbit/vessel.flight wire frames arrive — RED before the bridge (permanently dead " +
+      "undefined, since nothing fed a TimelineStore in production), GREEN after it",
+    () => {
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport);
+      const legacySource = makeLegacySource();
+      registerDataSource(legacySource);
 
-    function Alt() {
-      const alt = useDataValue("data", "v.altitude");
-      return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
-    }
+      function Alt() {
+        const alt = useDataValue("data", "v.altitude");
+        return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
+      }
 
-    render(
-      <TelemetryProvider client={client}>
-        <Alt />
-      </TelemetryProvider>,
-    );
+      render(
+        <TelemetryProvider client={client}>
+          <Alt />
+        </TelemetryProvider>,
+      );
 
-    // Undefined-while-loading — the same contract widgets already rely on.
-    expect(screen.getByText("alt:—")).toBeTruthy();
+      // Undefined-while-loading — the same contract widgets already rely on.
+      expect(screen.getByText("alt:—")).toBeTruthy();
 
-    // Feeding the legacy DataSource must NOT surface — the mapped key is
-    // routed to the stream, so the old path is bypassed entirely.
-    act(() => legacySource.emit("v.altitude", 999));
-    expect(screen.getByText("alt:—")).toBeTruthy();
+      // Derived-input ref-counting (Fix 1 item 3): subscribing the mapped
+      // DERIVED topic must have subscribed its declared raw INPUTS on the
+      // wire — never the derived topic name itself, which no server channel
+      // ever produces.
+      expect(transport.isSubscribed("vessel.orbit")).toBe(true);
+      expect(transport.isSubscribed("vessel.flight")).toBe(true);
+      expect(transport.isSubscribed("vessel.state.altitudeAsl")).toBe(false);
 
-    // Feeding the new topic on the TelemetryClient is what updates it.
-    act(() => transport.emit("vessel.state.altitudeAsl", 12_345));
-    expect(screen.getByText("alt:12345")).toBeTruthy();
-  });
+      // Feeding the legacy DataSource must NOT surface — the mapped key is
+      // routed to the stream, so the old path is bypassed entirely.
+      act(() => legacySource.emit("v.altitude", 999));
+      expect(screen.getByText("alt:—")).toBeTruthy();
+
+      // Feed REAL wire frames for the channel's actual inputs — orbit at
+      // Loaded quality (so altitudeAsl comes off the measured vessel.flight
+      // basis) plus the flight measurement itself. This is what the derived
+      // vessel.state channel actually propagates from.
+      act(() => {
+        transport.emit("vessel.orbit", ORBIT, {
+          quality: Quality.Loaded,
+          source: "vessel:1",
+        });
+        transport.emit("vessel.flight", FLIGHT, {
+          quality: Quality.Loaded,
+          source: "vessel:1",
+        });
+      });
+
+      expect(screen.getByText("alt:71234")).toBeTruthy();
+    },
+  );
 });
 
 describe("useDataValue shim — unmapped key falls back to the legacy DataSource path even with a provider mounted", () => {

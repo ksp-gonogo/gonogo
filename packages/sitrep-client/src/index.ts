@@ -8,6 +8,8 @@ export {
   type TelemetryProviderProps,
   useTelemetryClient,
   useTelemetryClientOptional,
+  useTelemetryStore,
+  useTelemetryStoreOptional,
 } from "./context";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
@@ -21,6 +23,7 @@ export {
   isKnownTelemachusGap,
   mapTopic,
   redirectKinematicSubtopic,
+  TELEMACHUS_CLEAN_HOMES,
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
 export type { StreamStatusValue } from "./stream-status";

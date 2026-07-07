@@ -70,7 +70,21 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "v.altitude")).toMatch(/^vessel\.state\./);
     expect(mapTopic("data", "v.orbitalVelocity")).toMatch(/^vessel\.state\./);
     expect(mapTopic("data", "o.orbitalSpeed")).toMatch(/^vessel\.state\./);
-    expect(mapTopic("data", "v.missionTime")).toBe("vessel.state.met");
+  });
+
+  it("gaps the 7 vessel.state.* keys with no real VesselState field yet (M2 bridge task Fix 2 — phantom-field mapTopic entries)", () => {
+    for (const key of [
+      "v.missionTime",
+      "o.ApA",
+      "o.PeA",
+      "o.period",
+      "o.timeToAp",
+      "o.timeToPe",
+      "o.trueAnomaly",
+    ]) {
+      expect(mapTopic("data", key)).toBeUndefined();
+      expect(isKnownTelemachusGap("data", key)).toBe(true);
+    }
   });
 
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {

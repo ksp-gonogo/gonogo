@@ -1,4 +1,8 @@
-import { mapTopic, useTelemetryClientOptional } from "@gonogo/sitrep-client";
+import {
+  mapTopic,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "@gonogo/sitrep-client";
 import { useCallback, useSyncExternalStore } from "react";
 import type { DataSource, DataSourceRegistry } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
@@ -28,17 +32,46 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * §5's old-Telemachus-key → new-stream-topic migration table):
  *
  * - **Mapped key + a `TelemetryProvider` is mounted** → reads reactively
- *   from the new SDK's `TelemetryClient` (the same primitive `useStream`
- *   uses), so a widget that has been quietly reclassified in the migration
- *   table starts riding the new streaming pipeline with ZERO code change and
- *   zero test change — the return contract (`T | undefined`, `undefined`
- *   while nothing has arrived yet) is identical.
+ *   from the `TimelineStore` the provider feeds (the M2 bridge task's fix —
+ *   see below), so a widget that has been quietly reclassified in the
+ *   migration table starts riding the new streaming pipeline with ZERO code
+ *   change and zero test change — the return contract (`T | undefined`,
+ *   `undefined` while nothing has arrived yet) is identical.
  * - **Unmapped key, or no `TelemetryProvider` in the tree yet** → falls back
  *   to the legacy registered `DataSource` path unchanged. This is what lets
  *   M3 migrate widgets (and mount `TelemetryProvider`) group-by-group: an
  *   unmigrated screen with no provider behaves exactly as it does today, and
  *   a key the migration table hasn't reached yet (an M1 §5.2 "known gap")
  *   keeps working off the old `DataSource` even once the provider is live.
+ *
+ * **The M2 bridge task.** `mapTopic` frequently targets a DERIVED topic
+ * (`vessel.state.<field>` — the V-12 dual-altitude fix). A derived topic is
+ * never itself a wire topic; nothing sends it, so the shim can't just
+ * `client.subscribe`/`client.getValue` it directly the way it used to (that
+ * was the exact bug this task fixes — a mapped derived key read as
+ * permanently-dead `undefined` even with a provider mounted, since nothing
+ * fed the `TimelineStore` that would have derived it). Instead the streamed
+ * branch mirrors `useStream` (`@gonogo/sitrep-client`'s `use-stream.ts` —
+ * that file is the source of truth if its subscribe/getSnapshot contract
+ * ever changes):
+ * - `store.resolveSubscriptionTopics(topic)` resolves `topic` down to the
+ *   raw input topics that actually need subscribing (identity for an
+ *   already-raw topic), and each is subscribed via `client.subscribe`
+ *   (ref-counted, symmetric unsubscribe on cleanup) — this is what makes the
+ *   `TimelineStore` the provider feeds actually receive the data a derived
+ *   channel needs.
+ * - The value itself is read via `store.sample(topic, store.currentFrame())`,
+ *   which resolves raw AND derived topics through the one surface.
+ * - **Fallback safety** (belt-and-suspenders, defensive even after the fix
+ *   above): if the streamed read is `undefined` AND
+ *   `store.isUnresolvableField(topic)` says this specific `topic` can never
+ *   resolve (a registered derived parent produced a whole record that
+ *   genuinely lacks the requested field — a phantom migration-table entry,
+ *   not ordinary "still loading"), the shim falls back to the legacy value
+ *   instead of serving a permanent dead `undefined` for a key that has a
+ *   working legacy read. Ordinary loading (parent not whole yet, or a
+ *   healthy field that just hasn't arrived) still returns `undefined` and
+ *   does NOT fall back — the mapped-key-bypasses-legacy contract above holds.
  *
  * The one semantic delta, flagged rather than silently reproduced (M2 design
  * §6): the legacy path clears to `undefined` when the `DataSource` status
@@ -107,30 +140,55 @@ export function useDataValue(dataSourceId: string, key: string): unknown {
   );
 
   // The shim: always subscribed (stable hook order), only consulted when
-  // `mapTopic` resolves AND a TelemetryProvider is actually mounted. This
-  // half deliberately mirrors `useStream` (`@gonogo/sitrep-client`'s
-  // `use-stream.ts`) — that file is the source of truth if its
-  // subscribe/getSnapshot contract ever changes.
+  // `mapTopic` resolves AND a TelemetryProvider is actually mounted (client
+  // AND store both present — `TelemetryProvider` always mounts them
+  // together, see `context.tsx`). This half deliberately mirrors `useStream`
+  // (`@gonogo/sitrep-client`'s `use-stream.ts`) — that file is the source of
+  // truth if its subscribe/getSnapshot contract ever changes.
   const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
   const topic = mapTopic(dataSourceId, key);
+  const routable =
+    client !== undefined && store !== undefined && topic !== undefined;
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || topic === undefined) return () => {};
-      return client.subscribe(topic, () => onStoreChange());
+      if (!client || !store || topic === undefined) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
     },
-    [client, topic],
+    [client, store, topic],
   );
-  const getStreamSnapshot = useCallback(
-    () => (client && topic !== undefined ? client.getValue(topic) : undefined),
-    [client, topic],
-  );
+  const getStreamSnapshot = useCallback(() => {
+    if (!store || topic === undefined) return undefined;
+    const point = store.sample(topic, store.currentFrame());
+    return point ? point.payload : undefined;
+  }, [store, topic]);
   const streamedValue = useSyncExternalStore(
     subscribeStream,
     getStreamSnapshot,
   );
 
-  if (client && topic !== undefined) {
+  if (routable) {
+    if (streamedValue !== undefined) return streamedValue;
+    // Belt-and-suspenders fallback (M2 bridge task, Fix 1 item 4): a mapped
+    // topic that's structurally unable to ever resolve (a phantom
+    // migration-table entry — see `store.isUnresolvableField`'s doc) falls
+    // back to the legacy value rather than serving a permanent dead
+    // `undefined` for a key with a working legacy read. Ordinary loading
+    // (nothing arrived yet) is NOT this case and stays `undefined` —
+    // preserving the mapped-key-bypasses-legacy contract this shim has had
+    // since M2 Task 7.
+    if (store && topic !== undefined && store.isUnresolvableField(topic)) {
+      return legacyValue;
+    }
     return streamedValue;
   }
   return legacyValue;

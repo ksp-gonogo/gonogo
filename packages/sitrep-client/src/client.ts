@@ -1,6 +1,7 @@
 import type { ServerMessage } from "@gonogo/sitrep-sdk";
 import { type Clock, RealTimeClock } from "./clock";
 import type { CommandStatus } from "./lifecycle";
+import type { TimelineStore } from "./timeline-store";
 import type { Transport } from "./transport";
 
 type Callback = (value: unknown) => void;
@@ -70,6 +71,14 @@ export class TelemetryClient {
   private readonly unsubscribeFromTransport: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
+  /**
+   * `TimelineStore`s fed from this client's wire (M2 bridge task, Fix 1 item
+   * 1). A `Set`, not a single slot — nothing stops more than one screen from
+   * sharing a client, and each gets its own `TimelineStore`/`ViewClock`. In
+   * practice `TelemetryProvider` attaches exactly one (the store it
+   * auto-builds, or a caller-supplied one).
+   */
+  private readonly stores = new Set<TimelineStore>();
 
   /**
    * `clock` defaults to `RealTimeClock` — every real transport uses it
@@ -128,6 +137,34 @@ export class TelemetryClient {
   /** Current sticky last value for a topic, if any has been received. */
   getValue(topic: string): unknown {
     return this.lastValues.get(topic);
+  }
+
+  /**
+   * Feed this client's raw `stream-data` wire frames into `store` (M2 bridge
+   * task, Fix 1 item 1): from this call on, every future `stream-data`
+   * message is ALSO delivered to `store.ingest(topic, point)`, in addition
+   * to the existing `lastValues`/per-topic-subscriber delivery this class
+   * already does — the two delivery paths are independent, neither replaces
+   * the other. `point.validAt`/`point.epoch` are read straight off the
+   * message's own `meta` (`meta.validAt`/`meta.timelineEpoch`), which is what
+   * makes this feed correct for a derived channel's epoch-guard/quality-pick
+   * machinery without this class needing to know anything about derivation.
+   *
+   * Does NOT replay history: a store attached after samples have already
+   * arrived only sees samples from that point forward (this class keeps no
+   * raw-message log, only the flattened `lastValues` sticky cache) — matches
+   * `TelemetryProvider`'s own lifecycle, which attaches its store before
+   * anything can possibly subscribe through it.
+   *
+   * Returns a detach function. Safe to attach more than one store to the
+   * same client (each gets every message independently); a client is not
+   * scoped to exactly one `TimelineStore`.
+   */
+  attachStore(store: TimelineStore): () => void {
+    this.stores.add(store);
+    return () => {
+      this.stores.delete(store);
+    };
   }
 
   /**
@@ -239,6 +276,7 @@ export class TelemetryClient {
     this.lastValues.clear();
     this.storeListeners.clear();
     this.commands.clear();
+    this.stores.clear();
   }
 
   private handleMessage(message: ServerMessage): void {
@@ -255,6 +293,14 @@ export class TelemetryClient {
     const subs = this.subscribers.get(message.topic);
     if (subs) {
       for (const sub of subs) this.invokeCallback(sub.cb, message.payload);
+    }
+    for (const store of this.stores) {
+      store.ingest(message.topic, {
+        validAt: message.meta.validAt,
+        payload: message.payload,
+        meta: message.meta,
+        epoch: message.meta.timelineEpoch,
+      });
     }
     this.notifyStore();
   }
