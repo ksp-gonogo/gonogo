@@ -195,4 +195,79 @@ describe("useKerbcastStream — delayed playout wiring", () => {
     });
     expect(latest).toBeNull();
   });
+
+  it("clears an already-surfaced stream on reset — stale frame doesn't linger on screen", () => {
+    const cam = fakeCameraHandle(null);
+    registerFakeKerbcastSource(cam);
+    const clock = manualClock(0);
+
+    let latest: unknown = "unset";
+    const { rerender } = render(
+      <StreamProbe
+        flightId={7}
+        clock={clock}
+        captureUt={() => 200}
+        onStream={(s) => {
+          latest = s;
+        }}
+      />,
+    );
+
+    act(() => {
+      cam.emit("pre-reset-token");
+    });
+    act(() => {
+      clock.setEdge(200);
+    });
+    // Frame released and on screen before the reset happens.
+    expect(latest).toBe("pre-reset-token");
+
+    rerender(
+      <StreamProbe
+        flightId={7}
+        clock={clock}
+        captureUt={() => 200}
+        resetEpoch={1}
+        onStream={(s) => {
+          latest = s;
+        }}
+      />,
+    );
+
+    // The stale pre-reset frame must not linger on screen — the feed goes
+    // to "no frame / resyncing" rather than showing outdated video.
+    expect(latest).toBeNull();
+  });
+
+  it("clears delayedStream when the raw stream disconnects (goes null) under delayed mode", () => {
+    const cam = fakeCameraHandle(null);
+    registerFakeKerbcastSource(cam);
+    const clock = manualClock(0);
+
+    let latest: unknown = "unset";
+    render(
+      <StreamProbe
+        flightId={7}
+        clock={clock}
+        captureUt={() => 50}
+        onStream={(s) => {
+          latest = s;
+        }}
+      />,
+    );
+
+    act(() => {
+      cam.emit("live-token");
+    });
+    act(() => {
+      clock.setEdge(50);
+    });
+    expect(latest).toBe("live-token");
+
+    act(() => {
+      cam.emit(null); // camera disconnect
+    });
+    // Delayed mode must go to null on disconnect too, matching passthrough.
+    expect(latest).toBeNull();
+  });
 });

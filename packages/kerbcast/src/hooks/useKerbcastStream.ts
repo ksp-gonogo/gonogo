@@ -98,6 +98,10 @@ export function useKerbcastStream(
     const buffer = new DelayedPlayoutBuffer<MediaStream>({
       view,
       onRelease: (frame) => setDelayedStream(frame.data ?? null),
+      // A flush (timeline reset, or the disconnect handling below) must
+      // not leave a stale frame on screen — drop back to "no frame /
+      // resyncing" so a stale pre-reset stream never lingers (§5.4).
+      onResync: () => setDelayedStream(null),
       maxBufferedBytes,
     });
     bufferRef.current = buffer;
@@ -112,8 +116,16 @@ export function useKerbcastStream(
   // caller-provided capture UT.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `view` is needed even though the body only reads `bufferRef` — a `view` change (re)builds the buffer in the effect above, and this must re-push the already-current rawStream into that fresh buffer instead of waiting on the next stream event.
   useEffect(() => {
+    if (!bufferRef.current) return;
+    if (rawStream === null) {
+      // Camera disconnected — drop whatever's buffered/held so a stale
+      // frame from the previous stream can't surface later, and go to
+      // null immediately, matching the strict-passthrough path.
+      bufferRef.current.flush();
+      return;
+    }
     const captureUt = captureUtRef.current;
-    if (!captureUt || !bufferRef.current || rawStream === null) return;
+    if (!captureUt) return;
     bufferRef.current.push({
       ut: captureUt(),
       keyframe: true,
