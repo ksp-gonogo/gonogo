@@ -25,6 +25,7 @@
   "dependencies": {
     "@gonogo/core": "workspace:*",
     "@gonogo/logger": "workspace:*",
+    "@gonogo/sitrep-client": "workspace:*",
     "@gonogo/ui": "workspace:*"
   },
   "devDependencies": {

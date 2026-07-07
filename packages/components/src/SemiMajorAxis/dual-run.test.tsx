@@ -17,14 +17,25 @@ import { SemiMajorAxisComponent } from "./index";
  * once off the legacy `DataSource` and once off the stream, must produce
  * byte-identical DOM at `delay=0`.
  *
- * `lko-kerbin` also carries `_series` (a sparkline backfill) — the legacy
- * leg's `snapshotWidgetMode` only ever seeds top-level (non-`_`-prefixed)
- * keys, so the sparkline never actually renders real history in either leg
- * here; both legs read the same (empty) `useDataSeries` backfill off
- * whichever `DataSource` happens to be registered as `"data"`, since that
- * hook has no stream awareness at all (see `stream.test.tsx`'s doc
- * comment). `o.referenceBody` is GAPPED and reads off the legacy AUX
- * source in the stream leg.
+ * `lko-kerbin` also carries `_series` (a sparkline backfill) — this test
+ * doesn't seed it (`snapshotWidgetMode` only ever emits top-level,
+ * non-`_`-prefixed fixture keys), so neither leg's sparkline renders a
+ * `<path>` here, but for two DIFFERENT reasons post the `useDataSeries`
+ * stream shim (`stream.test.tsx` is where the shim is actually exercised
+ * with real multi-point history):
+ * - **Legacy leg**: `lko-kerbin` has no `v.name`/`v.missionTime`, so
+ *   `BufferedDataSource`'s `FlightDetector` never establishes a flight —
+ *   `subscribeSamples` fans out nothing at all (see `BufferedDataSource
+ *   .appendSample`'s flight gate), leaving the sparkline permanently empty.
+ * - **Stream leg**: `o.sma` IS mapped + carried here, so the sparkline DOES
+ *   stream — but this test only emits ONE `vessel.orbit` point, and
+ *   `@gonogo/ui`'s `Sparkline` draws nothing for fewer than 2 finite
+ *   values, same as the legacy leg's zero.
+ *
+ * Both legs land on the same empty-sparkline markup, just via different
+ * routes — a byte-identical dual-run at delay=0, not a coincidence of the
+ * shim being absent. `o.referenceBody` is GAPPED and reads off the legacy
+ * AUX source in the stream leg.
  */
 afterEach(() => {
   cleanup();

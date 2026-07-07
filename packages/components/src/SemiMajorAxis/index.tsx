@@ -27,11 +27,12 @@ function SemiMajorAxisComponent({
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
   const sma = useDataValue<number>("data", "o.sma");
   const referenceBody = useDataValue<string>("data", "o.referenceBody");
-  // `useDataSeries` (sparkline history) is NOT part of the M3 read shim —
-  // only `useDataValue`/`useExecuteAction`/`useDataStreamStatus` route
-  // through `mapTopic`. The sparkline below always reads the legacy
-  // `DataSource`'s buffered series regardless of whether the headline `sma`
-  // value above is streaming.
+  // `useDataSeries` (sparkline history) now carries its own M3 stream shim
+  // (`@gonogo/data`, mirroring `useDataValue`'s) — `o.sma` is MAPPED to the
+  // raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit` is carried
+  // this sparkline reads its window straight off the `TimelineStore`'s
+  // buffered history, same as the headline `sma` value above. See
+  // `stream.test.tsx` for the end-to-end proof.
   const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
   // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).

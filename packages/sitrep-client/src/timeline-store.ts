@@ -613,6 +613,99 @@ export class TimelineStore {
   }
 
   /**
+   * `true` when `topic` names a registered DERIVED channel — its own topic
+   * or one of its `"<topic>.<field>"` subtopics (`resolveDerivedTopic`).
+   * `false` for a raw topic, including a raw record field-subtopic
+   * (`resolveRawFieldSubtopic`, e.g. `"vessel.orbit.sma"`) — that string
+   * LOOKS derived-shaped (it has dots) but resolves to a real wire record's
+   * timeline, not a registered `derive()` function. What `sampleRange`
+   * consults to decide "there's a stored history to range over" (a raw
+   * topic always has one, a derived topic never does — it's a per-frame
+   * computed value, see `sampleRange`'s own doc) versus `isUnresolvableField`
+   * above, which asks a narrower question (a specific FIELD NAME on an
+   * otherwise-whole derived record) for a different caller.
+   */
+  isDerivedTopic(topic: string): boolean {
+    return this.resolveDerivedTopic(topic) !== undefined;
+  }
+
+  /**
+   * Windowed range read for a raw topic (or raw record field-subtopic) —
+   * the read side of `useDataSeries`'s M3 stream shim (`@gonogo/data`).
+   * Mirrors `sample()`'s raw-topic / raw-field-subtopic resolution
+   * (`resolveRawFieldSubtopic`, see `timeline-store-raw-fields.test.ts`) but
+   * returns every buffered point in `[fromUt, toUt]` instead of one
+   * hold-last read.
+   *
+   * Returns `undefined` — not an empty array — when `topic` resolves to a
+   * registered DERIVED channel (`isDerivedTopic`): a derived value is
+   * computed fresh per frame from whatever its inputs currently hold
+   * (`sampleDerived`), never stored as its own buffered history, so there is
+   * structurally nothing to range over. This is the caller's "give up,
+   * permanently, on this topic" signal — distinct from an empty array,
+   * which means "genuinely nothing landed in the window yet" and may fill
+   * in on a later read as more samples arrive.
+   *
+   * For a literal raw topic, returns its `ClientTimeline.range` verbatim.
+   * For a raw record field-subtopic, reads the PARENT raw topic's range and
+   * extracts `fieldPath` from each point's payload — skipping (never
+   * fabricating a value for) a tombstoned parent point or one whose payload
+   * doesn't have the field, the same two "nothing to serve" cases
+   * `sampleRawFieldSubtopic` treats identically for a single read.
+   *
+   * Bounded to the CURRENT epoch, exactly like `sample()`'s raw path — a
+   * timeline still sitting on a lower epoch (hasn't re-sampled since a
+   * rewind) reads as empty rather than serving dead-epoch history into a
+   * live series.
+   */
+  sampleRange<T>(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): TimelinePoint<T>[] | undefined {
+    if (this.resolveDerivedTopic(topic)) return undefined;
+
+    const epoch = this.clock.getEpoch();
+    const rawField = this.resolveRawFieldSubtopic(topic);
+    if (!rawField) {
+      const timeline = this.timelineFor<T>(topic);
+      if (timeline.epoch < epoch) return [];
+      return timeline.range(fromUt, toUt);
+    }
+
+    const parentTimeline = this.timelineFor<Record<string, unknown>>(
+      rawField.rawTopic,
+    );
+    if (parentTimeline.epoch < epoch) return [];
+
+    const out: TimelinePoint<T>[] = [];
+    for (const point of parentTimeline.range(fromUt, toUt)) {
+      if (point.payload === null) continue; // tombstone — nothing to extract
+      let cursor: unknown = point.payload;
+      let resolved = true;
+      for (const segment of rawField.fieldPath) {
+        if (
+          cursor === null ||
+          typeof cursor !== "object" ||
+          !(segment in (cursor as object))
+        ) {
+          resolved = false;
+          break;
+        }
+        cursor = (cursor as Record<string, unknown>)[segment];
+      }
+      if (!resolved) continue; // unknown field on this point — nothing to serve
+      out.push({
+        validAt: point.validAt,
+        payload: cursor as T,
+        meta: point.meta,
+        epoch: point.epoch,
+      });
+    }
+    return out;
+  }
+
+  /**
    * Imperative tier: read `topic` at a frame token's frozen `viewUt`
    * (defaults to `currentFrame()` — there is no per-read "now").
    *
