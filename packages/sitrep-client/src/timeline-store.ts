@@ -11,7 +11,7 @@ import {
   type ClientTimelineOptions,
   type TimelinePoint,
 } from "./timeline";
-import type { ViewClock } from "./view-clock";
+import type { Certainty, ViewClock } from "./view-clock";
 
 /**
  * The frozen view-time token for one frame / read cycle (M2 design §1.2,
@@ -31,6 +31,16 @@ export interface FrameToken {
    * honoring a frozen-in-the-past `viewUt` forever.
    */
   readonly generation: number;
+  /**
+   * Whether `viewUt` sits at-or-before the `ViewClock`'s certainty horizon
+   * as of the moment this token was minted (M2 design §3.3). Computed once
+   * here — NOT recomputed against the live clock on each read — for the
+   * same frame-coherence reason values are memoized per token: a mid-frame
+   * `ingest` that nudges the horizon forward must not flip a read's
+   * certainty mid-frame any more than it can flip its value. See
+   * `TimelineStore.sampleCertainty`.
+   */
+  readonly certainty: Certainty;
 }
 
 export interface TimelineStoreOptions {
@@ -80,8 +90,25 @@ export interface DerivedChannelDefinition<T> {
    * - Return `null` for a confirmed absence (a tombstoned input, or the
    *   channel's own subject genuinely gone) — never a fabricated
    *   zero-valued record.
+   *
+   * `getInterpolated` (M2 design §3.3/§2.4) is `get`'s sibling for MEASURED
+   * raw inputs: it lerps between the two buffered points straddling
+   * `viewUt` instead of holding the latest one (`ClientTimeline.straddle`'s
+   * seam, per that method's own doc comment: "interpolation lands in a
+   * later task"). Use `get` for a CAUSE valid until superseded (orbit
+   * elements — interpolating between two elements samples straddling a
+   * maneuver would blend through physically nonsensical intermediate
+   * orbits) and `getInterpolated` for a measurement where the straight line
+   * between two samples is an honest estimate in between (`vessel.flight`'s
+   * Loaded-basis fields — see `vessel-state.ts`). Falls back to hold-last
+   * itself whenever there's nothing to straddle or the payload shape can't
+   * be honestly lerped.
    */
-  derive: (get: DerivedGet, viewUt: number) => T | null | undefined;
+  derive: (
+    get: DerivedGet,
+    viewUt: number,
+    getInterpolated: DerivedGet,
+  ) => T | null | undefined;
   /**
    * Expose `"<topic>.<field>"` subtopics that read a single field off the
    * one memoized record (M2 design §2.4) — e.g. `vessel.state.altitudeAsl`.
@@ -122,6 +149,88 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
     active: true,
     staleness: Staleness.Fresh,
     timelineEpoch: epoch,
+  };
+}
+
+/**
+ * Linearly interpolate between two payloads of matching shape at `t` in
+ * `[0, 1]` — the confirmed-range interpolation primitive (M2 design §3.3).
+ * Numeric payloads lerp directly. A plain (non-array, non-null) object
+ * lerps field-by-field: numeric fields lerp, a non-numeric field that is
+ * IDENTICAL on both sides passes through unchanged (e.g. an unchanged
+ * string/enum field), and a non-numeric field that actually DIFFERS makes
+ * the whole interpolation refuse (`undefined`) — there is no honest halfway
+ * point between two different strings, and a caller asking for a lerp
+ * should never get a silently-wrong blended object back. Anything else
+ * (arrays, non-number/non-object primitives, mismatched key sets) also
+ * returns `undefined`, signalling "fall back to hold-last" to the caller.
+ */
+export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
+  if (typeof before === "number" && typeof after === "number") {
+    return (before + (after - before) * t) as T;
+  }
+
+  if (
+    before !== null &&
+    after !== null &&
+    typeof before === "object" &&
+    typeof after === "object" &&
+    !Array.isArray(before) &&
+    !Array.isArray(after)
+  ) {
+    const beforeObj = before as Record<string, unknown>;
+    const afterObj = after as Record<string, unknown>;
+    const keys = Object.keys(beforeObj);
+    if (keys.length === 0) return undefined;
+    if (keys.some((key) => !(key in afterObj))) return undefined;
+
+    const result: Record<string, unknown> = {};
+    for (const key of keys) {
+      const beforeValue = beforeObj[key];
+      const afterValue = afterObj[key];
+      if (typeof beforeValue === "number" && typeof afterValue === "number") {
+        result[key] = beforeValue + (afterValue - beforeValue) * t;
+      } else if (Object.is(beforeValue, afterValue)) {
+        result[key] = beforeValue;
+      } else {
+        return undefined;
+      }
+    }
+    return result as T;
+  }
+
+  return undefined;
+}
+
+/**
+ * `TimelineStore.sampleInterpolated`'s core: straddle `viewUt` in `timeline`
+ * and lerp, falling back to hold-last (`ClientTimeline.at`) whenever
+ * there's nothing to straddle, either bracketing point is a tombstone
+ * (never interpolate across an absence transition — the confirmed truth
+ * mid-transition is still "whatever was last known", not a fabricated
+ * blend toward/away from `null`, M2 design §4), or `lerpPayload` can't
+ * honestly produce a value.
+ */
+function interpolatedRead<T>(
+  timeline: ClientTimeline<T>,
+  viewUt: number,
+): TimelinePoint<T> | undefined {
+  const straddle = timeline.straddle(viewUt);
+  if (!straddle) return timeline.at(viewUt);
+
+  const [before, after] = straddle;
+  if (before.payload === null || after.payload === null) return before;
+
+  const span = after.validAt - before.validAt;
+  const t = span === 0 ? 0 : (viewUt - before.validAt) / span;
+  const payload = lerpPayload(before.payload, after.payload, t);
+  if (payload === undefined) return before;
+
+  return {
+    validAt: viewUt,
+    payload,
+    meta: before.meta,
+    epoch: before.epoch,
   };
 }
 
@@ -174,7 +283,12 @@ export class TimelineStore {
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
   ) {
-    this.currentToken = { viewUt: clock.viewUt(), generation: this.generation };
+    const viewUt = clock.viewUt();
+    this.currentToken = {
+      viewUt,
+      generation: this.generation,
+      certainty: clock.certaintyFor(viewUt),
+    };
     this.heartbeats = new HeartbeatTracker(options.heartbeatOptions);
   }
 
@@ -265,9 +379,11 @@ export class TimelineStore {
    */
   beginFrame(): FrameToken {
     this.generation++;
+    const viewUt = this.clock.viewUt();
     this.currentToken = {
-      viewUt: this.clock.viewUt(),
+      viewUt,
       generation: this.generation,
+      certainty: this.clock.certaintyFor(viewUt),
     };
     for (const listener of this.frameListeners) listener();
     return this.currentToken;
@@ -276,6 +392,28 @@ export class TimelineStore {
   /** The token minted by the most recent `beginFrame()` call. What reactive reads (`useTimelineStream`) use — never recomputed per read. */
   currentFrame(): FrameToken {
     return this.currentToken;
+  }
+
+  /**
+   * The frame's certainty (M2 design §3.3) — `"confirmed"` when the token's
+   * `viewUt` sat at-or-before the certainty horizon at the moment it was
+   * minted, `"predicted"` past it. Rides alongside a value/status read for
+   * the same topic and frame, never inside either (the `useKosScriptStatus`
+   * pattern: `sample()` for the value, `sampleStatus()` for staleness/
+   * absence, `sampleCertainty()` for this — three independent channels that
+   * compose freely, e.g. a topic can be simultaneously `"predicted"` and
+   * `"resyncing"`, or `"confirmed"` and `"held-stale"`). Mirrors `sample()`/
+   * `sampleStatus()`'s stale-token fallback.
+   */
+  sampleCertainty(token: FrameToken = this.currentToken): Certainty {
+    const effectiveToken =
+      token.generation === this.generation ? token : this.currentToken;
+    return effectiveToken.certainty;
+  }
+
+  /** Passthrough to the shared clock's certainty horizon (M2 design §3.3) — the first-class SDK value (`sdk.view.certaintyHorizonUt()`). */
+  certaintyHorizonUt(): number {
+    return this.clock.certaintyHorizonUt();
   }
 
   /**
@@ -334,6 +472,57 @@ export class TimelineStore {
       const timeline = this.timelineFor<T>(topic);
       if (timeline.epoch < this.clock.getEpoch()) return undefined;
       return timeline.at(effectiveToken.viewUt);
+    });
+  }
+
+  /**
+   * Interpolating raw-topic read (M2 design §3.3: "confirmed view =
+   * interpolation of buffered samples up to the confirmed edge") — fills
+   * the seam `ClientTimeline.straddle` left open (its own doc comment: "a
+   * hold-last read (`at`) is what T2 consumers use; interpolation lands in
+   * a later task").
+   *
+   * Deliberately NOT what `sample()`/`get` use for raw reads: some raw
+   * topics (orbit ELEMENTS foremost) are a *cause* valid until superseded,
+   * not a measured quantity — interpolating between two elements samples
+   * straddling a maneuver would blend through physically nonsensical
+   * intermediate orbits. `sample()` stays hold-last for exactly that
+   * reason; this method is for MEASURED/discrete raw values where a
+   * straight line between two buffered samples is an honest estimate in
+   * between (M2 design §2.4's `vessel.flight` case — see
+   * `vessel-state.ts`'s use of `getInterpolated` for the Loaded/measured
+   * basis).
+   *
+   * Falls back to hold-last (`ClientTimeline.at`) whenever there's nothing
+   * to straddle (fewer than two points, or `viewUt` is at-or-after the
+   * latest point — the normal confirmed-live case, since the confirmed
+   * edge is usually sample-clamped right at the newest sample) or the
+   * bracketing payloads can't be honestly lerped (`lerpPayload` returns
+   * `undefined` — mismatched shape, a non-numeric field that actually
+   * differs, or either side is a tombstone) — never fabricates a value it
+   * can't justify.
+   *
+   * A derived topic already computed its own record at the frozen
+   * `viewUt` — propagation (or the channel's own basis-appropriate
+   * handling) IS its past-horizon/interpolation story, so this falls
+   * through to the ordinary derived read (`sample`) rather than
+   * interpolating the OUTPUT record after the fact.
+   */
+  sampleInterpolated<T>(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): TimelinePoint<T> | undefined {
+    const effectiveToken =
+      token.generation === this.generation ? token : this.currentToken;
+
+    if (this.resolveDerivedTopic(topic)) {
+      return this.sample<T>(topic, effectiveToken);
+    }
+
+    return this.memoize(effectiveToken, `\0interp\0${topic}`, () => {
+      const timeline = this.timelineFor<T>(topic);
+      if (timeline.epoch < this.clock.getEpoch()) return undefined;
+      return interpolatedRead(timeline, effectiveToken.viewUt);
     });
   }
 
@@ -476,7 +665,9 @@ export class TimelineStore {
       `\0derived\0${def.topic}\0epoch\0${epoch}`,
       () => {
         const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
-        return def.derive(get, token.viewUt);
+        const getInterpolated: DerivedGet = (inputTopic) =>
+          this.sampleInterpolated(inputTopic, token);
+        return def.derive(get, token.viewUt, getInterpolated);
       },
     );
 

@@ -1,5 +1,14 @@
-/** Which regime `viewUt()` is currently drawn from. Predicted mode lands in a later task (T4/T5); T2 only ever runs `"confirmed"`. */
+/** Which regime `viewUt()` is currently drawn from — set via `ViewClock.setMode`. */
 export type ViewClockMode = "confirmed" | "predicted";
+
+/**
+ * Whether a read sits at-or-before the certainty horizon (`"confirmed"`: a
+ * delivered sample or an honest interpolation between two of them) or past
+ * it (`"predicted"`: a propagated/held-last estimate — M2 design §3.3). Rides
+ * alongside a value/status the same way `StreamStatusValue` does — see
+ * `TimelineStore.sampleCertainty`.
+ */
+export type Certainty = "confirmed" | "predicted";
 
 /**
  * Estimator health, used by later tasks to widen staleness margins
@@ -44,14 +53,32 @@ function defaultNowWall(): number {
  * applied to the one clock instead of per-topic buffers.
  */
 export class ViewClock {
-  readonly mode: ViewClockMode = "confirmed";
+  private modeValue: ViewClockMode = "confirmed";
 
   private epoch = 0;
   private anchorWall: number | undefined;
   private anchorUt: number | undefined;
   private maxSampleUt = Number.NEGATIVE_INFINITY;
   private lastObservedWall: number | undefined;
-  private lastViewUt = Number.NEGATIVE_INFINITY;
+  /** Monotonic cursor for CONFIRMED mode only — deliberately not shared with predicted-mode reads, see `viewUt()`'s doc. */
+  private lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
+  /** Manual history-scrub target (M2 design §3.2), `null` = live. Set via `scrubTo`. */
+  private scrubTarget: number | null = null;
+
+  /** Which regime `viewUt()` is currently drawn from. */
+  get mode(): ViewClockMode {
+    return this.modeValue;
+  }
+
+  /**
+   * Switch between the confirmed view (`viewUt() = confirmedEdgeUt()`, the
+   * default) and the predicted-present view (`viewUt() = utNowEstimate()`,
+   * M2 design §3.3). Independent of `scrubTo` — a scrub target still wins
+   * over either mode while active.
+   */
+  setMode(mode: ViewClockMode): void {
+    this.modeValue = mode;
+  }
 
   constructor(private readonly options: ViewClockOptions = {}) {}
 
@@ -66,9 +93,12 @@ export class ViewClock {
     if (epoch > this.epoch) {
       this.epoch = epoch;
       this.maxSampleUt = Number.NEGATIVE_INFINITY;
-      this.lastViewUt = Number.NEGATIVE_INFINITY;
+      this.lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
       this.anchorWall = undefined;
       this.anchorUt = undefined;
+      // A scrub target from the dead pre-rewind timeline must not survive
+      // (M2 design §7.6) — same per-epoch hygiene as every other reset here.
+      this.scrubTarget = null;
     }
 
     const wallNow = this.now();
@@ -114,19 +144,67 @@ export class ViewClock {
   }
 
   /**
+   * The certainty horizon (M2 design §3.3) — a first-class alias for
+   * `confirmedEdgeUt()`. A `viewUt` at-or-before this is CONFIRMED (a
+   * delivered sample or an honest interpolation between two of them);
+   * strictly after it is PREDICTED (propagated / held-last). It's the exact
+   * same sample-clamped quantity as `confirmedEdgeUt()` — exposed under its
+   * own name because callers (the SDK surface, `TimelineStore.beginFrame`'s
+   * per-frame certainty classification) reason about it as a first-class
+   * value, not as "confirmedEdgeUt renamed".
+   */
+  certaintyHorizonUt(): number {
+    return this.confirmedEdgeUt();
+  }
+
+  /** Classify `ut` against the certainty horizon (M2 design §3.3) — `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). */
+  certaintyFor(ut: number): Certainty {
+    return ut <= this.certaintyHorizonUt() ? "confirmed" : "predicted";
+  }
+
+  /**
+   * Manual history scrub (M2 design §1.2/§3.2): pins `viewUt()` to `ut`
+   * regardless of `mode`, for exploring history (a scrub bar). The live
+   * cursor keeps advancing underneath while scrubbed (confirmed-edge
+   * tracking / predicted estimate both keep updating from `observeSample`
+   * and wall-clock flow) — so `scrubTo(null)` resumes live tracking with a
+   * monotonic catch-up, picking up wherever the live cursor has reached by
+   * then, never a backward jump. Cleared automatically on an epoch bump
+   * (see `observeSample`) — a scrub target from a dead timeline must not
+   * survive a rewind.
+   */
+  scrubTo(ut: number | null): void {
+    this.scrubTarget = ut;
+  }
+
+  /**
    * THE view time — every read in a frame uses this (via the frozen
-   * `FrameToken`, see `timeline-store.ts`). In confirmed mode (T2's only
-   * mode) this tracks `confirmedEdgeUt()`, monotonic non-decreasing within
-   * an epoch (mirrors `Archive.ReadAtVantage`'s cursor clamp server-side) —
-   * the cursor itself resets to `-Infinity` on an epoch bump via
-   * `observeSample`, so "monotonic" is scoped per-epoch, not across a
-   * rewind.
+   * `FrameToken`, see `timeline-store.ts`).
+   *
+   * - **Confirmed mode** (default): tracks `confirmedEdgeUt()`, monotonic
+   *   non-decreasing within an epoch (mirrors `Archive.ReadAtVantage`'s
+   *   cursor clamp server-side) — the cursor resets to `-Infinity` on an
+   *   epoch bump via `observeSample`, so "monotonic" is scoped per-epoch,
+   *   not across a rewind.
+   * - **Predicted mode** (M2 design §3.3): tracks `utNowEstimate()`
+   *   directly — deliberately NOT run through the confirmed cursor's
+   *   monotonic clamp (`lastConfirmedViewUt`), so a predicted excursion can
+   *   never leak forward and pin the confirmed cursor ahead of the real
+   *   confirmed edge once the caller switches back to confirmed mode.
+   * - **Scrubbed** (either mode): `scrubTo`'s target wins outright, but the
+   *   live cursor for whichever mode is active still advances underneath
+   *   (see `scrubTo`'s doc).
    */
   viewUt(): number {
-    const edge = this.confirmedEdgeUt();
-    const next = Math.max(this.lastViewUt, edge);
-    this.lastViewUt = next;
-    return next;
+    let live: number;
+    if (this.modeValue === "predicted") {
+      live = this.utNowEstimate();
+    } else {
+      const edge = this.confirmedEdgeUt();
+      live = Math.max(this.lastConfirmedViewUt, edge);
+      this.lastConfirmedViewUt = live;
+    }
+    return this.scrubTarget !== null ? this.scrubTarget : live;
   }
 
   /** Estimator health — `"locked"` recently observed, `"coasting"` during silence. `"degraded"` (warp-change-during-silence) is a later task. */

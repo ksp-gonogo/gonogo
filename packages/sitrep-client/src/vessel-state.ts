@@ -106,12 +106,13 @@ function degToRad(deg: number): number {
  *   physically distinguished), then `kepler.solve(elements, viewUt)` for
  *   position/velocity. `basis: "propagated"`.
  * - **Loaded** (powered/atmospheric): elements are osculating garbage for
- *   surface quantities, so altitude/vertical/surface speed come straight off
- *   `vessel.flight` at `viewUt` (hold-last via `get()`; real straddle-based
- *   linear interpolation is the natural extension once `get` grows an
- *   interpolating variant — `ClientTimeline.straddle` is already the seam
- *   for it, per its own doc comment — deferred here to keep this task's
- *   surface small). `basis: "measured"`.
+ *   surface quantities, so altitude/vertical/surface speed come off
+ *   `vessel.flight` at `viewUt` via `getInterpolated` — a straight-line lerp
+ *   between the two buffered `vessel.flight` samples straddling `viewUt` (M2
+ *   design §3.3/§2.4; `ClientTimeline.straddle` is the seam, `getInterpolated`
+ *   is the "interpolating variant" this doc used to describe as deferred).
+ *   Falls back to hold-last itself when there's nothing to straddle (e.g.
+ *   only one `vessel.flight` sample so far). `basis: "measured"`.
  *
  * **`undefined` vs `null`, never conflated** (M2 design §2.1/§2.4 — this
  * task's explicit contract): no `vessel.orbit` point at-or-before `viewUt`
@@ -128,6 +129,10 @@ function degToRad(deg: number): number {
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
+  // Defaults to `get` (hold-last) so every pre-existing call site in this
+  // file's own tests — written before `getInterpolated` existed — keeps its
+  // exact prior behavior without passing a third argument.
+  getInterpolated: DerivedGet = get,
 ): VesselState | null | undefined {
   const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
   if (!orbitPoint) return undefined; // not whole yet — no point at all
@@ -163,7 +168,7 @@ export function deriveVesselState(
   }
 
   // Loaded.
-  const flightPoint = get<VesselFlightPayload>("vessel.flight");
+  const flightPoint = getInterpolated<VesselFlightPayload>("vessel.flight");
   if (!flightPoint) return undefined; // not whole yet — no point at all
   if (flightPoint.payload === null) return null; // tombstone — vessel confirmed absent
   const flight = flightPoint.payload;
