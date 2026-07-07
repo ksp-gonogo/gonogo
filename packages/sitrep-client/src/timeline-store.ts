@@ -655,8 +655,15 @@ export class TimelineStore {
       );
     }
 
-    return this.memoize(effectiveToken, `\0status\0${topic}`, () =>
-      this.sampleRawStatus(topic, effectiveToken),
+    // Fold epoch into the raw-status key too (M2 §2.3/§3.4, LENS-4 class):
+    // a status memoized before a mid-frame epoch bump must not survive it, or
+    // it would disagree with the (epoch-folded) value read for the same topic
+    // and could report the dead timeline's status for the rest of the frame.
+    const epoch = this.clock.getEpoch();
+    return this.memoize(
+      effectiveToken,
+      `\0status\0${topic}\0epoch\0${epoch}`,
+      () => this.sampleRawStatus(topic, effectiveToken),
     );
   }
 
