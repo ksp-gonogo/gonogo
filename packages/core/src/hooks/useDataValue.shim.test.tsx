@@ -109,7 +109,21 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
       }
 
       render(
-        <TelemetryProvider client={client}>
+        // M3 Wave 0 carried-channels gate (`m3-migration-plan.md` §5.1): a
+        // mapped topic only routes to the stream once its raw inputs are
+        // actually carried. `StubTransport` doesn't declare
+        // `carriedChannels` (it's test-scriptable, not a real serving
+        // guarantee), so this test explicitly promotes the two raw inputs
+        // `vessel.state.altitudeAsl` resolves to — the "dev-first per-topic
+        // opt-in" half of the gate. Without this, the mapped topic would
+        // stay on the legacy path and the rest of this test (which proves
+        // the DERIVED-channel wiring) would never even exercise the stream.
+        // See `useDataValue gate — carried-channels allowlist` below for the
+        // gate's own dedicated coverage.
+        <TelemetryProvider
+          client={client}
+          carriedChannels={["vessel.orbit", "vessel.flight"]}
+        >
           <Alt />
         </TelemetryProvider>,
       );
@@ -208,4 +222,171 @@ describe("useDataValue shim — no TelemetryProvider mounted behaves exactly lik
     act(() => source.setStatus("disconnected"));
     expect(result.current).toBeUndefined();
   });
+});
+
+describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-bang blank-out fix, m3-migration-plan.md §5.1)", () => {
+  it(
+    "a MAPPED topic NOT in carriedChannels reads the LEGACY value, never a blank — " +
+      "RED before the gate (mapped + provider mounted always won, permanently blanking an unserved topic), GREEN after",
+    () => {
+      const client = new TelemetryClient(new StubTransport());
+      const legacySource = makeLegacySource();
+      registerDataSource(legacySource);
+
+      function Alt() {
+        const alt = useDataValue("data", "v.altitude");
+        return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
+      }
+
+      // No `carriedChannels` prop at all — 'v.altitude' maps to a DERIVED
+      // topic (`vessel.state.altitudeAsl`) whose inputs are not carried.
+      render(
+        <TelemetryProvider client={client}>
+          <Alt />
+        </TelemetryProvider>,
+      );
+
+      expect(screen.getByText("alt:—")).toBeTruthy();
+
+      // Legacy still drives the read — this is the crux of the fix: before
+      // the gate, mapping + a mounted provider always won, so this legacy
+      // emit would have had NO effect and the widget would render blank
+      // forever even though a perfectly good legacy value exists.
+      act(() => legacySource.emit("v.altitude", 80_000));
+      expect(screen.getByText("alt:80000")).toBeTruthy();
+    },
+  );
+
+  it("a MAPPED topic IN carriedChannels streams (never falls back to legacy)", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeLegacySource();
+    registerDataSource(legacySource);
+
+    function Throttle() {
+      const throttle = useDataValue("data", "f.throttle");
+      return (
+        <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>
+      );
+    }
+
+    render(
+      <TelemetryProvider
+        client={client}
+        carriedChannels={["vessel.control.throttle"]}
+      >
+        <Throttle />
+      </TelemetryProvider>,
+    );
+
+    expect(screen.getByText("throttle:—")).toBeTruthy();
+
+    // Legacy emits must NOT surface — the carried topic is routed to the
+    // stream, bypassing legacy entirely.
+    act(() => legacySource.emit("f.throttle", 0.4));
+    expect(screen.getByText("throttle:—")).toBeTruthy();
+
+    act(() => transport.emit("vessel.control.throttle", 0.75));
+    await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
+  });
+
+  it("a DERIVED topic is carried only when ALL of its inputs are carried — one carried input is not enough", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeLegacySource();
+    registerDataSource(legacySource);
+
+    function Alt() {
+      const alt = useDataValue("data", "v.altitude");
+      return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
+    }
+
+    render(
+      // Only ONE of vessel.state.altitudeAsl's two declared inputs
+      // (vessel.orbit, vessel.flight) is promoted.
+      <TelemetryProvider client={client} carriedChannels={["vessel.orbit"]}>
+        <Alt />
+      </TelemetryProvider>,
+    );
+
+    expect(screen.getByText("alt:—")).toBeTruthy();
+
+    // Still legacy — the derived channel can never produce a whole record
+    // with a missing input, so it must not be treated as carried.
+    act(() => legacySource.emit("v.altitude", 12_345));
+    expect(screen.getByText("alt:12345")).toBeTruthy();
+
+    // Feeding the (partially) carried input must not flip it to streamed —
+    // the legacy value must keep winning.
+    act(() => {
+      transport.emit("vessel.orbit", ORBIT, {
+        quality: Quality.Loaded,
+        source: "vessel:1",
+      });
+    });
+    expect(screen.getByText("alt:12345")).toBeTruthy();
+  });
+
+  it(
+    "MONOTONIC: promoting a topic flips legacy -> stream, and a later render that omits the " +
+      "promotion does NOT flip it back to legacy mid-session",
+    async () => {
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport);
+      const legacySource = makeLegacySource();
+      registerDataSource(legacySource);
+
+      function Alt() {
+        const alt = useDataValue("data", "v.altitude");
+        return <div>alt:{alt === undefined ? "—" : String(alt)}</div>;
+      }
+
+      const { rerender } = render(
+        <TelemetryProvider client={client}>
+          <Alt />
+        </TelemetryProvider>,
+      );
+
+      // Not yet carried — legacy drives it.
+      act(() => legacySource.emit("v.altitude", 1));
+      expect(screen.getByText("alt:1")).toBeTruthy();
+
+      // Promote both inputs.
+      rerender(
+        <TelemetryProvider
+          client={client}
+          carriedChannels={["vessel.orbit", "vessel.flight"]}
+        >
+          <Alt />
+        </TelemetryProvider>,
+      );
+
+      act(() => {
+        transport.emit("vessel.orbit", ORBIT, {
+          quality: Quality.Loaded,
+          source: "vessel:1",
+        });
+        transport.emit("vessel.flight", FLIGHT, {
+          quality: Quality.Loaded,
+          source: "vessel:1",
+        });
+      });
+      await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
+
+      // A later render whose `carriedChannels` prop OMITS the promotion
+      // entirely must not un-carry it — the allowlist only ever grows for
+      // the life of this mounted provider.
+      rerender(
+        <TelemetryProvider client={client}>
+          <Alt />
+        </TelemetryProvider>,
+      );
+      expect(screen.getByText("alt:71234")).toBeTruthy();
+
+      // And legacy emits still must not surface, proving it's genuinely
+      // still on the stream path, not coincidentally matching.
+      act(() => legacySource.emit("v.altitude", 999));
+      expect(screen.getByText("alt:71234")).toBeTruthy();
+    },
+  );
 });

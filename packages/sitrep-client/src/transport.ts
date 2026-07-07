@@ -42,4 +42,23 @@ export interface Transport {
    * round-trip model.
    */
   predictConfirmEta?(): number | undefined;
+
+  /**
+   * OPTIONAL: the topics this transport actually delivers `stream-data` for
+   * — the M3 Wave 0 carried-channels allowlist gate's transport-side seed
+   * (`m3-migration-plan.md` §5.1/§Build 1, `./carried-channels.ts`).
+   * `TelemetryClient.declaredChannels` reads this straight through;
+   * `TelemetryProvider` unions it with its own explicit `carriedChannels`
+   * promotion-list prop to build the allowlist `useDataValue`'s shim
+   * consults before ever routing a mapped topic to the stream.
+   *
+   * Omitted (`undefined`) means "this transport doesn't declare" — e.g.
+   * `StubTransport`, which is test-scriptable and can `emit` on any topic a
+   * test subscribes to regardless of any real serving guarantee; a caller
+   * wanting a stub-driven topic carried must promote it explicitly via
+   * `TelemetryProvider`'s `carriedChannels` prop. `ReplayTransport` DOES
+   * declare — its value is exactly the fixture's topic set, since that's the
+   * complete, known-in-advance set of topics it can ever deliver.
+   */
+  readonly carriedChannels?: readonly string[];
 }

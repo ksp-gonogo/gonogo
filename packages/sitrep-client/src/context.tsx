@@ -4,6 +4,8 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 import type { TelemetryClient } from "./client";
 import { TimelineStore } from "./timeline-store";
@@ -16,6 +18,34 @@ const TelemetryClientContext = createContext<TelemetryClient | undefined>(
 const TimelineStoreContext = createContext<TimelineStore | undefined>(
   undefined,
 );
+const CarriedChannelsContext = createContext<ReadonlySet<string> | undefined>(
+  undefined,
+);
+
+/**
+ * Union `additions` into `previous`, returning `previous` UNCHANGED
+ * (referentially) when nothing new was added — the monotonic-growth seam
+ * behind `TelemetryProvider`'s carried-channels allowlist (M3 Wave 0,
+ * `m3-migration-plan.md` §Build 1: "adding a topic can only move it from
+ * legacy->stream, never blank a widget"). Never used to shrink: a caller
+ * whose next render passes a SMALLER explicit `carriedChannels` prop (or
+ * whose transport's own `declaredChannels` shrinks — not expected in
+ * practice, but not relied upon either) does not lose previously-carried
+ * topics. This is what makes "promoting a topic" a one-way ratchet for the
+ * lifetime of one mounted provider, never a mid-session reversal.
+ */
+function unionGrow(
+  previous: ReadonlySet<string>,
+  additions: Iterable<string>,
+): ReadonlySet<string> {
+  let next: Set<string> | undefined;
+  for (const topic of additions) {
+    if (previous.has(topic)) continue;
+    if (!next) next = new Set(previous);
+    next.add(topic);
+  }
+  return next ?? previous;
+}
 
 /**
  * Schedule `cb` to run on the next animation frame, falling back to a
@@ -53,6 +83,19 @@ export interface TelemetryProviderProps {
   store?: TimelineStore;
   /** Only consulted when `store` is omitted — options for the default `ViewClock` this provider builds. */
   viewClockOptions?: ViewClockOptions;
+  /**
+   * Explicit per-topic promotion list (M3 Wave 0 carried-channels gate,
+   * `m3-migration-plan.md` §5.1/§Build 1, `./carried-channels.ts`) — the
+   * "dev-first per-topic opt-in" half of the allowlist, alongside
+   * `client.declaredChannels` (the transport's own served-channel
+   * declaration). Union of the two is what `useDataValue`'s shim
+   * (`@gonogo/core`) consults before ever routing a MAPPED topic to the
+   * stream instead of legacy. Monotonic: a topic named here (or ever
+   * declared by the transport) stays carried for the life of this mounted
+   * provider even if a later render omits it — see `unionGrow`. Omit
+   * entirely to carry only whatever the transport itself declares.
+   */
+  carriedChannels?: Iterable<string>;
 }
 
 /**
@@ -96,6 +139,7 @@ export function TelemetryProvider({
   children,
   store: providedStore,
   viewClockOptions,
+  carriedChannels: carriedChannelsProp,
 }: TelemetryProviderProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency (M2 finalization Fix 2) for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const store = useMemo(() => {
@@ -119,6 +163,42 @@ export function TelemetryProvider({
     }
     return built;
   }, [providedStore, client]);
+
+  // The carried-channels allowlist (M3 Wave 0, `./carried-channels.ts`):
+  // seeded from `client.declaredChannels` (the transport's own served-topic
+  // declaration) unioned with the explicit `carriedChannels` promotion-list
+  // prop. Persists and only ever GROWS across renders of this same provider
+  // INSTANCE (`unionGrow` — the one-way ratchet `m3-migration-plan.md`
+  // §Build 1 calls for: "monotonic... adding a topic can only move it from
+  // legacy->stream, never blank a widget"), even if a later render's
+  // `carriedChannelsProp` shrinks. Only resets on a genuine `client` identity
+  // change (`carriedClientRef` tracks which client the current set belongs
+  // to) — a fresh session, matching the auto-built store's own
+  // client-identity reset above; a client swap starts a new allowlist rather
+  // than carrying stale entries from a transport that's no longer attached.
+  const carriedClientRef = useRef<TelemetryClient | null>(null);
+  const [carriedChannels, setCarriedChannels] = useState<ReadonlySet<string>>(
+    () => {
+      carriedClientRef.current = client;
+      return unionGrow(
+        new Set(client.declaredChannels),
+        carriedChannelsProp ?? [],
+      );
+    },
+  );
+
+  useEffect(() => {
+    const additions = [
+      ...client.declaredChannels,
+      ...(carriedChannelsProp ?? []),
+    ];
+    if (carriedClientRef.current !== client) {
+      carriedClientRef.current = client;
+      setCarriedChannels(new Set(additions));
+      return;
+    }
+    setCarriedChannels((previous) => unionGrow(previous, additions));
+  }, [client, carriedChannelsProp]);
 
   useEffect(() => client.attachStore(store), [client, store]);
   useEffect(() => {
@@ -150,7 +230,9 @@ export function TelemetryProvider({
   return (
     <TelemetryClientContext.Provider value={client}>
       <TimelineStoreContext.Provider value={store}>
-        {children}
+        <CarriedChannelsContext.Provider value={carriedChannels}>
+          {children}
+        </CarriedChannelsContext.Provider>
       </TimelineStoreContext.Provider>
     </TelemetryClientContext.Provider>
   );
@@ -214,4 +296,34 @@ export function useTelemetryStore(): TimelineStore {
  */
 export function useTelemetryStoreOptional(): TimelineStore | undefined {
   return useContext(TimelineStoreContext);
+}
+
+/**
+ * Reads the carried-channels allowlist supplied by the nearest
+ * `TelemetryProvider` (M3 Wave 0, `./carried-channels.ts`) — throws if no
+ * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary
+ * SDK-native call sites needing to know "is this topic actually live right
+ * now" should combine this with `isTopicCarried` rather than reading the raw
+ * set directly.
+ */
+export function useCarriedChannels(): ReadonlySet<string> {
+  const carriedChannels = useContext(CarriedChannelsContext);
+  if (!carriedChannels) {
+    throw new Error(
+      "useCarriedChannels must be used within a TelemetryProvider",
+    );
+  }
+  return carriedChannels;
+}
+
+/**
+ * Non-throwing variant of `useCarriedChannels` — `undefined` when no
+ * `TelemetryProvider` is mounted. Same rationale as
+ * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: the
+ * `@gonogo/core` `useDataValue` compatibility shim needs this without
+ * throwing, to decide whether it can route a mapped topic through the
+ * stream pipeline at all.
+ */
+export function useCarriedChannelsOptional(): ReadonlySet<string> | undefined {
+  return useContext(CarriedChannelsContext);
 }

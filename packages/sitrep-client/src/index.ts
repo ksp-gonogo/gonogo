@@ -1,11 +1,14 @@
 export const CLIENT_VERSION = "0.0.0";
 
+export { isTopicCarried } from "./carried-channels";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
 export { RealTimeClock } from "./clock";
 export {
   TelemetryProvider,
   type TelemetryProviderProps,
+  useCarriedChannels,
+  useCarriedChannelsOptional,
   useTelemetryClient,
   useTelemetryClientOptional,
   useTelemetryStore,
@@ -26,6 +29,8 @@ export {
   TELEMACHUS_CLEAN_HOMES,
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
+export type { ReplayFixture, ReplayTransportOptions } from "./replay-transport";
+export { ReplayTransport } from "./replay-transport";
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
 export { StubTransport } from "./stub-transport";

@@ -1,5 +1,7 @@
 import {
+  isTopicCarried,
   mapTopic,
+  useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@gonogo/sitrep-client";
@@ -31,18 +33,26 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * (`@gonogo/sitrep-client`, seeded from `m1-provider-taxonomy-design.md`
  * §5's old-Telemachus-key → new-stream-topic migration table):
  *
- * - **Mapped key + a `TelemetryProvider` is mounted** → reads reactively
- *   from the `TimelineStore` the provider feeds (the M2 bridge task's fix —
- *   see below), so a widget that has been quietly reclassified in the
- *   migration table starts riding the new streaming pipeline with ZERO code
- *   change and zero test change — the return contract (`T | undefined`,
- *   `undefined` while nothing has arrived yet) is identical.
- * - **Unmapped key, or no `TelemetryProvider` in the tree yet** → falls back
- *   to the legacy registered `DataSource` path unchanged. This is what lets
- *   M3 migrate widgets (and mount `TelemetryProvider`) group-by-group: an
- *   unmigrated screen with no provider behaves exactly as it does today, and
- *   a key the migration table hasn't reached yet (an M1 §5.2 "known gap")
- *   keeps working off the old `DataSource` even once the provider is live.
+ * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
+ *   CARRIED** → reads reactively from the `TimelineStore` the provider feeds
+ *   (the M2 bridge task's fix — see below), so a widget that has been
+ *   quietly reclassified in the migration table starts riding the new
+ *   streaming pipeline with ZERO code change and zero test change — the
+ *   return contract (`T | undefined`, `undefined` while nothing has arrived
+ *   yet) is identical.
+ * - **Unmapped key, no `TelemetryProvider` in the tree yet, or the resolved
+ *   topic is NOT carried** → falls back to the legacy registered `DataSource`
+ *   path unchanged. This is what lets M3 migrate widgets (and mount
+ *   `TelemetryProvider`) group-by-group: an unmigrated screen with no
+ *   provider behaves exactly as it does today, a key the migration table
+ *   hasn't reached yet (an M1 §5.2 "known gap") keeps working off the old
+ *   `DataSource` even once the provider is live, and — the M3 Wave 0
+ *   carried-channels allowlist gate (`m3-migration-plan.md` §5.1) — a MAPPED
+ *   key whose stream the mounted transport doesn't actually carry ALSO stays
+ *   on the working legacy read instead of resolving to a permanent
+ *   loading-forever `undefined`. See the gate's own comment further down for
+ *   the full "why" — this is the fix for the plan's "big-bang blank-out"
+ *   cliff.
  *
  * **The M2 bridge task.** `mapTopic` frequently targets a DERIVED topic
  * (`vessel.state.<field>` — the V-12 dual-altitude fix). A derived topic is
@@ -142,18 +152,55 @@ export function useDataValue(dataSourceId: string, key: string): unknown {
   // The shim: always subscribed (stable hook order), only consulted when
   // `mapTopic` resolves AND a TelemetryProvider is actually mounted (client
   // AND store both present — `TelemetryProvider` always mounts them
-  // together, see `context.tsx`). This half deliberately mirrors `useStream`
-  // (`@gonogo/sitrep-client`'s `use-stream.ts`) — that file is the source of
-  // truth if its subscribe/getSnapshot contract ever changes.
+  // together, see `context.tsx`) AND the resolved topic is actually CARRIED
+  // (M3 Wave 0 carried-channels allowlist gate, `m3-migration-plan.md` §5.1 —
+  // the safety mechanism against the "big-bang blank-out"). This half
+  // deliberately mirrors `useStream` (`@gonogo/sitrep-client`'s
+  // `use-stream.ts`) — that file is the source of truth if its
+  // subscribe/getSnapshot contract ever changes.
+  //
+  // **The carried-channels gate.** Before this gate existed, a mapped topic
+  // routed to the stream the instant a provider mounted, REGARDLESS of
+  // whether the mounted transport actually delivered it — any unserved
+  // mapped topic (mod not deployed, channel not in the recording, gap-fill
+  // not landed) resolved to a permanent loading `undefined`, blanking the
+  // widget instead of falling back to its working legacy read. `carried`
+  // below is the fix: `store.resolveSubscriptionTopics(topic)` resolves
+  // `topic` down to its raw wire inputs (identity for an already-raw
+  // topic — a DERIVED topic like `vessel.state.altitudeAsl` resolves to
+  // `["vessel.orbit", "vessel.flight"]`), and `carried` is true only when
+  // EVERY one of those inputs is in the provider's carried-channels
+  // allowlist (`useCarriedChannelsOptional` — seeded from the transport's
+  // own declared channels, unioned with an explicit dev-first promotion
+  // list, see `TelemetryProvider`'s `carriedChannels` prop). A partially-fed
+  // derived channel (one input carried, one not) is NOT carried — it can
+  // never produce a whole record, so treating it as carried would
+  // reintroduce the exact blank-out this gate exists to prevent. `carried`
+  // is a pure set-membership check re-evaluated every render, so promoting a
+  // topic (growing the allowlist, which only ever grows — see
+  // `TelemetryProvider`) flips `routable` from `false` to `true` and never
+  // back, satisfying the monotonic "legacy -> stream, never the reverse"
+  // contract this gate is required to hold.
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
+  const carriedChannels = useCarriedChannelsOptional();
   const topic = mapTopic(dataSourceId, key);
+  const carried =
+    store !== undefined &&
+    topic !== undefined &&
+    carriedChannels !== undefined &&
+    isTopicCarried(store, carriedChannels, topic);
   const routable =
-    client !== undefined && store !== undefined && topic !== undefined;
+    client !== undefined &&
+    store !== undefined &&
+    topic !== undefined &&
+    carried;
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || !store || topic === undefined) return () => {};
+      if (!client || !store || topic === undefined || !carried) {
+        return () => {};
+      }
       const inputTopics = store.resolveSubscriptionTopics(topic);
       const unsubscribeInputs = inputTopics.map((inputTopic) =>
         client.subscribe(inputTopic, () => {}),
@@ -164,13 +211,13 @@ export function useDataValue(dataSourceId: string, key: string): unknown {
         for (const unsubscribe of unsubscribeInputs) unsubscribe();
       };
     },
-    [client, store, topic],
+    [client, store, topic, carried],
   );
   const getStreamSnapshot = useCallback(() => {
-    if (!store || topic === undefined) return undefined;
+    if (!store || topic === undefined || !carried) return undefined;
     const point = store.sample(topic, store.currentFrame());
     return point ? point.payload : undefined;
-  }, [store, topic]);
+  }, [store, topic, carried]);
   const streamedValue = useSyncExternalStore(
     subscribeStream,
     getStreamSnapshot,
