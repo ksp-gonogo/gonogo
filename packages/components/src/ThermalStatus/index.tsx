@@ -3,8 +3,10 @@ import {
   clampSafe,
   kelvinToCelsius,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
+import type { StreamStatusValue } from "@gonogo/sitrep-client";
 import {
   EmptyState,
   Panel,
@@ -118,6 +120,16 @@ function ThermalStatusComponent({
   const rawShieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
   const rawShieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
 
+  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot).
+  // `therm.hottestPartTemp` is the widget's one representative MAPPED key
+  // (-> `vessel.thermal.hottestPart.skinTemp`) — the engine/heat-shield
+  // rows all read GAPPED keys (map-topic.ts's TELEMACHUS_KNOWN_GAPS "thermal
+  // detail beyond headline ratios") and stay on legacy regardless, so their
+  // status can't drive this badge without conflating "stream carried" with
+  // "legacy connected".
+  const streamStatus = useDataStreamStatus("data", "therm.hottestPartTemp");
+  const streamStatusLabel = formatStreamStatus(streamStatus);
+
   // Sentinel guard — drop the whole group when its max (or temp) is at the
   // absolute-zero floor. The ratio is meaningless in that case and rendering
   // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
@@ -182,7 +194,14 @@ function ThermalStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>THERMAL</PanelTitle>
+      <TitleRow>
+        <PanelTitle>THERMAL</PanelTitle>
+        {streamStatusLabel !== null && (
+          <StatusBadge role="status" aria-live="polite">
+            {streamStatusLabel}
+          </StatusBadge>
+        )}
+      </TitleRow>
       {noData ? (
         <EmptyState>No thermal data</EmptyState>
       ) : (
@@ -285,7 +304,53 @@ function ThermalStatusComponent({
 
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
+/**
+ * `StreamStatusValue` -> a short badge caption, or `null` for `"live"`
+ * (no badge — matches today's rendered output exactly for every
+ * unmigrated/still-legacy render). Same mapping as `WarpControl`'s own
+ * `formatStreamStatus` (M3 pilot) — duplicated rather than shared because no
+ * common home for it exists yet; see the M3 batch-1 report for the
+ * follow-up to extract one once more widgets adopt this pattern.
+ */
+function formatStreamStatus(status: StreamStatusValue): string | null {
+  switch (status) {
+    case "live":
+      return null;
+    case "held-stale":
+      return "STALE";
+    case "last-before-blackout":
+      return "STALE";
+    case "disconnected":
+      return "OFFLINE";
+    case "resyncing":
+      return "SYNCING";
+    case "absent":
+      return "NO DATA";
+  }
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
+
+const StatusBadge = styled.span`
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--color-status-warning-bg);
+  border: 1px solid var(--color-status-warning-bg);
+  white-space: nowrap;
+`;
 
 const Body = styled.div`
   flex: 1;

@@ -175,7 +175,28 @@ const BODY_INDEXED_GAP = /^b\.(rotationAngle|rotates)\[-?\d+\]$/;
  * map, one field object per resource name. `r.resourceCurrent(Max)[X]`
  * (current-STAGE totals) has no home — `vessel.resources` is vessel-total
  * only (M1 §2.2); stage-scoped resource splits are the same G-14 stage-sim
- * gap as `dv.stages`. */
+ * gap as `dv.stages`.
+ *
+ * The generated target has an extra `.resources` segment
+ * (`vessel.resources.resources.<name>.<current|max>`, not the flatter
+ * `vessel.resources.<name>.<current|max>` you'd expect) — found + fixed in
+ * the M3 batch-1 FuelStatus migration. `VesselViewProvider.ToWire`
+ * (`mod/Sitrep.Host/VesselViewProvider.cs`) serializes `VesselResources` as
+ * `{ resources: { <name>: {current, max} }, meta: {...} }`, wrapping the
+ * per-resource map under a `"resources"` KEY rather than publishing it at
+ * the record root. `TimelineStore.resolveRawFieldSubtopic`
+ * (`timeline-store.ts`) mechanically splits any 3+-segment target into a
+ * 2-segment `rawTopic` (here, `"vessel.resources"`) plus a fieldPath walked
+ * verbatim off that record's payload — so the fieldPath itself must include
+ * the wrapper key. This channel was never in the 6-topic
+ * `reference-wire-fixture.json` set, so the "every currently shipped
+ * raw-field entry has been checked against the real wire fixture" guarantee
+ * (`sampleRawFieldSubtopic`'s own doc comment) never actually covered it —
+ * the flat form would have silently resolved to a permanent `undefined`
+ * once a widget migrated onto it and the mod deployed for real, with no
+ * fallback to legacy (`isUnresolvableField`'s phantom-mapping guard is NOT
+ * extended to the raw-field path either — see `sampleRawFieldSubtopic`'s
+ * doc comment). */
 const RESOURCE_VESSEL_TOTAL = /^r\.resource(Max)?\[([^\]]+)\]$/;
 const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
 
@@ -484,7 +505,7 @@ export function mapTopic(
   const resourceMatch = RESOURCE_VESSEL_TOTAL.exec(key);
   if (resourceMatch) {
     const [, isMax, name] = resourceMatch;
-    return `vessel.resources.${name}.${isMax ? "max" : "current"}`;
+    return `vessel.resources.resources.${name}.${isMax ? "max" : "current"}`;
   }
   if (RESOURCE_STAGE_SCOPED.test(key)) return undefined;
 

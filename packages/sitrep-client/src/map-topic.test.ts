@@ -97,12 +97,12 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "b.number")).toBe(true);
   });
 
-  it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources.<X>.{current,max}", () => {
+  it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources's REAL wire shape (M3 batch-1 fix: the wire wraps in a 'resources' key, ToWire(VesselResources) in VesselViewProvider.cs — a flat vessel.resources.<X>.current target silently never resolves against the real payload)", () => {
     expect(mapTopic("data", "r.resource[LiquidFuel]")).toBe(
-      "vessel.resources.LiquidFuel.current",
+      "vessel.resources.resources.LiquidFuel.current",
     );
     expect(mapTopic("data", "r.resourceMax[ElectricCharge]")).toBe(
-      "vessel.resources.ElectricCharge.max",
+      "vessel.resources.resources.ElectricCharge.max",
     );
   });
 

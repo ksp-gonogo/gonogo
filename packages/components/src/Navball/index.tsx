@@ -6,9 +6,11 @@ import type {
 import {
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
+import type { StreamStatusValue } from "@gonogo/sitrep-client";
 import {
   Button,
   ConfigForm,
@@ -119,6 +121,15 @@ function NavballComponent({
       ? throttleRaw
       : 0;
   const isControllable = useDataValue("data", "v.isControllable") !== false;
+
+  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot):
+  // `n.heading` is representative of the widget's mapped attitude/control
+  // read set regardless of the CoM-frame toggle (n.heading2 is a permanent
+  // gap either way — see mapTopic's TELEMACHUS_KNOWN_GAPS "*2 CoM-attitude
+  // quartet" entry) — so it stays a stable status source across config
+  // changes rather than switching with `useCoM`.
+  const streamStatus = useDataStreamStatus("data", "n.heading");
+  const streamStatusLabel = formatStreamStatus(streamStatus);
 
   const execute = useExecuteAction("data");
 
@@ -335,6 +346,11 @@ function NavballComponent({
         <PanelTitle>
           {showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
         </PanelTitle>
+        {streamStatusLabel !== null && (
+          <StatusBadge role="status" aria-live="polite">
+            {streamStatusLabel}
+          </StatusBadge>
+        )}
         {showModeBadges && (
           <ModeBadgeRow>
             <ModeBadge $on={sasOn}>
@@ -598,6 +614,31 @@ function numericOrNull(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+/**
+ * `StreamStatusValue` -> a short badge caption, or `null` for `"live"`
+ * (no badge — matches today's rendered output exactly for every
+ * unmigrated/still-legacy render). Same mapping as `WarpControl`'s own
+ * `formatStreamStatus` (M3 pilot) — duplicated rather than shared because no
+ * common home for it exists yet; see the M3 batch-1 report for the
+ * follow-up to extract one once more widgets adopt this pattern.
+ */
+function formatStreamStatus(status: StreamStatusValue): string | null {
+  switch (status) {
+    case "live":
+      return null;
+    case "held-stale":
+      return "STALE";
+    case "last-before-blackout":
+      return "STALE";
+    case "disconnected":
+      return "OFFLINE";
+    case "resyncing":
+      return "SYNCING";
+    case "absent":
+      return "NO DATA";
+  }
+}
+
 // ── Config component ──────────────────────────────────────────────────────────
 
 function NavballConfigComponent({
@@ -662,6 +703,18 @@ const Header = styled.div`
      row overflow the panel's right edge (Panel has overflow:hidden, so an
      overflowing RCS/PRECISION badge was getting clipped). */
   flex-wrap: wrap;
+`;
+
+const StatusBadge = styled.span`
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--color-status-warning-bg);
+  border: 1px solid var(--color-status-warning-bg);
+  white-space: nowrap;
 `;
 
 const ModeBadgeRow = styled.div`
