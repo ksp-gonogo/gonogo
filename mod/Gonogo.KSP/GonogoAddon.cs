@@ -16,11 +16,12 @@ namespace Gonogo.KSP
     ///
     /// Threading: KSP is touched ONLY from here and from
     /// <see cref="KspHost"/>'s GameEvents callbacks - both main-thread. Once
-    /// <see cref="FixedUpdate"/> builds the <c>system.bodies</c> payload, it
-    /// hands the finished object straight to <see cref="GonogoBodiesServer.Tick"/>,
-    /// which only touches primitives/the payload and an explicit job queue
-    /// on ITS side too - the Courier/serialization/socket work all happens
-    /// off the main thread, per <see cref="GonogoBodiesServer"/>'s doc comment.
+    /// <see cref="FixedUpdate"/> samples the game, it hands the raw
+    /// <see cref="KspSnapshot"/> straight to <see cref="ChannelEngine.Tick"/>,
+    /// which only touches primitives/registered mapper delegates and an
+    /// explicit job queue on ITS side too - the per-channel mapping/Courier/
+    /// serialization/socket work all happens off the main thread, per
+    /// <see cref="ChannelEngine"/>'s doc comment.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Instantly, once: true)]
     public sealed class GonogoAddon : MonoBehaviour
@@ -55,7 +56,7 @@ namespace Gonogo.KSP
 
         private KspHost? _host;
         private Recorder? _recorder;
-        private GonogoBodiesServer? _server;
+        private ChannelEngine? _engine;
         private bool _shutDown;
         private double? _lastSampledUt;
         private string? _sessionPath;
@@ -69,8 +70,9 @@ namespace Gonogo.KSP
             {
                 _host = new KspHost();
                 _recorder = new Recorder(_host);
-                _server = new GonogoBodiesServer(BindUri);
-                _server.Start();
+                _engine = new ChannelEngine(BindUri);
+                _engine.RegisterExtension(new SystemExtension());
+                _engine.Start();
 
                 // Session file path is established ONCE here, at startup,
                 // and reused for every periodic flush AND the final save -
@@ -92,7 +94,7 @@ namespace Gonogo.KSP
 
         private void FixedUpdate()
         {
-            if (_host == null || _recorder == null || _server == null)
+            if (_host == null || _recorder == null || _engine == null)
             {
                 return;
             }
@@ -141,15 +143,15 @@ namespace Gonogo.KSP
                 // snapshot UNCONDITIONALLY, regardless of whether any client
                 // is subscribed to the live stream. Subscription-gating
                 // applies only to the emit path below (inside
-                // GonogoBodiesServer.Tick, via SubscriptionRegistry +
-                // ChannelEmitter) - never to the recorder.
+                // ChannelEngine.Tick, via SubscriptionRegistry + ChannelEmitter,
+                // per registered channel) - never to the recorder.
                 _recorder.Record(snapshot.Ut, snapshot);
 
-                var payload = SystemViewProvider.BuildSystemBodies(snapshot);
-                if (payload != null)
-                {
-                    _server.Tick(snapshot.Ut, payload);
-                }
+                // The engine applies every registered channel's mapper
+                // (system.bodies's is SystemViewProvider.BuildSystemBodies,
+                // via SystemExtension) itself - GonogoAddon no longer builds
+                // the payload by hand.
+                _engine.Tick(snapshot.Ut, snapshot);
             }
             catch (Exception ex)
             {
@@ -171,7 +173,7 @@ namespace Gonogo.KSP
 
             try
             {
-                _server?.Stop();
+                _engine?.Stop();
             }
             catch (Exception ex)
             {

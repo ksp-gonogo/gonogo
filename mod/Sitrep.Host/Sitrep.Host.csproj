@@ -18,5 +18,20 @@
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
     <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+    <!-- ChannelEngine (the generalized GonogoBodiesServer/ReplayBodiesServer -
+         see ChannelEngine.cs's doc comment) owns the transport/socket domain
+         directly, so this KSP-free layer now needs Sitrep.Transport too.
+         Sitrep.Transport is itself KSP-free/BCL-only (vendored Fleck source,
+         no PackageReferences - see its own csproj comment), so this doesn't
+         change Sitrep.Host's zero-external-dependency invariant above. -->
+    <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
+  </ItemGroup>
+  <!-- ChannelEngine exposes deterministic test-only members (TickAndWait,
+       DispatchCommandAndWait, ChannelCounters) as `internal` rather than
+       public - same friend-assembly pattern Sitrep.Core uses for Sitrep.Host
+       itself (see Sitrep.Core.csproj). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sitrep.Host.Tests" />
+    <InternalsVisibleTo Include="Sitrep.Host.IntegrationTests" />
   </ItemGroup>
 </Project>

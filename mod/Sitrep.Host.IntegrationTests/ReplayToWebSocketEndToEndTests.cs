@@ -1,32 +1,37 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.WebSockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
 using Xunit;
 
+using static Sitrep.Host.IntegrationTests.WsTestHarness;
 using StreamData = Sitrep.Contract.StreamData<object?>;
 
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// M5b Task 6 -- the headless payoff test: wires the KSP-FREE pipeline
-    /// EXACTLY as <c>Gonogo.KSP.GonogoBodiesServer</c> does in-game
-    /// (<see cref="ReplayKspHost"/> -&gt; <see cref="SystemViewProvider"/> -&gt;
-    /// <see cref="ReplayBodiesServer"/>'s Courier/outbox wiring -&gt; a real
+    /// EXACTLY as production does in-game (<see cref="ReplayKspHost"/> -&gt;
+    /// <see cref="ChannelEngine"/>'s registered <see cref="SystemViewProvider"/>
+    /// mapper -&gt; Courier/outbox wiring -&gt; a real
     /// <see cref="FleckTransportListener"/>), but driven by a synthetic
     /// <see cref="RecordedSession"/> instead of live KSP, and asserts a real
     /// <see cref="ClientWebSocket"/> observes the delayed <c>system.bodies</c>
     /// stream correctly -- including through a UT rewind (an F9 quickload).
     ///
+    /// This now runs against the SAME <see cref="ChannelEngine"/> class
+    /// <c>Gonogo.KSP.GonogoAddon</c> constructs in production (registering
+    /// this project's own tiny <see cref="TestSystemExtension"/> instead of
+    /// <c>Gonogo.KSP.SystemExtension</c>, since this project can't reference
+    /// the net472 <c>Gonogo.KSP</c> assembly at all) -- there is no more
+    /// hand-copied <c>ReplayBodiesServer</c> duplicating the engine's
+    /// Courier/emitter/subscription wiring.
+    ///
     /// This is the exact loop the user's real capture will drive: if this is
-    /// green, the mod pipeline (replay -&gt; provider -&gt; courier -&gt;
+    /// green, the mod pipeline (replay -&gt; provider -&gt; engine -&gt;
     /// transport -&gt; client) is proven end to end without ever launching
     /// KSP.
     ///
@@ -84,12 +89,13 @@ namespace Sitrep.Host.IntegrationTests
             var lifecycleEvents = new List<KspLifecycleEvent>();
             host.Lifecycle += lifecycleEvents.Add;
 
-            using var server = new ReplayBodiesServer("ws://127.0.0.1:0", NetworkDelaySeconds);
+            using var server = new ChannelEngine("ws://127.0.0.1:0", NetworkDelaySeconds);
+            server.RegisterExtension(new TestSystemExtension());
             server.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
-                await SubscribeAsync(client, ReplayBodiesServer.BodiesTopic, Timeout);
+                await SubscribeAsync(client, SystemViewProvider.Topic, Timeout);
 
                 // ---- Step 1: UT 0, snapshot A. Not due yet (fireUt = 0+2 = 2). ----
                 DriveOneStep(host, server, lifecycleEvents);
@@ -184,9 +190,10 @@ namespace Sitrep.Host.IntegrationTests
         /// replay-CURSOR-only dip -- see the note on this class's doc
         /// comment) resumes delivery instead of stalling.
         ///
-        /// Drives <see cref="ReplayBodiesServer.Tick"/> directly (bypassing
-        /// <see cref="ReplayKspHost"/> entirely) so the UT sequence handed to
-        /// the Courier/Clock is exactly what a live quickload produces: UT
+        /// Drives <see cref="ChannelEngine.TickAndWait"/> directly (bypassing
+        /// <see cref="ReplayKspHost"/> entirely, via <see cref="TestSystemExtension"/>'s
+        /// raw-passthrough <c>test.raw</c> channel) so the UT sequence handed
+        /// to the Courier/Clock is exactly what a live quickload produces: UT
         /// climbs to a peak (0 -&gt; 5), then jumps BACKWARD (5 -&gt; 1,
         /// simulating an F9 load to an earlier save), then resumes forward.
         ///
@@ -203,19 +210,20 @@ namespace Sitrep.Host.IntegrationTests
         {
             const double delaySeconds = 2.0;
 
-            using var server = new ReplayBodiesServer("ws://127.0.0.1:0", delaySeconds);
+            using var server = new ChannelEngine("ws://127.0.0.1:0", delaySeconds);
+            server.RegisterExtension(new TestSystemExtension());
             server.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
-                await SubscribeAsync(client, ReplayBodiesServer.BodiesTopic, Timeout);
+                await SubscribeAsync(client, TestSystemExtension.RawTopic, Timeout);
 
                 // ---- Establish a peak UT of 5 via two forward ticks. The
                 // UT-0 tick's delivery (fireUt = 0+2 = 2) fires when the
                 // clock reaches 5; the UT-5 tick's OWN delivery (fireUt = 7)
                 // is what will be stranded by the coming rewind. ----
-                server.Tick(0.0, BodiesPayload(111));
-                server.Tick(5.0, BodiesPayload(222));
+                server.TickAndWait(0.0, TestSystemExtension.RawSnapshot(0.0, BodiesPayload(111)), Timeout);
+                server.TickAndWait(5.0, TestSystemExtension.RawSnapshot(5.0, BodiesPayload(222)), Timeout);
 
                 var deliveredPeak = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredPeak, 111);
@@ -232,13 +240,13 @@ namespace Sitrep.Host.IntegrationTests
                 // server detects the backward tick, resets the courier's
                 // timeline to UT 1 (dropping the abandoned fireUt=7
                 // delivery), and broadcasts a timeline-reset event. ----
-                server.Tick(1.0, BodiesPayload(333));
+                server.TickAndWait(1.0, TestSystemExtension.RawSnapshot(1.0, BodiesPayload(333)), Timeout);
 
                 // (b) timeline-reset was emitted, using the same EventMsg
                 // shape as the subscribe-ack.
                 var reset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
                 Assert.Equal("timeline-reset", reset.Name);
-                Assert.Equal(ReplayBodiesServer.BodiesTopic, reset.Topic);
+                Assert.Equal(TestSystemExtension.RawTopic, reset.Topic);
 
                 // Not due yet: sma=333's own delivery is fireUt = 1+2 = 3,
                 // and the clock only just reset to 1.
@@ -253,7 +261,7 @@ namespace Sitrep.Host.IntegrationTests
                 // (c) subscriptions survived the reset: this delivery
                 // reaches the client on the ORIGINAL subscription from
                 // above -- no re-subscribe was sent. ----
-                server.Tick(3.0, BodiesPayload(444));
+                server.TickAndWait(3.0, TestSystemExtension.RawSnapshot(3.0, BodiesPayload(444)), Timeout);
 
                 var deliveredPostRewind = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredPostRewind, 333);
@@ -268,7 +276,7 @@ namespace Sitrep.Host.IntegrationTests
                 // arrive, and no sma=222 frame ever can -- proving the
                 // abandoned delivery was truly dropped, not merely
                 // delayed. ----
-                server.Tick(9.0, BodiesPayload(555));
+                server.TickAndWait(9.0, TestSystemExtension.RawSnapshot(9.0, BodiesPayload(555)), Timeout);
 
                 var deliveredNext = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredNext, 444);
@@ -284,11 +292,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Track C's fix, proven headlessly: <c>ReplayBodiesServer</c> is the
-        /// documented 1:1 stand-in for <c>Gonogo.KSP.GonogoBodiesServer</c>
-        /// (see that class's doc comment), so this is direct coverage of the
-        /// production wiring. Ticks with ZERO subscribers must never even
-        /// reach the emitter (proven via <see cref="ReplayBodiesServer.BodiesEmitterCounters"/>,
+        /// Track C's fix, proven headlessly against the SAME
+        /// <see cref="ChannelEngine"/> production uses -- see this class's
+        /// doc comment. Ticks with ZERO subscribers must never even reach
+        /// the emitter (proven via <see cref="ChannelEngine.ChannelCounters"/>,
         /// since "nothing arrived on the wire" alone doesn't distinguish this
         /// from the pre-fix behavior of no one being subscribed to receive it
         /// either way) -- and the moment a client subscribes, the very next
@@ -299,27 +306,28 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public async Task ZeroSubscribersNeverReachTheEmitterButStreamImmediatelyOnceSomeoneSubscribes()
         {
-            using var server = new ReplayBodiesServer("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            server.RegisterExtension(new TestSystemExtension());
             server.Start();
             try
             {
                 // No client connected at all -- three ticks land with zero
                 // subscribers. The SubscriptionRegistry/ChannelEmitter outer
                 // gate means Decide is never called for any of them.
-                server.Tick(0.0, BodiesPayload(1));
-                server.Tick(1.0, BodiesPayload(2));
-                server.Tick(2.0, BodiesPayload(3));
-                Assert.Equal(0, server.BodiesEmitterCounters.Considered);
-                Assert.Equal(0, server.BodiesEmitterCounters.Emitted);
+                server.TickAndWait(0.0, TestSystemExtension.RawSnapshot(0.0, BodiesPayload(1)), Timeout);
+                server.TickAndWait(1.0, TestSystemExtension.RawSnapshot(1.0, BodiesPayload(2)), Timeout);
+                server.TickAndWait(2.0, TestSystemExtension.RawSnapshot(2.0, BodiesPayload(3)), Timeout);
+                Assert.Equal(0, server.ChannelCounters(TestSystemExtension.RawTopic).Considered);
+                Assert.Equal(0, server.ChannelCounters(TestSystemExtension.RawTopic).Emitted);
 
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
-                await SubscribeAsync(client, ReplayBodiesServer.BodiesTopic, Timeout);
+                await SubscribeAsync(client, TestSystemExtension.RawTopic, Timeout);
 
                 // The genuine 0 -> 1 subscribe transition forces a keyframe
                 // on the very next tick, regardless of keyframe cadence.
-                server.Tick(3.0, BodiesPayload(4));
-                Assert.Equal(1, server.BodiesEmitterCounters.Considered);
-                Assert.Equal(1, server.BodiesEmitterCounters.Emitted);
+                server.TickAndWait(3.0, TestSystemExtension.RawSnapshot(3.0, BodiesPayload(4)), Timeout);
+                Assert.Equal(1, server.ChannelCounters(TestSystemExtension.RawTopic).Considered);
+                Assert.Equal(1, server.ChannelCounters(TestSystemExtension.RawTopic).Emitted);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(delivered, 4);
@@ -347,18 +355,27 @@ namespace Sitrep.Host.IntegrationTests
         /// event, whichever is next in capture order -- see its own doc
         /// comment for why this, and not <c>AdvanceTo</c>, is the correct
         /// driver for a real recording that may rewind). If the step
-        /// consumed a SNAPSHOT, the freshly built <c>system.bodies</c>
-        /// payload is handed to the Courier at the replay's own current UT --
-        /// the exact shape <c>GonogoAddon.FixedUpdate</c> uses in-game
-        /// (<c>server.Tick(host.NowUt(), payload)</c>). If the step consumed
-        /// a lifecycle EVENT instead, nothing changed for
-        /// <see cref="SystemViewProvider.BuildSystemBodies"/> to report, so
-        /// no tick is recorded -- detected by checking whether
-        /// <paramref name="lifecycleEvents"/> grew during this step (exactly
-        /// one of snapshot/event fires per <see cref="RecordedEntry"/>, so
-        /// this check is exact, not a heuristic).
+        /// consumed a SNAPSHOT, the raw snapshot is handed straight to
+        /// <see cref="ChannelEngine.TickAndWait"/> -- the exact shape
+        /// <c>GonogoAddon.FixedUpdate</c> uses in-game
+        /// (<c>engine.Tick(host.NowUt(), snapshot)</c>), just blocking so the
+        /// test can assert deterministically; the engine itself now applies
+        /// <see cref="SystemViewProvider.BuildSystemBodies"/> (registered by
+        /// <see cref="TestSystemExtension"/>) rather than this method
+        /// building the payload by hand. If the step consumed a lifecycle
+        /// EVENT instead, no tick is driven at all -- deliberately preserved
+        /// from the pre-engine version of this test: this scenario's whole
+        /// point (see this class's own doc comment NOTE) is that the UTs
+        /// reaching the Courier/clock stay monotonically non-decreasing
+        /// (0, 2, 3, 6, 8) even though the RECORDING'S own timestamps dip:
+        /// ticking on the UT-4 event step too would hand the clock a real
+        /// backward tick at step 4 (4 -&gt; 3), firing an unrelated
+        /// timeline-reset this test doesn't expect. Detected by checking
+        /// whether <paramref name="lifecycleEvents"/> grew during this step
+        /// (exactly one of snapshot/event fires per <see cref="RecordedEntry"/>,
+        /// so this check is exact, not a heuristic).
         /// </summary>
-        private static void DriveOneStep(ReplayKspHost host, ReplayBodiesServer server, List<KspLifecycleEvent> lifecycleEvents)
+        private static void DriveOneStep(ReplayKspHost host, ChannelEngine server, List<KspLifecycleEvent> lifecycleEvents)
         {
             var lifecycleCountBefore = lifecycleEvents.Count;
             var more = host.Step();
@@ -369,14 +386,12 @@ namespace Sitrep.Host.IntegrationTests
                 return; // this step was a lifecycle event, not a snapshot -- nothing to tick.
             }
 
-            var payload = SystemViewProvider.BuildSystemBodies(host.Sample());
-            Assert.NotNull(payload);
-            server.Tick(host.NowUt(), payload);
+            server.TickAndWait(host.NowUt(), host.Sample(), Timeout);
         }
 
         private static void AssertCleanSystemBodiesShape(StreamData delivered, double expectedPlanetSma, string expectedStarName, string expectedPlanetName)
         {
-            Assert.Equal(ReplayBodiesServer.BodiesTopic, delivered.Topic);
+            Assert.Equal(SystemViewProvider.Topic, delivered.Topic);
             var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
             var bodies = Assert.IsType<List<object?>>(payload["bodies"]);
             Assert.Equal(2, bodies.Count);
@@ -458,163 +473,5 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
 
-        // ---------------------------------------------------------------
-        // WS test helpers -- same shape as
-        // Sitrep.Skeleton.Tests/SkeletonServerIntegrationTests.cs (private
-        // and not shared across assemblies, hence duplicated here).
-        // ---------------------------------------------------------------
-
-        private static async Task<EventMsg> SubscribeAsync(TestClient client, string topic, TimeSpan timeout)
-        {
-            await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
-            return await ReceiveTypedAsync<EventMsg>(client, timeout);
-        }
-
-        private static async Task<StreamData> ReceiveStreamDataAsync(TestClient client, TimeSpan timeout)
-        {
-            return await ReceiveTypedAsync<StreamData>(client, timeout);
-        }
-
-        /// <summary>
-        /// Drains <see cref="StreamData"/> frames until none arrive for a
-        /// short quiet window, returning the LAST one seen -- the
-        /// lossy-latest convergence point for a coalescing per-topic outbox
-        /// (see <see cref="ReplayOutbox"/>). Needed wherever two Courier
-        /// deliveries for the same topic can become due within a single
-        /// clock-advance: which of them (if any, besides the last) actually
-        /// reaches the wire as its own frame depends on exactly when the
-        /// outbox's independent pump thread wakes up relative to the
-        /// Courier thread's writes -- a genuine two-thread race, not
-        /// something a single "receive the next message" call can assert on
-        /// deterministically. The LAST frame observed is NOT racy, though:
-        /// whichever delivery's <c>PublishTelemetry</c> call happened last in
-        /// real time is guaranteed to be what any subsequent send reflects.
-        /// Same idiom as <c>SkeletonServerIntegrationTests.DrainToLatestAsync</c>.
-        /// </summary>
-        private static async Task<StreamData?> DrainToLatestStreamDataAsync(TestClient client, TimeSpan quietWindow)
-        {
-            StreamData? last = null;
-            while (true)
-            {
-                string raw;
-                try
-                {
-                    raw = await client.ReceiveAsync(quietWindow);
-                }
-                catch (OperationCanceledException)
-                {
-                    return last;
-                }
-
-                if (EnvelopeCodec.ParseServerMessage(raw) is StreamData streamData)
-                {
-                    last = streamData;
-                }
-            }
-        }
-
-        private static async Task<T> ReceiveTypedAsync<T>(TestClient client, TimeSpan timeout) where T : class
-        {
-            var deadline = DateTime.UtcNow + timeout;
-            while (true)
-            {
-                var remaining = deadline - DateTime.UtcNow;
-                if (remaining <= TimeSpan.Zero)
-                {
-                    throw new TimeoutException($"No {typeof(T).Name} arrived within {timeout}.");
-                }
-                var parsed = EnvelopeCodec.ParseServerMessage(await client.ReceiveAsync(remaining));
-                if (parsed is T typed)
-                {
-                    return typed;
-                }
-            }
-        }
-
-        private sealed class TestClient : IAsyncDisposable
-        {
-            private readonly ClientWebSocket _socket = new ClientWebSocket();
-            private readonly Channel<string> _incoming = Channel.CreateUnbounded<string>();
-            private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
-            private Task? _pump;
-
-            public static async Task<TestClient> ConnectAsync(int port, TimeSpan timeout)
-            {
-                var client = new TestClient();
-                using var connectCts = new CancellationTokenSource(timeout);
-                await client._socket.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/"), connectCts.Token);
-                client._pump = Task.Run(client.PumpAsync);
-                return client;
-            }
-
-            private async Task PumpAsync()
-            {
-                var buffer = new byte[16384];
-                try
-                {
-                    while (_socket.State == WebSocketState.Open && !_pumpCts.IsCancellationRequested)
-                    {
-                        using var ms = new MemoryStream();
-                        WebSocketReceiveResult result;
-                        do
-                        {
-                            result = await _socket.ReceiveAsync(new ArraySegment<byte>(buffer), _pumpCts.Token);
-                            if (result.MessageType == WebSocketMessageType.Close)
-                            {
-                                return;
-                            }
-                            ms.Write(buffer, 0, result.Count);
-                        } while (!result.EndOfMessage);
-
-                        await _incoming.Writer.WriteAsync(Encoding.UTF8.GetString(ms.ToArray()), _pumpCts.Token);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (WebSocketException)
-                {
-                }
-                catch (ChannelClosedException)
-                {
-                }
-            }
-
-            public Task SendAsync(string text)
-            {
-                var bytes = Encoding.UTF8.GetBytes(text);
-                return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-            }
-
-            public async Task<string> ReceiveAsync(TimeSpan timeout)
-            {
-                using var cts = new CancellationTokenSource(timeout);
-                return await _incoming.Reader.ReadAsync(cts.Token);
-            }
-
-            public async Task AssertNoMessageArrivesAsync(TimeSpan window)
-            {
-                using var cts = new CancellationTokenSource(window);
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-                    await _incoming.Reader.ReadAsync(cts.Token));
-            }
-
-            public async ValueTask DisposeAsync()
-            {
-                _pumpCts.Cancel();
-                _socket.Dispose();
-                if (_pump != null)
-                {
-                    try
-                    {
-                        await _pump;
-                    }
-                    catch
-                    {
-                        // best-effort cleanup only
-                    }
-                }
-            }
-        }
     }
 }
