@@ -24,8 +24,13 @@ export {
 export type { OrbitElements, StateVector, Vector3 } from "./kepler";
 export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
-export type { MappedCommand } from "./map-command";
-export { mapCommand } from "./map-command";
+export type { GetCurrentValue, MappedCommand } from "./map-command";
+export {
+  hasCommandHome,
+  isKnownCommandGap,
+  KNOWN_COMMAND_GAPS,
+  mapCommand,
+} from "./map-command";
 export {
   isKnownTelemachusGap,
   mapTopic,

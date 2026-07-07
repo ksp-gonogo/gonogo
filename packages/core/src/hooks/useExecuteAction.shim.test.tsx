@@ -1,9 +1,13 @@
 import {
+  createFakeWallClock,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
+  TimelineStore,
+  ViewClock,
 } from "@gonogo/sitrep-client";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource } from "../types";
@@ -187,5 +191,111 @@ describe("useExecuteAction shim — falls back to legacy execute() unless mapped
 
     await result.current("t.timeWarp[4]");
     expect(executeSpy).toHaveBeenCalledWith("t.timeWarp[4]");
+  });
+});
+
+/** Builds a `TelemetryProvider` wrapper with an explicit `TimelineStore` this
+ * test can prime directly — the toggle -> absolute bridge (`map-command.ts`'s
+ * `toggleHome`) reads the CURRENT value off exactly this store via
+ * `useTelemetryStoreOptional()`/`sample()`, so these tests need a store
+ * reference to seed, unlike the plain command-dispatch tests above. */
+function buildStreamWrapper(carriedChannels: string[]) {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const commandHandler = vi.fn(() => ({ ok: true }));
+  transport.setCommandHandler(commandHandler);
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  // Pin the view clock (mirrors setupStreamFixture's `pinnedUt` pattern) —
+  // without a scrub target, `viewUt()` tracks `confirmedEdgeUt()`, which
+  // starts undefined until something has advanced it; a hold-last `sample()`
+  // read against an unpinned/undefined viewUt never resolves.
+  clock.scrubTo(0);
+  const store = new TimelineStore(clock);
+
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={carriedChannels}
+      >
+        {children}
+      </TelemetryProvider>
+    );
+  }
+
+  return { Wrapper, transport, client, store, commandHandler };
+}
+
+describe("useExecuteAction shim — toggle -> absolute bridge (map-command.ts bridge 1)", () => {
+  it("f.sas inverts the live vessel.control.sas value and dispatches the absolute setSas command", async () => {
+    const { Wrapper, transport, client, commandHandler } = buildStreamWrapper([
+      "vessel.control",
+      "vessel.control.setSas",
+    ]);
+    const { source, executeSpy } = makeSource();
+    registerDataSource(source);
+
+    const { result } = renderHook(() => useExecuteAction("data"), {
+      wrapper: Wrapper,
+    });
+
+    // Prime the store: a subscription must exist first — StubTransport.emit
+    // is subscription-gated, exactly like production.
+    act(() => {
+      client.subscribe("vessel.control", () => {});
+    });
+    await act(async () => {
+      transport.emit("vessel.control", {
+        sas: true,
+        sasMode: 0,
+        rcs: false,
+        gear: false,
+        brakes: false,
+        lights: false,
+        throttle: 0,
+        actionGroups: Array(10).fill(false),
+      });
+      // TelemetryProvider coalesces ingest -> store.beginFrame() onto the
+      // next animation frame, falling back to a queued microtask in jsdom
+      // (`context.tsx`'s `scheduleFrame`) — flush it before sampling.
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await result.current("f.sas");
+    });
+
+    expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
+      enabled: false,
+    });
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it("f.sas falls back to legacy execute() when the current value hasn't arrived yet — never dispatches a guessed toggle", async () => {
+    const { Wrapper, commandHandler } = buildStreamWrapper([
+      "vessel.control",
+      "vessel.control.setSas",
+    ]);
+    const { source, executeSpy } = makeSource();
+    registerDataSource(source);
+
+    const { result } = renderHook(() => useExecuteAction("data"), {
+      wrapper: Wrapper,
+    });
+
+    // Nothing emitted at all — the store has no cached value for
+    // vessel.control.sas yet.
+    await act(async () => {
+      await result.current("f.sas");
+    });
+
+    expect(commandHandler).not.toHaveBeenCalled();
+    expect(executeSpy).toHaveBeenCalledWith("f.sas");
   });
 });

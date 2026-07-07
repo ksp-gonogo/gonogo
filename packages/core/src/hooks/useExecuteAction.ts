@@ -2,6 +2,7 @@ import {
   mapCommand,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
+  useTelemetryStoreOptional,
 } from "@gonogo/sitrep-client";
 import { useCallback } from "react";
 import { getDataSource } from "../registry";
@@ -39,6 +40,17 @@ import { getDataSource } from "../registry";
  * primitive `useCommand.send` is built on (`TelemetryClient.dispatch`)
  * directly.
  *
+ * **The toggle -> absolute arg-shape bridge** (`map-command.ts`'s own doc
+ * comment, bridge 1): several mapped actions (`f.sas`/`f.rcs`/`f.gear`/
+ * `f.brake`/`f.light`/`f.ag1`..`f.ag10`) are legacy TOGGLES with no state
+ * encoded in the action string, but every new actuation command is
+ * absolute-set-only — `mapCommand`'s `buildArgs` needs to read the CURRENT
+ * value to invert it. `getCurrentValue` below samples the mounted
+ * `TimelineStore` at its current frame (the same read a migrated
+ * `useDataValue` call would perform) — `undefined` when no store is mounted
+ * or nothing has arrived on that topic yet, which `mapCommand` correctly
+ * treats as "can't safely build this command" and falls back to legacy.
+ *
  * **Never rejects** — matches the legacy `execute()`'s fire-and-forget
  * contract (every existing call site does `void execute(...)`, uncaught).
  * A command's eventual outcome (confirmed/failed/lost) is future
@@ -47,11 +59,14 @@ import { getDataSource } from "../registry";
  */
 export function useExecuteAction(dataSourceId: string) {
   const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
 
   return useCallback(
     (action: string): Promise<void> => {
-      const mapped = mapCommand(dataSourceId, action);
+      const getCurrentValue = (topic: string): unknown =>
+        store?.sample(topic, store.currentFrame())?.payload;
+      const mapped = mapCommand(dataSourceId, action, getCurrentValue);
       const carried =
         mapped !== undefined &&
         client !== undefined &&
@@ -69,6 +84,6 @@ export function useExecuteAction(dataSourceId: string) {
       if (!source) return Promise.resolve();
       return source.execute(action);
     },
-    [dataSourceId, client, carriedChannels],
+    [dataSourceId, client, store, carriedChannels],
   );
 }
