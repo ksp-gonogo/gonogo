@@ -41,11 +41,25 @@ namespace Gonogo.KSP
         // safe because it's gated on game time, not wall-clock/tick count.
         private const double SampleIntervalUt = 1.0;
 
+        // Periodic recording flush: a serialization bug used to only
+        // surface at quit, after which point a bad session had already lost
+        // everything. Flushing every ~60s of REAL (wall-clock) time - not UT
+        // - means the file exists and grows almost immediately, a bad
+        // serialize throws on the FIRST flush (visible in KSP.log within a
+        // minute, not at quit), and a crash mid-session only loses the last
+        // partial interval instead of the whole flight. Wall-clock,
+        // gated via FlushCadence, is deliberately steady under time-warp -
+        // unlike SampleIntervalUt above, this must NOT speed up/slow down
+        // with warp.
+        private const double FlushIntervalSeconds = 60.0;
+
         private KspHost? _host;
         private Recorder? _recorder;
         private GonogoBodiesServer? _server;
         private bool _shutDown;
         private double? _lastSampledUt;
+        private string? _sessionPath;
+        private float _lastFlushRealtime;
 
         private void Awake()
         {
@@ -57,6 +71,17 @@ namespace Gonogo.KSP
                 _recorder = new Recorder(_host);
                 _server = new GonogoBodiesServer(BindUri);
                 _server.Start();
+
+                // Session file path is established ONCE here, at startup,
+                // and reused for every periodic flush AND the final save -
+                // previously this was computed fresh at quit, so a crash (or
+                // even a clean quit before the fix) left no file at all.
+                // Directory creation moves here too, for the same reason.
+                var dir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "recordings");
+                Directory.CreateDirectory(dir);
+                _sessionPath = Path.Combine(dir, "session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
+                _lastFlushRealtime = Time.realtimeSinceStartup;
+
                 Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " on " + BindUri);
             }
             catch (Exception ex)
@@ -70,6 +95,17 @@ namespace Gonogo.KSP
             if (_host == null || _recorder == null || _server == null)
             {
                 return;
+            }
+
+            // Periodic flush check, independent of the sampling cadence
+            // below: FlushRecording catches its own exceptions and logs
+            // them, so a bad flush can never crash this callback or stop
+            // sampling - the next flush 60s later simply retries.
+            var nowRealtime = Time.realtimeSinceStartup;
+            if (FlushCadence.ShouldFlush(nowRealtime - _lastFlushRealtime, FlushIntervalSeconds))
+            {
+                _lastFlushRealtime = nowRealtime;
+                FlushRecording();
             }
 
             try
@@ -142,7 +178,9 @@ namespace Gonogo.KSP
                 Debug.LogError("[Gonogo] Error stopping server: " + ex);
             }
 
-            SaveRecording();
+            // The final save is just the LAST flush, to the same fixed path
+            // every periodic flush already used.
+            FlushRecording();
 
             try
             {
@@ -154,24 +192,38 @@ namespace Gonogo.KSP
             }
         }
 
-        private void SaveRecording()
+        /// <summary>
+        /// Re-writes the current session to <see cref="_sessionPath"/> in
+        /// full (sessions are small, so a full re-write per flush is fine -
+        /// incremental append is a future optimization if sessions grow
+        /// large) and logs the result. This is the in-game confirmation a
+        /// user checks <c>KSP.log</c> for: on success, growing counts +
+        /// file size prove recording is alive; on failure, the exception is
+        /// logged immediately (within one flush interval, not at quit) but
+        /// swallowed here so a bad flush never crashes the addon or halts
+        /// sampling - the next periodic flush simply retries.
+        /// </summary>
+        private void FlushRecording()
         {
-            if (_recorder == null)
+            if (_recorder == null || _sessionPath == null)
             {
                 return;
             }
 
             try
             {
-                var dir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "recordings");
-                Directory.CreateDirectory(dir);
-                var path = Path.Combine(dir, "session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
-                _recorder.Save(path);
-                Debug.Log("[Gonogo] Saved session recording to " + path);
+                _recorder.Save(_sessionPath);
+                var sizeKb = new FileInfo(_sessionPath).Length / 1024.0;
+                Debug.Log(string.Format(
+                    "[Gonogo] recording: {0} snapshots, {1} events → {2} ({3:F1} KB)",
+                    _recorder.SnapshotCount,
+                    _recorder.EventCount,
+                    Path.GetFileName(_sessionPath),
+                    sizeKb));
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] Failed to save recording: " + ex);
+                Debug.LogError("[Gonogo] recording FLUSH FAILED: " + ex);
             }
         }
     }

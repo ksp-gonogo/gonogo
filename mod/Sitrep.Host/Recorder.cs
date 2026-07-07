@@ -29,6 +29,15 @@ namespace Sitrep.Host
         /// </summary>
         private long _nextSeq;
 
+        /// <summary>
+        /// Small additive counters for <c>GonogoAddon</c>'s per-flush log
+        /// line ("N snapshots, M events") - tracked alongside
+        /// <see cref="Session"/> rather than counted by kind on every flush,
+        /// and deliberately NOT part of the record format itself.
+        /// </summary>
+        private int _snapshotCount;
+        private int _eventCount;
+
         public Recorder(IKspHost host, int schemaVersion = RecordedSessionCodec.CurrentSchemaVersion)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
@@ -42,6 +51,12 @@ namespace Sitrep.Host
 
         /// <summary>The timeline captured so far. Grows in place as <see cref="Tick"/> is called and <see cref="IKspHost.Lifecycle"/> events fire.</summary>
         public RecordedSession Session => _session;
+
+        /// <summary>Count of snapshot entries recorded so far (see <see cref="Record"/>).</summary>
+        public int SnapshotCount => _snapshotCount;
+
+        /// <summary>Count of lifecycle-event entries recorded so far (see <see cref="OnLifecycle"/>).</summary>
+        public int EventCount => _eventCount;
 
         /// <summary>Captures one <see cref="IKspHost.Sample"/> as a snapshot entry, stamped with that same sample's own <see cref="KspSnapshot.Ut"/>.</summary>
         public void Tick()
@@ -77,6 +92,7 @@ namespace Sitrep.Host
                     Values = new Dictionary<string, object?>(snapshot.Values),
                 },
             });
+            _snapshotCount++;
         }
 
         private void OnLifecycle(KspLifecycleEvent evt)
@@ -93,6 +109,7 @@ namespace Sitrep.Host
                     Args = new Dictionary<string, object?>(evt.Args),
                 },
             });
+            _eventCount++;
         }
 
         /// <summary>Serializes <see cref="Session"/> to UTF-8 JSON bytes via <see cref="RecordedSessionCodec"/>.</summary>
