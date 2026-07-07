@@ -323,6 +323,106 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
   });
 });
 
+describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 close-review Fix 1)", () => {
+  it("sample() must not replay a cached pre-bump point after a mid-token epoch bump (same FrameToken, no beginFrame())", () => {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+
+    store.ingest(
+      "vessel.orbit",
+      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 100, epoch: 0 }),
+    );
+    store.beginFrame();
+    const token = store.currentFrame();
+
+    const first = store.sample<VesselOrbitPayload>("vessel.orbit", token);
+    expect(first?.payload?.sma).toBe(CIRCULAR_ORBIT.sma);
+
+    // Mid-token quickload: an UNRELATED topic's ingest bumps the shared
+    // epoch. vessel.orbit itself hasn't re-sampled, so its ClientTimeline is
+    // swept to the new epoch (no points) by the store's cross-topic sweep —
+    // exactly like the existing "cross-topic epoch ghost" coverage, except
+    // this read happens WITHIN the same token/read-cycle instead of across a
+    // beginFrame() boundary.
+    store.ingest(
+      "system.clock",
+      numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
+    );
+
+    // SAME token, no beginFrame() — a caller's rAF loop reading twice within
+    // one read cycle.
+    const second = store.sample<VesselOrbitPayload>("vessel.orbit", token);
+    expect(second).toBeUndefined(); // must NOT be the dead epoch-0 point
+  });
+
+  it("sampleInterpolated() must not replay a cached pre-bump point after a mid-token epoch bump", () => {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+
+    store.ingest("temperature", numberPoint(100, 10, { deliveredAt: 100 }));
+    store.ingest("temperature", numberPoint(200, 20, { deliveredAt: 200 }));
+    store.beginFrame();
+    const token = store.currentFrame();
+
+    const first = store.sampleInterpolated<number>("temperature", token);
+    expect(first).toBeDefined();
+
+    store.ingest(
+      "system.clock",
+      numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
+    );
+
+    const second = store.sampleInterpolated<number>("temperature", token);
+    expect(second).toBeUndefined(); // must NOT be the dead epoch-0 point
+  });
+
+  it("vessel.state read via get() must not propagate the pre-bump orbit as a ghost after a mid-token epoch bump", () => {
+    const wall = fakeWall();
+    const clock = new ViewClock({
+      nowWall: wall.now,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+    const store = new TimelineStore(clock);
+    store.registerDerivedChannel(vesselStateChannel);
+
+    store.ingest(
+      "vessel.orbit",
+      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 100, epoch: 0 }),
+    );
+    clock.setMode("predicted");
+    wall.advanceBy(20);
+    store.beginFrame();
+    const token = store.currentFrame();
+
+    const first = store.sample<{
+      position: readonly [number, number, number] | null;
+      basis: string;
+    }>("vessel.state", token);
+    // Sanity: genuinely propagating off the live orbit before the bump.
+    expect(first?.payload?.basis).toBe("propagated");
+
+    // Mid-token quickload rewind via an UNRELATED topic — vessel.orbit
+    // hasn't re-sampled, so it's swept to the new epoch with no points.
+    store.ingest(
+      "system.clock",
+      numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
+    );
+
+    // SAME token — no beginFrame(). vessel.state's OWN derived-memo key
+    // already folds epoch, so it recomputes — but that recompute calls
+    // get("vessel.orbit"), i.e. sample("vessel.orbit", token). If THAT raw
+    // read still serves its pre-bump cache entry, the recompute propagates
+    // off the dead epoch-0 orbit and stamps the result with the NEW epoch —
+    // a ghost `vessel.state` masquerading as post-rewind truth.
+    const second = store.sample<{
+      position: readonly [number, number, number] | null;
+      basis: string;
+    }>("vessel.state", token);
+    expect(second).toBeUndefined(); // must NOT be a ghost propagated off the dead orbit
+  });
+});
+
 describe("certainty composes with T4 status + T3 undefined/null", () => {
   it("a cold (never-ingested) topic: undefined value, resyncing status, and a defined (non-throwing) certainty", () => {
     const clock = new ViewClock();
@@ -346,7 +446,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.currentFrame().certainty).toBe("confirmed");
   });
 
-  it("predicted mode can simultaneously read held-stale (T4) — the two channels don't fight", () => {
+  it("predicted mode CAN read held-stale (T4) alongside a genuine arrival gap — the two channels don't fight", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -357,13 +457,46 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
 
     store.ingest("c", numberPoint(100, 1, { deliveredAt: 100 }));
     clock.setMode("predicted");
-    wall.advanceBy(1000); // long past this topic's keyframe interval + margin
+    wall.advanceBy(1000); // predicted cursor races far ahead...
 
     store.beginFrame();
     expect(store.currentFrame().certainty).toBe("predicted");
+    // ...but the certainty HORIZON (confirmedEdgeUt) is still sample-clamped
+    // near 100 — nothing has confirmed 1000s of real elapsed UT, only the
+    // wall clock ran. isOverdue must not fire off the predicted cursor
+    // racing ahead on its own.
+    expect(store.sampleStatus("c")).toBe("live");
+
+    // A genuine arrival gap: other traffic advances the confirmed horizon
+    // (real confirmed UT elapses) while "c" itself stays silent.
+    store.ingest("other", numberPoint(500, 1, { deliveredAt: 500 }));
+    store.beginFrame();
     expect(store.sampleStatus("c")).toBe("held-stale");
     // The stale value is still served (hold-last past the horizon), just
     // labeled by both independent channels.
     expect(store.sample<number>("c")?.payload).toBe(1);
+  });
+
+  it("a healthy predicted-mode topic (single fresh arrival, no further traffic) reads live regardless of delay — isOverdue must key off confirmedHorizonUt(), not the far-future predicted viewUt (M2 T5 close-review Fix 2)", () => {
+    for (const delay of [0, 300]) {
+      const wall = fakeWall();
+      const clock = new ViewClock({
+        nowWall: wall.now,
+        warpRate: () => 1,
+        delaySeconds: () => delay,
+      });
+      const store = new TimelineStore(clock);
+
+      store.ingest("c", numberPoint(100, 1, { deliveredAt: 100 }));
+      clock.setMode("predicted");
+      wall.advanceBy(1000); // predicted cursor races far ahead of the horizon
+
+      store.beginFrame();
+      expect(store.currentFrame().certainty).toBe("predicted");
+      // Nothing else has confirmed elapsed UT beyond this one sample — the
+      // confirmed horizon stays sample-clamped, so there is no genuine
+      // arrival gap for "c" to be overdue against.
+      expect(store.sampleStatus("c")).toBe("live");
+    }
   });
 });

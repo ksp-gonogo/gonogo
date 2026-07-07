@@ -153,10 +153,84 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
 }
 
 /**
+ * Field names that carry a DEGREE-valued angle where wrapping is physically
+ * meaningful (M2 T5 close-review Fix 3) — e.g. `longitude` 179 -> -179 is a
+ * 2-degree hop across the antimeridian, not a ~358-degree hop the other way
+ * around the planet. Interpolated the SHORT way around the wrap in
+ * `lerpFieldValue` below, instead of the naive straight-line lerp every
+ * other numeric field gets. A small, explicit allowlist rather than a
+ * heuristic (no name-sniffing for "looks like an angle") — extend this set
+ * deliberately as more angular fields (heading, bearing) actually appear in
+ * a payload.
+ */
+const ANGULAR_DEGREE_FIELD_NAMES: ReadonlySet<string> = new Set([
+  "longitude",
+  "heading",
+  "bearing",
+]);
+
+/**
+ * Field names that are numeric but not genuinely continuous — an index,
+ * enum ordinal, or other discrete quantity where a fractional value is
+ * physically meaningless (M2 T5 close-review Fix 3) — e.g.
+ * `referenceBodyIndex` 1 -> 2 must never become `1.5`. Held at `before`
+ * rather than fractionalized, mirroring how a non-numeric field that's
+ * identical on both sides already passes through unchanged. Same
+ * explicit-allowlist reasoning as `ANGULAR_DEGREE_FIELD_NAMES` — extend
+ * deliberately, don't infer from naming conventions.
+ */
+const DISCRETE_NUMERIC_FIELD_NAMES: ReadonlySet<string> = new Set([
+  "referenceBodyIndex",
+]);
+
+/** Normalize a degree value into `(-180, 180]`. */
+function normalizeDegrees(deg: number): number {
+  const wrapped = ((((deg + 180) % 360) + 360) % 360) - 180;
+  // The above maps 180 -> -180; prefer the +180 representative for the
+  // boundary case so a stationary angle round-trips exactly.
+  return wrapped === -180 ? 180 : wrapped;
+}
+
+/** Interpolate a degree-valued angle the SHORT way around the wrap, at `t` in `[0, 1]`. */
+function lerpAngleDegrees(before: number, after: number, t: number): number {
+  const diff = normalizeDegrees(after - before);
+  return normalizeDegrees(before + diff * t);
+}
+
+/**
+ * Interpolate one field value at `t`, honoring the angular-wrap and
+ * discrete-field policies above (M2 T5 close-review Fix 3). Falls back to
+ * the caller's identical-value-passthrough / refuse-on-mismatch handling for
+ * anything that isn't a plain number pair.
+ */
+function lerpFieldValue(
+  key: string,
+  before: unknown,
+  after: unknown,
+  t: number,
+): { value: unknown } | undefined {
+  if (typeof before === "number" && typeof after === "number") {
+    if (DISCRETE_NUMERIC_FIELD_NAMES.has(key)) {
+      return { value: before }; // hold-last — never fractionalize an index/ordinal
+    }
+    if (ANGULAR_DEGREE_FIELD_NAMES.has(key)) {
+      return { value: lerpAngleDegrees(before, after, t) };
+    }
+    return { value: before + (after - before) * t };
+  }
+  if (Object.is(before, after)) return { value: before };
+  return undefined;
+}
+
+/**
  * Linearly interpolate between two payloads of matching shape at `t` in
  * `[0, 1]` — the confirmed-range interpolation primitive (M2 design §3.3).
  * Numeric payloads lerp directly. A plain (non-array, non-null) object
- * lerps field-by-field: numeric fields lerp, a non-numeric field that is
+ * lerps field-by-field via `lerpFieldValue`: a genuinely continuous numeric
+ * field lerps straight-line, an ANGULAR field (`ANGULAR_DEGREE_FIELD_NAMES`)
+ * wraps the short way instead of blending through the far side of the
+ * wrap, a DISCRETE numeric field (`DISCRETE_NUMERIC_FIELD_NAMES`) holds at
+ * `before` rather than fractionalizing, a non-numeric field that is
  * IDENTICAL on both sides passes through unchanged (e.g. an unchanged
  * string/enum field), and a non-numeric field that actually DIFFERS makes
  * the whole interpolation refuse (`undefined`) — there is no honest halfway
@@ -186,15 +260,9 @@ export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
 
     const result: Record<string, unknown> = {};
     for (const key of keys) {
-      const beforeValue = beforeObj[key];
-      const afterValue = afterObj[key];
-      if (typeof beforeValue === "number" && typeof afterValue === "number") {
-        result[key] = beforeValue + (afterValue - beforeValue) * t;
-      } else if (Object.is(beforeValue, afterValue)) {
-        result[key] = beforeValue;
-      } else {
-        return undefined;
-      }
+      const lerped = lerpFieldValue(key, beforeObj[key], afterObj[key], t);
+      if (!lerped) return undefined;
+      result[key] = lerped.value;
     }
     return result as T;
   }
@@ -435,7 +503,11 @@ export class TimelineStore {
    *   `(topic, token)` pair is authoritative for that token's whole
    *   lifetime, so a mid-frame `ingest` can't flip the answer mid-read-cycle
    *   (tearing) — the change only surfaces once a new `beginFrame()` mints a
-   *   new token.
+   *   new token. **Except across an epoch bump** (M2 T5 close-review Fix 1):
+   *   the memo key folds in `clock.getEpoch()`, same as the derived-topic
+   *   path below, so a mid-token quickload rewind is a cache miss rather
+   *   than a replayed pre-bump ghost — including to a derived channel's
+   *   `get()` reading this same topic through this same token.
    */
   sample<T>(
     topic: string,
@@ -468,9 +540,23 @@ export class TimelineStore {
       );
     }
 
-    return this.memoize(effectiveToken, topic, () => {
+    // Folds in the CURRENT epoch (M2 T5 close-review Fix 1, "the LENS-4
+    // ghost") — exactly like the derived-topic key above. Without this, the
+    // first read of a given (token, topic) pair is authoritative for the
+    // token's whole lifetime (Defect 3's frame-coherence, intentional for an
+    // ordinary mid-frame ingest) — but a mid-frame EPOCH BUMP is not an
+    // ordinary ingest: it's a quickload rewind that the store's cross-topic
+    // sweep (`ingest`) already propagates to every `ClientTimeline`
+    // immediately. An unkeyed cache would keep replaying the pre-bump
+    // `TimelinePoint` object for the rest of the token's life — including to
+    // any derived channel's `get()` that reads this same topic through this
+    // same token — defeating the epoch guard below and the sweep that just
+    // ran. Folding epoch into the key makes a post-bump read a fresh cache
+    // miss, so it falls through to the guard/`timeline.at` again instead.
+    const epoch = this.clock.getEpoch();
+    return this.memoize(effectiveToken, `${topic}\0epoch\0${epoch}`, () => {
       const timeline = this.timelineFor<T>(topic);
-      if (timeline.epoch < this.clock.getEpoch()) return undefined;
+      if (timeline.epoch < epoch) return undefined;
       return timeline.at(effectiveToken.viewUt);
     });
   }
@@ -519,11 +605,20 @@ export class TimelineStore {
       return this.sample<T>(topic, effectiveToken);
     }
 
-    return this.memoize(effectiveToken, `\0interp\0${topic}`, () => {
-      const timeline = this.timelineFor<T>(topic);
-      if (timeline.epoch < this.clock.getEpoch()) return undefined;
-      return interpolatedRead(timeline, effectiveToken.viewUt);
-    });
+    // Same epoch-fold as `sample()`'s raw path above (M2 T5 close-review Fix
+    // 1) — a mid-token epoch bump must invalidate this cache entry too,
+    // rather than replaying a pre-bump interpolation for the rest of the
+    // token's life.
+    const epoch = this.clock.getEpoch();
+    return this.memoize(
+      effectiveToken,
+      `\0interp\0${topic}\0epoch\0${epoch}`,
+      () => {
+        const timeline = this.timelineFor<T>(topic);
+        if (timeline.epoch < epoch) return undefined;
+        return interpolatedRead(timeline, effectiveToken.viewUt);
+      },
+    );
   }
 
   /**
@@ -572,6 +667,17 @@ export class TimelineStore {
    * point at all in the current epoch is `"resyncing"`, and the
    * `HeartbeatTracker` (missed-keyframe inference, never `validAt` age)
    * decides live vs. held-stale.
+   *
+   * `isOverdue` is keyed off `clock.certaintyHorizonUt()` (M2 T5
+   * close-review Fix 2), NOT `token.viewUt`. Per M2 design §4.3 the overdue
+   * check is about a genuine gap in CONFIRMED arrivals, not about how far
+   * the predicted-mode viewUt has raced ahead of the horizon on wall time
+   * alone — in predicted mode `viewUt` is `utNowEstimate()`, which can run
+   * arbitrarily far ahead of anything actually confirmed, and would falsely
+   * flag a perfectly healthy topic as overdue purely because the display is
+   * looking further into the future. The horizon only advances when
+   * something real confirms elapsed UT (a delivered sample, on any topic),
+   * which is exactly what "overdue" should track.
    */
   private sampleRawStatus(topic: string, token: FrameToken): StreamStatusValue {
     const point = this.sample(topic, token);
@@ -583,7 +689,7 @@ export class TimelineStore {
     if (point.meta.staleness === Staleness.HeldStale) return "held-stale";
     return this.heartbeats.isOverdue(
       topic,
-      token.viewUt,
+      this.clock.certaintyHorizonUt(),
       this.clock.confidence(),
     )
       ? "held-stale"

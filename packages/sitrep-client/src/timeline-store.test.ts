@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedChannelDefinition } from "./timeline-store";
-import { TimelineStore } from "./timeline-store";
+import { lerpPayload, TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 function fakeWall(start = 0) {
@@ -489,5 +489,28 @@ describe("TimelineStore", () => {
         expect(computeSpy).toHaveBeenCalledTimes(2);
       });
     });
+  });
+});
+
+describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
+  it("wraps a longitude field the SHORT way around the antimeridian, instead of lerping straight through the planet", () => {
+    // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a
+    // ~358-degree hop the naive numeric lerp takes through 0.
+    const before = { longitude: 179 };
+    const after = { longitude: -179 };
+    const result = lerpPayload(before, after, 0.5);
+    expect(result).toBeDefined();
+    // Naive lerp would give ~0 here — assert we're nowhere near that and
+    // instead land on the wrapped short-way midpoint (+-180).
+    expect(Math.abs(result?.longitude ?? 0)).toBeGreaterThan(170);
+  });
+
+  it("holds the BEFORE value for a discrete/index numeric field (referenceBodyIndex) instead of fractionalizing it", () => {
+    const before = { referenceBodyIndex: 1, sma: 700_000 };
+    const after = { referenceBodyIndex: 2, sma: 800_000 };
+    const result = lerpPayload(before, after, 0.5);
+    expect(result).toBeDefined();
+    expect(result?.referenceBodyIndex).toBe(1); // hold-last, never 1.5
+    expect(result?.sma).toBeCloseTo(750_000); // genuinely continuous field still lerps
   });
 });
