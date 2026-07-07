@@ -108,4 +108,96 @@ describe("HeartbeatTracker", () => {
       );
     });
   });
+
+  describe("adaptive per-channel keyframe cadence (M2 §4.3, finding B item 2 — T4's deferred fixed-default issue)", () => {
+    it("a fast-cadence topic (~5 UT) and a slow-cadence topic (~30 UT) each learn their own interval from observed arrivals, not a shared fixed default", () => {
+      const tracker = new HeartbeatTracker({
+        marginMultiplier: 1,
+        jitterAllowanceUt: 0,
+      });
+
+      for (const t of [0, 5, 10]) tracker.noteArrival("fast.topic", t);
+      for (const t of [0, 30, 60]) tracker.noteArrival("slow.topic", t);
+
+      expect(tracker.intervalFor("fast.topic")).toBe(5);
+      expect(tracker.intervalFor("slow.topic")).toBe(30);
+    });
+
+    it("each learned interval drives its OWN overdue threshold: the 5 UT topic flips held-stale sooner after silence than the 30 UT topic, even though both went silent at the same UT", () => {
+      const tracker = new HeartbeatTracker({
+        marginMultiplier: 1,
+        jitterAllowanceUt: 0,
+      });
+
+      // Both topics' last arrival lands on UT 100, so "silence since" is
+      // directly comparable — only their learned cadence differs.
+      for (const t of [85, 90, 95, 100]) tracker.noteArrival("fast.topic", t);
+      for (const t of [40, 70, 100]) tracker.noteArrival("slow.topic", t);
+
+      // fast: threshold = 100 + learned(5) + margin(5) = 110.
+      // slow: threshold = 100 + learned(30) + margin(30) = 160.
+      expect(tracker.isOverdue("fast.topic", 105, "locked")).toBe(false);
+      expect(tracker.isOverdue("slow.topic", 105, "locked")).toBe(false);
+
+      // Squarely between the two thresholds: fast has flipped, slow hasn't.
+      expect(tracker.isOverdue("fast.topic", 120, "locked")).toBe(true);
+      expect(tracker.isOverdue("slow.topic", 120, "locked")).toBe(false);
+
+      // Past both thresholds.
+      expect(tracker.isOverdue("fast.topic", 170, "locked")).toBe(true);
+      expect(tracker.isOverdue("slow.topic", 170, "locked")).toBe(true);
+    });
+
+    it("falls back to the configured default until enough arrivals have been observed to trust a learned interval", () => {
+      const tracker = new HeartbeatTracker({ defaultKeyframeIntervalUt: 30 });
+      expect(tracker.intervalFor("vessel.target")).toBe(30);
+
+      tracker.noteArrival("vessel.target", 0);
+      // A single arrival has zero observed gaps — still the default.
+      expect(tracker.intervalFor("vessel.target")).toBe(30);
+
+      tracker.noteArrival("vessel.target", 5);
+      // One observed gap (5) is not yet enough to trust over the default.
+      expect(tracker.intervalFor("vessel.target")).toBe(30);
+
+      tracker.noteArrival("vessel.target", 10);
+      // A second observed gap (5, 5) is enough to trust the learned value.
+      expect(tracker.intervalFor("vessel.target")).toBe(5);
+    });
+
+    it("an explicit per-topic override always wins over a learned interval", () => {
+      const tracker = new HeartbeatTracker({
+        keyframeIntervalUt: { "vessel.target": 42 },
+      });
+      for (const t of [0, 5, 10, 15]) tracker.noteArrival("vessel.target", t);
+
+      expect(tracker.intervalFor("vessel.target")).toBe(42);
+    });
+
+    it("a single long gap (e.g. a comms blackout) does not permanently inflate the learned interval once healthy arrivals resume", () => {
+      const tracker = new HeartbeatTracker();
+
+      for (const t of [0, 5, 10, 15]) tracker.noteArrival("vessel.target", t);
+      expect(tracker.intervalFor("vessel.target")).toBe(5);
+
+      // One long silent gap...
+      tracker.noteArrival("vessel.target", 75); // gap of 60
+      // ...then healthy 5 UT cadence resumes.
+      tracker.noteArrival("vessel.target", 80);
+      tracker.noteArrival("vessel.target", 85);
+
+      // The median-based estimator resists the single 60 UT outlier — the
+      // learned interval stays anchored near the healthy 5 UT cadence.
+      expect(tracker.intervalFor("vessel.target")).toBe(5);
+    });
+
+    it("reset() also un-learns the per-topic interval, falling back to the configured default", () => {
+      const tracker = new HeartbeatTracker({ defaultKeyframeIntervalUt: 30 });
+      for (const t of [0, 5, 10, 15]) tracker.noteArrival("vessel.target", t);
+      expect(tracker.intervalFor("vessel.target")).toBe(5);
+
+      tracker.reset();
+      expect(tracker.intervalFor("vessel.target")).toBe(30);
+    });
+  });
 });

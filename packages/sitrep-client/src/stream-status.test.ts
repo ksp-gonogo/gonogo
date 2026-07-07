@@ -11,6 +11,7 @@ describe("worstStatus", () => {
     const values: StreamStatusValue[] = [
       "live",
       "held-stale",
+      "disconnected",
       "last-before-blackout",
       "absent",
       "resyncing",
@@ -20,9 +21,10 @@ describe("worstStatus", () => {
     }
   });
 
-  it("full severity ordering: live < held-stale < last-before-blackout < absent < resyncing", () => {
+  it("full severity ordering: live < held-stale < disconnected < last-before-blackout < absent < resyncing", () => {
     expect(worstStatus(["live", "held-stale"])).toBe("held-stale");
-    expect(worstStatus(["held-stale", "last-before-blackout"])).toBe(
+    expect(worstStatus(["held-stale", "disconnected"])).toBe("disconnected");
+    expect(worstStatus(["disconnected", "last-before-blackout"])).toBe(
       "last-before-blackout",
     );
     expect(worstStatus(["last-before-blackout", "absent"])).toBe("absent");

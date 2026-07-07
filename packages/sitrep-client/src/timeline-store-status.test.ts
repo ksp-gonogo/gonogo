@@ -252,6 +252,94 @@ describe("TimelineStore.sampleStatus (M2 T4 — staleness/absence surface)", () 
     });
   });
 
+  describe("transport-down short-circuit (M2 §4.3, finding B item 1 — T4's deferred 'no Transport reference' gap)", () => {
+    it("transport connected (the default), a fresh topic reads 'live'", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("vessel.target", point(10, 1, { deliveredAt: 10 }));
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("live");
+    });
+
+    it("transport DOWN marks every topic 'disconnected' immediately — not waiting for each topic's own heartbeat margin to elapse", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock, {
+        heartbeatOptions: {
+          defaultKeyframeIntervalUt: 30,
+          marginMultiplier: 1,
+          jitterAllowanceUt: 0,
+        },
+      });
+
+      store.ingest("vessel.target", point(10, 1, { deliveredAt: 10 }));
+      store.ingest("vessel.orbit", point(10, 2, { deliveredAt: 10 }));
+      store.beginFrame();
+      expect(store.sampleStatus("vessel.target")).toBe("live");
+      expect(store.sampleStatus("vessel.orbit")).toBe("live");
+
+      store.setTransportConnected(false);
+      // No time has passed and no heartbeat margin (30 + 30 = 60 UT) has
+      // elapsed — a per-topic-only implementation would still say "live".
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("disconnected");
+      expect(store.sampleStatus("vessel.orbit")).toBe("disconnected");
+    });
+
+    it("transport recovers and a fresh sample arrives -> 'live' again", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("vessel.target", point(10, 1, { deliveredAt: 10 }));
+      store.setTransportConnected(false);
+      store.beginFrame();
+      expect(store.sampleStatus("vessel.target")).toBe("disconnected");
+
+      store.setTransportConnected(true);
+      store.ingest("vessel.target", point(20, 1, { deliveredAt: 20 }));
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("live");
+    });
+
+    it("a genuine tombstone still reads 'absent' even while the transport is down — subject-absence is orthogonal to link-down, and isn't masked by it", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest("vessel.target", point(10, null));
+      store.setTransportConnected(false);
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("absent");
+    });
+
+    it("server-stamped 'last-before-blackout' still wins outright over a transport-down short-circuit", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.ingest(
+        "vessel.target",
+        point(10, 1, { staleness: Staleness.LastBeforeBlackout }),
+      );
+      store.setTransportConnected(false);
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("last-before-blackout");
+    });
+
+    it("a topic never ingested at all stays 'resyncing' under transport-down, not 'disconnected' — no confirmed subject to report on yet", () => {
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const store = new TimelineStore(clock);
+
+      store.setTransportConnected(false);
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("resyncing");
+    });
+  });
+
   describe("vessel.state — worst-of-inputs wired end to end through a real store", () => {
     const CIRCULAR_ORBIT: VesselOrbitPayload = {
       referenceBodyIndex: 1,

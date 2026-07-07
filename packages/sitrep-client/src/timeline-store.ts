@@ -11,6 +11,7 @@ import {
   type ClientTimelineOptions,
   type TimelinePoint,
 } from "./timeline";
+import type { Transport } from "./transport";
 import type { Certainty, ViewClock } from "./view-clock";
 
 /**
@@ -347,6 +348,15 @@ export class TimelineStore {
   /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"` (M2 design §4.3, T4). */
   readonly heartbeats: HeartbeatTracker;
 
+  /**
+   * Whole-transport connectivity, fed by `setTransportConnected`/
+   * `attachTransport` (M2 design §4.3's "transport-down short-circuit",
+   * finding B item 1). Defaults to `true` (connected) so a caller that never
+   * wires this up sees today's pure per-topic heartbeat inference unchanged
+   * — T4 shipped without any Transport reference on `TimelineStore` at all.
+   */
+  private transportConnected = true;
+
   constructor(
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
@@ -358,6 +368,39 @@ export class TimelineStore {
       certainty: clock.certaintyFor(viewUt),
     };
     this.heartbeats = new HeartbeatTracker(options.heartbeatOptions);
+  }
+
+  /**
+   * Set whole-transport connectivity (M2 design §4.3, finding B item 1).
+   * While `false`, `sampleStatus` short-circuits every topic that has
+   * confirmed data to `"disconnected"` immediately, instead of letting each
+   * one independently drift into `"held-stale"` on its own heartbeat margin
+   * — see `sampleRawStatus` for the full precedence against server-stamped
+   * staleness and a confirmed `"absent"` tombstone, both of which still win
+   * outright over this.
+   */
+  setTransportConnected(connected: boolean): void {
+    this.transportConnected = connected;
+  }
+
+  /**
+   * Convenience wiring of `setTransportConnected` directly off a `Transport`
+   * (or anything with the same `status`/`onStatusChange` shape, e.g. the one
+   * `TelemetryClient` holds) — seeds the current status immediately and
+   * keeps it live via `onStatusChange`. Only `"connected"` counts as
+   * connected; `"reconnecting"`/`"error"`/`"disconnected"` all collapse to
+   * the same disconnected input — M2 design §4.3 only distinguishes "the
+   * link is currently reliable" from "it isn't"; the finer `TransportStatus`
+   * taxonomy is presentation detail this layer doesn't need. Returns an
+   * unsubscribe function.
+   */
+  attachTransport(
+    transport: Pick<Transport, "status" | "onStatusChange">,
+  ): () => void {
+    this.setTransportConnected(transport.status === "connected");
+    return transport.onStatusChange((status) => {
+      this.setTransportConnected(status === "connected");
+    });
   }
 
   /**
@@ -668,12 +711,31 @@ export class TimelineStore {
   }
 
   /**
-   * Server-stamped `meta.staleness` wins outright when present (M2 design
-   * §4.3: a catch-up/late-joiner mark is authoritative — no client
-   * inference needed for it). Otherwise: a tombstone is `"absent"`, no
-   * point at all in the current epoch is `"resyncing"`, and the
-   * `HeartbeatTracker` (missed-keyframe inference, never `validAt` age)
-   * decides live vs. held-stale.
+   * Precedence, most to least authoritative (M2 design §4.3, folding in
+   * finding B item 1's transport-down short-circuit):
+   *
+   * 1. No point at all in the current epoch -> `"resyncing"`. Unaffected by
+   *    transport status — a topic we've never heard from is "cold", not
+   *    "disconnected"; there's no confirmed subject to report link-down
+   *    against yet (mirrors `HeartbeatTracker.isOverdue`'s own "no arrival
+   *    is not overdue" precedent).
+   * 2. A tombstone (`payload: null`) -> `"absent"`, unconditionally — a
+   *    confirmed subject-absence is a fact about the SUBJECT, never masked
+   *    by transport-down (a fact about the LINK). The two axes are
+   *    orthogonal (M2 design §4): the client already confirmedly knows there
+   *    is no value, and that doesn't stop being true just because the
+   *    transport dropped a moment later.
+   * 3. Server-stamped `meta.staleness` wins outright when present (a
+   *    catch-up/late-joiner mark is authoritative — no client inference
+   *    needed for it, and it out-ranks a live transport-down reading too:
+   *    it's a stronger, already-settled claim about this specific point).
+   * 4. Transport-down short-circuit (finding B item 1): when
+   *    `setTransportConnected(false)` is in effect, every topic with
+   *    confirmed, non-tombstoned, non-server-stamped data reads
+   *    `"disconnected"` immediately — not each independently waiting out its
+   *    own heartbeat margin to notice the same one dead pipe.
+   * 5. Otherwise the `HeartbeatTracker` (missed-keyframe inference, never
+   *    `validAt` age) decides live vs. held-stale.
    *
    * `isOverdue` is keyed off `clock.certaintyHorizonUt()` (M2 T5
    * close-review Fix 2), NOT `token.viewUt`. Per M2 design §4.3 the overdue
@@ -694,6 +756,7 @@ export class TimelineStore {
       return "last-before-blackout";
     }
     if (point.meta.staleness === Staleness.HeldStale) return "held-stale";
+    if (!this.transportConnected) return "disconnected";
     return this.heartbeats.isOverdue(
       topic,
       this.clock.certaintyHorizonUt(),
