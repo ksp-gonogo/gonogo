@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -108,6 +109,19 @@ namespace Sitrep.Core.Serialization
         /// uses elsewhere in this codebase. Numbers always go through
         /// <see cref="AppendNumber"/>, so the NaN/Infinity policy applies
         /// uniformly however deeply nested the value is.
+        ///
+        /// ARRAYS: anything else that's an <see cref="IEnumerable"/> (e.g.
+        /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c> — any real
+        /// capture code writes a typed array, not a hand-built
+        /// <c>List&lt;object?&gt;</c>) is written as a JSON array too, one
+        /// element at a time back through THIS method, so a numeric element
+        /// still gets the NaN/Infinity sentinel policy and a nested
+        /// array/dict still recurses correctly. This case is deliberately
+        /// last among the collection cases: <c>string</c> is itself
+        /// <c>IEnumerable&lt;char&gt;</c> and <c>Dictionary&lt;,&gt;</c>/
+        /// <c>IDictionary&lt;,&gt;</c> are themselves <c>IEnumerable</c>, so
+        /// both must (and do, per C#'s in-order switch matching) get matched
+        /// by their own case above before this catch-all runs.
         /// </summary>
         public static void AppendValue(StringBuilder sb, object? value)
         {
@@ -137,8 +151,8 @@ namespace Sitrep.Core.Serialization
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
-                case IEnumerable<object?> list:
-                    AppendArray(sb, list);
+                case IEnumerable enumerable:
+                    AppendArray(sb, enumerable);
                     break;
                 default:
                     throw new System.NotSupportedException(
@@ -164,7 +178,17 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        private static void AppendArray(StringBuilder sb, IEnumerable<object?> list)
+        /// <summary>
+        /// Writes any non-string, non-dictionary <see cref="IEnumerable"/> as
+        /// a JSON array — covers both the hand-built <c>List&lt;object?&gt;</c>
+        /// shape and a real typed array (<c>double[]</c>, <c>object?[]</c>,
+        /// ...). Enumerating as plain (non-generic) <see cref="IEnumerable"/>
+        /// yields each element already boxed as <c>object</c>, so a
+        /// <c>double[]</c> element arrives as a boxed <c>double</c> and hits
+        /// <see cref="AppendValue"/>'s <c>case double d</c> exactly like any
+        /// other numeric value — same NaN/Infinity sentinel path either way.
+        /// </summary>
+        private static void AppendArray(StringBuilder sb, IEnumerable list)
         {
             sb.Append('[');
             var first = true;
