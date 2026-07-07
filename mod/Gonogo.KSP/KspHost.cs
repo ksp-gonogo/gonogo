@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Contracts;
 using Sitrep.Host;
+using Strategies;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -169,6 +171,27 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     Debug.LogWarning("[Gonogo] time snapshot build failed, omitting: " + ex);
+                }
+
+                // Career/KSC state (funds/reputation/science, facility
+                // levels+costs, contracts, strategies, unlocked tech) is
+                // ALSO global game state, not tied to FlightGlobals/a scene -
+                // same "own try so a hiccup here can't take out bodies/
+                // vessel" reasoning as "time" above. BuildCareer itself
+                // returns null (the key is omitted entirely, never a
+                // fabricated empty group) whenever the active save isn't
+                // career mode - see its own doc comment.
+                try
+                {
+                    var career = BuildCareer();
+                    if (career != null)
+                    {
+                        values["career"] = career;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] career snapshot build failed, omitting: " + ex);
                 }
             }
             catch (Exception ex)
@@ -1056,6 +1079,322 @@ namespace Gonogo.KSP
                 ["warpRateIndex"] = TimeWarp.CurrentRateIndex,
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,
+            };
+        }
+
+        // ----------------------------------------------------------------
+        // Career/KSC capture (funds/reputation/science, facility
+        // levels+costs, contracts, strategies, unlocked tech)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>SpaceCenterFacility</c> ids <see cref="BuildCareerFacilities"/>
+        /// walks - every facility <c>ScenarioUpgradeableFacilities</c> knows
+        /// about (confirmed via decompile: the enum has exactly these nine
+        /// members - no "AdministrationFacility"/"SPH" aliases, the real
+        /// names are <c>Administration</c> and <c>SpaceplaneHangar</c>).
+        /// </summary>
+        private static readonly SpaceCenterFacility[] TrackedFacilities =
+        {
+            SpaceCenterFacility.SpaceplaneHangar,
+            SpaceCenterFacility.VehicleAssemblyBuilding,
+            SpaceCenterFacility.LaunchPad,
+            SpaceCenterFacility.Runway,
+            SpaceCenterFacility.TrackingStation,
+            SpaceCenterFacility.AstronautComplex,
+            SpaceCenterFacility.MissionControl,
+            SpaceCenterFacility.Administration,
+            SpaceCenterFacility.ResearchAndDevelopment,
+        };
+
+        /// <summary>
+        /// Primitives-only snapshot of KSP's career-mode state - the
+        /// funds/reputation/science economy, per-facility level/upgrade
+        /// cost, active+offered contracts, active strategies, and unlocked
+        /// tech count. Scene-independent (career state is global, unlike
+        /// vessel/body data), so <see cref="Sample"/> attempts this every
+        /// tick regardless of <c>FlightGlobals</c> readiness.
+        ///
+        /// <para>Returns <c>null</c> - the WHOLE group, never a partial or
+        /// fabricated-zero one - whenever the active save isn't career mode:
+        /// Sandbox has no <c>Funding</c>/<c>ContractSystem</c>/
+        /// <c>StrategySystem</c> to read at all, so reporting zeros there
+        /// would be indistinguishable from "a career save with genuinely
+        /// zero funds," which is exactly the kind of fabricated-sentinel
+        /// this class's every other <c>Build*</c> helper refuses to do (see
+        /// <see cref="BuildResources"/>'s doc comment for the same
+        /// discipline). <c>Game.Modes.SCIENCE_SANDBOX</c> is treated the
+        /// same as Sandbox here - it has <c>ResearchAndDevelopment</c> but
+        /// no <c>Funding</c>/<c>ContractSystem</c>/<c>StrategySystem</c>/
+        /// <c>ScenarioUpgradeableFacilities</c>, so gating the whole group
+        /// on genuine <c>CAREER</c> mode is the correct "all or nothing"
+        /// read, not a missed case.</para>
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareer()
+        {
+            var game = HighLogic.CurrentGame;
+            if (game == null || game.Mode != Game.Modes.CAREER)
+            {
+                return null;
+            }
+
+            var career = new Dictionary<string, object?>();
+            TryBuildGroup(career, "economy", BuildCareerEconomy);
+            TryBuildGroup(career, "facilities", BuildCareerFacilities);
+            TryBuildGroup(career, "contracts", BuildCareerContracts);
+            TryBuildGroup(career, "strategies", BuildCareerStrategies);
+            TryBuildGroup(career, "tech", BuildCareerTech);
+            return career;
+        }
+
+        /// <summary>
+        /// Funds/reputation/science - confirmed via decompile as
+        /// <c>Funding.Instance.Funds</c> (double), <c>Reputation.Instance.
+        /// reputation</c> (float property, lowercase - the decompiled
+        /// source really does expose it that way, alongside the
+        /// unrelated static <c>CurrentRep</c>), and <c>ResearchAndDevelopment.
+        /// Instance.Science</c> (float). Each of these three lazy
+        /// <c>ScenarioModule</c> singletons is independently null-checked -
+        /// they can be transiently null even in career mode (e.g. mid
+        /// scene-transition, right after <see cref="BuildCareer"/>'s own
+        /// mode gate already passed) - so a hiccup in one doesn't blank the
+        /// other two.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareerEconomy()
+        {
+            var funding = Funding.Instance;
+            var reputation = Reputation.Instance;
+            var rnd = ResearchAndDevelopment.Instance;
+            if (funding == null && reputation == null && rnd == null)
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["funds"] = funding != null ? (double?)funding.Funds : null,
+                ["reputation"] = reputation != null ? (double?)reputation.reputation : null,
+                ["science"] = rnd != null ? (double?)rnd.Science : null,
+            };
+        }
+
+        /// <summary>
+        /// Per-facility level/upgrade-cost, keyed by the raw
+        /// <c>SpaceCenterFacility</c> enum name (e.g. <c>"LaunchPad"</c>).
+        /// <c>level</c> is <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c>'s
+        /// own NORMALIZED [0,1] reading (confirmed via decompile - there is
+        /// no separate raw-integer-level accessor); <c>levelCount</c> is the
+        /// number of upgrade tiers, but ONLY resolvable while the facility's
+        /// live <c>UpgradeableFacility</c> GameObject is registered (i.e.
+        /// standing in the Space Center scene) - confirmed via decompile
+        /// that <c>ProtoUpgradeable.GetLevelCount()</c> returns the
+        /// sentinel <c>-1</c> otherwise, which is mapped to <c>null</c> here
+        /// rather than surfaced. <c>upgradeCost</c> (next-level funds cost)
+        /// comes from the same live-facility-only
+        /// <c>UpgradeableFacility.GetUpgradeCost()</c>, reached via
+        /// <c>ScenarioUpgradeableFacilities.protoUpgradeables</c> keyed by
+        /// <c>SlashSanitize(name)</c> (confirmed via decompile: the real
+        /// dictionary key is <c>"SpaceCenter/&lt;FacilityName&gt;"</c>, not
+        /// the bare enum name - <c>SlashSanitize</c> is the exact public API
+        /// that does that prefixing, used here instead of hand-rolling the
+        /// prefix so this stays correct if that convention ever changes).
+        /// Both <c>levelCount</c> and <c>upgradeCost</c> are commonly
+        /// <c>null</c> outside the Space Center scene - that's a genuine
+        /// "not available right now," not a bug.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareerFacilities()
+        {
+            if (ScenarioUpgradeableFacilities.Instance == null)
+            {
+                return null;
+            }
+
+            var result = new Dictionary<string, object?>();
+            foreach (var facility in TrackedFacilities)
+            {
+                var facilityName = facility.ToString();
+                var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
+
+                double? upgradeCost = null;
+                if (ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) &&
+                    proto?.facilityRefs != null && proto.facilityRefs.Count > 0 && proto.facilityRefs[0] != null)
+                {
+                    upgradeCost = proto.facilityRefs[0].GetUpgradeCost();
+                }
+
+                var levelCount = ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility);
+
+                result[facilityName] = new Dictionary<string, object?>
+                {
+                    ["level"] = (double)ScenarioUpgradeableFacilities.GetFacilityLevel(facility),
+                    ["levelCount"] = levelCount >= 0 ? (int?)levelCount : null,
+                    ["upgradeCost"] = upgradeCost,
+                };
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Active + offered contracts (title/agent/rewards/advance/deadline/
+        /// state) from <c>ContractSystem.Instance.Contracts</c> - the list
+        /// of NOT-YET-FINISHED contracts (completed/failed/expired ones live
+        /// in the separate <c>ContractsFinished</c> list, out of scope for
+        /// this capture). Every reward/advance field read here
+        /// (<c>FundsAdvance</c>/<c>FundsCompletion</c>/<c>FundsFailure</c>/
+        /// <c>ScienceCompletion</c>/<c>ReputationCompletion</c>/
+        /// <c>ReputationFailure</c>) is a plain public field on
+        /// <c>Contract</c>, confirmed via decompile - no getter indirection.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareerContracts()
+        {
+            var system = ContractSystem.Instance;
+            if (system == null)
+            {
+                return null;
+            }
+
+            var active = new List<object?>();
+            var offered = new List<object?>();
+            var all = system.Contracts;
+            if (all != null)
+            {
+                foreach (var contract in all)
+                {
+                    if (contract == null)
+                    {
+                        continue;
+                    }
+
+                    switch (contract.ContractState)
+                    {
+                        case Contract.State.Active:
+                            active.Add(BuildContractEntry(contract));
+                            break;
+                        case Contract.State.Offered:
+                            offered.Add(BuildContractEntry(contract));
+                            break;
+                    }
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["active"] = active,
+                ["offered"] = offered,
+            };
+        }
+
+        private static Dictionary<string, object?> BuildContractEntry(Contract contract)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["title"] = contract.Title,
+                ["agent"] = contract.Agent != null ? contract.Agent.Name : null,
+                ["state"] = contract.ContractState.ToString(),
+                ["fundsAdvance"] = contract.FundsAdvance,
+                ["fundsCompletion"] = contract.FundsCompletion,
+                ["fundsFailure"] = contract.FundsFailure,
+                ["scienceCompletion"] = (double)contract.ScienceCompletion,
+                ["reputationCompletion"] = (double)contract.ReputationCompletion,
+                ["reputationFailure"] = (double)contract.ReputationFailure,
+                ["dateAccepted"] = contract.DateAccepted,
+                ["dateDeadline"] = contract.DateDeadline,
+                ["dateExpire"] = contract.DateExpire,
+            };
+        }
+
+        /// <summary>
+        /// Active strategies (title/department/factor) from
+        /// <c>StrategySystem.Instance.Strategies</c>, filtered to
+        /// <c>IsActive</c> - the RAW active list, unfiltered against any
+        /// admin-level cap. Deliberate: this project's own "KSP strategy
+        /// over-cap quirk" finding is that the stock UI silently lets a save
+        /// carry more active strategies than the Administration building's
+        /// level allows, and the raw active list is the only surface that
+        /// reveals it - re-deriving/enforcing the cap here would hide
+        /// exactly the thing worth capturing. <c>activeCount</c> is simply
+        /// this list's length, for a cheap "how many" read without a
+        /// consumer needing to count the list itself.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareerStrategies()
+        {
+            var system = StrategySystem.Instance;
+            if (system == null)
+            {
+                return null;
+            }
+
+            var active = new List<object?>();
+            var strategies = system.Strategies;
+            if (strategies != null)
+            {
+                foreach (var strategy in strategies)
+                {
+                    if (strategy == null || !strategy.IsActive)
+                    {
+                        continue;
+                    }
+
+                    active.Add(new Dictionary<string, object?>
+                    {
+                        ["title"] = strategy.Title,
+                        ["department"] = strategy.DepartmentName,
+                        ["factor"] = (double)strategy.Factor,
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["active"] = active,
+                ["activeCount"] = active.Count,
+            };
+        }
+
+        /// <summary>
+        /// Unlocked-tech count (+ ids, since it's cheap here) - derived from
+        /// <c>PartLoader.Instance.parts</c> rather than
+        /// <c>ResearchAndDevelopment</c>'s own tech dictionary, which is
+        /// PRIVATE (confirmed via decompile: <c>protoTechNodes</c> has no
+        /// public enumerator, only per-id lookups via <c>GetTechState</c>).
+        /// Every loaded <c>AvailablePart</c> carries a public
+        /// <c>TechRequired</c> field; <c>ResearchAndDevelopment.
+        /// PartTechAvailable(AvailablePart)</c> is the confirmed public
+        /// static check for "is this part's tech unlocked" - deduplicating
+        /// by <c>TechRequired</c> across every unlocked part yields the
+        /// distinct unlocked tech-node id set cheaply, without needing the
+        /// full tech-tree asset. A part with no <c>TechRequired</c> (rare,
+        /// but seen on some stock/utility parts) is skipped rather than
+        /// counted as an empty-string "tech."
+        /// </summary>
+        private static Dictionary<string, object?>? BuildCareerTech()
+        {
+            var rnd = ResearchAndDevelopment.Instance;
+            var loader = PartLoader.Instance;
+            if (rnd == null || loader == null || loader.parts == null)
+            {
+                return null;
+            }
+
+            var unlockedTechIds = new HashSet<string>();
+            foreach (var part in loader.parts)
+            {
+                if (part == null || string.IsNullOrEmpty(part.TechRequired))
+                {
+                    continue;
+                }
+
+                if (ResearchAndDevelopment.PartTechAvailable(part))
+                {
+                    unlockedTechIds.Add(part.TechRequired);
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["unlockedCount"] = unlockedTechIds.Count,
+                ["unlockedIds"] = new List<object?>(unlockedTechIds),
             };
         }
 
