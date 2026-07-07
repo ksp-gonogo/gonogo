@@ -124,15 +124,9 @@ const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "o.inclination": "vessel.orbit.inc",
   "o.lan": "vessel.orbit.lan",
   "o.argumentOfPeriapsis": "vessel.orbit.argPe",
-  "o.referenceBody": "vessel.orbit.referenceBodyIndex",
-  "o.maneuverNodes": "vessel.maneuver.nodes",
-  "o.encounterExists": "vessel.orbit.encounter",
-  "o.encounterBody": "vessel.orbit.encounter",
-  "o.encounterTime": "vessel.orbit.encounter",
 
   // --- vessel.identity ---
   "v.name": "vessel.identity.name",
-  "v.body": "vessel.identity.parentBodyIndex",
   "v.situationString": "vessel.identity.situation",
 
   // --- vessel.control ---
@@ -140,6 +134,10 @@ const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "f.sasEnabled": "vessel.control.sas",
   "f.sasMode": "vessel.control.sasMode",
   "v.rcsValue": "vessel.control.rcs",
+  "v.sasValue": "vessel.control.sas",
+  "v.gearValue": "vessel.control.gear",
+  "v.brakeValue": "vessel.control.brakes",
+  "v.lightValue": "vessel.control.lights",
 
   // --- vessel.structure / vessel.crew ---
   "v.currentStage": "vessel.structure.currentStage",
@@ -153,12 +151,6 @@ const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.comms ---
   "comm.connected": "vessel.comms.connected",
   "comm.signalStrength": "vessel.comms.signalStrength",
-  "comm.controlState": "vessel.comms.controlState",
-  "comm.controlStateName": "vessel.comms.controlState",
-  "comm.signalDelay": "comms.delay", // provider capability channel, not vessel.*
-
-  // --- vessel.propulsion ---
-  "dv.currentTWR": "vessel.propulsion.twr", // derived: currentThrust / (totalMass * g)
 
   // --- vessel.resources (parametric — see PARAMETRIC_RULES below for the
   // r.resource[X]/r.resourceMax[X] family) ---
@@ -166,17 +158,10 @@ const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.target ---
   "tar.name": "vessel.target.name",
   "tar.type": "vessel.target.kind",
-  "tar.o.relativeVelocity": "vessel.target.relativeVelocity",
   "tar.o.sma": "vessel.target.orbit.sma",
   "tar.o.inclination": "vessel.target.orbit.inc",
   "tar.o.lan": "vessel.target.orbit.lan",
   "tar.o.argumentOfPeriapsis": "vessel.target.orbit.argPe",
-  "dock.x": "vessel.target.relativePosition",
-  "dock.y": "vessel.target.relativePosition",
-
-  // --- system.bodies (raw static array; b.<field>[i] all read the one
-  // array topic and index in — no per-body subtopic in M1) ---
-  "b.number": "system.bodies",
 
   // --- time.warp ---
   "t.currentRate": "time.warp.warpRate",
@@ -208,6 +193,125 @@ const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
  * assert "mapped OR declared gap" without a silent third case.
  */
 export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
+  // --- CRITICAL-review shape-mismatch gaps (M2 Task 7 fix): each of these
+  // was previously in TELEMACHUS_CLEAN_HOMES pointing at a new topic whose
+  // VALUE SHAPE does not match what the widget reads — a migrated widget
+  // would have silently rendered garbage (or thrown) instead of falling
+  // back to the working legacy DataSource path. Moved here so the fallback
+  // fires until the real fix (a derived display-map/field subtopic, or a
+  // server-side field the contract doesn't have yet) lands in M3.
+
+  // v.body / o.referenceBody: ~14 widgets (ManeuverPlanner, ScienceBench,
+  // CurrentOrbit, OrbitalAscent, Scanning, SystemView, AtmosphereProfile,
+  // KeplerPeriod, MapView, LandingStatus, OrbitView, shared/useIsOrbiting.ts)
+  // read these as a body NAME string fed to getBody(id: string). The new
+  // homes are `vessel.identity.parentBodyIndex`/`vessel.orbit.
+  // referenceBodyIndex` — both `int?` INDEXES into `system.bodies`, not
+  // names. No index→name display-map subtopic exists yet.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "v.body",
+  "o.referenceBody",
+
+  // b.number: SystemView/useCelestialBodies.ts reads a plain `number`
+  // count. `system.bodies` is the raw static ARRAY, not a count.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "b.number",
+
+  // o.encounterExists/o.encounterBody/o.encounterTime: shared/
+  // OrbitalEventChips.tsx (also SystemView, MapView, TargetPicker) reads
+  // these as three independent scalars (number/string/number). All three
+  // collapse onto the single nullable `vessel.orbit.encounter` RECORD
+  // (`{ transitionType, transitionUt, bodyIndex }`) — none of the three old
+  // field semantics map cleanly onto one sub-field of it.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "o.encounterExists",
+  "o.encounterBody",
+  "o.encounterTime",
+
+  // dock.x/dock.y: DistanceToTarget expects two independent scalar
+  // docking-alignment numbers. Both collapse onto
+  // `vessel.target.relativePosition`, a single `Vec3 {x,y,z}` — different
+  // shape AND different semantics (alignment axes vs. a position vector).
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "dock.x",
+  "dock.y",
+
+  // comm.controlState/comm.controlStateName: CommSignal reads a `number` +
+  // a `string`, with a concrete `controlState === 2/1/0` numeric fallback
+  // path. Both collapse onto `vessel.comms.controlState`, a single STRING
+  // enum (11 values) — the numeric read is permanently wrong, and enum
+  // values the widget doesn't recognize silently fall through to a default
+  // "ok" tone.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "comm.controlState",
+  "comm.controlStateName",
+
+  // tar.o.relativeVelocity: DistanceToTarget/TargetPicker read a signed
+  // scalar closing-speed number (`.toFixed(2)`, `< 0` sign check). The new
+  // home, `vessel.target.relativeVelocity`, is a `Vec3` — `.toFixed` throws
+  // on an object, and the sign check can never fire.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "tar.o.relativeVelocity",
+
+  // o.maneuverNodes: ManeuverPlanner/MapView read each node's `deltaV:
+  // [x,y,z]` tuple plus a full post-burn orbit preview per node (PeA, ApA,
+  // inclination, orbitPatches, referenceBody, ...). The new
+  // `vessel.maneuver.nodes` ManeuverNode only carries
+  // {ut, dvRadial?, dvNormal?, dvPrograde?, dvTotal?} — no deltaV tuple, no
+  // orbit-preview fields at all (the post-burn preview is explicitly
+  // documented as consumer-side-derived, not streamed).
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "o.maneuverNodes",
+
+  // dv.currentTWR: Twr widget reads a plain `number` (`.toFixed(2)`
+  // directly). `VesselPropulsion` has no Twr field at all — the contract's
+  // own doc comment says it's retiring `dv.currentTWR` until a stage sim
+  // exists; there is no `vessel.propulsion.twr` field on the wire to read.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "dv.currentTWR",
+
+  // comm.signalDelay: CommSignal reads a plain `number`. `comms.delay` is
+  // an aspirational future capability channel (RemoteTech-default delay
+  // authority) referenced only in a doc comment — it has no implementation
+  // anywhere in this codebase, so mapping to it would resolve to
+  // permanently-undefined instead of falling back to the working legacy
+  // read.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "comm.signalDelay",
+
+  // --- M2 Task 7 fix, part 2: ActionGroup's dynamically-resolved keys
+  // (see mapTopic.coverage.test.ts's collectDynamicTelemachusKeys). Of the
+  // 17 keys, sas/rcs/gear/brake/light have clean 1:1 boolean homes above;
+  // the rest don't exist as individual fields on VesselControl
+  // (mod/Sitrep.Contract/VesselControl.cs) yet ---
+
+  // v.abortValue: VesselControl has no Abort field at all.
+  // gap: no Abort field on the vessel.control contract yet; migrate in M3
+  "v.abortValue",
+
+  // v.ag1Value..v.ag10Value: VesselControl only carries a single
+  // fixed-order `ActionGroups: bool[]` array (`[ag1..ag10]`) — there is no
+  // per-index subtopic a single ActionGroup widget instance could read as
+  // its own boolean; mapping any one of these to the whole array would
+  // hand a boolean-expecting widget an array (the same class of shape bug
+  // as the CRITICAL findings above).
+  // gap: only a fixed-order ActionGroups bool[] array on the wire, no per-index subtopic yet; migrate in M3
+  "v.ag1Value",
+  "v.ag2Value",
+  "v.ag3Value",
+  "v.ag4Value",
+  "v.ag5Value",
+  "v.ag6Value",
+  "v.ag7Value",
+  "v.ag8Value",
+  "v.ag9Value",
+  "v.ag10Value",
+
+  // v.precisionControlValue: no field on VesselControl yet (matches
+  // f.precisionControl's existing gap below).
+  // gap: no field on the vessel.control contract yet; migrate in M3
+  "v.precisionControlValue",
+
   // --- the biggest vessel-scope gap: no roster channel yet ---
   "tar.availableVessels",
 

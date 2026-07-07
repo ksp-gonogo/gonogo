@@ -73,6 +73,10 @@ export function useDataValue<T = unknown>(
 
 // Implementation (not part of the public API surface)
 export function useDataValue(dataSourceId: string, key: string): unknown {
+  // Kept wired even once a key is migrated (streamedValue wins below) so the
+  // hook's call order never changes across renders — a wasted subscription
+  // and re-render on the legacy path, traded deliberately for hook-order
+  // stability. Transitional: goes away with the shim at M4.
   const legacySetup = useCallback(
     (
       source: DataSource,
@@ -103,7 +107,10 @@ export function useDataValue(dataSourceId: string, key: string): unknown {
   );
 
   // The shim: always subscribed (stable hook order), only consulted when
-  // `mapTopic` resolves AND a TelemetryProvider is actually mounted.
+  // `mapTopic` resolves AND a TelemetryProvider is actually mounted. This
+  // half deliberately mirrors `useStream` (`@gonogo/sitrep-client`'s
+  // `use-stream.ts`) — that file is the source of truth if its
+  // subscribe/getSnapshot contract ever changes.
   const client = useTelemetryClientOptional();
   const topic = mapTopic(dataSourceId, key);
 

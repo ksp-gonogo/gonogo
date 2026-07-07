@@ -74,9 +74,13 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   });
 
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {
-    expect(mapTopic("data", "b.number")).toBe("system.bodies");
     expect(mapTopic("data", "b.name[0]")).toBe("system.bodies");
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
+  });
+
+  it("gaps b.number — the widget reads a scalar count, not the raw system.bodies array (M2 T7 critical fix)", () => {
+    expect(mapTopic("data", "b.number")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "b.number")).toBe(true);
   });
 
   it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources.<X>.{current,max}", () => {
@@ -125,5 +129,62 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     for (const gapKey of TELEMACHUS_KNOWN_GAPS) {
       expect(mapTopic("data", gapKey)).toBeUndefined();
     }
+  });
+
+  describe("CRITICAL fix (M2 T7 review): shape-mismatched entries are gapped, not silently corrupting", () => {
+    it("gaps every entry that used to collapse a scalar/string old key onto a composite/array/vector new topic", () => {
+      const shapeMismatchedKeys = [
+        "v.body", // string body name vs int parentBodyIndex
+        "o.referenceBody", // string body name vs int referenceBodyIndex
+        "b.number", // number count vs the raw system.bodies array
+        "o.encounterExists", // number vs the vessel.orbit.encounter record
+        "o.encounterBody", // string vs the vessel.orbit.encounter record
+        "o.encounterTime", // number vs the vessel.orbit.encounter record
+        "dock.x", // scalar vs vessel.target.relativePosition (Vec3)
+        "dock.y", // scalar vs vessel.target.relativePosition (Vec3)
+        "comm.controlState", // number vs the vessel.comms.controlState string enum
+        "comm.controlStateName", // string vs the vessel.comms.controlState string enum
+        "tar.o.relativeVelocity", // scalar vs vessel.target.relativeVelocity (Vec3)
+        "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
+        "dv.currentTWR", // no twr field on vessel.propulsion at all
+        "comm.signalDelay", // comms.delay has no implementation anywhere yet
+      ];
+
+      for (const key of shapeMismatchedKeys) {
+        expect(mapTopic("data", key)).toBeUndefined();
+        expect(isKnownTelemachusGap("data", key)).toBe(true);
+      }
+    });
+  });
+
+  describe("ActionGroup's dynamically-resolved keys (M2 T7 fix, part 2)", () => {
+    it("maps the boolean action-group keys with a real 1:1 field on VesselControl", () => {
+      expect(mapTopic("data", "v.sasValue")).toBe("vessel.control.sas");
+      expect(mapTopic("data", "v.rcsValue")).toBe("vessel.control.rcs");
+      expect(mapTopic("data", "v.gearValue")).toBe("vessel.control.gear");
+      expect(mapTopic("data", "v.brakeValue")).toBe("vessel.control.brakes");
+      expect(mapTopic("data", "v.lightValue")).toBe("vessel.control.lights");
+    });
+
+    it("gaps the action-group keys with no individual field on VesselControl", () => {
+      const noIndividualField = [
+        "v.abortValue",
+        "v.precisionControlValue",
+        "v.ag1Value",
+        "v.ag2Value",
+        "v.ag3Value",
+        "v.ag4Value",
+        "v.ag5Value",
+        "v.ag6Value",
+        "v.ag7Value",
+        "v.ag8Value",
+        "v.ag9Value",
+        "v.ag10Value",
+      ];
+      for (const key of noIndividualField) {
+        expect(mapTopic("data", key)).toBeUndefined();
+        expect(isKnownTelemachusGap("data", key)).toBe(true);
+      }
+    });
   });
 });

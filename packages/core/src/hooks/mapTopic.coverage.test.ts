@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isKnownTelemachusGap, mapTopic } from "@gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
+import { ACTION_GROUPS } from "../actionGroups";
 
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
@@ -112,8 +113,37 @@ function collectWidgetTelemachusKeys(): Set<string> {
   return keys;
 }
 
+/**
+ * Keys resolved dynamically instead of as a literal `useDataValue("data",
+ * "<key>")` string, so the regex scan above can never see them — a coverage
+ * blind spot in its own right. `ActionGroup` (`packages/components/src/
+ * ActionGroup/index.tsx`) is the motivating case: it resolves
+ * `useDataValue("data", group?.value ?? "v.sasValue")` from `@gonogo/core`'s
+ * `ACTION_GROUPS` registry with an empty `dataRequirements: []`, so
+ * `v.sasValue`/`v.rcsValue`/`v.gearValue`/`v.brakeValue`/`v.lightValue`/
+ * `v.abortValue`/`v.precisionControlValue`/`v.ag1Value`…`v.ag10Value` were
+ * silently invisible to the scan — mapped-or-gapped-or-not, the coverage
+ * test could never tell. Only `.value` is read through `useDataValue`
+ * (mapTopic's concern); `.toggle` fires through `executeAction`, a
+ * different, unrelated dispatch path this table doesn't route.
+ *
+ * If another component ever resolves its `useDataValue` key from a runtime
+ * registry the same way, add its key source here too — that's the general
+ * shape of the blind spot, not something specific to action groups.
+ */
+function collectDynamicTelemachusKeys(): Set<string> {
+  const keys = new Set<string>();
+  for (const group of ACTION_GROUPS) {
+    keys.add(group.value);
+  }
+  return keys;
+}
+
 describe("mapTopic coverage — every widget Telemachus key is mapped or a declared gap", () => {
-  const widgetKeys = collectWidgetTelemachusKeys();
+  const widgetKeys = new Set([
+    ...collectWidgetTelemachusKeys(),
+    ...collectDynamicTelemachusKeys(),
+  ]);
 
   it("found a non-trivial number of widget keys (scan sanity check)", () => {
     // Guards against the scan silently finding nothing (e.g. a moved
