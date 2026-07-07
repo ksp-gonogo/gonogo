@@ -1560,5 +1560,169 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<SetPausedArgs, Ack>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
             }
         }
+
+        // ----------------------------------------------------------------
+        // M2 Task 1 — tombstone samples (finding B). See
+        // ChannelEngine.ProcessTick's channel loop (the _born guard) and
+        // local_docs/telemetry-mod/m2-sdk-delay-design.md §4.2.
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public async Task PresentToNullEmitsExactlyOneTombstoneThenNullToNullIsSuppressedByTheDeadband()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+
+                // A real value first (the channel is "born").
+                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(1.0, Convert.ToDouble(real.Payload));
+                Assert.Equal(Staleness.Fresh, real.Meta.Staleness);
+                Assert.Equal(1, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+
+                // present -> null: exactly ONE tombstone (a genuine change,
+                // per ChannelEmitter.HasChangedBeyondQuantum's
+                // Equals(realValue, null) == false -> changed). Staleness is
+                // Fresh -- absence is freshly-known data, not link staleness.
+                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                var tombstone = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Null(tombstone.Payload);
+                Assert.Equal(TombstoneTestExtension.Topic, tombstone.Topic);
+                Assert.Equal(Staleness.Fresh, tombstone.Meta.Staleness);
+                Assert.Equal(2, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+
+                // null -> null (still absent): the deadband's
+                // Equals(null, null) == true -> not-changed -> suppressed.
+                // No tombstone spam, and no further wire traffic at all.
+                engine.TickAndWait(2.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(3.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ChannelThatHasNeverEmittedProducesNoTombstoneForANullMapperResult()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+
+                // Never born: the mapper returns null on every tick so far
+                // (pre-flight/main-menu shape) -- must produce NO emission
+                // at all. Decide isn't even called (Considered stays 0),
+                // distinct from "considered but skipped".
+                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                Assert.Equal(0, engine.ChannelCounters(TombstoneTestExtension.Topic).Considered);
+                Assert.Equal(0, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.Start();
+            try
+            {
+                await using var early = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(early, TombstoneTestExtension.Topic, Timeout);
+
+                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                var first = await ReceiveStreamDataAsync(early, Timeout);
+                Assert.Equal(1.0, Convert.ToDouble(first.Payload));
+
+                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                var tombstone = await ReceiveStreamDataAsync(early, Timeout);
+                Assert.Null(tombstone.Payload);
+
+                // A brand-new, late subscriber joins while the channel is
+                // CURRENTLY absent -- its synchronous catch-up (which reads
+                // straight from the Archive, proving the tombstone was
+                // genuinely archived, not just pushed to already-connected
+                // subscribers) must hand it the tombstone, not a ghost of
+                // the earlier real value and not silence.
+                //
+                // NOTE: sent as a raw Subscribe (not the SubscribeAsync
+                // helper) and read via ReceiveStreamDataAsync directly --
+                // the "subscribed" ack (reliable lane) and this catch-up
+                // frame (lossy-latest telemetry lane) are published from two
+                // independent ChannelOutbox lanes drained by one pump loop,
+                // so their relative wire order isn't guaranteed when a
+                // catch-up value already exists at subscribe time (unlike
+                // every other test in this file, which only ever subscribes
+                // BEFORE a topic has recorded anything). ReceiveStreamDataAsync
+                // skips over the ack regardless of which arrives first;
+                // SubscribeAsync's ack-only filter would instead silently
+                // discard the catch-up if it happened to arrive first.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestExtension.Topic }));
+                var lateCatchUp = await ReceiveStreamDataAsync(late, Timeout);
+                Assert.Equal(TombstoneTestExtension.Topic, lateCatchUp.Topic);
+                Assert.Null(lateCatchUp.Payload);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A single nullable-valued channel for the tombstone tests above —
+        /// deliberately separate from <see cref="MultiChannelTestExtension"/>
+        /// (whose "chan.a"/"chan.b" mappers can also return null) so these
+        /// tests aren't coupled to that extension's unrelated two-channel
+        /// subscription-gating scenarios.
+        /// </summary>
+        private sealed class TombstoneTestExtension : ISitrepExtension
+        {
+            public const string Topic = "chan.tombstone";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-tombstone",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("t", out var v) ? v : null);
+            }
+
+            public static KspSnapshot Snapshot(double? t)
+            {
+                return new KspSnapshot { Values = new Dictionary<string, object?> { ["t"] = t } };
+            }
+        }
     }
 }

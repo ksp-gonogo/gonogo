@@ -13,6 +13,7 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
     quality: Quality.OnRails,
     active: false,
     staleness: Staleness.Fresh,
+    timelineEpoch: 0,
     ...overrides,
   };
 }

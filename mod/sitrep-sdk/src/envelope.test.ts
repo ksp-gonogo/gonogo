@@ -29,6 +29,7 @@ describe("ServerMessage discriminated union", () => {
         quality: 1,
         active: true,
         staleness: 0,
+        timelineEpoch: 0,
       },
     };
     expect(topicOf(msg)).toBe("vessel.altitude");

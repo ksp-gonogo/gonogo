@@ -96,6 +96,31 @@ namespace Sitrep.Host
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
 
+        // topic -> "this channel has emitted at least one non-null value" --
+        // the M2 finding-B fix's channel-birth guard (see ProcessTick's
+        // channel loop). A channel that has never been "born" produces no
+        // tombstone when its mapper returns null (pre-flight/main-menu: not
+        // yet a subject); once born, a null flows into Decide like any
+        // other value, and Decide's existing null-vs-value Equals handling
+        // (ChannelEmitter.HasChangedBeyondQuantum) already change-gates it
+        // correctly -- present->null emits once, null->null is suppressed.
+        // Cleared on a quickload rewind (below) so the abandoned timeline's
+        // birth state never survives onto the new one.
+        //
+        // KNOWN GAP (deferred, not required by this task's verify list):
+        // the design doc also calls for resetting this per SUBJECT epoch
+        // (vessel-switch, M1 §6.1) so a newly-switched-to vessel that hasn't
+        // emitted yet doesn't inherit the PREVIOUS vessel's birth state. That
+        // reset can't reuse IExtensionHost.ForceKeyframe as-is: that method
+        // is ALSO the 0->1 subscribe-transition mechanism (see
+        // ChannelEmitter.NotifySubscribed), and clearing birth on every
+        // subscribe would wrongly suppress the tombstone re-keyframe a
+        // reconnecting subscriber is supposed to see for an
+        // already-tombstoned channel. A correct fix needs a NEW, separate
+        // IExtensionHost seam that VesselEpochSampler calls alongside (not
+        // instead of) ForceKeyframe -- left for a follow-up task.
+        private readonly HashSet<string> _born = new HashSet<string>();
+
         private string? _currentRegisteringExtensionId;
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
@@ -562,6 +587,7 @@ namespace Sitrep.Host
             {
                 _courier.ResetTimeline(tick.Ut);
                 _emitter.Reset(tick.Ut);
+                _born.Clear();
                 BroadcastTimelineReset();
             }
 
@@ -638,11 +664,31 @@ namespace Sitrep.Host
 
                 if (value == null)
                 {
-                    // No data yet for this topic this tick (e.g. main menu,
-                    // before FlightGlobals is ready) — distinct from "value
-                    // didn't change enough to emit"; just skip this topic,
-                    // other topics/the clock advance below are unaffected.
-                    continue;
+                    if (!_born.Contains(topic))
+                    {
+                        // No data yet for this topic this tick, AND it has
+                        // never had a real value (e.g. main menu, before
+                        // FlightGlobals is ready) — not yet a subject, so
+                        // there is nothing to tombstone. Skip this topic
+                        // entirely, same as before this fix; other topics/
+                        // the clock advance below are unaffected.
+                        continue;
+                    }
+                    // else: this channel WAS born (has emitted a real value
+                    // before) -- a null now is a legitimate ABSENCE
+                    // transition (finding B / M2 tombstone). Fall through
+                    // into Decide with the null value: it is change-gated
+                    // exactly like any other value (Equals(last, null) ->
+                    // change, once; null -> null -> no change, suppressed by
+                    // the deadband — see ChannelEmitter.HasChangedBeyondQuantum),
+                    // keyframed, delayed, and archived through the SAME path
+                    // as a real sample, so late subscribers/scrubs/replays
+                    // learn the absence rather than seeing a frozen ghost of
+                    // the last real value.
+                }
+                else
+                {
+                    _born.Add(topic);
                 }
 
                 // C2-1 (second fail-soft round): Decide is ALSO

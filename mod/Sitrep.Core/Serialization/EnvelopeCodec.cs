@@ -73,6 +73,9 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "staleness");
             JsonWriter.AppendInteger(sb, (long)meta.Staleness);
 
+            AppendField(sb, "timelineEpoch");
+            JsonWriter.AppendInteger(sb, meta.TimelineEpoch);
+
             if (meta.Confidence.HasValue)
             {
                 AppendField(sb, "confidence");
@@ -94,6 +97,7 @@ namespace Sitrep.Core.Serialization
                 Quality = (Quality)(int)RequireDouble(raw, "quality"),
                 Active = RequireBool(raw, "active"),
                 Staleness = (Staleness)(int)RequireDouble(raw, "staleness"),
+                TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
                 Confidence = TryGetDouble(raw, "confidence"),
             };
         }

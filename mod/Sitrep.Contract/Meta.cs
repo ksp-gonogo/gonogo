@@ -27,6 +27,24 @@ public class Meta
     public Quality Quality { get; set; }
     public bool Active { get; set; }
     public Staleness Staleness { get; set; }
+
+    /// <summary>
+    /// Generation counter for the current timeline: 0 at boot, incremented
+    /// once for every quickload/rewind (<see cref="Sitrep.Core.Courier.ResetTimeline"/>).
+    /// Stamped on EVERY envelope <see cref="Meta"/> (streams AND command
+    /// responses) by <c>Courier.MakeMeta</c> — see that method's doc
+    /// comment for why this had to be added now rather than retrofitted
+    /// later: once recordings/stations exist, a sample with no epoch can
+    /// never be told apart from one on an abandoned pre-rewind timeline.
+    /// A client compares this against its own last-seen epoch to detect a
+    /// rewind atomically, without re-deriving it from a backward `validAt`
+    /// jump (which a reordered/coalesced delivery could mask). Placed before
+    /// the optional <see cref="Confidence"/> below — required fields precede
+    /// optional ones in both the TS codegen output and <c>EnvelopeCodec</c>'s
+    /// hand-written field order.
+    /// </summary>
+    public int TimelineEpoch { get; set; }
+
     public double? Confidence { get; set; }
 }
 

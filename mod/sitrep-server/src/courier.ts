@@ -283,6 +283,13 @@ export class Courier {
       quality: Quality.OnRails,
       active: true,
       staleness: Staleness.Fresh,
+      // Always 0 here: timelineEpoch (M2, local_docs/telemetry-mod/m2-sdk-delay-design.md
+      // §1.1/§7.6) is incremented on a quickload/timeline-rewind, and
+      // resetTimeline itself is a C#-ONLY addition with no TS reference
+      // (same rationale as Sitrep.Core's SnapshotCommands/RestoreCommands
+      // and ResetTimeline -- see their doc comments) -- this reference
+      // Courier structurally never rewinds, so its epoch never advances.
+      timelineEpoch: 0,
     };
   }
 

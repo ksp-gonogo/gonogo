@@ -68,5 +68,6 @@ export interface Meta
 	quality: Quality;
 	active: boolean;
 	staleness: Staleness;
+	timelineEpoch: number;
 	confidence?: number;
 }

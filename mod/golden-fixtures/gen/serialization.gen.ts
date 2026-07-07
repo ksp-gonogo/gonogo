@@ -106,6 +106,7 @@ const metaNormal: Meta = {
   quality: Quality.OnRails,
   active: true,
   staleness: Staleness.Fresh,
+  timelineEpoch: 0,
   confidence: 0.87,
 };
 
@@ -123,6 +124,7 @@ const metaNoConfidence: Meta = {
   quality: Quality.Loaded,
   active: false,
   staleness: Staleness.HeldStale,
+  timelineEpoch: 3,
 };
 
 // The NaN/Infinity fixture case called for by Task 7: three of Meta's own
@@ -136,6 +138,7 @@ const metaNonFinite: Meta = {
   quality: Quality.OnRails,
   active: true,
   staleness: Staleness.LastBeforeBlackout,
+  timelineEpoch: 2,
   confidence: Number.NEGATIVE_INFINITY,
 };
 

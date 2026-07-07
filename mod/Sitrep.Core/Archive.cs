@@ -13,10 +13,24 @@ namespace Sitrep.Core
         public object? Value { get; }
         public double ValidAt { get; }
 
-        public ArchiveSample(object? value, double validAt)
+        /// <summary>
+        /// The timeline epoch this sample was recorded under (see
+        /// <see cref="Meta.TimelineEpoch"/>) — carried on every stored point,
+        /// not just the envelope, so a late subscriber's catch-up/in-flight
+        /// replay of an already-archived sample stamps the epoch it was
+        /// ACTUALLY recorded on, not whatever epoch happens to be current at
+        /// delivery time. Defaults to 0 so every pre-existing 2-arg call
+        /// site (golden-fixture conformance tests against the TS reference,
+        /// which has no epoch concept) keeps compiling and behaving
+        /// identically.
+        /// </summary>
+        public int Epoch { get; }
+
+        public ArchiveSample(object? value, double validAt, int epoch = 0)
         {
             Value = value;
             ValidAt = validAt;
+            Epoch = epoch;
         }
     }
 
@@ -55,6 +69,7 @@ namespace Sitrep.Core
         {
             public object? Value;
             public double ValidAt;
+            public int Epoch;
         }
 
         // topic -> samples, kept ascending by validAt.
@@ -81,13 +96,19 @@ namespace Sitrep.Core
             var copy = new ArchiveSample[list.Count];
             for (var i = 0; i < list.Count; i++)
             {
-                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt);
+                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt, list[i].Epoch);
             }
             return copy;
         }
 
-        /// <summary>Record a SCET-stamped sample for <paramref name="topic"/>, valid as of <paramref name="validAtUt"/>.</summary>
-        public void Record(string topic, object? value, double validAtUt)
+        /// <summary>
+        /// Record a SCET-stamped sample for <paramref name="topic"/>, valid as
+        /// of <paramref name="validAtUt"/>, tagged with <paramref name="epoch"/>
+        /// (<see cref="Meta.TimelineEpoch"/> — defaults to 0 for every
+        /// pre-existing call site, i.e. the golden-fixture conformance tests
+        /// that replay the TS reference, which has no epoch concept at all).
+        /// </summary>
+        public void Record(string topic, object? value, double validAtUt, int epoch = 0)
         {
             if (!_samplesByTopic.TryGetValue(topic, out var list))
             {
@@ -95,7 +116,7 @@ namespace Sitrep.Core
                 _samplesByTopic[topic] = list;
             }
 
-            var sample = new Sample { Value = value, ValidAt = validAtUt };
+            var sample = new Sample { Value = value, ValidAt = validAtUt, Epoch = epoch };
 
             // Common case: appended in ascending order already.
             if (list.Count == 0 || validAtUt >= list[list.Count - 1].ValidAt)
@@ -152,7 +173,7 @@ namespace Sitrep.Core
                 found = sample;
             }
 
-            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt);
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch);
         }
 
         /// <summary>
@@ -231,6 +252,7 @@ namespace Sitrep.Core
                         {
                             Value = sample.Value,
                             ValidAt = sample.ValidAt,
+                            Epoch = sample.Epoch,
                         });
                     }
                 }
@@ -272,7 +294,7 @@ namespace Sitrep.Core
                     var list = new List<Sample>(topicState.Samples.Count);
                     foreach (var sampleState in topicState.Samples)
                     {
-                        list.Add(new Sample { Value = sampleState.Value, ValidAt = sampleState.ValidAt });
+                        list.Add(new Sample { Value = sampleState.Value, ValidAt = sampleState.ValidAt, Epoch = sampleState.Epoch });
                     }
                     archive._samplesByTopic[topicState.Topic] = list;
                 }
@@ -326,6 +348,7 @@ namespace Sitrep.Core
     {
         public object? Value { get; set; }
         public double ValidAt { get; set; }
+        public int Epoch { get; set; }
     }
 
     /// <summary>One vantage's clamped cursor scene within an <see cref="ArchiveTopicState"/>.</summary>

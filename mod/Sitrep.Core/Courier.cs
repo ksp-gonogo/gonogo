@@ -82,8 +82,29 @@ namespace Sitrep.Core
         private readonly Dictionary<string, PendingCommand> _pendingCommands =
             new Dictionary<string, PendingCommand>();
 
+        // node -> vantage -> the UT the link was marked down since (absent =
+        // currently up). See MarkLinkDown/MarkLinkUp and ResolveStaleness --
+        // the M2 seam a future M3 comms-capability provider calls into so a
+        // late/reconnecting subscriber's catch-up sample is honestly labeled
+        // instead of Fresh. Deliberately untouched by ResetTimeline: link
+        // reachability is a NETWORK-topology fact, orthogonal to the
+        // quickload timeline it resets (same rationale as _subscribers).
+        private readonly Dictionary<string, Dictionary<string, double>> _linkDownSince =
+            new Dictionary<string, Dictionary<string, double>>();
+
         private long _seq;
         private CommandHandler _commandHandler = (_, __, ___) => null;
+
+        // Generation counter for the current timeline -- see Meta.TimelineEpoch's
+        // doc comment. Incremented once per ResetTimeline call (quickload/
+        // rewind); stamped on every envelope Meta via MakeMeta, and threaded
+        // into Archive.Record so every STORED point also carries the epoch
+        // it was actually recorded under (not whatever epoch happens to be
+        // current at delivery/catch-up time).
+        private int _epoch;
+
+        /// <summary>The current timeline generation -- see <see cref="Meta.TimelineEpoch"/>.</summary>
+        public int CurrentEpoch => _epoch;
 
         public Courier(IClock clock, INetwork network)
         {
@@ -224,6 +245,12 @@ namespace Sitrep.Core
         /// </summary>
         public void ResetTimeline(double ut)
         {
+            // Bump FIRST: every sample recorded from here on (the caller's
+            // own immediately-following Record on the new timeline) must
+            // carry the NEW epoch, and BroadcastTimelineReset-style
+            // announcements built from CurrentEpoch right after this call
+            // returns must already see it too.
+            _epoch++;
             _pendingCommands.Clear();
             foreach (var archive in _archives.Values)
             {
@@ -232,10 +259,36 @@ namespace Sitrep.Core
             _clock.Reset(ut);
         }
 
+        /// <summary>
+        /// C#-ONLY seam for a future M3 comms-capability provider (not yet
+        /// built — see <see cref="ResolveStaleness"/>'s doc comment): record
+        /// that the link between <paramref name="vantage"/> and
+        /// <paramref name="node"/> has been down since <paramref name="sinceUt"/>.
+        /// Idempotent (a later call overwrites the recorded since-UT).
+        /// </summary>
+        public void MarkLinkDown(string node, string vantage, double sinceUt)
+        {
+            if (!_linkDownSince.TryGetValue(node, out var byVantage))
+            {
+                byVantage = new Dictionary<string, double>();
+                _linkDownSince[node] = byVantage;
+            }
+            byVantage[vantage] = sinceUt;
+        }
+
+        /// <summary>Companion of <see cref="MarkLinkDown"/> — marks the link between <paramref name="vantage"/> and <paramref name="node"/> as currently up (a no-op if it wasn't marked down).</summary>
+        public void MarkLinkUp(string node, string vantage)
+        {
+            if (_linkDownSince.TryGetValue(node, out var byVantage))
+            {
+                byVantage.Remove(vantage);
+            }
+        }
+
         /// <summary>Record a SCET-stamped sample and schedule its delayed delivery to every current subscriber.</summary>
         public void Record(string node, string topic, object? value, double validAtUt)
         {
-            ArchiveFor(node).Record(topic, value, validAtUt);
+            ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
 
             if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
             {
@@ -291,8 +344,13 @@ namespace Sitrep.Core
             var delay = _network.DelayTo(vantage, node);
             var now = _clock.Now();
 
-            // Catch-up: deliver whatever has already "arrived" at this vantage.
-            Deliver(node, topic, subscriber, now);
+            // Catch-up: deliver whatever has already "arrived" at this
+            // vantage. isCatchUp:true is the ONLY delivery site that may
+            // stamp Staleness other than Fresh (see ResolveStaleness) — a
+            // late/reconnecting subscriber served an archived sample from
+            // before a gap, per the M2 design's server-stampable half of
+            // the staleness model.
+            Deliver(node, topic, subscriber, now, isCatchUp: true);
 
             // Also schedule delivery for every sample recorded before this
             // subscribe that is still in flight (validAt + delay > now).
@@ -334,7 +392,7 @@ namespace Sitrep.Core
         /// scene, delivering the latest sample repeatedly and silently
         /// dropping earlier ones.
         /// </summary>
-        private void Deliver(string node, string topic, Subscriber subscriber, double fireUt)
+        private void Deliver(string node, string topic, Subscriber subscriber, double fireUt, bool isCatchUp = false)
         {
             // Recomputed here rather than reusing the delay captured at
             // Record()/SubscribeStream() time — this assumes the delay is
@@ -346,17 +404,47 @@ namespace Sitrep.Core
             {
                 return;
             }
-            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, sample.Value, fireUt));
+            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, sample.Value, fireUt, isCatchUp));
         }
 
-        private StreamData StreamDataFor(string node, string topic, string vantage, ArchiveSample sample, double deliveredAt)
+        private StreamData StreamDataFor(string node, string topic, string vantage, ArchiveSample sample, double deliveredAt, bool isCatchUp)
         {
+            var staleness = isCatchUp ? ResolveStaleness(node, vantage, sample) : Staleness.Fresh;
             return new StreamData
             {
                 Topic = topic,
                 Payload = sample.Value,
-                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt),
+                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness),
             };
+        }
+
+        /// <summary>
+        /// Resolves the wire <see cref="Staleness"/> for a CATCH-UP delivery
+        /// only (see <see cref="Deliver"/>'s <c>isCatchUp</c> parameter and
+        /// <see cref="SubscribeStream"/>'s doc comment) — every other
+        /// delivery stays <see cref="Staleness.Fresh"/> unconditionally.
+        /// Consults <see cref="MarkLinkDown"/>/<see cref="MarkLinkUp"/>'s
+        /// per-(node, vantage) state, the M2 seam a future M3 comms-capability
+        /// provider drives: no link marked down -> Fresh (the served sample
+        /// is, by construction of <see cref="Archive.ReadAtVantage"/>, always
+        /// the freshest available as of this vantage's scene — an old
+        /// <c>validAt</c> on a change-gated channel is FRESH, never inferred
+        /// stale from age alone, per the design doc §4.1). A link marked
+        /// down -&gt; the served sample predates or coincides with the known
+        /// blackout start (<c>ValidAt &lt;= sinceUt</c>): <see cref="Staleness.LastBeforeBlackout"/>
+        /// — honestly "the last thing that got out before the blackout".
+        /// The defensive fallback (link down but the served sample's
+        /// <c>ValidAt</c> is somehow AFTER the known blackout start — should
+        /// not happen if the link genuinely dropped every delivery, but
+        /// costs nothing to guard) is <see cref="Staleness.HeldStale"/>.
+        /// </summary>
+        private Staleness ResolveStaleness(string node, string vantage, ArchiveSample sample)
+        {
+            if (_linkDownSince.TryGetValue(node, out var byVantage) && byVantage.TryGetValue(vantage, out var sinceUt))
+            {
+                return sample.ValidAt <= sinceUt ? Staleness.LastBeforeBlackout : Staleness.HeldStale;
+            }
+            return Staleness.Fresh;
         }
 
         private CommandResponse CommandResponseFor(
@@ -371,11 +459,16 @@ namespace Sitrep.Core
             {
                 RequestId = requestId,
                 Result = result,
-                Meta = MakeMeta(node, vantage, validAt, deliveredAt),
+                // Commands never touch the Archive, so there's no per-sample
+                // epoch to read -- stamp the Courier's own current epoch
+                // (accurate: a command can only mature/confirm on whatever
+                // timeline is live at that moment) and always Fresh (a
+                // command response is never a catch-up replay).
+                Meta = MakeMeta(node, vantage, validAt, deliveredAt, _epoch, Staleness.Fresh),
             };
         }
 
-        private Meta MakeMeta(string node, string vantage, double validAt, double deliveredAt)
+        private Meta MakeMeta(string node, string vantage, double validAt, double deliveredAt, int epoch, Staleness staleness)
         {
             return new Meta
             {
@@ -386,7 +479,8 @@ namespace Sitrep.Core
                 Vantage = vantage,
                 Quality = Quality.OnRails,
                 Active = true,
-                Staleness = Staleness.Fresh,
+                Staleness = staleness,
+                TimelineEpoch = epoch,
             };
         }
 

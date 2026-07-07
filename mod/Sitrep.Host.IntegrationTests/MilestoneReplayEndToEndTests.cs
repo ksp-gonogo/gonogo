@@ -147,6 +147,18 @@ namespace Sitrep.Host.IntegrationTests
                 $"observed (delay=0 pass, {pass5.TimelineResetEvents} in delay=5 pass); no post-rewind ghost validAt observed " +
                 $"in either pass; {pass0.LifecycleEventCount} lifecycle events fired (both passes).");
 
+            // ================= 3b. Meta.TimelineEpoch (M2) =================
+            // 3 rewinds -> 4 distinct timeline generations (0 pre-first-rewind,
+            // then 1/2/3 after each of the 3 ResetTimeline calls) must show up
+            // across the delivered samples' envelope Meta -- proving the
+            // epoch is genuinely stamped end to end through the real wire
+            // pipeline (Courier.MakeMeta), not just unit-tested in isolation.
+            Assert.Equal(4, pass0.EpochsSeen.Count);
+            Assert.Equal(4, pass5.EpochsSeen.Count);
+            _output.WriteLine(
+                $"Meta.timelineEpoch: {pass0.EpochsSeen.Count} distinct epochs observed (delay=0 pass), " +
+                $"{pass5.EpochsSeen.Count} (delay=5 pass) -- matches the 3 rewinds (0/1/2/3).");
+
             // ================= 4. no-wart scan across the whole session =================
             Assert.Empty(pass0.WartViolations);
             Assert.Empty(pass5.WartViolations);
@@ -157,6 +169,19 @@ namespace Sitrep.Host.IntegrationTests
                 $"No-wart scan (NaN/Infinity/eccentricAnomaly/resource -1 sentinel) clean across " +
                 $"{pass0.RawFrameCount + pass5.RawFrameCount} total wire frames (both passes); meta.source present on all " +
                 $"{pass0.VesselPayloadsWithSource + pass5.VesselPayloadsWithSource} vessel.* payloads observed.");
+
+            // ================= 5. M2 tombstones (finding-B fix) =================
+            // The real recording has genuine present->null absence
+            // transitions (e.g. target-clear moments) on several vessel.*
+            // channels -- proving tombstones actually flow end to end
+            // through the real engine/courier/wire pipeline, not just a
+            // synthetic unit test. A null payload is a legitimate wire
+            // sample (see ScanStreamDataForStructuredWarts), not a wart.
+            Assert.True(pass0.VesselTombstoneCount > 0, "expected at least one real vessel.* tombstone (present->null) in the reference replay");
+            Assert.True(pass5.VesselTombstoneCount > 0, "expected at least one real vessel.* tombstone (present->null) in the reference replay");
+            _output.WriteLine(
+                $"M2 tombstones: {pass0.VesselTombstoneCount} vessel.* present->null samples observed (delay=0 pass), " +
+                $"{pass5.VesselTombstoneCount} (delay=5 pass).");
         }
 
         /// <summary>
@@ -253,6 +278,7 @@ namespace Sitrep.Host.IntegrationTests
 
                         result.SeenTopics.Add(streamData.Topic);
                         result.AllSamples.Add(streamData);
+                        result.EpochsSeen.Add(streamData.Meta.TimelineEpoch);
 
                         if (awaitingGhostCheck.TryGetValue(streamData.Topic, out var awaiting) && awaiting)
                         {
@@ -382,6 +408,21 @@ namespace Sitrep.Host.IntegrationTests
 
             if (streamData.Topic.StartsWith("vessel.", StringComparison.Ordinal))
             {
+                if (streamData.Payload == null)
+                {
+                    // M2 tombstone (finding-B fix): a legitimate "no value"
+                    // sample -- a present->null absence transition (e.g. the
+                    // recording's target-clear moments, or a gap with no
+                    // active vessel). There is no nested payload meta to
+                    // check on an absent payload, so this is NOT a
+                    // "missing source" wart -- count it separately so the
+                    // scan can still positively prove real tombstones rode
+                    // the actual wire pipeline in this milestone-level
+                    // replay, rather than silently misclassifying them.
+                    result.VesselTombstoneCount++;
+                    return;
+                }
+
                 // NOTE: the ENVELOPE-level streamData.Meta.Source is always
                 // ChannelEngine.NodeId ("system") -- see Courier.MakeMeta;
                 // subject provenance ("vessel:<guid>") lives in the PAYLOAD's
@@ -460,7 +501,9 @@ namespace Sitrep.Host.IntegrationTests
             public readonly List<string> WartViolations = new List<string>();
             public int VesselPayloadsWithSource;
             public int VesselPayloadsMissingSource;
+            public int VesselTombstoneCount;
             public int RawFrameCount;
+            public readonly HashSet<int> EpochsSeen = new HashSet<int>();
         }
     }
 }
