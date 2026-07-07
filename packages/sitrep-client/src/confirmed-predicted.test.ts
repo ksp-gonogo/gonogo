@@ -421,6 +421,43 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
     }>("vessel.state", token);
     expect(second).toBeUndefined(); // must NOT be a ghost propagated off the dead orbit
   });
+
+  // M2 finalization Fix 4 (owed): the sibling of the two `sample()`/
+  // `sampleInterpolated()` LENS-4 cases above, for the STATUS surface. The
+  // raw-status memo key folds epoch (`\0status\0${topic}\0epoch\0${epoch}`)
+  // for exactly this reason — a status read taken before a mid-token epoch
+  // bump must not survive it (and thereby disagree with the epoch-folded
+  // value read for the same topic in the same frame). The value/derived-
+  // status paths already had dedicated LENS-4 coverage; the raw-status path
+  // did not.
+  it("sampleStatus() (raw topic) must recompute to the new epoch after a mid-token epoch bump, not replay the stale pre-bump status", () => {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+
+    // A live, fresh raw topic — reads "live" before the bump.
+    store.ingest("temperature", numberPoint(100, 10, { deliveredAt: 100 }));
+    store.beginFrame();
+    const token = store.currentFrame();
+
+    const first = store.sampleStatus("temperature", token);
+    expect(first).toBe("live");
+
+    // Mid-token quickload rewind via an UNRELATED topic — temperature hasn't
+    // re-sampled, so the store's cross-topic sweep clears its timeline to the
+    // new (empty) epoch. No point at all in the new epoch now.
+    store.ingest(
+      "system.clock",
+      numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
+    );
+
+    // SAME token, no beginFrame() — a caller reading status twice within one
+    // read cycle. Must recompute against the new epoch: temperature has no
+    // post-reset point, so it's "resyncing" (cold in the new epoch), NOT the
+    // cached pre-bump "live". Without the epoch fold in the raw-status memo
+    // key, this would replay "live" — a ghost status for a dead timeline.
+    const second = store.sampleStatus("temperature", token);
+    expect(second).toBe("resyncing");
+  });
 });
 
 describe("certainty composes with T4 status + T3 undefined/null", () => {

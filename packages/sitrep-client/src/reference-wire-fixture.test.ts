@@ -458,19 +458,37 @@ describe.skipIf(!fixtureExists)(
         // ================= 3. 3 rewinds -> epoch bumps -> NO client ghost =================
         expect(ghostViolations).toEqual([]);
         expect(postBumpStateObservations.length).toBe(3);
-        // Real observed behavior in this recording: the topic that happens
-        // to carry each rewind's FIRST post-reset sample varies — proven
-        // here to include both a case where vessel.state resolves
-        // immediately (the bump itself WAS vessel.orbit, OnRails) and a case
-        // where it genuinely resyncs first (some other topic bumped it,
-        // vessel.orbit's own timeline was swept and hasn't re-sampled yet) —
-        // i.e. this isn't a vacuous check, both branches are actually hit.
-        expect(
-          postBumpStateObservations.some((o) => o.definedImmediately),
-        ).toBe(true);
-        expect(
-          postBumpStateObservations.some((o) => !o.definedImmediately),
-        ).toBe(true);
+        // Stable invariant (holds for ANY reference recording, not just this
+        // one): vessel.state can resolve IMMEDIATELY post-bump only when the
+        // very sample that confirmed the rewind was itself vessel.orbit —
+        // any other topic bumping the epoch means the store's cross-topic
+        // sweep just cleared vessel.orbit's own timeline too, so a genuine
+        // resync is required. This is already enforced per-observation
+        // inline above (`expect(topic).toBe("vessel.orbit")` whenever
+        // `state !== undefined`); restated here as an aggregate check over
+        // the whole session.
+        //
+        // M2 finalization Fix 3: this block used to ALSO assert that BOTH
+        // branches (immediate AND deferred resolution) were actually
+        // observed across the session's 3 rewinds — a claim about which
+        // topic happens to arrive first after each rewind, i.e. about THIS
+        // capture session's specific frame-interleaving, not about the SDK.
+        // vessel.orbit is comfortably the fastest-cadence channel in the
+        // reference recording, so it is plausible — and, empirically, now
+        // the case — for a regenerated recording to have vessel.orbit be the
+        // very first post-reset sample for every single rewind, hitting only
+        // the "immediate" branch. That made the test flake across fixture
+        // regenerations (a real recording-content dependency, not a
+        // correctness bug — verified deterministic given a FIXED fixture
+        // file: it failed 100% of repeated runs against the same JSON, never
+        // intermittently within one). Dropped in favor of the stable
+        // per-observation invariant below, which holds regardless of how the
+        // 3 rewinds happen to interleave.
+        for (const observation of postBumpStateObservations) {
+          if (observation.definedImmediately) {
+            expect(observation.topic).toBe("vessel.orbit");
+          }
+        }
 
         // ================= 4. Staleness/certainty sane across the session =================
         // (Per-frame "live"/"absent" assertions already ran inside

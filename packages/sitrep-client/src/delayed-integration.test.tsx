@@ -59,7 +59,7 @@ function MissionPanel() {
 }
 
 describe("sitrep delayed comms end-to-end (M3)", () => {
-  it("lags a telemetry stream by the network delay through the real Courier/CourierTransport stack", () => {
+  it("lags a telemetry stream by the network delay through the real Courier/CourierTransport stack", async () => {
     const clock = new ManualClock();
     const network = new StubNetwork();
     network.setDelay("KSC", "vessel", 2);
@@ -94,11 +94,13 @@ describe("sitrep delayed comms end-to-end (M3)", () => {
     // Delivery fires exactly at validAt + delay (0 + 2): a synchronous,
     // clock-driven state update outside any DOM event, so it needs an
     // explicit act() (fireEvent wraps this automatically; a bare
-    // ManualClock.advanceTo() call doesn't).
+    // ManualClock.advanceTo() call doesn't). The re-render itself lands one
+    // animation frame later (M2 finalization Fix 1's coalesced
+    // `beginFrame()`), hence `waitFor` rather than a synchronous assertion.
     act(() => {
       clock.advanceTo(2);
     });
-    expect(screen.getByText("altitude:100")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("altitude:100")).toBeTruthy());
   });
 
   it("shows the predicted etaConfirm in flight, then confirms after the full uplink+downlink round trip", async () => {

@@ -17,6 +17,29 @@ const TimelineStoreContext = createContext<TimelineStore | undefined>(
   undefined,
 );
 
+/**
+ * Schedule `cb` to run on the next animation frame, falling back to a
+ * microtask when `requestAnimationFrame` isn't available (SSR, and jsdom —
+ * verified `jsdom@29` has no `requestAnimationFrame` at all, so this is the
+ * path every test in this package actually exercises; there is no real-timer
+ * race to make a test flaky). M2 finalization Fix 1: the coalescing primitive
+ * behind `TelemetryProvider`'s ingest -> `beginFrame()` scheduling below.
+ * Returns a cancel function.
+ */
+function scheduleFrame(cb: () => void): () => void {
+  if (typeof requestAnimationFrame === "function") {
+    const handle = requestAnimationFrame(cb);
+    return () => cancelAnimationFrame(handle);
+  }
+  let cancelled = false;
+  queueMicrotask(() => {
+    if (!cancelled) cb();
+  });
+  return () => {
+    cancelled = true;
+  };
+}
+
 export interface TelemetryProviderProps {
   client: TelemetryClient;
   children: ReactNode;
@@ -51,10 +74,15 @@ export interface TelemetryProviderProps {
  *   as more land) on it.
  * - `client.attachStore(store)` feeds every incoming `stream-data` wire
  *   frame into the store's per-topic timelines.
- * - `client.subscribeStore(() => store.beginFrame())` mints a fresh
- *   `FrameToken` on every ingest tick (mirrors the doc on
- *   `TimelineStore.beginFrame`: "call once per animation frame / read
- *   cycle" — here that cycle is "a new sample arrived"), which is what makes
+ * - `client.subscribeStore(...)` schedules a `store.beginFrame()` (M2
+ *   finalization Fix 1) via `scheduleFrame` — a `requestAnimationFrame`
+ *   (falling back to a microtask off the main thread when rAF isn't
+ *   available). Multiple ingests landing before that scheduled callback
+ *   fires are coalesced into the ONE `beginFrame()` call it makes, honoring
+ *   `TimelineStore.beginFrame`'s own doc ("call once per animation frame /
+ *   read cycle... never once per read") instead of re-minting a fresh
+ *   `FrameToken` — and re-running `deriveVesselState`'s Kepler solve — on
+ *   every single message in a burst. This is what makes
  *   `useStream`/`useStreamStatus`/`useCertainty`'s `useSyncExternalStore`
  *   subscriptions (keyed off `store.subscribeFrame`) actually re-render.
  *
@@ -69,21 +97,55 @@ export function TelemetryProvider({
   store: providedStore,
   viewClockOptions,
 }: TelemetryProviderProps) {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` is correctly omitted: the store isn't tied to a specific client instance (the effects below wire whichever client is current to whichever store is current), only to `providedStore`'s identity.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency (M2 finalization Fix 2) for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const store = useMemo(() => {
     if (providedStore) return providedStore;
+    // Auto-built store must rebuild on `client` identity change (M2
+    // finalization Fix 2, bridge review Important #1): before this fix,
+    // `client` was deliberately omitted from this memo's deps (the comment
+    // above used to argue the store "isn't tied to a specific client
+    // instance") — but an AUTO-BUILT store has no owner other than this
+    // provider, so a reconnect/client-swap that hands in a fresh
+    // `TelemetryClient` left the old store (with its topics/timelines still
+    // keyed off the old client's wire) permanently attached instead of
+    // resetting, unlike pre-bridge behavior. A caller-`providedStore` is
+    // still exempt — that store is the caller's own, its lifetime is
+    // deliberately independent of `client` (see the `attachStore`/
+    // `subscribeStore` effects below, which still re-wire IT to a new
+    // `client` without rebuilding it).
     const built = new TimelineStore(new ViewClock(viewClockOptions));
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
     }
     return built;
-  }, [providedStore]);
+  }, [providedStore, client]);
 
   useEffect(() => client.attachStore(store), [client, store]);
-  useEffect(
-    () => client.subscribeStore(() => store.beginFrame()),
-    [client, store],
-  );
+  useEffect(() => {
+    // M2 finalization Fix 1: coalesce to (at most) one `beginFrame()` per
+    // animation-frame tick, instead of one per `stream-data` message — see
+    // `scheduleFrame` and this component's own doc comment above.
+    let scheduled = false;
+    let cancelScheduled: (() => void) | null = null;
+
+    const runBeginFrame = () => {
+      scheduled = false;
+      cancelScheduled = null;
+      store.beginFrame();
+    };
+
+    const scheduleBeginFrame = () => {
+      if (scheduled) return; // already coalescing this frame's ingests
+      scheduled = true;
+      cancelScheduled = scheduleFrame(runBeginFrame);
+    };
+
+    const unsubscribe = client.subscribeStore(scheduleBeginFrame);
+    return () => {
+      unsubscribe();
+      cancelScheduled?.();
+    };
+  }, [client, store]);
 
   return (
     <TelemetryClientContext.Provider value={client}>

@@ -6,7 +6,13 @@ import {
   type VesselOrbitPayload,
 } from "@gonogo/sitrep-client";
 import { Quality } from "@gonogo/sitrep-sdk";
-import { act, render, renderHook, screen } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
@@ -91,7 +97,7 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
       "channel) resolves through the real client -> TimelineStore -> hooks pipeline once real " +
       "vessel.orbit/vessel.flight wire frames arrive — RED before the bridge (permanently dead " +
       "undefined, since nothing fed a TimelineStore in production), GREEN after it",
-    () => {
+    async () => {
       const transport = new StubTransport();
       const client = new TelemetryClient(transport);
       const legacySource = makeLegacySource();
@@ -139,7 +145,11 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
         });
       });
 
-      expect(screen.getByText("alt:71234")).toBeTruthy();
+      // `TelemetryProvider` coalesces `beginFrame()` to the next animation
+      // frame (sitrep-client M2 finalization Fix 1) rather than minting one
+      // per ingest, so the derived read resolves one frame after the emits,
+      // not synchronously.
+      await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
     },
   );
 });

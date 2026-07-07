@@ -1,5 +1,5 @@
 import { Quality } from "@gonogo/sitrep-sdk";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -54,7 +54,7 @@ function Altitude() {
 }
 
 describe("TelemetryProvider bridges client -> TimelineStore -> useStream for derived vessel.state.* topics", () => {
-  it("resolves a derived field through useStream, given only `client` (the store is auto-created)", () => {
+  it("resolves a derived field through useStream, given only `client` (the store is auto-created)", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
@@ -84,7 +84,10 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
       });
     });
 
-    expect(screen.getByText("alt:71234")).toBeTruthy();
+    // `TelemetryProvider` coalesces `beginFrame()` to the next animation
+    // frame (M2 finalization Fix 1), so the derived read resolves one frame
+    // after the emits, not synchronously.
+    await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
 
     // Unsubscribe symmetry: unmounting releases both ref-counted raw inputs.
     unmount();
@@ -92,7 +95,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
     expect(transport.isSubscribed("vessel.flight")).toBe(false);
   });
 
-  it("still resolves an ordinary raw (non-derived) topic exactly as before", () => {
+  it("still resolves an ordinary raw (non-derived) topic exactly as before", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
@@ -109,6 +112,6 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
 
     expect(screen.getByText("raw:—")).toBeTruthy();
     act(() => transport.emit("v.raw", 42));
-    expect(screen.getByText("raw:42")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("raw:42")).toBeTruthy());
   });
 });

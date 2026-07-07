@@ -44,16 +44,19 @@ describe("sitrep-client end-to-end spine", () => {
       </TelemetryProvider>,
     );
 
-    // Stream: renders, then updates on new inbound data.
+    // Stream: renders, then updates on new inbound data. `TelemetryProvider`
+    // coalesces `beginFrame()` to the next animation frame (M2 finalization
+    // Fix 1), so each update lands one frame after its emit, not
+    // synchronously.
     expect(screen.getByText("altitude:—")).toBeTruthy();
     act(() => {
       transport.emit("v.alt", 1200);
     });
-    expect(screen.getByText("altitude:1200")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("altitude:1200")).toBeTruthy());
     act(() => {
       transport.emit("v.alt", 1450);
     });
-    expect(screen.getByText("altitude:1450")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("altitude:1450")).toBeTruthy());
 
     // Command: idle -> in-flight (observable synchronously right after the
     // click, before the stub's queued microtask response) -> confirmed.

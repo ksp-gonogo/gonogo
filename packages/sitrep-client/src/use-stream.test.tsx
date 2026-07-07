@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -11,7 +11,7 @@ function Alt() {
 }
 
 describe("useStream", () => {
-  it("renders the latest stream value and updates on new data", () => {
+  it("renders the latest stream value and updates on new data", async () => {
     const t = new StubTransport();
     const client = new TelemetryClient(t);
     render(
@@ -23,6 +23,9 @@ describe("useStream", () => {
     act(() => {
       t.emit("v.alt", 123);
     });
-    expect(screen.getByText("alt:123")).toBeTruthy();
+    // `TelemetryProvider` coalesces `beginFrame()` to the next animation
+    // frame (M2 finalization Fix 1) rather than minting one per ingest, so
+    // the re-render lands one frame after the emit, not synchronously.
+    await waitFor(() => expect(screen.getByText("alt:123")).toBeTruthy());
   });
 });
