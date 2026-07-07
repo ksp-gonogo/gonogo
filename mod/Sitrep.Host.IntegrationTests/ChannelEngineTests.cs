@@ -420,6 +420,463 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// C2-1 (second-round fail-soft re-attack): <c>_emitter.Decide</c> is
+        /// called OUTSIDE the try/catch that already guards <c>map()</c> in
+        /// <see cref="ChannelEngine.ProcessTick"/> -- but <c>Decide</c> itself
+        /// runs extension-authored code for a structured payload (the
+        /// deadband falls back to <c>Equals</c> -- see
+        /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>). A throwing
+        /// <c>Equals</c> used to escape the channel loop entirely, skipping
+        /// <c>_clock.AdvanceTo</c> for the WHOLE tick -- not just this
+        /// channel -- which is why a totally unrelated, healthy channel
+        /// (owned by a DIFFERENT extension, so IMPORTANT-A's per-extension
+        /// fail-soft can't mask the bug) is asserted on here: pre-fix its
+        /// delivery is delayed/stuck for this tick and any that follow until
+        /// some later tick's AdvanceTo happens to catch up; post-fix it
+        /// keeps arriving promptly, tick after tick, while the throwing
+        /// channel's own topic goes permanently silent and its extension
+        /// flips Unavailable.
+        /// </summary>
+        [Fact]
+        public async Task ThrowingEqualsDuringDecideFailSoftsOnlyThatChannelAndClockKeepsAdvancing()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new EqualsThrowsTestExtension());
+            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, EqualsThrowsTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, "chan.a", Timeout);
+
+                // Tick0: first-ever Decide for both channels is a forced
+                // keyframe -- Equals is never consulted on a keyframe, so
+                // both succeed regardless of the fix.
+                engine.TickAndWait(0.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 1), Timeout);
+                var seenTick0 = new HashSet<string>();
+                for (var i = 0; i < 2; i++)
+                {
+                    var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                    seenTick0.Add(delivered.Topic);
+                }
+                Assert.Contains(EqualsThrowsTestExtension.Topic, seenTick0);
+                Assert.Contains("chan.a", seenTick0);
+
+                // Tick1: a NEW EqualsThrowsPayload instance is not
+                // keyframe-due (interval is huge) and isn't numeric, so the
+                // deadband falls back to Equals -- which throws.
+                engine.TickAndWait(1.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 2), Timeout);
+
+                // The healthy, differently-owned channel still gets mapped,
+                // recorded, AND delivered THIS tick -- proof the clock
+                // genuinely advanced rather than merely being unstuck later.
+                var afterA = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal("chan.a", afterA.Topic);
+                Assert.Equal(2.0, Convert.ToDouble(afterA.Payload));
+
+                // The throwing channel's own topic never emits again -- its
+                // owning extension went Unavailable -- and nothing else
+                // arrives for it.
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+                Assert.False(engine.AvailabilityOf(EqualsThrowsTestExtension.ExtensionId).IsAvailable);
+
+                // A THIRD tick proves the engine is genuinely healthy going
+                // forward, not merely coincidentally unstuck for one more
+                // delivery.
+                engine.TickAndWait(2.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 3), Timeout);
+                var afterA2 = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal("chan.a", afterA2.Topic);
+                Assert.Equal(3.0, Convert.ToDouble(afterA2.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// C2-2(a): <c>ChannelEmitter.TryToDouble</c> accepts a wider set of
+        /// numeric CLR types (including <c>decimal</c>) than
+        /// <c>JsonWriter.AppendValue</c> supported -- a mapper returning a
+        /// boxed <c>decimal</c> passed the emitter's deadband gate fine but
+        /// threw <c>NotSupportedException</c> at delivery-serialization time.
+        /// Proves the widening: the value now serializes (as a JSON number)
+        /// and reaches the subscriber, and the owning extension is never
+        /// marked Unavailable.
+        /// </summary>
+        [Fact]
+        public async Task DecimalChannelValueSerializesAndDeliversAfterJsonWriterWidening()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new DecimalPayloadTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, DecimalPayloadTestExtension.Topic, Timeout);
+
+                engine.TickAndWait(0.0, DecimalPayloadTestExtension.Snapshot(123.45m), Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(DecimalPayloadTestExtension.Topic, delivered.Topic);
+                Assert.Equal(123.45, Convert.ToDouble(delivered.Payload), 3);
+                Assert.True(engine.AvailabilityOf(DecimalPayloadTestExtension.ExtensionId).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// C2-2(b): a payload that is genuinely unserializable (not fixed by
+        /// the (a) widening -- an arbitrary CLR object, not a recognized
+        /// numeric/string/dictionary/enumerable shape) must fail-soft the
+        /// OWNING extension on the first failed delivery rather than
+        /// recurring silently forever. Proven via <c>ChannelCounters</c>'s
+        /// <c>Considered</c>: pinned at 1 (IMPORTANT-A's availability gate
+        /// stops the channel from even being considered again) rather than
+        /// climbing with every subsequent tick.
+        /// </summary>
+        [Fact]
+        public async Task GenuinelyUnserializablePayloadFailsSoftTheOwningExtensionInsteadOfRecurringSilently()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new PoisonPayloadTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, PoisonPayloadTestExtension.Topic, Timeout);
+
+                engine.TickAndWait(0.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(1.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(2.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+
+                // Never reaches the wire -- the payload can never serialize.
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+
+                Assert.False(engine.AvailabilityOf(PoisonPayloadTestExtension.ExtensionId).IsAvailable);
+                Assert.Equal(1, engine.ChannelCounters(PoisonPayloadTestExtension.Topic).Considered);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// C2-3: a throw during <c>Courier.SubscribeStream</c>'s SYNCHRONOUS
+        /// catch-up delivery (a second subscriber joining after a poison
+        /// sample is already archived) used to unwind after
+        /// <c>_subscriptions.Subscribe</c> + the Courier's own subscriber-set
+        /// add but BEFORE <c>session.Unsubscribers[topic]</c> was set and
+        /// before the ack was sent -- an orphaned subscriber (no ack, no
+        /// bookkeeping to clean it up later). Proven end-to-end: the second
+        /// client's ack must still arrive, the shared subscription count
+        /// must correctly reflect both subscribers, and disconnecting the
+        /// second client must cleanly bring the count back down (proof its
+        /// Unsubscribers entry was genuinely registered, not orphaned).
+        /// </summary>
+        [Fact]
+        public async Task SubscribeCatchUpThrowRollsBackBookkeepingInsteadOfOrphaningTheSubscriber()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new PoisonPayloadTestExtension());
+            engine.Start();
+            try
+            {
+                await using var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(clientA, PoisonPayloadTestExtension.Topic, Timeout);
+
+                // Records one poison sample into the archive so a SECOND
+                // subscriber's synchronous catch-up has something already
+                // "arrived" to (attempt to) deliver.
+                engine.TickAndWait(0.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+
+                await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var ack = await SubscribeAsync(clientB, PoisonPayloadTestExtension.Topic, TimeSpan.FromSeconds(2));
+                Assert.Equal("subscribed", ack.Name);
+                Assert.Equal(2, engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic));
+
+                await clientB.DisposeAsync();
+
+                var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                while (engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic) != 1 && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(25);
+                }
+                Assert.Equal(1, engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// C2-4: <c>WriteCommandResponse</c> serializes the handler's result
+        /// OUTSIDE <c>InvokeCommandHandler</c>'s guard (in the
+        /// <c>OnMessageReceived</c> callback), so a handler that returns an
+        /// unserializable result used to throw silently -- the client never
+        /// receives ANY response (not even an error) and the failure is
+        /// unattributed. Post-fix: the client gets an explicit
+        /// <see cref="ErrorMsg"/> instead of silence, and the owning
+        /// extension is marked Unavailable.
+        /// </summary>
+        [Fact]
+        public async Task UnserializableCommandResultSendsAnErrorResponseInsteadOfSilence()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new PoisonResultCommandTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r-poison",
+                    Command = PoisonResultCommandTestExtension.Command,
+                    Args = null,
+                    SentAt = 0.0,
+                }));
+
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("r-poison", error.RequestId);
+                Assert.False(engine.AvailabilityOf(PoisonResultCommandTestExtension.ExtensionId).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// C1-pub: <c>ProcessPublish</c> trusted the caller-stamped
+        /// <c>ut</c> with no sanity check against the clock's current
+        /// position. An extension that captures "now" (via
+        /// <c>IExtensionHost.NowUt()</c>) and only gets around to
+        /// <c>Publish</c>ing it AFTER a quickload rewound the clock backward
+        /// hands the engine a ghost timestamp from the abandoned timeline --
+        /// numerically AHEAD of the rewound clock, so it can never be caught
+        /// by <c>Courier.ResetTimeline</c>'s one-time retroactive prune
+        /// (which only ever runs at the moment of the rewind, strictly
+        /// before this late Publish call). Proven by clamping: the
+        /// delivered sample's <c>Meta.ValidAt</c> must land at-or-before the
+        /// clock's position when the publish was actually processed, never
+        /// at the stale pre-rewind UT it arrived stamped with.
+        /// </summary>
+        [Fact]
+        public async Task PublishedUtFromBeforeAQuickloadRewindIsClampedRatherThanGhostingIntoTheArchive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var extension = new GhostPublishTestExtension();
+            engine.RegisterExtension(extension);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, GhostPublishTestExtension.Topic, Timeout);
+
+                // Advance to a high UT, establishing the "old" timeline the
+                // extension will (mis-)remember.
+                engine.TickAndWait(500.0, null, Timeout);
+
+                // Quickload: rewinds the clock back to UT 10.
+                engine.TickAndWait(10.0, null, Timeout);
+
+                // The extension captured "now" (500) BEFORE the rewind and
+                // only gets around to Publishing it afterward.
+                extension.Publisher!.Publish(42.0, 500.0);
+
+                // Advance far enough that the ghost's ORIGINAL (unclamped)
+                // fireUt=500 would have fired by now too, whether or not the
+                // fix clamped it -- so this assertion isn't just "nothing
+                // arrived yet".
+                engine.TickAndWait(600.0, null, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(GhostPublishTestExtension.Topic, delivered.Topic);
+                Assert.Equal(42.0, Convert.ToDouble(delivered.Payload));
+                Assert.True(
+                    delivered.Meta.ValidAt <= 10.0 + 1e-6,
+                    $"expected the ghost's ValidAt to be clamped to <= 10, but got {delivered.Meta.ValidAt}");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A structured payload that serializes FINE (it's a
+        /// <c>Dictionary&lt;string, object?&gt;</c> subclass, so
+        /// <c>JsonWriter.AppendValue</c> writes it as a plain JSON object --
+        /// empty, here, since no entries are ever added) but whose
+        /// <c>Equals</c> throws. Deliberately NOT an unserializable shape:
+        /// this isolates the C2-1 bug (a throw from
+        /// <c>ChannelEmitter.Decide</c>'s deadband Equals fallback) from the
+        /// separate C2-2 bug (a throw from delivery-time serialization) --
+        /// using a poison-serialization payload here would trip the C2-2
+        /// guard at the very first delivery instead of exercising Decide's
+        /// own Equals-throws path this test targets.
+        /// </summary>
+        private sealed class EqualsThrowsPayload : Dictionary<string, object?>
+        {
+            public override bool Equals(object? obj) => throw new InvalidOperationException("boom -- Equals throws");
+            public override int GetHashCode() => 0;
+        }
+
+        private sealed class EqualsThrowsTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-equals-throws";
+            public const string Topic = "equals.throws";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("throws", out var v) ? v : null);
+            }
+
+            public static KspSnapshot Snapshot(EqualsThrowsPayload throwsValue, double a)
+            {
+                return new KspSnapshot
+                {
+                    Values = new Dictionary<string, object?> { ["throws"] = throwsValue, ["a"] = a, ["b"] = a * 100 },
+                };
+            }
+        }
+
+        private sealed class DecimalPayloadTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-decimal-payload";
+            public const string Topic = "decimal.topic";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("value", out var v) ? v : null);
+            }
+
+            public static KspSnapshot Snapshot(decimal value)
+            {
+                return new KspSnapshot { Values = new Dictionary<string, object?> { ["value"] = value } };
+            }
+        }
+
+        private sealed class PoisonPayload
+        {
+            public int Marker;
+        }
+
+        private sealed class PoisonPayloadTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-poison-payload";
+            public const string Topic = "poison.topic";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(Topic, s => new PoisonPayload());
+            }
+
+            public static KspSnapshot Snapshot() => new KspSnapshot { Values = new Dictionary<string, object?>() };
+        }
+
+        private sealed class PoisonResultCommandTestExtension : ISitrepExtension
+        {
+            public const string ExtensionId = "test-poison-result-command";
+            public const string Command = "poison.result.command";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = ExtensionId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddCommandHandler<object?, object?>(Command, _ => new PoisonPayload());
+            }
+        }
+
+        private sealed class GhostPublishTestExtension : ISitrepExtension
+        {
+            public const string Topic = "ghost.publish.topic";
+
+            public IChannelPublisher? Publisher { get; private set; }
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-ghost-publish",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 10000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                Publisher = host.Publisher(Topic);
+            }
+        }
+
         // NOTE (LOW-4): the ClearTopic lossy-lane flush that
         // BroadcastTimelineReset performs on a rewind is proven
         // DETERMINISTICALLY at the outbox level by

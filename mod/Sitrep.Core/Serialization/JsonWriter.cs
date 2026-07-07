@@ -110,6 +110,18 @@ namespace Sitrep.Core.Serialization
         /// <see cref="AppendNumber"/>, so the NaN/Infinity policy applies
         /// uniformly however deeply nested the value is.
         ///
+        /// WIDER NUMERIC TYPES (C2-2, second fail-soft round): a channel
+        /// mapper is extension-authored and can legitimately hand back any
+        /// of the numeric CLR types <c>ChannelEmitter.TryToDouble</c>
+        /// already accepts for its deadband gate — <c>short</c>/<c>sbyte</c>/
+        /// <c>byte</c>/<c>uint</c>/<c>ulong</c>/<c>decimal</c>, not just
+        /// <c>double</c>/<c>float</c>/<c>int</c>/<c>long</c>. Before this
+        /// fix, one of those types would clear the emitter's gate fine and
+        /// only THEN throw <c>NotSupportedException</c> here, at delivery
+        /// time — every one of those is now converted (widened to
+        /// <c>double</c>, matching the emitter's own conversion) and routed
+        /// through <see cref="AppendNumber"/> exactly like any other number.
+        ///
         /// ARRAYS: anything else that's an <see cref="IEnumerable"/> (e.g.
         /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c> — any real
         /// capture code writes a typed array, not a hand-built
@@ -144,6 +156,24 @@ namespace Sitrep.Core.Serialization
                     break;
                 case long l:
                     AppendNumber(sb, l);
+                    break;
+                case short s16:
+                    AppendNumber(sb, s16);
+                    break;
+                case sbyte i8:
+                    AppendNumber(sb, i8);
+                    break;
+                case byte u8:
+                    AppendNumber(sb, u8);
+                    break;
+                case uint u32:
+                    AppendNumber(sb, u32);
+                    break;
+                case ulong u64:
+                    AppendNumber(sb, u64);
+                    break;
+                case decimal dec:
+                    AppendNumber(sb, (double)dec);
                     break;
                 case string s:
                     AppendString(sb, s);

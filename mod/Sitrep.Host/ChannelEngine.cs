@@ -40,6 +40,16 @@ namespace Sitrep.Host
 
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
+        /// <summary>
+        /// C1-pub tolerance: <see cref="ProcessPublish"/> clamps a
+        /// caller-stamped <c>ut</c> that lands meaningfully ahead of the
+        /// clock's current position at processing time. A tiny epsilon
+        /// (rather than an exact `&gt;`) absorbs floating-point noise only --
+        /// it is NOT meant to tolerate genuine slack between when an
+        /// extension reads "now" and when its Publish call is processed.
+        /// </summary>
+        private const double PublishUtToleranceSeconds = 1e-6;
+
         private readonly ManualClock _clock;
         private readonly INetwork _network;
         private readonly Courier _courier;
@@ -408,6 +418,9 @@ namespace Sitrep.Host
         /// <summary>Test-only visibility into one topic's emission counters — see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
+        /// <summary>Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>) gate's current subscriber count for a topic — used to prove a subscribe/unsubscribe/disconnect sequence never leaves an orphaned count behind (see the C2-3 fix).</summary>
+        internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
+
         // ----------------------------------------------------------------
         // Courier domain (the dedicated Courier thread)
         // ----------------------------------------------------------------
@@ -552,7 +565,27 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                var decision = _emitter.Decide(topic, value, tick.Ut);
+                // C2-1 (second fail-soft round): Decide is ALSO
+                // extension-authored code -- a structured payload's deadband
+                // falls back to object.Equals (see
+                // ChannelEmitter.HasChangedBeyondQuantum), which invokes the
+                // VALUE's own Equals override. Before this fix, a throwing
+                // Equals escaped this loop entirely (this call sat OUTSIDE
+                // the try/catch above that only guarded map()), skipping
+                // _clock.AdvanceTo below for the WHOLE tick -- wedging every
+                // OTHER channel's delivery too, not just this one. Guarded
+                // exactly like map(): fail-soft ONLY this channel's owning
+                // extension and move on to the next channel, same tick.
+                EmissionDecision decision;
+                try
+                {
+                    decision = _emitter.Decide(topic, value, tick.Ut);
+                }
+                catch (Exception ex)
+                {
+                    FailSoftChannel(topic, ex);
+                    continue;
+                }
                 if (decision.ShouldEmit)
                 {
                     _courier.Record(NodeId, topic, decision.Value, tick.Ut);
@@ -570,10 +603,33 @@ namespace Sitrep.Host
                 return;
             }
 
-            var decision = _emitter.Decide(publish.Topic, publish.Payload, publish.Ut);
+            // C1-pub: publish.Ut is caller/extension-stamped (typically via
+            // IExtensionHost.NowUt(), read at some earlier point), entirely
+            // independent of the Tick-driven clock advance. If a quickload
+            // rewinds _clock backward AFTER an extension captured its "now"
+            // but BEFORE it got around to calling Publish, that captured ut
+            // is a ghost from the abandoned timeline -- now numerically
+            // AHEAD of the rewound clock's current position. Recording it
+            // as-is would insert a sample stamped ahead of "now" into the
+            // (already-reset) archive: Courier.ResetTimeline's retroactive
+            // prune only ever runs AT the moment of the rewind itself, so it
+            // can never catch a ghost that arrives strictly afterward.
+            // Clamp forward to "now" instead of recording it as stamped.
+            var ut = publish.Ut > _clock.Now() + PublishUtToleranceSeconds ? _clock.Now() : publish.Ut;
+
+            EmissionDecision decision;
+            try
+            {
+                decision = _emitter.Decide(publish.Topic, publish.Payload, ut);
+            }
+            catch (Exception ex)
+            {
+                FailSoftChannel(publish.Topic, ex);
+                return;
+            }
             if (decision.ShouldEmit)
             {
-                _courier.Record(NodeId, publish.Topic, decision.Value, publish.Ut);
+                _courier.Record(NodeId, publish.Topic, decision.Value, ut);
             }
         }
 
@@ -641,21 +697,67 @@ namespace Sitrep.Host
 
             var vantage = session.Connection.Id;
             var delivery = _channelDeclarations[topic].Delivery;
-            var unsubscribe = _courier.SubscribeStream(NodeId, topic, vantage, streamData =>
+
+            Action unsubscribe;
+            try
             {
-                var json = EnvelopeCodec.WriteStreamData(streamData);
-                var bytes = Encoding.UTF8.GetBytes(json);
-                if (delivery == Delivery.ReliableOrdered)
+                unsubscribe = _courier.SubscribeStream(NodeId, topic, vantage, streamData =>
                 {
-                    // Reliable-ordered: rides the outbox's FIFO lane, never
-                    // coalesced away — see Delivery's doc comment.
-                    session.Outbox.PublishReliable(bytes);
-                }
-                else
-                {
-                    session.Outbox.PublishTelemetry(topic, bytes);
-                }
-            });
+                    // C2-2(b): streamData.Payload is extension-authored --
+                    // some CLR shapes JsonWriter can never serialize (an
+                    // arbitrary POCO, not a recognized numeric/string/
+                    // dictionary/enumerable). This closure is invoked for
+                    // EVERY delivery to this subscriber (both the
+                    // synchronous subscribe-time catch-up below AND every
+                    // later Courier-scheduled delivery), so guarding it here
+                    // fail-softs the owning extension on the FIRST failed
+                    // serialization instead of the throw recurring silently,
+                    // unattributed, on every subsequent tick.
+                    byte[] bytes;
+                    try
+                    {
+                        var json = EnvelopeCodec.WriteStreamData(streamData);
+                        bytes = Encoding.UTF8.GetBytes(json);
+                    }
+                    catch (Exception ex)
+                    {
+                        FailSoftChannel(topic, ex);
+                        return;
+                    }
+
+                    if (delivery == Delivery.ReliableOrdered)
+                    {
+                        // Reliable-ordered: rides the outbox's FIFO lane, never
+                        // coalesced away — see Delivery's doc comment.
+                        session.Outbox.PublishReliable(bytes);
+                    }
+                    else
+                    {
+                        session.Outbox.PublishTelemetry(topic, bytes);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                // C2-3: SubscribeStream's own synchronous catch-up delivery
+                // (of an already-archived sample) runs INSIDE this call,
+                // before it returns — a throw here (from anywhere in that
+                // window, not just the onData closure above, which now
+                // guards itself) would otherwise unwind AFTER
+                // _subscriptions.Subscribe/the Courier's own subscriber-set
+                // add above but BEFORE session.Unsubscribers[topic] and the
+                // ack below are ever reached: an orphaned subscriber with no
+                // ack and no bookkeeping for ProcessDisconnect to clean up
+                // later. Roll back the registry-level subscribe so no
+                // orphaned count survives, fail-soft the owning extension,
+                // and bail out WITHOUT setting Unsubscribers/sending an ack
+                // — the client's subscribe simply never completes, matching
+                // "unavailable channel" behavior elsewhere in this class.
+                _subscriptions.Unsubscribe(topic);
+                FailSoftChannel(topic, ex);
+                return;
+            }
+
             session.Unsubscribers[topic] = unsubscribe;
 
             var ack = new EventMsg
@@ -780,23 +882,50 @@ namespace Sitrep.Host
                     case CommandRequest<object?> req:
                         DispatchCommand(req.Command, req.Args, session.Connection.Id, result =>
                         {
-                            var response = new CommandResponse<object?>
+                            // C2-4: `result` is whatever the extension's
+                            // command handler returned -- extension-owned,
+                            // same as a channel payload. This serialization
+                            // used to run OUTSIDE InvokeCommandHandler's
+                            // guard entirely (it happens here, in the
+                            // RESULT callback, not inside the handler call
+                            // itself), so an unserializable result threw
+                            // unattributed and the client got no response at
+                            // all, not even an error -- true silence. Guard
+                            // it the same way as every other extension-value
+                            // touch point: fail-soft the owning command's
+                            // extension and send an explicit error response
+                            // instead of dropping the reply on the floor.
+                            try
                             {
-                                RequestId = req.RequestId,
-                                Result = result,
-                                Meta = new Meta
+                                var response = new CommandResponse<object?>
                                 {
-                                    Source = NodeId,
-                                    Vantage = session.Connection.Id,
-                                    ValidAt = req.SentAt,
-                                    DeliveredAt = _clock.Now(),
-                                    Seq = Interlocked.Increment(ref _ackSeq),
-                                    Quality = Quality.OnRails,
-                                    Active = true,
-                                    Staleness = Staleness.Fresh,
-                                },
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
+                                    RequestId = req.RequestId,
+                                    Result = result,
+                                    Meta = new Meta
+                                    {
+                                        Source = NodeId,
+                                        Vantage = session.Connection.Id,
+                                        ValidAt = req.SentAt,
+                                        DeliveredAt = _clock.Now(),
+                                        Seq = Interlocked.Increment(ref _ackSeq),
+                                        Quality = Quality.OnRails,
+                                        Active = true,
+                                        Staleness = Staleness.Fresh,
+                                    },
+                                };
+                                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
+                            }
+                            catch (Exception ex)
+                            {
+                                FailSoftCommand(req.Command, ex);
+                                var error = new ErrorMsg
+                                {
+                                    RequestId = req.RequestId,
+                                    Code = "result-serialization-error",
+                                    Message = $"command \"{req.Command}\" result could not be serialized: {ex.Message}",
+                                };
+                                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                            }
                         });
                         break;
                 }
