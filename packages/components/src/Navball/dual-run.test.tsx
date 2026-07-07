@@ -21,14 +21,17 @@ import { NavballComponent } from "./index";
  * must produce byte-identical DOM at `delay=0`.
  *
  * `north-level` is chosen because every key it sets is either MAPPED
- * (`n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`; `f.sasMode`/
- * `f.sasEnabled` -> `vessel.control.sasMode`/`sas`; `v.rcsValue` ->
- * `vessel.control.rcs`; `f.throttle` -> `vessel.control.throttle`) or a
- * declared GAP this widget always reads regardless of config
- * (`f.precisionControl`, `v.isControllable`) — so the stream leg needs a
- * legacy AUX source for exactly those two gapped keys, registered alongside
- * the `TelemetryProvider`, proving the shim's MIXED-source coexistence
- * (some keys stream, others legacy, same render) exactly like the pilot.
+ * (`n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`; `f.sasEnabled` ->
+ * `vessel.control.sas`; `v.rcsValue` -> `vessel.control.rcs`; `f.throttle`
+ * -> `vessel.control.throttle`) or a declared GAP this widget always reads
+ * regardless of config (`f.precisionControl`, `v.isControllable`, and — as
+ * of the M3 batch-2 fixture audit — `f.sasMode`, a shape-mismatch gap:
+ * `vessel.control.sasMode` is a numeric `SasMode` enum on the real wire,
+ * not the string the widget renders/compares against, see `map-topic.ts`)
+ * — so the stream leg needs a legacy AUX source for exactly those three
+ * gapped keys, registered alongside the `TelemetryProvider`, proving the
+ * shim's MIXED-source coexistence (some keys stream, others legacy, same
+ * render) exactly like the pilot.
  */
 afterEach(() => {
   cleanup();
@@ -63,7 +66,11 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "f.precisionControl" }, { key: "v.isControllable" }],
+      keys: [
+        { key: "f.precisionControl" },
+        { key: "v.isControllable" },
+        { key: "f.sasMode" },
+      ],
       connectSource: true,
     });
 
@@ -81,6 +88,7 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
         northLevel["f.precisionControl"],
       );
       legacyAux.source.emit("v.isControllable", northLevel["v.isControllable"]);
+      legacyAux.source.emit("f.sasMode", northLevel["f.sasMode"]);
       streamFixture.emit("vessel.attitude", {
         heading: northLevel["n.heading"],
         pitch: northLevel["n.pitch"],
@@ -88,14 +96,32 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
       });
       streamFixture.emit("vessel.control", {
         sas: northLevel["f.sasEnabled"],
-        sasMode: northLevel["f.sasMode"],
+        // Real wire shape: numeric SasMode enum (0 = StabilityAssist,
+        // matches north-level's "StabilityAssist" string) — f.sasMode
+        // itself is a gap now (see map-topic.ts), so the widget's own
+        // sasMode read comes from the legacyAux emit above, not this field.
+        // Included so the stream payload matches the real contract shape.
+        sasMode: 0,
         rcs: northLevel["v.rcsValue"],
         throttle: northLevel["f.throttle"],
       });
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("StabilityAssist")) {
+      // "StabilityAssist" alone no longer proves the STREAM leg landed — as
+      // of the M3 batch-2 fixture audit it comes from the separate,
+      // synchronous legacyAux emit (f.sasMode is now a gap), so it can settle
+      // before the async stream delivery of vessel.attitude/vessel.control
+      // does. AttitudeIndicator's own HDG/PIT/ROL readout
+      // (AttitudeIndicator.tsx) shows "—" until heading/pitch/roll actually
+      // resolve, so its absence is the real "stream leg landed" signal —
+      // checked alongside "StabilityAssist" so both legs of this
+      // mixed-source render are proven settled before the snapshot below.
+      const streamAttitudeResolved = !container.textContent?.includes("—");
+      if (
+        !streamAttitudeResolved ||
+        !container.textContent?.includes("StabilityAssist")
+      ) {
         throw new Error("stream leg has not rendered the attitude state yet");
       }
     });

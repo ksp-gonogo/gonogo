@@ -25,6 +25,7 @@ export * from "./SourceOfflineBanner";
 export * from "./Sparkline";
 export * from "./Spinner";
 export * from "./StatusIndicator";
+export * from "./StreamStatusBadge";
 export * from "./Switch";
 export * from "./Tabs";
 export * from "./Tag";

@@ -10,7 +10,6 @@ import {
   useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
-import type { StreamStatusValue } from "@gonogo/sitrep-client";
 import {
   BigReadout,
   ConfigForm,
@@ -22,6 +21,7 @@ import {
   PanelTitle,
   ReadoutCaption,
   Select,
+  StreamStatusBadge,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
@@ -176,7 +176,6 @@ function FuelStatusComponent({
   // drive this badge without conflating "stream carried" with "legacy
   // connected".
   const streamStatus = useDataStreamStatus("data", "v.currentStage");
-  const streamStatusLabel = formatStreamStatus(streamStatus);
   const stageCount = useDataValue("data", "dv.stageCount");
   const totalDVVac = useDataValue("data", "dv.totalDVVac");
   const totalDVASL = useDataValue("data", "dv.totalDVASL");
@@ -243,11 +242,7 @@ function FuelStatusComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>FUEL · ΔV</PanelTitle>
-        {streamStatusLabel !== null && (
-          <StatusBadge role="status" aria-live="polite">
-            {streamStatusLabel}
-          </StatusBadge>
-        )}
+        <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && currentStage !== undefined && (
         <PanelSubtitle>
@@ -411,31 +406,6 @@ function FuelStatusConfigComponent({
 
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
-/**
- * `StreamStatusValue` -> a short badge caption, or `null` for `"live"`
- * (no badge — matches today's rendered output exactly for every
- * unmigrated/still-legacy render). Same mapping as `WarpControl`'s own
- * `formatStreamStatus` (M3 pilot) — duplicated rather than shared because no
- * common home for it exists yet; see the M3 batch-1 report for the
- * follow-up to extract one once more widgets adopt this pattern.
- */
-function formatStreamStatus(status: StreamStatusValue): string | null {
-  switch (status) {
-    case "live":
-      return null;
-    case "held-stale":
-      return "STALE";
-    case "last-before-blackout":
-      return "STALE";
-    case "disconnected":
-      return "OFFLINE";
-    case "resyncing":
-      return "SYNCING";
-    case "absent":
-      return "NO DATA";
-  }
-}
-
 /** Units of stock KSP resources aren't kg — Telemachus returns the raw unit count. */
 function formatAmount(value: number): string {
   if (value >= 10_000) return value.toFixed(0);
@@ -462,18 +432,6 @@ const TitleRow = styled.div`
   gap: 8px;
   min-width: 0;
   flex-wrap: wrap;
-`;
-
-const StatusBadge = styled.span`
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: var(--color-status-warning-bg);
-  border: 1px solid var(--color-status-warning-bg);
-  white-space: nowrap;
 `;
 
 /**

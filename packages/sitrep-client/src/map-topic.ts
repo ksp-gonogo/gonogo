@@ -120,12 +120,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // --- vessel.identity ---
   "v.name": "vessel.identity.name",
-  "v.situationString": "vessel.identity.situation",
 
   // --- vessel.control ---
   "f.throttle": "vessel.control.throttle",
   "f.sasEnabled": "vessel.control.sas",
-  "f.sasMode": "vessel.control.sasMode",
   "v.rcsValue": "vessel.control.rcs",
   "v.sasValue": "vessel.control.sas",
   "v.gearValue": "vessel.control.gear",
@@ -150,7 +148,6 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // --- vessel.target ---
   "tar.name": "vessel.target.name",
-  "tar.type": "vessel.target.kind",
   "tar.o.sma": "vessel.target.orbit.sma",
   "tar.o.inclination": "vessel.target.orbit.inc",
   "tar.o.lan": "vessel.target.orbit.lan",
@@ -279,6 +276,40 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gap: needs a derived display-map/field subtopic; migrate in M3
   "comm.controlState",
   "comm.controlStateName",
+
+  // --- M3 batch-2 fixture-audit finds: the grown 15-channel reference wire
+  // fixture (WireFixtureGeneratorTests.cs) put real vessel.identity/
+  // vessel.control/vessel.target payloads in front of these three mappings
+  // for the first time — each RESOLVES (the field path is real) but carries
+  // the WRONG SHAPE for what the widget reads, the same class of bug as the
+  // CRITICAL-review findings above, just one level deeper than the raw-path
+  // check `map-topic.rawFieldRoots.coverage.test.ts` already runs. ---
+
+  // v.situationString: ScienceBench reads a STRING ("In flight", "Landed",
+  // …). The real field, vessel.identity.situation, is a numeric
+  // Sitrep.Contract.Situation enum (fixture: situation: 2) — a migrated
+  // widget would render the raw number instead of a situation name.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "v.situationString",
+
+  // f.sasMode: Navball reads a STRING ("StabilityAssist", "Prograde", …),
+  // both rendered directly and compared against the SAS_MODES string union
+  // to highlight the active mode button. The real field,
+  // vessel.control.sasMode, is a numeric Sitrep.Contract.SasMode enum
+  // (fixture: sasMode: 0) — same ordinal order as SAS_MODES, but a
+  // migrated widget's string comparisons (`sasMode === "Prograde"`) would
+  // never match and the caption would show a bare number.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "f.sasMode",
+
+  // tar.type: TargetPicker/DistanceToTarget read a STRING ("Vessel",
+  // "CelestialBody", "Station", …) — DistanceToTarget's `dockable` gate
+  // does a literal `tarType !== "CelestialBody"` string compare. The real
+  // field, vessel.target.kind, is a numeric Sitrep.Contract.TargetKind enum
+  // (fixture: kind: 1) — the string compare would always be true,
+  // permanently misclassifying every target as dockable.
+  // gap: needs a derived display-map/field subtopic; migrate in M3
+  "tar.type",
 
   // tar.o.relativeVelocity: DistanceToTarget/TargetPicker read a signed
   // scalar closing-speed number (`.toFixed(2)`, `< 0` sign check). The new

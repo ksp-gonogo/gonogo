@@ -25,11 +25,18 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="ReplayKspHost"/> -&gt; <see cref="ChannelEngine"/> pipeline
     /// (<see cref="TestSystemExtension"/> + <see cref="TestVesselExtension"/>
     /// registered, zero network delay), but instead of asserting on the
-    /// stream in-process, CAPTURES every raw wire frame for six named
-    /// channels (<c>vessel.orbit</c>, <c>vessel.flight</c>,
-    /// <c>system.bodies</c>, <c>time.warp</c>, <c>vessel.control</c>,
-    /// <c>vessel.comms</c>) -- exactly the raw JSON text a real
-    /// <c>ClientWebSocket</c> received, byte-for-byte -- to a JSON fixture at
+    /// stream in-process, CAPTURES every raw wire frame for the FULL set of
+    /// channels the vessel + system extensions serve (<c>vessel.identity</c>,
+    /// <c>vessel.orbit</c>, <c>vessel.flight</c>, <c>vessel.attitude</c>,
+    /// <c>vessel.resources</c>, <c>vessel.thermal</c>, <c>vessel.control</c>,
+    /// <c>vessel.comms</c>, <c>vessel.propulsion</c>, <c>vessel.maneuver</c>,
+    /// <c>vessel.target</c>, <c>vessel.crew</c>, <c>vessel.structure</c>,
+    /// <c>system.bodies</c>, <c>time.warp</c> -- fifteen channels total, grown
+    /// from an original six-channel set that left the fixture too thin to
+    /// catch a wrong mapping on any channel outside it, e.g. the
+    /// <c>vessel.resources</c> flat-path bug M3 batch 1 found the hard way)
+    /// -- exactly the raw JSON text a real <c>ClientWebSocket</c> received,
+    /// byte-for-byte -- to a JSON fixture at
     /// <c>local_docs/telemetry-mod/recordings/reference-wire-fixture.json</c>
     /// (also gitignored -- <c>local_docs/</c> is blanket-ignored -- so this
     /// fixture is regenerated on demand, never committed).
@@ -90,18 +97,30 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(json);
             _output.WriteLine($"Reference recording found: {session.Entries.Count} entries.");
 
-            // Exactly the six channels the TS-side SDK validation exercises:
-            // orbit (kepler.solve derivation), flight (measured basis),
-            // system.bodies + time.warp (context channels), control + comms
-            // (staleness/tombstone variety beyond vessel.orbit alone).
+            // The full set the vessel + system extensions serve -- every
+            // vessel.* channel plus the two context channels -- so the TS-side
+            // golden dual-run has real recorded frames to validate EVERY
+            // widget's mapping against, not just the six that happened to be
+            // wired up when this generator was first written. A channel
+            // absent here can't catch a wrong/flat-vs-nested field mapping
+            // (see class doc comment).
             var topics = new[]
             {
+                VesselViewProvider.IdentityTopic,
                 VesselViewProvider.OrbitTopic,
                 VesselViewProvider.FlightTopic,
-                SystemViewProvider.Topic,
-                VesselViewProvider.WarpTopic,
+                VesselViewProvider.AttitudeTopic,
+                VesselViewProvider.ResourcesTopic,
+                VesselViewProvider.ThermalTopic,
                 VesselViewProvider.ControlTopic,
                 VesselViewProvider.CommsTopic,
+                VesselViewProvider.PropulsionTopic,
+                VesselViewProvider.ManeuverTopic,
+                VesselViewProvider.TargetTopic,
+                VesselViewProvider.CrewTopic,
+                VesselViewProvider.StructureTopic,
+                SystemViewProvider.Topic,
+                VesselViewProvider.WarpTopic,
             };
             var topicSet = new HashSet<string>(topics);
 
@@ -217,8 +236,22 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             Assert.Equal(3, rewindCount);
-            Assert.True(frames.Count > 0, "expected at least one captured wire frame across the six requested topics");
+            Assert.True(frames.Count > 0, "expected at least one captured wire frame across the requested topics");
             Assert.Equal(new HashSet<int> { 0, 1, 2, 3 }, epochsSeen);
+            Assert.Equal(topics.Length, topics.Distinct().Count());
+            var capturedTopics = new HashSet<string>(frames
+                .Select(raw => EnvelopeCodec.ParseServerMessage(raw))
+                .Select(parsed => parsed switch
+                {
+                    StreamData sd => sd.Topic,
+                    EventMsg evt => evt.Topic,
+                    _ => null,
+                })
+                .Where(t => t != null)!);
+            Assert.True(
+                topicSet.SetEquals(capturedTopics),
+                "expected the fixture to carry frames for every one of the requested topics; " +
+                $"missing: {string.Join(", ", topicSet.Except(capturedTopics))}");
 
             var fixture = new WireFixture
             {

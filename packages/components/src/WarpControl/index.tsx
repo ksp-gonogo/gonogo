@@ -7,7 +7,6 @@ import {
   useExecuteAction,
   useGameContext,
 } from "@gonogo/core";
-import type { StreamStatusValue } from "@gonogo/sitrep-client";
 import {
   DimmedOverlay,
   Panel,
@@ -15,6 +14,7 @@ import {
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
+  StreamStatusBadge,
   ToggleButton,
 } from "@gonogo/ui";
 import { useEffect, useState } from "react";
@@ -100,7 +100,6 @@ function WarpControlComponent({
   const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const execute = useExecuteAction("data");
   const streamStatus = useDataStreamStatus("data", "t.timeWarp");
-  const streamStatusLabel = formatStreamStatus(streamStatus);
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -198,11 +197,7 @@ function WarpControlComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>WARP</PanelTitle>
-        {streamStatusLabel !== null && (
-          <StatusBadge role="status" aria-live="polite">
-            {streamStatusLabel}
-          </StatusBadge>
-        )}
+        <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       <DimmedOverlay
         show={dimBody}
@@ -328,34 +323,6 @@ function normalizeWarpMode(raw: string | number | undefined): string | null {
   return null;
 }
 
-/**
- * `StreamStatusValue` -> a short badge caption, or `null` for `"live"` (the
- * default/common case — no badge at all, matching today's rendered output
- * exactly for every unmigrated/still-legacy render). Adopted per M3's
- * "convert cleared-assertions into held-stale-assertions" step
- * (`m3-migration-plan.md` §2 item 3) — `useDataStreamStatus` gives this
- * widget a real status once its stream path is carried; before that (or
- * off legacy) `useDataStreamStatus` already maps the legacy `DataSource`
- * status onto the same surface, so this same badge also covers a plain
- * legacy disconnect/reconnect.
- */
-function formatStreamStatus(status: StreamStatusValue): string | null {
-  switch (status) {
-    case "live":
-      return null;
-    case "held-stale":
-      return "STALE";
-    case "last-before-blackout":
-      return "STALE";
-    case "disconnected":
-      return "OFFLINE";
-    case "resyncing":
-      return "SYNCING";
-    case "absent":
-      return "NO DATA";
-  }
-}
-
 function formatRate(rate: number | null): string {
   if (rate === null) return "—";
   if (rate < 1.0001) return "1×";
@@ -370,18 +337,6 @@ const TitleRow = styled.div`
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
-`;
-
-const StatusBadge = styled.span`
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: var(--color-status-warning-bg);
-  border: 1px solid var(--color-status-warning-bg);
-  white-space: nowrap;
 `;
 
 const Body = styled.div`

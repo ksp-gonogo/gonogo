@@ -16,13 +16,19 @@ import { NavballComponent } from "./index";
  * Navball's `dataRequirements` split MAPPED / GAPPED (`map-topic.ts`'s
  * `TELEMACHUS_CLEAN_HOMES`/`TELEMACHUS_KNOWN_GAPS`):
  * - MAPPED: `n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`;
- *   `f.sasMode`/`f.sasEnabled` -> `vessel.control.sasMode`/`sas`;
- *   `v.rcsValue` -> `vessel.control.rcs`; `f.throttle` ->
- *   `vessel.control.throttle`.
+ *   `f.sasEnabled` -> `vessel.control.sas`; `v.rcsValue` ->
+ *   `vessel.control.rcs`; `f.throttle` -> `vessel.control.throttle`.
  * - GAPPED (stay legacy forever until a gap lands — not exercised here
  *   since no legacy source exists in this file): `n.heading2`/`n.pitch2`/
  *   `n.roll2` (the CoM-frame quartet, V-9), `f.precisionControl`,
- *   `v.isControllable`, `v.angleToPrograde`.
+ *   `v.isControllable`, `v.angleToPrograde`, and — as of the M3 batch-2
+ *   fixture audit — `f.sasMode` (shape mismatch: the real
+ *   `vessel.control.sasMode` is a numeric enum, not the string this widget
+ *   renders/compares against; see `map-topic.ts`). The `vessel.control`
+ *   payload below carries a realistic numeric `sasMode` to match the real
+ *   wire, but since the widget's own `sasMode` read stays gapped-to-legacy,
+ *   this stream-only file (no legacy source registered) can't resolve it —
+ *   the mode caption stays absent, asserted below.
  *
  * Sized at 8x4 (rows < 6) so the numeric HDG/PCH/RLL readout renders
  * instead of the SVG dial — the dial's tick geometry isn't useful to assert
@@ -61,7 +67,11 @@ describe("Navball — genuinely runs off the stream (M3 batch 1)", () => {
       fixture.emit("vessel.attitude", { heading: 87.4, pitch: 12, roll: -5 });
       fixture.emit("vessel.control", {
         sas: true,
-        sasMode: "Prograde",
+        // Real wire shape: numeric SasMode enum (1 = Prograde) — f.sasMode
+        // is a known gap (map-topic.ts), so this doesn't reach the widget's
+        // own sasMode read; included only so the payload matches the real
+        // contract shape.
+        sasMode: 1,
         rcs: false,
         throttle: 0.6,
       });
@@ -70,7 +80,9 @@ describe("Navball — genuinely runs off the stream (M3 batch 1)", () => {
     await waitFor(() => expect(screen.getByText("87°")).toBeTruthy());
     expect(screen.getByText("+12°")).toBeTruthy();
     expect(screen.getByText("-5°")).toBeTruthy();
-    // f.sasMode -> vessel.control.sasMode; f.sasEnabled -> vessel.control.sas.
-    expect(screen.getByText("SAS: Prograde")).toBeTruthy();
+    // f.sasEnabled -> vessel.control.sas: SAS badge lights up. f.sasMode is
+    // gapped (no legacy source in this stream-only file), so the mode
+    // caption stays absent — "SAS" alone, not "SAS: Prograde".
+    expect(screen.getByText("SAS")).toBeTruthy();
   });
 });
