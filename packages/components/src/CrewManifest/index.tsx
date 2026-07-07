@@ -1,5 +1,9 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import {
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+} from "@gonogo/core";
 import {
   BigReadout,
   EmptyState,
@@ -7,6 +11,7 @@ import {
   PanelSubtitle,
   PanelTitle,
   ReadoutCaption,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import styled from "styled-components";
 
@@ -58,6 +63,15 @@ function CrewManifestComponent({
   const crewCapacity = useDataValue("data", "v.crewCapacity");
   const isEVA = useDataValue("data", "v.isEVA");
 
+  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot):
+  // `v.crewCount` is this widget's one MAPPED key (-> `vessel.crew.count`)
+  // — `v.crew`/`v.crewCapacity`/`v.isEVA` are all declared GAPS
+  // (map-topic.ts's "roster/capacity (G-13); count-only lands in
+  // vessel.crew.count") and stay legacy regardless, so their status can't
+  // drive this badge without conflating "stream carried" with "legacy
+  // connected".
+  const streamStatus = useDataStreamStatus("data", "v.crewCount");
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -71,7 +85,10 @@ function CrewManifestComponent({
   if (!showRoster) {
     return (
       <Panel>
-        <PanelTitle>CREW</PanelTitle>
+        <TitleRow>
+          <PanelTitle>CREW</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {known ? (
           <TinyReadout $tone="go">
             {crewCount !== undefined ? `${crewCount}` : "—"}
@@ -88,7 +105,10 @@ function CrewManifestComponent({
 
   return (
     <Panel>
-      <PanelTitle>CREW</PanelTitle>
+      <TitleRow>
+        <PanelTitle>CREW</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <PanelSubtitle>
         {known
           ? formatSubtitle(isEVA, crewCount, crewCapacity)
@@ -161,6 +181,15 @@ function renderBody({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Roster = styled.ul`
   list-style: none;
