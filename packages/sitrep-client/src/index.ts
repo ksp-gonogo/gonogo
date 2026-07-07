@@ -12,6 +12,17 @@ export type { OrbitElements, StateVector, Vector3 } from "./kepler";
 export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export { StubTransport } from "./stub-transport";
+export type { ClientTimelineOptions, TimelinePoint } from "./timeline";
+export { ClientTimeline } from "./timeline";
+export type { FrameToken, TimelineStoreOptions } from "./timeline-store";
+export { TimelineStore } from "./timeline-store";
 export type { Transport, TransportStatus } from "./transport";
 export { type UseCommandResult, useCommand } from "./use-command";
 export { useStream } from "./use-stream";
+export { useTimelineStream } from "./use-timeline-stream";
+export type {
+  ViewClockConfidence,
+  ViewClockMode,
+  ViewClockOptions,
+} from "./view-clock";
+export { ViewClock } from "./view-clock";
