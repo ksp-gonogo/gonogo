@@ -19,6 +19,19 @@ export interface SetupMockOptions {
   onExecute?: (action: string) => void | Promise<void>;
   /** Connect the buffered layer before resolving. Defaults to `true`. */
   connect?: boolean;
+  /**
+   * Also connect the RAW upstream `MockDataSource` (default `false`,
+   * preserving the existing convention documented in
+   * `setupMockDataSource.test.ts`: "the shared pattern doesn't connect the
+   * upstream MockDataSource... status remains disconnected"). Opt in for a
+   * widget test whose rendered output reads `.status`/`onStatusChange`
+   * directly off the "data" source (e.g. via `useDataStreamStatus`) and
+   * needs it to genuinely read `"connected"`, matching what a live
+   * production `DataSource` would report during normal data flow —
+   * `emit()`-driven value delivery already works without this (subscription
+   * is map-based, not status-gated), so most widget tests don't need it.
+   */
+  connectSource?: boolean;
 }
 
 export interface MockDataSourceFixture {
@@ -87,6 +100,9 @@ export async function setupMockDataSource(
   registerDataSource(buffered);
   if (opts.connect ?? true) {
     await buffered.connect();
+  }
+  if (opts.connectSource) {
+    await source.connect();
   }
   return { source, buffered, pendingQueries: () => pending };
 }

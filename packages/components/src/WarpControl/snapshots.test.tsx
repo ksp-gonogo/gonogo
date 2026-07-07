@@ -29,6 +29,13 @@ describe("WarpControl DOM snapshots", () => {
           Widget: WarpControlComponent,
           fixture,
           mode,
+          // WarpControl now adopts useDataStreamStatus (M3 pilot) — connect
+          // the raw MockDataSource so its rendered status badge reflects the
+          // realistic "connected, streaming" scenario every one of these
+          // fixtures actually depicts, instead of the shared harness's
+          // opt-out-by-default "disconnected" convention (see
+          // setupMockDataSource.ts's connectSource doc comment).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

@@ -216,6 +216,9 @@ importers:
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
+      '@gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
@@ -235,6 +238,9 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

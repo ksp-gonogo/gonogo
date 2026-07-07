@@ -558,7 +558,13 @@ export class TimelineStore {
   ): void {
     const resolved = this.resolveDerivedTopic(topic);
     if (!resolved) {
-      out.add(topic);
+      // Raw record field-subtopic (M3 pilot): the raw wire topic that must
+      // actually be subscribed is the record itself (`"time.warp"`), never
+      // the literal dotted field string (`"time.warp.warpRate"`) — nothing
+      // publishes to the latter. See `resolveRawFieldSubtopic`/`sample()`'s
+      // matching branch.
+      const rawField = this.resolveRawFieldSubtopic(topic);
+      out.add(rawField ? rawField.rawTopic : topic);
       return;
     }
     const parentTopic = resolved.def.topic;
@@ -676,11 +682,42 @@ export class TimelineStore {
     // ran. Folding epoch into the key makes a post-bump read a fresh cache
     // miss, so it falls through to the guard/`timeline.at` again instead.
     const epoch = this.clock.getEpoch();
-    return this.memoize(effectiveToken, `${topic}\0epoch\0${epoch}`, () => {
-      const timeline = this.timelineFor<T>(topic);
-      if (timeline.epoch < epoch) return undefined;
-      return timeline.at(effectiveToken.viewUt);
-    });
+    const literal = this.memoize(
+      effectiveToken,
+      `${topic}\0epoch\0${epoch}`,
+      () => {
+        const timeline = this.timelineFor<T>(topic);
+        if (timeline.epoch < epoch) return undefined;
+        return timeline.at(effectiveToken.viewUt);
+      },
+    );
+    if (literal !== undefined) return literal;
+
+    // Raw record field-subtopic fallback (M3 pilot, WarpControl — the
+    // mechanism `map-topic.ts`'s whole `TELEMACHUS_CLEAN_HOMES` table has
+    // quietly depended on since M2 Task 7 without it actually existing until
+    // now): `topic` is a `"<domain>.<channel>.<field...>"` string with no
+    // registered-derived-channel match — e.g. `"time.warp.warpRate"`. No
+    // wire message is EVER published to that literal string; the real wire
+    // topic is `"time.warp"`, a whole record `{ warpRate, warpRateIndex,
+    // warpMode, paused }`. See `resolveRawFieldSubtopic`'s own doc for the
+    // "first two segments are the real topic" rule this relies on.
+    //
+    // Deliberately tried SECOND, only once the literal read above came back
+    // `undefined` — never first. A topic string that genuinely IS a raw
+    // topic in its own right, even a 3+-segment one (`use-timeline-stream
+    // .test.tsx` ingests straight into `"vessel.state.altitudeAsl"` as a
+    // literal topic against a bare store with no derived channel
+    // registered), must keep reading its own literal timeline; shadowing it
+    // unconditionally with the field-split interpretation would silently
+    // stop that from ever resolving.
+    const rawField = this.resolveRawFieldSubtopic(topic);
+    if (!rawField) return literal;
+    return this.memoize(
+      effectiveToken,
+      `\0rawfield\0${topic}\0epoch\0${epoch}`,
+      () => this.sampleRawFieldSubtopic<T>(rawField, effectiveToken),
+    );
   }
 
   /**
@@ -782,11 +819,27 @@ export class TimelineStore {
     // it would disagree with the (epoch-folded) value read for the same topic
     // and could report the dead timeline's status for the rest of the frame.
     const epoch = this.clock.getEpoch();
-    return this.memoize(
+    const literalStatus = this.memoize(
       effectiveToken,
       `\0status\0${topic}\0epoch\0${epoch}`,
       () => this.sampleRawStatus(topic, effectiveToken),
     );
+    // `"resyncing"` from the literal read means "no point ever recorded
+    // under this exact topic string" (`sampleRawStatus`'s own first check) —
+    // the same signal `sample()`'s literal-first fallback uses. Only then
+    // try the raw record field-subtopic interpretation (M3 pilot, mirrors
+    // `sample()`'s matching branch): a field subtopic's status IS its real
+    // parent raw topic's status outright, delegated by recursing straight
+    // into this same method against `rawTopic` — that call hits the ordinary
+    // raw-status branch directly (a 2-segment topic never itself splits
+    // further) and memoizes there, so this delegation adds no extra caching
+    // layer. A topic that genuinely IS its own literal raw topic (even a
+    // 3+-segment one fed directly, same caveat as `sample()`'s doc) keeps
+    // its own literal status once it has one.
+    if (literalStatus !== "resyncing") return literalStatus;
+    const rawField = this.resolveRawFieldSubtopic(topic);
+    if (!rawField) return literalStatus;
+    return this.sampleStatus(rawField.rawTopic, effectiveToken);
   }
 
   /**
@@ -882,6 +935,100 @@ export class TimelineStore {
     const parent = this.derivedChannels.get(parentTopic);
     if (!parent?.fields) return undefined;
     return { def: parent, field };
+  }
+
+  /**
+   * Splits a `"<domain>.<channel>.<field...>"` topic (3+ dot-segments) into
+   * the REAL raw wire topic (always the first two segments — every raw
+   * channel in this contract is `domain.channel`, e.g. `"time.warp"`,
+   * `"vessel.flight"`, `"vessel.thermal"`) and the remaining segments as a
+   * nested field path into that record's payload (M3 pilot — see this file's
+   * own doc comment on the `sample()` branch that calls this, and
+   * `timeline-store-raw-fields.test.ts`). Cross-checked against every dotted
+   * value in `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`: a flat 3-segment
+   * entry (`"vessel.orbit.sma"`) yields a 1-element field path; the one
+   * 4-segment entry (`"vessel.thermal.hottestPart.skinTemp"`) yields a
+   * 2-element path, walked in one nested lookup rather than a second round
+   * of topic resolution.
+   *
+   * `undefined` for a topic with fewer than 3 segments — a 2-segment topic
+   * (`"vessel.orbit"` itself) IS the real raw topic, not a field subtopic of
+   * one; that case is left to the ordinary raw-literal path in `sample()`.
+   * Never consulted for a topic `resolveDerivedTopic` already matched
+   * (checked first at every call site) — a registered derived channel's own
+   * `fields: true` subtopics keep using that mechanism unchanged.
+   */
+  private resolveRawFieldSubtopic(
+    topic: string,
+  ): { rawTopic: string; fieldPath: string[] } | undefined {
+    const segments = topic.split(".");
+    if (segments.length < 3) return undefined;
+    return {
+      rawTopic: `${segments[0]}.${segments[1]}`,
+      fieldPath: segments.slice(2),
+    };
+  }
+
+  /**
+   * Reads `parsed.rawTopic` (a real raw topic — recurses through the ordinary
+   * `sample()` path, including its own derived-channel/epoch/frame-coherence
+   * handling) and walks `parsed.fieldPath` into its payload.
+   *
+   * Mirrors `sampleDerived`'s two "nothing" cases (never conflated, M2 design
+   * §2.1): no point on the parent at all yet -> `undefined` ("not whole
+   * yet" — the raw topic's own not-arrived-yet case, propagated as-is,
+   * intentionally NOT re-classified). A tombstoned parent (`payload: null`)
+   * -> a real point with `payload: null` (a confirmed absence — the whole
+   * record is gone, so every field of it is too). A field name not present
+   * on an otherwise-whole, non-null record -> `undefined` (the phantom-
+   * mapping case `TimelineStore.isUnresolvableField`'s doc describes for the
+   * derived-channel analog; not extended to this raw path — every currently
+   * shipped `TELEMACHUS_CLEAN_HOMES` raw-field entry has been checked against
+   * the real wire fixture, so there is no known-dead mapping this needs to
+   * catch yet).
+   *
+   * Reuses the parent point's own `meta`/`validAt`/`epoch` verbatim — unlike
+   * a DERIVED channel (which fabricates its own `derivedMeta`), a raw field
+   * subtopic isn't a new computation, it's the same measured/received record
+   * narrowed to one field, so its staleness/quality/provenance genuinely ARE
+   * the whole record's.
+   */
+  private sampleRawFieldSubtopic<T>(
+    parsed: { rawTopic: string; fieldPath: string[] },
+    token: FrameToken,
+  ): TimelinePoint<T> | undefined {
+    const parentPoint = this.sample<Record<string, unknown>>(
+      parsed.rawTopic,
+      token,
+    );
+    if (!parentPoint) return undefined; // not whole yet
+    if (parentPoint.payload === null) {
+      return {
+        validAt: parentPoint.validAt,
+        payload: null as T,
+        meta: parentPoint.meta,
+        epoch: parentPoint.epoch,
+      };
+    }
+
+    let cursor: unknown = parentPoint.payload;
+    for (const segment of parsed.fieldPath) {
+      if (
+        cursor === null ||
+        typeof cursor !== "object" ||
+        !(segment in (cursor as object))
+      ) {
+        return undefined; // unknown field — nothing to serve
+      }
+      cursor = (cursor as Record<string, unknown>)[segment];
+    }
+
+    return {
+      validAt: parentPoint.validAt,
+      payload: cursor as T,
+      meta: parentPoint.meta,
+      epoch: parentPoint.epoch,
+    };
   }
 
   /**

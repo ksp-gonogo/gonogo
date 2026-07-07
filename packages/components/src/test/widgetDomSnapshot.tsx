@@ -45,6 +45,8 @@ interface SnapshotOpts<Cfg> {
   instanceId?: string;
   /** Override the default config baseline (config overlay merges on top). */
   defaultConfig?: Cfg;
+  /** Forwarded to `setupMockDataSource` — see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
+  connectSource?: boolean;
 }
 
 /**
@@ -72,6 +74,7 @@ export async function snapshotWidgetMode<
   const fixture = await setupMockDataSource({
     id: "data",
     keys: fixtureKeys.map((key) => ({ key })),
+    connectSource: opts.connectSource,
   });
   let source: MockDataSource | null = fixture.source;
 
@@ -147,6 +150,7 @@ export async function renderWidgetMode<
   const fixture = await setupMockDataSource({
     id: "data",
     keys: fixtureKeys.map((key) => ({ key })),
+    connectSource: opts.connectSource,
   });
   const source: MockDataSource = fixture.source;
 
@@ -186,7 +190,15 @@ export async function renderWidgetMode<
  * `sc-*` class/id attributes that change per build. Without this the
  * snapshot churns on every styled-components release / file edit.
  */
-function stripVolatile(html: string): string {
+/**
+ * Exported (beyond this file's own two internal callers) for the M3
+ * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`) —
+ * comparing a legacy render against a stream render needs the exact same
+ * styled-components-hash/testid stripping this file already does, so a
+ * genuine markup difference isn't masked by two builds' differing
+ * volatile-class churn.
+ */
+export function stripVolatile(html: string): string {
   return html
     .replace(/\sclass="[^"]*\bsc-[^"]*"/g, "")
     .replace(/\sid="[^"]*\bsc-[^"]*"/g, "")

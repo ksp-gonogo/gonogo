@@ -2,10 +2,12 @@ import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
   useGameContext,
 } from "@gonogo/core";
+import type { StreamStatusValue } from "@gonogo/sitrep-client";
 import {
   DimmedOverlay,
   Panel,
@@ -87,9 +89,18 @@ function WarpControlComponent({
 }: Readonly<ComponentProps<WarpControlConfig>>) {
   const rate = useDataValue<number>("data", "t.currentRate");
   const indexRaw = useDataValue<number>("data", "t.timeWarp");
-  const mode = useDataValue<string>("data", "t.warpMode");
+  // Stream path: `t.warpMode` maps to `time.warp.warpMode`, the new
+  // contract's `Sitrep.Contract.WarpMode` NUMERIC enum (0=High, 1=Low,
+  // 2=Unknown — mod/Sitrep.Contract/WarpState.cs). Legacy path: the
+  // Telemachus fork's `t.warpMode` is a STRING ("High"/"Physics").
+  // `useDataValue`'s shim can return either shape depending on which path is
+  // live, so both must be handled here — `normalizeWarpMode` below.
+  const modeRaw = useDataValue<string | number>("data", "t.warpMode");
+  const mode = normalizeWarpMode(modeRaw);
   const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "t.timeWarp");
+  const streamStatusLabel = formatStreamStatus(streamStatus);
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -176,17 +187,23 @@ function WarpControlComponent({
   // very different to fly — physics keeps the aerodynamics live and
   // is risky in atmosphere. Tint the Rate readout to differentiate
   // without burying the cue in the small mode caption.
-  const rateTone: "physics" | "high" =
-    typeof mode === "string" && mode.toLowerCase().startsWith("phys")
-      ? "physics"
-      : "high";
+  const rateTone: "physics" | "high" = mode?.toLowerCase().startsWith("phys")
+    ? "physics"
+    : "high";
   const idx = currentIndex ?? 0;
   const downIdx = Math.max(0, idx - 1);
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
     <Panel>
-      <PanelTitle>WARP</PanelTitle>
+      <TitleRow>
+        <PanelTitle>WARP</PanelTitle>
+        {streamStatusLabel !== null && (
+          <StatusBadge role="status" aria-live="polite">
+            {streamStatusLabel}
+          </StatusBadge>
+        )}
+      </TitleRow>
       <DimmedOverlay
         show={dimBody}
         message="No active save"
@@ -197,7 +214,7 @@ function WarpControlComponent({
             <RateValue role="img" aria-label={`Time warp rate ${rateLabel}`}>
               {rateLabel}
             </RateValue>
-            {showModeCaption && typeof mode === "string" && mode !== "" && (
+            {showModeCaption && mode !== null && mode !== "" && (
               <ReadoutCaption>{mode}</ReadoutCaption>
             )}
           </Rate>
@@ -285,6 +302,60 @@ function WarpControlComponent({
   );
 }
 
+/**
+ * Normalizes `t.warpMode` across the legacy/stream shape split (M3 pilot).
+ *
+ * - **Legacy** (Telemachus fork): a STRING, `"High"` or `"Physics"` —
+ *   returned as-is.
+ * - **Stream** (`time.warp.warpMode`, `Sitrep.Contract.WarpMode`): a NUMERIC
+ *   enum — `0=High`, `1=Low`, `2=Unknown`
+ *   (`mod/Sitrep.Contract/WarpState.cs`: "only HIGH/LOW exist... no third
+ *   mode"; confirmed via decompile). The new contract renamed the physics-
+ *   warp state from the legacy fork's "Physics" to "Low" — translated back
+ *   to the legacy vocabulary here so this widget's caption text and
+ *   physics-tone detection render IDENTICALLY regardless of which path fed
+ *   the value (verified by `dual-run.test.tsx`'s behavior-preservation
+ *   golden). `2` (`Unknown`) and anything else -> `null`, same as an empty/
+ *   absent legacy string: no caption, defaults to the "high" tone.
+ */
+function normalizeWarpMode(raw: string | number | undefined): string | null {
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "number") {
+    if (raw === 0) return "High";
+    if (raw === 1) return "Physics";
+    return null;
+  }
+  return null;
+}
+
+/**
+ * `StreamStatusValue` -> a short badge caption, or `null` for `"live"` (the
+ * default/common case — no badge at all, matching today's rendered output
+ * exactly for every unmigrated/still-legacy render). Adopted per M3's
+ * "convert cleared-assertions into held-stale-assertions" step
+ * (`m3-migration-plan.md` §2 item 3) — `useDataStreamStatus` gives this
+ * widget a real status once its stream path is carried; before that (or
+ * off legacy) `useDataStreamStatus` already maps the legacy `DataSource`
+ * status onto the same surface, so this same badge also covers a plain
+ * legacy disconnect/reconnect.
+ */
+function formatStreamStatus(status: StreamStatusValue): string | null {
+  switch (status) {
+    case "live":
+      return null;
+    case "held-stale":
+      return "STALE";
+    case "last-before-blackout":
+      return "STALE";
+    case "disconnected":
+      return "OFFLINE";
+    case "resyncing":
+      return "SYNCING";
+    case "absent":
+      return "NO DATA";
+  }
+}
+
 function formatRate(rate: number | null): string {
   if (rate === null) return "—";
   if (rate < 1.0001) return "1×";
@@ -292,6 +363,26 @@ function formatRate(rate: number | null): string {
   if (Number.isInteger(rate)) return `${rate}×`;
   return `${rate.toFixed(2)}×`;
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const StatusBadge = styled.span`
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--color-status-warning-bg);
+  border: 1px solid var(--color-status-warning-bg);
+  white-space: nowrap;
+`;
 
 const Body = styled.div`
   flex: 1;

@@ -14,6 +14,8 @@ export {
   useTelemetryStore,
   useTelemetryStoreOptional,
 } from "./context";
+export type { FakeWallClock } from "./fake-wall-clock";
+export { createFakeWallClock } from "./fake-wall-clock";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
   DEFAULT_KEYFRAME_INTERVAL_UT,
@@ -22,6 +24,8 @@ export {
 export type { OrbitElements, StateVector, Vector3 } from "./kepler";
 export { solve } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
+export type { MappedCommand } from "./map-command";
+export { mapCommand } from "./map-command";
 export {
   isKnownTelemachusGap,
   mapTopic,

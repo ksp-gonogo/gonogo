@@ -271,10 +271,14 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
     }
 
     render(
-      <TelemetryProvider
-        client={client}
-        carriedChannels={["vessel.control.throttle"]}
-      >
+      // Promoting "vessel.control" — the REAL raw wire topic ("f.throttle"
+      // maps to the raw-field subtopic "vessel.control.throttle", which
+      // TimelineStore.resolveSubscriptionTopics resolves down to its actual
+      // wire dependency, "vessel.control" — see the M3 pilot's
+      // timeline-store-raw-fields.test.ts). The wire never publishes a
+      // literal "vessel.control.throttle" topic; only the whole
+      // "vessel.control" record does.
+      <TelemetryProvider client={client} carriedChannels={["vessel.control"]}>
         <Throttle />
       </TelemetryProvider>,
     );
@@ -286,7 +290,9 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
     act(() => legacySource.emit("f.throttle", 0.4));
     expect(screen.getByText("throttle:—")).toBeTruthy();
 
-    act(() => transport.emit("vessel.control.throttle", 0.75));
+    // Emitting to the real raw topic ("vessel.control", a whole record) —
+    // never the never-published dotted field string.
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
     await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
   });
 
