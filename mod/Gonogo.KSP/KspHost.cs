@@ -6,16 +6,22 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The ONLY class in the mod that touches KSP/Unity APIs directly (see
-    /// <see cref="IKspHost"/>'s doc comment for the boundary this enforces).
-    /// Every public member either returns a primitive/POCO or fires
-    /// <see cref="Lifecycle"/> with one — no <c>CelestialBody</c>/<c>Vessel</c>/
-    /// <c>Orbit</c> reference ever escapes through this type.
+    /// The ONLY class in the mod that touches KSP/Unity APIs directly ON THE
+    /// READ SIDE (see <see cref="IKspHost"/>'s doc comment for the boundary
+    /// this enforces). Every public member either returns a primitive/POCO or
+    /// fires <see cref="Lifecycle"/> with one — no <c>CelestialBody</c>/
+    /// <c>Vessel</c>/<c>Orbit</c> reference ever escapes through this type.
+    /// M1 Task 3 added <see cref="KspVesselActuator"/> as this class's
+    /// ACTUATION counterpart (write side, wired to <c>IVesselActuator</c>) —
+    /// see its own doc comment; the two are deliberately separate by
+    /// direction of data flow rather than one class doing both.
     ///
-    /// KSP calls happen ONLY here and from <see cref="GonogoAddon"/>'s
-    /// <c>FixedUpdate</c>/GameEvents callbacks (both main-thread) - the
-    /// courier/transport/recorder machinery downstream of <see cref="Sample"/>
-    /// never touches a KSP type.
+    /// KSP calls happen ONLY here, from <see cref="KspVesselActuator"/>, and
+    /// from <see cref="GonogoAddon"/>'s <c>FixedUpdate</c>/GameEvents
+    /// callbacks (all main-thread, EXCEPT <see cref="KspVesselActuator"/> —
+    /// see its own doc comment for the known Courier-thread marshaling gap)
+    /// - the courier/transport/recorder machinery downstream of
+    /// <see cref="Sample"/> never touches a KSP type.
     ///
     /// <para><b>KSP-API surprises found via decompile (see the M5b Task 4b
     /// report for detail):</b></para>

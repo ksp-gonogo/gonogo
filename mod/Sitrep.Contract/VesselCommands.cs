@@ -1,0 +1,209 @@
+#if NETSTANDARD2_0
+using Reinforced.Typings.Attributes;
+#endif
+
+namespace Sitrep.Contract;
+
+/// <summary>
+/// The generic success/failure result for every command in this file that
+/// doesn't need its own richer payload. <see cref="Success"/> false pairs
+/// with a machine-readable <see cref="ErrorCode"/> (<c>"E_MODE_UNAVAILABLE"</c>,
+/// <c>"E_RANGE"</c>, <c>"E_NOT_FOUND"</c>, <c>"E_NO_VESSEL"</c>) rather than a
+/// free-text message — the design doc §3's <c>Result&lt;T, CommandError&gt;</c>
+/// ruling in its simplest shape: results are always delivered (never a
+/// fire-and-forget void), and failure is structured data, not a thrown
+/// exception a client has to string-match.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class Ack
+{
+    public bool Success { get; set; } = true;
+
+    public string? ErrorCode { get; set; }
+
+    public static Ack Ok() => new Ack { Success = true };
+
+    public static Ack Fail(string errorCode) => new Ack { Success = false, ErrorCode = errorCode };
+}
+
+/// <summary>
+/// Args shared by every plain boolean actuation command (<c>setSas</c>/
+/// <c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/<c>setLights</c>) — an
+/// ABSOLUTE state to apply, never a toggle. Under light-time delay a toggle
+/// arriving after unknown intervening state is a race by construction (the
+/// design doc §3/§6.2's <c>toggleActionGroup</c> caution); every M1 actuation
+/// command is set-semantics only, so that footgun doesn't exist here at all.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetEnabledArgs
+{
+    public bool Enabled { get; set; }
+}
+
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetSasModeArgs
+{
+    public SasMode Mode { get; set; }
+}
+
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetThrottleArgs
+{
+    /// <summary>0..1 — validated (not silently clamped) at admission; out of range yields <see cref="Ack.ErrorCode"/> <c>"E_RANGE"</c> (A-10's inconsistency fixed at the send gate).</summary>
+    public double Value { get; set; }
+}
+
+/// <summary>
+/// <c>vessel.control.stage</c>'s result — a real value comes back (the new
+/// current stage index), unlike Telemachus's <c>f.stage</c> void fire-and-forget.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class StageResult
+{
+    public bool Success { get; set; } = true;
+
+    public string? ErrorCode { get; set; }
+
+    public int NewStage { get; set; }
+}
+
+/// <summary>
+/// <c>vessel.control.setActionGroup</c>'s args — <see cref="Group"/> is the
+/// numbered custom action group (1..10, i.e. ag1..ag10). Gear/brakes/lights
+/// are their own dedicated commands (<see cref="SetEnabledArgs"/>), not
+/// folded into this one — kept separate so a client never has to string-match
+/// a group name to flip the landing gear.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetActionGroupArgs
+{
+    /// <summary>1..10. Any other value yields <see cref="Ack.ErrorCode"/> <c>"E_RANGE"</c>.</summary>
+    public int Group { get; set; }
+
+    public bool State { get; set; }
+}
+
+/// <summary>
+/// <c>vessel.maneuver.add</c>'s args — NAMED delta-v components in the
+/// node's own radial/normal/prograde frame, exactly like the wire's
+/// <see cref="ManeuverNode"/> shape. Kills O-4: there is no positional
+/// <c>[ut,x,y,z]</c> array to mis-order — see the project's own "Telemachus
+/// maneuver-node arg order" finding (raw KSP <c>ManeuverNode.DeltaV</c> is
+/// <c>x=radialOut, y=normal, z=prograde</c>) for why the actuator seam must
+/// preserve this exact component assignment rather than "helpfully"
+/// reordering it.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class AddManeuverNodeArgs
+{
+    public double Ut { get; set; }
+
+    public double Prograde { get; set; }
+
+    public double Normal { get; set; }
+
+    public double RadialOut { get; set; }
+}
+
+/// <summary>Result of <c>vessel.maneuver.add</c> — O-6 fixed: the created node's opaque id is actually returned.</summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class AddManeuverNodeResult
+{
+    public bool Success { get; set; } = true;
+
+    public string? ErrorCode { get; set; }
+
+    /// <summary>Null when <see cref="Success"/> is false.</summary>
+    public string? NodeId { get; set; }
+}
+
+/// <summary>
+/// <c>vessel.maneuver.update</c>'s args — keyed by the opaque <see cref="NodeId"/>
+/// <see cref="AddManeuverNodeResult"/> returned, never a positional index
+/// (O-4's second half: Telemachus's <c>updateManeuverNode</c> shifted every
+/// later sibling's index by one).
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class UpdateManeuverNodeArgs
+{
+    public string NodeId { get; set; } = "";
+
+    public double Ut { get; set; }
+
+    public double Prograde { get; set; }
+
+    public double Normal { get; set; }
+
+    public double RadialOut { get; set; }
+}
+
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class RemoveManeuverNodeArgs
+{
+    public string NodeId { get; set; } = "";
+}
+
+/// <summary>
+/// <c>vessel.target.set</c>'s args — a discriminated union expressed as
+/// <see cref="Kind"/> + the one field that kind actually uses (C# has no
+/// native union type; this mirrors <see cref="TargetKind"/>'s existing
+/// vessel/body/other split rather than inventing a parallel shape). T-1
+/// fixed: <see cref="VesselId"/> is the STABLE opaque vessel id (resolved
+/// server-side against <c>FlightGlobals.Vessels</c>), never a live array
+/// index a client would have to track itself. T-2 fixed: vessel id and body
+/// index are separate fields in separate namespaces, so they can never be
+/// confused for one another.
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetTargetArgs
+{
+    public TargetKind Kind { get; set; }
+
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>.</summary>
+    public string? VesselId { get; set; }
+
+    /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Body"/> — the same <c>system.bodies</c> index <see cref="VesselOrbit.ReferenceBodyIndex"/> uses.</summary>
+    public int? BodyIndex { get; set; }
+}
+
+/// <summary>
+/// <c>time.setWarpIndex</c>'s args — sim-meta, never delayed (light-time
+/// fiction doesn't apply to a ground-side simulation control).
+/// </summary>
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetWarpIndexArgs
+{
+    public int Index { get; set; }
+}
+
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetPausedArgs
+{
+    public bool Paused { get; set; }
+}

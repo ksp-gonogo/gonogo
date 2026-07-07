@@ -207,6 +207,66 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// M1 Task 3 — proves the REAL <see cref="VesselCommandProvider"/>
+        /// handlers + the REAL per-command <see cref="CommandDeclaration.Delayed"/>
+        /// flags (not a synthetic stand-in) actually dispatch through
+        /// <see cref="ChannelEngine"/> with the taxonomy's ruling: actuation
+        /// (<c>vessel.control.setSas</c>) rides the Courier's light-time
+        /// delay; planning/designation (<c>vessel.target.clear</c>) resolves
+        /// immediately. Same shape as
+        /// <see cref="DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt"/>
+        /// above (the M0.5 command-delay test), now exercised against the
+        /// actual vessel command manifest via <see cref="VesselCommandTestExtension"/>
+        /// (a KSP-free stand-in for <c>Gonogo.KSP.VesselExtension</c> — this
+        /// project deliberately never references <c>Gonogo.KSP</c>, see this
+        /// file's own top-of-class doc comment).
+        /// </summary>
+        [Fact]
+        public void VesselCommandsDispatchWithTheirDeclaredDelayDispositionActuationDelayedPlanningImmediate()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
+            var actuator = new RecordingVesselActuator();
+            engine.RegisterExtension(new VesselCommandTestExtension(actuator));
+            engine.Start();
+            try
+            {
+                // ---- delayed:true actuation: vessel.control.setSas ----
+                var sasResolved = false;
+                Ack? sasResult = null;
+                engine.DispatchCommandAndWait(
+                    VesselCommandProvider.SetSasCommand, new SetEnabledArgs { Enabled = true }, "vantage-1",
+                    result => { sasResolved = true; sasResult = (Ack)result!; },
+                    TimeSpan.FromMilliseconds(300));
+
+                Assert.False(sasResolved, "delayed:true vessel.control.setSas must not resolve before the Courier's scheduled UT");
+                Assert.Null(actuator.LastSetSasEnabled);
+
+                // Advance past the full round trip (5s uplink + 5s downlink = 10 UT-s).
+                engine.TickAndWait(10.0, null, Timeout);
+
+                Assert.True(sasResolved);
+                Assert.True(sasResult!.Success);
+                Assert.True(actuator.LastSetSasEnabled, "the REAL VesselCommandProvider.HandleSetSas handler should have called the actuator once the delay elapsed");
+
+                // ---- delayed:false planning/designation: vessel.target.clear ----
+                var clearResolved = false;
+                Ack? clearResult = null;
+                engine.DispatchCommandAndWait(
+                    VesselCommandProvider.TargetClearCommand, null, "vantage-1",
+                    result => { clearResolved = true; clearResult = (Ack)result!; },
+                    TimeSpan.FromMilliseconds(300));
+
+                Assert.True(clearResolved, "delayed:false vessel.target.clear should resolve without any further clock advance");
+                Assert.True(clearResult!.Success);
+                Assert.Equal(1, actuator.ClearTargetCallCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// CRITICAL-2 (concurrency red-team, probe-verified): a wire command
         /// whose args mismatch its handler's declared TArgs used to throw
         /// <c>InvalidCastException</c> straight out of
@@ -1338,6 +1398,114 @@ namespace Sitrep.Host.IntegrationTests
             {
                 host.AddCommandHandler<string, string>(InfraCommand, args => "pong:" + args);
                 host.AddCommandHandler<string, string>(VesselCommand, args => "pong:" + args);
+            }
+        }
+
+        /// <summary>
+        /// Minimal <see cref="IVesselActuator"/> test double for
+        /// <see cref="VesselCommandsDispatchWithTheirDeclaredDelayDispositionActuationDelayedPlanningImmediate"/> —
+        /// records only what that test asserts on; every other member
+        /// returns a bare success <see cref="Ack"/> (never touches KSP, and
+        /// this project never references <c>Gonogo.KSP</c> at all).
+        /// </summary>
+        private sealed class RecordingVesselActuator : IVesselActuator
+        {
+            public bool? LastSetSasEnabled;
+            public int ClearTargetCallCount;
+
+            public Ack SetSas(bool enabled)
+            {
+                LastSetSasEnabled = enabled;
+                return Ack.Ok();
+            }
+
+            public Ack SetSasMode(SasMode mode) => Ack.Ok();
+            public Ack SetRcs(bool enabled) => Ack.Ok();
+            public Ack SetGear(bool enabled) => Ack.Ok();
+            public Ack SetBrakes(bool enabled) => Ack.Ok();
+            public Ack SetLights(bool enabled) => Ack.Ok();
+            public Ack SetThrottle(double value) => Ack.Ok();
+            public StageResult Stage() => new StageResult { Success = true, NewStage = 0 };
+            public Ack SetActionGroup(int group, bool state) => Ack.Ok();
+            public AddManeuverNodeResult AddManeuverNode(double ut, double prograde, double normal, double radialOut) =>
+                new AddManeuverNodeResult { Success = true, NodeId = "node-1" };
+            public Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => Ack.Ok();
+            public Ack RemoveManeuverNode(string nodeId) => Ack.Ok();
+            public Ack SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => Ack.Ok();
+
+            public Ack ClearTarget()
+            {
+                ClearTargetCallCount++;
+                return Ack.Ok();
+            }
+
+            public Ack SetWarp(int index) => Ack.Ok();
+            public Ack SetPause(bool paused) => Ack.Ok();
+        }
+
+        /// <summary>
+        /// A KSP-free stand-in for <c>Gonogo.KSP.VesselExtension</c>'s
+        /// COMMAND half only (no channels — this test only exercises
+        /// command dispatch) — the exact same manifest declarations and the
+        /// exact same <see cref="VesselCommandProvider"/> handler wiring
+        /// production uses, so this test proves the real taxonomy, not a
+        /// simplified restatement of it. See this file's own top-of-class
+        /// doc comment for why <c>Sitrep.Host.IntegrationTests</c> can't
+        /// reference <c>Gonogo.KSP</c> directly (net472 + KSP/Unity
+        /// reference assemblies).
+        /// </summary>
+        private sealed class VesselCommandTestExtension : ISitrepExtension
+        {
+            private readonly IVesselActuator _actuator;
+
+            public VesselCommandTestExtension(IVesselActuator actuator)
+            {
+                _actuator = actuator;
+            }
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-vessel-commands",
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasModeCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetRcsCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.StageCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetWarpIndexCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetPausedCommand, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));
+                host.AddCommandHandler<SetSasModeArgs, Ack>(VesselCommandProvider.SetSasModeCommand, args => VesselCommandProvider.HandleSetSasMode(_actuator, args));
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetRcsCommand, args => VesselCommandProvider.HandleSetRcs(_actuator, args));
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));
+                host.AddCommandHandler<SetThrottleArgs, Ack>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
+                host.AddCommandHandler<object?, StageResult>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
+                host.AddCommandHandler<SetActionGroupArgs, Ack>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));
+                host.AddCommandHandler<AddManeuverNodeArgs, AddManeuverNodeResult>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
+                host.AddCommandHandler<UpdateManeuverNodeArgs, Ack>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
+                host.AddCommandHandler<RemoveManeuverNodeArgs, Ack>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));
+                host.AddCommandHandler<SetTargetArgs, Ack>(VesselCommandProvider.TargetSetCommand, args => VesselCommandProvider.HandleTargetSet(_actuator, args));
+                host.AddCommandHandler<object?, Ack>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
+                host.AddCommandHandler<SetWarpIndexArgs, Ack>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
+                host.AddCommandHandler<SetPausedArgs, Ack>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
             }
         }
     }

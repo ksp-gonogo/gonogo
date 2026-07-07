@@ -707,20 +707,17 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The <c>time.warp</c> channel -- see <see cref="WarpState"/>'s
-        /// class doc comment for why this is gated on active-vessel
-        /// presence (a deliberate M1 scoping simplification) even though the
-        /// underlying raw data (<c>snapshot.Values["time"]</c>) is global,
-        /// not vessel-scoped.
+        /// The <c>time.warp</c> channel -- GLOBAL game state, decoupled from
+        /// active-vessel presence (fold-in fix, M1 Task 3 review): the only
+        /// gate is whether <c>snapshot.Values["time"]</c> itself is present,
+        /// so this emits at the Space Center / tracking station / any scene
+        /// with no active vessel, not just in flight. See
+        /// <see cref="WarpState"/>'s class doc comment for why its
+        /// <see cref="Meta"/> is stamped with the non-vessel <c>"game"</c>
+        /// source rather than <c>"vessel:&lt;guid&gt;"</c>.
         /// </summary>
         public static WarpState? BuildWarp(KspSnapshot? snapshot)
         {
-            var vessel = GetVesselGroup(snapshot);
-            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
-            {
-                return null;
-            }
-
             if (snapshot?.Values == null || !TryGetGroup(snapshot.Values, "time", out var time))
             {
                 return null;
@@ -740,7 +737,7 @@ namespace Sitrep.Host
                 WarpRateIndex = warpRateIndex.Value,
                 WarpMode = ParseWarpMode(GetString(time, "warpMode")),
                 Paused = paused.Value,
-                Meta = BuildMeta(vesselId, snapshot.Ut),
+                Meta = BuildGameMeta(snapshot.Ut),
             };
         }
 
@@ -1015,6 +1012,25 @@ namespace Sitrep.Host
                 // to whichever future task wires up physicsMode/packed
                 // capture (mirrors O-2's "deliberately deferred" ruling in
                 // the taxonomy design doc).
+                Quality = Quality.OnRails,
+                Active = true,
+                Staleness = Staleness.Fresh,
+            };
+        }
+
+        /// <summary>
+        /// <see cref="Meta"/> for the genuinely-global <c>time.warp</c>
+        /// channel (fold-in fix, M1 Task 3 review) -- <c>Source = "game"</c>,
+        /// never <c>"vessel:&lt;guid&gt;"</c>, since warp/pause isn't
+        /// attributable to any vessel (it emits with no active vessel at
+        /// all -- see <see cref="BuildWarp"/>).
+        /// </summary>
+        private static Meta BuildGameMeta(double ut)
+        {
+            return new Meta
+            {
+                Source = "game",
+                ValidAt = ut,
                 Quality = Quality.OnRails,
                 Active = true,
                 Staleness = Staleness.Fresh,

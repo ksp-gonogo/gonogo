@@ -72,7 +72,7 @@ namespace Gonogo.KSP
                 _recorder = new Recorder(_host);
                 _engine = new ChannelEngine(BindUri);
                 _engine.RegisterExtension(new SystemExtension());
-                _engine.RegisterExtension(new VesselExtension());
+                _engine.RegisterExtension(new VesselExtension(new KspVesselActuator()));
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,

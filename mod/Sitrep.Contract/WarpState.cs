@@ -34,16 +34,18 @@ public enum WarpMode
 /// <c>t.universalTime</c> over the wire (a tick-rate channel by definition)
 /// is not reproduced.</para>
 ///
-/// <para><b>M1 scoping note:</b> this record's <see cref="Meta"/> is stamped
-/// <c>"vessel:&lt;guid&gt;"</c> like every other M1 channel in this task,
-/// even though warp/pause is genuinely GLOBAL game state (not tied to any
-/// vessel — <c>Gonogo.KSP.KspHost.BuildTime</c> reads it unconditionally).
-/// This is a deliberate, documented M1 scoping simplification, not an
-/// oversight: it keeps every channel this task ships on one uniform
-/// provenance/epoching mechanism, at the cost of <c>time.warp</c> only
-/// emitting while a vessel is active (e.g. it goes quiet at the Space
-/// Center). Decoupling warp/pause from vessel presence — a genuine "system"
-/// provenance concept — is a follow-up, not required for this task.</para>
+/// <para><b>Decoupled from vessel presence (M1 Task 3 fold-in fix):</b> this
+/// record's <see cref="Meta"/> is stamped <c>Source = "game"</c>, NOT
+/// <c>"vessel:&lt;guid&gt;"</c> — warp/pause is genuinely GLOBAL game state
+/// (<c>Gonogo.KSP.KspHost.BuildTime</c> reads it unconditionally, with or
+/// without an active vessel), so it emits at the Space Center / tracking
+/// station too, not just in flight. An earlier draft gated this channel on
+/// active-vessel presence as a scoping simplification (reusing the vessel
+/// provenance/epoching mechanism uniformly); that gate silenced the channel
+/// exactly where warp control matters most (out-of-flight scenes), so it was
+/// removed — see <c>Sitrep.Host.VesselViewProvider.BuildWarp</c>'s doc
+/// comment for the emission rule now in force (present whenever
+/// <c>Values["time"]</c> itself is present, nothing else).</para>
 /// </summary>
 #if NETSTANDARD2_0
 [TsInterface]

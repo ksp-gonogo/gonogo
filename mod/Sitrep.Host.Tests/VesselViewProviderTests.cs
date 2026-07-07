@@ -892,6 +892,10 @@ namespace Sitrep.Host.Tests
             Assert.Equal(3, warp.WarpRateIndex);
             Assert.Equal(WarpMode.High, warp.WarpMode);
             Assert.False(warp.Paused);
+            // GLOBAL channel -- never attributed to the active vessel, even
+            // when one happens to be present this tick (fold-in fix, M1
+            // Task 3 review).
+            Assert.Equal("game", warp.Meta.Source);
         }
 
         [Fact]
@@ -909,19 +913,37 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildWarpReturnsNullWhenNoActiveVessel()
+        public void BuildWarpEmitsWithNoActiveVesselAndIsNotAttributedToOne()
         {
-            // M1 scoping choice documented on WarpState -- see its class doc
-            // comment: time.warp is gated on vessel presence for this task,
-            // even though the underlying data is genuinely global.
+            // Fold-in fix (M1 Task 3 review): time.warp is GLOBAL game state
+            // (Gonogo.KSP.KspHost.BuildTime reads it unconditionally) -- it
+            // must emit at the Space Center / tracking station too, not just
+            // in flight. An earlier draft gated this on active-vessel
+            // presence (returning null here); that silenced the channel
+            // exactly where warp control matters most.
             var snapshot = new KspSnapshot
             {
-                Ut = 0.0,
+                Ut = 42.0,
                 Values = new Dictionary<string, object?>
                 {
                     ["time"] = new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false },
                 },
             };
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Equal(1.0, warp!.WarpRate);
+            Assert.Equal(42.0, warp.Meta.ValidAt);
+            // Not "vessel:<guid>" -- there is no vessel to attribute this to,
+            // and the channel must not pretend otherwise.
+            Assert.Equal("game", warp.Meta.Source);
+        }
+
+        [Fact]
+        public void BuildWarpReturnsNullOnlyWhenTimeGroupItselfIsAbsent()
+        {
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
 
             Assert.Null(VesselViewProvider.BuildWarp(snapshot));
         }
