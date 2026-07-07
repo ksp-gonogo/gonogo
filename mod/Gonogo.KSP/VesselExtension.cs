@@ -98,6 +98,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetGearCommand, delayed: true),
                 Command(VesselCommandProvider.SetBrakesCommand, delayed: true),
                 Command(VesselCommandProvider.SetLightsCommand, delayed: true),
+                Command(VesselCommandProvider.SetAbortCommand, delayed: true),
                 Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
                 Command(VesselCommandProvider.StageCommand, delayed: true),
                 Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
@@ -137,6 +138,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetAbortCommand, args => VesselCommandProvider.HandleSetAbort(_actuator, args));
             host.AddCommandHandler<SetThrottleArgs, Ack>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
             host.AddCommandHandler<object?, StageResult>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
             host.AddCommandHandler<SetActionGroupArgs, Ack>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));

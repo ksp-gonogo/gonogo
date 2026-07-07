@@ -114,6 +114,12 @@ namespace Gonogo.KSP
             return Ack.Ok();
         });
 
+        public Ack SetAbort(bool enabled) => WithActionGroups(actionGroups =>
+        {
+            actionGroups.SetGroup(KSPActionGroup.Abort, enabled);
+            return Ack.Ok();
+        });
+
         /// <summary>
         /// Writes the ACTIVE vessel's commanded throttle via
         /// <c>FlightInputHandler.state.mainThrottle</c> -- the same static
@@ -277,9 +283,25 @@ namespace Gonogo.KSP
             return Ack.Ok();
         }
 
-        /// <summary>Sim-meta, not vessel-scoped -- <c>TimeWarp.SetRate</c> is a static call, safe with or without an active vessel.</summary>
+        /// <summary>
+        /// Sim-meta, not vessel-scoped -- <c>TimeWarp.SetRate</c> is a static
+        /// call, safe with or without an active vessel. Negative indices are
+        /// already rejected upstream by
+        /// <see cref="VesselCommandProvider.HandleSetWarpIndex"/>; this is
+        /// the ONLY place the real upper bound is known
+        /// (<c>TimeWarp.fetch.warpRates.Length</c> -- the live rate table,
+        /// which differs between on-rails and physics warp and isn't a fixed
+        /// contract-side constant), so the design table's <c>Ack | E_RANGE</c>
+        /// (§3) is enforced here rather than silently clamped/passed to
+        /// <c>TimeWarp.SetRate</c>, which does no bounds checking of its own.
+        /// </summary>
         public Ack SetWarp(int index)
         {
+            var warpRates = TimeWarp.fetch?.warpRates;
+            if (warpRates == null || index < 0 || index >= warpRates.Length)
+            {
+                return Ack.Fail("E_RANGE");
+            }
             TimeWarp.SetRate(index, instant: true);
             return Ack.Ok();
         }

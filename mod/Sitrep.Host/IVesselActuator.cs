@@ -40,6 +40,8 @@ namespace Sitrep.Host
 
         Ack SetLights(bool enabled);
 
+        Ack SetAbort(bool enabled);
+
         Ack SetThrottle(double value);
 
         StageResult Stage();

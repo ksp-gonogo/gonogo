@@ -21,6 +21,7 @@ namespace Sitrep.Host.Tests
         public bool? LastSetGearEnabled;
         public bool? LastSetBrakesEnabled;
         public bool? LastSetLightsEnabled;
+        public bool? LastSetAbortEnabled;
         public double? LastSetThrottleValue;
         public int StageCallCount;
         public int? LastActionGroup;
@@ -49,6 +50,7 @@ namespace Sitrep.Host.Tests
         public Ack SetGearResult = Ack.Ok();
         public Ack SetBrakesResult = Ack.Ok();
         public Ack SetLightsResult = Ack.Ok();
+        public Ack SetAbortResult = Ack.Ok();
         public Ack SetThrottleResult = Ack.Ok();
         public StageResult StageResultValue = new StageResult { Success = true, NewStage = 1 };
         public Ack SetActionGroupResult = Ack.Ok();
@@ -94,6 +96,12 @@ namespace Sitrep.Host.Tests
         {
             LastSetLightsEnabled = enabled;
             return SetLightsResult;
+        }
+
+        public Ack SetAbort(bool enabled)
+        {
+            LastSetAbortEnabled = enabled;
+            return SetAbortResult;
         }
 
         public Ack SetThrottle(double value)

@@ -267,6 +267,48 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// M1 Task 3 review fix #2: the design table's <c>ActionGroup</c>
+        /// union (§3) lists <c>abort</c> alongside gear/brakes/lights, but no
+        /// command existed for it and it wasn't listed as deferred either —
+        /// a straight-up gap. Built as its own dedicated command
+        /// (<c>vessel.control.setAbort</c>) following the exact same
+        /// pattern/disposition as <c>setGear</c>/<c>setBrakes</c>/
+        /// <c>setLights</c> (delayed:true actuation, absolute
+        /// <see cref="SetEnabledArgs"/>), so this test mirrors the SAS block
+        /// above rather than inventing a new assertion shape.
+        /// </summary>
+        [Fact]
+        public void SetAbortCommandDispatchesAsDelayedTrueActuationAndReachesTheActuator()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
+            var actuator = new RecordingVesselActuator();
+            engine.RegisterExtension(new VesselCommandTestExtension(actuator));
+            engine.Start();
+            try
+            {
+                var resolved = false;
+                Ack? result = null;
+                engine.DispatchCommandAndWait(
+                    VesselCommandProvider.SetAbortCommand, new SetEnabledArgs { Enabled = true }, "vantage-1",
+                    r => { resolved = true; result = (Ack)r!; },
+                    TimeSpan.FromMilliseconds(300));
+
+                Assert.False(resolved, "delayed:true vessel.control.setAbort must not resolve before the Courier's scheduled UT");
+                Assert.Null(actuator.LastSetAbortEnabled);
+
+                engine.TickAndWait(10.0, null, Timeout);
+
+                Assert.True(resolved);
+                Assert.True(result!.Success);
+                Assert.True(actuator.LastSetAbortEnabled, "the REAL VesselCommandProvider.HandleSetAbort handler should have called the actuator once the delay elapsed");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// CRITICAL-2 (concurrency red-team, probe-verified): a wire command
         /// whose args mismatch its handler's declared TArgs used to throw
         /// <c>InvalidCastException</c> straight out of
@@ -1411,6 +1453,7 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class RecordingVesselActuator : IVesselActuator
         {
             public bool? LastSetSasEnabled;
+            public bool? LastSetAbortEnabled;
             public int ClearTargetCallCount;
 
             public Ack SetSas(bool enabled)
@@ -1424,6 +1467,13 @@ namespace Sitrep.Host.IntegrationTests
             public Ack SetGear(bool enabled) => Ack.Ok();
             public Ack SetBrakes(bool enabled) => Ack.Ok();
             public Ack SetLights(bool enabled) => Ack.Ok();
+
+            public Ack SetAbort(bool enabled)
+            {
+                LastSetAbortEnabled = enabled;
+                return Ack.Ok();
+            }
+
             public Ack SetThrottle(double value) => Ack.Ok();
             public StageResult Stage() => new StageResult { Success = true, NewStage = 0 };
             public Ack SetActionGroup(int group, bool state) => Ack.Ok();
@@ -1475,6 +1525,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetAbortCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.StageCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand, Delayed = true },
@@ -1496,6 +1547,7 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
                 host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
                 host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));
+                host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetAbortCommand, args => VesselCommandProvider.HandleSetAbort(_actuator, args));
                 host.AddCommandHandler<SetThrottleArgs, Ack>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
                 host.AddCommandHandler<object?, StageResult>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
                 host.AddCommandHandler<SetActionGroupArgs, Ack>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));

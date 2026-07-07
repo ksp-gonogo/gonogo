@@ -32,6 +32,18 @@ namespace Sitrep.Host
         public const string SetGearCommand = "vessel.control.setGear";
         public const string SetBrakesCommand = "vessel.control.setBrakes";
         public const string SetLightsCommand = "vessel.control.setLights";
+
+        /// <summary>
+        /// The design table's <c>ActionGroup</c> union (§3) lists <c>abort</c>
+        /// alongside <c>gear</c>/<c>brakes</c>/<c>lights</c>, but those three
+        /// are already split out as their own dedicated commands rather than
+        /// folded into <see cref="SetActionGroupCommand"/>'s numbered-group
+        /// shape — <c>abort</c> follows that same precedent instead of the
+        /// union's literal shape, so a client never has to string-match
+        /// "abort" through the generic action-group command.
+        /// </summary>
+        public const string SetAbortCommand = "vessel.control.setAbort";
+
         public const string SetThrottleCommand = "vessel.control.setThrottle";
         public const string StageCommand = "vessel.control.stage";
         public const string SetActionGroupCommand = "vessel.control.setActionGroup";
@@ -66,6 +78,9 @@ namespace Sitrep.Host
 
         public static Ack HandleSetLights(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetLights(args.Enabled);
+
+        public static Ack HandleSetAbort(IVesselActuator actuator, SetEnabledArgs args) =>
+            actuator.SetAbort(args.Enabled);
 
         /// <summary>Validated (not silently clamped) at THIS admission gate — A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
         public static Ack HandleSetThrottle(IVesselActuator actuator, SetThrottleArgs args)
@@ -122,8 +137,24 @@ namespace Sitrep.Host
         public static Ack HandleTargetClear(IVesselActuator actuator, object? _) =>
             actuator.ClearTarget();
 
-        public static Ack HandleSetWarpIndex(IVesselActuator actuator, SetWarpIndexArgs args) =>
-            actuator.SetWarp(args.Index);
+        /// <summary>
+        /// Mirrors <see cref="HandleSetActionGroup"/>'s split: the
+        /// unambiguously-invalid case (negative) is rejected HERE, before the
+        /// actuator is ever called, exactly like every other range-checked
+        /// command in this file. The real upper bound
+        /// (<c>TimeWarp.warpRates.Length</c>) is only known live, so
+        /// <c>KspVesselActuator.SetWarp</c> is responsible for rejecting an
+        /// index beyond it with the same <c>"E_RANGE"</c> code — this
+        /// provider can't see that bound at all.
+        /// </summary>
+        public static Ack HandleSetWarpIndex(IVesselActuator actuator, SetWarpIndexArgs args)
+        {
+            if (args.Index < 0)
+            {
+                return Ack.Fail("E_RANGE");
+            }
+            return actuator.SetWarp(args.Index);
+        }
 
         public static Ack HandleSetPaused(IVesselActuator actuator, SetPausedArgs args) =>
             actuator.SetPause(args.Paused);

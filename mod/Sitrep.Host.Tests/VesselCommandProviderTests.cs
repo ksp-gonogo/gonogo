@@ -293,6 +293,46 @@ namespace Sitrep.Host.Tests
             Assert.Equal(4, actuator.LastSetWarpIndex);
         }
 
+        /// <summary>
+        /// Mirrors <see cref="HandleSetActionGroupRejectsOutOfRangeGroupsBeforeEverCallingTheActuator"/> —
+        /// the design table's <c>time.setWarpIndex</c> row (§3) specifies
+        /// <c>Ack | E_RANGE</c>, but nothing was admission-checking a
+        /// negative index before this fix. The real upper bound
+        /// (<c>TimeWarp.warpRates.Length</c>) is only known live in
+        /// <c>KspVesselActuator</c>; the provider's own job is to reject the
+        /// unambiguously-invalid case (negative) before the actuator is ever
+        /// called, same split as every other range-checked command here.
+        /// </summary>
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(-100)]
+        public void HandleSetWarpIndexRejectsNegativeIndicesBeforeEverCallingTheActuator(int index)
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleSetWarpIndex(actuator, new SetWarpIndexArgs { Index = index });
+
+            Assert.False(result.Success);
+            Assert.Equal("E_RANGE", result.ErrorCode);
+            Assert.Null(actuator.LastSetWarpIndex);
+        }
+
+        /// <summary>
+        /// <c>vessel.control.setAbort</c> follows the exact same pattern as
+        /// <see cref="HandleSetGearPassesEnabledThroughAsAbsoluteState"/>/
+        /// setBrakes/setLights — absolute-set <see cref="SetEnabledArgs"/>,
+        /// no range validation needed (it's boolean).
+        /// </summary>
+        [Fact]
+        public void HandleSetAbortPassesEnabledThroughAsAbsoluteState()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetAbort(actuator, new SetEnabledArgs { Enabled = true });
+
+            Assert.True(actuator.LastSetAbortEnabled);
+        }
+
         [Fact]
         public void HandleSetPausedPassesPausedThroughAsAbsoluteState()
         {
