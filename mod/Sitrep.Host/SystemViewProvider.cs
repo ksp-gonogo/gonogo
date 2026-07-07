@@ -83,6 +83,14 @@ namespace Sitrep.Host
         public const string Topic = "system.bodies";
 
         /// <summary>
+        /// The M3 R3 roster capture-add — every known vessel (not just the
+        /// active one), for TargetPicker-style widgets that need to list
+        /// "what could I target" without the player having flown each one
+        /// yet. See <see cref="BuildSystemVessels"/>.
+        /// </summary>
+        public const string VesselsTopic = "system.vessels";
+
+        /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"bodies"</c> value (see
         /// the class doc for the encoding) to the clean <c>system.bodies</c>
         /// payload. Returns <c>null</c> — not an empty-bodies payload — when
@@ -153,6 +161,71 @@ namespace Sitrep.Host
                 // copy-paste bug; see telemachus-api-issues.md O-1). If a real
                 // anomaly is ever needed, compute it correctly under its own
                 // name rather than resurrect this one.
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"vessels"</c> list
+        /// (<c>Gonogo.KSP.KspHost.BuildVesselRosterEntry</c>'s shape — id/
+        /// name/vesselType/situation/mainBody, primitives only) to the
+        /// <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
+        /// name, vesselType, situation, bodyIndex }, ... ] }</c>. Follows
+        /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
+        /// (no separate Sitrep.Contract POCO — this channel isn't
+        /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
+        /// <c>system</c>-domain snapshot list, same shape class as
+        /// <c>system.bodies</c>). Returns <c>null</c> — not an empty-roster
+        /// payload — when the snapshot doesn't carry a <c>"vessels"</c> list
+        /// at all (main menu / nothing loaded yet), same "no data yet" vs.
+        /// "zero vessels" distinction <see cref="BuildSystemBodies"/> makes.
+        /// A roster entry with no resolvable <c>id</c> is dropped, never
+        /// emitted with a fabricated one (R1).
+        /// </summary>
+        public static object? BuildSystemVessels(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("vessels", out var rawVessels) || !(rawVessels is IEnumerable<object?> rawList))
+            {
+                return null;
+            }
+
+            var vessels = new List<object?>();
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is not IDictionary<string, object?> rawVessel)
+                {
+                    continue;
+                }
+
+                var id = GetString(rawVessel, "id");
+                if (string.IsNullOrEmpty(id))
+                {
+                    // No stable subject id -- can't attribute this roster
+                    // entry to anything (same R1 rule vessel.identity's
+                    // BuildIdentity applies to the active vessel).
+                    continue;
+                }
+
+                var mainBodyName = GetString(rawVessel, "mainBody");
+                int? bodyIndex = mainBodyName != null ? SharedMappers.ResolveBodyIndex(snapshot, mainBodyName) : null;
+
+                vessels.Add(new Dictionary<string, object?>
+                {
+                    ["vesselId"] = id,
+                    ["name"] = GetString(rawVessel, "name") ?? "",
+                    ["vesselType"] = (int)SharedMappers.ParseVesselType(GetString(rawVessel, "vesselType")),
+                    ["situation"] = (int)SharedMappers.ParseSituation(GetString(rawVessel, "situation")),
+                    ["bodyIndex"] = bodyIndex,
+                });
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["vessels"] = vessels,
             };
         }
 

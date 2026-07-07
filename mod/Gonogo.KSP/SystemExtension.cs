@@ -44,12 +44,23 @@ namespace Gonogo.KSP
                     // "changed". Unchanged from GonogoBodiesServer.BodiesEmissionPolicy.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                // system.vessels -- the M3 R3 roster capture-add. Same cadence
+                // as system.bodies: a re-emit every sample tick reads as
+                // "changed" (fresh Dictionary/List every call), a 30s
+                // keyframe floor covers a genuinely idle roster.
+                new ChannelDeclaration
+                {
+                    Topic = SystemViewProvider.VesselsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
             },
         };
 
         public void Register(IExtensionHost host)
         {
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
+            host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);
         }
     }
 }

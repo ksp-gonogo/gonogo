@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using KSP.UI.Screens;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -48,14 +47,23 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class KspVesselActuator : IVesselActuator
     {
-        // Maneuver-node ids are this actuator INSTANCE's own bookkeeping —
-        // KSP's own ManeuverNode has no stable id at all (see
-        // KspHost.BuildManeuverNodes' doc comment: nodes are ordered by UT,
-        // never keyed). Scoped to this actuator's lifetime (one per running
-        // session, same as GonogoAddon's other singletons) rather than
-        // persisted -- a quickload/scene-reload invalidates every id, same
-        // as the player's own maneuver plan does.
-        private readonly Dictionary<string, ManeuverNode> _maneuverNodesById = new Dictionary<string, ManeuverNode>();
+        // M3 R3: this is now the SAME ReferenceIdRegistry<ManeuverNode>
+        // instance KspHost's read-side BuildManeuverNodes assigns ids from
+        // (GonogoAddon.Awake constructs one and hands it to both) — see
+        // that class's doc comment. Before this change, this actuator kept
+        // its OWN throwaway Dictionary<string, ManeuverNode>, so
+        // update/remove only ever worked for a node created THROUGH
+        // AddManeuverNode; a node the player placed by hand in the map view
+        // had no id at all and could never be referenced. Sharing the
+        // registry closes that gap: GetOrAssign returns the SAME id
+        // regardless of which side (read sampling or this AddManeuverNode
+        // call) sees a given node object first.
+        private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        public KspVesselActuator(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
+        {
+            _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
+        }
 
         public Ack SetSas(bool enabled) => WithActionGroups(actionGroups =>
         {
@@ -193,14 +201,13 @@ namespace Gonogo.KSP
             node.DeltaV = new Vector3d(radialOut, normal, prograde);
             solver.UpdateFlightPlan();
 
-            var nodeId = Guid.NewGuid().ToString();
-            _maneuverNodesById[nodeId] = node;
+            var nodeId = _maneuverNodeIdRegistry.GetOrAssign(node);
             return new AddManeuverNodeResult { Success = true, NodeId = nodeId };
         }
 
         public Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
         {
-            if (!_maneuverNodesById.TryGetValue(nodeId, out var node) || node?.solver == null)
+            if (!TryResolveNode(nodeId, out var node) || node?.solver == null)
             {
                 return Ack.Fail("E_NOT_FOUND");
             }
@@ -213,17 +220,39 @@ namespace Gonogo.KSP
 
         public Ack RemoveManeuverNode(string nodeId)
         {
-            if (!_maneuverNodesById.TryGetValue(nodeId, out var node))
+            if (!TryResolveNode(nodeId, out var node))
             {
                 return Ack.Fail("E_NOT_FOUND");
             }
 
-            _maneuverNodesById.Remove(nodeId);
             if (node?.solver != null)
             {
                 node.solver.RemoveManeuverNode(node);
             }
             return Ack.Ok();
+        }
+
+        /// <summary>
+        /// Resolves an opaque <paramref name="nodeId"/> back to a LIVE
+        /// <c>ManeuverNode</c> by scanning the active vessel's CURRENT
+        /// <c>solver.maneuverNodes</c> and matching against
+        /// <see cref="_maneuverNodeIdRegistry"/> — never a cached reference
+        /// from whenever the id was first assigned, since a stale node
+        /// reference could otherwise outlive its own removal/a vessel
+        /// switch. Fails (returns false) if there's no active vessel/solver,
+        /// or no current node carries this id (either it was already
+        /// removed, or the id is simply unknown).
+        /// </summary>
+        private bool TryResolveNode(string nodeId, out ManeuverNode? node)
+        {
+            var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
+            var candidates = solver != null ? solver.maneuverNodes : null;
+            if (candidates == null)
+            {
+                node = null;
+                return false;
+            }
+            return _maneuverNodeIdRegistry.TryResolve(nodeId, candidates, out node);
         }
 
         /// <summary>

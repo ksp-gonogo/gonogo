@@ -82,6 +82,10 @@ namespace Gonogo.KSP
                 // vessel-gated channel is still declared/registered here
                 // alongside the genuinely vessel-scoped ones.
                 Channel(VesselViewProvider.WarpTopic),
+                // ---- M3 R3 capture-adds -- same cadence/deadband posture
+                // as every other structured vessel.* channel above.
+                Channel(VesselViewProvider.DockTopic),
+                Channel(VesselViewProvider.SurfaceTopic),
             },
             // ---- M1 Task 3 commands -- see local_docs/telemetry-mod/
             // m1-provider-taxonomy-design.md §3 for the full ruling this
@@ -129,6 +133,8 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
+            host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
+            host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
 
             host.AddSampler(new VesselEpochSampler(host));
 

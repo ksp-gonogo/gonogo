@@ -19,6 +19,21 @@ namespace Sitrep.Contract;
 #endif
 public class ManeuverNode
 {
+    /// <summary>
+    /// Stable, opaque id — the M3 R3 fix for the read/write correlation gap
+    /// (<c>packages/sitrep-client/src/map-command.ts</c>'s <c>KNOWN_COMMAND_GAPS</c>
+    /// comment): assigned by <c>Gonogo.KSP.KspHost</c> via a shared
+    /// <c>ReferenceIdRegistry&lt;global::ManeuverNode&gt;</c> (see that
+    /// class's doc comment for the full scheme), the SAME instance
+    /// <c>KspVesselActuator</c> uses to resolve <c>vessel.maneuver.update</c>/
+    /// <c>.remove</c>'s <c>nodeId</c> argument — so a node's id round-trips
+    /// into those commands whether the node was created through
+    /// <c>vessel.maneuver.add</c> or placed by hand in the map view.
+    /// Empty string only for a node read off a recording captured BEFORE
+    /// this field existed (replay of old data — never a live capture).
+    /// </summary>
+    public string Id { get; set; } = "";
+
     public double Ut { get; set; }
 
     /// <summary>

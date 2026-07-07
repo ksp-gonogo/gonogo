@@ -42,10 +42,10 @@ public enum TargetKind
 /// self vessel, so both are evaluated at the same view-UT by the same
 /// propagation logic (the single-view-time invariant). Its nested
 /// <see cref="Meta"/> is stamped with the SAME subject (the active vessel
-/// producing this sample), not a separate target-vessel identity — this
-/// contract does not yet capture the target's own stable vessel id (a
-/// one-line future capture add flagged in the design doc §6.4, deliberately
-/// deferred here).</para>
+/// producing this sample), not a separate target-vessel identity —
+/// <see cref="VesselId"/>/<see cref="BodyIndex"/> below (M3 R3) now DO carry
+/// the target's own identity, closing the §6.4 gap this doc comment used to
+/// flag as deferred.</para>
 ///
 /// <para>Whole-channel absence (the outer <c>VesselTarget?</c> being null)
 /// means nothing is targeted — the common case, R1(b), never a sentinel
@@ -59,6 +59,28 @@ public class VesselTarget
     public string Name { get; set; } = "";
 
     public TargetKind Kind { get; set; }
+
+    /// <summary>
+    /// The target's own stable id — the M3 R3 fix for the "no target id to
+    /// round-trip into <c>vessel.target.set</c>" gap this class's doc
+    /// comment (§6.4) originally flagged as deferred. Populated ONLY when
+    /// <see cref="Kind"/> is <see cref="TargetKind.Vessel"/> — KSP's
+    /// <c>Vessel.id</c> guid, the same opaque id <c>system.vessels</c>'
+    /// roster and <c>SetTargetArgs.VesselId</c> both use, so a widget can
+    /// read this straight off <c>vessel.target</c> and hand it back into a
+    /// re-target command with no extra lookup. Null for a body/other target
+    /// — see <see cref="BodyIndex"/> for the body case.
+    /// </summary>
+    public string? VesselId { get; set; }
+
+    /// <summary>
+    /// The target's <c>system.bodies</c> index — populated ONLY when
+    /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, mirroring
+    /// <see cref="VesselId"/>'s vessel case and <see cref="SetTargetArgs.BodyIndex"/>'s
+    /// own field. Null for a vessel/other target, or if the body name
+    /// couldn't be resolved against <c>system.bodies</c> this tick.
+    /// </summary>
+    public int? BodyIndex { get; set; }
 
     /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>
     public Vec3? RelativePosition { get; set; }

@@ -68,11 +68,19 @@ namespace Gonogo.KSP
 
             try
             {
-                _host = new KspHost();
+                // M3 R3: ONE shared id registry for the whole session, handed
+                // to both the read side (KspHost stamps vessel.maneuver node
+                // ids from it) and the write side (KspVesselActuator resolves
+                // update/remove's nodeId argument against it) — see
+                // ReferenceIdRegistry's doc comment for why sharing this
+                // single instance is what makes a node's id usable in a
+                // command at all.
+                var maneuverNodeIdRegistry = new ReferenceIdRegistry<ManeuverNode>();
+                _host = new KspHost(maneuverNodeIdRegistry);
                 _recorder = new Recorder(_host);
                 _engine = new ChannelEngine(BindUri);
                 _engine.RegisterExtension(new SystemExtension());
-                _engine.RegisterExtension(new VesselExtension(new KspVesselActuator()));
+                _engine.RegisterExtension(new VesselExtension(new KspVesselActuator(maneuverNodeIdRegistry)));
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,

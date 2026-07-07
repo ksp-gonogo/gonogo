@@ -22,7 +22,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemExtension"/>
     /// (the KSP-free replica of <c>Gonogo.KSP.SystemExtension</c>) AND
     /// <see cref="TestVesselExtension"/> (the KSP-free replica of
-    /// <c>Gonogo.KSP.VesselExtension</c>) registered together -- 16 declared
+    /// <c>Gonogo.KSP.VesselExtension</c>) registered together -- 18 declared
     /// channels, 17 declared commands, exactly as production wires them)
     /// driven by the REAL 7.5&#160;MB reference capture
     /// (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
@@ -84,10 +84,30 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(json);
             _output.WriteLine($"Reference recording found: {session.Entries.Count} entries.");
 
-            // All 16 channels this milestone must prove: VesselExtension's 15
-            // (vessel.* + time.warp) plus SystemExtension's system.bodies.
+            // All 18 channels this milestone must prove: VesselExtension's 17
+            // (vessel.* + time.warp, including the M3 R3 vessel.dock/
+            // vessel.surface capture-adds) plus SystemExtension's
+            // system.bodies. (system.vessels is a SEPARATE, newer
+            // SystemExtension roster channel not yet exercised by this
+            // specific reference recording/milestone -- see
+            // SystemViewProviderTests for its own headless coverage.)
             var topics = VesselViewProvider.Topics.Concat(new[] { SystemViewProvider.Topic }).ToArray();
-            Assert.Equal(16, topics.Length);
+            Assert.Equal(18, topics.Length);
+
+            // The reference recording predates the M3 R3 vessel.dock/
+            // vessel.surface capture-adds (it was captured before KspHost
+            // ever populated a "dock"/"surface" raw group), so those two
+            // legitimately never emit against THIS specific recording --
+            // still subscribed below (proving the pipeline doesn't error on
+            // an always-null mapper), just excluded from the "every channel
+            // emitted at least once" assertion. A fresh capture exercising
+            // docking/landing (the upcoming rich-flight session this
+            // capture-add batch exists for) is expected to close this gap
+            // for real -- see VesselViewProviderTests for headless coverage
+            // of both mappers in the meantime.
+            var topicsExpectedToEmit = topics
+                .Where(t => t != VesselViewProvider.DockTopic && t != VesselViewProvider.SurfaceTopic)
+                .ToArray();
 
             // ---- Builder-level ballpark counts for maneuver/target -- done
             // directly against VesselViewProvider.Build* (independent of the
@@ -111,12 +131,12 @@ namespace Sitrep.Host.IntegrationTests
             // -- proves delayed delivery end to end. ----
             var pass5 = await RunPassAsync(session, networkDelaySeconds: 5.0, topics);
 
-            // ================= 1. every channel emits =================
-            var missingFromPass0 = topics.Where(t => !pass0.SeenTopics.Contains(t)).ToList();
-            var missingFromPass5 = topics.Where(t => !pass5.SeenTopics.Contains(t)).ToList();
+            // ================= 1. every (pre-existing) channel emits =================
+            var missingFromPass0 = topicsExpectedToEmit.Where(t => !pass0.SeenTopics.Contains(t)).ToList();
+            var missingFromPass5 = topicsExpectedToEmit.Where(t => !pass5.SeenTopics.Contains(t)).ToList();
             Assert.True(missingFromPass0.Count == 0, $"channels that never emitted (delay=0 pass): {string.Join(", ", missingFromPass0)}");
             Assert.True(missingFromPass5.Count == 0, $"channels that never emitted (delay=5 pass): {string.Join(", ", missingFromPass5)}");
-            _output.WriteLine($"All {topics.Length} declared channels emitted at least once in both passes: {string.Join(", ", topics)}.");
+            _output.WriteLine($"All {topicsExpectedToEmit.Length} pre-existing declared channels emitted at least once in both passes: {string.Join(", ", topicsExpectedToEmit)}.");
 
             // ================= 2. delayed delivery end-to-end =================
             Assert.True(pass5.AllSamples.Count > 0, "expected at least one delivered sample in the delay=5 pass");
@@ -200,7 +220,7 @@ namespace Sitrep.Host.IntegrationTests
         /// Drives the WHOLE recording through a fresh <see cref="ChannelEngine"/>
         /// (both <see cref="TestVesselExtension"/> and <see cref="TestSystemExtension"/>
         /// registered) with the given one-way network delay, subscribing a
-        /// real <see cref="TestClient"/> to all 16 declared channels FIRST,
+        /// real <see cref="TestClient"/> to all 18 declared channels FIRST,
         /// then ticking snapshot-by-snapshot via <see cref="ChannelEngine.TickAndWait"/>
         /// (mirroring <c>ReplayToWebSocketEndToEndTests.DriveOneStep</c>'s
         /// skip-tick-on-lifecycle-event-step rule exactly) while a background

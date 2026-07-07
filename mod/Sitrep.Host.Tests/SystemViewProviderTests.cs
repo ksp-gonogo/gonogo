@@ -221,5 +221,143 @@ namespace Sitrep.Host.Tests
             Assert.DoesNotContain("NaN", json);
             Assert.DoesNotContain("Infinity", json);
         }
+
+        // ----------------------------------------------------------------
+        // system.vessels -- M3 R3 roster capture-add
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildSystemVesselsMapsEveryVesselAndResolvesMainBodyToAnIndex()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1 },
+                        new Dictionary<string, object?> { ["name"] = "Mun", ["index"] = 2 },
+                    },
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "11111111-2222-3333-4444-555555555555",
+                            ["name"] = "Kerbal X",
+                            ["vesselType"] = "Ship",
+                            ["situation"] = "ORBITING",
+                            ["mainBody"] = "Kerbin",
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "66666666-7777-8888-9999-000000000000",
+                            ["name"] = "Munar Relay",
+                            ["vesselType"] = "Relay",
+                            ["situation"] = "ORBITING",
+                            ["mainBody"] = "Mun",
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            Assert.Equal(2, vessels.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
+            Assert.Equal("11111111-2222-3333-4444-555555555555", first["vesselId"]);
+            Assert.Equal("Kerbal X", first["name"]);
+            Assert.Equal((int)VesselType.Ship, first["vesselType"]);
+            Assert.Equal((int)Situation.Orbiting, first["situation"]);
+            Assert.Equal(1, first["bodyIndex"]);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
+            Assert.Equal(2, second["bodyIndex"]); // "Mun" -> index 2
+        }
+
+        [Fact]
+        public void BuildSystemVesselsDropsAnEntryWithNoResolvableIdRatherThanFabricatingOne()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "No Id Vessel" }, // missing "id"
+                        new Dictionary<string, object?> { ["id"] = "", ["name"] = "Empty Id Vessel" },
+                        new Dictionary<string, object?> { ["id"] = "22222222-0000-0000-0000-000000000000", ["name"] = "Valid" },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var entry = Assert.Single(vessels);
+            var dict = Assert.IsType<Dictionary<string, object?>>(entry);
+            Assert.Equal("22222222-0000-0000-0000-000000000000", dict["vesselId"]);
+        }
+
+        [Fact]
+        public void BuildSystemVesselsLeavesBodyIndexNullWhenMainBodyIsAbsentOrUnresolved()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1 },
+                    },
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["id"] = "id-1", ["name"] = "No Body" }, // mainBody absent
+                        new Dictionary<string, object?> { ["id"] = "id-2", ["name"] = "Unknown Body", ["mainBody"] = "Eeloo" },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var first = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
+            var second = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
+            Assert.Null(first["bodyIndex"]);
+            Assert.Null(second["bodyIndex"]);
+        }
+
+        [Fact]
+        public void BuildSystemVesselsReturnsEmptyRosterNotNullWhenTheListIsEmpty()
+        {
+            // Distinguishes "no data yet" (no "vessels" key -> null payload,
+            // covered above) from "FlightGlobals genuinely reports zero
+            // vessels" (key present, empty list -> {"vessels": []}).
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["vessels"] = new List<object?>() },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            Assert.Empty(Assert.IsType<List<object?>>(root["vessels"]));
+        }
+
+        [Fact]
+        public void BuildSystemVesselsReturnsNullWhenSnapshotHasNoVesselsKeyAtAll()
+        {
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+
+            Assert.Null(SystemViewProvider.BuildSystemVessels(snapshot));
+        }
     }
 }

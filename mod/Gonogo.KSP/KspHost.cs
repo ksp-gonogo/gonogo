@@ -44,8 +44,17 @@ namespace Gonogo.KSP
     {
         public event Action<KspLifecycleEvent> Lifecycle = delegate { };
 
-        public KspHost()
+        // Shared with KspVesselActuator (see GonogoAddon.Awake, which
+        // constructs ONE instance and hands it to both) -- see
+        // ReferenceIdRegistry's own doc comment for why sharing this single
+        // instance is what makes a maneuver node's read-side id usable in a
+        // vessel.maneuver.update/.remove command, not just a cosmetic
+        // read-only label.
+        private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        public KspHost(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
+            _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
             GameEvents.onFlightReady.Add(OnFlightReady);
             GameEvents.onVesselChange.Add(OnVesselChange);
@@ -121,7 +130,31 @@ namespace Gonogo.KSP
                     var activeVessel = FlightGlobals.ActiveVessel;
                     if (activeVessel != null)
                     {
-                        values["vessel"] = BuildVesselEntry(activeVessel);
+                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry);
+                    }
+
+                    // M3 R3 capture-add: the FULL known-vessel roster (not
+                    // just the active one) -- system.vessels' raw source, for
+                    // TargetPicker-style widgets. Same "omit the key entirely
+                    // rather than emit an empty list when there's truly
+                    // nothing yet" convention as "bodies" above; an empty
+                    // FlightGlobals.Vessels (e.g. a save with nothing
+                    // launched yet) still legitimately reports an EMPTY list
+                    // here, never omits the key, since FlightGlobals itself
+                    // is ready.
+                    var allVessels = FlightGlobals.Vessels;
+                    if (allVessels != null)
+                    {
+                        var roster = new List<object?>(allVessels.Count);
+                        foreach (var candidate in allVessels)
+                        {
+                            if (candidate == null)
+                            {
+                                continue;
+                            }
+                            roster.Add(BuildVesselRosterEntry(candidate));
+                        }
+                        values["vessels"] = roster;
                     }
                 }
 
@@ -172,7 +205,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -191,8 +224,11 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
             TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
-            TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel));
+            TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel, maneuverNodeIdRegistry));
             TryBuildGroup(entry, "target", () => BuildTarget(vessel));
+            // ---- M3 R3 capture-adds ----
+            TryBuildGroup(entry, "dock", () => BuildDock(vessel));
+            TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
             return entry;
         }
 
@@ -700,7 +736,7 @@ namespace Gonogo.KSP
         /// ordered by <c>UT</c> (the order the player queued them / the
         /// order they'll execute).
         /// </summary>
-        private static List<object?>? BuildManeuverNodes(Vessel vessel)
+        private static List<object?>? BuildManeuverNodes(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             var solver = vessel.patchedConicSolver;
             var nodes = solver != null ? solver.maneuverNodes : null;
@@ -720,6 +756,15 @@ namespace Gonogo.KSP
                 var dv = node.DeltaV;
                 list.Add(new Dictionary<string, object?>
                 {
+                    // M3 R3: a stable id per LIVE node object, assigned by
+                    // the SAME registry KspVesselActuator resolves
+                    // update/remove's nodeId argument against -- see
+                    // ReferenceIdRegistry's doc comment. This is what makes
+                    // a node's id usable in a command, not just a read-only
+                    // label: a node placed by hand in the map view gets an
+                    // id the very first time it's sampled here, and that id
+                    // is what update/remove will find later.
+                    ["id"] = maneuverNodeIdRegistry.GetOrAssign(node),
                     ["ut"] = node.UT,
                     ["dvRadial"] = dv.x,
                     ["dvNormal"] = dv.y,
@@ -729,6 +774,195 @@ namespace Gonogo.KSP
             }
 
             return list.Count > 0 ? list : null;
+        }
+
+        /// <summary>
+        /// The M3 R3 <c>system.vessels</c> roster capture-add's raw per-vessel
+        /// entry (primitives only, same discipline as every other Build*
+        /// helper in this class): id/name/vesselType/situation/mainBody.
+        /// <c>mainBody</c> is the raw BODY NAME (not yet resolved to an
+        /// index -- <c>SystemViewProvider.BuildSystemVessels</c> resolves it
+        /// against <c>snapshot.Values["bodies"]</c>, same two-step pattern
+        /// <c>BuildIdentity</c>'s <c>parentBody</c> already uses), read off
+        /// <c>orbitDriver.orbit.referenceBody</c> directly (never the
+        /// computed <c>Vessel.mainBody</c> property, which NREs when
+        /// <c>orbitDriver</c> is null -- e.g. a vessel that hasn't finished
+        /// spawning yet -- see this class's doc comment).
+        /// </summary>
+        private static Dictionary<string, object?> BuildVesselRosterEntry(Vessel vessel)
+        {
+            var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+            var body = orbit?.referenceBody;
+
+            return new Dictionary<string, object?>
+            {
+                ["id"] = vessel.id.ToString(),
+                ["name"] = vessel.vesselName,
+                ["vesselType"] = vessel.vesselType.ToString(),
+                ["situation"] = vessel.situation.ToString(),
+                ["mainBody"] = body != null ? body.bodyName : null,
+            };
+        }
+
+        /// <summary>
+        /// The M3 R3 <c>vessel.dock</c> capture-add's raw group -- docking
+        /// alignment between the active vessel's nearest FREE (not currently
+        /// docked/disabled) <see cref="ModuleDockingNode"/> and the
+        /// currently-targeted docking port. Null (the group omitted
+        /// entirely, via <see cref="TryBuildGroup"/>'s try/catch-and-omit)
+        /// whenever docking isn't relevant right now: nothing targeted, the
+        /// target isn't itself a docking port (<c>ITargetable</c> also
+        /// covers vessels/bodies/waypoints -- see <see cref="BuildTarget"/>'s
+        /// doc comment), or this vessel has no port free to dock with.
+        ///
+        /// <para>"Nearest free port" (rather than e.g. the vessel's
+        /// reference-transform part) is the pragmatic reading of "the
+        /// vessel's controlling/reference docking port": KSP has no single
+        /// "the docking port" concept for a vessel that may carry several --
+        /// picking the one physically closest to the target is the port a
+        /// player doing a real rendezvous is actually about to use.
+        /// <c>ModuleDockingNode.state == "Ready"</c> is the confirmed
+        /// (decompile) idle/available state string; a port already
+        /// docked/disabled/mid-acquire is excluded.</para>
+        ///
+        /// <para><see cref="ModuleDockingNode.GetFwdVector"/> (not the
+        /// node's raw <c>Transform.forward</c>) is used for
+        /// <c>forwardDot</c> -- it's the API KSP itself exposes specifically
+        /// for "which way does this docking port face," so it's safe against
+        /// a docking node's local axis convention differing from its
+        /// transform's own forward axis.</para>
+        /// </summary>
+        private static Dictionary<string, object?>? BuildDock(Vessel vessel)
+        {
+            var fetch = FlightGlobals.fetch;
+            var target = fetch != null ? fetch.VesselTarget : null;
+            if (target is not ModuleDockingNode targetPort)
+            {
+                // Not targeting a specific docking port -- the common case
+                // (nothing targeted, or targeting a whole vessel/body
+                // instead). No docking alignment to report.
+                return null;
+            }
+
+            var targetTransform = targetPort.GetTransform();
+            if (targetTransform == null)
+            {
+                return null;
+            }
+
+            ModuleDockingNode? ownPort = null;
+            var bestDistanceSqr = double.MaxValue;
+            var parts = vessel.parts;
+            if (parts != null)
+            {
+                foreach (var part in parts)
+                {
+                    if (part == null || part.Modules == null)
+                    {
+                        continue;
+                    }
+
+                    var candidates = part.Modules.GetModules<ModuleDockingNode>();
+                    if (candidates == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var candidate in candidates)
+                    {
+                        if (candidate == null || candidate.state != "Ready")
+                        {
+                            continue;
+                        }
+
+                        var candidateTransform = candidate.GetTransform();
+                        if (candidateTransform == null)
+                        {
+                            continue;
+                        }
+
+                        var distanceSqr = ((Vector3d)candidateTransform.position - (Vector3d)targetTransform.position).sqrMagnitude;
+                        if (distanceSqr < bestDistanceSqr)
+                        {
+                            bestDistanceSqr = distanceSqr;
+                            ownPort = candidate;
+                        }
+                    }
+                }
+            }
+
+            if (ownPort == null)
+            {
+                // This vessel has no port free to dock with -- nothing to
+                // report (e.g. every port is already docked/disabled).
+                return null;
+            }
+
+            var ownTransform = ownPort.GetTransform();
+            if (ownTransform == null)
+            {
+                return null;
+            }
+
+            var relPos = (Vector3d)targetTransform.position - (Vector3d)ownTransform.position;
+            var relVel = (Vector3d)targetPort.GetObtVelocity() - (Vector3d)ownPort.GetObtVelocity();
+            var forwardDot = (double)Vector3.Dot(ownPort.GetFwdVector(), targetPort.GetFwdVector());
+
+            return new Dictionary<string, object?>
+            {
+                ["relativePosition"] = new[] { relPos.x, relPos.y, relPos.z },
+                ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
+                ["distance"] = relPos.magnitude,
+                ["forwardDot"] = forwardDot,
+            };
+        }
+
+        /// <summary>
+        /// The M3 R3 <c>vessel.surface</c> capture-add's raw group --
+        /// biome/landedAt/heightFromTerrain, for LandingStatus/GroundSurvey
+        /// widgets. Null whenever there's no reference body yet (mirrors
+        /// <see cref="BuildAttitude"/>'s guard) or the vessel is
+        /// <c>ORBITING</c>/<c>ESCAPING</c> -- KSP keeps whatever stale
+        /// <c>heightFromTerrain</c>/biome-at-last-surface-contact it last
+        /// computed even deep in space, which would otherwise read as
+        /// current AGL/biome data when it's neither.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit)
+        {
+            var body = orbit?.referenceBody;
+            if (body == null)
+            {
+                return null;
+            }
+
+            var situation = vessel.situation;
+            if (situation == Vessel.Situations.ORBITING || situation == Vessel.Situations.ESCAPING)
+            {
+                return null;
+            }
+
+            string? biome = null;
+            if (body.BiomeMap != null)
+            {
+                // CBAttributeMapSO.GetAtt expects RADIANS (confirmed via
+                // decompile: it divides lat by Math.PI, not 180) -- vessel
+                // lat/long are in degrees, same convention as every other
+                // lat/long this class reads.
+                var latRad = vessel.latitude * Math.PI / 180.0;
+                var lonRad = vessel.longitude * Math.PI / 180.0;
+                var attribute = body.BiomeMap.GetAtt(latRad, lonRad);
+                biome = attribute != null ? attribute.name : null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["biome"] = biome,
+                // Empty string means "landed/splashed somewhere with no
+                // named site" -- null it out rather than ship a wire value
+                // that's indistinguishable from "not present at all".
+                ["landedAt"] = string.IsNullOrEmpty(vessel.landedAt) ? null : vessel.landedAt,
+                ["heightFromTerrain"] = (double)vessel.heightFromTerrain,
+            };
         }
 
         /// <summary>

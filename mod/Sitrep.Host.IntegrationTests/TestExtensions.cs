@@ -82,7 +82,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>Gonogo.KSP.VesselExtension</c> — same cross-project rationale as
     /// <see cref="TestSystemExtension"/>'s own doc comment: this project
     /// cannot reference the net472 <c>Gonogo.KSP</c> assembly, so the
-    /// manifest/wiring (15 channels + 17 commands, verbatim from the real
+    /// manifest/wiring (17 channels + 17 commands, verbatim from the real
     /// extension) is duplicated here against a trivial
     /// <see cref="NoOpVesselActuator"/> rather than the real
     /// <c>KspVesselActuator</c>. This milestone suite replays a REAL
@@ -125,6 +125,9 @@ namespace Sitrep.Host.IntegrationTests
                 Channel(VesselViewProvider.CrewTopic),
                 Channel(VesselViewProvider.StructureTopic),
                 Channel(VesselViewProvider.WarpTopic),
+                // ---- M3 R3 capture-adds ----
+                Channel(VesselViewProvider.DockTopic),
+                Channel(VesselViewProvider.SurfaceTopic),
             },
             Commands = new List<CommandDeclaration>
             {
@@ -165,6 +168,8 @@ namespace Sitrep.Host.IntegrationTests
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
+            host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
+            host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
 
             host.AddSampler(new VesselEpochSampler(host));
 

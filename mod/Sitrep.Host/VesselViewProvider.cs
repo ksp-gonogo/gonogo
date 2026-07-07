@@ -70,12 +70,17 @@ namespace Sitrep.Host
         public const string StructureTopic = "vessel.structure";
         public const string WarpTopic = "time.warp";
 
+        // ---- M3 R3 capture-adds ----
+        public const string DockTopic = "vessel.dock";
+        public const string SurfaceTopic = "vessel.surface";
+
         /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselExtension"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
+            DockTopic, SurfaceTopic,
         };
 
         // ----------------------------------------------------------------
@@ -602,6 +607,12 @@ namespace Sitrep.Host
 
                     nodes.Add(new ManeuverNode
                     {
+                        // Empty string only for a pre-M3-R3 recording that
+                        // never captured an id -- see ManeuverNode.Id's doc
+                        // comment. A live capture always has one (KspHost
+                        // assigns it via the shared ReferenceIdRegistry
+                        // before this raw dict is ever built).
+                        Id = GetString(node, "id") ?? "",
                         Ut = ut.Value,
                         DvRadial = GetDouble(node, "dvRadial"),
                         DvNormal = GetDouble(node, "dvNormal"),
@@ -651,16 +662,97 @@ namespace Sitrep.Host
                 orbit = MapOrbit(rawOrbit, vesselId, snapshot!);
             }
 
+            var kind = ClassifyTargetKind(GetString(target, "type"));
+
+            // M3 R3: the target's OWN stable id, closing the §6.4 round-trip
+            // gap -- see VesselTarget.VesselId/BodyIndex's doc comments.
+            // Only ever one of the two is populated, mirroring SetTargetArgs'
+            // own Kind-discriminated shape.
+            string? targetVesselId = null;
+            int? targetBodyIndex = null;
+            if (kind == TargetKind.Vessel)
+            {
+                targetVesselId = GetString(target, "targetVesselId");
+            }
+            else if (kind == TargetKind.Body)
+            {
+                var bodyName = GetString(target, "name");
+                if (bodyName != null)
+                {
+                    targetBodyIndex = ResolveBodyIndex(snapshot!, bodyName);
+                }
+            }
+
             return new VesselTarget
             {
                 Name = GetString(target, "name") ?? "",
-                Kind = ClassifyTargetKind(GetString(target, "type")),
+                Kind = kind,
+                VesselId = targetVesselId,
+                BodyIndex = targetBodyIndex,
                 // Null only when the transform data needed to compute it
                 // wasn't available this tick -- see Vec3 in the class doc
                 // comment (one canonical shape everywhere -- kills V-8).
                 RelativePosition = GetVec3(target, "relativePosition"),
                 RelativeVelocity = relativeVelocity,
                 Orbit = orbit,
+                Meta = BuildMeta(vesselId),
+            };
+        }
+
+        /// <summary>The <c>vessel.dock</c> channel — see <see cref="DockAlignment"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildDock</c> omitted the raw group (no target, target isn't a docking port, or the active vessel has no free port).</summary>
+        public static DockAlignment? BuildDock(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "dock", out var dock))
+            {
+                return null;
+            }
+
+            var relativePosition = GetVec3(dock, "relativePosition");
+            var relativeVelocity = GetVec3(dock, "relativeVelocity");
+            var distance = GetDouble(dock, "distance");
+            if (relativePosition == null || relativeVelocity == null || !distance.HasValue)
+            {
+                // A partial dock record is worse than none -- same "all
+                // required fields or the whole record is absent" rule as
+                // vessel.orbit/flight.
+                return null;
+            }
+
+            return new DockAlignment
+            {
+                RelativePosition = relativePosition,
+                RelativeVelocity = relativeVelocity,
+                Distance = distance.Value,
+                ForwardDot = GetDouble(dock, "forwardDot"),
+                Meta = BuildMeta(vesselId),
+            };
+        }
+
+        /// <summary>The <c>vessel.surface</c> channel — see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet, or the vessel is orbiting/escaping -- not near any surface).</summary>
+        public static VesselSurface? BuildSurface(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "surface", out var surface))
+            {
+                return null;
+            }
+
+            return new VesselSurface
+            {
+                Biome = GetString(surface, "biome"),
+                LandedAt = GetString(surface, "landedAt"),
+                HeightFromTerrain = GetDouble(surface, "heightFromTerrain"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -818,6 +910,12 @@ namespace Sitrep.Host
         public static object? BuildWarpWire(KspSnapshot? snapshot) =>
             BuildWarp(snapshot) is { } warp ? ToWire(warp) : null;
 
+        public static object? BuildDockWire(KspSnapshot? snapshot) =>
+            BuildDock(snapshot) is { } dock ? ToWire(dock) : null;
+
+        public static object? BuildSurfaceWire(KspSnapshot? snapshot) =>
+            BuildSurface(snapshot) is { } surface ? ToWire(surface) : null;
+
         private static Dictionary<string, object?> ToWire(VesselIdentity id) => new Dictionary<string, object?>
         {
             ["vesselId"] = id.VesselId,
@@ -956,6 +1054,7 @@ namespace Sitrep.Host
 
         private static Dictionary<string, object?> ToWire(ManeuverNode node) => new Dictionary<string, object?>
         {
+            ["id"] = node.Id,
             ["ut"] = node.Ut,
             ["dvRadial"] = node.DvRadial,
             ["dvNormal"] = node.DvNormal,
@@ -967,10 +1066,29 @@ namespace Sitrep.Host
         {
             ["name"] = target.Name,
             ["kind"] = (int)target.Kind,
+            ["vesselId"] = target.VesselId,
+            ["bodyIndex"] = target.BodyIndex,
             ["relativePosition"] = target.RelativePosition != null ? ToWire(target.RelativePosition) : null,
             ["relativeVelocity"] = ToWire(target.RelativeVelocity),
             ["orbit"] = target.Orbit != null ? ToWire(target.Orbit) : null,
             ["meta"] = ToWire(target.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(DockAlignment dock) => new Dictionary<string, object?>
+        {
+            ["relativePosition"] = ToWire(dock.RelativePosition),
+            ["relativeVelocity"] = ToWire(dock.RelativeVelocity),
+            ["distance"] = dock.Distance,
+            ["forwardDot"] = dock.ForwardDot,
+            ["meta"] = ToWire(dock.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselSurface surface) => new Dictionary<string, object?>
+        {
+            ["biome"] = surface.Biome,
+            ["landedAt"] = surface.LandedAt,
+            ["heightFromTerrain"] = surface.HeightFromTerrain,
+            ["meta"] = ToWire(surface.Meta),
         };
 
         private static Dictionary<string, object?> ToWire(VesselCrew crew) => new Dictionary<string, object?>
@@ -1095,49 +1213,12 @@ namespace Sitrep.Host
         /// list is absent or the name doesn't match any entry (never a
         /// sentinel index like -1).
         /// </summary>
-        private static int? ResolveBodyIndex(KspSnapshot snapshot, string bodyName)
-        {
-            if (!snapshot.Values.TryGetValue("bodies", out var rawBodies) || rawBodies is not IEnumerable<object?> list)
-            {
-                return null;
-            }
+        private static int? ResolveBodyIndex(KspSnapshot snapshot, string bodyName) =>
+            SharedMappers.ResolveBodyIndex(snapshot, bodyName);
 
-            foreach (var rawEntry in list)
-            {
-                if (rawEntry is IDictionary<string, object?> body && GetString(body, "name") == bodyName)
-                {
-                    var index = GetInt(body, "index");
-                    if (index.HasValue)
-                    {
-                        return index.Value;
-                    }
-                }
-            }
-            return null;
-        }
+        private static Situation ParseSituation(string? raw) => SharedMappers.ParseSituation(raw);
 
-        private static Situation ParseSituation(string? raw)
-        {
-            return raw switch
-            {
-                "LANDED" => Situation.Landed,
-                "SPLASHED" => Situation.Splashed,
-                "PRELAUNCH" => Situation.PreLaunch,
-                "ORBITING" => Situation.Orbiting,
-                "ESCAPING" => Situation.Escaping,
-                "FLYING" => Situation.Flying,
-                "SUB_ORBITAL" => Situation.SubOrbital,
-                "DOCKED" => Situation.Docked,
-                _ => Situation.Unknown,
-            };
-        }
-
-        private static VesselType ParseVesselType(string? raw)
-        {
-            return raw != null && Enum.TryParse<VesselType>(raw, ignoreCase: true, out var parsed)
-                ? parsed
-                : VesselType.Unknown;
-        }
+        private static VesselType ParseVesselType(string? raw) => SharedMappers.ParseVesselType(raw);
 
         private static TransitionType ParseTransitionType(string? raw)
         {

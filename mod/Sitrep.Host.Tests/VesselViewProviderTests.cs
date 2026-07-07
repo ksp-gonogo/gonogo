@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
@@ -869,6 +870,63 @@ namespace Sitrep.Host.Tests
             Assert.Empty(maneuver!.Nodes);
         }
 
+        // ---- M3 R3: maneuver-node stable id ----
+
+        [Fact]
+        public void BuildManeuverMapsTheRawIdFieldOntoTheTypedNode()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["id"] = "node-abc-123", ["ut"] = 12345.0 },
+                });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            var node = Assert.Single(maneuver!.Nodes);
+            Assert.Equal("node-abc-123", node.Id);
+        }
+
+        [Fact]
+        public void BuildManeuverDistinguishesTwoNodesByIdEvenWithIdenticalDv()
+        {
+            // The whole point of a stable id is telling nodes apart when
+            // everything else (Ut aside) is the same -- proves the mapper
+            // doesn't collapse/dedupe on any other field.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["id"] = "node-1", ["ut"] = 100.0, ["dvPrograde"] = 50.0 },
+                    new Dictionary<string, object?> { ["id"] = "node-2", ["ut"] = 200.0, ["dvPrograde"] = 50.0 },
+                });
+
+            var maneuver = VesselViewProvider.BuildManeuver(snapshot);
+
+            Assert.Equal(2, maneuver!.Nodes.Count);
+            Assert.Equal(new[] { "node-1", "node-2" }, maneuver.Nodes.Select(n => n.Id));
+        }
+
+        [Fact]
+        public void BuildManeuverDefaultsIdToEmptyStringForAPreExistingRecordingWithNoIdField()
+        {
+            // A recording captured before this field existed simply has no
+            // "id" key in its raw node dict -- must not throw, and must not
+            // fabricate a fake id; "" is the documented pre-M3-R3 sentinel
+            // (ManeuverNode.Id's doc comment), distinguishable from any real
+            // GUID-shaped id a live capture always assigns.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["ut"] = 12345.0 },
+                });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.Equal("", node.Id);
+        }
+
         // ---- vessel.target ----
 
         [Fact]
@@ -956,6 +1014,171 @@ namespace Sitrep.Host.Tests
             var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
 
             Assert.Null(VesselViewProvider.BuildTarget(snapshot));
+        }
+
+        // ---- M3 R3: target's own stable id ----
+
+        [Fact]
+        public void BuildTargetMapsVesselIdOnlyForAVesselKindTarget()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Munar Relay",
+                    ["type"] = "Relay",
+                    ["targetVesselId"] = "22222222-3333-4444-5555-666666666666",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+
+            var target = VesselViewProvider.BuildTarget(snapshot)!;
+
+            Assert.Equal(TargetKind.Vessel, target.Kind);
+            Assert.Equal("22222222-3333-4444-5555-666666666666", target.VesselId);
+            Assert.Null(target.BodyIndex);
+        }
+
+        [Fact]
+        public void BuildTargetResolvesBodyIndexOnlyForABodyKindTarget()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Mun",
+                    ["type"] = "CelestialBody",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                },
+                bodies: KerbinAndMun());
+
+            var target = VesselViewProvider.BuildTarget(snapshot)!;
+
+            Assert.Equal(TargetKind.Body, target.Kind);
+            Assert.Null(target.VesselId);
+            Assert.Equal(2, target.BodyIndex); // "Mun" -> index 2 per KerbinAndMun()
+        }
+
+        [Fact]
+        public void BuildTargetLeavesBothIdFieldsNullForAnOtherKindTarget()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                target: new Dictionary<string, object?>
+                {
+                    ["name"] = "Docking Port",
+                    ["type"] = "ModuleDockingNode",
+                    ["targetVesselId"] = "should-be-ignored-for-non-vessel-kind",
+                    ["relativeVelocity"] = new[] { 0.0, 0.0, 0.0 },
+                });
+
+            var target = VesselViewProvider.BuildTarget(snapshot)!;
+
+            Assert.Equal(TargetKind.Other, target.Kind);
+            Assert.Null(target.VesselId);
+            Assert.Null(target.BodyIndex);
+        }
+
+        // ---- vessel.dock ----
+
+        [Fact]
+        public void BuildDockMapsRelativeStateAndForwardDot()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                dock: new Dictionary<string, object?>
+                {
+                    ["relativePosition"] = new[] { 1.0, 2.0, 3.0 },
+                    ["relativeVelocity"] = new[] { 0.1, 0.2, 0.3 },
+                    ["distance"] = 3.74,
+                    ["forwardDot"] = -0.98,
+                });
+
+            var dock = VesselViewProvider.BuildDock(snapshot);
+
+            Assert.NotNull(dock);
+            Assert.Equal(1.0, dock!.RelativePosition.X);
+            Assert.Equal(0.2, dock.RelativeVelocity.Y);
+            Assert.Equal(3.74, dock.Distance);
+            Assert.Equal(-0.98, dock.ForwardDot);
+        }
+
+        [Fact]
+        public void BuildDockReturnsNullWhenNotDockingRelevantTheCommonCase()
+        {
+            // KspHost.BuildDock omits the "dock" group entirely whenever
+            // nothing is targeted / the target isn't a port / this vessel
+            // has no free port -- the group is simply absent, same
+            // whole-record-absent convention as vessel.target.
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildDock(snapshot));
+        }
+
+        [Fact]
+        public void BuildDockReturnsNullOnAnyMissingRequiredField()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                dock: new Dictionary<string, object?>
+                {
+                    ["relativePosition"] = new[] { 1.0, 2.0, 3.0 },
+                    // relativeVelocity/distance missing
+                });
+
+            Assert.Null(VesselViewProvider.BuildDock(snapshot));
+        }
+
+        // ---- vessel.surface ----
+
+        [Fact]
+        public void BuildSurfaceMapsBiomeLandedAtAndHeightFromTerrain()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                surface: new Dictionary<string, object?>
+                {
+                    ["biome"] = "Highlands",
+                    ["landedAt"] = "KSC_LaunchPad",
+                    ["heightFromTerrain"] = 1.25,
+                });
+
+            var surface = VesselViewProvider.BuildSurface(snapshot);
+
+            Assert.NotNull(surface);
+            Assert.Equal("Highlands", surface!.Biome);
+            Assert.Equal("KSC_LaunchPad", surface.LandedAt);
+            Assert.Equal(1.25, surface.HeightFromTerrain);
+        }
+
+        [Fact]
+        public void BuildSurfaceLeavesFieldsIndividuallyNullRatherThanDroppingTheWholeRecord()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                surface: new Dictionary<string, object?>
+                {
+                    ["heightFromTerrain"] = 500.0,
+                    // biome/landedAt absent -- e.g. a body with no biome map
+                    // or a wild landing spot with no named site.
+                });
+
+            var surface = VesselViewProvider.BuildSurface(snapshot);
+
+            Assert.NotNull(surface);
+            Assert.Null(surface!.Biome);
+            Assert.Null(surface.LandedAt);
+            Assert.Equal(500.0, surface.HeightFromTerrain);
+        }
+
+        [Fact]
+        public void BuildSurfaceReturnsNullWhenGroupIsAbsentEgOrbitingOrEscaping()
+        {
+            // KspHost.BuildSurface omits the "surface" group entirely while
+            // ORBITING/ESCAPING -- never a stale AGL/biome reading from deep
+            // space.
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildSurface(snapshot));
         }
 
         // ---- vessel.crew ----
@@ -1311,6 +1534,23 @@ namespace Sitrep.Host.Tests
             {
                 new WarpState { WarpRate = 4.0, WarpRateIndex = 3, WarpMode = WarpMode.High, Paused = false, Meta = meta },
             };
+
+            yield return new object[]
+            {
+                new DockAlignment
+                {
+                    RelativePosition = new Vec3(1, 2, 3),
+                    RelativeVelocity = new Vec3(0.1, 0.2, 0.3),
+                    Distance = 3.74,
+                    ForwardDot = -0.98,
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[]
+            {
+                new VesselSurface { Biome = "Highlands", LandedAt = "KSC_LaunchPad", HeightFromTerrain = 1.25, Meta = meta },
+            };
         }
 
         [Theory]
@@ -1431,7 +1671,9 @@ namespace Sitrep.Host.Tests
             Dictionary<string, object?>? target = null,
             List<object?>? maneuverNodes = null,
             bool maneuverNodesKeyPresent = false,
-            Dictionary<string, object?>? time = null)
+            Dictionary<string, object?>? time = null,
+            Dictionary<string, object?>? dock = null,
+            Dictionary<string, object?>? surface = null)
         {
             var vessel = new Dictionary<string, object?>();
             if (identity != null)
@@ -1481,6 +1723,14 @@ namespace Sitrep.Host.Tests
             if (maneuverNodes != null || maneuverNodesKeyPresent)
             {
                 vessel["maneuverNodes"] = maneuverNodes;
+            }
+            if (dock != null)
+            {
+                vessel["dock"] = dock;
+            }
+            if (surface != null)
+            {
+                vessel["surface"] = surface;
             }
 
             var values = new Dictionary<string, object?> { ["vessel"] = vessel };
