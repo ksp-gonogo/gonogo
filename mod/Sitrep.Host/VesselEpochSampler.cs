@@ -25,6 +25,18 @@ namespace Sitrep.Host
     /// genuine 0→1 subscribe transition already uses internally
     /// (<c>ChannelEmitter.NotifySubscribed</c>) — reused here rather than
     /// inventing a second "unconditional next emission" concept.
+    ///
+    /// Also calls <see cref="IExtensionHost.ResetChannelBirth"/> for the same
+    /// topic set, ALONGSIDE (not instead of) <see cref="IExtensionHost.ForceKeyframe"/>
+    /// — the M2 subject-scoped-birth fix. Without this, the engine's
+    /// per-topic "has this channel ever emitted a real value" birth-guard
+    /// (see <c>ChannelEngine</c>'s <c>_born</c> field) is keyed purely by
+    /// topic, not by (topic, subject): switching to a vessel that has never
+    /// populated a given channel (e.g. no target set) would otherwise
+    /// inherit the PREVIOUS vessel's "born" state for that topic and, since
+    /// <see cref="IExtensionHost.ForceKeyframe"/> makes the very next
+    /// <c>Decide</c> call unconditional, immediately emit a spurious
+    /// tombstone for data the new subject never had in the first place.
     /// </summary>
     public sealed class VesselEpochSampler : ISnapshotSampler
     {
@@ -61,6 +73,7 @@ namespace Sitrep.Host
                 {
                     _host.ForceKeyframe(topic);
                 }
+                _host.ResetChannelBirth(VesselViewProvider.Topics);
             }
 
             if (currentId != null)

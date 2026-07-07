@@ -223,6 +223,33 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix —
+        /// see <c>Sitrep.Host.ChannelEngine</c>'s <c>_born</c> field and its
+        /// rewind branch in <c>ProcessTick</c>. Whether <paramref name="topic"/>
+        /// currently has a surviving sample (post-prune, i.e. call this
+        /// AFTER <see cref="ResetTimeline"/> has already dropped everything
+        /// ahead of the new timeline) whose <c>Value</c> is non-null.
+        ///
+        /// This is what lets <c>ChannelEngine</c> recompute its per-topic
+        /// "has this channel ever emitted a real value" birth-guard directly
+        /// from ground truth (the archive) rather than blanket-clearing it
+        /// on every rewind: a topic whose surviving tail is a real value
+        /// stays "born" so the NEXT null mapper result still flows into
+        /// <c>Decide</c> and corrects the stale archived value with a
+        /// tombstone; a topic with no surviving sample, or whose surviving
+        /// tail is ALREADY a tombstone (null), is NOT born, so a null mapper
+        /// result keeps being skipped rather than emitting a spurious
+        /// tombstone for a subject that never had this data in the first
+        /// place.
+        /// </summary>
+        public bool HasNonNullTail(string topic)
+        {
+            return _samplesByTopic.TryGetValue(topic, out var list)
+                && list.Count > 0
+                && list[list.Count - 1].Value != null;
+        }
+
+        /// <summary>
         /// Capture the FULL archive state — every topic's samples plus every
         /// (topic, vantage) cursor's clamped scene — as a plain <see cref="ArchiveState"/>
         /// POCO (BCL types only; no serialization happens here). Turning this

@@ -176,6 +176,24 @@ namespace Sitrep.Host
         /// synchronization.
         /// </summary>
         void ForceKeyframe(string topic);
+
+        /// <summary>
+        /// Clears the "has this channel ever emitted a non-null value"
+        /// birth-guard (see <c>ChannelEngine</c>'s <c>_born</c> field doc
+        /// comment) for EXACTLY the given <paramref name="topics"/>, WITHOUT
+        /// touching the emitter's force-keyframe state (compare
+        /// <see cref="ForceKeyframe"/>, which this is meant to be called
+        /// ALONGSIDE, not instead of). The M2 subject-scoped-birth seam: a
+        /// subject switch (see <see cref="VesselEpochSampler"/>) calls this
+        /// for every topic it owns so a channel the NEW subject has never
+        /// populated goes back to "not yet a subject" — rather than
+        /// inheriting the PREVIOUS subject's birth state and emitting a
+        /// spurious tombstone for data the new subject simply never had.
+        /// MUST be called only from within a registered
+        /// <see cref="ISnapshotSampler.Sample"/> or a command handler — same
+        /// Courier-thread-only rule as <see cref="ForceKeyframe"/>.
+        /// </summary>
+        void ResetChannelBirth(IEnumerable<string> topics);
     }
 
     /// <summary>

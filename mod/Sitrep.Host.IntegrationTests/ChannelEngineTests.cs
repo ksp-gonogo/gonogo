@@ -1724,5 +1724,348 @@ namespace Sitrep.Host.IntegrationTests
                 return new KspSnapshot { Values = new Dictionary<string, object?> { ["t"] = t } };
             }
         }
+
+        // ----------------------------------------------------------------
+        // M2 Task 1 fix — adversarial-review defects A (HIGH, rewind
+        // archive-derived birth), B (command-response epoch), C
+        // (reset-event + subscribe-ack epoch), and the subject-scoped-birth
+        // PLAUSIBLE (defect D). See local_docs/telemetry-mod/m2-sdk-delay-design.md
+        // §4.2 and .superpowers/sdd/m2-task1-fix-report.md.
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Defect A (HIGH) — reproduces the adversarial's exact scenario: a
+        /// channel goes born + archived with a real value, its subscriber
+        /// unsubscribes (so the mapper genuinely stops being sampled), a
+        /// quickload rewind lands AT OR AFTER that real value's UT (so it
+        /// SURVIVES <c>Archive.ResetTimeline</c>'s prune), a NEW subscriber's
+        /// catch-up then serves that stale real value, and the mapper
+        /// returns null on every tick from there on (a genuine, permanent
+        /// absence post-rewind).
+        ///
+        /// Pre-fix, <c>ChannelEngine.ProcessTick</c>'s rewind branch
+        /// unconditionally cleared <c>_born</c>, so this topic went
+        /// "unborn" and the null mapper result was skipped BEFORE
+        /// <c>ChannelEmitter.Decide</c> was ever called again — no
+        /// corrective tombstone, ever; the stale real value stays the
+        /// freshest archived thing forever, served Fresh to every future
+        /// catch-up. Post-fix, birth is recomputed from the archive's own
+        /// post-prune tail: since the real value survived, the topic stays
+        /// born, so the very next null mapper result flows into Decide
+        /// (forced-keyframe by the rewind's own <c>ChannelEmitter.Reset</c>)
+        /// and emits a corrective tombstone.
+        /// </summary>
+        [Fact]
+        public async Task RewindRecomputesBirthFromTheArchiveTailSoAStaleValueGetsCorrectedByATombstoneInsteadOfGhostingForever()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+
+                // "Mun"@5 in the adversarial's own scenario language: a real
+                // value, born + archived + delivered.
+                engine.TickAndWait(5.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(1.0, Convert.ToDouble(real.Payload));
+
+                // Unsubscribe: from here on the channel loop skips this
+                // topic entirely (SubscriptionRegistry gate) -- the mapper
+                // genuinely stops being sampled, so even though (per the
+                // scenario) the underlying value gets cleared from here on,
+                // it's never observed -- the archive's tail stays pinned at
+                // the real value 1.0.
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = TombstoneTestExtension.Topic }));
+                var unsubDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                while (engine.SubscriberCountFor(TombstoneTestExtension.Topic) != 0 && DateTime.UtcNow < unsubDeadline)
+                {
+                    await Task.Delay(25);
+                }
+                Assert.Equal(0, engine.SubscriberCountFor(TombstoneTestExtension.Topic));
+
+                // Advance the clock forward (still unsubscribed -- the
+                // value doesn't matter, the channel loop never reaches the
+                // mapper while nobody is subscribed).
+                engine.TickAndWait(10.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                // THE QUICKLOAD: rewind to UT 7 -- still >= 5, so the
+                // archived "Mun"@5 sample SURVIVES Archive.ResetTimeline's
+                // ValidAt > ut prune.
+                engine.TickAndWait(7.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                // Re-subscribe post-rewind: a brand-new subscriber's
+                // synchronous catch-up reads straight from the archive.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestExtension.Topic }));
+                var catchUp = await ReceiveStreamDataAsync(late, Timeout);
+                // Still the stale "Mun" -- expected (that's the ghost this
+                // fix corrects going FORWARD, not retroactively); not what's
+                // under test here.
+                Assert.Equal(1.0, Convert.ToDouble(catchUp.Payload));
+
+                // The mapper returns null on EVERY tick from here on
+                // (genuinely absent, post-rewind). This must now produce a
+                // corrective tombstone instead of silent, permanent ghosting.
+                engine.TickAndWait(8.0, TombstoneTestExtension.Snapshot(null), Timeout);
+
+                var corrected = await ReceiveStreamDataAsync(late, Timeout);
+                Assert.Null(corrected.Payload);
+                Assert.Equal(Staleness.Fresh, corrected.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Defect D (the PLAUSIBLE closed alongside defect A) — the
+        /// engine-level end-to-end proof of the subject-scoped-birth fix
+        /// (see <see cref="Sitrep.Host.Tests.VesselEpochSamplerTests.
+        /// SwitchingToADifferentVesselAlsoResetsChannelBirthForEveryVesselTopic"/>
+        /// for the isolated sampler-only unit test of the same fix). Uses
+        /// the REAL <see cref="TestVesselExtension"/> (production manifest +
+        /// mappers) and the REAL <see cref="VesselEpochSampler"/> -- not a
+        /// synthetic stand-in -- since the defect is specifically about how
+        /// those two integrate: a vessel switch that force-keyframes every
+        /// vessel.* topic must ALSO reset per-topic birth, or the forced
+        /// (unconditional) next Decide call for a topic the new vessel never
+        /// populated emits a spurious tombstone the instant the switch
+        /// happens.
+        /// </summary>
+        [Fact]
+        public async Task SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new TestVesselExtension());
+            engine.Start();
+            try
+            {
+                const string vesselA = "aaaaaaaa-0000-0000-0000-000000000000";
+                const string vesselB = "bbbbbbbb-0000-0000-0000-000000000000";
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, VesselViewProvider.TargetTopic, Timeout);
+
+                // Vessel A has a target -- vessel.target is born (and, being
+                // the very first observation, VesselEpochSampler does not
+                // yet treat this as a "switch" -- see its own doc comment).
+                engine.TickAndWait(0.0, VesselSnapshotForTargetSwitchTest(vesselA, hasTarget: true), Timeout);
+                var real = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.NotNull(real.Payload);
+                Assert.Equal(1, engine.ChannelCounters(VesselViewProvider.TargetTopic).Emitted);
+
+                // Switch to vessel B, which has NO target. VesselEpochSampler
+                // detects the guid change and force-keyframes every
+                // vessel.* topic -- pre-fix, _born still (wrongly)
+                // remembered vessel A's target as "born" (birth was keyed
+                // purely by topic, not by (topic, subject)), so the forced
+                // keyframe's unconditional next Decide call emitted a
+                // SPURIOUS tombstone for data vessel B never had.
+                engine.TickAndWait(1.0, VesselSnapshotForTargetSwitchTest(vesselB, hasTarget: false), Timeout);
+
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+                Assert.Equal(1, engine.ChannelCounters(VesselViewProvider.TargetTopic).Emitted);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot VesselSnapshotForTargetSwitchTest(string vesselId, bool hasTarget)
+        {
+            var vessel = new Dictionary<string, object?>
+            {
+                ["identity"] = new Dictionary<string, object?> { ["id"] = vesselId },
+            };
+            if (hasTarget)
+            {
+                vessel["target"] = new Dictionary<string, object?>
+                {
+                    ["name"] = "Mun",
+                    ["type"] = "CelestialBody",
+                    ["relativeVelocity"] = new[] { 1.0, 2.0, 3.0 },
+                };
+            }
+            return new KspSnapshot { Values = new Dictionary<string, object?> { ["vessel"] = vessel } };
+        }
+
+        /// <summary>
+        /// Defect B — the wire <c>CommandResponse</c>'s <c>Meta.TimelineEpoch</c>
+        /// was hand-rolled in <c>ChannelEngine.OnMessageReceived</c> and
+        /// never stamped at all (always the wire default, 0), even though
+        /// <c>ProcessDispatchCommand</c>'s delayed path throws away the
+        /// Courier's own response <c>Meta</c> (which DOES carry the correct
+        /// epoch — see <c>Courier.CommandResponseFor</c>) by forwarding only
+        /// <c>response.Result</c>. Dispatches a DELAYED command AFTER a
+        /// rewind (so the current epoch is 1, not 0) via the real socket
+        /// path (not the internal <see cref="ChannelEngine.DispatchCommand"/>
+        /// entry point) so this proves the fix from where a real client's
+        /// command response actually gets built.
+        /// </summary>
+        [Fact]
+        public async Task DelayedCommandResponseAfterARewindCarriesTheCurrentTimelineEpochNotZero()
+        {
+            const double delaySeconds = 2.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
+            engine.RegisterExtension(new EpochWireTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, EpochWireTestExtension.RawTopic, Timeout);
+
+                // Establish a peak UT, then rewind -- same rewind mechanics
+                // as ServerClockRewindResetsCourierAndResumesDeliveryWithoutStalling
+                // (ReplayToWebSocketEndToEndTests). Bumps Courier.CurrentEpoch
+                // from 0 to 1.
+                engine.TickAndWait(5.0, EpochWireTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+                var reset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
+                Assert.Equal("timeline-reset", reset.Name);
+
+                // Dispatch the DELAYED echo command, THEN a non-delayed sync
+                // command on the SAME connection and wait for the sync
+                // command's response before advancing the clock -- this
+                // guarantees the echo command's DispatchCommandJob has
+                // already been enqueued (and, since jobs are FIFO, will be
+                // processed before) the Tick job below, so the echo command's
+                // dispatch UT is genuinely 2.0 (post-rewind), not racing
+                // ahead to whatever UT the next tick advances to.
+                await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r-echo",
+                    Command = EpochWireTestExtension.EchoCommand,
+                    Args = "hi",
+                    SentAt = 2.0,
+                }));
+                await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r-sync",
+                    Command = EpochWireTestExtension.SyncCommand,
+                    Args = null,
+                    SentAt = 2.0,
+                }));
+                var syncResponse = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+                Assert.Equal("r-sync", syncResponse.RequestId);
+
+                // Round trip = 2 * delaySeconds = 4 UT, dispatched at UT 2 ->
+                // confirms at UT 6.
+                engine.TickAndWait(6.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+
+                var echoResponse = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+                Assert.Equal("r-echo", echoResponse.RequestId);
+                Assert.Equal("echo:hi", echoResponse.Result);
+                Assert.Equal(1, echoResponse.Meta.TimelineEpoch);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Defect C — neither the <c>timeline-reset</c> <see cref="EventMsg"/>
+        /// <c>BroadcastTimelineReset</c> sends nor the subscribe-ack
+        /// <see cref="EventMsg"/> <c>ProcessSubscribe</c> sends ever stamped
+        /// <c>Meta.TimelineEpoch</c> -- every rewind announced itself as
+        /// epoch 0 regardless of how many rewinds had actually happened, and
+        /// a subscribe ack never reflected the current epoch either. Drives
+        /// TWO rewinds and asserts the reset events carry 1 then 2, then
+        /// subscribes a NEW client and asserts its ack carries 2.
+        /// </summary>
+        [Fact]
+        public async Task TimelineResetEventsAndSubscribeAckCarryTheCurrentTimelineEpoch()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterExtension(new EpochWireTestExtension());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var firstAck = await SubscribeAsync(client, EpochWireTestExtension.RawTopic, Timeout);
+                Assert.Equal(0, firstAck.Meta.TimelineEpoch);
+
+                // First rewind: epoch 0 -> 1.
+                engine.TickAndWait(5.0, EpochWireTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+                var firstReset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
+                Assert.Equal("timeline-reset", firstReset.Name);
+                Assert.Equal(1, firstReset.Meta.TimelineEpoch);
+
+                // Second rewind: epoch 1 -> 2.
+                engine.TickAndWait(9.0, EpochWireTestExtension.Snapshot(3.0), Timeout);
+                engine.TickAndWait(3.0, EpochWireTestExtension.Snapshot(4.0), Timeout);
+                var secondReset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
+                Assert.Equal("timeline-reset", secondReset.Name);
+                Assert.Equal(2, secondReset.Meta.TimelineEpoch);
+
+                // A brand-new subscriber's ack, post-both-rewinds, must
+                // reflect the CURRENT epoch (2), not 0.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var lateAck = await SubscribeAsync(late, EpochWireTestExtension.RawTopic, Timeout);
+                Assert.Equal(2, lateAck.Meta.TimelineEpoch);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A trivial raw-passthrough channel (same shape as
+        /// <see cref="TestSystemExtension.RawTopic"/>, kept separate so
+        /// these epoch-focused tests aren't coupled to that extension's
+        /// unrelated <c>system.bodies</c>/rewind-stall scenarios) plus two
+        /// commands for defect B's epoch-on-command-response proof: a
+        /// delayed one (rides the Courier's light-time round trip) and a
+        /// non-delayed one (used purely as an ordering barrier -- see
+        /// <see cref="DelayedCommandResponseAfterARewindCarriesTheCurrentTimelineEpochNotZero"/>'s
+        /// doc comment).
+        /// </summary>
+        private sealed class EpochWireTestExtension : ISitrepExtension
+        {
+            public const string RawTopic = "test.epoch-raw";
+            public const string EchoCommand = "test.epoch-echo";
+            public const string SyncCommand = "test.epoch-sync";
+
+            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            {
+                Id = "test-epoch-wire",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = RawTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = EchoCommand, Delayed = true },
+                    new CommandDeclaration { Command = SyncCommand, Delayed = false },
+                },
+            };
+
+            public void Register(IExtensionHost host)
+            {
+                host.AddChannelSource(RawTopic, s => s != null && s.Values.TryGetValue("v", out var v) ? v : null);
+                host.AddCommandHandler<string, string>(EchoCommand, args => "echo:" + args);
+                host.AddCommandHandler<object?, string>(SyncCommand, _ => "sync-ack");
+            }
+
+            public static KspSnapshot Snapshot(object? v)
+            {
+                return new KspSnapshot { Values = new Dictionary<string, object?> { ["v"] = v } };
+            }
+        }
     }
 }

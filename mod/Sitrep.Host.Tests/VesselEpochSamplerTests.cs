@@ -90,6 +90,37 @@ namespace Sitrep.Host.Tests
             Assert.Empty(forced);
         }
 
+        /// <summary>
+        /// M2 subject-scoped-birth fix (the PLAUSIBLE finding closed
+        /// alongside the rewind archive-derived-birth defect): a genuine
+        /// vessel switch must ALSO reset the engine's per-topic birth guard
+        /// for every vessel.* topic -- not just force a keyframe -- so a
+        /// channel the NEW vessel has never populated (e.g. no target set)
+        /// doesn't inherit the PREVIOUS vessel's "born" state and emit a
+        /// spurious tombstone the instant the forced keyframe fires. See
+        /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
+        /// SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone</c>
+        /// for the full engine/wire-level proof of this same fix.
+        /// </summary>
+        [Fact]
+        public void SwitchingToADifferentVesselAlsoResetsChannelBirthForEveryVesselTopic()
+        {
+            var forced = new List<string>();
+            var birthReset = new List<IReadOnlyCollection<string>>();
+            var sampler = new VesselEpochSampler(new FakeExtensionHost(
+                t => forced.Add(t),
+                topics => birthReset.Add(new List<string>(topics))));
+
+            sampler.Sample(SnapshotFor(VesselA));
+            sampler.Sample(SnapshotFor(VesselA)); // same vessel again -- no reset
+            Assert.Empty(birthReset);
+
+            sampler.Sample(SnapshotFor(VesselB)); // switch -- reset alongside the force
+
+            Assert.Single(birthReset);
+            Assert.Equal(VesselViewProvider.Topics, birthReset[0]);
+        }
+
         private static KspSnapshot SnapshotFor(string vesselId) => new KspSnapshot
         {
             Ut = 0.0,

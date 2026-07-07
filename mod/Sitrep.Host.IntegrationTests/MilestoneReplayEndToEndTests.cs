@@ -159,6 +159,18 @@ namespace Sitrep.Host.IntegrationTests
                 $"Meta.timelineEpoch: {pass0.EpochsSeen.Count} distinct epochs observed (delay=0 pass), " +
                 $"{pass5.EpochsSeen.Count} (delay=5 pass) -- matches the 3 rewinds (0/1/2/3).");
 
+            // M2 fix-task defect C: the timeline-reset EventMsg itself must
+            // ALSO carry the epoch it announces (not the wire default, 0,
+            // regardless of how many rewinds already happened) -- 3 rewinds
+            // must show up as epochs {1, 2, 3} across the reset events (0
+            // never appears here: nothing is "reset" INTO epoch 0).
+            var expectedResetEpochs = new HashSet<int> { 1, 2, 3 };
+            Assert.Equal(expectedResetEpochs, pass0.TimelineResetEventEpochsSeen);
+            Assert.Equal(expectedResetEpochs, pass5.TimelineResetEventEpochsSeen);
+            _output.WriteLine(
+                $"timeline-reset Meta.timelineEpoch: {{{string.Join(",", pass0.TimelineResetEventEpochsSeen.OrderBy(x => x))}}} " +
+                "observed across both passes' reset events -- matches the 3 rewinds' epochs 1/2/3, not a flat 0.");
+
             // ================= 4. no-wart scan across the whole session =================
             Assert.Empty(pass0.WartViolations);
             Assert.Empty(pass5.WartViolations);
@@ -266,6 +278,7 @@ namespace Sitrep.Host.IntegrationTests
                             if (evt.Name == "timeline-reset")
                             {
                                 result.TimelineResetEvents++;
+                                result.TimelineResetEventEpochsSeen.Add(evt.Meta.TimelineEpoch);
                                 awaitingGhostCheck[evt.Topic] = true;
                             }
                             continue;
@@ -504,6 +517,7 @@ namespace Sitrep.Host.IntegrationTests
             public int VesselTombstoneCount;
             public int RawFrameCount;
             public readonly HashSet<int> EpochsSeen = new HashSet<int>();
+            public readonly HashSet<int> TimelineResetEventEpochsSeen = new HashSet<int>();
         }
     }
 }

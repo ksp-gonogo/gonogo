@@ -104,21 +104,27 @@ namespace Sitrep.Host
         // other value, and Decide's existing null-vs-value Equals handling
         // (ChannelEmitter.HasChangedBeyondQuantum) already change-gates it
         // correctly -- present->null emits once, null->null is suppressed.
-        // Cleared on a quickload rewind (below) so the abandoned timeline's
-        // birth state never survives onto the new one.
         //
-        // KNOWN GAP (deferred, not required by this task's verify list):
-        // the design doc also calls for resetting this per SUBJECT epoch
-        // (vessel-switch, M1 §6.1) so a newly-switched-to vessel that hasn't
-        // emitted yet doesn't inherit the PREVIOUS vessel's birth state. That
-        // reset can't reuse IExtensionHost.ForceKeyframe as-is: that method
-        // is ALSO the 0->1 subscribe-transition mechanism (see
-        // ChannelEmitter.NotifySubscribed), and clearing birth on every
-        // subscribe would wrongly suppress the tombstone re-keyframe a
-        // reconnecting subscriber is supposed to see for an
-        // already-tombstoned channel. A correct fix needs a NEW, separate
-        // IExtensionHost seam that VesselEpochSampler calls alongside (not
-        // instead of) ForceKeyframe -- left for a follow-up task.
+        // On a quickload rewind, this is RECOMPUTED (not blanket-cleared --
+        // see RecomputeChannelBirthFromArchive) from the archive's own
+        // post-prune tail: a topic whose surviving sample is a real value
+        // stays born (so a subsequent null mapper result still corrects it
+        // with a tombstone instead of leaving the stale value archived
+        // forever as a frozen "ghost" a late subscriber's catch-up would
+        // serve as Fresh); a topic with no surviving sample, or whose
+        // surviving sample is ALREADY a tombstone, is NOT born (so a null
+        // mapper result keeps being skipped, matching pre-rewind behavior).
+        // An unconditionally-cleared _born used to make EVERY channel
+        // unborn on rewind, silently suppressing the corrective tombstone
+        // for exactly the stale-non-null-tail case above.
+        //
+        // Subject-scoped (vessel-switch) resets are a SEPARATE, narrower
+        // mechanism: see ResetChannelBirth/IExtensionHost.ResetChannelBirth,
+        // called by VesselEpochSampler alongside (not instead of)
+        // ForceKeyframe -- clearing birth on every 0->1 subscribe (which
+        // ForceKeyframe alone doubles as) would wrongly suppress the
+        // tombstone re-keyframe a reconnecting subscriber is supposed to
+        // see for an already-tombstoned channel.
         private readonly HashSet<string> _born = new HashSet<string>();
 
         private string? _currentRegisteringExtensionId;
@@ -315,6 +321,43 @@ namespace Sitrep.Host
         {
             RequireChannelDeclared(topic, nameof(ForceKeyframe));
             _emitter.NotifySubscribed(topic);
+        }
+
+        // Courier-thread-only (see ForceKeyframe's doc comment -- same
+        // rule): the M2 subject-scoped-birth seam. VesselEpochSampler calls
+        // this ALONGSIDE ForceKeyframe (never instead of it) on a genuine
+        // subject switch, for every topic it owns, so a channel the NEW
+        // subject has never populated goes back to "not yet a subject"
+        // rather than inheriting the PREVIOUS subject's birth state -- see
+        // IExtensionHost.ResetChannelBirth's doc comment for the full
+        // rationale.
+        public void ResetChannelBirth(IEnumerable<string> topics)
+        {
+            foreach (var topic in topics)
+            {
+                _born.Remove(topic);
+            }
+        }
+
+        /// <summary>
+        /// The M2 "archive-derived birth" rewind fix: recomputes <see cref="_born"/>
+        /// from the archive's own post-prune state instead of blanket-clearing
+        /// it (see <see cref="_born"/>'s doc comment). MUST be called AFTER
+        /// <see cref="Courier.ResetTimeline"/> has already dropped every
+        /// sample ahead of the new timeline, so <see cref="Courier.HasNonNullArchiveTail"/>
+        /// reflects what actually SURVIVED the rewind, not the abandoned
+        /// timeline's peak.
+        /// </summary>
+        private void RecomputeChannelBirthFromArchive()
+        {
+            _born.Clear();
+            foreach (var topic in _channelDeclarations.Keys)
+            {
+                if (_courier.HasNonNullArchiveTail(NodeId, topic))
+                {
+                    _born.Add(topic);
+                }
+            }
         }
 
         private void RequireChannelDeclared(string topic, string caller)
@@ -587,7 +630,7 @@ namespace Sitrep.Host
             {
                 _courier.ResetTimeline(tick.Ut);
                 _emitter.Reset(tick.Ut);
-                _born.Clear();
+                RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
             }
 
@@ -900,6 +943,7 @@ namespace Sitrep.Host
                     Quality = Quality.OnRails,
                     Active = true,
                     Staleness = Staleness.Fresh,
+                    TimelineEpoch = _courier.CurrentEpoch,
                 },
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
@@ -948,6 +992,12 @@ namespace Sitrep.Host
                             Quality = Quality.OnRails,
                             Active = true,
                             Staleness = Staleness.Fresh,
+                            // CurrentEpoch was already bumped (ResetTimeline
+                            // increments it FIRST -- see its own doc comment)
+                            // before this broadcast is reached, so this
+                            // announces the NEW timeline's epoch, not the
+                            // abandoned one.
+                            TimelineEpoch = _courier.CurrentEpoch,
                         },
                     };
                     session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(reset)));
@@ -1037,6 +1087,29 @@ namespace Sitrep.Host
                                         Quality = Quality.OnRails,
                                         Active = true,
                                         Staleness = Staleness.Fresh,
+                                        // Defect B fix: this callback runs
+                                        // synchronously, on the Courier
+                                        // thread, at the exact instant the
+                                        // command resolved (either the
+                                        // same job-processing step for a
+                                        // delayed:false command, or the
+                                        // Courier's own ConfirmUt callback
+                                        // for a delayed:true one) -- so
+                                        // _courier.CurrentEpoch read HERE is
+                                        // guaranteed to match whatever epoch
+                                        // was current when the Courier
+                                        // itself resolved this command (a
+                                        // rewind can never race in between:
+                                        // ResetTimeline drops every in-flight
+                                        // PendingCommand, so this callback
+                                        // could not still be about to fire
+                                        // for an abandoned-timeline
+                                        // dispatch). Previously this Meta was
+                                        // hand-rolled here with no epoch at
+                                        // all -- always the wire default (0),
+                                        // even after a rewind had already
+                                        // bumped the Courier forward.
+                                        TimelineEpoch = _courier.CurrentEpoch,
                                     },
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
