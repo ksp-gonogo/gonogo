@@ -18,7 +18,14 @@ export type { CameraFeedConfig } from "./CameraFeed";
 export { CameraFeed } from "./CameraFeed";
 export type { LabelableCamera } from "./cameraLabels";
 export { buildCameraLabeler } from "./cameraLabels";
+export type {
+  DelayClockLike,
+  DelayedPlayoutBufferOptions,
+  StampedFrame,
+} from "./DelayedPlayoutBuffer";
+export { DelayedPlayoutBuffer } from "./DelayedPlayoutBuffer";
 export { useKerbcastCameras } from "./hooks/useKerbcastCameras";
+export type { KerbcastStreamDelayOptions } from "./hooks/useKerbcastStream";
 export { useKerbcastStream } from "./hooks/useKerbcastStream";
 export * from "./KerbcastDataSource";
 export type { CameraLifecycle } from "./lifecycle";
