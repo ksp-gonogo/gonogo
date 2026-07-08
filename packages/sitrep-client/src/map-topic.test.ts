@@ -201,12 +201,41 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "b.rotationAngle[0]")).toBe(true);
   });
 
-  it("returns undefined for sources other than the Telemachus 'data' source — not wired to the new SDK in M2", () => {
-    expect(mapTopic("kos", "kos.compute.ship-map.parts")).toBeUndefined();
+  it("returns undefined for sources still not wired to the new SDK (kerbcast, unknown)", () => {
     expect(mapTopic("kerbcast", "kerbcast.cameras")).toBeUndefined();
+    expect(mapTopic("unknown-source", "anything")).toBeUndefined();
     expect(isKnownTelemachusGap("kos", "kos.compute.ship-map.parts")).toBe(
       false,
     );
+  });
+
+  describe("kos source (U3 kOS slice) — native + compute stream routing", () => {
+    it("maps the static kos.processors push channel to itself", () => {
+      expect(mapTopic("kos", "kos.processors")).toBe("kos.processors");
+    });
+
+    it("identity-maps the dynamic kos.compute.<id>.<field> namespace", () => {
+      expect(mapTopic("kos", "kos.compute.foo.bar")).toBe(
+        "kos.compute.foo.bar",
+      );
+      expect(mapTopic("kos", "kos.compute.ship-map.parts")).toBe(
+        "kos.compute.ship-map.parts",
+      );
+      expect(mapTopic("kos", "kos.compute.kos-processors.processors")).toBe(
+        "kos.compute.kos-processors.processors",
+      );
+    });
+
+    it("does NOT route status sub-topics or command keys through useDataValue", () => {
+      expect(mapTopic("kos", "kos.compute.foo.status")).toBeUndefined();
+      expect(mapTopic("kos", "kos.compute.foo.dispatchNow")).toBeUndefined();
+      expect(mapTopic("kos", "kos.compute.foo.reEnable")).toBeUndefined();
+    });
+
+    it("returns undefined for an unrelated kos key with no stream home", () => {
+      expect(mapTopic("kos", "kos.something.else")).toBeUndefined();
+      expect(mapTopic("kos", "kos.compute.foo")).toBeUndefined();
+    });
   });
 
   it("returns undefined for a totally unrecognized 'data' key rather than pretending it's mapped", () => {

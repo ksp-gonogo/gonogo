@@ -26,13 +26,15 @@
  *    can't route; a direct-topic safety net needs to always return
  *    something sane).
  *
- * Only `sourceId === "data"` (the Telemachus `DataSource`) is covered.
- * `"kos"`/`"kerbcast"`/other sources are deliberately NOT routed yet — their
- * data doesn't exist on the new SDK's wire in M2, so mapping them would
+ * `sourceId === "data"` (the Telemachus `DataSource`) is the main table.
+ * `sourceId === "kos"` is ALSO routed now (U3 kOS slice): the mod publishes
+ * native `kos.processors` push telemetry plus the dynamic
+ * `kos.compute.<id>.<field>` compute namespace, so those topics DO exist on
+ * the wire. `"kerbcast"`/other sources remain deliberately NOT routed — their
+ * data still doesn't exist on the new SDK's wire, so mapping them would
  * silently break working functionality (the shim would call `useStream` on a
  * topic nothing ever publishes, forever `undefined`, instead of the real
- * live `DataSource`). Wiring those sources through `mapTopic` is M3-adjacent
- * work for when they actually get channels.
+ * live `DataSource`).
  */
 
 /** Kinematics → `vessel.state.*` routing (M1 §6.2/§8.2's V-12-prevention
@@ -711,10 +713,32 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
  * path — this function intentionally does NOT identity-fallback (contrast
  * with `redirectKinematicSubtopic` above).
  */
+/**
+ * `kos.compute.<id>.<field>` — the dynamic centralised-compute namespace.
+ * Identity-mapped so a future compute-feed slice reads straight off the
+ * stream; `.status` sub-topics and `.dispatchNow`/`.reEnable` command keys
+ * are deliberately excluded (status has no P1 producer; commands never route
+ * through `useDataValue`).
+ */
+const KOS_COMPUTE_FIELD = /^kos\.compute\.[\w-]+\.[\w-]+$/;
+const KOS_COMPUTE_NON_VALUE =
+  /^kos\.compute\.[\w-]+\.(status|dispatchNow|reEnable)$/;
+
 export function mapTopic(
   dataSourceId: string,
   key: string,
 ): string | undefined {
+  // kOS native + compute streams (U3 mod). Identity maps: the widget-facing
+  // key IS the wire topic. The `@gonogo/core` shim's carried-channels gate +
+  // provider-mounted check still decide whether it actually routes to the
+  // stream or falls back to the legacy telnet "kos" DataSource.
+  if (dataSourceId === "kos") {
+    if (key === "kos.processors") return "kos.processors";
+    if (KOS_COMPUTE_NON_VALUE.test(key)) return undefined;
+    if (KOS_COMPUTE_FIELD.test(key)) return key;
+    return undefined;
+  }
+
   if (dataSourceId !== "data") return undefined;
 
   const clean = TELEMACHUS_CLEAN_HOMES[key];

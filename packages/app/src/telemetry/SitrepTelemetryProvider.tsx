@@ -68,6 +68,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "system.bodies",
   "system.vessels",
   "time.warp",
+  // U3 kOS slice: native push channel for the KosProcessors widget. Static
+  // raw topic, so `isTopicCarried` promotes it by simple set membership. The
+  // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —
+  // those strings aren't known up front and need a prefix/glob extension to
+  // the carried gate (deferred to the compute-feed slice).
+  "kos.processors",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */

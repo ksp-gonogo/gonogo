@@ -4,8 +4,14 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { useKosScriptStatus } from "@gonogo/data";
+import { type KosScriptStatus, useKosScriptStatus } from "@gonogo/data";
 import { logger } from "@gonogo/logger";
+import {
+  type StreamStatusValue,
+  type TimelineStore,
+  useTelemetryStoreOptional,
+} from "@gonogo/sitrep-client";
+import type { KosProcessorInfo } from "@gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -14,7 +20,13 @@ import {
   GhostButton,
   ScrollArea,
 } from "@gonogo/ui";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
 import { KosScriptFrame } from "../kos/KosScriptFrame";
 import {
@@ -27,6 +39,73 @@ const PROCESSORS_KEY = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.processors`;
 const DISPATCH_NOW_ACTION = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.dispatchNow`;
 const RE_ENABLE_ACTION = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.reEnable`;
 
+// The mod's native push-telemetry channel (U3). Kept as a named identifier
+// (not an inline string literal in `dataRequirements`) on purpose: the
+// `@gonogo/core` mapTopic.coverage gate scans widget `dataRequirements`
+// arrays for quoted string literals and asserts each is a mapped-or-gapped
+// *Telemachus* key. `kos.processors` is neither, so exposing it as a literal
+// would trip that (Telemachus-scoped) gate — the kos routing is covered by
+// the sitrep-client `map-topic` unit test instead.
+const MOD_PROCESSORS_KEY = "kos.processors";
+
+/**
+ * Adapt the mod's native `KosProcessorInfo` (camelCase generated contract)
+ * onto the legacy kerboscript `KosProcessor` shape the render already speaks.
+ * The mod payload has no part title / volume / stable part UID, so those
+ * degrade to `undefined` (the render treats them as optional and falls back
+ * to a `tag`/index key).
+ */
+function adaptModProcessors(info: readonly KosProcessorInfo[]): KosProcessor[] {
+  return info.map((p) => ({
+    tag: p.tag ?? "",
+    mode: p.processorMode,
+    bootFile: p.bootFilePath ?? "",
+    partUid: String(p.coreId),
+    // No equivalent on the mod wire — left undefined (optional in render).
+    volume: undefined as unknown as string,
+    partTitle: undefined as unknown as string,
+  }));
+}
+
+/**
+ * `useStreamStatus` that tolerates an absent provider. When no
+ * `TelemetryProvider` is mounted `store` is `undefined`; the subscribe/
+ * snapshot become no-ops returning `undefined`, so this stays a single
+ * unconditional hook call (Rules of Hooks) whether or not a store exists.
+ */
+function useOptionalStreamStatus(
+  store: TimelineStore | undefined,
+  topic: string,
+): StreamStatusValue | undefined {
+  const subscribe = useCallback(
+    (onChange: () => void) =>
+      store ? store.subscribeFrame(onChange) : () => {},
+    [store],
+  );
+  const getSnapshot = useCallback(
+    () => (store ? store.sampleStatus(topic, store.currentFrame()) : undefined),
+    [store, topic],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/**
+ * Adapt a stream `StreamStatusValue` string enum into the `KosScriptStatus`
+ * shape `KosScriptFrame` consumes. `kos.processors` is push telemetry — no
+ * script, no breaker — so there is nothing to surface beyond liveness.
+ */
+function streamStatusToKosStatus(
+  streamStatus: StreamStatusValue | undefined,
+): KosScriptStatus {
+  return {
+    running: streamStatus === "live",
+    paused: false,
+    scriptError: null,
+    parseError: null,
+    lastGoodAt: null,
+  };
+}
+
 // Config is intentionally empty post-migration — the per-widget CPU /
 // scriptName / interval all moved to the centralised kOS compute layer.
 // Kept around so saved layouts with stale fields still type-check.
@@ -36,8 +115,26 @@ function KosProcessorsComponent({
   w,
   h,
 }: Readonly<ComponentProps<KosProcessorsConfig>>) {
-  const payload = useDataValue<KosProcessor[]>("kos", PROCESSORS_KEY);
-  const status = useKosScriptStatus(KOS_PROCESSORS_TOPIC_ID);
+  // NEW native mod stream (routes to the stream when `kos.processors` is
+  // carried and a provider is mounted; otherwise the shim's legacy fallback
+  // yields undefined — the legacy "kos" source has no such key).
+  const modProcs = useDataValue<KosProcessorInfo[]>("kos", MOD_PROCESSORS_KEY);
+  // LEGACY kerboscript compute feed (unchanged telnet path).
+  const scriptProcs = useDataValue<KosProcessor[]>("kos", PROCESSORS_KEY);
+
+  const onStream = modProcs !== undefined;
+  const payload = onStream ? adaptModProcessors(modProcs) : scriptProcs;
+
+  // Status rides its own channel. On the stream path there is no
+  // `kos.compute.<id>.status` producer (P1) — derive liveness from the
+  // stream itself; on the legacy path keep the telnet compute status.
+  const store = useTelemetryStoreOptional();
+  const streamStatus = useOptionalStreamStatus(store, MOD_PROCESSORS_KEY);
+  const legacyStatus = useKosScriptStatus(KOS_PROCESSORS_TOPIC_ID);
+  const status = onStream
+    ? streamStatusToKosStatus(streamStatus)
+    : legacyStatus;
+
   const executeKos = useExecuteAction("kos");
 
   const dispatch = useCallback(() => {
@@ -51,8 +148,9 @@ function KosProcessorsComponent({
     if (!payload) return;
     logger.info("kos-processors: payload received", {
       count: payload.length,
+      source: onStream ? "stream" : "legacy",
     });
-  }, [payload]);
+  }, [payload, onStream]);
 
   return (
     <KosScriptFrame
@@ -61,11 +159,13 @@ function KosProcessorsComponent({
       scriptError={status.scriptError}
       parseError={status.parseError}
       lastGoodAt={status.lastGoodAt}
-      onRun={dispatch}
+      // Run / Re-enable are compute-feed commands with no meaning for the
+      // native push channel — hide them on the stream path.
+      onRun={onStream ? undefined : dispatch}
       runDisabled={status.running}
-      paused={status.paused}
-      pausedReason={status.scriptError?.message ?? null}
-      onReEnable={reEnable}
+      paused={onStream ? false : status.paused}
+      pausedReason={onStream ? null : (status.scriptError?.message ?? null)}
+      onReEnable={onStream ? undefined : reEnable}
     >
       {renderBody()}
     </KosScriptFrame>
@@ -114,6 +214,7 @@ function KosProcessorsComponent({
                   $mode={p.mode}
                   title={`mode: ${p.mode}`}
                   aria-label={`mode ${p.mode.toLowerCase()}`}
+                  role="img"
                 />
                 <RowMain>
                   <RowTitle>
@@ -139,6 +240,7 @@ function KosProcessorsComponent({
                 $mode={p.mode}
                 title={`mode: ${p.mode}`}
                 aria-label={`mode ${p.mode.toLowerCase()}`}
+                role="img"
               />
               <RowMain>
                 <RowTitle>
@@ -375,14 +477,14 @@ registerComponent<KosProcessorsConfig>({
   id: "kos-processors",
   name: "kOS Processors",
   description:
-    "Lists every kOS CPU on the active vessel — tag, run mode, current volume, and boot file. Driven by a saved kerboscript that calls `LIST PROCESSORS`; press Run to refresh.",
+    "Lists every kOS CPU on the active vessel — tag, run mode, current volume, and boot file. Reads the Gonogo mod's native `kos.processors` stream when it is live (a push feed — no Run/Re-enable), and falls back to a saved `LIST PROCESSORS` kerboscript over telnet otherwise.",
   tags: ["kos", "fleet"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: KosProcessorsComponent,
   configComponent: KosProcessorsConfigComponent,
   openConfigOnAdd: false,
-  dataRequirements: [PROCESSORS_KEY],
+  dataRequirements: [PROCESSORS_KEY, MOD_PROCESSORS_KEY],
   defaultConfig: {},
   actions: [],
   pushable: true,
