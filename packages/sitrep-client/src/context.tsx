@@ -299,6 +299,38 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
 }
 
 /**
+ * The nearest `TelemetryProvider`'s **one** `ViewClock` — THE single delay
+ * authority (M2 design §1.2). Every surface that must stay delay-consistent
+ * with telemetry (staleness, predicted-view, and crucially the kerbcast media
+ * `DelayedPlayoutBuffer`, M2 design §5) reads its release/certainty edge off
+ * THIS clock instance, never a second one it constructs itself. A media frame
+ * and a telemetry sample stamped the same UT therefore surface at the same
+ * `confirmedEdgeUt()` crossing — the §0 common-mode property.
+ *
+ * The returned `ViewClock` is structurally the `DelayClockLike` surface
+ * (`confirmedEdgeUt` + `onFrame`) the media buffer depends on, so it can be
+ * handed straight to `DelayedPlayoutBuffer`/`useKerbcastStream` — kerbcast
+ * stays decoupled (it imports no sitrep-client type; the app passes this in).
+ *
+ * Throws if no `TelemetryProvider` is mounted, matching `useTelemetryStore`.
+ */
+export function useViewClock(): ViewClock {
+  return useTelemetryStore().clock;
+}
+
+/**
+ * Non-throwing variant of `useViewClock` — `undefined` when no
+ * `TelemetryProvider` is mounted. The natural call shape for an optional
+ * consumer like a camera widget: it wires delayed playout onto the shared
+ * clock when streaming is live and falls back to strict passthrough (the
+ * `delaySeconds() === 0` case) otherwise, with no hard dependency on a
+ * provider being in the tree.
+ */
+export function useViewClockOptional(): ViewClock | undefined {
+  return useTelemetryStoreOptional()?.clock;
+}
+
+/**
  * Reads the carried-channels allowlist supplied by the nearest
  * `TelemetryProvider` (M3 Wave 0, `./carried-channels.ts`) — throws if no
  * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary

@@ -1,7 +1,12 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
-import { TelemetryProvider, useTelemetryStore } from "./context";
+import {
+  TelemetryProvider,
+  useTelemetryStore,
+  useViewClock,
+  useViewClockOptional,
+} from "./context";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -190,5 +195,93 @@ describe("TelemetryProvider rebuilds its auto-built store when `client` changes"
 
     unsubA();
     unsubB();
+  });
+});
+
+describe("useViewClock exposes the provider's ONE shared ViewClock (single delay authority)", () => {
+  it("returns the same clock instance the auto-built store holds", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    let seenClock: ViewClock | undefined;
+    let seenStore: TimelineStore | undefined;
+    function Probe() {
+      seenStore = useTelemetryStore();
+      seenClock = useViewClock();
+      return null;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    expect(seenClock).toBeInstanceOf(ViewClock);
+    // The hook must hand back the SAME instance the store reads from — not a
+    // second clock. This is the whole single-delay-authority contract.
+    expect(seenClock).toBe(seenStore?.clock);
+  });
+
+  it("hands back one clock shared by two sibling consumers (media + telemetry read the same instance)", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    const seen: ViewClock[] = [];
+    function Probe() {
+      seen.push(useViewClock());
+      return null;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toBe(seen[1]);
+  });
+
+  it("the shared clock satisfies the media DelayClockLike surface (confirmedEdgeUt + onFrame)", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    let clock: ViewClock | undefined;
+    function Probe() {
+      clock = useViewClock();
+      return null;
+    }
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    // Structural check: the exact two members DelayedPlayoutBuffer depends on.
+    expect(typeof clock?.confirmedEdgeUt).toBe("function");
+    expect(typeof clock?.onFrame).toBe("function");
+    const off = clock?.onFrame(() => {});
+    expect(typeof off).toBe("function");
+    off?.();
+  });
+
+  it("useViewClock throws outside a provider; useViewClockOptional returns undefined", () => {
+    // Silence React's error-boundary console noise for the throwing render.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    function ThrowProbe() {
+      useViewClock();
+      return null;
+    }
+    expect(() => render(<ThrowProbe />)).toThrow(
+      /useTelemetryStore must be used within a TelemetryProvider/,
+    );
+    spy.mockRestore();
+
+    let optional: ViewClock | undefined = {} as ViewClock;
+    function OptionalProbe() {
+      optional = useViewClockOptional();
+      return null;
+    }
+    render(<OptionalProbe />);
+    expect(optional).toBeUndefined();
   });
 });

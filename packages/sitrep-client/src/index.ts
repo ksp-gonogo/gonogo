@@ -13,6 +13,8 @@ export {
   useTelemetryClientOptional,
   useTelemetryStore,
   useTelemetryStoreOptional,
+  useViewClock,
+  useViewClockOptional,
 } from "./context";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
