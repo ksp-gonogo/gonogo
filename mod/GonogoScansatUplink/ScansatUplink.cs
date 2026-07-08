@@ -35,9 +35,14 @@ namespace Gonogo.ScansatUplink
     /// (body,type); height/biome once per body visit.
     ///
     /// Known gaps, disclosed not invented away:
-    /// (1) THREADING — the KSP/stock reads run on the Courier thread, not
-    ///     the Unity main thread (see <see cref="Sample"/>'s THREADING note);
-    ///     the proper fix is a main-thread sampler hook, out of scope here.
+    /// (1) THREADING — FIXED (F1): the KSP/stock reads now run on the Unity
+    ///     main thread via the capture-on-main / handle-on-Courier seam
+    ///     (<see cref="IUplinkHost.AddSampledSource"/>) — see
+    ///     <see cref="CaptureOnMain"/>/<see cref="HandleOnCourier"/> and
+    ///     <c>.superpowers/sdd/f1-main-thread-sampler-report.md</c>. (The
+    ///     one remaining Courier-thread KSP read is <c>scansat.scanningVessels</c>'
+    ///     <see cref="BuildScanningVessels"/>, still on the old
+    ///     AddChannelSource path — a separate follow-up.)
     /// (2) No live-KSP validation (no launch/scan capture available).
     /// (3) <c>scansat.anomalies.&lt;body&gt;</c> is still only consumed
     ///     client-side, not yet published here — it needs a SCANanomaly ->
@@ -45,7 +50,7 @@ namespace Gonogo.ScansatUplink
     /// See the report for the full status and follow-ups.
     /// </summary>
     [SitrepUplink("scansat")]
-    public sealed class ScansatUplink : ISitrepUplink, ISnapshotSampler
+    public sealed class ScansatUplink : ISitrepUplink
     {
         public const string AvailableTopic = "scansat.available";
         public const string ScanningVesselsTopic = "scansat.scanningVessels";
@@ -59,20 +64,25 @@ namespace Gonogo.ScansatUplink
         // keyframe-on-change gate (CoveragePlane — R7, spec §2.1/§2.3). One
         // entry per (body,type) this uplink has ever published; a
         // (body,type) whose plane never changes never re-emits after its
-        // first keyframe.
+        // first keyframe. COURIER-thread-owned: read/written only by
+        // HandleOnCourier (via ScanPublications.Compute).
         private readonly Dictionary<string, byte[]> _lastPackedByBodyType = new Dictionary<string, byte[]>();
 
         // "<body>" whose coarse coverage-grid hash last poll (any type's bits)
         // — the cheap body-level gate that avoids re-packing every type's
-        // plane every tick when nothing changed at all.
+        // plane every tick when nothing changed at all. COURIER-thread-owned,
+        // same as _lastPackedByBodyType.
         private readonly Dictionary<string, ulong> _lastHashByBody = new Dictionary<string, ulong>();
 
-        // Bodies whose height/biome grids have already been published.
-        // Height/biome are stock-PQS/BiomeMap derived and near-static
-        // (spec §2.2: "keyframe (near-static)"), so one keyframe per body
-        // visit is the model — re-emitting an identical ~130 KB grid every
-        // tick would be pure waste.
-        private readonly HashSet<string> _heightBiomeEmittedBodies = new HashSet<string>();
+        // Bodies whose (expensive) height/biome grids have already been BUILT
+        // and captured. Height/biome are stock-PQS/BiomeMap derived and
+        // near-static (spec §2.2: "keyframe (near-static)"), so one keyframe
+        // per body visit is the model — rebuilding an identical ~64800-point
+        // grid every tick would be pure waste. MAIN-thread-owned: read/written
+        // only by CaptureOnMain (which is the only place the grids are built),
+        // so the once-per-body decision gates the expensive build itself, not
+        // just the publish.
+        private readonly HashSet<string> _heightBiomeCapturedBodies = new HashSet<string>();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -146,120 +156,122 @@ namespace Gonogo.ScansatUplink
             _heightSource = host.RegisterDynamicNamespace(ScanChannels.HeightPrefix, template);
             _biomeSource = host.RegisterDynamicNamespace(ScanChannels.BiomePrefix, template);
 
-            host.AddSampler(this);
+            // Capture-on-main / handle-on-Courier (see
+            // IUplinkHost.AddSampledSource): EVERY KSP/SCANsat/stock read now
+            // happens in CaptureOnMain, which the engine runs on the Unity
+            // main thread (where KspSnapshot is built); HandleOnCourier does
+            // the hashing/packing/publishing off-thread from the plain
+            // ScanCapture payload alone. This replaces the previous
+            // AddSampler(this) path, whose Sample() read KSP APIs on the
+            // Courier thread (the F1 fix — see
+            // .superpowers/sdd/f1-main-thread-sampler-report.md).
+            host.AddSampledSource(CaptureOnMain, HandleOnCourier);
         }
 
         /// <summary>
-        /// Poll-hash + keyframe-on-change, scoped to the CURRENT active
+        /// MAIN-THREAD capture (see
+        /// <see cref="IUplinkHost.AddSampledSource"/>): the engine runs this on
+        /// the Unity main thread during the sample tick, where every KSP/
+        /// SCANsat/stock read below is safe. Scoped to the CURRENT active
         /// vessel's main body (mirrors <see cref="Sitrep.Host.VesselEpochSampler"/>'s
         /// "active subject" scoping — not a per-tick sweep of every body
-        /// SCANsat ever touched). For a body whose coarse coverage-grid hash
-        /// moved this poll, every client-consumed SCANtype's plane is
-        /// re-packed and, per (body,type), published to
-        /// <c>scansat.coverage.&lt;body&gt;.&lt;typeBit&gt;</c> (the coverage
-        /// PERCENTAGE, a scalar) and <c>scansat.mask.&lt;body&gt;.&lt;typeBit&gt;</c>
-        /// (the packed <c>SCANCoverageBitmap</c>) — ONLY when THAT type's
-        /// plane actually changed. Height/biome are published once per body
-        /// visit (near-static, stock-sourced).
+        /// SCANsat ever touched). Reads the coverage grid + per-type coverage
+        /// percentages, and — ONCE per body visit — builds the (expensive)
+        /// stock PQS height and BiomeMap grids. Everything is packed into a
+        /// plain <see cref="ScanCapture"/> (no live KSP handles) so the
+        /// Courier-side <see cref="HandleOnCourier"/> can do the
+        /// hashing/keyframe/packing/publishing entirely off that data. Returns
+        /// null when there is no active vessel/body (nothing to sample).
         ///
-        /// <para><b>THREADING (known gap — read before "fixing"):</b> this
-        /// runs on the engine's Courier thread (see
-        /// <see cref="Sitrep.Host.ChannelEngine"/>'s ProcessTick sampler
-        /// loop), NOT the Unity main thread. The SCANsat/stock reads below
-        /// (<c>SCANUtil.getData</c>, <c>GetSurfaceHeight</c>,
-        /// <c>BiomeMap.GetAtt</c>, <c>SCANUtil.GetCoverage</c>) are therefore
-        /// off-main-thread — the same latent cross-thread read U1 already
-        /// shipped for <c>scansat.scanningVessels</c>. The clean fix is a
-        /// MAIN-thread sampler hook so KSP is read where the rest of the mod
-        /// reads it (<c>KspHost.Sample</c>), which is a Sitrep.Contract/
-        /// GonogoAddon change out of this milestone's scope — tracked in
-        /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>. Kept
-        /// consistent with U1's existing pattern rather than introducing a
-        /// divergent one; all the grid math is isolated in the headlessly-
-        /// tested <see cref="ScanGrids"/>/<see cref="CoveragePlane"/> helpers
-        /// regardless.</para>
+        /// <para><b>THREADING:</b> this is the F1 fix — the SCANsat/stock reads
+        /// (<c>FlightGlobals.ActiveVessel</c>, <c>SCANUtil.getData</c>/
+        /// <c>GetCoverage</c>, <c>pqs.GetSurfaceHeight</c>, <c>BiomeMap.GetAtt</c>)
+        /// now run on the Unity main thread, where the rest of the mod reads
+        /// KSP (<c>KspHost.Sample</c>), instead of the Courier thread they ran
+        /// on before. See
+        /// <c>.superpowers/sdd/f1-main-thread-sampler-report.md</c>.</para>
         /// </summary>
-        public void Sample(KspSnapshot snapshot)
+        internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            if (_coverageSource == null || _maskSource == null || _heightSource == null || _biomeSource == null)
-            {
-                return; // Register hasn't wired the dynamic sources (unavailable uplink) — nothing to sample.
-            }
-
             if (!TryGetActiveBody(out var bodyName, out var body))
             {
-                return;
+                return null;
             }
 
-            var ut = snapshot.Ut;
+            var capture = new ScanCapture
+            {
+                Ut = snapshot?.Ut ?? 0.0,
+                BodyName = bodyName,
+            };
 
             // Height/biome first — they don't depend on SCANsat coverage at
-            // all (stock PQS/BiomeMap), so they publish once per body even if
-            // that body has no SCANdata yet.
-            PublishHeightBiomeOnce(bodyName, body, ut);
-
-            if (!TryGetBodyCoverage(body, out var coverage))
+            // all (stock PQS/BiomeMap), so they're captured once per body even
+            // if that body has no SCANdata yet. The once-per-body gate lives
+            // HERE (main thread) so the expensive grid build itself is skipped
+            // on revisits, not merely the publish.
+            if (!_heightBiomeCapturedBodies.Contains(bodyName))
             {
-                return; // no SCANdata for this body yet (never scanned) — no coverage/mask.
+                _heightBiomeCapturedBodies.Add(bodyName);
+                capture.IncludeHeightBiome = true;
+                capture.HeightGrid = ScanGrids.BuildHeights(
+                    ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleElevation(body, lon, lat));
+                capture.BiomeEntries = BuildBiomeEntries(body);
+                capture.BiomeIndices = ScanGrids.BuildBiomeIndices(
+                    ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleBiomeIndex(body, lon, lat));
             }
 
-            // Cheap body-level gate: skip the per-type re-pack entirely when
-            // the whole coverage grid's hash is unchanged since last poll.
-            var bodyChanged = CoverageHash.HasChanged(
-                coverage, _lastHashByBody.TryGetValue(bodyName, out var h) ? h : (ulong?)null, out var newHash);
-            if (!bodyChanged)
+            if (TryGetBodyCoverage(body, out var coverage))
             {
-                return;
-            }
-            _lastHashByBody[bodyName] = newHash;
-
-            foreach (var typeBit in ScanChannels.ClientScanTypes)
-            {
-                var packed = CoveragePlane.Pack(coverage, typeBit);
-                var key = bodyName + "|" + typeBit;
-                var lastPacked = _lastPackedByBodyType.TryGetValue(key, out var lp) ? lp : null;
-                if (!CoveragePlane.PlaneChanged(lastPacked, packed))
+                capture.Coverage = coverage;
+                var percents = new Dictionary<short, double>();
+                foreach (var typeBit in ScanChannels.ClientScanTypes)
                 {
-                    continue; // this specific type's plane didn't move — another type's bits changed the body hash.
+                    percents[typeBit] = GetCoveragePercent(typeBit, body);
                 }
-                _lastPackedByBodyType[key] = packed;
-
-                var subTopic = ScanChannels.BodyTypeSubTopic(bodyName, typeBit);
-
-                // coverage.<body>.<type> is the SCALAR percentage [0,100]
-                // (SCANUtil.GetCoverage), NOT the packed plane — the client's
-                // CoverageRow reads it as a number.
-                _coverageSource.Publisher(subTopic).Publish(GetCoveragePercent(typeBit, body), ut);
-
-                // mask.<body>.<type> is the full SCANCoverageBitmap keyframe.
-                _maskSource.Publisher(subTopic)
-                    .Publish(ScanGrids.BuildMaskPayload(ScanGrids.Width, ScanGrids.Height, typeBit, packed), ut);
+                capture.CoveragePercents = percents;
             }
+
+            return capture;
         }
 
-        private void PublishHeightBiomeOnce(string bodyName, CelestialBody body, double ut)
+        /// <summary>
+        /// COURIER-THREAD handle (see
+        /// <see cref="IUplinkHost.AddSampledSource"/>): runs off the main
+        /// thread with the plain <see cref="ScanCapture"/> the capture
+        /// produced, applies the coarse-hash + per-(body,type) plane-changed
+        /// gates via <see cref="ScanPublications.Compute"/>, and publishes each
+        /// resulting keyframe to its dynamic channel. Touches NO KSP/Unity API
+        /// — all KSP reads already happened in <see cref="CaptureOnMain"/>.
+        /// </summary>
+        internal void HandleOnCourier(object? captured)
         {
-            if (_heightBiomeEmittedBodies.Contains(bodyName))
+            if (captured is not ScanCapture capture)
             {
                 return;
             }
-            _heightBiomeEmittedBodies.Add(bodyName);
+            if (_coverageSource == null || _maskSource == null || _heightSource == null || _biomeSource == null)
+            {
+                return; // Register hasn't wired the dynamic sources (unavailable uplink) — nothing to publish.
+            }
 
-            var heightGrid = ScanGrids.BuildHeights(
-                ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleElevation(body, lon, lat));
-            _heightSource!.Publisher(ScanChannels.BodySubTopic(bodyName))
-                .Publish(ScanGrids.BuildHeightPayload(ScanGrids.Width, ScanGrids.Height, heightGrid), ut);
-
-            var biomes = BuildBiomeEntries(body);
-            var indices = ScanGrids.BuildBiomeIndices(
-                ScanGrids.Width, ScanGrids.Height, (lon, lat) => SampleBiomeIndex(body, lon, lat));
-            _biomeSource!.Publisher(ScanChannels.BodySubTopic(bodyName))
-                .Publish(ScanGrids.BuildBiomePayload(ScanGrids.Width, ScanGrids.Height, biomes, indices), ut);
+            foreach (var publication in ScanPublications.Compute(capture, _lastHashByBody, _lastPackedByBodyType))
+            {
+                var source = publication.Kind switch
+                {
+                    ScanChannelKind.Coverage => _coverageSource,
+                    ScanChannelKind.Mask => _maskSource,
+                    ScanChannelKind.Height => _heightSource,
+                    ScanChannelKind.Biome => _biomeSource,
+                    _ => null,
+                };
+                source?.Publisher(publication.SubTopic).Publish(publication.Payload, publication.Ut);
+            }
         }
 
         // ----------------------------------------------------------------
-        // KSP/stock reads — see Sample's THREADING note. Kept as thin
-        // wrappers so ScanGrids/CoveragePlane stay pure + headlessly tested.
+        // KSP/stock reads — invoked ONLY from CaptureOnMain (main thread).
+        // Kept as thin wrappers so ScanGrids/CoveragePlane stay pure +
+        // headlessly tested.
         // ----------------------------------------------------------------
 
         private static bool TryGetActiveBody(out string bodyName, out CelestialBody body)

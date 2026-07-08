@@ -25,5 +25,9 @@
     <Compile Include="..\GonogoScansatUplink\VersionGuard.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanChannels.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanGrids.cs" />
+    <!-- F1 capture-on-main / handle-on-Courier split: the payload POCO and
+         the KSP-free Courier-side publish logic (see ScanPublicationsTests). -->
+    <Compile Include="..\GonogoScansatUplink\ScanCapture.cs" />
+    <Compile Include="..\GonogoScansatUplink\ScanPublications.cs" />
   </ItemGroup>
 </Project>

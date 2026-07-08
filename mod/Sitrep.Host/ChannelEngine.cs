@@ -92,6 +92,18 @@ namespace Sitrep.Host
         // AddSampler from _currentRegisteringUplinkId, same mechanism
         // _channelOwner/_commandOwner use below.
         private readonly List<(string OwnerId, ISnapshotSampler Sampler)> _samplers = new List<(string OwnerId, ISnapshotSampler Sampler)>();
+
+        // Capture-on-main / handle-on-Courier sources (see
+        // IUplinkHost.AddSampledSource). Populated in AddSampledSource before
+        // Start(), then only ENUMERATED afterward (RunCaptures on the
+        // main-loop thread, ProcessTick's capture loop on the Courier thread)
+        // — never mutated post-Start, same single-writer-before-start rule
+        // the other registration collections rely on. Each entry's Disabled
+        // flag IS mutated post-start (fail-soft), but it is a volatile bool
+        // whose read/write is atomic across the main-loop / Courier threads
+        // (see SampledSource) — the ONLY mutable-after-start cross-thread
+        // state here, deliberately kept to a single atomic flag.
+        private readonly List<SampledSource> _sampledSources = new List<SampledSource>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
         // topic/command -> owning uplink id, populated in RegisterUplink
@@ -318,6 +330,16 @@ namespace Sitrep.Host
         // for how this is consulted (skip-if-Unavailable) and acted on
         // (attribute-and-disable on a throw).
         public void AddSampler(ISnapshotSampler sampler) => _samplers.Add((_currentRegisteringUplinkId ?? "", sampler));
+
+        // Recorded against the CURRENTLY-registering uplink id, same mechanism
+        // as AddSampler above. The capture runs on the main-loop thread (see
+        // RunCaptures, called from Tick), the handle on the Courier thread
+        // (see ProcessTick's capture loop) — see IUplinkHost.AddSampledSource
+        // for the full threading contract.
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+        {
+            _sampledSources.Add(new SampledSource(_currentRegisteringUplinkId ?? "", captureOnMainThread, handleOnCourier));
+        }
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
         {
@@ -575,9 +597,40 @@ namespace Sitrep.Host
             Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + SafeExceptionMessage(ex));
         }
 
+        /// <summary>
+        /// Sampled-source counterpart of <see cref="FailSoftSampler"/> — marks
+        /// the source's own <see cref="SampledSource.Disabled"/> flag AND its
+        /// owning uplink Unavailable (the latter via <see cref="MarkUplinkUnavailable"/>,
+        /// which also disables every OTHER sampled source of the same owner),
+        /// so a throwing capture/handle stops running on BOTH the main-loop
+        /// (RunCaptures) and Courier (ProcessTick) paths from the next tick
+        /// onward, together with the uplink's channels/commands/samplers.
+        /// </summary>
+        private void FailSoftSampledSource(SampledSource source, Exception ex)
+        {
+            source.Disabled = true;
+            MarkUplinkUnavailable(source.OwnerId, $"sampled source threw: {SafeExceptionMessage(ex)}");
+            Console.Error.WriteLine("[ChannelEngine] sampled source (owner \"" + source.OwnerId + "\") threw: " + SafeExceptionMessage(ex));
+        }
+
         private void MarkUplinkUnavailable(string uplinkId, string reason)
         {
             _availability[uplinkId] = Availability.Unavailable(reason);
+
+            // Keep the whole uplink inert together (IMPORTANT-A): once an
+            // owner goes Unavailable through ANY path (a throwing Register, a
+            // channel mapper/command/sampler throw), its capture-on-main
+            // sources must also stop firing on the main-loop thread. The main
+            // loop reads only each source's volatile Disabled flag (never the
+            // _availability dictionary, which is Courier-thread-owned), so
+            // this is the write that makes owner-unavailability visible there.
+            foreach (var source in _sampledSources)
+            {
+                if (source.OwnerId == uplinkId)
+                {
+                    source.Disabled = true;
+                }
+            }
         }
 
         /// <summary>
@@ -616,7 +669,53 @@ namespace Sitrep.Host
         /// mapper delegates and the explicit job queue, never the Courier/
         /// clock directly (those are Courier-thread-only).
         /// </summary>
-        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, null));
+        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), null));
+
+        /// <summary>
+        /// Runs every registered <see cref="AddSampledSource"/> capture on the
+        /// CURRENT (main-loop) thread — this is called from <see cref="Tick"/>/
+        /// <see cref="TickAndWait"/>, which in production run on the Unity main
+        /// thread inside <c>GonogoAddon.FixedUpdate</c>, so the KSP/Unity reads
+        /// a capture performs happen exactly where <see cref="KspSnapshot"/>
+        /// itself is built. The opaque results (or a captured exception) are
+        /// bundled into the <see cref="TickJob"/> and carried to the Courier
+        /// thread, where <see cref="ProcessTick"/> hands each to its handle.
+        /// A capture that throws is recorded (not rethrown) so the tick still
+        /// proceeds and the fail-soft attribution happens Courier-side — see
+        /// <see cref="ProcessTick"/>'s capture loop and <see cref="FailSoftSampledSource"/>.
+        /// A source already <see cref="SampledSource.Disabled"/> (its owner
+        /// went unavailable) is skipped entirely so a broken capture stops
+        /// running on the main-loop thread too, not just its handle on the
+        /// Courier thread.
+        /// </summary>
+        private CapturedSample[]? RunCaptures(KspSnapshot? snapshot)
+        {
+            if (_sampledSources.Count == 0)
+            {
+                return null;
+            }
+
+            var captured = new List<CapturedSample>(_sampledSources.Count);
+            for (var i = 0; i < _sampledSources.Count; i++)
+            {
+                var source = _sampledSources[i];
+                if (source.Disabled)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    captured.Add(new CapturedSample(i, source.Capture(snapshot), null));
+                }
+                catch (Exception ex)
+                {
+                    captured.Add(new CapturedSample(i, null, ex));
+                }
+            }
+
+            return captured.Count == 0 ? null : captured.ToArray();
+        }
 
         /// <summary>
         /// Push a payload directly to <paramref name="topic"/> (obtained via
@@ -630,7 +729,7 @@ namespace Sitrep.Host
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new TickJob(ut, snapshot, barrier));
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), barrier));
             barrier.Wait(timeout);
         }
 
@@ -768,6 +867,42 @@ namespace Sitrep.Host
                     catch (Exception ex)
                     {
                         FailSoftSampler(ownerId, sampler, ex);
+                    }
+                }
+            }
+
+            // Capture-on-main / handle-on-Courier sources (see
+            // IUplinkHost.AddSampledSource): the captures already ran on the
+            // main-loop thread inside RunCaptures; here, on the Courier
+            // thread, each captured payload is handed to its handle. Same
+            // fail-soft discipline as the sampler loop above — skip a source
+            // whose owner already went Unavailable, surface a capture-time
+            // throw (recorded main-side) via FailSoftSampledSource, and guard
+            // the handle itself so an off-thread handle throw takes only its
+            // own owning uplink inert rather than the Courier thread.
+            if (tick.Captures != null)
+            {
+                foreach (var captured in tick.Captures)
+                {
+                    var source = _sampledSources[captured.Index];
+                    if (source.Disabled || !IsUplinkAvailable(source.OwnerId))
+                    {
+                        continue;
+                    }
+
+                    if (captured.Exception != null)
+                    {
+                        FailSoftSampledSource(source, captured.Exception);
+                        continue;
+                    }
+
+                    try
+                    {
+                        source.Handle(captured.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        FailSoftSampledSource(source, ex);
                     }
                 }
             }
@@ -1283,12 +1418,65 @@ namespace Sitrep.Host
         {
             public readonly double Ut;
             public readonly KspSnapshot? Snapshot;
+
+            // Captured-on-main-thread payloads for every registered
+            // AddSampledSource, produced by RunCaptures on the main-loop
+            // thread before this job was enqueued, consumed by ProcessTick's
+            // capture loop on the Courier thread. Null when no sampled source
+            // is registered (or none produced a capture this tick).
+            public readonly CapturedSample[]? Captures;
             public readonly ManualResetEventSlim? Done;
-            public TickJob(double ut, KspSnapshot? snapshot, ManualResetEventSlim? done)
+            public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, ManualResetEventSlim? done)
             {
                 Ut = ut;
                 Snapshot = snapshot;
+                Captures = captures;
                 Done = done;
+            }
+        }
+
+        /// <summary>
+        /// One <see cref="AddSampledSource"/> capture's result carried from the
+        /// main-loop thread to the Courier thread. <see cref="Index"/> keys
+        /// back into <see cref="_sampledSources"/> (stable after Start).
+        /// Exactly one of <see cref="Value"/> / <see cref="Exception"/> is
+        /// meaningful: a non-null <see cref="Exception"/> means the capture
+        /// threw on the main-loop thread and the Courier-side handle must be
+        /// skipped and fail-softed.
+        /// </summary>
+        private readonly struct CapturedSample
+        {
+            public readonly int Index;
+            public readonly object? Value;
+            public readonly Exception? Exception;
+            public CapturedSample(int index, object? value, Exception? exception)
+            {
+                Index = index;
+                Value = value;
+                Exception = exception;
+            }
+        }
+
+        /// <summary>
+        /// A registered capture-on-main / handle-on-Courier source (see
+        /// <see cref="IUplinkHost.AddSampledSource"/>). <see cref="Disabled"/>
+        /// is the single mutable-after-start field — a volatile bool so the
+        /// main-loop thread (RunCaptures) and Courier thread (ProcessTick /
+        /// fail-soft) can read/write it without a lock; everything else is set
+        /// once at registration (before Start) and only read afterward.
+        /// </summary>
+        private sealed class SampledSource
+        {
+            public readonly string OwnerId;
+            public readonly Func<KspSnapshot?, object?> Capture;
+            public readonly Action<object?> Handle;
+            public volatile bool Disabled;
+
+            public SampledSource(string ownerId, Func<KspSnapshot?, object?> capture, Action<object?> handle)
+            {
+                OwnerId = ownerId;
+                Capture = capture;
+                Handle = handle;
             }
         }
 

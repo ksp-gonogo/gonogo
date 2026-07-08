@@ -206,6 +206,46 @@ namespace Sitrep.Contract
         IChannelPublisher Publisher(string topic);
 
         /// <summary>
+        /// A <b>capture-on-main / handle-on-Courier</b> source — the
+        /// threading-safe seam for an Uplink that must read live KSP/Unity
+        /// (or another mod's) APIs that are NOT already on the shared
+        /// <see cref="KspSnapshot"/>. Unity APIs are main-thread-only; every
+        /// other registration point on this interface either runs off the
+        /// main thread (<see cref="AddChannelSource"/>'s mapper and
+        /// <see cref="ISnapshotSampler.Sample"/> both run on the engine's
+        /// Courier thread) or is fed pre-built snapshot data — so before this
+        /// existed a third-party Uplink had no way to read a live API safely,
+        /// and doing it from a Courier-thread mapper/sampler is a crash /
+        /// garbage-data risk.
+        ///
+        /// <para><paramref name="captureOnMainThread"/> runs on the SAME
+        /// thread and at the SAME cadence the <see cref="KspSnapshot"/> is
+        /// built — the Unity main thread, inside <c>GonogoAddon.FixedUpdate</c>
+        /// in production (a test driver calls it on whatever thread invokes
+        /// <c>ChannelEngine.Tick</c>). It is handed that tick's snapshot (for
+        /// <see cref="KspSnapshot.Ut"/> and any already-sampled data) and
+        /// returns an OPAQUE payload — plain, self-contained data, NO live
+        /// KSP/Unity object references — which the engine carries across to
+        /// the Courier thread.</para>
+        ///
+        /// <para><paramref name="handleOnCourier"/> then runs on the Courier
+        /// thread with exactly that captured payload, and does all the
+        /// off-thread work: change-gating, packing, and publishing to
+        /// channels obtained via <see cref="Publisher"/> /
+        /// <see cref="RegisterDynamicNamespace"/>. It MUST NOT touch any
+        /// KSP/Unity API — that is the whole reason this seam exists; read
+        /// everything KSP-facing in <paramref name="captureOnMainThread"/>
+        /// and pass it forward as data.</para>
+        ///
+        /// <para>Fail-soft, mirroring <see cref="AddSampler"/> /
+        /// <see cref="AddChannelSource"/>: a capture OR handle that throws
+        /// takes only its own registration's owning Uplink inert (from the
+        /// next tick onward) — every other source, and the rest of THIS tick,
+        /// continues.</para>
+        /// </summary>
+        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier);
+
+        /// <summary>
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the
         /// calling uplink owns, plus a <paramref name="template"/>
         /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>

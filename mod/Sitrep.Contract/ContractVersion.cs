@@ -31,7 +31,15 @@ namespace Sitrep.Contract
         /// <see cref="ChannelDeclaration.Delay"/> disposition. Neither
         /// touches an existing <see cref="ISitrepUplink"/>'s compile-time
         /// surface — see <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>.
+        ///
+        /// <para>Bumped 1 -&gt; 2: additive-only Minor for the
+        /// capture-on-main / handle-on-Courier seam
+        /// (<see cref="IUplinkHost.AddSampledSource"/>) — a new method on
+        /// <see cref="IUplinkHost"/> (which an Uplink CONSUMES, never
+        /// implements), so it cannot break any existing
+        /// <see cref="ISitrepUplink"/> built against an older Minor. See
+        /// <c>.superpowers/sdd/f1-main-thread-sampler-report.md</c>.</para>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }
