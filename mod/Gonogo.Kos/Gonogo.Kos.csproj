@@ -13,8 +13,10 @@
   text.
 
   Packaging: Gonogo.Kos is a SEPARATE, optional deployable extension (its
-  own GameData/GonogoKos folder + its own CKAN/SpaceDock listing) — see
-  build_gonogo_kos in scripts/gonogo_claude_tools.sh. It must not bundle
+  own GameData/GonogoKos folder + its own CKAN/SpaceDock listing via
+  GonogoKos.netkan, GPLv3-linkage documented in NOTICE-KOS.txt) — build +
+  deploy with `build gonogokos` (build_gonogokos in
+  scripts/gonogo_claude_tools.sh). It must not bundle
   core Gonogo's or kOS's or Harmony's assemblies; every Reference/
   ProjectReference below that isn't unique to this extension is
   Private="false" for exactly that reason (see each ItemGroup's comment).

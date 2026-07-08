@@ -27,45 +27,37 @@ namespace Gonogo.Kos
     /// handoff) will route through — see the dispatcher's own doc comment
     /// and spec §2.
     ///
-    /// <b>Deferred: live registration into the running core engine.</b>
-    /// <see cref="Register"/> only creates and wires this uplink's OWN
-    /// draining addon (<see cref="KosMainThreadDispatcherAddon"/>); it
-    /// does not reach into <c>Gonogo.KSP.GonogoAddon</c> or attempt to
-    /// self-register into the live core <c>ChannelEngine</c>. Two
-    /// compounding reasons:
-    /// <list type="bullet">
-    /// <item>Packaging: GonogoKos is a SEPARATELY deployed, optional
-    /// uplink (its own GameData folder, its own CKAN/SpaceDock
-    /// listing — see Gonogo.Kos.csproj's header). Core
-    /// <c>Gonogo.KSP.csproj</c> cannot compile-reference this assembly
-    /// (that would force-bundle it and make the uplink mandatory), so
-    /// there is no static call site in core that can simply
-    /// <c>new KosExtension()</c> the way <c>GonogoAddon.Awake()</c> does
-    /// for its five built-in uplinks today.</item>
-    /// <item>Thread safety: <c>ChannelEngine.RegisterUplink</c> mutates
-    /// un-locked state (<c>_availability</c>, <c>_channelDeclarations</c>,
-    /// ...) that the Courier background thread reads once
-    /// <c>ChannelEngine.Start()</c> has run. It is only safe to call
-    /// BEFORE <c>Start()</c>. Two independently-<c>[KSPAddon]</c>
-    /// -instantiated mods have no ordering guarantee against each other's
-    /// <c>Awake()</c>/<c>Start()</c> — a naive "uplink addon polls for
-    /// core and self-registers" scheme can easily land its
-    /// <c>RegisterUplink</c> call after core's <c>Start()</c>, racing
-    /// the Courier thread.</item>
-    /// </list>
-    /// A real fix needs a thread-safe, post-<c>Start()</c>-safe
-    /// registration path on <c>ChannelEngine</c> (e.g. a queued
-    /// registration the Courier loop itself drains) plus a discovery
-    /// mechanism core can use to find separately-deployed uplinks
-    /// (e.g. a reflection scan of loaded assemblies for
-    /// <see cref="ISitrepUplink"/> implementors). Both are out of
-    /// scope for this P0 scaffold and are flagged as P1+ follow-up work.
+    /// <b>Live registration is wired.</b> This type carries
+    /// <c>[SitrepUplink("kos")]</c> and a parameterless constructor, so
+    /// core's existing <see cref="Sitrep.Host.UplinkDiscovery"/> assembly
+    /// scan finds it exactly as it finds <c>Gonogo.ScansatUplink</c>'s
+    /// <c>[SitrepUplink("scansat")]</c> — the established reference
+    /// pattern for a SEPARATELY deployed, optional uplink (its own
+    /// GameData folder, its own CKAN/SpaceDock listing). Core
+    /// <c>Gonogo.KSP.csproj</c> never compile-references this assembly
+    /// (that would force-bundle it and make the uplink mandatory) and
+    /// does not need to: <c>Gonogo.KSP.GonogoAddon.Start()</c> runs
+    /// <c>UplinkDiscovery.Discover()</c> over the loaded AppDomain and
+    /// registers whatever it finds — reflectively, before
+    /// <c>ChannelEngine.Start()</c> spins up the Courier background
+    /// thread. That call site is single-threaded and pre-<c>Start()</c>,
+    /// i.e. exactly the safe window <c>RegisterUplink</c> requires, so
+    /// there is no ordering race and no deferral: <see cref="Register"/>
+    /// runs live in a real game.
+    ///
+    /// For P0 the manifest is EMPTY (no channels, no commands), so the
+    /// only thing <see cref="Register"/> does against the host is stand
+    /// up this uplink's own main-thread drain loop
+    /// (<see cref="KosMainThreadDispatcherAddon"/>) — P1+ populate the
+    /// manifest and bind channel sources / command handlers against the
+    /// <c>IUplinkHost</c> in the normal way.
     ///
     /// Loads and no-ops cleanly with no kOS CPUs present: P0 never calls
     /// <c>kOSProcessor.AllInstances()</c> or any other kOS member at all
     /// — the kOS/Harmony references exist only so this assembly compiles
     /// against the full P1+ dependency set (see the csproj comment).
     /// </summary>
+    [SitrepUplink("kos")]
     public sealed class KosExtension : ISitrepUplink
     {
         private readonly Action<MainThreadDispatcher> _bindDispatcherAddon;
