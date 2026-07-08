@@ -26,9 +26,16 @@ namespace Sitrep.Host
     ///   "lab": [ { "partName", "dataStored", "dataStorage", "storedScience",
     ///     "processingData", "statusText", "scientistCount", "scienceRate",
     ///     "isOperational" }, ... ] | null
-    ///   "deployed": [ { "partName", "experimentId", "deployed",
-    ///     "inoperable", "situation" }, ... ] | null
+    ///   "deployed": [ { "vesselName", "partName", "body", "situation",
+    ///     "biome", "experimentId", "scienceCompletedPercentage",
+    ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
+    ///     "powerState", "connectionState", "deployedOnGround" }, ... ] | null
     /// }
+    /// The "deployed" list is captured GLOBALLY across every loaded vessel
+    /// (a Breaking Ground cluster is its OWN ground vessel, never on the
+    /// active one - see Gonogo.KSP.KspHost.BuildDeployedScience), so an entry
+    /// can and normally does describe a vessel OTHER than the active one,
+    /// distinguished by "vesselName".
     /// </code>
     /// Three separate channels (one per sub-group) rather than one combined
     /// topic — see <c>Gonogo.KSP.ScienceExtension</c>'s doc comment for why.
@@ -116,11 +123,19 @@ namespace Sitrep.Host
 
         private static Dictionary<string, object?> BuildDeployedEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
+            ["vesselName"] = SnapshotDict.GetString(raw, "vesselName"),
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
-            ["deployed"] = SnapshotDict.GetBool(raw, "deployed"),
-            ["inoperable"] = SnapshotDict.GetBool(raw, "inoperable"),
+            ["body"] = SnapshotDict.GetString(raw, "body"),
             ["situation"] = SnapshotDict.GetString(raw, "situation"),
+            ["biome"] = SnapshotDict.GetString(raw, "biome"),
+            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
+            ["scienceCompletedPercentage"] = SnapshotDict.GetDouble(raw, "scienceCompletedPercentage"),
+            ["scienceTransmittedPercentage"] = SnapshotDict.GetDouble(raw, "scienceTransmittedPercentage"),
+            ["scienceValue"] = SnapshotDict.GetDouble(raw, "scienceValue"),
+            ["scienceLimit"] = SnapshotDict.GetDouble(raw, "scienceLimit"),
+            ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
+            ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
+            ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };
     }
 }

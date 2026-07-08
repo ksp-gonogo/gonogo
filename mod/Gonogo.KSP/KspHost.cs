@@ -1487,7 +1487,12 @@ namespace Gonogo.KSP
             var entry = new Dictionary<string, object?>();
             TryBuildGroup(entry, "experiments", () => BuildScienceExperiments(vessel));
             TryBuildGroup(entry, "lab", () => BuildScienceLab(vessel));
-            TryBuildGroup(entry, "deployed", () => BuildDeployedScience(vessel));
+            // Deployed science is captured GLOBALLY (across every loaded
+            // vessel), NOT off the active vessel this method receives -- see
+            // BuildDeployedScience's doc comment. Kept as a "science"
+            // sub-group for channel continuity even though its data comes
+            // from other vessels entirely.
+            TryBuildGroup(entry, "deployed", () => BuildDeployedScience());
             return entry;
         }
 
@@ -1708,60 +1713,114 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Breaking Ground deployed-experiment modules
-        /// (<c>ModuleGroundExperiment</c>) - reflected by type NAME rather
-        /// than a hard static reference. Decompile surfaced the type as the
-        /// oddly-named <c>A.ModuleGroundExperiment</c> with an empty member
-        /// body (ilspycmd couldn't fully resolve it this session); rather
-        /// than hardcode a namespace that might not be stable, this walks
-        /// every <c>PartModule</c> on the vessel and matches on
-        /// <c>GetType().Name == "ModuleGroundExperiment"</c>, then reads the
-        /// handful of fields <see cref="ModuleScienceExperiment"/> already
-        /// confirmed use the same naming idiom for
-        /// (<c>experimentID</c>/<c>Deployed</c>/<c>Inoperable</c>) via
-        /// reflection. Returns null - the whole group - whenever Breaking
-        /// Ground isn't installed or nothing is deployed, same "omit
-        /// entirely" convention as every other group in this class. A
-        /// future session with a clean decompile can replace this with a
-        /// direct typed reference and richer fields (rate/transmitted) -
-        /// this is deliberately the minimal safe slice for THIS session.
+        /// (<c>ModuleGroundExperiment</c>), captured GLOBALLY across every
+        /// loaded vessel <c>FlightGlobals.Vessels</c> knows about - NOT off
+        /// the active vessel.
+        ///
+        /// <para><b>Why global (the bug this fixes):</b> a Breaking Ground
+        /// deployed experiment does NOT live on the vessel the player is
+        /// flying - once deployed, KSP spawns each cluster as its OWN
+        /// separate ground vessel (vessel type <c>DeployedSciencePart</c> /
+        /// <c>DeployedScienceController</c>). The original version of this
+        /// method walked only <c>FlightGlobals.ActiveVessel</c>'s parts, so
+        /// it never saw a single deployed experiment and this group always
+        /// came back null even with science actively deploying. Iterating
+        /// <c>FlightGlobals.Vessels</c> and walking each vessel's parts is
+        /// the fix - the deployed cluster is a peer vessel, found the same
+        /// way <see cref="BuildVesselRosterEntry"/> enumerates the roster.
+        /// (LOADED vessels only: an unloaded/packed cluster far from the
+        /// active vessel has no live <c>parts</c> list - reading it would
+        /// need <c>ProtoPartSnapshot</c> walking, a documented follow-up.)</para>
+        ///
+        /// <para><b>Reflection guard (absent-DLC → null):</b> the type is
+        /// matched by <c>GetType().Name == "ModuleGroundExperiment"</c> and
+        /// every field/property read via <see cref="ReflectString"/>/
+        /// <see cref="ReflectDouble"/>/<see cref="ReflectBool"/> rather than
+        /// a static reference, so an install WITHOUT Breaking Ground (where
+        /// the type simply never appears on any part) yields an empty walk
+        /// and this returns null - the whole group omitted, same convention
+        /// as every other <c>Build*</c> here. Decompile-confirmed members
+        /// (<c>Assembly-CSharp.dll</c>, <c>ModuleGroundExperiment :
+        /// ModuleGroundSciencePart</c>): <c>experimentId</c> (string field),
+        /// <c>ScienceCompletedPercentage</c>/<c>ScienceTransmittedPercentage</c>
+        /// (float fields), <c>ScienceValue</c>/<c>ScienceLimit</c> (float
+        /// get-properties); inherited from <c>ModuleGroundSciencePart</c>:
+        /// <c>PowerState</c>/<c>ConnectionState</c> (string fields - the
+        /// "has power / has comms" readout) and <c>DeployedOnGround</c>
+        /// (bool get-property). <c>Type.GetField(Public|Instance)</c> reaches
+        /// inherited public fields/properties, so all are read straight off
+        /// the concrete module instance.</para>
         /// </summary>
-        private static List<object?>? BuildDeployedScience(Vessel vessel)
+        private static List<object?>? BuildDeployedScience()
         {
-            var parts = vessel.parts;
-            if (parts == null || parts.Count == 0)
+            if (!FlightGlobals.ready || FlightGlobals.fetch == null)
+            {
+                return null;
+            }
+
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
             {
                 return null;
             }
 
             List<object?>? list = null;
-            var situation = vessel.situation.ToString();
 
-            foreach (var part in parts)
+            foreach (var vessel in vessels)
             {
-                if (part == null || part.Modules == null)
+                if (vessel == null)
                 {
                     continue;
                 }
 
-                var partName = part.partInfo != null ? part.partInfo.title : part.name;
-
-                foreach (var module in part.Modules)
+                var parts = vessel.parts;
+                if (parts == null || parts.Count == 0)
                 {
-                    if (module == null || module.GetType().Name != "ModuleGroundExperiment")
+                    continue;
+                }
+
+                var vesselName = vessel.vesselName;
+                var situation = vessel.situation.ToString();
+                var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+                var body = orbit?.referenceBody;
+                var bodyName = body != null ? body.bodyName : null;
+                var biome = ResolveBiome(vessel, body);
+
+                foreach (var part in parts)
+                {
+                    if (part == null || part.Modules == null)
                     {
                         continue;
                     }
 
-                    list ??= new List<object?>();
-                    var type = module.GetType();
-                    list.Add(new Dictionary<string, object?>
+                    var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                    foreach (var module in part.Modules)
                     {
-                        ["partName"] = partName,
-                        ["experimentId"] = ReflectField<string>(type, module, "experimentID"),
-                        ["deployed"] = ReflectField<bool?>(type, module, "Deployed"),
-                        ["inoperable"] = ReflectField<bool?>(type, module, "Inoperable"),
-                        ["situation"] = situation,
-                    });
+                        if (module == null || module.GetType().Name != "ModuleGroundExperiment")
+                        {
+                            continue;
+                        }
+
+                        var type = module.GetType();
+                        list ??= new List<object?>();
+                        list.Add(new Dictionary<string, object?>
+                        {
+                            ["vesselName"] = vesselName,
+                            ["partName"] = partName,
+                            ["body"] = bodyName,
+                            ["situation"] = situation,
+                            ["biome"] = biome,
+                            ["experimentId"] = ReflectString(type, module, "experimentId"),
+                            ["scienceCompletedPercentage"] = ReflectDouble(type, module, "ScienceCompletedPercentage"),
+                            ["scienceTransmittedPercentage"] = ReflectDouble(type, module, "ScienceTransmittedPercentage"),
+                            ["scienceValue"] = ReflectDouble(type, module, "ScienceValue"),
+                            ["scienceLimit"] = ReflectDouble(type, module, "ScienceLimit"),
+                            ["powerState"] = ReflectString(type, module, "PowerState"),
+                            ["connectionState"] = ReflectString(type, module, "ConnectionState"),
+                            ["deployedOnGround"] = ReflectBool(type, module, "DeployedOnGround"),
+                        });
+                    }
                 }
             }
 
@@ -1769,30 +1828,80 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Reads a public instance field named <paramref name="fieldName"/>
-        /// off <paramref name="instance"/> via reflection, tolerating the
-        /// field being absent/renamed (returns <c>default</c>, never
-        /// throws) - the guard <see cref="BuildDeployedScience"/>'s doc
-        /// comment describes for a type this class can't safely reference
-        /// statically.
+        /// Biome name at <paramref name="vessel"/>'s current lat/long on
+        /// <paramref name="body"/>, or null when the body has no biome map.
+        /// <c>CBAttributeMapSO.GetAtt</c> expects RADIANS (confirmed via
+        /// decompile - it divides lat by <c>Math.PI</c>, not 180), while
+        /// <c>Vessel.latitude</c>/<c>longitude</c> are degrees.
         /// </summary>
-        private static T? ReflectField<T>(Type type, object instance, string fieldName)
+        private static string? ResolveBiome(Vessel vessel, CelestialBody? body)
+        {
+            if (body == null || body.BiomeMap == null)
+            {
+                return null;
+            }
+
+            var latRad = vessel.latitude * Math.PI / 180.0;
+            var lonRad = vessel.longitude * Math.PI / 180.0;
+            var attribute = body.BiomeMap.GetAtt(latRad, lonRad);
+            return attribute != null ? attribute.name : null;
+        }
+
+        /// <summary>
+        /// Reads a public instance FIELD or get-PROPERTY named
+        /// <paramref name="name"/> off <paramref name="instance"/> via
+        /// reflection, tolerating it being absent/renamed (returns
+        /// <c>null</c>, never throws) - the guard
+        /// <see cref="BuildDeployedScience"/>'s doc comment describes for the
+        /// obfuscation-risky Breaking Ground type this class can't safely
+        /// reference statically. Field takes precedence over property (some
+        /// members surfaced as one or the other across KSP versions).
+        /// </summary>
+        private static object? ReflectMemberValue(Type type, object instance, string name)
         {
             try
             {
-                var field = type.GetField(fieldName, BindingFlags.Public | BindingFlags.Instance);
-                if (field == null)
+                var field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance);
+                if (field != null)
                 {
-                    return default;
+                    return field.GetValue(instance);
                 }
-                var value = field.GetValue(instance);
-                return value is T typed ? typed : default;
+                var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+                if (property != null && property.CanRead)
+                {
+                    return property.GetValue(instance);
+                }
+                return null;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] reflective read of " + type.Name + "." + fieldName + " failed, omitting: " + ex);
-                return default;
+                Debug.LogWarning("[Gonogo] reflective read of " + type.Name + "." + name + " failed, omitting: " + ex);
+                return null;
             }
+        }
+
+        private static string? ReflectString(Type type, object instance, string name) =>
+            ReflectMemberValue(type, instance, name) as string;
+
+        private static bool? ReflectBool(Type type, object instance, string name) =>
+            ReflectMemberValue(type, instance, name) as bool?;
+
+        /// <summary>
+        /// Numeric-aware sibling of <see cref="ReflectMemberValue"/> - widens
+        /// a reflected <c>float</c>/<c>int</c>/<c>double</c> to <c>double?</c>
+        /// (a boxed <c>float</c> won't satisfy a plain <c>is double</c>), or
+        /// null when the member is absent or non-numeric.
+        /// </summary>
+        private static double? ReflectDouble(Type type, object instance, string name)
+        {
+            var value = ReflectMemberValue(type, instance, name);
+            return value switch
+            {
+                float f => f,
+                double d => d,
+                int i => i,
+                _ => (double?)null,
+            };
         }
 
         // ----------------------------------------------------------------

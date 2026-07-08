@@ -140,8 +140,17 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildDeployedMapsGroundExperimentEntry()
+        public void BuildDeployedMapsGroundExperimentsFromSeparateNonActiveVessels()
         {
+            // Regression guard for the "science.deployed always null" bug:
+            // Breaking Ground deployed experiments live on their OWN ground
+            // vessels (a deployed cluster is a peer vessel, never the vessel
+            // the player is flying), so the raw "deployed" list is captured
+            // GLOBALLY across FlightGlobals.Vessels. This fixture carries two
+            // experiments from TWO DIFFERENT deployed-science vessels -
+            // neither of which is the active vessel - and both must map, each
+            // tagged with its own "vesselName". The old capture read only the
+            // active vessel's parts and produced null here.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,
@@ -153,11 +162,35 @@ namespace Sitrep.Host.Tests
                         {
                             new Dictionary<string, object?>
                             {
+                                ["vesselName"] = "Probodobodyne Experiment Control Station",
                                 ["partName"] = "Atmospheric Fluid Spectro-Variometer",
-                                ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
-                                ["deployed"] = true,
-                                ["inoperable"] = false,
+                                ["body"] = "Mun",
                                 ["situation"] = "LANDED",
+                                ["biome"] = "Highlands",
+                                ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
+                                ["scienceCompletedPercentage"] = 42.5,
+                                ["scienceTransmittedPercentage"] = 10.0,
+                                ["scienceValue"] = 8.0,
+                                ["scienceLimit"] = 20.0,
+                                ["powerState"] = "Powered",
+                                ["connectionState"] = "Connected",
+                                ["deployedOnGround"] = true,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["vesselName"] = "Deployed Seismometer Site",
+                                ["partName"] = "Seismic Accelerometer",
+                                ["body"] = "Mun",
+                                ["situation"] = "LANDED",
+                                ["biome"] = "Midlands",
+                                ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
+                                ["scienceCompletedPercentage"] = 0.0,
+                                ["scienceTransmittedPercentage"] = 0.0,
+                                ["scienceValue"] = 12.0,
+                                ["scienceLimit"] = 30.0,
+                                ["powerState"] = "NoPower",
+                                ["connectionState"] = "NotConnected",
+                                ["deployedOnGround"] = true,
                             },
                         },
                     },
@@ -166,9 +199,24 @@ namespace Sitrep.Host.Tests
 
             var payload = ScienceViewProvider.BuildDeployed(snapshot);
             var list = Assert.IsType<List<object?>>(payload);
-            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
-            Assert.Equal("Atmospheric Fluid Spectro-Variometer", entry["partName"]);
-            Assert.Equal(true, entry["deployed"]);
+            Assert.Equal(2, list.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("Probodobodyne Experiment Control Station", first["vesselName"]);
+            Assert.Equal("Atmospheric Fluid Spectro-Variometer", first["partName"]);
+            Assert.Equal("Mun", first["body"]);
+            Assert.Equal("Highlands", first["biome"]);
+            Assert.Equal("surfaceExperimentAtmosphericFluidSpectroVariometer", first["experimentId"]);
+            Assert.Equal(42.5, first["scienceCompletedPercentage"]);
+            Assert.Equal("Powered", first["powerState"]);
+            Assert.Equal("Connected", first["connectionState"]);
+            Assert.Equal(true, first["deployedOnGround"]);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal("Deployed Seismometer Site", second["vesselName"]);
+            Assert.Equal("Seismic Accelerometer", second["partName"]);
+            Assert.Equal("NoPower", second["powerState"]);
+            Assert.Equal("NotConnected", second["connectionState"]);
         }
 
         [Fact]
