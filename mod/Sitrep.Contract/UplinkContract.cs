@@ -374,4 +374,47 @@ namespace Sitrep.Contract
         /// </summary>
         void Register(IUplinkHost host);
     }
+
+    /// <summary>
+    /// OPTIONAL companion to <see cref="ISitrepUplink"/> that lets an uplink
+    /// declare its capability descriptors in a discovery pass that runs BEFORE
+    /// any uplink's <see cref="ISitrepUplink.Register"/> — the two-pass fix for
+    /// the capability-vs-provider registration-order hazard.
+    ///
+    /// <para><b>The problem this closes:</b> <see cref="Kernel.RegisterProvider"/>
+    /// throws if the capability it targets has not been registered yet, and
+    /// assembly-scan discovery (<c>AppDomain.GetAssemblies()</c> /
+    /// <c>GetTypes()</c>) fixes NO order between uplinks. So an uplink that
+    /// registers a <c>"comms"</c> PROVIDER (e.g. RealAntennas) could run before
+    /// the uplink that owns the <c>"comms"</c> CAPABILITY — the provider
+    /// registration would throw, be swallowed, and the provider would silently
+    /// never take part in the election even though it loaded.</para>
+    ///
+    /// <para><b>The contract:</b> an uplink that owns a capability declares it
+    /// here (via <see cref="Kernel.RegisterCapability"/>) instead of in
+    /// <see cref="ISitrepUplink.Register"/>. The host runs
+    /// <see cref="DeclareCapabilities"/> for EVERY discovered uplink first, so
+    /// by the time any <see cref="ISitrepUplink.Register"/> runs its
+    /// <see cref="Kernel.RegisterProvider"/> call, the target capability is
+    /// guaranteed present regardless of discovery order. PROVIDERS still
+    /// register in <see cref="ISitrepUplink.Register"/> as before — only
+    /// capability DECLARATIONS move to this earlier pass. Implementing this
+    /// interface is optional: an uplink that registers no capability of its own
+    /// (every provider-only or channel-only uplink) does not need it.</para>
+    ///
+    /// <para>Not shape-gated: this is an SPI interface on the Uplink-facing
+    /// surface, not a <c>[SitrepContract]</c> wire type, so adding it is an
+    /// additive Minor change that does not bump <see cref="ContractVersion"/>.</para>
+    /// </summary>
+    public interface IUplinkCapabilityDeclarer
+    {
+        /// <summary>
+        /// Register this uplink's capability descriptor(s) on
+        /// <paramref name="kernel"/>. Runs once, on the main thread, in the
+        /// pre-<see cref="ISitrepUplink.Register"/> discovery pass. Throwing here
+        /// fail-softs THIS uplink only (its <see cref="ISitrepUplink.Register"/>
+        /// is then skipped); every other uplink is unaffected.
+        /// </summary>
+        void DeclareCapabilities(Kernel kernel);
+    }
 }

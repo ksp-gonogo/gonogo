@@ -95,10 +95,12 @@ namespace Gonogo.KSP
                 // core uplinks (System/Vessel/Career/Science/Parts) carry
                 // the attribute identically to any future third-party
                 // Uplink — nothing about this loop is special-cased to them.
-                foreach (var discovered in UplinkDiscovery.Discover())
-                {
-                    _engine.RegisterDiscoveredUplink(discovered.Uplink, discovered.ContractMajor, discovered.ContractMinor);
-                }
+                // Two-pass registration (RegisterDiscoveredUplinks): every
+                // capability is declared BEFORE any provider registers, so the
+                // comms election is correct regardless of the order the
+                // assembly scan happens to return uplinks in — see
+                // ChannelEngine.RegisterDiscoveredUplinks / the two-pass fix.
+                _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
                 // Drive the capability Kernel once every uplink has registered
                 // its providers (the comms backend election — CommNet vanilla vs
                 // RealAntennas when present — see Sitrep.Host.Comms.CommsElection)

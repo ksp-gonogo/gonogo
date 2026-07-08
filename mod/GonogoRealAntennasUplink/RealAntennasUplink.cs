@@ -81,9 +81,16 @@ namespace Gonogo.RealAntennasUplink
 
             // Register the RA comms provider directly on the Kernel (Kernel lives
             // in Sitrep.Contract — no engine reference needed). The bundled comms
-            // core uplink owns the "comms" capability descriptor; if for some
-            // reason it did not load, RegisterProvider throws — caught here so RA
-            // still emits its own private channels rather than taking itself down.
+            // core uplink OWNS the "comms" capability descriptor and declares it
+            // in the two-pass discovery's capability pass (see
+            // CommsCoreUplink.DeclareCapabilities / IUplinkCapabilityDeclarer),
+            // which runs before ANY uplink's Register — so by the time this line
+            // executes the capability is guaranteed present regardless of the
+            // order the assembly scan discovered RA vs. the comms core. The
+            // try/catch is now pure defence-in-depth (a genuinely absent comms
+            // core, which cannot happen in a correctly bundled install): a throw
+            // is surfaced, not swallowed, and RA still emits its own private
+            // channels rather than taking itself down.
             try
             {
                 host.Kernel.RegisterProvider(new ProviderRegistration
@@ -123,12 +130,27 @@ namespace Gonogo.RealAntennasUplink
 
             var fwd = _ra.ForwardDataRate(link);
             var rev = _ra.ReverseDataRate(link);
-            if (fwd != null || rev != null)
+            // Typed absence over a sentinel: only publish comms.dataRate when
+            // BOTH directions read. CommsDataRate's Up/DownBitsPerSec are
+            // non-nullable doubles (a per-field null would be a wire-shape change
+            // and a contract Major/Minor bump), so a half-read used to fill the
+            // missing side with `?? 0.0` — a false "no throughput" reading
+            // indistinguishable from a genuinely idle link. Emitting nothing
+            // (payload-level typed absence) when either side is missing is the
+            // honest choice: the channel simply reports no value that tick rather
+            // than a fabricated zero.
+            //
+            // LOG-ONLY (needs live RA to validate): the up/down direction mapping
+            // below (UpBitsPerSec = REVERSE rate, DownBitsPerSec = FORWARD rate)
+            // is assumed from the RA node identity but not yet confirmed against a
+            // live link — it may be swapped. Verify on a real RA install before
+            // relying on the per-direction figures.
+            if (fwd != null && rev != null)
             {
                 capture.DataRate = new CommsDataRate
                 {
-                    UpBitsPerSec = rev ?? 0.0,
-                    DownBitsPerSec = fwd ?? 0.0,
+                    UpBitsPerSec = rev.Value,
+                    DownBitsPerSec = fwd.Value,
                     Meta = new PayloadMeta { Source = capture.Source, Quality = Quality.Loaded },
                 };
             }
@@ -145,22 +167,41 @@ namespace Gonogo.RealAntennasUplink
                 double? freq = _ra.Frequency(tx);
                 double? symbolRate = _ra.SymbolRate(tx);
 
+                // LOG-ONLY (needs live RA to validate): DefaultReceiverNoiseTempKelvin
+                // (200 K) and DefaultRequiredEbN0Db (2.5 dB) are hardcoded display
+                // estimates. RA exposes more accurate per-link figures via
+                // reachable public members (RealAntenna.RequiredCI →
+                // Encoder.RequiredEbN0, Physics.NoiseTemperature per the RA
+                // playbook); wiring those in would sharpen the margin. Acceptable
+                // as-is pending live validation — left as constants for now.
                 if (txPower != null && txGain != null && rxGain != null && freq != null && symbolRate != null)
                 {
                     double pr = RaLinkBudget.ReceivedPowerDbm(txPower.Value, txGain.Value, rxGain.Value, distance, freq.Value);
                     double margin = RaLinkBudget.LinkMarginDb(pr, DefaultReceiverNoiseTempKelvin, symbolRate.Value, DefaultRequiredEbN0Db);
-                    var meta = new PayloadMeta { Source = capture.Source, Quality = Quality.Loaded };
-                    capture.LinkMargin = new CommsLinkMargin
+
+                    // Typed absence over a non-finite sentinel: LinkMarginDb
+                    // returns double.NegativeInfinity for a non-positive symbol
+                    // rate (and NaN is possible from degenerate inputs). A
+                    // non-finite double is not valid JSON on the wire, so instead
+                    // of publishing it we leave BOTH margin and quality unset
+                    // (payload-level typed absence — the derived quality is
+                    // meaningless when the margin it comes from is invalid). net48
+                    // has no double.IsFinite, hence the explicit NaN/Infinity test.
+                    if (!double.IsNaN(margin) && !double.IsInfinity(margin))
                     {
-                        DecibelMargin = margin,
-                        ClosesLink = RaLinkBudget.ClosesLink(margin),
-                        Meta = meta,
-                    };
-                    capture.LinkQuality = new CommsLinkQuality
-                    {
-                        Value = RaLinkBudget.NormaliseQuality(margin),
-                        Meta = meta,
-                    };
+                        var meta = new PayloadMeta { Source = capture.Source, Quality = Quality.Loaded };
+                        capture.LinkMargin = new CommsLinkMargin
+                        {
+                            DecibelMargin = margin,
+                            ClosesLink = RaLinkBudget.ClosesLink(margin),
+                            Meta = meta,
+                        };
+                        capture.LinkQuality = new CommsLinkQuality
+                        {
+                            Value = RaLinkBudget.NormaliseQuality(margin),
+                            Meta = meta,
+                        };
+                    }
                 }
             }
 

@@ -25,7 +25,7 @@ namespace Gonogo.KSP
     /// own light-time computation, not a backend accessor (§3.1).</para>
     /// </summary>
     [SitrepUplink("comms")]
-    public sealed class CommsCoreUplink : ISitrepUplink
+    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public const string ConnectivityTopic = "comms.connectivity";
         public const string SignalStrengthTopic = "comms.signalStrength";
@@ -80,15 +80,26 @@ namespace Gonogo.KSP
             },
         };
 
+        /// <summary>
+        /// Two-pass fix (see <see cref="IUplinkCapabilityDeclarer"/>): the
+        /// exclusive <c>"comms"</c> capability is declared HERE, in the pre-
+        /// Register discovery pass, NOT in <see cref="Register"/>. That
+        /// guarantees the capability exists before ANY uplink's
+        /// <see cref="Register"/> runs — so RealAntennas' provider registration
+        /// (a SEPARATE uplink, in its own <see cref="Register"/>) can never race
+        /// ahead of this declaration and throw, regardless of assembly-scan
+        /// discovery order. CommNet is the capability's always-present vanilla
+        /// fallback; the engine calls <c>Kernel.Resolve()</c> once every uplink
+        /// has registered its providers.
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            CommsElection.RegisterCapability(kernel, _ => new CommNetBackend());
+        }
+
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
-
-            // Own the exclusive comms capability with CommNet as its vanilla
-            // fallback. RealAntennas (a separate uplink) registers a
-            // higher-priority provider in its own Register when RA is loaded;
-            // the engine calls Kernel.Resolve() after all uplinks register.
-            CommsElection.RegisterCapability(host.Kernel, _ => new CommNetBackend());
 
             _connectivity = host.Publisher(ConnectivityTopic);
             _signalStrength = host.Publisher(SignalStrengthTopic);
