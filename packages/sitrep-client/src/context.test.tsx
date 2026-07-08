@@ -6,6 +6,7 @@ import {
   useTelemetryStore,
   useViewClock,
   useViewClockOptional,
+  type ViewClockView,
 } from "./context";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
@@ -202,7 +203,7 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
   it("returns the same clock instance the auto-built store holds", () => {
     const client = new TelemetryClient(new StubTransport());
 
-    let seenClock: ViewClock | undefined;
+    let seenClock: ViewClockView | undefined;
     let seenStore: TimelineStore | undefined;
     function Probe() {
       seenStore = useTelemetryStore();
@@ -225,7 +226,7 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
   it("hands back one clock shared by two sibling consumers (media + telemetry read the same instance)", () => {
     const client = new TelemetryClient(new StubTransport());
 
-    const seen: ViewClock[] = [];
+    const seen: ViewClockView[] = [];
     function Probe() {
       seen.push(useViewClock());
       return null;
@@ -245,7 +246,7 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
   it("the shared clock satisfies the media DelayClockLike surface (confirmedEdgeUt + onFrame)", () => {
     const client = new TelemetryClient(new StubTransport());
 
-    let clock: ViewClock | undefined;
+    let clock: ViewClockView | undefined;
     function Probe() {
       clock = useViewClock();
       return null;
@@ -276,7 +277,7 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
     );
     spy.mockRestore();
 
-    let optional: ViewClock | undefined = {} as ViewClock;
+    let optional: ViewClockView | undefined = {} as ViewClockView;
     function OptionalProbe() {
       optional = useViewClockOptional();
       return null;

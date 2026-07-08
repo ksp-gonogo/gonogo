@@ -314,7 +314,16 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  *
  * Throws if no `TelemetryProvider` is mounted, matching `useTelemetryStore`.
  */
-export function useViewClock(): ViewClock {
+/**
+ * The read-only slice of `ViewClock` that delay-consistent consumers actually
+ * need: the `confirmedEdgeUt` release/certainty edge and the `onFrame`
+ * subscription. Narrowing the hook return to this `Pick` keeps consumers (the
+ * kerbcast `DelayedPlayoutBuffer` seam, camera widgets) from reaching for the
+ * clock's mutating surface — they observe, they never drive it.
+ */
+export type ViewClockView = Pick<ViewClock, "confirmedEdgeUt" | "onFrame">;
+
+export function useViewClock(): ViewClockView {
   return useTelemetryStore().clock;
 }
 
@@ -326,7 +335,7 @@ export function useViewClock(): ViewClock {
  * `delaySeconds() === 0` case) otherwise, with no hard dependency on a
  * provider being in the tree.
  */
-export function useViewClockOptional(): ViewClock | undefined {
+export function useViewClockOptional(): ViewClockView | undefined {
   return useTelemetryStoreOptional()?.clock;
 }
 
