@@ -7,7 +7,11 @@ namespace Sitrep.Contract
     /// (<c>Sitrep.Host.Tests.ContractShapeGateTests</c>) — every type that
     /// already carries <c>[TsInterface]</c> (the <c>rtcli</c> TS-SDK-codegen
     /// marker, see <c>Sitrep.Contract.csproj</c>'s own doc comment) also
-    /// carries this one.
+    /// carries this one. Also applied to every wire-visible ENUM (e.g.
+    /// <see cref="Quality"/>, <see cref="Staleness"/>) — a member rename or
+    /// renumber is just as breaking a wire change as a removed/retyped
+    /// property, so the gate must see enums too (<c>AttributeTargets.Enum</c>
+    /// below).
     ///
     /// Deliberately a SEPARATE, same-assembly attribute rather than reusing
     /// <c>[TsInterface]</c> directly: <c>Reinforced.Typings</c> (where
@@ -24,7 +28,7 @@ namespace Sitrep.Contract
     /// IN <c>Sitrep.Contract</c> itself, so resolving it never requires
     /// loading anything beyond the assembly already being reflected over.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Enum, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepContractAttribute : Attribute
     {
     }

@@ -27,7 +27,7 @@ namespace Sitrep.Host.IntegrationTests
     /// registered channel at once.</description></item>
     /// </list>
     /// </summary>
-    internal sealed class TestSystemExtension : ISitrepUplink
+    internal sealed class TestSystemUplink : ISitrepUplink
     {
         public const string RawTopic = "test.raw";
 
@@ -80,7 +80,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// M1 Task 4a milestone test's KSP-free replica of
     /// <c>Gonogo.KSP.VesselUplink</c> — same cross-project rationale as
-    /// <see cref="TestSystemExtension"/>'s own doc comment: this project
+    /// <see cref="TestSystemUplink"/>'s own doc comment: this project
     /// cannot reference the net472 <c>Gonogo.KSP</c> assembly, so the
     /// manifest/wiring (17 channels + 17 commands, verbatim from the real
     /// uplink) is duplicated here against a trivial
@@ -95,11 +95,11 @@ namespace Sitrep.Host.IntegrationTests
     /// itself is `internal` to <c>Sitrep.Host.Tests</c> and unreachable from
     /// here for the same reason <c>Gonogo.KSP</c> is.
     /// </summary>
-    internal sealed class TestVesselExtension : ISitrepUplink
+    internal sealed class TestVesselUplink : ISitrepUplink
     {
         private readonly IVesselActuator _actuator;
 
-        public TestVesselExtension(IVesselActuator? actuator = null)
+        public TestVesselUplink(IVesselActuator? actuator = null)
         {
             _actuator = actuator ?? new NoOpVesselActuator();
         }
@@ -209,13 +209,13 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// KSP-free integration-test replica of <c>Gonogo.KSP.CareerUplink</c>
     /// — that assembly is net472/KSP-referencing and unreachable from this
-    /// project, same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// project, same cross-project rationale as <see cref="TestSystemUplink"/>'s
     /// own doc comment. Registers the <c>career.status</c> channel against
     /// <see cref="CareerViewProvider.BuildCareer"/> verbatim, so the
     /// domain wire-fixture generator can replay a career-mode recording
     /// through the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestCareerExtension : ISitrepUplink
+    internal sealed class TestCareerUplink : ISitrepUplink
     {
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -240,13 +240,13 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceUplink</c>
-    /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// — same cross-project rationale as <see cref="TestSystemUplink"/>'s
     /// doc comment. Registers all three <c>science.*</c> channels against
     /// <see cref="ScienceViewProvider"/>'s builders verbatim, so the domain
     /// wire-fixture generator can replay a science-mode recording through
     /// the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestScienceExtension : ISitrepUplink
+    internal sealed class TestScienceUplink : ISitrepUplink
     {
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -285,13 +285,13 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// KSP-free integration-test replica of <c>Gonogo.KSP.PartsUplink</c>
-    /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// — same cross-project rationale as <see cref="TestSystemUplink"/>'s
     /// doc comment. Registers both <c>parts.*</c> channels against
     /// <see cref="PartsViewProvider"/>'s builders verbatim, so the domain
     /// wire-fixture generator can replay a parts/robotics-mode recording
     /// through the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestPartsExtension : ISitrepUplink
+    internal sealed class TestPartsUplink : ISitrepUplink
     {
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -322,11 +322,11 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Trivial no-op <see cref="IVesselActuator"/> for <see cref="TestVesselExtension"/>
+    /// Trivial no-op <see cref="IVesselActuator"/> for <see cref="TestVesselUplink"/>
     /// — every call succeeds and does nothing observable. Sufficient for this
     /// project's replay-driven tests, none of which dispatch a vessel command
     /// against the real recording (it contains only snapshots/lifecycle
-    /// events — see <see cref="TestVesselExtension"/>'s own doc comment).
+    /// events — see <see cref="TestVesselUplink"/>'s own doc comment).
     /// </summary>
     internal sealed class NoOpVesselActuator : IVesselActuator
     {

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Sitrep.Host;
 using Xunit;
 using Xunit.Abstractions;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

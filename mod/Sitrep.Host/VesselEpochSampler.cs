@@ -1,3 +1,4 @@
+using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>

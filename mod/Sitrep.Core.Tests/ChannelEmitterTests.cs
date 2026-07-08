@@ -1,5 +1,6 @@
 using Xunit;
 using Sitrep.Core;
+using Sitrep.Contract;
 
 namespace Sitrep.Core.Tests
 {

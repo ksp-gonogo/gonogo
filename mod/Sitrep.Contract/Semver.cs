@@ -1,4 +1,4 @@
-namespace Sitrep.Core
+namespace Sitrep.Contract
 {
     /// <summary>
     /// C# port of <c>mod/sitrep-kernel/src/version.ts</c>. Semantics MUST stay

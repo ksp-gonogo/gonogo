@@ -7,11 +7,13 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum Quality { OnRails, Loaded }
 
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
 
 [SitrepContract]

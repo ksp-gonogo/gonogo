@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -67,6 +69,100 @@ namespace Sitrep.Host.Tests
 
             Assert.DoesNotContain(found, d => d.Uplink is ThrowingCtorUplink);
             Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+        }
+
+        [Fact]
+        public void SurvivesTypeWhoseAttributeResolutionThrowsWithoutAbortingTheWholeScan()
+        {
+            // Builds, at runtime, a type carrying [SitrepUplink] applied
+            // TWICE -- SitrepUplinkAttribute is AllowMultiple = false, so
+            // the compiler would reject a second [SitrepUplink(...)]
+            // outright, but Reflection.Emit's SetCustomAttribute has no such
+            // check, so two records land in the type's metadata anyway.
+            // type.GetCustomAttribute<SitrepUplinkAttribute>() -- exactly
+            // the call discovery itself makes -- throws
+            // AmbiguousMatchException for a non-AllowMultiple attribute with
+            // >1 match. This reproduces, with no compiled/static dependency
+            // on any unloadable assembly, the general shape
+            // foundation-review finding #5 named: "a candidate type carries
+            // some OTHER attribute [...] whose [resolution] can throw" — the
+            // fix must make GetCustomAttribute's throw here skip only THIS
+            // type (log + continue), not abort the whole scan. Asserted by
+            // requiring NormalDiscoverableUplink still comes back in the
+            // same scan.
+            var crashyType = BuildTypeWithDuplicatedSitrepUplinkAttribute();
+            var assemblies = ThisAssembly.Append(crashyType.Assembly).ToArray();
+
+            var found = UplinkDiscovery.Discover(assemblies);
+
+            Assert.DoesNotContain(found, d => d.Uplink.GetType() == crashyType);
+            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+        }
+
+        /// <summary>See <see cref="SurvivesTypeWhoseAttributeResolutionThrowsWithoutAbortingTheWholeScan"/>.</summary>
+        private static Type BuildTypeWithDuplicatedSitrepUplinkAttribute()
+        {
+            var targetAsmName = new AssemblyName("CrashyUplinkAsm_" + Guid.NewGuid());
+            var targetAsmBuilder = AssemblyBuilder.DefineDynamicAssembly(targetAsmName, AssemblyBuilderAccess.Run);
+            var targetModule = targetAsmBuilder.DefineDynamicModule("CrashyUplinkModule");
+            var typeBuilder = targetModule.DefineType(
+                "CrashyEmittedUplink",
+                TypeAttributes.Public | TypeAttributes.Class,
+                typeof(object),
+                new[] { typeof(ISitrepUplink) });
+
+            // [SitrepUplink("discovery-test-crashy-attribute")] applied
+            // TWICE -- see this method's caller for why that's legal via
+            // Reflection.Emit even though AllowMultiple = false.
+            var sitrepUplinkCtor = typeof(SitrepUplinkAttribute).GetConstructor(new[] { typeof(string), typeof(int), typeof(int) })!;
+            var attributeBuilder = new CustomAttributeBuilder(
+                sitrepUplinkCtor,
+                new object[] { "discovery-test-crashy-attribute", ContractVersion.Major, ContractVersion.Minor });
+            typeBuilder.SetCustomAttribute(attributeBuilder);
+            typeBuilder.SetCustomAttribute(attributeBuilder);
+
+            // Manifest { Id = ... } get-only property backed by a field set in a default ctor.
+            var manifestField = typeBuilder.DefineField("_manifest", typeof(UplinkManifest), FieldAttributes.Private);
+            var ctorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
+            var ctorIl = ctorBuilder.GetILGenerator();
+            var objectCtor = typeof(object).GetConstructor(Type.EmptyTypes)!;
+            var manifestCtor = typeof(UplinkManifest).GetConstructor(Type.EmptyTypes)!;
+            var idSetter = typeof(UplinkManifest).GetProperty(nameof(UplinkManifest.Id))!.SetMethod!;
+            ctorIl.Emit(OpCodes.Ldarg_0);
+            ctorIl.Emit(OpCodes.Call, objectCtor);
+            ctorIl.Emit(OpCodes.Ldarg_0);
+            ctorIl.Emit(OpCodes.Newobj, manifestCtor);
+            ctorIl.Emit(OpCodes.Dup);
+            ctorIl.Emit(OpCodes.Ldstr, "discovery-test-crashy-attribute");
+            ctorIl.Emit(OpCodes.Callvirt, idSetter);
+            ctorIl.Emit(OpCodes.Stfld, manifestField);
+            ctorIl.Emit(OpCodes.Ret);
+
+            var manifestGetter = typeof(ISitrepUplink).GetProperty(nameof(ISitrepUplink.Manifest))!.GetMethod!;
+            var manifestProp = typeBuilder.DefineProperty(nameof(ISitrepUplink.Manifest), PropertyAttributes.None, typeof(UplinkManifest), null);
+            var manifestGetterImpl = typeBuilder.DefineMethod(
+                "get_Manifest",
+                MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.Final,
+                typeof(UplinkManifest),
+                Type.EmptyTypes);
+            var getterIl = manifestGetterImpl.GetILGenerator();
+            getterIl.Emit(OpCodes.Ldarg_0);
+            getterIl.Emit(OpCodes.Ldfld, manifestField);
+            getterIl.Emit(OpCodes.Ret);
+            manifestProp.SetGetMethod(manifestGetterImpl);
+            typeBuilder.DefineMethodOverride(manifestGetterImpl, manifestGetter);
+
+            var registerIface = typeof(ISitrepUplink).GetMethod(nameof(ISitrepUplink.Register))!;
+            var registerImpl = typeBuilder.DefineMethod(
+                "Register",
+                MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final,
+                typeof(void),
+                new[] { typeof(IUplinkHost) });
+            var registerIl = registerImpl.GetILGenerator();
+            registerIl.Emit(OpCodes.Ret);
+            typeBuilder.DefineMethodOverride(registerImpl, registerIface);
+
+            return typeBuilder.CreateType()!;
         }
 
         [Fact]
@@ -166,5 +262,6 @@ namespace Sitrep.Host.Tests
             public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-stale" };
             public void Register(IUplinkHost host) { }
         }
+
     }
 }

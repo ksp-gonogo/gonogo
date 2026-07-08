@@ -251,5 +251,79 @@
       "WarpRate:System.Double",
       "WarpRateIndex:System.Int32"
     ]
+  },
+  "enums": {
+    "Sitrep.Contract.ControlState": [
+      "Full:4",
+      "Kerbal:2",
+      "KerbalFull:10",
+      "KerbalNone:8",
+      "KerbalPartial:9",
+      "None:0",
+      "Partial:3",
+      "Probe:1",
+      "ProbeFull:7",
+      "ProbeNone:5",
+      "ProbePartial:6",
+      "Unknown:11"
+    ],
+    "Sitrep.Contract.Quality": ["Loaded:1", "OnRails:0"],
+    "Sitrep.Contract.SasMode": [
+      "AntiTarget:8",
+      "Antinormal:4",
+      "Maneuver:9",
+      "Normal:3",
+      "Prograde:1",
+      "RadialIn:5",
+      "RadialOut:6",
+      "Retrograde:2",
+      "StabilityAssist:0",
+      "Target:7",
+      "Unknown:10"
+    ],
+    "Sitrep.Contract.Situation": [
+      "Docked:7",
+      "Escaping:4",
+      "Flying:5",
+      "Landed:0",
+      "Orbiting:3",
+      "PreLaunch:2",
+      "Splashed:1",
+      "SubOrbital:6",
+      "Unknown:8"
+    ],
+    "Sitrep.Contract.Staleness": [
+      "Fresh:0",
+      "HeldStale:1",
+      "LastBeforeBlackout:2"
+    ],
+    "Sitrep.Contract.TargetKind": ["Body:1", "Other:2", "Vessel:0"],
+    "Sitrep.Contract.TransitionType": [
+      "Collision:5",
+      "Encounter:2",
+      "Escape:3",
+      "Final:1",
+      "Initial:0",
+      "Maneuver:4",
+      "Unknown:6"
+    ],
+    "Sitrep.Contract.VesselType": [
+      "Base:5",
+      "Debris:9",
+      "DeployedScienceController:11",
+      "DeployedSciencePart:12",
+      "DroppedPart:13",
+      "EVA:7",
+      "Flag:8",
+      "Lander:2",
+      "Probe:3",
+      "Relay:6",
+      "Rover:4",
+      "Ship:0",
+      "SpaceObject:10",
+      "Station:1",
+      "Unknown:14"
+    ],
+    "Sitrep.Contract.WarpMode": ["High:0", "Low:1", "Unknown:2"]
   }
 }

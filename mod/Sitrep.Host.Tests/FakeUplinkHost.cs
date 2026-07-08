@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

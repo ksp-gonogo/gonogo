@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sitrep.Host;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

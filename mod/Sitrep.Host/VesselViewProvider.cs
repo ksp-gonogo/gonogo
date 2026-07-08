@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// <c>ChannelEngine</c>'s delivery-time guard would treat as a genuinely
     /// poisoned payload and fail-soft the WHOLE uplink (see
     /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
-    /// GenuinelyUnserializablePayloadFailsSoftTheOwningExtensionInsteadOfRecurringSilently</c>,
+    /// GenuinelyUnserializablePayloadFailsSoftTheOwningUplinkInsteadOfRecurringSilently</c>,
     /// which deliberately pins that behavior for a genuinely-unrecognized
     /// type). Rather than widen <c>JsonWriter</c> itself — a shared,
     /// widely-depended-on class where doing so would blur that intentional

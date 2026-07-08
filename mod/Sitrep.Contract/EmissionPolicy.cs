@@ -1,6 +1,6 @@
 using System;
 
-namespace Sitrep.Core
+namespace Sitrep.Contract
 {
     /// <summary>
     /// Why a given <see cref="ChannelEmitter.Decide"/> call chose to emit.

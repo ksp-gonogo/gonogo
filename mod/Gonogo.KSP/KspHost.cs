@@ -6,6 +6,7 @@ using Expansions.Serenity;
 using Sitrep.Host;
 using Strategies;
 using UnityEngine;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {

@@ -77,7 +77,7 @@ namespace Sitrep.Host.IntegrationTests
                 VesselViewProvider.IdentityTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var maneuverFrames = ParsePayloads(capture.Frames, VesselViewProvider.ManeuverTopic);
@@ -118,7 +118,7 @@ namespace Sitrep.Host.IntegrationTests
                 VesselViewProvider.TargetTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var dockFrames = ParsePayloads(capture.Frames, VesselViewProvider.DockTopic);
@@ -144,7 +144,7 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[] { CareerViewProvider.Topic };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var careerFrames = ParsePayloads(capture.Frames, CareerViewProvider.Topic);
@@ -206,7 +206,7 @@ namespace Sitrep.Host.IntegrationTests
             var session = BuildSyntheticCareerSession();
             var topics = new[] { CareerViewProvider.Topic };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var careerFrames = ParsePayloads(capture.Frames, CareerViewProvider.Topic);
@@ -612,7 +612,7 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[] { VesselViewProvider.CommsTopic };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestVesselUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var commsStream = ParseStreamFrames(capture.Frames, VesselViewProvider.CommsTopic);
@@ -693,7 +693,7 @@ namespace Sitrep.Host.IntegrationTests
                 ScienceViewProvider.DeployedTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildExperiments's payload IS the entry
@@ -757,7 +757,7 @@ namespace Sitrep.Host.IntegrationTests
                 ScienceViewProvider.ExperimentsTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildLab's payload IS the entry list itself
@@ -823,7 +823,7 @@ namespace Sitrep.Host.IntegrationTests
             var session = BuildSyntheticDeployedScienceSession();
             var topics = new[] { ScienceViewProvider.DeployedTopic };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildDeployed's payload IS the entry list
@@ -1025,7 +1025,7 @@ namespace Sitrep.Host.IntegrationTests
                 PartsViewProvider.RoboticsTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestPartsExtension() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestPartsUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var powerFrames = ParsePayloads(capture.Frames, PartsViewProvider.PowerTopic);

@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Sitrep.Core;
 
-namespace Sitrep.Host
+namespace Sitrep.Contract
 {
     /// <summary>
     /// Which outbox lane a channel's samples ride, per
     /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §1.1.
-    /// <see cref="LossyLatest"/> is the <see cref="ChannelEngine"/>'s default:
+    /// <see cref="LossyLatest"/> is the <see cref="Sitrep.Host.ChannelEngine"/>'s default:
     /// the outbox coalesces to the freshest sample per topic (the shape
     /// <c>GonogoBodiesServer</c>'s <c>GonogoOutbox._latestByTopic</c> already
     /// implemented). <see cref="ReliableOrdered"/> rides the outbox's FIFO
@@ -24,7 +23,7 @@ namespace Sitrep.Host
 
     /// <summary>
     /// One channel an uplink declares in its <see cref="UplinkManifest"/>
-    /// — the wire-visible metadata <see cref="ChannelEngine.AddChannelSource"/>
+    /// — the wire-visible metadata <see cref="Sitrep.Host.ChannelEngine.AddChannelSource"/>
     /// looks up by <see cref="Topic"/> when an uplink calls it during
     /// <see cref="ISitrepUplink.Register"/>. Declaring a channel here
     /// BEFORE registering its mapper is the manifest-first rule the design
@@ -42,7 +41,7 @@ namespace Sitrep.Host
     /// One command an uplink declares. <see cref="Delayed"/> defaults to
     /// <c>true</c> (a normal vessel command rides the Courier's light-time
     /// delay); ground-infrastructure commands (negotiation, archive file
-    /// ops) set it <c>false</c> so <see cref="ChannelEngine.DispatchCommand"/>
+    /// ops) set it <c>false</c> so <see cref="Sitrep.Host.ChannelEngine.DispatchCommand"/>
     /// bypasses the Courier entirely — see the design doc §4.3's kerbcast
     /// negotiate discussion for why this flag exists.
     /// </summary>
@@ -112,7 +111,7 @@ namespace Sitrep.Host
     /// <see cref="IUplinkHost.AddChannelSource"/> mapper. Obtained via
     /// <see cref="IUplinkHost.Publisher"/>; <see cref="Publish"/> is safe
     /// to call from the main thread only (it hands off to the engine's own
-    /// job queue, same as <see cref="ChannelEngine.Tick"/>).
+    /// job queue, same as <see cref="Sitrep.Host.ChannelEngine.Tick"/>).
     /// </summary>
     public interface IChannelPublisher
     {
@@ -120,7 +119,7 @@ namespace Sitrep.Host
     }
 
     /// <summary>
-    /// What <see cref="ChannelEngine"/> hands an <see cref="ISitrepUplink"/>
+    /// What <see cref="Sitrep.Host.ChannelEngine"/> hands an <see cref="ISitrepUplink"/>
     /// during <see cref="ISitrepUplink.Register"/> — see the design doc
     /// §1.2. Uplinks register PURE pieces here; they never touch the
     /// transport, the Courier, or threading directly — the engine runs
@@ -130,7 +129,7 @@ namespace Sitrep.Host
     {
         double NowUt();
 
-        /// <summary>Contribute a sampler that augments the snapshot handed to <see cref="ChannelEngine.Tick"/>. See <see cref="ISnapshotSampler"/>.</summary>
+        /// <summary>Contribute a sampler that augments the snapshot handed to <see cref="Sitrep.Host.ChannelEngine.Tick"/>. See <see cref="ISnapshotSampler"/>.</summary>
         void AddSampler(ISnapshotSampler sampler);
 
         /// <summary>
@@ -165,7 +164,7 @@ namespace Sitrep.Host
         /// genuine 0→1 subscribe transition already uses (see
         /// <c>ChannelEmitter.NotifySubscribed</c>). The load-bearing use
         /// case is a subject-provenance epoch (see
-        /// <see cref="VesselEpochSampler"/>): when the thing a channel
+        /// <see cref="Sitrep.Host.VesselEpochSampler"/>): when the thing a channel
         /// describes changes identity mid-stream, the NEXT sample must be
         /// an unconditional keyframe, not something a deadband/cadence gate
         /// can suppress or delay. MUST be called only from within a
@@ -184,7 +183,7 @@ namespace Sitrep.Host
         /// touching the emitter's force-keyframe state (compare
         /// <see cref="ForceKeyframe"/>, which this is meant to be called
         /// ALONGSIDE, not instead of). The M2 subject-scoped-birth seam: a
-        /// subject switch (see <see cref="VesselEpochSampler"/>) calls this
+        /// subject switch (see <see cref="Sitrep.Host.VesselEpochSampler"/>) calls this
         /// for every topic it owns so a channel the NEW subject has never
         /// populated goes back to "not yet a subject" — rather than
         /// inheriting the PREVIOUS subject's birth state and emitting a
@@ -204,13 +203,34 @@ namespace Sitrep.Host
     /// itself. <c>system.bodies</c>'s retrofit
     /// (<c>Gonogo.KSP.SystemUplink</c>) is the reference implementation —
     /// see the design doc §6.1.
+    ///
+    /// <para><b>Lives in <c>Sitrep.Contract</c>, not <c>Sitrep.Host</c>
+    /// (moved here in the Uplink-foundation review's fix round):</b> this
+    /// interface, <see cref="UplinkManifest"/>, <see cref="IUplinkHost"/>,
+    /// and everything else <see cref="Register"/>'s signature transitively
+    /// needs (<see cref="ChannelDeclaration"/>, <see cref="CommandDeclaration"/>,
+    /// <see cref="Delivery"/>, <see cref="Availability"/>,
+    /// <see cref="ISnapshotSampler"/>, <see cref="IChannelPublisher"/>,
+    /// <see cref="Sitrep.Contract.KspSnapshot"/>, <see cref="Kernel"/>, and
+    /// <see cref="EmissionPolicy"/>) are the COMPLETE set a third-party
+    /// Uplink needs to implement this interface and compile against
+    /// <c>Sitrep.Contract</c> ALONE — no reference to <c>Sitrep.Host</c>
+    /// (the engine: <c>ChannelEngine</c>, discovery, transport) is ever
+    /// required. That's the whole point of the split: <c>Sitrep.Contract</c>
+    /// is the planned MIT/BSD carve-out, and an Uplink author's compile-time
+    /// surface must not leak engine internals. <c>Sitrep.Host</c> keeps
+    /// everything ELSE — the engine that CONSUMES this interface
+    /// (<c>ChannelEngine.RegisterUplink</c>/<c>RegisterDiscoveredUplink</c>)
+    /// and the assembly-scan discovery that finds implementations of it
+    /// (<c>UplinkDiscovery</c>) both still live there; only the SHAPE an
+    /// Uplink author programs against moved.</para>
     /// </summary>
     public interface ISitrepUplink
     {
         UplinkManifest Manifest { get; }
 
         /// <summary>
-        /// Called once, on the main thread, by <see cref="ChannelEngine.RegisterUplink"/>.
+        /// Called once, on the main thread, by <see cref="Sitrep.Host.ChannelEngine.RegisterUplink"/>.
         /// Throwing here (or calling <see cref="IUplinkHost.SetAvailability"/>
         /// with an unavailable status) fail-softs THIS uplink only — every
         /// other registered uplink is unaffected.

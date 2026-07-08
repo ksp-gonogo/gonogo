@@ -28,7 +28,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task MultipleRegisteredChannelsEmitAndSubscriptionGateIndependently()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new MultiChannelTestExtension());
+            engine.RegisterUplink(new MultiChannelTestUplink());
             engine.Start();
             try
             {
@@ -42,7 +42,7 @@ namespace Sitrep.Host.IntegrationTests
                 // the exact outer/inner gate SubscriptionRegistry/ChannelEmitter
                 // already prove individually, now proven per-topic through
                 // the multi-channel engine.
-                engine.TickAndWait(0.0, MultiChannelTestExtension.Snapshot(a: 1, b: 100), Timeout);
+                engine.TickAndWait(0.0, MultiChannelTestUplink.Snapshot(a: 1, b: 100), Timeout);
 
                 Assert.Equal(1, engine.ChannelCounters("chan.a").Considered);
                 Assert.Equal(1, engine.ChannelCounters("chan.a").Emitted);
@@ -63,7 +63,7 @@ namespace Sitrep.Host.IntegrationTests
                 // gets its own subscribe-triggered keyframe rather than
                 // waiting on "chan.a"'s cadence.
                 await SubscribeAsync(client, "chan.b", Timeout);
-                engine.TickAndWait(1.0, MultiChannelTestExtension.Snapshot(a: 2, b: 200), Timeout);
+                engine.TickAndWait(1.0, MultiChannelTestUplink.Snapshot(a: 2, b: 200), Timeout);
 
                 Assert.Equal(2, engine.ChannelCounters("chan.a").Emitted);
                 Assert.Equal(1, engine.ChannelCounters("chan.b").Emitted);
@@ -105,13 +105,13 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ReliableOrderedNeverDropsAFrameWhileLossyLatestMayCoalesceUnderRapidEmission()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new DeliveryClassTestExtension());
+            engine.RegisterUplink(new DeliveryClassTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, DeliveryClassTestExtension.ReliableTopic, Timeout);
-                await SubscribeAsync(client, DeliveryClassTestExtension.LossyTopic, Timeout);
+                await SubscribeAsync(client, DeliveryClassTestUplink.ReliableTopic, Timeout);
+                await SubscribeAsync(client, DeliveryClassTestUplink.LossyTopic, Timeout);
 
                 const int sampleCount = 5;
                 for (var i = 0; i < sampleCount; i++)
@@ -119,22 +119,22 @@ namespace Sitrep.Host.IntegrationTests
                     // Both channels read the SAME "value" key, so every tick
                     // emits an identical value sequence on both - only the
                     // DELIVERY LANE differs.
-                    engine.TickAndWait(i, DeliveryClassTestExtension.Snapshot(i), Timeout);
+                    engine.TickAndWait(i, DeliveryClassTestUplink.Snapshot(i), Timeout);
                 }
 
                 // Structural guarantee, independent of scheduling: the emitter
                 // considered/emitted exactly `sampleCount` samples on BOTH
                 // channels (Decide-gating doesn't know about delivery class).
-                Assert.Equal(sampleCount, engine.ChannelCounters(DeliveryClassTestExtension.ReliableTopic).Emitted);
-                Assert.Equal(sampleCount, engine.ChannelCounters(DeliveryClassTestExtension.LossyTopic).Emitted);
+                Assert.Equal(sampleCount, engine.ChannelCounters(DeliveryClassTestUplink.ReliableTopic).Emitted);
+                Assert.Equal(sampleCount, engine.ChannelCounters(DeliveryClassTestUplink.LossyTopic).Emitted);
 
                 // ONE drain covering both subscribed topics - a second,
                 // separate drain call would find the channel already
                 // exhausted by the first (see DrainAllStreamDataAsync's doc
                 // comment).
                 var allFrames = await DrainAllStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
-                var reliableFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestExtension.ReliableTopic);
-                var lossyFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestExtension.LossyTopic);
+                var reliableFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestUplink.ReliableTopic);
+                var lossyFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestUplink.LossyTopic);
 
                 // Reliable-ordered: EVERY emitted sample reaches the wire, in
                 // order, never coalesced - the FIFO queue guarantees this
@@ -162,14 +162,14 @@ namespace Sitrep.Host.IntegrationTests
         public void DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
-            engine.RegisterUplink(new DelayFlagTestExtension());
+            engine.RegisterUplink(new DelayFlagTestUplink());
             engine.Start();
             try
             {
                 var infraResolved = false;
                 object? infraResult = null;
                 engine.DispatchCommandAndWait(
-                    DelayFlagTestExtension.InfraCommand, "x", "vantage-1",
+                    DelayFlagTestUplink.InfraCommand, "x", "vantage-1",
                     result => { infraResolved = true; infraResult = result; },
                     TimeSpan.FromMilliseconds(500));
 
@@ -182,7 +182,7 @@ namespace Sitrep.Host.IntegrationTests
                 var vesselResolved = false;
                 object? vesselResult = null;
                 engine.DispatchCommandAndWait(
-                    DelayFlagTestExtension.VesselCommand, "y", "vantage-1",
+                    DelayFlagTestUplink.VesselCommand, "y", "vantage-1",
                     result => { vesselResolved = true; vesselResult = result; },
                     TimeSpan.FromMilliseconds(300));
 
@@ -216,7 +216,7 @@ namespace Sitrep.Host.IntegrationTests
         /// immediately. Same shape as
         /// <see cref="DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt"/>
         /// above (the M0.5 command-delay test), now exercised against the
-        /// actual vessel command manifest via <see cref="VesselCommandTestExtension"/>
+        /// actual vessel command manifest via <see cref="VesselCommandTestUplink"/>
         /// (a KSP-free stand-in for <c>Gonogo.KSP.VesselUplink</c> — this
         /// project deliberately never references <c>Gonogo.KSP</c>, see this
         /// file's own top-of-class doc comment).
@@ -226,7 +226,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
             var actuator = new RecordingVesselActuator();
-            engine.RegisterUplink(new VesselCommandTestExtension(actuator));
+            engine.RegisterUplink(new VesselCommandTestUplink(actuator));
             engine.Start();
             try
             {
@@ -282,7 +282,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
             var actuator = new RecordingVesselActuator();
-            engine.RegisterUplink(new VesselCommandTestExtension(actuator));
+            engine.RegisterUplink(new VesselCommandTestUplink(actuator));
             engine.Start();
             try
             {
@@ -327,8 +327,8 @@ namespace Sitrep.Host.IntegrationTests
         public async Task UnguardedCommandHandlerExceptionFailSoftsOnlyThatCommandAndKeepsTheCourierThreadAlive()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new CrashyCommandTestExtension());
-            engine.RegisterUplink(new MultiChannelTestExtension());
+            engine.RegisterUplink(new CrashyCommandTestUplink());
+            engine.RegisterUplink(new MultiChannelTestUplink());
             engine.Start();
             try
             {
@@ -337,7 +337,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 // Sanity: the unrelated, healthy channel works before we do
                 // anything to the crashy one.
-                engine.TickAndWait(0.0, MultiChannelTestExtension.Snapshot(a: 1, b: 100), Timeout);
+                engine.TickAndWait(0.0, MultiChannelTestUplink.Snapshot(a: 1, b: 100), Timeout);
                 var before = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(1.0, Convert.ToDouble(before.Payload));
 
@@ -348,7 +348,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Type = "command-request",
                     RequestId = "r1",
-                    Command = CrashyCommandTestExtension.Command,
+                    Command = CrashyCommandTestUplink.Command,
                     Args = 5.0,
                     SentAt = 0.0,
                 }));
@@ -362,12 +362,12 @@ namespace Sitrep.Host.IntegrationTests
                 var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
                 Assert.Equal("r1", response.RequestId);
                 Assert.Null(response.Result);
-                Assert.False(engine.AvailabilityOf(CrashyCommandTestExtension.ExtensionId).IsAvailable);
+                Assert.False(engine.AvailabilityOf(CrashyCommandTestUplink.UplinkId).IsAvailable);
 
                 // The engine STAYS ALIVE: a subsequent tick on the
                 // completely unrelated, healthy channel still delivers
                 // normally — proof the Courier thread never died.
-                engine.TickAndWait(1.0, MultiChannelTestExtension.Snapshot(a: 2, b: 200), Timeout);
+                engine.TickAndWait(1.0, MultiChannelTestUplink.Snapshot(a: 2, b: 200), Timeout);
                 var after = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(2.0, Convert.ToDouble(after.Payload));
             }
@@ -390,7 +390,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task StructuredWireArgsMismatchedAgainstADeclaredScalarHandlerFailSoftsInsteadOfCrashing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new ScalarArgCommandTestExtension());
+            engine.RegisterUplink(new ScalarArgCommandTestUplink());
             engine.Start();
             try
             {
@@ -400,7 +400,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Type = "command-request",
                     RequestId = "r-structured",
-                    Command = ScalarArgCommandTestExtension.Command,
+                    Command = ScalarArgCommandTestUplink.Command,
                     Args = new Dictionary<string, object?> { ["x"] = 1.0, ["y"] = 2.0 },
                     SentAt = 0.0,
                 }));
@@ -408,7 +408,7 @@ namespace Sitrep.Host.IntegrationTests
                 var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
                 Assert.Equal("r-structured", response.RequestId);
                 Assert.Null(response.Result);
-                Assert.False(engine.AvailabilityOf(ScalarArgCommandTestExtension.ExtensionId).IsAvailable);
+                Assert.False(engine.AvailabilityOf(ScalarArgCommandTestUplink.UplinkId).IsAvailable);
             }
             finally
             {
@@ -431,19 +431,19 @@ namespace Sitrep.Host.IntegrationTests
         /// totally unrelated, healthy uplink's channel is unaffected.
         /// </summary>
         [Fact]
-        public async Task ExtensionThatThrowsAfterRegisteringChannelsTakesBothItsChannelsInertButLeavesOthersUnaffected()
+        public async Task UplinkThatThrowsAfterRegisteringChannelsTakesBothItsChannelsInertButLeavesOthersUnaffected()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new ThrowsAfterRegisteringTwoChannelsExtension());
-            engine.RegisterUplink(new MultiChannelTestExtension());
+            engine.RegisterUplink(new ThrowsAfterRegisteringTwoChannelsUplink());
+            engine.RegisterUplink(new MultiChannelTestUplink());
             engine.Start();
             try
             {
-                Assert.False(engine.AvailabilityOf(ThrowsAfterRegisteringTwoChannelsExtension.ExtensionId).IsAvailable);
+                Assert.False(engine.AvailabilityOf(ThrowsAfterRegisteringTwoChannelsUplink.UplinkId).IsAvailable);
 
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsExtension.Chan1, Timeout);
-                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsExtension.Chan2, Timeout);
+                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsUplink.Chan1, Timeout);
+                await SubscribeAsync(client, ThrowsAfterRegisteringTwoChannelsUplink.Chan2, Timeout);
                 await SubscribeAsync(client, "chan.a", Timeout);
 
                 var snapshot = new KspSnapshot
@@ -462,8 +462,8 @@ namespace Sitrep.Host.IntegrationTests
                 // considered — registration having thrown after both
                 // AddChannelSource calls succeeded takes the WHOLE
                 // uplink's channels inert together.
-                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan1).Considered);
-                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan2).Considered);
+                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsUplink.Chan1).Considered);
+                Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsUplink.Chan2).Considered);
 
                 // A totally unrelated, healthy uplink's channel is
                 // unaffected.
@@ -491,14 +491,14 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PublisherOnlyChannelCanBeSubscribedAndPublishReachesTheSubscriber()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var uplink = new PublisherOnlyTestExtension();
+            var uplink = new PublisherOnlyTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
 
-                await SubscribeAsync(client, PublisherOnlyTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, PublisherOnlyTestUplink.Topic, Timeout);
 
                 // Publish an event-driven payload at UT 1, then advance the
                 // clock (an ordinary empty tick) to fire its scheduled
@@ -513,7 +513,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(1.0, null, Timeout);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
-                Assert.Equal(PublisherOnlyTestExtension.Topic, delivered.Topic);
+                Assert.Equal(PublisherOnlyTestUplink.Topic, delivered.Topic);
                 Assert.Equal(42.0, Convert.ToDouble(delivered.Payload));
             }
             finally
@@ -544,32 +544,32 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ThrowingEqualsDuringDecideFailSoftsOnlyThatChannelAndClockKeepsAdvancing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new EqualsThrowsTestExtension());
-            engine.RegisterUplink(new MultiChannelTestExtension());
+            engine.RegisterUplink(new EqualsThrowsTestUplink());
+            engine.RegisterUplink(new MultiChannelTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, EqualsThrowsTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, EqualsThrowsTestUplink.Topic, Timeout);
                 await SubscribeAsync(client, "chan.a", Timeout);
 
                 // Tick0: first-ever Decide for both channels is a forced
                 // keyframe -- Equals is never consulted on a keyframe, so
                 // both succeed regardless of the fix.
-                engine.TickAndWait(0.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 1), Timeout);
+                engine.TickAndWait(0.0, EqualsThrowsTestUplink.Snapshot(new EqualsThrowsPayload(), a: 1), Timeout);
                 var seenTick0 = new HashSet<string>();
                 for (var i = 0; i < 2; i++)
                 {
                     var delivered = await ReceiveStreamDataAsync(client, Timeout);
                     seenTick0.Add(delivered.Topic);
                 }
-                Assert.Contains(EqualsThrowsTestExtension.Topic, seenTick0);
+                Assert.Contains(EqualsThrowsTestUplink.Topic, seenTick0);
                 Assert.Contains("chan.a", seenTick0);
 
                 // Tick1: a NEW EqualsThrowsPayload instance is not
                 // keyframe-due (interval is huge) and isn't numeric, so the
                 // deadband falls back to Equals -- which throws.
-                engine.TickAndWait(1.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 2), Timeout);
+                engine.TickAndWait(1.0, EqualsThrowsTestUplink.Snapshot(new EqualsThrowsPayload(), a: 2), Timeout);
 
                 // The healthy, differently-owned channel still gets mapped,
                 // recorded, AND delivered THIS tick -- proof the clock
@@ -582,12 +582,12 @@ namespace Sitrep.Host.IntegrationTests
                 // owning uplink went Unavailable -- and nothing else
                 // arrives for it.
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
-                Assert.False(engine.AvailabilityOf(EqualsThrowsTestExtension.ExtensionId).IsAvailable);
+                Assert.False(engine.AvailabilityOf(EqualsThrowsTestUplink.UplinkId).IsAvailable);
 
                 // A THIRD tick proves the engine is genuinely healthy going
                 // forward, not merely coincidentally unstuck for one more
                 // delivery.
-                engine.TickAndWait(2.0, EqualsThrowsTestExtension.Snapshot(new EqualsThrowsPayload(), a: 3), Timeout);
+                engine.TickAndWait(2.0, EqualsThrowsTestUplink.Snapshot(new EqualsThrowsPayload(), a: 3), Timeout);
                 var afterA2 = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal("chan.a", afterA2.Topic);
                 Assert.Equal(3.0, Convert.ToDouble(afterA2.Payload));
@@ -612,19 +612,19 @@ namespace Sitrep.Host.IntegrationTests
         public async Task DecimalChannelValueSerializesAndDeliversAfterJsonWriterWidening()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new DecimalPayloadTestExtension());
+            engine.RegisterUplink(new DecimalPayloadTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, DecimalPayloadTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, DecimalPayloadTestUplink.Topic, Timeout);
 
-                engine.TickAndWait(0.0, DecimalPayloadTestExtension.Snapshot(123.45m), Timeout);
+                engine.TickAndWait(0.0, DecimalPayloadTestUplink.Snapshot(123.45m), Timeout);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
-                Assert.Equal(DecimalPayloadTestExtension.Topic, delivered.Topic);
+                Assert.Equal(DecimalPayloadTestUplink.Topic, delivered.Topic);
                 Assert.Equal(123.45, Convert.ToDouble(delivered.Payload), 3);
-                Assert.True(engine.AvailabilityOf(DecimalPayloadTestExtension.ExtensionId).IsAvailable);
+                Assert.True(engine.AvailabilityOf(DecimalPayloadTestUplink.UplinkId).IsAvailable);
             }
             finally
             {
@@ -643,25 +643,25 @@ namespace Sitrep.Host.IntegrationTests
         /// climbing with every subsequent tick.
         /// </summary>
         [Fact]
-        public async Task GenuinelyUnserializablePayloadFailsSoftTheOwningExtensionInsteadOfRecurringSilently()
+        public async Task GenuinelyUnserializablePayloadFailsSoftTheOwningUplinkInsteadOfRecurringSilently()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new PoisonPayloadTestExtension());
+            engine.RegisterUplink(new PoisonPayloadTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, PoisonPayloadTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, PoisonPayloadTestUplink.Topic, Timeout);
 
-                engine.TickAndWait(0.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
-                engine.TickAndWait(1.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
-                engine.TickAndWait(2.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(1.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(2.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
 
                 // Never reaches the wire -- the payload can never serialize.
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 
-                Assert.False(engine.AvailabilityOf(PoisonPayloadTestExtension.ExtensionId).IsAvailable);
-                Assert.Equal(1, engine.ChannelCounters(PoisonPayloadTestExtension.Topic).Considered);
+                Assert.False(engine.AvailabilityOf(PoisonPayloadTestUplink.UplinkId).IsAvailable);
+                Assert.Equal(1, engine.ChannelCounters(PoisonPayloadTestUplink.Topic).Considered);
             }
             finally
             {
@@ -686,31 +686,31 @@ namespace Sitrep.Host.IntegrationTests
         public async Task SubscribeCatchUpThrowRollsBackBookkeepingInsteadOfOrphaningTheSubscriber()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new PoisonPayloadTestExtension());
+            engine.RegisterUplink(new PoisonPayloadTestUplink());
             engine.Start();
             try
             {
                 await using var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(clientA, PoisonPayloadTestExtension.Topic, Timeout);
+                await SubscribeAsync(clientA, PoisonPayloadTestUplink.Topic, Timeout);
 
                 // Records one poison sample into the archive so a SECOND
                 // subscriber's synchronous catch-up has something already
                 // "arrived" to (attempt to) deliver.
-                engine.TickAndWait(0.0, PoisonPayloadTestExtension.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
 
                 await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var ack = await SubscribeAsync(clientB, PoisonPayloadTestExtension.Topic, TimeSpan.FromSeconds(2));
+                var ack = await SubscribeAsync(clientB, PoisonPayloadTestUplink.Topic, TimeSpan.FromSeconds(2));
                 Assert.Equal("subscribed", ack.Name);
-                Assert.Equal(2, engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic));
+                Assert.Equal(2, engine.SubscriberCountFor(PoisonPayloadTestUplink.Topic));
 
                 await clientB.DisposeAsync();
 
                 var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-                while (engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic) != 1 && DateTime.UtcNow < deadline)
+                while (engine.SubscriberCountFor(PoisonPayloadTestUplink.Topic) != 1 && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(25);
                 }
-                Assert.Equal(1, engine.SubscriberCountFor(PoisonPayloadTestExtension.Topic));
+                Assert.Equal(1, engine.SubscriberCountFor(PoisonPayloadTestUplink.Topic));
             }
             finally
             {
@@ -732,7 +732,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task UnserializableCommandResultSendsAnErrorResponseInsteadOfSilence()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new PoisonResultCommandTestExtension());
+            engine.RegisterUplink(new PoisonResultCommandTestUplink());
             engine.Start();
             try
             {
@@ -742,14 +742,14 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Type = "command-request",
                     RequestId = "r-poison",
-                    Command = PoisonResultCommandTestExtension.Command,
+                    Command = PoisonResultCommandTestUplink.Command,
                     Args = null,
                     SentAt = 0.0,
                 }));
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r-poison", error.RequestId);
-                Assert.False(engine.AvailabilityOf(PoisonResultCommandTestExtension.ExtensionId).IsAvailable);
+                Assert.False(engine.AvailabilityOf(PoisonResultCommandTestUplink.UplinkId).IsAvailable);
             }
             finally
             {
@@ -776,13 +776,13 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PublishedUtFromBeforeAQuickloadRewindIsClampedRatherThanGhostingIntoTheArchive()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var uplink = new GhostPublishTestExtension();
+            var uplink = new GhostPublishTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, GhostPublishTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, GhostPublishTestUplink.Topic, Timeout);
 
                 // Advance to a high UT, establishing the "old" timeline the
                 // uplink will (mis-)remember.
@@ -802,7 +802,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(600.0, null, Timeout);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
-                Assert.Equal(GhostPublishTestExtension.Topic, delivered.Topic);
+                Assert.Equal(GhostPublishTestUplink.Topic, delivered.Topic);
                 Assert.Equal(42.0, Convert.ToDouble(delivered.Payload));
                 Assert.True(
                     delivered.Meta.ValidAt <= 10.0 + 1e-6,
@@ -828,10 +828,10 @@ namespace Sitrep.Host.IntegrationTests
         /// (not re-invoked) on the very next tick.
         /// </summary>
         [Fact]
-        public void ThrowingSamplerFailSoftsItsOwningExtensionAndIsSkippedOnTheNextTick()
+        public void ThrowingSamplerFailSoftsItsOwningUplinkAndIsSkippedOnTheNextTick()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var uplink = new ThrowingSamplerTestExtension();
+            var uplink = new ThrowingSamplerTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
             try
@@ -844,7 +844,7 @@ namespace Sitrep.Host.IntegrationTests
                 // Pre-fix: no owner attribution means the uplink stays
                 // Available no matter how many times its sampler throws.
                 Assert.False(
-                    engine.AvailabilityOf(ThrowingSamplerTestExtension.ExtensionId).IsAvailable,
+                    engine.AvailabilityOf(ThrowingSamplerTestUplink.UplinkId).IsAvailable,
                     "owning uplink should be Unavailable after its sampler threw");
 
                 engine.TickAndWait(1.0, snapshot, Timeout);
@@ -865,7 +865,7 @@ namespace Sitrep.Host.IntegrationTests
         /// Coverage-sweep Finding 2 (round 3): <c>FailSoftCommand</c>/
         /// <c>FailSoftChannel</c> used to build their log <c>reason</c> via
         /// an unguarded <c>$"...{ex.Message}"</c> interpolation BEFORE the
-        /// owner lookup + <c>MarkExtensionUnavailable</c> call. <c>Message</c>
+        /// owner lookup + <c>MarkUplinkUnavailable</c> call. <c>Message</c>
         /// is an ordinary virtual getter — a legal (if hostile) custom
         /// exception can override it to throw — so a poisoned Message getter
         /// aborted the fail-soft guard before it ever attributed the
@@ -880,25 +880,25 @@ namespace Sitrep.Host.IntegrationTests
         public void CommandHandlerThrowingAnExceptionWhoseMessageGetterThrowsStillMarksTheOwnerUnavailable()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new MessageGetterThrowsCommandTestExtension());
-            engine.RegisterUplink(new MultiChannelTestExtension());
+            engine.RegisterUplink(new MessageGetterThrowsCommandTestUplink());
+            engine.RegisterUplink(new MultiChannelTestUplink());
             engine.Start();
             try
             {
                 var resolved = false;
                 engine.DispatchCommandAndWait(
-                    MessageGetterThrowsCommandTestExtension.Command, null, "vantage-1",
+                    MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
                     _ => resolved = true,
                     TimeSpan.FromMilliseconds(500));
 
                 // Pre-fix: the poisoned Message getter aborts FailSoftCommand
-                // before MarkExtensionUnavailable runs, so the owner stays
+                // before MarkUplinkUnavailable runs, so the owner stays
                 // Available and onResult/Done never fire (resolved stays
                 // false) -- the whole thing silently vanishes into
                 // CourierLoop's backstop instead.
                 Assert.True(resolved, "onResult should still fire (with a graceful null) once the guard attributes and returns");
                 Assert.False(
-                    engine.AvailabilityOf(MessageGetterThrowsCommandTestExtension.ExtensionId).IsAvailable,
+                    engine.AvailabilityOf(MessageGetterThrowsCommandTestUplink.UplinkId).IsAvailable,
                     "owning uplink should be Unavailable even though ex.Message itself throws");
             }
             finally
@@ -924,30 +924,30 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new ForceKeyframeTestExtension());
+            engine.RegisterUplink(new ForceKeyframeTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, ForceKeyframeTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, ForceKeyframeTestUplink.Topic, Timeout);
 
                 // Initial subscribe-triggered keyframe.
-                engine.TickAndWait(0.0, ForceKeyframeTestExtension.Snapshot(0), Timeout);
-                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                engine.TickAndWait(0.0, ForceKeyframeTestUplink.Snapshot(0), Timeout);
+                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestUplink.Topic).Emitted);
                 await ReceiveStreamDataAsync(client, Timeout);
 
                 // A small change, well within the wide (100-unit) deadband --
                 // Considered goes up, Emitted does not.
-                engine.TickAndWait(1.0, ForceKeyframeTestExtension.Snapshot(10), Timeout);
-                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Considered);
-                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                engine.TickAndWait(1.0, ForceKeyframeTestUplink.Snapshot(10), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestUplink.Topic).Considered);
+                Assert.Equal(1, engine.ChannelCounters(ForceKeyframeTestUplink.Topic).Emitted);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 
                 // Force a keyframe via a command handler (the Courier-thread-
                 // safe call site ForceKeyframe's contract requires).
                 var forced = false;
                 engine.DispatchCommandAndWait(
-                    ForceKeyframeTestExtension.ForceCommand, null, "vantage-1",
+                    ForceKeyframeTestUplink.ForceCommand, null, "vantage-1",
                     _ => forced = true,
                     Timeout);
                 Assert.True(forced);
@@ -955,10 +955,10 @@ namespace Sitrep.Host.IntegrationTests
                 // SAME value as the last (skipped) tick -- still within the
                 // deadband -- but the forced keyframe makes this Decide call
                 // unconditional: it emits anyway.
-                engine.TickAndWait(2.0, ForceKeyframeTestExtension.Snapshot(10), Timeout);
-                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestExtension.Topic).Emitted);
+                engine.TickAndWait(2.0, ForceKeyframeTestUplink.Snapshot(10), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(ForceKeyframeTestUplink.Topic).Emitted);
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
-                Assert.Equal(ForceKeyframeTestExtension.Topic, delivered.Topic);
+                Assert.Equal(ForceKeyframeTestUplink.Topic, delivered.Topic);
             }
             finally
             {
@@ -985,14 +985,14 @@ namespace Sitrep.Host.IntegrationTests
             public override int GetHashCode() => 0;
         }
 
-        private sealed class EqualsThrowsTestExtension : ISitrepUplink
+        private sealed class EqualsThrowsTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-equals-throws";
+            public const string UplinkId = "test-equals-throws";
             public const string Topic = "equals.throws";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {
@@ -1019,14 +1019,14 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class DecimalPayloadTestExtension : ISitrepUplink
+        private sealed class DecimalPayloadTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-decimal-payload";
+            public const string UplinkId = "test-decimal-payload";
             public const string Topic = "decimal.topic";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {
@@ -1051,7 +1051,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>Backs <c>ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband</c> — a wide deadband (100) and long keyframe cadence (10,000 UT) so an in-deadband re-tick would ordinarily be skipped, isolating the forced-keyframe path from cadence/change-gate noise.</summary>
-        private sealed class ForceKeyframeTestExtension : ISitrepUplink
+        private sealed class ForceKeyframeTestUplink : ISitrepUplink
         {
             public const string Topic = "force.keyframe.topic";
             public const string ForceCommand = "force.keyframe.command";
@@ -1093,14 +1093,14 @@ namespace Sitrep.Host.IntegrationTests
             public int Marker;
         }
 
-        private sealed class PoisonPayloadTestExtension : ISitrepUplink
+        private sealed class PoisonPayloadTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-poison-payload";
+            public const string UplinkId = "test-poison-payload";
             public const string Topic = "poison.topic";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {
@@ -1121,14 +1121,14 @@ namespace Sitrep.Host.IntegrationTests
             public static KspSnapshot Snapshot() => new KspSnapshot { Values = new Dictionary<string, object?>() };
         }
 
-        private sealed class PoisonResultCommandTestExtension : ISitrepUplink
+        private sealed class PoisonResultCommandTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-poison-result-command";
+            public const string UplinkId = "test-poison-result-command";
             public const string Command = "poison.result.command";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
@@ -1142,7 +1142,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class GhostPublishTestExtension : ISitrepUplink
+        private sealed class GhostPublishTestUplink : ISitrepUplink
         {
             public const string Topic = "ghost.publish.topic";
 
@@ -1184,14 +1184,14 @@ namespace Sitrep.Host.IntegrationTests
         // CourierTimelineResetTests and the wire-level
         // ServerClockRewindResets... test.
 
-        private sealed class CrashyCommandTestExtension : ISitrepUplink
+        private sealed class CrashyCommandTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-crashy-command";
+            public const string UplinkId = "test-crashy-command";
             public const string Command = "crashy.command";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
@@ -1205,14 +1205,14 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class ScalarArgCommandTestExtension : ISitrepUplink
+        private sealed class ScalarArgCommandTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-scalar-arg-command";
+            public const string UplinkId = "test-scalar-arg-command";
             public const string Command = "scalar.command";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
@@ -1226,15 +1226,15 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class ThrowsAfterRegisteringTwoChannelsExtension : ISitrepUplink
+        private sealed class ThrowsAfterRegisteringTwoChannelsUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-throws-after-registering";
+            public const string UplinkId = "test-throws-after-registering";
             public const string Chan1 = "broken.chan1";
             public const string Chan2 = "broken.chan2";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {
@@ -1261,7 +1261,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class PublisherOnlyTestExtension : ISitrepUplink
+        private sealed class PublisherOnlyTestUplink : ISitrepUplink
         {
             public const string Topic = "publisher.only";
 
@@ -1288,7 +1288,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class MultiChannelTestExtension : ISitrepUplink
+        private sealed class MultiChannelTestUplink : ISitrepUplink
         {
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
@@ -1334,15 +1334,15 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class ThrowingSamplerTestExtension : ISitrepUplink
+        private sealed class ThrowingSamplerTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-throwing-sampler";
+            public const string UplinkId = "test-throwing-sampler";
 
             public ThrowingSampler Sampler { get; } = new ThrowingSampler();
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
             };
 
@@ -1352,20 +1352,20 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>A legal but hostile exception whose own Message getter throws — see <see cref="MessageGetterThrowsCommandTestExtension"/>.</summary>
+        /// <summary>A legal but hostile exception whose own Message getter throws — see <see cref="MessageGetterThrowsCommandTestUplink"/>.</summary>
         private sealed class MessageThrowsException : Exception
         {
             public override string Message => throw new InvalidOperationException("boom -- Message getter itself throws");
         }
 
-        private sealed class MessageGetterThrowsCommandTestExtension : ISitrepUplink
+        private sealed class MessageGetterThrowsCommandTestUplink : ISitrepUplink
         {
-            public const string ExtensionId = "test-message-getter-throws-command";
+            public const string UplinkId = "test-message-getter-throws-command";
             public const string Command = "message.getter.throws.command";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
-                Id = ExtensionId,
+                Id = UplinkId,
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
@@ -1379,7 +1379,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class DeliveryClassTestExtension : ISitrepUplink
+        private sealed class DeliveryClassTestUplink : ISitrepUplink
         {
             public const string ReliableTopic = "reliable.topic";
             public const string LossyTopic = "lossy.topic";
@@ -1420,7 +1420,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class DelayFlagTestExtension : ISitrepUplink
+        private sealed class DelayFlagTestUplink : ISitrepUplink
         {
             public const string InfraCommand = "infra.ping";
             public const string VesselCommand = "vessel.ping";
@@ -1504,11 +1504,11 @@ namespace Sitrep.Host.IntegrationTests
         /// reference <c>Gonogo.KSP</c> directly (net472 + KSP/Unity
         /// reference assemblies).
         /// </summary>
-        private sealed class VesselCommandTestExtension : ISitrepUplink
+        private sealed class VesselCommandTestUplink : ISitrepUplink
         {
             private readonly IVesselActuator _actuator;
 
-            public VesselCommandTestExtension(IVesselActuator actuator)
+            public VesselCommandTestUplink(IVesselActuator actuator)
             {
                 _actuator = actuator;
             }
@@ -1571,37 +1571,37 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PresentToNullEmitsExactlyOneTombstoneThenNullToNullIsSuppressedByTheDeadband()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, TombstoneTestUplink.Topic, Timeout);
 
                 // A real value first (the channel is "born").
-                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(0.0, TombstoneTestUplink.Snapshot(1.0), Timeout);
                 var real = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(1.0, Convert.ToDouble(real.Payload));
                 Assert.Equal(Staleness.Fresh, real.Meta.Staleness);
-                Assert.Equal(1, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                Assert.Equal(1, engine.ChannelCounters(TombstoneTestUplink.Topic).Emitted);
 
                 // present -> null: exactly ONE tombstone (a genuine change,
                 // per ChannelEmitter.HasChangedBeyondQuantum's
                 // Equals(realValue, null) == false -> changed). Staleness is
                 // Fresh -- absence is freshly-known data, not link staleness.
-                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(1.0, TombstoneTestUplink.Snapshot(null), Timeout);
                 var tombstone = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Null(tombstone.Payload);
-                Assert.Equal(TombstoneTestExtension.Topic, tombstone.Topic);
+                Assert.Equal(TombstoneTestUplink.Topic, tombstone.Topic);
                 Assert.Equal(Staleness.Fresh, tombstone.Meta.Staleness);
-                Assert.Equal(2, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                Assert.Equal(2, engine.ChannelCounters(TombstoneTestUplink.Topic).Emitted);
 
                 // null -> null (still absent): the deadband's
                 // Equals(null, null) == true -> not-changed -> suppressed.
                 // No tombstone spam, and no further wire traffic at all.
-                engine.TickAndWait(2.0, TombstoneTestExtension.Snapshot(null), Timeout);
-                engine.TickAndWait(3.0, TombstoneTestExtension.Snapshot(null), Timeout);
-                Assert.Equal(2, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                engine.TickAndWait(2.0, TombstoneTestUplink.Snapshot(null), Timeout);
+                engine.TickAndWait(3.0, TombstoneTestUplink.Snapshot(null), Timeout);
+                Assert.Equal(2, engine.ChannelCounters(TombstoneTestUplink.Topic).Emitted);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
             }
             finally
@@ -1614,22 +1614,22 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ChannelThatHasNeverEmittedProducesNoTombstoneForANullMapperResult()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, TombstoneTestUplink.Topic, Timeout);
 
                 // Never born: the mapper returns null on every tick so far
                 // (pre-flight/main-menu shape) -- must produce NO emission
                 // at all. Decide isn't even called (Considered stays 0),
                 // distinct from "considered but skipped".
-                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(null), Timeout);
-                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(0.0, TombstoneTestUplink.Snapshot(null), Timeout);
+                engine.TickAndWait(1.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
-                Assert.Equal(0, engine.ChannelCounters(TombstoneTestExtension.Topic).Considered);
-                Assert.Equal(0, engine.ChannelCounters(TombstoneTestExtension.Topic).Emitted);
+                Assert.Equal(0, engine.ChannelCounters(TombstoneTestUplink.Topic).Considered);
+                Assert.Equal(0, engine.ChannelCounters(TombstoneTestUplink.Topic).Emitted);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
             }
             finally
@@ -1642,18 +1642,18 @@ namespace Sitrep.Host.IntegrationTests
         public async Task LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestUplink());
             engine.Start();
             try
             {
                 await using var early = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(early, TombstoneTestExtension.Topic, Timeout);
+                await SubscribeAsync(early, TombstoneTestUplink.Topic, Timeout);
 
-                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(0.0, TombstoneTestUplink.Snapshot(1.0), Timeout);
                 var first = await ReceiveStreamDataAsync(early, Timeout);
                 Assert.Equal(1.0, Convert.ToDouble(first.Payload));
 
-                engine.TickAndWait(1.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(1.0, TombstoneTestUplink.Snapshot(null), Timeout);
                 var tombstone = await ReceiveStreamDataAsync(early, Timeout);
                 Assert.Null(tombstone.Payload);
 
@@ -1677,9 +1677,9 @@ namespace Sitrep.Host.IntegrationTests
                 // SubscribeAsync's ack-only filter would instead silently
                 // discard the catch-up if it happened to arrive first.
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestExtension.Topic }));
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestUplink.Topic }));
                 var lateCatchUp = await ReceiveStreamDataAsync(late, Timeout);
-                Assert.Equal(TombstoneTestExtension.Topic, lateCatchUp.Topic);
+                Assert.Equal(TombstoneTestUplink.Topic, lateCatchUp.Topic);
                 Assert.Null(lateCatchUp.Payload);
             }
             finally
@@ -1690,12 +1690,12 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A single nullable-valued channel for the tombstone tests above —
-        /// deliberately separate from <see cref="MultiChannelTestExtension"/>
+        /// deliberately separate from <see cref="MultiChannelTestUplink"/>
         /// (whose "chan.a"/"chan.b" mappers can also return null) so these
         /// tests aren't coupled to that uplink's unrelated two-channel
         /// subscription-gating scenarios.
         /// </summary>
-        private sealed class TombstoneTestExtension : ISitrepUplink
+        private sealed class TombstoneTestUplink : ISitrepUplink
         {
             public const string Topic = "chan.tombstone";
 
@@ -1761,29 +1761,29 @@ namespace Sitrep.Host.IntegrationTests
         {
             const double delaySeconds = 2.0;
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
-            engine.RegisterUplink(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, TombstoneTestUplink.Topic, Timeout);
 
                 // Real value recorded @UT0; with a 2s network delay it isn't
                 // delivered until UT2 -- tick forward to let it arrive.
-                engine.TickAndWait(0.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
-                engine.TickAndWait(2.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(0.0, TombstoneTestUplink.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, TombstoneTestUplink.Snapshot(1.0), Timeout);
                 var real = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(1.0, Convert.ToDouble(real.Payload));
 
                 // Absence @UT8: born (real value seen before) -> Decide
                 // flows -> a tombstone is recorded @UT8, its OWN delivery
                 // scheduled for UT10 (8 + the 2s delay) -- still in flight.
-                engine.TickAndWait(8.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(8.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 // Advance forward a bit further WITHOUT yet reaching UT10,
                 // so that scheduled tombstone delivery is still pending when
                 // the rewind below hits.
-                engine.TickAndWait(9.5, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(9.5, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 // THE QUICKLOAD: rewind to UT9 (9 < 9.5, and 9 >= 8 so the
                 // archived tombstone @UT8 SURVIVES Archive.ResetTimeline's
@@ -1792,7 +1792,7 @@ namespace Sitrep.Host.IntegrationTests
                 // subscriber was NEVER actually delivered that tombstone on
                 // the wire, even though the archive's own tail now reflects
                 // the absence.
-                engine.TickAndWait(9.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(9.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 // Advance far enough (UT12) for the corrective tombstone --
                 // re-recorded at the rewind's own UT9, delivery due @UT11
@@ -1800,7 +1800,7 @@ namespace Sitrep.Host.IntegrationTests
                 // ReceiveStreamDataAsync skips the "timeline-reset" EventMsg
                 // this rewind also broadcasts (a different wire message
                 // type), so no explicit drain of it is needed here.
-                engine.TickAndWait(12.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(12.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 var corrected = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Null(corrected.Payload);
@@ -1846,16 +1846,16 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindRecomputesBirthFromTheArchiveTailSoAStaleValueGetsCorrectedByATombstoneInsteadOfGhostingForever()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, TombstoneTestExtension.Topic, Timeout);
+                await SubscribeAsync(client, TombstoneTestUplink.Topic, Timeout);
 
                 // "Mun"@5 in the adversarial's own scenario language: a real
                 // value, born + archived + delivered.
-                engine.TickAndWait(5.0, TombstoneTestExtension.Snapshot(1.0), Timeout);
+                engine.TickAndWait(5.0, TombstoneTestUplink.Snapshot(1.0), Timeout);
                 var real = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(1.0, Convert.ToDouble(real.Payload));
 
@@ -1865,28 +1865,28 @@ namespace Sitrep.Host.IntegrationTests
                 // scenario) the underlying value gets cleared from here on,
                 // it's never observed -- the archive's tail stays pinned at
                 // the real value 1.0.
-                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = TombstoneTestExtension.Topic }));
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = TombstoneTestUplink.Topic }));
                 var unsubDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-                while (engine.SubscriberCountFor(TombstoneTestExtension.Topic) != 0 && DateTime.UtcNow < unsubDeadline)
+                while (engine.SubscriberCountFor(TombstoneTestUplink.Topic) != 0 && DateTime.UtcNow < unsubDeadline)
                 {
                     await Task.Delay(25);
                 }
-                Assert.Equal(0, engine.SubscriberCountFor(TombstoneTestExtension.Topic));
+                Assert.Equal(0, engine.SubscriberCountFor(TombstoneTestUplink.Topic));
 
                 // Advance the clock forward (still unsubscribed -- the
                 // value doesn't matter, the channel loop never reaches the
                 // mapper while nobody is subscribed).
-                engine.TickAndWait(10.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(10.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 // THE QUICKLOAD: rewind to UT 7 -- still >= 5, so the
                 // archived "Mun"@5 sample SURVIVES Archive.ResetTimeline's
                 // ValidAt > ut prune.
-                engine.TickAndWait(7.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(7.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 // Re-subscribe post-rewind: a brand-new subscriber's
                 // synchronous catch-up reads straight from the archive.
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestExtension.Topic }));
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = TombstoneTestUplink.Topic }));
                 var catchUp = await ReceiveStreamDataAsync(late, Timeout);
                 // Still the stale "Mun" -- expected (that's the ghost this
                 // fix corrects going FORWARD, not retroactively); not what's
@@ -1896,7 +1896,7 @@ namespace Sitrep.Host.IntegrationTests
                 // The mapper returns null on EVERY tick from here on
                 // (genuinely absent, post-rewind). This must now produce a
                 // corrective tombstone instead of silent, permanent ghosting.
-                engine.TickAndWait(8.0, TombstoneTestExtension.Snapshot(null), Timeout);
+                engine.TickAndWait(8.0, TombstoneTestUplink.Snapshot(null), Timeout);
 
                 var corrected = await ReceiveStreamDataAsync(late, Timeout);
                 Assert.Null(corrected.Payload);
@@ -1914,7 +1914,7 @@ namespace Sitrep.Host.IntegrationTests
         /// (see <see cref="Sitrep.Host.Tests.VesselEpochSamplerTests.
         /// SwitchingToADifferentVesselAlsoResetsChannelBirthForEveryVesselTopic"/>
         /// for the isolated sampler-only unit test of the same fix). Uses
-        /// the REAL <see cref="TestVesselExtension"/> (production manifest +
+        /// the REAL <see cref="TestVesselUplink"/> (production manifest +
         /// mappers) and the REAL <see cref="VesselEpochSampler"/> -- not a
         /// synthetic stand-in -- since the defect is specifically about how
         /// those two integrate: a vessel switch that force-keyframes every
@@ -1927,7 +1927,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselUplink());
             engine.Start();
             try
             {
@@ -2018,7 +2018,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselUplink());
             engine.Start();
             try
             {
@@ -2129,7 +2129,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindTickWithNoVesselStillColdStartsSoALaterDifferentVesselDoesNotUndoTheArchiveRecomputedBirth()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselUplink());
             engine.Start();
             try
             {
@@ -2227,19 +2227,19 @@ namespace Sitrep.Host.IntegrationTests
         {
             const double delaySeconds = 2.0;
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
-            engine.RegisterUplink(new EpochWireTestExtension());
+            engine.RegisterUplink(new EpochWireTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, EpochWireTestExtension.RawTopic, Timeout);
+                await SubscribeAsync(client, EpochWireTestUplink.RawTopic, Timeout);
 
                 // Establish a peak UT, then rewind -- same rewind mechanics
                 // as ServerClockRewindResetsCourierAndResumesDeliveryWithoutStalling
                 // (ReplayToWebSocketEndToEndTests). Bumps Courier.CurrentEpoch
                 // from 0 to 1.
-                engine.TickAndWait(5.0, EpochWireTestExtension.Snapshot(1.0), Timeout);
-                engine.TickAndWait(2.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+                engine.TickAndWait(5.0, EpochWireTestUplink.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, EpochWireTestUplink.Snapshot(2.0), Timeout);
                 var reset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
                 Assert.Equal("timeline-reset", reset.Name);
 
@@ -2255,7 +2255,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Type = "command-request",
                     RequestId = "r-echo",
-                    Command = EpochWireTestExtension.EchoCommand,
+                    Command = EpochWireTestUplink.EchoCommand,
                     Args = "hi",
                     SentAt = 2.0,
                 }));
@@ -2263,7 +2263,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Type = "command-request",
                     RequestId = "r-sync",
-                    Command = EpochWireTestExtension.SyncCommand,
+                    Command = EpochWireTestUplink.SyncCommand,
                     Args = null,
                     SentAt = 2.0,
                 }));
@@ -2272,7 +2272,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 // Round trip = 2 * delaySeconds = 4 UT, dispatched at UT 2 ->
                 // confirms at UT 6.
-                engine.TickAndWait(6.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+                engine.TickAndWait(6.0, EpochWireTestUplink.Snapshot(2.0), Timeout);
 
                 var echoResponse = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
                 Assert.Equal("r-echo", echoResponse.RequestId);
@@ -2299,24 +2299,24 @@ namespace Sitrep.Host.IntegrationTests
         public async Task TimelineResetEventsAndSubscribeAckCarryTheCurrentTimelineEpoch()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new EpochWireTestExtension());
+            engine.RegisterUplink(new EpochWireTestUplink());
             engine.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var firstAck = await SubscribeAsync(client, EpochWireTestExtension.RawTopic, Timeout);
+                var firstAck = await SubscribeAsync(client, EpochWireTestUplink.RawTopic, Timeout);
                 Assert.Equal(0, firstAck.Meta.TimelineEpoch);
 
                 // First rewind: epoch 0 -> 1.
-                engine.TickAndWait(5.0, EpochWireTestExtension.Snapshot(1.0), Timeout);
-                engine.TickAndWait(2.0, EpochWireTestExtension.Snapshot(2.0), Timeout);
+                engine.TickAndWait(5.0, EpochWireTestUplink.Snapshot(1.0), Timeout);
+                engine.TickAndWait(2.0, EpochWireTestUplink.Snapshot(2.0), Timeout);
                 var firstReset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
                 Assert.Equal("timeline-reset", firstReset.Name);
                 Assert.Equal(1, firstReset.Meta.TimelineEpoch);
 
                 // Second rewind: epoch 1 -> 2.
-                engine.TickAndWait(9.0, EpochWireTestExtension.Snapshot(3.0), Timeout);
-                engine.TickAndWait(3.0, EpochWireTestExtension.Snapshot(4.0), Timeout);
+                engine.TickAndWait(9.0, EpochWireTestUplink.Snapshot(3.0), Timeout);
+                engine.TickAndWait(3.0, EpochWireTestUplink.Snapshot(4.0), Timeout);
                 var secondReset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
                 Assert.Equal("timeline-reset", secondReset.Name);
                 Assert.Equal(2, secondReset.Meta.TimelineEpoch);
@@ -2324,7 +2324,7 @@ namespace Sitrep.Host.IntegrationTests
                 // A brand-new subscriber's ack, post-both-rewinds, must
                 // reflect the CURRENT epoch (2), not 0.
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var lateAck = await SubscribeAsync(late, EpochWireTestExtension.RawTopic, Timeout);
+                var lateAck = await SubscribeAsync(late, EpochWireTestUplink.RawTopic, Timeout);
                 Assert.Equal(2, lateAck.Meta.TimelineEpoch);
             }
             finally
@@ -2335,7 +2335,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A trivial raw-passthrough channel (same shape as
-        /// <see cref="TestSystemExtension.RawTopic"/>, kept separate so
+        /// <see cref="TestSystemUplink.RawTopic"/>, kept separate so
         /// these epoch-focused tests aren't coupled to that uplink's
         /// unrelated <c>system.bodies</c>/rewind-stall scenarios) plus two
         /// commands for defect B's epoch-on-command-response proof: a
@@ -2344,7 +2344,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="DelayedCommandResponseAfterARewindCarriesTheCurrentTimelineEpochNotZero"/>'s
         /// doc comment).
         /// </summary>
-        private sealed class EpochWireTestExtension : ISitrepUplink
+        private sealed class EpochWireTestUplink : ISitrepUplink
         {
             public const string RawTopic = "test.epoch-raw";
             public const string EchoCommand = "test.epoch-echo";

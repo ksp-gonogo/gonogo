@@ -419,16 +419,16 @@ namespace Sitrep.Host
         /// <summary>Whether <paramref name="topic"/>'s owning uplink (if tracked) is currently available — an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
         private bool IsChannelAvailable(string topic)
         {
-            return !_channelOwner.TryGetValue(topic, out var ownerId) || IsExtensionAvailable(ownerId);
+            return !_channelOwner.TryGetValue(topic, out var ownerId) || IsUplinkAvailable(ownerId);
         }
 
         /// <summary>Whether <paramref name="command"/>'s owning uplink (if tracked) is currently available.</summary>
         private bool IsCommandAvailable(string command)
         {
-            return !_commandOwner.TryGetValue(command, out var ownerId) || IsExtensionAvailable(ownerId);
+            return !_commandOwner.TryGetValue(command, out var ownerId) || IsUplinkAvailable(ownerId);
         }
 
-        private bool IsExtensionAvailable(string uplinkId)
+        private bool IsUplinkAvailable(string uplinkId)
         {
             return !_availability.TryGetValue(uplinkId, out var availability) || availability.IsAvailable;
         }
@@ -475,16 +475,16 @@ namespace Sitrep.Host
             // exception's Message: `ex.Message` is an ordinary virtual
             // getter — legal (if perverse) third-party code can override it
             // to throw. The pre-fix `$"...{ex.Message}"` interpolation ran
-            // BEFORE the _commandOwner lookup/MarkExtensionUnavailable call,
+            // BEFORE the _commandOwner lookup/MarkUplinkUnavailable call,
             // so a throwing getter aborted this method early, escaping to
             // CourierLoop's non-attributing backstop try/catch and leaving
             // the offending uplink's command live (and re-throwing)
             // forever. SafeExceptionMessage below can never throw, so the
-            // owner lookup + MarkExtensionUnavailable are now guaranteed to
+            // owner lookup + MarkUplinkUnavailable are now guaranteed to
             // run regardless of what ex.Message does.
             if (_commandOwner.TryGetValue(command, out var ownerId))
             {
-                MarkExtensionUnavailable(ownerId, $"command \"{command}\" handler threw: {SafeExceptionMessage(ex)}");
+                MarkUplinkUnavailable(ownerId, $"command \"{command}\" handler threw: {SafeExceptionMessage(ex)}");
             }
             Console.Error.WriteLine("[ChannelEngine] command \"" + command + "\" handler threw: " + SafeExceptionMessage(ex));
         }
@@ -494,7 +494,7 @@ namespace Sitrep.Host
             // Same rationale as FailSoftCommand above — see its doc comment.
             if (_channelOwner.TryGetValue(topic, out var ownerId))
             {
-                MarkExtensionUnavailable(ownerId, $"channel \"{topic}\" mapper threw: {SafeExceptionMessage(ex)}");
+                MarkUplinkUnavailable(ownerId, $"channel \"{topic}\" mapper threw: {SafeExceptionMessage(ex)}");
             }
             Console.Error.WriteLine("[ChannelEngine] channel \"" + topic + "\" mapper threw: " + SafeExceptionMessage(ex));
         }
@@ -509,11 +509,11 @@ namespace Sitrep.Host
         /// </summary>
         private void FailSoftSampler(string ownerId, ISnapshotSampler sampler, Exception ex)
         {
-            MarkExtensionUnavailable(ownerId, $"sampler \"{sampler.GetType().Name}\" threw: {SafeExceptionMessage(ex)}");
+            MarkUplinkUnavailable(ownerId, $"sampler \"{sampler.GetType().Name}\" threw: {SafeExceptionMessage(ex)}");
             Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + SafeExceptionMessage(ex));
         }
 
-        private void MarkExtensionUnavailable(string uplinkId, string reason)
+        private void MarkUplinkUnavailable(string uplinkId, string reason)
         {
             _availability[uplinkId] = Availability.Unavailable(reason);
         }
@@ -523,7 +523,7 @@ namespace Sitrep.Host
         /// ordinary virtual getter, so a hostile/buggy custom exception type
         /// can legally override it to throw. Every fail-soft guard in this
         /// class reads a caught exception's Message only through here, so
-        /// attribution (<see cref="MarkExtensionUnavailable"/>) can never be
+        /// attribution (<see cref="MarkUplinkUnavailable"/>) can never be
         /// skipped by a poisoned Message getter.
         /// </summary>
         private static string SafeExceptionMessage(Exception ex)
@@ -694,7 +694,7 @@ namespace Sitrep.Host
                     // throw here, attribute it to the owning uplink via
                     // FailSoftSampler so it stops recurring from the NEXT
                     // tick onward.
-                    if (!IsExtensionAvailable(ownerId))
+                    if (!IsUplinkAvailable(ownerId))
                     {
                         continue;
                     }

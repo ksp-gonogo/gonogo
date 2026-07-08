@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Sitrep.Core
+namespace Sitrep.Contract
 {
     /// <summary>
     /// C# port of the error classes in <c>mod/sitrep-kernel/src/errors.ts</c>.

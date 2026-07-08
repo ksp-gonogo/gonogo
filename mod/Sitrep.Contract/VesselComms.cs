@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum ControlState
 {
     None,

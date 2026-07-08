@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// This now runs against the SAME <see cref="ChannelEngine"/> class
     /// <c>Gonogo.KSP.GonogoAddon</c> constructs in production (registering
-    /// this project's own tiny <see cref="TestSystemExtension"/> instead of
+    /// this project's own tiny <see cref="TestSystemUplink"/> instead of
     /// <c>Gonogo.KSP.SystemUplink</c>, since this project can't reference
     /// the net472 <c>Gonogo.KSP</c> assembly at all) -- there is no more
     /// hand-copied <c>ReplayBodiesServer</c> duplicating the engine's
@@ -90,7 +90,7 @@ namespace Sitrep.Host.IntegrationTests
             host.Lifecycle += lifecycleEvents.Add;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", NetworkDelaySeconds);
-            server.RegisterUplink(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemUplink());
             server.Start();
             try
             {
@@ -191,7 +191,7 @@ namespace Sitrep.Host.IntegrationTests
         /// comment) resumes delivery instead of stalling.
         ///
         /// Drives <see cref="ChannelEngine.TickAndWait"/> directly (bypassing
-        /// <see cref="ReplayKspHost"/> entirely, via <see cref="TestSystemExtension"/>'s
+        /// <see cref="ReplayKspHost"/> entirely, via <see cref="TestSystemUplink"/>'s
         /// raw-passthrough <c>test.raw</c> channel) so the UT sequence handed
         /// to the Courier/Clock is exactly what a live quickload produces: UT
         /// climbs to a peak (0 -&gt; 5), then jumps BACKWARD (5 -&gt; 1,
@@ -211,19 +211,19 @@ namespace Sitrep.Host.IntegrationTests
             const double delaySeconds = 2.0;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", delaySeconds);
-            server.RegisterUplink(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemUplink());
             server.Start();
             try
             {
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
-                await SubscribeAsync(client, TestSystemExtension.RawTopic, Timeout);
+                await SubscribeAsync(client, TestSystemUplink.RawTopic, Timeout);
 
                 // ---- Establish a peak UT of 5 via two forward ticks. The
                 // UT-0 tick's delivery (fireUt = 0+2 = 2) fires when the
                 // clock reaches 5; the UT-5 tick's OWN delivery (fireUt = 7)
                 // is what will be stranded by the coming rewind. ----
-                server.TickAndWait(0.0, TestSystemExtension.RawSnapshot(0.0, BodiesPayload(111)), Timeout);
-                server.TickAndWait(5.0, TestSystemExtension.RawSnapshot(5.0, BodiesPayload(222)), Timeout);
+                server.TickAndWait(0.0, TestSystemUplink.RawSnapshot(0.0, BodiesPayload(111)), Timeout);
+                server.TickAndWait(5.0, TestSystemUplink.RawSnapshot(5.0, BodiesPayload(222)), Timeout);
 
                 var deliveredPeak = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredPeak, 111);
@@ -240,13 +240,13 @@ namespace Sitrep.Host.IntegrationTests
                 // server detects the backward tick, resets the courier's
                 // timeline to UT 1 (dropping the abandoned fireUt=7
                 // delivery), and broadcasts a timeline-reset event. ----
-                server.TickAndWait(1.0, TestSystemExtension.RawSnapshot(1.0, BodiesPayload(333)), Timeout);
+                server.TickAndWait(1.0, TestSystemUplink.RawSnapshot(1.0, BodiesPayload(333)), Timeout);
 
                 // (b) timeline-reset was emitted, using the same EventMsg
                 // shape as the subscribe-ack.
                 var reset = await ReceiveTypedAsync<EventMsg>(client, Timeout);
                 Assert.Equal("timeline-reset", reset.Name);
-                Assert.Equal(TestSystemExtension.RawTopic, reset.Topic);
+                Assert.Equal(TestSystemUplink.RawTopic, reset.Topic);
 
                 // Not due yet: sma=333's own delivery is fireUt = 1+2 = 3,
                 // and the clock only just reset to 1.
@@ -261,7 +261,7 @@ namespace Sitrep.Host.IntegrationTests
                 // (c) subscriptions survived the reset: this delivery
                 // reaches the client on the ORIGINAL subscription from
                 // above -- no re-subscribe was sent. ----
-                server.TickAndWait(3.0, TestSystemExtension.RawSnapshot(3.0, BodiesPayload(444)), Timeout);
+                server.TickAndWait(3.0, TestSystemUplink.RawSnapshot(3.0, BodiesPayload(444)), Timeout);
 
                 var deliveredPostRewind = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredPostRewind, 333);
@@ -276,7 +276,7 @@ namespace Sitrep.Host.IntegrationTests
                 // arrive, and no sma=222 frame ever can -- proving the
                 // abandoned delivery was truly dropped, not merely
                 // delayed. ----
-                server.TickAndWait(9.0, TestSystemExtension.RawSnapshot(9.0, BodiesPayload(555)), Timeout);
+                server.TickAndWait(9.0, TestSystemUplink.RawSnapshot(9.0, BodiesPayload(555)), Timeout);
 
                 var deliveredNext = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(deliveredNext, 444);
@@ -307,27 +307,27 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ZeroSubscribersNeverReachTheEmitterButStreamImmediatelyOnceSomeoneSubscribes()
         {
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            server.RegisterUplink(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemUplink());
             server.Start();
             try
             {
                 // No client connected at all -- three ticks land with zero
                 // subscribers. The SubscriptionRegistry/ChannelEmitter outer
                 // gate means Decide is never called for any of them.
-                server.TickAndWait(0.0, TestSystemExtension.RawSnapshot(0.0, BodiesPayload(1)), Timeout);
-                server.TickAndWait(1.0, TestSystemExtension.RawSnapshot(1.0, BodiesPayload(2)), Timeout);
-                server.TickAndWait(2.0, TestSystemExtension.RawSnapshot(2.0, BodiesPayload(3)), Timeout);
-                Assert.Equal(0, server.ChannelCounters(TestSystemExtension.RawTopic).Considered);
-                Assert.Equal(0, server.ChannelCounters(TestSystemExtension.RawTopic).Emitted);
+                server.TickAndWait(0.0, TestSystemUplink.RawSnapshot(0.0, BodiesPayload(1)), Timeout);
+                server.TickAndWait(1.0, TestSystemUplink.RawSnapshot(1.0, BodiesPayload(2)), Timeout);
+                server.TickAndWait(2.0, TestSystemUplink.RawSnapshot(2.0, BodiesPayload(3)), Timeout);
+                Assert.Equal(0, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
+                Assert.Equal(0, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
 
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
-                await SubscribeAsync(client, TestSystemExtension.RawTopic, Timeout);
+                await SubscribeAsync(client, TestSystemUplink.RawTopic, Timeout);
 
                 // The genuine 0 -> 1 subscribe transition forces a keyframe
                 // on the very next tick, regardless of keyframe cadence.
-                server.TickAndWait(3.0, TestSystemExtension.RawSnapshot(3.0, BodiesPayload(4)), Timeout);
-                Assert.Equal(1, server.ChannelCounters(TestSystemExtension.RawTopic).Considered);
-                Assert.Equal(1, server.ChannelCounters(TestSystemExtension.RawTopic).Emitted);
+                server.TickAndWait(3.0, TestSystemUplink.RawSnapshot(3.0, BodiesPayload(4)), Timeout);
+                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
+                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
                 AssertSma(delivered, 4);
@@ -361,7 +361,7 @@ namespace Sitrep.Host.IntegrationTests
         /// (<c>engine.Tick(host.NowUt(), snapshot)</c>), just blocking so the
         /// test can assert deterministically; the engine itself now applies
         /// <see cref="SystemViewProvider.BuildSystemBodies"/> (registered by
-        /// <see cref="TestSystemExtension"/>) rather than this method
+        /// <see cref="TestSystemUplink"/>) rather than this method
         /// building the payload by hand. If the step consumed a lifecycle
         /// EVENT instead, no tick is driven at all -- deliberately preserved
         /// from the pre-engine version of this test: this scenario's whole

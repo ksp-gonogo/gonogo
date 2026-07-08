@@ -19,9 +19,9 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// M1 Task 4a — the MILESTONE-level end-to-end replay validation: the
     /// WHOLE M1 pipeline (<see cref="ReplayKspHost"/> -&gt;
-    /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemExtension"/>
+    /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemUplink"/>
     /// (the KSP-free replica of <c>Gonogo.KSP.SystemUplink</c>) AND
-    /// <see cref="TestVesselExtension"/> (the KSP-free replica of
+    /// <see cref="TestVesselUplink"/> (the KSP-free replica of
     /// <c>Gonogo.KSP.VesselUplink</c>) registered together -- 18 declared
     /// channels, 17 declared commands, exactly as production wires them)
     /// driven by the REAL 7.5&#160;MB reference capture
@@ -218,7 +218,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Drives the WHOLE recording through a fresh <see cref="ChannelEngine"/>
-        /// (both <see cref="TestVesselExtension"/> and <see cref="TestSystemExtension"/>
+        /// (both <see cref="TestVesselUplink"/> and <see cref="TestSystemUplink"/>
         /// registered) with the given one-way network delay, subscribing a
         /// real <see cref="TestClient"/> to all 18 declared channels FIRST,
         /// then ticking snapshot-by-snapshot via <see cref="ChannelEngine.TickAndWait"/>
@@ -234,8 +234,8 @@ namespace Sitrep.Host.IntegrationTests
             var result = new PassResult();
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds);
-            server.RegisterUplink(new TestSystemExtension());
-            server.RegisterUplink(new TestVesselExtension());
+            server.RegisterUplink(new TestSystemUplink());
+            server.RegisterUplink(new TestVesselUplink());
             server.Start();
 
             try

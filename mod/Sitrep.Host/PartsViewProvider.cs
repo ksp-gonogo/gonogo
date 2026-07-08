@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Sitrep.Contract;
 
 namespace Sitrep.Host
 {

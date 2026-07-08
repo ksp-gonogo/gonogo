@@ -30,7 +30,20 @@ namespace Sitrep.Host
     /// used here instead: does the candidate assembly reference
     /// <c>Sitrep.Contract</c> at all (<see cref="ReferencesContract"/>)? Any
     /// assembly implementing <see cref="ISitrepUplink"/> necessarily does,
-    /// since the interface itself lives there.
+    /// since the interface itself lives there — literally true as of the
+    /// Uplink-foundation review's fix round, which moved
+    /// <see cref="ISitrepUplink"/>, <see cref="IUplinkHost"/>,
+    /// <see cref="UplinkManifest"/>, and the rest of the Uplink-facing shape
+    /// OUT of this assembly and into <c>Sitrep.Contract</c> (see
+    /// <see cref="ISitrepUplink"/>'s own doc comment for the full carve-out
+    /// rationale). Before that move this justification was aspirational —
+    /// the interface actually lived in THIS assembly (<c>Sitrep.Host</c>),
+    /// so the real reason the filter worked was that applying
+    /// <c>[SitrepUplink]</c> (which HAS always lived in
+    /// <c>Sitrep.Contract</c>) emits an assembly-ref to it regardless of
+    /// where <c>ISitrepUplink</c> itself lived. That fallback reasoning no
+    /// longer matters now that the doc comment's original claim is simply
+    /// correct, but is recorded here in case the SPI is ever split again.
     /// </summary>
     public static class UplinkDiscovery
     {
@@ -101,14 +114,23 @@ namespace Sitrep.Host
                         continue;
                     }
 
-                    var attr = type.GetCustomAttribute<SitrepUplinkAttribute>();
-                    if (attr == null)
-                    {
-                        continue;
-                    }
-
                     try
                     {
+                        // GetCustomAttribute deliberately lives INSIDE this
+                        // try/catch, not just the ctor-invoke below: it can
+                        // itself throw (e.g. a type carrying some OTHER
+                        // attribute whose declaring assembly can't be
+                        // resolved) — see UplinkDiscovery's class doc
+                        // comment's "never fatal" contract. Left outside the
+                        // catch, that throw would escape the type loop (and
+                        // the assembly loop above it), aborting discovery
+                        // for every OTHER candidate too.
+                        var attr = type.GetCustomAttribute<SitrepUplinkAttribute>();
+                        if (attr == null)
+                        {
+                            continue;
+                        }
+
                         var ctor = type.GetConstructor(Type.EmptyTypes);
                         if (ctor == null)
                         {
@@ -124,7 +146,7 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("[UplinkDiscovery] failed to instantiate \"" + type.FullName + "\": " + ex);
+                        Console.Error.WriteLine("[UplinkDiscovery] failed to inspect/instantiate \"" + type.FullName + "\": " + ex);
                     }
                 }
             }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Sitrep.Core;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Core.Tests
 {

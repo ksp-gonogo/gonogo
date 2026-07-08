@@ -24,4 +24,16 @@
   <ItemGroup>
     <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
+  <!-- Sitrep.Core's ChannelEmitter constructs EmissionDecision/EmissionCounters
+       via their internal factory methods/constructors (EmissionDecision.Emit/
+       Skip, EmissionCounters' 2-arg ctor) — deliberately internal so nothing
+       outside the emitter can fabricate a decision/counters snapshot.
+       EmissionPolicy and its EmissionDecision/EmissionCounters siblings moved
+       here from Sitrep.Core during the Uplink-foundation review's fix round
+       (see UplinkContract.cs's ISitrepUplink doc comment), so that
+       cross-assembly internal access needs this friend-assembly grant now,
+       same pattern Sitrep.Core.csproj already uses for Sitrep.Host. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sitrep.Core" />
+  </ItemGroup>
 </Project>

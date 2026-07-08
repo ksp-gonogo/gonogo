@@ -18,6 +18,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum Situation
 {
     Landed,
@@ -42,6 +43,7 @@ public enum Situation
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum VesselType
 {
     Ship,
@@ -69,6 +71,7 @@ public enum VesselType
 #if NETSTANDARD2_0
 [TsEnum]
 #endif
+[SitrepContract]
 public enum TransitionType
 {
     Initial,

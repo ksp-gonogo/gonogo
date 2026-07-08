@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Sitrep.Core
+namespace Sitrep.Contract
 {
     /// <summary>
     /// C# port of <c>mod/sitrep-kernel/src/broker.ts</c>: orders capability

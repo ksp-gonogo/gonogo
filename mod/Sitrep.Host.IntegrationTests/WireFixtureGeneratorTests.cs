@@ -23,7 +23,7 @@ namespace Sitrep.Host.IntegrationTests
     /// gitignored/local-only -- same skip-cleanly contract as
     /// <see cref="MilestoneReplayEndToEndTests"/>) through the exact same
     /// <see cref="ReplayKspHost"/> -&gt; <see cref="ChannelEngine"/> pipeline
-    /// (<see cref="TestSystemExtension"/> + <see cref="TestVesselExtension"/>
+    /// (<see cref="TestSystemUplink"/> + <see cref="TestVesselUplink"/>
     /// registered, zero network delay), but instead of asserting on the
     /// stream in-process, CAPTURES every raw wire frame for the FULL set of
     /// channels the vessel + system uplinks serve (<c>vessel.identity</c>,
@@ -129,8 +129,8 @@ namespace Sitrep.Host.IntegrationTests
             var rewindCount = 0;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0.0);
-            server.RegisterUplink(new TestSystemExtension());
-            server.RegisterUplink(new TestVesselExtension());
+            server.RegisterUplink(new TestSystemUplink());
+            server.RegisterUplink(new TestVesselUplink());
             server.Start();
 
             try
