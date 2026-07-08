@@ -23,13 +23,13 @@
   "dependencies": {
     "@gonogo/core": "workspace:*",
     "@gonogo/logger": "workspace:*",
+    "@gonogo/sitrep-client": "workspace:*",
     "@gonogo/ui": "workspace:*",
     "@jonpepler/kerbcast": "^1.2.0",
     "@jonpepler/kerbcast-react": "^1.2.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
-    "@gonogo/sitrep-client": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",

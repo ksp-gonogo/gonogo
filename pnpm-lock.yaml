@@ -3,7 +3,6 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-  injectWorkspacePackages: true
 
 overrides:
   '@types/react': ^18.3.28
@@ -381,6 +380,9 @@ importers:
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
+      '@gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
@@ -397,9 +399,6 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../sitrep-client
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

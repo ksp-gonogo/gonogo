@@ -9,33 +9,6 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 const DEFAULT_MAX_BUFFERED_BYTES = 64;
 
 /**
- * Opt-in delayed playout for {@link useKerbcastStream} (M2 design §5 —
- * "media delay (kerbcast)"). Omit this argument entirely for the existing
- * LAN passthrough behaviour (zero regression, scenario 6).
- *
- * The kerbcast wire protocol doesn't yet carry a real per-frame capture-UT
- * stamp (that's a kerbcast-SDK-side add, §5.2, out of scope for this
- * package) — so today each new `MediaStream` reference the SDK hands back
- * (a camera switch, a reconnect) is treated as one keyframe stamped with
- * `captureUt()`. That's coarser than true per-video-frame delay, but it's
- * the honest, currently-available granularity: it correctly delays *when a
- * stream becomes visible* against the shared clock, which is what keeps a
- * camera switch in sync with the telemetry it's shown alongside.
- */
-export interface KerbcastStreamDelayOptions {
-  /** THE delay clock — pass the SAME instance telemetry reads
-   *  (`ViewClock` from `@gonogo/sitrep-client`, or an equivalent). Kept as
-   *  a structural type here so this package never imports sitrep-client. */
-  view: DelayClockLike;
-  /** Capture-UT to stamp the current stream reference with. */
-  captureUt(): number;
-  /** Bumped (any change) to flush the buffer on a timeline reset — pass the
-   *  session's epoch/reset counter. Omit if the caller doesn't model resets. */
-  resetEpoch?: number;
-  maxBufferedBytes?: number;
-}
-
-/**
  * Live `MediaStream` for one kerbcast camera. Returns `null` while
  * the WebRTC track hasn't arrived yet (during connection setup, or
  * after a disconnect). Components bind the stream to a `<video>`'s
@@ -46,14 +19,12 @@ export interface KerbcastStreamDelayOptions {
  * offer→answer relays through the host, but media flows station↔sidecar
  * directly, so the `MediaStream` itself never crosses PeerJS.
  *
- * Pass `delay` to route the stream through a {@link DelayedPlayoutBuffer}
- * sharing the app's telemetry delay clock (M2 design §5). Without it (the
- * default) the hook is unchanged — a strict LAN passthrough.
+ * This is the thin data-source glue only — a strict LAN passthrough. Delayed
+ * playout is layered on top by composing it with {@link useDelayedPlayout}
+ * (see `useDelayedKerbcastStream`), which keeps the SDK / buffer / clock
+ * concerns cleanly separated (M2 design §5).
  */
-export function useKerbcastStream(
-  flightId: number | null,
-  delay?: KerbcastStreamDelayOptions,
-): MediaStream | null {
+export function useKerbcastStream(flightId: number | null): MediaStream | null {
   const [rawStream, setRawStream] = useState<MediaStream | null>(() => {
     if (flightId === null) return null;
     const ds = getDataSource("kerbcast") as KerbcastDataSource | undefined;
@@ -80,7 +51,49 @@ export function useKerbcastStream(
     };
   }, [flightId]);
 
-  // -- Optional delayed playout ------------------------------------------
+  return rawStream;
+}
+
+/**
+ * Opt-in delayed playout for a raw kerbcast `MediaStream` (M2 design §5 —
+ * "media delay (kerbcast)"). Omit this argument entirely for the existing
+ * LAN passthrough behaviour (zero regression, scenario 6).
+ *
+ * The kerbcast wire protocol doesn't yet carry a real per-frame capture-UT
+ * stamp (that's a kerbcast-SDK-side add, §5.2, out of scope for this
+ * package) — so today each new `MediaStream` reference the SDK hands back
+ * (a camera switch, a reconnect) is treated as one keyframe stamped with
+ * `captureUt()`. That's coarser than true per-video-frame delay, but it's
+ * the honest, currently-available granularity: it correctly delays *when a
+ * stream becomes visible* against the shared clock, which is what keeps a
+ * camera switch in sync with the telemetry it's shown alongside.
+ */
+export interface KerbcastStreamDelayOptions {
+  /** THE delay clock — pass the SAME instance telemetry reads
+   *  (`ViewClock` from `@gonogo/sitrep-client`, or an equivalent). Kept as
+   *  a structural type here so this package never imports sitrep-client. */
+  view: DelayClockLike;
+  /** Capture-UT to stamp the current stream reference with. */
+  captureUt(): number;
+  /** Bumped (any change) to flush the buffer on a timeline reset — pass the
+   *  session's epoch/reset counter. Omit if the caller doesn't model resets. */
+  resetEpoch?: number;
+  maxBufferedBytes?: number;
+}
+
+/**
+ * Route a raw `MediaStream` through a {@link DelayedPlayoutBuffer} sharing the
+ * app's telemetry delay clock (M2 design §5). Without `delay` (the default)
+ * this is a strict passthrough — it returns `raw` unchanged, so the LAN case
+ * is bit-for-bit the old behaviour. With `delay`, the buffer only releases a
+ * frame on `view.confirmedEdgeUt()` reaching its stamped capture UT — never on
+ * `arrival + delay` — so a media frame and a telemetry sample stamped the same
+ * UT surface at the same clock crossing (the single-authority guarantee).
+ */
+export function useDelayedPlayout(
+  raw: MediaStream | null,
+  delay?: KerbcastStreamDelayOptions,
+): MediaStream | null {
   const [delayedStream, setDelayedStream] = useState<MediaStream | null>(null);
   const bufferRef = useRef<DelayedPlayoutBuffer<MediaStream> | null>(null);
   const view = delay?.view;
@@ -114,10 +127,10 @@ export function useKerbcastStream(
 
   // Push each new raw stream reference in as one keyframe, stamped with the
   // caller-provided capture UT.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `view` is needed even though the body only reads `bufferRef` — a `view` change (re)builds the buffer in the effect above, and this must re-push the already-current rawStream into that fresh buffer instead of waiting on the next stream event.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `view` is needed even though the body only reads `bufferRef` — a `view` change (re)builds the buffer in the effect above, and this must re-push the already-current raw stream into that fresh buffer instead of waiting on the next stream event.
   useEffect(() => {
     if (!bufferRef.current) return;
-    if (rawStream === null) {
+    if (raw === null) {
       // Camera disconnected — drop whatever's buffered/held so a stale
       // frame from the previous stream can't surface later, and go to
       // null immediately, matching the strict-passthrough path.
@@ -129,9 +142,9 @@ export function useKerbcastStream(
     bufferRef.current.push({
       ut: captureUt(),
       keyframe: true,
-      data: rawStream,
+      data: raw,
     });
-  }, [rawStream, view]);
+  }, [raw, view]);
 
   // Timeline-reset: flush whatever's buffered + emit the resync marker.
   const resetEpoch = delay?.resetEpoch;
@@ -140,5 +153,5 @@ export function useKerbcastStream(
     bufferRef.current?.flush();
   }, [resetEpoch]);
 
-  return delay ? delayedStream : rawStream;
+  return delay ? delayedStream : raw;
 }

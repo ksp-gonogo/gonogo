@@ -18,7 +18,7 @@ import { clearRegistry, registerDataSource } from "@gonogo/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { DelayClockLike } from "../DelayedPlayoutBuffer";
-import { useKerbcastStream } from "./useKerbcastStream";
+import { useDelayedPlayout, useKerbcastStream } from "./useKerbcastStream";
 
 afterEach(() => {
   cleanup();
@@ -93,7 +93,8 @@ function StreamProbe({
   resetEpoch?: number;
   onStream: (s: MediaStream | null) => void;
 }): null {
-  const stream = useKerbcastStream(flightId, {
+  const raw = useKerbcastStream(flightId);
+  const stream = useDelayedPlayout(raw, {
     view: clock,
     captureUt,
     resetEpoch,
