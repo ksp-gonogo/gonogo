@@ -40,11 +40,22 @@ export interface TechNode {
 }
 
 /**
- * Defensive parser for `tech.nodes` from the GonogoTelemetry plugin.
- * Drops malformed entries; tolerates missing optional fields (description,
- * parts) so older Telemachus DLLs degrade gracefully — the operator still
- * sees title + scienceCost + state + parents even without the 2026-05-13
- * fork additions.
+ * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
+ * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
+ * "Researchable" | "Unavailable"` string) and the M3b career-detail wire
+ * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
+ * `unlocked: boolean`, no `state` at all — the server deliberately doesn't
+ * compute the 3-state "Researchable" distinction, career-capture-extend-
+ * report.md). When `state` is absent, derive it from `unlocked`
+ * (`true` -> "Available", `false` -> "Unavailable") — `computeResearchable`
+ * below already promotes some "Unavailable" nodes to researchable-now purely
+ * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
+ * the extend session's doc comment anticipated. `description`/`parts` stay
+ * empty on the new wire (no equivalent field) — both already default
+ * gracefully. Drops malformed entries; tolerates missing optional fields
+ * (description, parts) so older Telemachus DLLs degrade gracefully — the
+ * operator still sees title + scienceCost + state + parents even without
+ * the 2026-05-13 fork additions.
  */
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
@@ -55,7 +66,12 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
     const e = entry as Record<string, unknown>;
     const id = typeof e.id === "string" ? e.id : null;
     if (!id) continue;
-    const stateRaw = typeof e.state === "string" ? e.state : "Unavailable";
+    const stateRaw =
+      typeof e.state === "string"
+        ? e.state
+        : e.unlocked === true
+          ? "Available"
+          : "Unavailable";
     const state: TechNodeState =
       stateRaw === "Available" || stateRaw === "Researchable"
         ? stateRaw
@@ -271,13 +287,16 @@ function layoutGraph(
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
-  // M3 career batch: career.science -> career.status.economy.science is the
-  // one MAPPED read in this widget. tech.nodes stays legacy — the wire's
-  // career.status.tech only carries {unlockedCount, unlockedIds}, no
-  // titles/costs/parent edges/parts/Researchable-vs-Unavailable distinction
-  // this widget's tree view needs (see map-topic.ts's doc comment on the
-  // tech gap); tech.unlock[...] (the spend command) has no command home
-  // either (KNOWN_COMMAND_GAPS) and falls back to legacy automatically.
+  // M3 career batch: career.science -> career.status.economy.science.
+  // M3b career-detail batch: tech.nodes -> career.status.tech.nodes now
+  // MAPPED too — the wire's career.status.tech.nodes carries
+  // id/title/scienceCost/unlocked/parents (career-capture-extend-report.md);
+  // parseTechNodes derives the Available/Unavailable state from `unlocked`
+  // client-side (no server-computed Researchable 3rd state — this widget's
+  // own computeResearchable already does that derivation). kc.scene stays
+  // legacy (no career.status equivalent). tech.unlock[...] (the spend
+  // command) still has no command home (KNOWN_COMMAND_GAPS) and falls back
+  // to legacy automatically — this batch migrates the read only.
   const nodesRaw = useDataValue("data", "tech.nodes");
   const scene = useDataValue<string>("data", "kc.scene");
   const careerScience = useDataValue<number>("data", "career.science");

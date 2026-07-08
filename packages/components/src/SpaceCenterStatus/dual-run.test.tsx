@@ -7,17 +7,24 @@ import {
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
-import midCareer from "./__fixtures__/mid-career-mixed.json";
+import midCareer from "./__fixtures__/mid-career-mixed-no-tier-text.json";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * SpaceCenterStatus's M3 career batch behavior-preservation golden dual-run
- * (mirrors `DistanceToTarget/dual-run.test.tsx`, M3 vessel-gap batch): the
- * SAME career state, rendered once off the legacy `DataSource` and once off
- * the stream, must produce byte-identical DOM at `delay=0`. `career.funds`
- * (78400) is the only migrated field — every other fixture key
- * (`kc.facilityLevels`/`partsAvailable`/`launchSite`/`padOccupied`/
- * `padVesselTitle`/`scene`) stays legacy on both legs.
+ * SpaceCenterStatus's M3/M3b career batch behavior-preservation golden
+ * dual-run (mirrors `DistanceToTarget/dual-run.test.tsx`, M3 vessel-gap
+ * batch): the SAME career state, rendered once off the legacy `DataSource`
+ * and once off the stream, must produce byte-identical DOM at `delay=0`.
+ * `career.funds` (78400) AND `kc.facilityLevels` (-> `career.status.
+ * facilities`) are both migrated as of the M3b career-detail batch — the
+ * fixture uses `mid-career-mixed-no-tier-text.json`, not
+ * `mid-career-mixed.json`: `career.status.facilities`
+ * (CareerViewProvider.BuildFacilities) has no `currentLevelText`/
+ * `nextLevelText` field at all, so a byte-identical comparison needs a
+ * legacy fixture that already renders the same "older DLL, no tier text"
+ * shape `parseFacilityLevels` produces for an enum-keyed entry (see that
+ * fixture's own `_meta.notes`). `partsAvailable`/`launchSite`/
+ * `padOccupied`/`padVesselTitle`/`scene` stay legacy on both legs.
  */
 afterEach(() => {
   cleanup();
@@ -41,7 +48,6 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.facilityLevels" },
         { key: "kc.partsAvailable" },
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
@@ -59,19 +65,15 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
       </streamFixture.Provider>,
     );
 
-    // Emit the STREAM value first and let its frame settle before the
-    // legacy kc.* facility data arrives. `career.status` lands one
-    // microtask late (TelemetryProvider's `scheduleFrame`, no rAF in
-    // jsdom) — if the facility data (which gates whether the per-facility
-    // UpgradeButton even mounts) arrived first instead, the button would
-    // mount once with `careerFunds` still `undefined` (canAfford defaults
-    // true) and then get its `disabled` attribute APPENDED on the
-    // following update, landing after `title` in DOM attribute order
-    // instead of before it like a legacy fresh mount (both JSX branches
-    // declare `disabled` before `title`) — a spurious non-semantic
-    // attribute-order diff, not a real behavior difference. Settling funds
-    // first means the button mounts fresh, once, with both signals known,
-    // exactly like the legacy leg's single-batched-emit fresh mount.
+    // Emit the STREAM value first (funds AND facilities — both live under
+    // career.status now) and let its frame settle before the legacy kc.*
+    // pad/parts data arrives. `career.status` lands one microtask late
+    // (TelemetryProvider's `scheduleFrame`, no rAF in jsdom) — if the pad
+    // data (which gates the padLine subtitle) arrived first instead, some
+    // DOM would mount in a different attribute/child order than the
+    // legacy leg's single-batched-emit fresh mount. Settling career.status
+    // first means every facility cell + the funds readout mount fresh,
+    // once, exactly like the legacy leg.
     act(() => {
       streamFixture.emit("career.status", {
         economy: {
@@ -79,7 +81,61 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
           reputation: null,
           science: null,
         },
-        facilities: null,
+        facilities: {
+          LaunchPad: {
+            currentTier: midCareer["kc.facilityLevels"].launchPad.level,
+            maxTier: midCareer["kc.facilityLevels"].launchPad.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].launchPad.upgradeFunds || null,
+          },
+          Runway: {
+            currentTier: midCareer["kc.facilityLevels"].runway.level,
+            maxTier: midCareer["kc.facilityLevels"].runway.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].runway.upgradeFunds || null,
+          },
+          VehicleAssemblyBuilding: {
+            currentTier: midCareer["kc.facilityLevels"].vab.level,
+            maxTier: midCareer["kc.facilityLevels"].vab.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].vab.upgradeFunds || null,
+          },
+          SpaceplaneHangar: {
+            currentTier: midCareer["kc.facilityLevels"].sph.level,
+            maxTier: midCareer["kc.facilityLevels"].sph.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].sph.upgradeFunds || null,
+          },
+          MissionControl: {
+            currentTier: midCareer["kc.facilityLevels"].mission.level,
+            maxTier: midCareer["kc.facilityLevels"].mission.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].mission.upgradeFunds || null,
+          },
+          TrackingStation: {
+            currentTier: midCareer["kc.facilityLevels"].tracking.level,
+            maxTier: midCareer["kc.facilityLevels"].tracking.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].tracking.upgradeFunds || null,
+          },
+          Administration: {
+            currentTier: midCareer["kc.facilityLevels"].admin.level,
+            maxTier: midCareer["kc.facilityLevels"].admin.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].admin.upgradeFunds || null,
+          },
+          ResearchAndDevelopment: {
+            currentTier: midCareer["kc.facilityLevels"].rd.level,
+            maxTier: midCareer["kc.facilityLevels"].rd.max,
+            upgradeCost: midCareer["kc.facilityLevels"].rd.upgradeFunds || null,
+          },
+          AstronautComplex: {
+            currentTier: midCareer["kc.facilityLevels"].astronaut.level,
+            maxTier: midCareer["kc.facilityLevels"].astronaut.max,
+            upgradeCost:
+              midCareer["kc.facilityLevels"].astronaut.upgradeFunds || null,
+          },
+        },
         contracts: null,
         strategies: null,
         tech: null,
@@ -92,10 +148,6 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     });
 
     act(() => {
-      legacyAux.source.emit(
-        "kc.facilityLevels",
-        midCareer["kc.facilityLevels"],
-      );
       legacyAux.source.emit(
         "kc.partsAvailable",
         midCareer["kc.partsAvailable"],

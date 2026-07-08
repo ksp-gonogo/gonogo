@@ -174,6 +174,429 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
+        /// <summary>
+        /// REAL-SHAPE SYNTHETIC fixture for the M3b career-DETAIL widget
+        /// batch (ContractManager/Objectives/TechTree/SpaceCenterStatus/
+        /// Strategies). <see cref="GeneratesCareerWireFixtureFromCareerRecording"/>
+        /// above replays the REAL <c>reference-career-2026-07-08.json</c>
+        /// capture — but that recording predates the 3069438 capture-extend
+        /// session (facilities integer tiers, contract id/parameters,
+        /// strategy list, tech nodes): every facility's <c>currentTier</c>/
+        /// <c>maxTier</c>/<c>upgradeCost</c> is null on that wire, and
+        /// contracts/strategies.all/tech.nodes are all empty arrays (verified
+        /// by inspecting the generated <c>reference-wire-fixture-career.json</c>
+        /// directly). Blocking the five detail widgets' migration on a fresh
+        /// Space Center capture would stall momentum, so this test instead
+        /// hand-authors a synthetic "career" RAW snapshot dict carrying the
+        /// EXTENDED shape (matching <c>Gonogo.KSP.KspHost.BuildCareer</c>'s
+        /// documented output — see <see cref="CareerViewProvider"/>'s own doc
+        /// comment for the exact raw encoding) and replays it through the
+        /// REAL <see cref="CareerViewProvider.BuildCareer"/> mapper via the
+        /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
+        /// fixture in this file uses. The resulting WIRE SHAPE is therefore
+        /// the provider's genuine mapping output, not a hand-guessed shape —
+        /// only the underlying VALUES are synthetic/invented. Real-recording
+        /// validation is deferred to the user's next Space Center capture;
+        /// see <c>.superpowers/sdd/m3-career-detail-report.md</c>.
+        /// </summary>
+        [Fact]
+        public async Task GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot()
+        {
+            const string fixtureFileName = "reference-wire-fixture-career-synthetic.json";
+            var session = BuildSyntheticCareerSession();
+            var topics = new[] { CareerViewProvider.Topic };
+
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepExtension[] { new TestCareerExtension() }, topics);
+            Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
+
+            var careerFrames = ParsePayloads(capture.Frames, CareerViewProvider.Topic);
+            Assert.True(careerFrames.Count > 0, "expected at least one career.status frame");
+
+            Assert.Contains(careerFrames, c =>
+                c.TryGetValue("economy", out var econ) &&
+                econ is IDictionary<string, object?> econDict &&
+                econDict.TryGetValue("funds", out var funds) &&
+                funds is double fundsD && fundsD > 0);
+
+            // Extended facilities: real integer currentTier/maxTier + a
+            // positive upgradeCost — the exact fields
+            // GeneratesCareerWireFixtureFromCareerRecording's real (pre-extend)
+            // recording carries as null for every facility.
+            Assert.Contains(careerFrames, c =>
+                c.TryGetValue("facilities", out var fac) &&
+                fac is IDictionary<string, object?> facDict &&
+                facDict.TryGetValue("LaunchPad", out var lpRaw) &&
+                lpRaw is IDictionary<string, object?> lp &&
+                lp.TryGetValue("currentTier", out var tier) && tier is double tierD && tierD == 1 &&
+                lp.TryGetValue("maxTier", out var maxTier) && maxTier is double maxTierD && maxTierD == 2 &&
+                lp.TryGetValue("upgradeCost", out var cost) && cost is double costD && costD > 0);
+
+            // Extended contracts: stable `id` + non-empty `parameters` — the
+            // exact fields map-topic.ts's (pre-migration) gap comment says
+            // the old wire lacked entirely.
+            Assert.Contains(careerFrames, c =>
+                c.TryGetValue("contracts", out var contractsRaw) &&
+                contractsRaw is IDictionary<string, object?> contracts &&
+                contracts.TryGetValue("active", out var activeRaw) &&
+                activeRaw is IEnumerable<object?> active &&
+                active.OfType<IDictionary<string, object?>>().Any(entry =>
+                    !string.IsNullOrEmpty(entry.TryGetValue("id", out var id) ? id as string : null) &&
+                    entry.TryGetValue("parameters", out var parsRaw) &&
+                    parsRaw is IEnumerable<object?> pars &&
+                    pars.OfType<IDictionary<string, object?>>().Any()));
+
+            // Extended strategies: a 3+-entry `all` roster (active + at least
+            // two inactive) each with a stable `id` and real cost fields.
+            Assert.Contains(careerFrames, c =>
+                c.TryGetValue("strategies", out var stratRaw) &&
+                stratRaw is IDictionary<string, object?> strat &&
+                strat.TryGetValue("all", out var allRaw) &&
+                allRaw is IEnumerable<object?> allEnumerable &&
+                allEnumerable.OfType<IDictionary<string, object?>>().ToList() is var all &&
+                all.Count(s => !string.IsNullOrEmpty(s.TryGetValue("id", out var id) ? id as string : null)) >= 3 &&
+                all.Any(s => s.TryGetValue("isActive", out var isActive) && isActive is bool isActiveB && !isActiveB) &&
+                all.Any(s => s.TryGetValue("initialCostReputation", out var repCost) && repCost is double repCostD && repCostD > 0));
+
+            // Extended tech: id/title/scienceCost/unlocked/parents, including
+            // a multi-parent node (a real tech-tree edge shape).
+            Assert.Contains(careerFrames, c =>
+                c.TryGetValue("tech", out var techRaw) &&
+                techRaw is IDictionary<string, object?> tech &&
+                tech.TryGetValue("nodes", out var nodesRaw) &&
+                nodesRaw is IEnumerable<object?> nodes &&
+                nodes.OfType<IDictionary<string, object?>>().Any(n =>
+                    n.TryGetValue("parents", out var parentsRaw) &&
+                    parentsRaw is IEnumerable<object?> parents &&
+                    parents.Count() >= 2));
+
+            _output.WriteLine(
+                $"synthetic career-detail fixture: {careerFrames.Count} career.status frames; " +
+                "extended facilities/contracts/strategies/tech fields asserted present (real-shape synthetic — " +
+                "values hand-authored, wire shape produced by the real CareerViewProvider mapper).");
+            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot — no source recording file)", session.Entries.Count, topics, capture);
+        }
+
+        /// <summary>
+        /// Builds the hand-authored synthetic <see cref="RecordedSession"/>
+        /// backing <see cref="GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot"/>.
+        /// Two identical-content snapshot entries (T=0 and T=15, inside one
+        /// <see cref="CareerExtension"/> keyframe window) so the fixture
+        /// carries more than one captured frame, same shape every other
+        /// generator in this file produces from a real multi-tick recording.
+        /// The raw "career" dict mirrors EXACTLY the shape
+        /// <see cref="CareerViewProvider"/>'s own doc comment documents
+        /// <c>Gonogo.KSP.KspHost.BuildCareer</c> must populate at
+        /// <c>Values["career"]</c> — see that class's doc comment for the
+        /// authoritative field list this method is built against.
+        /// </summary>
+        private static RecordedSession BuildSyntheticCareerSession()
+        {
+            var career = BuildSyntheticCareerRaw();
+
+            var entries = new List<RecordedEntry>();
+            foreach (var t in new[] { 0.0, 15.0 })
+            {
+                entries.Add(new RecordedEntry
+                {
+                    T = t,
+                    Kind = "snapshot",
+                    WallClockUtc = DateTime.UtcNow,
+                    Seq = entries.Count,
+                    Snapshot = new RecordedSnapshotPayload
+                    {
+                        // BuildCareer rebuilds fresh Dictionary trees per
+                        // Sample() call in the real host — a NEW raw dict per
+                        // entry (rather than the same reference twice) keeps
+                        // that same "no shared mutable state across ticks"
+                        // shape, even though the content is identical.
+                        Values = new Dictionary<string, object?> { ["career"] = BuildSyntheticCareerRaw() },
+                    },
+                });
+            }
+
+            return new RecordedSession
+            {
+                SchemaVersion = RecordedSessionCodec.CurrentSchemaVersion,
+                StartUt = 0.0,
+                Entries = entries,
+            };
+        }
+
+        private static Dictionary<string, object?> BuildSyntheticCareerRaw()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["economy"] = new Dictionary<string, object?>
+                {
+                    ["funds"] = 525000.75,
+                    ["reputation"] = 62.3,
+                    ["science"] = 310.5,
+                },
+                ["facilities"] = BuildSyntheticFacilities(),
+                ["contracts"] = new Dictionary<string, object?>
+                {
+                    ["active"] = BuildSyntheticActiveContracts(),
+                    ["offered"] = BuildSyntheticOfferedContracts(),
+                },
+                ["strategies"] = BuildSyntheticStrategies(),
+                ["tech"] = BuildSyntheticTech(),
+            };
+        }
+
+        private static Dictionary<string, object?> BuildSyntheticFacilities()
+        {
+            // Mirrors the exact 9 SpaceCenterFacility enum-name keys observed
+            // in the real (pre-extend) reference-wire-fixture-career.json —
+            // see this class's own doc comment on the generator above.
+            return new Dictionary<string, object?>
+            {
+                ["LaunchPad"] = Facility(currentTier: 1, maxTier: 2, upgradeCost: 150000.0),
+                ["Runway"] = Facility(currentTier: 0, maxTier: 2, upgradeCost: 30000.0),
+                ["VehicleAssemblyBuilding"] = Facility(currentTier: 2, maxTier: 2, upgradeCost: null),
+                ["SpaceplaneHangar"] = Facility(currentTier: 1, maxTier: 2, upgradeCost: 175000.0),
+                ["MissionControl"] = Facility(currentTier: 2, maxTier: 2, upgradeCost: null),
+                ["TrackingStation"] = Facility(currentTier: 1, maxTier: 2, upgradeCost: 115000.0),
+                ["Administration"] = Facility(currentTier: 0, maxTier: 2, upgradeCost: 55000.0),
+                ["ResearchAndDevelopment"] = Facility(currentTier: 1, maxTier: 2, upgradeCost: 225000.0),
+                ["AstronautComplex"] = Facility(currentTier: 1, maxTier: 2, upgradeCost: 65000.0),
+            };
+
+            static Dictionary<string, object?> Facility(int currentTier, int maxTier, double? upgradeCost) =>
+                new Dictionary<string, object?>
+                {
+                    ["currentTier"] = currentTier,
+                    ["maxTier"] = maxTier,
+                    ["upgradeCost"] = upgradeCost,
+                };
+        }
+
+        private static List<object?> BuildSyntheticActiveContracts()
+        {
+            return new List<object?>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "8834021456123789",
+                    ["title"] = "Rescue Kerbal from orbit of Kerbin",
+                    ["agent"] = "Kerbin Space Agency Rescue Division",
+                    ["state"] = "Active",
+                    ["fundsAdvance"] = 5000.0,
+                    ["fundsCompletion"] = 25000.0,
+                    ["fundsFailure"] = -10000.0,
+                    ["scienceCompletion"] = 15.0,
+                    ["reputationCompletion"] = 8.0,
+                    ["reputationFailure"] = -5.0,
+                    ["dateAccepted"] = 1500000.0,
+                    ["dateDeadline"] = 2500000.0,
+                    ["dateExpire"] = 0.0,
+                    ["parameters"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["title"] = "Rescue Buzz Kerman", ["state"] = "Incomplete" },
+                        new Dictionary<string, object?> { ["title"] = "Return to Kerbin", ["state"] = "Incomplete" },
+                    },
+                },
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "9012345678901234",
+                    ["title"] = "Explore the Mun's surface",
+                    ["agent"] = "Global Exploration Society",
+                    ["state"] = "Active",
+                    ["fundsAdvance"] = 10000.0,
+                    ["fundsCompletion"] = 50000.0,
+                    ["fundsFailure"] = 0.0,
+                    ["scienceCompletion"] = 40.0,
+                    ["reputationCompletion"] = 12.0,
+                    ["reputationFailure"] = 0.0,
+                    ["dateAccepted"] = 1200000.0,
+                    ["dateDeadline"] = 0.0,
+                    ["dateExpire"] = 0.0,
+                    ["parameters"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["title"] = "Land near the Mun's north pole", ["state"] = "Complete" },
+                        new Dictionary<string, object?> { ["title"] = "Plant a flag", ["state"] = "Incomplete" },
+                    },
+                },
+            };
+        }
+
+        private static List<object?> BuildSyntheticOfferedContracts()
+        {
+            return new List<object?>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "1122334455667788",
+                    ["title"] = "Test RT-10 solid fuel booster in flight",
+                    ["agent"] = "Kerbin Space Program",
+                    ["state"] = "Offered",
+                    ["fundsAdvance"] = 0.0,
+                    ["fundsCompletion"] = 8500.0,
+                    ["fundsFailure"] = 0.0,
+                    ["scienceCompletion"] = 5.0,
+                    ["reputationCompletion"] = 3.0,
+                    ["reputationFailure"] = -2.0,
+                    ["dateAccepted"] = 0.0,
+                    ["dateDeadline"] = 0.0,
+                    ["dateExpire"] = 3000000.0,
+                    ["parameters"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["title"] = "Test RT-10 while in flight over Kerbin", ["state"] = "Incomplete" },
+                    },
+                },
+                new Dictionary<string, object?>
+                {
+                    ["id"] = "2233445566778899",
+                    ["title"] = "Contract: Satellite around Kerbin",
+                    ["agent"] = "Communications Guild",
+                    ["state"] = "Offered",
+                    ["fundsAdvance"] = 2000.0,
+                    ["fundsCompletion"] = 18000.0,
+                    ["fundsFailure"] = -5000.0,
+                    ["scienceCompletion"] = 0.0,
+                    ["reputationCompletion"] = 6.0,
+                    ["reputationFailure"] = -4.0,
+                    ["dateAccepted"] = 0.0,
+                    ["dateDeadline"] = 0.0,
+                    ["dateExpire"] = 2800000.0,
+                    ["parameters"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["title"] = "Achieve orbit around Kerbin", ["state"] = "Incomplete" },
+                    },
+                },
+            };
+        }
+
+        private static Dictionary<string, object?> BuildSyntheticStrategies()
+        {
+            var aggressiveNegotiations = new Dictionary<string, object?>
+            {
+                ["id"] = "AggressiveNegotiations",
+                ["title"] = "Aggressive Negotiations",
+                ["description"] = "Push harder on every deal.",
+                ["department"] = "Operations",
+                ["isActive"] = true,
+                ["factor"] = 0.15,
+                ["dateActivated"] = 33246.0,
+                ["requiredReputation"] = -10.0,
+                ["initialCostFunds"] = 0.0,
+                ["initialCostScience"] = 0.0,
+                ["initialCostReputation"] = 14.5,
+                ["hasFactorSlider"] = true,
+                ["factorSliderDefault"] = 0.05,
+                ["factorSliderSteps"] = 20,
+                ["canActivate"] = false,
+                ["activateBlockedReason"] = "Strategy already active.",
+                ["canDeactivate"] = true,
+                ["deactivateBlockedReason"] = "",
+                ["effect"] = "Effects: -1.5% funds off launch costs.",
+            };
+            var fundraisingCampaign = new Dictionary<string, object?>
+            {
+                ["id"] = "FundraisingCampaignCfg",
+                ["title"] = "Fundraising Campaign",
+                ["description"] = "Reach out to the public for monetary donations.",
+                ["department"] = "Finances",
+                ["isActive"] = false,
+                ["factor"] = 0.05,
+                ["dateActivated"] = 0.0,
+                ["requiredReputation"] = -437.5,
+                ["initialCostFunds"] = 0.0,
+                ["initialCostScience"] = 0.0,
+                ["initialCostReputation"] = 7.3,
+                ["hasFactorSlider"] = true,
+                ["factorSliderDefault"] = 0.05,
+                ["factorSliderSteps"] = 20,
+                ["canActivate"] = true,
+                ["activateBlockedReason"] = "",
+                ["canDeactivate"] = false,
+                ["deactivateBlockedReason"] = "Strategy is not active",
+                ["effect"] = "Effects: takes 5% reputation gains.",
+            };
+            var patriotismDrive = new Dictionary<string, object?>
+            {
+                ["id"] = "PatriotismDriveCfg",
+                ["title"] = "Patriotism Drive",
+                ["description"] = "Instill a sense of national pride in the populace.",
+                ["department"] = "Public Relations",
+                ["isActive"] = false,
+                ["factor"] = 0.05,
+                ["dateActivated"] = 0.0,
+                ["requiredReputation"] = 750.0,
+                ["initialCostFunds"] = 0.0,
+                ["initialCostScience"] = 0.0,
+                ["initialCostReputation"] = 0.0,
+                ["hasFactorSlider"] = false,
+                ["factorSliderDefault"] = 0.05,
+                ["factorSliderSteps"] = 1,
+                ["canActivate"] = false,
+                ["activateBlockedReason"] = "Requires more reputation than the program has earned.",
+                ["canDeactivate"] = false,
+                ["deactivateBlockedReason"] = "Strategy is not active",
+                ["effect"] = "",
+            };
+
+            return new Dictionary<string, object?>
+            {
+                ["active"] = new List<object?> { aggressiveNegotiations },
+                ["all"] = new List<object?> { aggressiveNegotiations, fundraisingCampaign, patriotismDrive },
+                ["activeCount"] = 1,
+            };
+        }
+
+        private static Dictionary<string, object?> BuildSyntheticTech()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["unlockedCount"] = 3,
+                ["unlockedIds"] = new List<object?> { "basicRocketry", "engineering101", "survivability" },
+                ["nodes"] = new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "basicRocketry",
+                        ["title"] = "Basic Rocketry",
+                        ["scienceCost"] = 0.0,
+                        ["unlocked"] = true,
+                        ["parents"] = new List<object?>(),
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "engineering101",
+                        ["title"] = "General Rocketry",
+                        ["scienceCost"] = 15.0,
+                        ["unlocked"] = true,
+                        ["parents"] = new List<object?> { "basicRocketry" },
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "survivability",
+                        ["title"] = "Survivability",
+                        ["scienceCost"] = 15.0,
+                        ["unlocked"] = true,
+                        ["parents"] = new List<object?> { "basicRocketry" },
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "stability",
+                        ["title"] = "Stability",
+                        ["scienceCost"] = 45.0,
+                        ["unlocked"] = false,
+                        // Multi-parent edge — a real tech-tree shape (a node
+                        // gated on two prerequisite nodes at once).
+                        ["parents"] = new List<object?> { "engineering101", "survivability" },
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "advRocketry",
+                        ["title"] = "Advanced Rocketry",
+                        ["scienceCost"] = 45.0,
+                        ["unlocked"] = false,
+                        ["parents"] = new List<object?> { "engineering101" },
+                    },
+                },
+            };
+        }
+
         [Fact]
         public async Task GeneratesCommsWireFixtureFromCommsTransitionRecording()
         {

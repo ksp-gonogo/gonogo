@@ -221,6 +221,20 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "career.reputation": "career.status.economy.reputation",
   "career.science": "career.status.economy.science",
 
+  // --- M3b career-detail batch: facilities/contracts/strategies/tech
+  // un-gapped now that CareerViewProvider carries the fields each widget's
+  // parser needs (see the TELEMACHUS_KNOWN_GAPS entries these five keys
+  // used to live under, just below, for the full before/after shape
+  // rationale). Each target field-path is a raw walk off `career.status`
+  // (TimelineStore.resolveRawFieldSubtopic) — `facilities`/`contracts.
+  // active`/`contracts.offered`/`strategies.all`/`tech.nodes` are exactly
+  // the sub-trees CareerViewProvider.BuildCareer's doc comment documents. ---
+  "kc.facilityLevels": "career.status.facilities",
+  "contracts.active": "career.status.contracts.active",
+  "contracts.offered": "career.status.contracts.offered",
+  "strategies.all": "career.status.strategies.all",
+  "tech.nodes": "career.status.tech.nodes",
+
   // --- M3 science/parts batch: science.experiments un-gap. ScienceCapture's
   // `science.experiments` (mod/Sitrep.Host/ScienceViewProvider.cs) is a raw
   // array whose entries are a strict SUPERSET of the legacy `sci.experiments`
@@ -573,7 +587,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- out of vessel-provider scope by design — separate provider families ---
   "career.mode",
   "kc.crewRoster",
-  "kc.facilityLevels",
+  // kc.facilityLevels un-gapped M3b career-detail batch — see CLEAN_HOMES
+  // above (career.status.facilities, SpaceCenterStatus's parseFacilityLevels
+  // now reads BOTH the legacy short-code shape and the new enum-keyed
+  // currentTier/maxTier/upgradeCost shape).
   "kc.launchSite",
   "kc.launchSites",
   "kc.padOccupied",
@@ -582,63 +599,35 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "kc.savedShips",
   "kc.scene",
 
-  // --- M3 career batch fixture-audit finds: career.status's facilities/
-  // contracts/strategies/tech groups exist on the wire (CareerViewProvider,
-  // mod/Sitrep.Host/CareerViewProvider.cs) but each carries a narrower/
-  // differently-shaped payload than the widget's parser expects — the same
-  // shape-mismatch class as the CRITICAL-review gaps above. Mapping any of
-  // these directly would silently drop every entry (no stable `id` to key
-  // React lists / commands on) rather than fall back to the working legacy
-  // read.
+  // --- M3b career-detail batch: facilities/contracts/strategies/tech
+  // un-gapped. The 3069438 capture-extend session (career-capture-extend-
+  // report.md) widened CareerViewProvider's facilities/contracts/
+  // strategies/tech groups from the M3 "just enough to prove the channel
+  // exists" shape to what these five widgets actually need — integer
+  // currentTier/maxTier/upgradeCost per facility, a stable string `id` +
+  // `parameters` per contract, a stable `id` + full cost/eligibility set
+  // per strategy (plus the `all` roster, not just `active`), and
+  // `id`/`title`/`scienceCost`/`unlocked`/`parents` per tech node. See
+  // CLEAN_HOMES above for the five new mappings and each widget's own
+  // parser (ContractManager's `parseContracts`, Strategies's
+  // `parseStrategies`, TechTree's `parseTechNodes`, SpaceCenterStatus's
+  // `parseFacilityLevels`) for how each now accepts BOTH the legacy shape
+  // and this new one. `contracts.completedRecent` stays gapped below — no
+  // wire equivalent exists (CareerViewProvider only carries active/
+  // offered). `strategies.all`'s `effectiveCostReputation` also stays
+  // client-side-only — deliberately not added to the wire (no cheap
+  // decompiled source for KSP's nonlinear rep curve, career-capture-
+  // extend-report.md) — `parseStrategies` already falls back to
+  // `initialCostReputation` when it's absent, unchanged by this batch.
+  // Commands (facility upgrade, contract accept/decline/cancel, strategy
+  // activate/deactivate, tech unlock) have no command home yet
+  // (KNOWN_COMMAND_GAPS in map-command.ts) and fall back to the legacy
+  // DataSource automatically — this batch migrates READS only.
 
-  // kc.facilityLevels: SpaceCenterStatus reads `{<shortKey>: {level, max,
-  // upgradeFunds, currentLevelText, nextLevelText}}` keyed by short codes
-  // (launchPad/vab/sph/...) with an INTEGER tier index + tier COUNT.
-  // career.status.facilities is keyed by the full SpaceCenterFacility enum
-  // name (SpaceplaneHangar/Administration/...) and `level` is a FRACTIONAL
-  // 0..1 GetFacilityLevel() value, not a tier index — recovering the
-  // integer tier needs `levelCount`, which is itself scene-gated (null
-  // outside the Space Center) and often unavailable exactly when the
-  // widget needs it. No `currentLevelText`/`nextLevelText` on the wire at
-  // all (KSP's own upgrade-dialog bullet text, GonogoTelemetry-only).
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  // (career.funds/reputation/science ARE migrated — see CLEAN_HOMES above)
-
-  // contracts.active/contracts.offered/contracts.completedRecent:
-  // ContractManager/Objectives read `{id, title, agency, state,
-  // fundsAdvance, fundsCompletion, scienceCompletion, repCompletion,
-  // deadlineUt, parameters: ContractParameter[]}` — `id` gates every entry
-  // (`if (id === null) continue`, ContractManager/index.tsx's
-  // `parseContracts`), and `parameters` drives the whole progress-bar UI.
-  // career.status.contracts entries (CareerViewProvider.BuildContractList)
-  // carry NEITHER: no `id` field at all (would drop every contract
-  // silently), no `parameters`, plus renamed fields (`agent` not `agency`,
-  // `reputationCompletion` not `repCompletion`, `dateDeadline` not
-  // `deadlineUt`) and no `completedRecent` list on the wire yet.
-  // gap: needs a stable contract id + parameters on the wire; migrate in M3
-  "contracts.active",
-  "contracts.offered",
+  // contracts.completedRecent: no wire equivalent — CareerViewProvider only
+  // ever emits `active`/`offered` (BuildContracts, CareerViewProvider.cs).
+  // gap: no aggregate "recently completed" list on the new wire; migrate in M3
   "contracts.completedRecent",
-
-  // strategies.all: Strategies reads a rich `{id, title, description,
-  // departmentName, isActive, factor, dateActivated, requiredReputation,
-  // initialCost*, effectiveCostReputation, hasFactorSlider,
-  // factorSlider*, canActivate/canDeactivate + blocked-reason text,
-  // effect}[]` — activate/deactivate needs the stable `id`.
-  // career.status.strategies.active only carries `{title, department,
-  // factor}` (CareerViewProvider.BuildStrategies) — no id, no costs, no
-  // canActivate/canDeactivate, no effect text.
-  // gap: needs a stable strategy id + the cost/eligibility fields; migrate in M3
-  "strategies.all",
-
-  // tech.nodes: TechTree reads a full tree — `{id, title, description,
-  // scienceCost, state, parents: string[], parts: TechPart[]}[]`.
-  // career.status.tech only carries `{unlockedCount, unlockedIds}`
-  // (CareerViewProvider.BuildTech) — no titles/costs/parent edges/parts,
-  // no notion of "Researchable" vs "Unavailable" for locked nodes.
-  // gap: needs the full tech-tree shape (titles/costs/edges/parts) on the
-  // wire, not just the unlocked-id list; migrate in M3
-  "tech.nodes",
 
   // sci.count/sci.dataAmount: ScienceBench reads two separate scalar
   // aggregates. `science.experiments` (now CLEAN_HOMES above) carries the

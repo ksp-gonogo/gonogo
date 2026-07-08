@@ -91,10 +91,20 @@ function isKnownParamState(value: string): value is ContractParameterState {
 }
 
 /**
- * Defensive parser for the GonogoTelemetry plugin's contract array
- * payloads (`contracts.active`, `contracts.offered`,
- * `contracts.completedRecent`). Drops malformed entries; tolerates
- * unknown parameter states by collapsing to "Incomplete".
+ * Defensive parser for contract array payloads. Accepts BOTH the legacy
+ * GonogoTelemetry shape (`contracts.active`/`contracts.offered`/
+ * `contracts.completedRecent`: `agency`/`repCompletion`/`deadlineUt`) and
+ * the M3b career-detail wire shape (`career.status.contracts.active`/
+ * `.offered`, mod/Sitrep.Host/CareerViewProvider.cs's `BuildContractList`:
+ * `agent`/`reputationCompletion`/`dateDeadline`) — same "one parser, either
+ * wire shape" pattern ScienceBench's `parseExperiments` established
+ * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
+ * `parameters` only carry `{title, state}` (no `optional`/`parameterType`/
+ * altitude bounds — decompile-confirmed exact shape, career-capture-extend-
+ * report.md); those extra fields simply stay undefined on a new-wire
+ * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
+ * rather than breaking. Drops malformed entries; tolerates unknown
+ * parameter states by collapsing to "Incomplete".
  */
 export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -112,18 +122,39 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     else if (typeof e.id === "number" && Number.isFinite(e.id))
       id = String(e.id);
     if (id === null) continue;
+    // agency/agent, repCompletion/reputationCompletion, deadlineUt/
+    // dateDeadline: legacy vs. career.status field names for the same
+    // value — prefer whichever the payload actually carries.
+    const agency =
+      typeof e.agency === "string"
+        ? e.agency
+        : typeof e.agent === "string"
+          ? e.agent
+          : "";
+    const repCompletion =
+      typeof e.repCompletion === "number"
+        ? e.repCompletion
+        : typeof e.reputationCompletion === "number"
+          ? e.reputationCompletion
+          : 0;
+    const deadlineUt =
+      typeof e.deadlineUt === "number"
+        ? e.deadlineUt
+        : typeof e.dateDeadline === "number"
+          ? e.dateDeadline
+          : 0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
-      agency: typeof e.agency === "string" ? e.agency : "",
+      agency,
       state: typeof e.state === "string" ? e.state : "",
       fundsAdvance: typeof e.fundsAdvance === "number" ? e.fundsAdvance : 0,
       fundsCompletion:
         typeof e.fundsCompletion === "number" ? e.fundsCompletion : 0,
       scienceCompletion:
         typeof e.scienceCompletion === "number" ? e.scienceCompletion : 0,
-      repCompletion: typeof e.repCompletion === "number" ? e.repCompletion : 0,
-      deadlineUt: typeof e.deadlineUt === "number" ? e.deadlineUt : 0,
+      repCompletion,
+      deadlineUt,
       parameters: parseParameters(e.parameters),
     });
   }

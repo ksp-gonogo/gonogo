@@ -1,22 +1,27 @@
 import { DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
-import oneActive from "./__fixtures__/one-active-room-for-more.json";
+import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { StrategiesComponent } from "./index";
 
 /**
- * Strategies's M3 career batch behavior-preservation golden dual-run
+ * Strategies's M3/M3b career batch behavior-preservation golden dual-run
  * (mirrors `SpaceCenterStatus/dual-run.test.tsx`): the SAME career state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`. `career.funds`/`reputation`/
- * `science` are the only migrated fields — `strategies.all` stays legacy on
- * both legs.
+ * `science` AND `strategies.all` (-> `career.status.strategies.all`, M3b
+ * career-detail batch) are all migrated now. The fixture is
+ * `small-career-detail.json`, not `one-active-room-for-more.json` (still
+ * used by the legacy-only `snapshots.test.tsx`): `career.status.
+ * strategies.all` never carries `effectiveCostReputation` (no cheap
+ * decompiled source for KSP's nonlinear rep curve — career-capture-extend-
+ * report.md) and `parseStrategies` falls back to `initialCostReputation`
+ * when it's absent, so a byte-identical comparison needs a legacy fixture
+ * where `effectiveCostReputation` already equals `initialCostReputation`
+ * on every entry (see that fixture's own `_meta.notes`). `departmentName`
+ * -> `department` is the one field rename `parseStrategies` normalizes.
  */
 afterEach(() => {
   cleanup();
@@ -28,7 +33,7 @@ describe("Strategies — behavior-preservation golden dual-run (delay=0)", () =>
 
     const legacyHtml = await snapshotWidgetMode({
       Widget: StrategiesComponent,
-      fixture: oneActive,
+      fixture: smallCareerDetail,
       mode,
       connectSource: true,
     });
@@ -36,11 +41,6 @@ describe("Strategies — behavior-preservation golden dual-run (delay=0)", () =>
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "strategies.all" }],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -52,28 +52,34 @@ describe("Strategies — behavior-preservation golden dual-run (delay=0)", () =>
     );
 
     act(() => {
-      legacyAux.source.emit("strategies.all", oneActive["strategies.all"]);
+      const wireStrategies = smallCareerDetail["strategies.all"].map((s) => {
+        const { departmentName, effectiveCostReputation, ...rest } = s;
+        return { ...rest, department: departmentName };
+      });
       streamFixture.emit("career.status", {
         economy: {
-          funds: oneActive["career.funds"],
-          reputation: oneActive["career.reputation"],
-          science: oneActive["career.science"],
+          funds: smallCareerDetail["career.funds"],
+          reputation: smallCareerDetail["career.reputation"],
+          science: smallCareerDetail["career.science"],
         },
         facilities: null,
         contracts: null,
-        strategies: null,
+        strategies: {
+          active: wireStrategies.filter((s) => s.isActive),
+          all: wireStrategies,
+          activeCount: wireStrategies.filter((s) => s.isActive).length,
+        },
         tech: null,
       });
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("289,848f")) {
+      if (!container.textContent?.includes("525,000f")) {
         throw new Error("stream leg has not rendered funds yet");
       }
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);
   });

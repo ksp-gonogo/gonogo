@@ -47,6 +47,16 @@ export interface Strategy {
 
 const COMMIT_TIMEOUT_MS = 5_000;
 
+/**
+ * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
+ * the M3b career-detail wire shape (`career.status.strategies.all`,
+ * CareerViewProvider.BuildStrategyList: `department`) — same field-rename
+ * normalization ContractManager's `parseContracts` applies. Every other
+ * field name matches the new wire 1:1 (decompile-confirmed,
+ * career-capture-extend-report.md), including `effectiveCostReputation`
+ * staying absent on the new wire — the fallback below to
+ * `initialCostReputation` already covers that, unchanged.
+ */
 export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -61,7 +71,11 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
       departmentName:
-        typeof e.departmentName === "string" ? e.departmentName : "",
+        typeof e.departmentName === "string"
+          ? e.departmentName
+          : typeof e.department === "string"
+            ? e.department
+            : "",
       isActive: e.isActive === true,
       factor: typeof e.factor === "number" ? e.factor : 0,
       dateActivated: typeof e.dateActivated === "number" ? e.dateActivated : 0,
@@ -133,13 +147,13 @@ function StrategiesComponent({
   h,
 }: Readonly<ComponentProps<StrategiesConfig>>) {
   // M3 career batch: career.funds/reputation/science -> career.status.
-  // economy.{funds,reputation,science} are the three MAPPED reads in this
-  // widget. strategies.all stays legacy — the wire's career.status.
-  // strategies.active only carries {title, department, factor}, no stable
-  // `id`/costs/canActivate/canDeactivate/effect text this widget's parser
-  // needs (see map-topic.ts's doc comment on the strategies gap); the
-  // activate/deactivate commands have no command home either
-  // (KNOWN_COMMAND_GAPS) and fall back to legacy automatically.
+  // economy.{funds,reputation,science}. M3b career-detail batch:
+  // strategies.all -> career.status.strategies.all now MAPPED too — the
+  // wire's career.status.strategies.all carries the full `id`/costs/
+  // canActivate/canDeactivate/effect-text shape this widget's parser needs
+  // (career-capture-extend-report.md). The activate/deactivate COMMANDS
+  // still have no command home (KNOWN_COMMAND_GAPS) and fall back to legacy
+  // automatically — this batch migrates the read only.
   const stratsRaw = useDataValue("data", "strategies.all");
   const funds = useDataValue<number>("data", "career.funds");
   const reputation = useDataValue<number>("data", "career.reputation");

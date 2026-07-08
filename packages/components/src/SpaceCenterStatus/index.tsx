@@ -42,6 +42,26 @@ type FacilityKey =
   | "rd"
   | "astronaut";
 
+/**
+ * M3b career-detail batch: `career.status.facilities` (mod/Sitrep.Host/
+ * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
+ * `SpaceCenterFacility` enum name, not this widget's short codes — maps
+ * each enum name onto its `FacilityKey`. Names match the real wire
+ * (decompile-confirmed, career-capture-extend-report.md; also the exact 9
+ * keys observed in a real `career.status` capture).
+ */
+const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
+  LaunchPad: "launchPad",
+  Runway: "runway",
+  VehicleAssemblyBuilding: "vab",
+  SpaceplaneHangar: "sph",
+  MissionControl: "mission",
+  TrackingStation: "tracking",
+  Administration: "admin",
+  ResearchAndDevelopment: "rd",
+  AstronautComplex: "astronaut",
+};
+
 interface FacilityLevel {
   level: number;
   max: number;
@@ -63,38 +83,67 @@ interface FacilityLevel {
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
- * Defensive parser for the `kc.facilityLevels` payload from the
- * GonogoTelemetry KSP plugin. Accepts the documented dict shape and
- * drops anything that doesn't read as `{ level: number, max: number,
- * upgradeFunds: number }` — sandbox saves emit zeroed entries, which
- * is fine. `upgradeFunds` is best-effort; missing → 0 means "unknown
- * or at max". `currentLevelText` / `nextLevelText` are the 2026-05-13
- * additions; missing means an older DLL — defaults to empty string so
- * downstream "show this text" code can early-out cleanly.
+ * Defensive parser for facility-level payloads. Accepts BOTH the legacy
+ * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/… —
+ * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
+ * M3b career-detail wire shape (`career.status.facilities`, keyed by the
+ * full `SpaceCenterFacility` enum name — `{ currentTier, maxTier,
+ * upgradeCost }`, career-capture-extend-report.md). The new wire's
+ * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
+ * widget already assumes for `level`/`max` (decompile-confirmed: a fully
+ * upgraded facility reports `currentTier === maxTier`, both actual-tier-
+ * minus-one — see the "Lvl N of M" comment in the render below), so they
+ * map straight across with no reinterpretation. `upgradeCost` maps to
+ * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
+ * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
+ * have no new-wire equivalent — always `""` for an enum-keyed entry,
+ * degrading exactly like an older legacy DLL that never emitted them.
+ * Drops anything that doesn't read as one of the two known shapes —
+ * sandbox saves emit zeroed entries, which is fine.
  */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: FacilityLevels = {};
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+  for (const [rawKey, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!v || typeof v !== "object") continue;
     const entry = v as Record<string, unknown>;
-    const level = typeof entry.level === "number" ? entry.level : null;
-    const max = typeof entry.max === "number" ? entry.max : null;
-    if (level === null || max === null) continue;
-    if (!FACILITIES.some((f) => f.key === k)) continue;
-    const upgradeFunds =
-      typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0;
-    const currentLevelText =
-      typeof entry.currentLevelText === "string" ? entry.currentLevelText : "";
-    const nextLevelText =
-      typeof entry.nextLevelText === "string" ? entry.nextLevelText : "";
-    out[k as FacilityKey] = {
-      level,
-      max,
-      upgradeFunds,
-      currentLevelText,
-      nextLevelText,
-    };
+
+    const key: FacilityKey | undefined = FACILITIES.some(
+      (f) => f.key === rawKey,
+    )
+      ? (rawKey as FacilityKey)
+      : ENUM_FACILITY_TO_KEY[rawKey];
+    if (key === undefined) continue;
+
+    if (typeof entry.level === "number" && typeof entry.max === "number") {
+      out[key] = {
+        level: entry.level,
+        max: entry.max,
+        upgradeFunds:
+          typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0,
+        currentLevelText:
+          typeof entry.currentLevelText === "string"
+            ? entry.currentLevelText
+            : "",
+        nextLevelText:
+          typeof entry.nextLevelText === "string" ? entry.nextLevelText : "",
+      };
+      continue;
+    }
+
+    if (
+      typeof entry.currentTier === "number" &&
+      typeof entry.maxTier === "number"
+    ) {
+      out[key] = {
+        level: entry.currentTier,
+        max: entry.maxTier,
+        upgradeFunds:
+          typeof entry.upgradeCost === "number" ? entry.upgradeCost : 0,
+        currentLevelText: "",
+        nextLevelText: "",
+      };
+    }
   }
   return out;
 }
@@ -120,13 +169,17 @@ function SpaceCenterStatusComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
-  // M3 career batch: career.funds -> career.status.economy.funds is the one
-  // MAPPED read in this widget. kc.facilityLevels/partsAvailable/launchSite/
-  // padOccupied/padVesselTitle/scene are all still-gapped kc.* GonogoTelemetry
-  // keys — no career.status equivalent shape (see map-topic.ts's doc comment
-  // on the facilities gap) — and stay legacy. kc.upgradeFacility[...] (the
-  // spend command) has no command home either (KNOWN_COMMAND_GAPS) and falls
-  // back to legacy automatically.
+  // M3 career batch: career.funds -> career.status.economy.funds.
+  // M3b career-detail batch: kc.facilityLevels -> career.status.facilities
+  // now MAPPED too — parseFacilityLevels accepts the enum-keyed
+  // currentTier/maxTier/upgradeCost shape (career-capture-extend-report.md)
+  // alongside the legacy short-code shape, so both the funds readout AND
+  // the facility tier/upgrade-cost grid stream live off career.status.
+  // partsAvailable/launchSite/padOccupied/padVesselTitle/scene are still
+  // gapped kc.* GonogoTelemetry keys with no career.status equivalent and
+  // stay legacy. kc.upgradeFacility[...] (the spend command) still has no
+  // command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
+  // automatically — this batch migrates reads only.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 

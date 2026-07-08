@@ -116,17 +116,17 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   it("returns undefined for known gaps (no silent identity fallback)", () => {
     // (tar.availableVessels was un-gapped in the M3 vessel-gap batch — it now
     // maps to system.vessels; see the roster mapping test below. career.funds/
-    // reputation/science were un-gapped in the M3 career batch — see the
-    // career.status mapping test below.)
+    // reputation/science were un-gapped in the M3 career batch, and
+    // strategies.all/tech.nodes/contracts.active/contracts.offered/
+    // kc.facilityLevels were un-gapped in the M3b career-detail batch — see
+    // the career.status mapping tests below.)
     expect(mapTopic("data", "land.speedAtImpact")).toBeUndefined();
     expect(mapTopic("data", "land.timeToImpact")).toBeUndefined();
-    expect(mapTopic("data", "strategies.all")).toBeUndefined();
-    expect(mapTopic("data", "tech.nodes")).toBeUndefined();
-    expect(mapTopic("data", "contracts.active")).toBeUndefined();
+    expect(mapTopic("data", "contracts.completedRecent")).toBeUndefined();
     expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(true);
-    expect(isKnownTelemachusGap("data", "strategies.all")).toBe(true);
-    expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(true);
-    expect(isKnownTelemachusGap("data", "contracts.active")).toBe(true);
+    expect(isKnownTelemachusGap("data", "contracts.completedRecent")).toBe(
+      true,
+    );
   });
 
   it("maps the M3 career batch's economy scalars onto career.status", () => {
@@ -146,6 +146,33 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     // batch's scope — no economy-group equivalent).
     expect(mapTopic("data", "career.mode")).toBeUndefined();
     expect(isKnownTelemachusGap("data", "career.mode")).toBe(true);
+  });
+
+  it("maps the M3b career-detail batch's facilities/contracts/strategies/tech reads onto career.status", () => {
+    expect(mapTopic("data", "kc.facilityLevels")).toBe(
+      "career.status.facilities",
+    );
+    expect(mapTopic("data", "contracts.active")).toBe(
+      "career.status.contracts.active",
+    );
+    expect(mapTopic("data", "contracts.offered")).toBe(
+      "career.status.contracts.offered",
+    );
+    expect(mapTopic("data", "strategies.all")).toBe(
+      "career.status.strategies.all",
+    );
+    expect(mapTopic("data", "tech.nodes")).toBe("career.status.tech.nodes");
+    expect(isKnownTelemachusGap("data", "kc.facilityLevels")).toBe(false);
+    expect(isKnownTelemachusGap("data", "contracts.active")).toBe(false);
+    expect(isKnownTelemachusGap("data", "contracts.offered")).toBe(false);
+    expect(isKnownTelemachusGap("data", "strategies.all")).toBe(false);
+    expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(false);
+    // contracts.completedRecent stays gapped — no wire equivalent
+    // (CareerViewProvider only ever emits active/offered).
+    expect(mapTopic("data", "contracts.completedRecent")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "contracts.completedRecent")).toBe(
+      true,
+    );
   });
 
   it("maps the M3 vessel-gap batch's newly-added roster / dock / node-id keys", () => {
