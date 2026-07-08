@@ -2168,6 +2168,15 @@ namespace Gonogo.KSP
                 }
 
                 var partName = part.partInfo != null ? part.partInfo.title : part.name;
+                // flightID is the ID FlightGlobals.FindPartByID/Vessel's own
+                // indexer key off - assigned uniquely per Part instance when
+                // the vessel loads into flight, stable across scene changes
+                // and quicksave/quickload for the life of that flight. That
+                // makes it the right join key for disambiguating symmetric
+                // parts (e.g. a multirotor's N identically-named arms) that
+                // partName alone can't tell apart. 0 is the uninitialized
+                // sentinel, so treat it as "unavailable".
+                var partId = part.flightID != 0 ? part.flightID.ToString() : null;
 
                 try
                 {
@@ -2183,6 +2192,7 @@ namespace Gonogo.KSP
                             solarPanels.Add(new Dictionary<string, object?>
                             {
                                 ["partName"] = partName,
+                                ["partId"] = partId,
                                 ["deployState"] = panel.deployState.ToString(),
                                 ["flowRate"] = (double)panel.flowRate,
                                 ["chargeRate"] = (double)panel.chargeRate,
@@ -2208,6 +2218,7 @@ namespace Gonogo.KSP
                             batteries.Add(new Dictionary<string, object?>
                             {
                                 ["partName"] = partName,
+                                ["partId"] = partId,
                                 ["current"] = ec.amount,
                                 ["max"] = ec.maxAmount,
                             });
@@ -2252,6 +2263,7 @@ namespace Gonogo.KSP
                             fuelCells.Add(new Dictionary<string, object?>
                             {
                                 ["partName"] = partName,
+                                ["partId"] = partId,
                                 ["active"] = converter.IsActivated,
                                 ["status"] = converter.status,
                             });
@@ -2277,6 +2289,7 @@ namespace Gonogo.KSP
                             alternators.Add(new Dictionary<string, object?>
                             {
                                 ["partName"] = partName,
+                                ["partId"] = partId,
                                 ["outputRate"] = (double)alt.outputRate,
                             });
                             totalProduction += alt.outputRate;
@@ -2337,6 +2350,10 @@ namespace Gonogo.KSP
                 }
 
                 var partName = part.partInfo != null ? part.partInfo.title : part.name;
+                // Same flightID join key as BuildPartsPower - see comment
+                // there. Same-named symmetric servos (e.g. a multirotor's N
+                // identical arms) are otherwise indistinguishable on the wire.
+                var partId = part.flightID != 0 ? part.flightID.ToString() : null;
 
                 try
                 {
@@ -2351,7 +2368,7 @@ namespace Gonogo.KSP
                             }
                             list ??= new List<object?>();
                             list.Add(BuildServoEntry(
-                                rotor, partName, "rotor",
+                                rotor, partName, partId, "rotor",
                                 currentAngle: null, targetAngle: null, traverseVelocity: null,
                                 currentRpm: rotor.currentRPM, rpmLimit: rotor.rpmLimit,
                                 normalizedOutput: rotor.normalizedOutput, brakePercentage: rotor.brakePercentage,
@@ -2370,7 +2387,7 @@ namespace Gonogo.KSP
                             }
                             list ??= new List<object?>();
                             list.Add(BuildServoEntry(
-                                hinge, partName, "hinge",
+                                hinge, partName, partId, "hinge",
                                 currentAngle: hinge.currentAngle, targetAngle: hinge.targetAngle, traverseVelocity: hinge.traverseVelocity,
                                 currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
                                 currentExtension: null, targetExtension: null));
@@ -2388,7 +2405,7 @@ namespace Gonogo.KSP
                             }
                             list ??= new List<object?>();
                             list.Add(BuildServoEntry(
-                                piston, partName, "piston",
+                                piston, partName, partId, "piston",
                                 currentAngle: null, targetAngle: null, traverseVelocity: piston.traverseVelocity,
                                 currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
                                 currentExtension: piston.currentExtension, targetExtension: piston.targetExtension));
@@ -2405,7 +2422,7 @@ namespace Gonogo.KSP
         }
 
         private static Dictionary<string, object?> BuildServoEntry(
-            BaseServo servo, string partName, string type,
+            BaseServo servo, string partName, string? partId, string type,
             float? currentAngle, float? targetAngle, float? traverseVelocity,
             float? currentRpm, float? rpmLimit, float? normalizedOutput, float? brakePercentage,
             float? currentExtension, float? targetExtension)
@@ -2413,6 +2430,7 @@ namespace Gonogo.KSP
             return new Dictionary<string, object?>
             {
                 ["partName"] = partName,
+                ["partId"] = partId,
                 ["type"] = type,
                 ["servoIsLocked"] = servo.servoIsLocked,
                 ["servoIsMotorized"] = servo.servoIsMotorized,

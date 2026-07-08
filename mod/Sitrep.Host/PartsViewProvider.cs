@@ -16,19 +16,27 @@ namespace Sitrep.Host
     /// <code>
     /// snapshot.Values["parts"] = Dictionary&lt;string, object?&gt; {
     ///   "power": {
-    ///     "solarPanels": [ { "partName", "deployState", "flowRate", "chargeRate", "sunAOA" }, ... ],
-    ///     "batteries":   [ { "partName", "current", "max" }, ... ],
-    ///     "fuelCells":   [ { "partName", "active", "status" }, ... ],
-    ///     "alternators": [ { "partName", "outputRate" }, ... ],
+    ///     "solarPanels": [ { "partName", "partId", "deployState", "flowRate", "chargeRate", "sunAOA" }, ... ],
+    ///     "batteries":   [ { "partName", "partId", "current", "max" }, ... ],
+    ///     "fuelCells":   [ { "partName", "partId", "active", "status" }, ... ],
+    ///     "alternators": [ { "partName", "partId", "outputRate" }, ... ],
     ///     "totalProductionEc": double,
     ///   } | null
-    ///   "robotics": [ { "partName", "type" ("rotor"|"hinge"|"piston"),
+    ///   "robotics": [ { "partName", "partId", "type" ("rotor"|"hinge"|"piston"),
     ///     "servoIsLocked", "servoIsMotorized", "servoMotorIsEngaged",
     ///     "servoMotorLimit", "motorState", "currentAngle", "targetAngle",
     ///     "traverseVelocity", "currentRPM", "rpmLimit", "normalizedOutput",
     ///     "brakePercentage", "currentExtension", "targetExtension" }, ... ] | null
     /// }
     /// </code>
+    ///
+    /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified
+    /// — stable per-part for the life of the flight and, unlike
+    /// <c>partName</c>, unique even among symmetric same-named parts (e.g.
+    /// a multirotor's N identical arms). Nullable — a snapshot recorded
+    /// before this field existed, or a part whose flightID read as the
+    /// uninitialized 0 sentinel, comes through as null; consumers must not
+    /// assume presence.</para>
     /// </summary>
     public static class PartsViewProvider
     {
@@ -121,6 +129,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> BuildSolarPanelEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
             ["deployState"] = SnapshotDict.GetString(raw, "deployState"),
             ["flowRate"] = SnapshotDict.GetDouble(raw, "flowRate"),
             ["chargeRate"] = SnapshotDict.GetDouble(raw, "chargeRate"),
@@ -130,6 +139,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> BuildBatteryEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
             ["current"] = SnapshotDict.GetDouble(raw, "current"),
             ["max"] = SnapshotDict.GetDouble(raw, "max"),
         };
@@ -137,6 +147,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> BuildFuelCellEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
             ["active"] = SnapshotDict.GetBool(raw, "active"),
             ["status"] = SnapshotDict.GetString(raw, "status"),
         };
@@ -144,12 +155,14 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> BuildAlternatorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
             ["outputRate"] = SnapshotDict.GetDouble(raw, "outputRate"),
         };
 
         private static Dictionary<string, object?> BuildServoEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
             ["type"] = SnapshotDict.GetString(raw, "type"),
             ["servoIsLocked"] = SnapshotDict.GetBool(raw, "servoIsLocked"),
             ["servoIsMotorized"] = SnapshotDict.GetBool(raw, "servoIsMotorized"),
