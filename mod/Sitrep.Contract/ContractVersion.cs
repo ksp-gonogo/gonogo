@@ -66,7 +66,13 @@ namespace Sitrep.Contract
         /// CONSUMES, never implements), so it cannot break any existing
         /// <see cref="ISitrepUplink"/> built against an older Minor. See
         /// <c>.superpowers/sdd/f1-hardening-report.md</c>.</para>
+        ///
+        /// <para>Major-2 line — Bumped 0 -&gt; 1: additive-only Minor adding the
+        /// <see cref="CommandErrorCode.Timeout"/> member (the F2-fix pause/
+        /// scene-load backstop failure code). A new enum member cannot break an
+        /// Uplink built against an older Minor — see
+        /// <c>.superpowers/sdd/f2-fix-brief.md</c>.</para>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

@@ -75,6 +75,20 @@ namespace Sitrep.Host
         private readonly bool _executeCommandsOnMainThread;
         private readonly ConcurrentQueue<MainThreadCommand> _mainThreadCommands = new ConcurrentQueue<MainThreadCommand>();
 
+        // F2-fix backstop: the longest a Courier-thread command will block on
+        // the main-thread pump before giving up with a Timeout failure result.
+        // Bounded so a paused game / scene-load stall (FixedUpdate frozen, but
+        // in production the drain now rides Update so this is a last resort) can
+        // never park the single-drain Courier thread indefinitely.
+        private readonly TimeSpan _mainThreadCommandTimeout;
+
+        // F2-fix shutdown gate: set true in Stop() BEFORE the pending-command
+        // flush so any command the Courier dequeues AFTER the flush fails fast
+        // in RunOnMainThread instead of enqueuing+blocking on a pump that has
+        // already stopped — closing the single-pass-flush race. Engine-level;
+        // distinct from ChannelOutbox._stopping (a per-connection field).
+        private volatile bool _engineStopping;
+
         // The OUTER (SubscriptionRegistry) / INNER (ChannelEmitter) gate pair,
         // Courier-thread-only, shared across every registered topic — both
         // classes are already keyed by channelId/topic internally, so no
@@ -210,9 +224,19 @@ namespace Sitrep.Host
         /// Courier thread) for headless callers/tests that don't stand up a
         /// main-thread pump.
         /// </param>
-        public ChannelEngine(string bindUri, double networkDelaySeconds = 0, bool executeCommandsOnMainThread = false)
+        /// <param name="mainThreadCommandTimeoutSeconds">
+        /// F2-fix backstop: how long <see cref="RunOnMainThread"/> blocks the
+        /// Courier thread waiting for the main-thread pump to drain a command
+        /// before returning a synthetic <see cref="CommandErrorCode.Timeout"/>
+        /// failure. Generous enough to ride a slow frame / brief load, finite
+        /// so the Courier can never park indefinitely (the pause self-wedge the
+        /// F2 review found). Only consulted when
+        /// <paramref name="executeCommandsOnMainThread"/> is <c>true</c>.
+        /// </param>
+        public ChannelEngine(string bindUri, double networkDelaySeconds = 0, bool executeCommandsOnMainThread = false, double mainThreadCommandTimeoutSeconds = 5.0)
         {
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
+            _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
             _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
             _courier = new Courier(_clock, _network);
@@ -253,6 +277,12 @@ namespace Sitrep.Host
             _listener.Stop();
 
             EnqueueJob(new StopJob());
+            // F2-fix (Fix #2): raise the shutdown gate BEFORE the flush so any
+            // command the Courier dequeues after FailPendingMainThreadCommands
+            // drains fails fast in RunOnMainThread (no enqueue, no wait) instead
+            // of re-populating the queue and blocking the Courier past the Join.
+            // Closes the single-pass-flush race the review flagged.
+            _engineStopping = true;
             // Unblock any command handler currently marshaled onto the
             // main-thread queue (the pump has stopped, so it would never
             // complete on its own) BEFORE the Join, so the Courier thread can
@@ -644,11 +674,49 @@ namespace Sitrep.Host
         /// </summary>
         private object? RunOnMainThread(Func<object?, object?> handler, object? args)
         {
+            // F2-fix (shutdown gate): once Stop() has begun, the main-thread
+            // pump is gone, so enqueuing+waiting would only ever hit the
+            // timeout. Fail immediately with the SAME exception
+            // FailPendingMainThreadCommands surfaces, so InvokeCommandHandler's
+            // fail-soft catch attributes it identically — and, crucially, a
+            // command the Courier dequeues AFTER the single-pass flush can no
+            // longer re-enqueue and block the Courier past Stop()'s Join.
+            if (_engineStopping)
+            {
+                throw new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread.");
+            }
+
             var job = new MainThreadCommand(handler, args);
             _mainThreadCommands.Enqueue(job);
-            job.Done.Wait();
-            job.Captured?.Throw();
-            return job.Result;
+
+            // F2-fix (pause backstop): a BOUNDED wait. In production the drain
+            // rides Update() (runs even when Time.timeScale == 0), so a paused
+            // game no longer wedges this; the timeout is the last-resort guard
+            // for a scene-load / loading-screen stall where even Update stops
+            // pumping. On expiry we abandon the job (the pump may still run it
+            // later — MainThreadCommand.Done is intentionally NOT disposed on
+            // this path so that late Set() can't throw ObjectDisposedException)
+            // and return a synthetic Timeout failure so the Courier resumes.
+            if (!job.Done.Wait(_mainThreadCommandTimeout))
+            {
+                job.Abandoned = true;
+                return CommandResult.Fail(CommandErrorCode.Timeout);
+            }
+
+            try
+            {
+                job.Captured?.Throw();
+                return job.Result;
+            }
+            finally
+            {
+                // F2-fix (Fix #3): dispose the per-command wait handle on the
+                // completed path. Safe here — the pump's Set() (in
+                // RunPendingCommands / FailPendingMainThreadCommands) has
+                // already returned by the time Wait() unblocks, and the job is
+                // off the queue, so nothing else will touch Done again.
+                job.Done.Dispose();
+            }
         }
 
         /// <summary>
@@ -678,6 +746,14 @@ namespace Sitrep.Host
                 finally
                 {
                     job.Done.Set();
+                    // F2-fix: if the waiter already timed out and abandoned this
+                    // job, no one will observe the result or dispose the handle,
+                    // so the pump disposes it here. The waiter deliberately does
+                    // NOT dispose on its timeout path, so this is the sole owner.
+                    if (job.Abandoned)
+                    {
+                        job.Done.Dispose();
+                    }
                 }
             }
         }
@@ -699,6 +775,10 @@ namespace Sitrep.Host
                 job.Captured = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(
                     new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread."));
                 job.Done.Set();
+                if (job.Abandoned)
+                {
+                    job.Done.Dispose();
+                }
             }
         }
 
@@ -1771,6 +1851,12 @@ namespace Sitrep.Host
             public object? Result;
             public System.Runtime.ExceptionServices.ExceptionDispatchInfo? Captured;
             public readonly ManualResetEventSlim Done = new ManualResetEventSlim(false);
+
+            // F2-fix: set by the Courier-side waiter (RunOnMainThread) when its
+            // bounded wait times out and it walks away. The pump reads this so
+            // it can dispose the handle it just Set() (no waiter remains), and
+            // never assumes a waiter is still listening.
+            public volatile bool Abandoned;
 
             public MainThreadCommand(Func<object?, object?> handler, object? args)
             {

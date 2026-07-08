@@ -504,6 +504,96 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// F2-fix (CRITICAL, pause backstop): with the main-thread seam on but
+        /// NO pump ever draining <see cref="ChannelEngine.RunPendingCommands"/>
+        /// (the exact shape of a game paused long enough that even Update stops,
+        /// or a scene-load stall), an instant command must NOT block the Courier
+        /// thread indefinitely — the bounded wait expires and the command
+        /// resolves with a synthetic <see cref="CommandErrorCode.Timeout"/>
+        /// failure instead of parking the single-drain Courier forever. Uses a
+        /// short timeout so the test is fast; the production default is seconds.
+        /// </summary>
+        [Fact]
+        public void CommandDispatchedWhileThePumpIsNotDrainingTimesOutInsteadOfBlockingForever()
+        {
+            using var engine = new ChannelEngine(
+                "ws://127.0.0.1:0",
+                executeCommandsOnMainThread: true,
+                mainThreadCommandTimeoutSeconds: 0.5);
+            engine.RegisterUplink(new MainThreadProbeUplink());
+            engine.Start();
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                object? captured = null;
+                // No pump is started: RunPendingCommands is never called, so the
+                // marshaled command can only complete via the timeout backstop.
+                engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", r =>
+                {
+                    captured = r;
+                    resolved.Set();
+                });
+
+                Assert.True(resolved.Wait(Timeout),
+                    "with no main-thread pump, the command must still resolve (via the timeout) rather than parking the Courier thread");
+                var result = Assert.IsType<CommandResult>(captured);
+                Assert.False(result.Success);
+                Assert.Equal(CommandErrorCode.Timeout, result.ErrorCode);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// F2-fix (Fix #2, shutdown gate): a shutdown with multiple instant
+        /// commands in flight against a main-thread seam whose pump is NOT
+        /// running must complete promptly and never leave the Courier thread
+        /// parked. Once <see cref="ChannelEngine.Stop"/> raises the shutdown
+        /// gate, any command the Courier dequeues after the single-pass flush
+        /// fails fast in <c>RunOnMainThread</c> instead of re-enqueuing and
+        /// blocking — so <c>Stop()</c> returns well inside the generous
+        /// per-command timeout (proof the Courier reached the StopJob and its
+        /// Join succeeded, rather than timing out with a still-parked thread).
+        /// </summary>
+        [Fact]
+        public void ShutdownWithMultipleQueuedInstantCommandsNeverLeavesTheCourierParked()
+        {
+            // A deliberately LONG per-command timeout: if the shutdown gate were
+            // broken, a command dequeued after the flush would block on it and
+            // wedge the Courier past Stop()'s 5s Join — so a fast Stop() proves
+            // the gate, not merely the timeout, unblocked the thread.
+            var engine = new ChannelEngine(
+                "ws://127.0.0.1:0",
+                executeCommandsOnMainThread: true,
+                mainThreadCommandTimeoutSeconds: 60.0);
+            engine.RegisterUplink(new MainThreadProbeUplink());
+            engine.Start();
+
+            // Fire several instant commands with no pump: the Courier blocks on
+            // the first inside RunOnMainThread; the rest queue behind it.
+            for (var i = 0; i < 5; i++)
+            {
+                engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", _ => { });
+            }
+            // Give the Courier a moment to pick up the first command and block.
+            Thread.Sleep(100);
+
+            var stopReturned = new ManualResetEventSlim(false);
+            var stopper = new Thread(() =>
+            {
+                engine.Stop();
+                stopReturned.Set();
+            })
+            { IsBackground = true, Name = "test-stopper" };
+            stopper.Start();
+
+            Assert.True(stopReturned.Wait(TimeSpan.FromSeconds(15)),
+                "Stop() must complete promptly — a hang here means the Courier was left parked on a command that re-enqueued after the shutdown flush");
+        }
+
+        /// <summary>
         /// F2 Part 2: with the F2 classification, a vessel.maneuver.* command
         /// (reclassified delayed:true — a maneuver node is craft-side state) now
         /// rides the Courier's light-time delay and does NOT execute until the

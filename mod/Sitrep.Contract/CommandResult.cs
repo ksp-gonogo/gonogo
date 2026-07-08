@@ -42,6 +42,15 @@ public enum CommandErrorCode
 
     /// <summary>The referenced entity (node id, vessel/body target) didn't resolve (was <c>"E_NOT_FOUND"</c>).</summary>
     NotFound = 5,
+
+    /// <summary>
+    /// F2-fix backstop: the command was marshaled onto the host's main-thread
+    /// pump but that pump did not drain it within the bounded wait (a
+    /// scene-load / loading-screen stall). A synthetic failure returned by the
+    /// host so the Courier thread can never park indefinitely — not emitted by
+    /// any uplink handler. Additive (Major 2, Minor 0 -&gt; 1).
+    /// </summary>
+    Timeout = 6,
 }
 
 /// <summary>

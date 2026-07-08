@@ -120,20 +120,34 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>
+        /// F2-fix (CRITICAL): the command-queue drain runs from Update(), NOT
+        /// FixedUpdate(). KSP pause (<c>Time.timeScale = 0</c>, the Esc menu /
+        /// <c>FlightDriver.SetPause</c>) STOPS FixedUpdate but Update() keeps
+        /// running every frame regardless of timeScale — so an instant command
+        /// dispatched while paused (time.warp / time.pause / vessel.target, and
+        /// critically the UNPAUSE command itself) now executes on the main
+        /// thread instead of parking the single-drain Courier thread on
+        /// <c>Done.Wait()</c> until the player unpauses in-game (which, for the
+        /// unpause command, could never happen — a self-wedge). These are the
+        /// same actuator calls FixedUpdate would have made; KSP applies or
+        /// queues them fine off Update. Telemetry sampling stays in FixedUpdate
+        /// (physics cadence) — only the command drain moved here.
+        /// </summary>
+        private void Update()
+        {
+            // Drain any command handler marshaled onto the engine's main-thread
+            // queue (see ChannelEngine.RunPendingCommands). The Courier thread
+            // blocks (bounded) waiting on exactly this drain. Never throws.
+            _engine?.RunPendingCommands();
+        }
+
         private void FixedUpdate()
         {
             if (_host == null || _recorder == null || _engine == null)
             {
                 return;
             }
-
-            // F2 Part 1: drain any command handler marshaled onto the engine's
-            // main-thread queue (see ChannelEngine.RunPendingCommands). Done
-            // every physics frame, BEFORE the sample-cadence gate below, so a
-            // command executes promptly on the main thread even on ticks where
-            // no telemetry sample is taken — the Courier thread is blocked
-            // waiting on exactly this drain. Never throws.
-            _engine.RunPendingCommands();
 
             // Periodic flush check, independent of the sampling cadence
             // below: FlushRecording catches its own exceptions and logs
