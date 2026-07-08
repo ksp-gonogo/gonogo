@@ -23,5 +23,7 @@
     <Compile Include="..\GonogoScansatUplink\CoveragePlane.cs" />
     <Compile Include="..\GonogoScansatUplink\GroundTrackFov.cs" />
     <Compile Include="..\GonogoScansatUplink\VersionGuard.cs" />
+    <Compile Include="..\GonogoScansatUplink\ScanChannels.cs" />
+    <Compile Include="..\GonogoScansatUplink\ScanGrids.cs" />
   </ItemGroup>
 </Project>
