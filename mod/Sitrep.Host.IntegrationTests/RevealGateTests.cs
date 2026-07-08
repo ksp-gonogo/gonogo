@@ -148,6 +148,70 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The subscription-coupling regression: a raw client subscribes a
+        /// Delayed channel but NEVER subscribes <c>comms.delay</c>. With signal
+        /// delay enabled and a non-zero hop, the Delayed channel must STILL be
+        /// withheld until its UT crosses the reveal horizon (now − delay).
+        ///
+        /// <para>This is the hole the wire-snoop had: the delay used to be
+        /// captured off the <c>comms.delay</c> channel inside <c>Emit</c>, which
+        /// only fired while <c>comms.delay</c> was SUBSCRIBED (the channel loop
+        /// is subscription-gated). A client that subscribed a Delayed channel
+        /// but not <c>comms.delay</c> therefore got it revealed live/ungated,
+        /// defeating "any API client experiences the delay". The delay is now
+        /// sourced from the server-side SignalDelay capability every tick
+        /// regardless of subscription, so the gate holds here.</para>
+        /// </summary>
+        [Fact]
+        public async Task DelayedChannelStillWithheldWhenClientNeverSubscribesCommsDelay()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new RevealGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                // Subscribe ONLY the Delayed channel — deliberately NOT
+                // comms.delay. delay = 4s one-way is present in every snapshot,
+                // so the server-side capability computes it each tick even
+                // though no client ever asked for comms.delay.
+                await SubscribeAsync(client, RevealGateTestUplink.DelayedTopic, Timeout);
+
+                engine.TickAndWait(0.0, RevealGateTestUplink.Snapshot(0.0, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, RevealGateTestUplink.Snapshot(1.0, delay: 4.0, delayed: 10.0), Timeout);
+
+                // Horizon at UT 1 is 1 − 4 = −3, far short of the sample's UT 1:
+                // the Delayed channel must be withheld even though comms.delay
+                // was never subscribed (the pre-fix wire-snoop would leave the
+                // delay at 0 here and reveal it live).
+                var atUt1 = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(atUt1, f => f.Topic == RevealGateTestUplink.DelayedTopic);
+
+                // Hold short of the horizon at UT 2..4 — still withheld.
+                foreach (var ut in new[] { 2.0, 3.0, 4.0 })
+                {
+                    engine.TickAndWait(ut, RevealGateTestUplink.Snapshot(ut, delay: 4.0, delayed: 10.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == RevealGateTestUplink.DelayedTopic);
+
+                // UT 5: horizon = 5 − 4 = 1 reaches the buffered sample's UT 1 —
+                // now, and only now, it is revealed, carrying its true SCET.
+                engine.TickAndWait(5.0, RevealGateTestUplink.Snapshot(5.0, delay: 4.0, delayed: 10.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == RevealGateTestUplink.DelayedTopic);
+                Assert.NotNull(revealed);
+                Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
+                Assert.Equal(1.0, revealed.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Signal delay disabled (delay value 0 — <see cref="CommsDelaySource.None"/>
         /// semantics) ⇒ a Delayed channel is revealed LIVE, on the tick it is
         /// emitted, exactly as a TrueNow channel. This is today's LAN behaviour,

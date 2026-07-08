@@ -1338,10 +1338,16 @@ namespace Sitrep.Host
         {
             if (topic == CommsDelayTopic)
             {
+                // Redundant with RefreshSignalDelayFromCapability (which is the
+                // authoritative, subscription-independent source — see its doc
+                // comment): kept as a cheap belt-and-braces snoop for a
+                // comms.delay value pushed through Emit outside the pull-channel
+                // path. Harmless duplicate; never the sole source anymore.
                 CaptureSignalDelay(value);
             }
 
-            if (RevealDelayFor(topic) <= 0.0)
+            var delay = RevealDelayFor(topic);
+            if (delay <= 0.0)
             {
                 _courier.Record(NodeId, topic, value, ut);
                 return;
@@ -1352,7 +1358,7 @@ namespace Sitrep.Host
                 list = new List<BufferedReveal>();
                 _revealBuffer[topic] = list;
             }
-            list.Add(new BufferedReveal(ut, value));
+            list.Add(new BufferedReveal(ut, value, delay));
         }
 
         /// <summary>
@@ -1401,6 +1407,59 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// AUTHORITATIVE, subscription-independent refresh of the reveal-gate
+        /// delay (§7.3 Step 2, hardened). Runs once per tick BEFORE the channel
+        /// loop and <see cref="FlushReveal"/>, evaluating the registered
+        /// <c>comms.delay</c> channel source DIRECTLY — the same closure that in
+        /// production resolves the elected comms backend
+        /// (<c>Kernel.Query&lt;ICommsBackend&gt;</c> via
+        /// <see cref="Sitrep.Host.Comms.CommsElection"/>) and computes the
+        /// one-way light-time over its hop geometry
+        /// (<see cref="Sitrep.Host.Comms.SignalDelay.Compute"/>). Because it is
+        /// driven off the SERVER-SIDE capability and not the wire, it fires
+        /// every tick regardless of whether any client has subscribed
+        /// <c>comms.delay</c>. This closes the subscription-coupling hole: the
+        /// old <see cref="Emit"/> snoop only updated the delay while
+        /// <c>comms.delay</c> was subscribed (the channel loop is
+        /// subscription-gated), so a raw client subscribing a Delayed channel
+        /// but NOT <c>comms.delay</c> would see it revealed live/ungated.
+        ///
+        /// <para>Fail-soft, byte-identical to today when there is no delay
+        /// authority: no registered comms.delay source, an Unavailable owning
+        /// uplink, a null mapper result, or a non-CommsDelay payload all leave
+        /// the last-known delay untouched, and a throwing mapper is attributed
+        /// to its owning uplink (<see cref="FailSoftChannel"/>) exactly as the
+        /// channel loop would — never rethrown onto the Courier thread. Config-
+        /// gating / no-geometry / None / ≤0 all flow through
+        /// <see cref="CommsDelay.OneWaySeconds"/> == 0 and
+        /// <see cref="RevealDelayFor"/>'s ≤0 collapse to "reveal live".</para>
+        /// </summary>
+        private void RefreshSignalDelayFromCapability(KspSnapshot? snapshot)
+        {
+            if (!_channelSources.TryGetValue(CommsDelayTopic, out var map))
+            {
+                return;
+            }
+            if (!IsChannelAvailable(CommsDelayTopic))
+            {
+                return;
+            }
+
+            object? value;
+            try
+            {
+                value = map(snapshot);
+            }
+            catch (Exception ex)
+            {
+                FailSoftChannel(CommsDelayTopic, ex);
+                return;
+            }
+
+            CaptureSignalDelay(value);
+        }
+
+        /// <summary>
         /// Release every buffered Delayed-channel sample whose UT has reached
         /// its reveal horizon (<paramref name="now"/> − delay), recording it
         /// into the Courier so it goes on the wire. Called once per tick BEFORE
@@ -1422,13 +1481,17 @@ namespace Sitrep.Host
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
                 var list = _revealBuffer[topic];
-                var horizon = now - RevealDelayFor(topic);
 
                 var writeIdx = 0;
                 for (var readIdx = 0; readIdx < list.Count; readIdx++)
                 {
                     var entry = list[readIdx];
-                    if (entry.Ut <= horizon)
+                    // Flap-leak fix: mature each entry against the delay that
+                    // was in force when it was BUFFERED (captured on the entry),
+                    // not the current delay re-read here. A later drop of the
+                    // delay authority to 0 therefore cannot prematurely reveal a
+                    // still-future sample.
+                    if (entry.Ut <= now - entry.Delay)
                     {
                         _courier.Record(NodeId, topic, entry.Value, entry.Ut);
                     }
@@ -1544,6 +1607,13 @@ namespace Sitrep.Host
                     }
                 }
             }
+
+            // AUTHORITATIVE delay refresh (§7.3 Step 2): source the reveal-gate
+            // delay from the server-side SignalDelay capability every tick,
+            // independent of any client subscription — BEFORE the channel loop
+            // (so this tick's buffering decisions use the current delay) and
+            // hence before FlushReveal. See RefreshSignalDelayFromCapability.
+            RefreshSignalDelayFromCapability(tick.Snapshot);
 
             foreach (var channelSource in _channelSources)
             {
@@ -2157,10 +2227,22 @@ namespace Sitrep.Host
         {
             public readonly double Ut;
             public readonly object? Value;
-            public BufferedReveal(double ut, object? value)
+
+            // Flap-leak fix: the effective reveal delay captured at ENQUEUE
+            // time (see Emit), NOT re-read at flush. FlushReveal computes this
+            // entry's horizon as (now − Delay), so a subsequent flap of the
+            // delay authority down to 0 (e.g. comms.delay momentarily dropping
+            // to CommsDelaySource.None mid-buffer) can no longer prematurely
+            // reveal a still-future buffered sample — each entry matures on the
+            // horizon that was in force when it was buffered. Always > 0: a
+            // sample whose delay was ≤ 0 is recorded live in Emit and never
+            // reaches the buffer.
+            public readonly double Delay;
+            public BufferedReveal(double ut, object? value, double delay)
             {
                 Ut = ut;
                 Value = value;
+                Delay = delay;
             }
         }
 
