@@ -1,0 +1,27 @@
+{
+  "spec_version": 1,
+  "identifier": "GonogoScansatUplink",
+  "name": "Gonogo SCANsat Uplink",
+  "abstract": "Streams SCANsat coverage/anomaly/vessel data as scansat.* channels over the Gonogo telemetry connection.",
+  "author": "jonpepler",
+  "license": "GPL-3.0-only",
+  "release_status": "development",
+  "resources": {
+    "homepage": "https://github.com/jonpepler/gonogo"
+  },
+  "tags": [
+    "plugin",
+    "telemetry",
+    "scansat"
+  ],
+  "depends": [
+    { "name": "GonogoCore" },
+    { "name": "SCANsat" }
+  ],
+  "install": [
+    {
+      "file": "GameData/GonogoScansatUplink",
+      "install_to": "GameData"
+    }
+  ]
+}

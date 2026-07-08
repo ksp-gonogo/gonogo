@@ -721,6 +721,40 @@ build_gonogo() {
   ls -la "$install_dir"
 }
 
+build_gonogoscansatuplink() {
+  local proj="$ROOT/mod/GonogoScansatUplink/GonogoScansatUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoScansatUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoScansatUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoScansatUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoScansatUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoScansatUplink.dll" ]; then
+    echo "GonogoScansatUplink.dll not produced (missing at $out_dir/GonogoScansatUplink.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Only GonogoScansatUplink.dll - Sitrep.Contract.dll (provided by
+  # GonogoCore) and SCANsat.dll/SCANsat.Unity.dll (provided by the user's
+  # SCANsat install) are reference-only (Private="false") and must NOT be
+  # copied here - see .superpowers/sdd/uplink-packaging-pattern.md.
+  cp "$out_dir/GonogoScansatUplink.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -884,9 +918,10 @@ case "${1:-help}" in
         ;;
       kerbcast) build_kerbcast ;;
       gonogo) build_gonogo ;;
+      gonogoscansatuplink) build_gonogoscansatuplink ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink"
         exit 2
         ;;
     esac

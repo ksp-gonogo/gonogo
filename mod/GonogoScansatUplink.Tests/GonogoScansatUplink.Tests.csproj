@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Only the pure, SCANsat/KSP-type-free logic
+         (CoverageHash/CoveragePlane/GroundTrackFov/VersionGuard) is
+         exercised here - net10.0, no SCANsat.dll or KSP DLLs needed, same
+         headless-test split as Gonogo.Kos/Gonogo.Kos.Tests. -->
+    <Compile Include="..\GonogoScansatUplink\CoverageHash.cs" />
+    <Compile Include="..\GonogoScansatUplink\CoveragePlane.cs" />
+    <Compile Include="..\GonogoScansatUplink\GroundTrackFov.cs" />
+    <Compile Include="..\GonogoScansatUplink\VersionGuard.cs" />
+  </ItemGroup>
+</Project>

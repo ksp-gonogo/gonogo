@@ -21,10 +21,18 @@ case) link directly against their assemblies.
 
 ## SCANsat
 
-- **Integration:** gonogo's MapView / Scanning widgets consume SCANsat's
-  `scan.*` telemetry keys (exposed via a Telemachus fork) for live scan
-  progress and minimap rendering. No SCANsat code is linked into gonogo or
-  Sitrep.
+- **Integration:** `mod/GonogoScansatUplink` (a separate `ISitrepUplink`,
+  see `.superpowers/sdd/uplink-packaging-pattern.md`) references
+  `SCANsat.dll`/`SCANsat.Unity.dll` at compile time (reference-only,
+  `Private="false"`; not bundled) and calls SCANsat's public API in-process
+  to stream `scansat.*` channels, replacing the earlier Telemachus-fork
+  `scan.*` keys that gonogo's MapView / Scanning widgets consumed. It also
+  replicates small public-input formulas from SCANsat's source (`getFOV`,
+  `getElevation`/`getBiomeIndex` sampling conventions — see
+  `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E). Because
+  SCANsat is BSD (permissive, GPL-compatible), `GonogoScansatUplink.dll` is
+  GPL-3.0-only "by inclusion" and carries this notice
+  (`mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`).
 - **License:** 3-clause BSD (plus separately-licensed assets — see full
   notice for CC0 science text, Apache-2.0 ColorBrewer palettes, and
   CC-BY-SA-4.0 additional color schemes/contract pack, all bundled
