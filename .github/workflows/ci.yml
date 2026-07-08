@@ -84,6 +84,7 @@ jobs:
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
+            GonogoRealAntennasUplink.Tests
           )
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"

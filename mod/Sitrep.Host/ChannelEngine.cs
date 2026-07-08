@@ -319,7 +319,15 @@ namespace Sitrep.Host
         public void RegisterUplink(ISitrepUplink uplink)
         {
             var id = uplink.Manifest.Id;
-            _availability[id] = Availability.Available;
+            // Two-pass fix: do NOT clobber an existing availability entry. The
+            // capability-declaration pass (DeclareUplinkCapabilities) may have
+            // already marked this uplink Unavailable (its DeclareCapabilities
+            // threw); overwriting to Available here would resurrect a broken
+            // uplink. First registration (no prior entry) still starts Available.
+            if (!_availability.ContainsKey(id))
+            {
+                _availability[id] = Availability.Available;
+            }
 
             foreach (var channel in uplink.Manifest.Channels)
             {
@@ -382,15 +390,119 @@ namespace Sitrep.Host
         /// </summary>
         public void RegisterDiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor)
         {
+            if (!PassesContractMajorCheck(uplink, contractMajor, contractMinor))
+            {
+                return;
+            }
+
+            RegisterUplink(uplink);
+        }
+
+        /// <summary>
+        /// Two-pass discovery registration — the order-independent fix for the
+        /// capability-vs-provider registration hazard. Assembly-scan discovery
+        /// (<see cref="UplinkDiscovery.Discover()"/>) fixes NO order between
+        /// uplinks, and <see cref="Kernel.RegisterProvider"/> throws if its
+        /// target capability is not yet registered. So registering uplinks
+        /// one-at-a-time (each declaring its capability AND registering its
+        /// providers inside a single <see cref="ISitrepUplink.Register"/>) could
+        /// run a PROVIDER uplink (e.g. RealAntennas' <c>"comms"</c> provider)
+        /// before the CAPABILITY-owning uplink — the provider registration would
+        /// throw and be lost, silently dropping that provider from the election.
+        ///
+        /// <para>This method closes that by splitting registration into two
+        /// passes over the SAME discovered set:</para>
+        /// <list type="number">
+        /// <item><b>Pass A — capabilities:</b> every uplink that implements
+        /// <see cref="IUplinkCapabilityDeclarer"/> declares its capability
+        /// descriptor(s) on the <see cref="Kernel"/>.</item>
+        /// <item><b>Pass B — providers/sources:</b> every uplink's
+        /// <see cref="ISitrepUplink.Register"/> runs (via
+        /// <see cref="RegisterUplink"/>), by which point EVERY capability is
+        /// already declared — so a provider registration can never miss its
+        /// capability, whatever order discovery returned the uplinks in.</item>
+        /// </list>
+        /// Major-version-mismatched uplinks are filtered out up front (same
+        /// rule as <see cref="RegisterDiscoveredUplink"/>) so neither pass ever
+        /// touches them. An uplink whose Pass-A declaration throws is fail-softed
+        /// to Unavailable and SKIPPED in Pass B.
+        /// </summary>
+        public void RegisterDiscoveredUplinks(IEnumerable<UplinkDiscovery.DiscoveredUplink> discovered)
+        {
+            var accepted = new List<ISitrepUplink>();
+            foreach (var d in discovered)
+            {
+                if (PassesContractMajorCheck(d.Uplink, d.ContractMajor, d.ContractMinor))
+                {
+                    accepted.Add(d.Uplink);
+                }
+            }
+
+            // Pass A — declare every capability before any provider registers.
+            foreach (var uplink in accepted)
+            {
+                DeclareUplinkCapabilities(uplink);
+            }
+
+            // Pass B — run Register (providers/channels/samplers). Skip any
+            // uplink whose Pass-A declaration already failed it.
+            foreach (var uplink in accepted)
+            {
+                if (!IsUplinkAvailable(uplink.Manifest.Id))
+                {
+                    continue;
+                }
+                RegisterUplink(uplink);
+            }
+        }
+
+        /// <summary>
+        /// Pass-A helper: runs one uplink's <see cref="IUplinkCapabilityDeclarer.DeclareCapabilities"/>
+        /// (if it implements it) against the engine Kernel, fail-softing a throw
+        /// to the uplink's availability so Pass B skips it. A no-op for an uplink
+        /// that declares no capability of its own.
+        /// </summary>
+        private void DeclareUplinkCapabilities(ISitrepUplink uplink)
+        {
+            if (uplink is not IUplinkCapabilityDeclarer declarer)
+            {
+                return;
+            }
+
+            var id = uplink.Manifest.Id;
+            if (!_availability.ContainsKey(id))
+            {
+                _availability[id] = Availability.Available;
+            }
+
+            try
+            {
+                declarer.DeclareCapabilities(_kernel);
+            }
+            catch (Exception ex)
+            {
+                MarkUplinkUnavailable(id, "capability declaration threw: " + SafeExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>
+        /// Shared MAJOR-version gate for both the single
+        /// (<see cref="RegisterDiscoveredUplink"/>) and batch
+        /// (<see cref="RegisterDiscoveredUplinks"/>) discovery paths. A MAJOR
+        /// mismatch fail-softs the uplink to Unavailable WITHOUT registering it —
+        /// see <see cref="RegisterDiscoveredUplink"/>'s original doc comment for
+        /// the full handshake rationale. Returns true iff the uplink may proceed.
+        /// </summary>
+        private bool PassesContractMajorCheck(ISitrepUplink uplink, int contractMajor, int contractMinor)
+        {
             if (contractMajor != Sitrep.Contract.ContractVersion.Major)
             {
                 var id = uplink.Manifest.Id;
                 _availability[id] = Availability.Unavailable(
                     $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor} — major mismatch");
-                return;
+                return false;
             }
-
-            RegisterUplink(uplink);
+            return true;
         }
 
         // ----------------------------------------------------------------
@@ -521,6 +633,40 @@ namespace Sitrep.Host
         }
 
         public Kernel Kernel => _kernel;
+
+        /// <summary>
+        /// Drives the capability <see cref="Kernel"/> once every uplink has
+        /// registered (its capabilities/providers wired during
+        /// <see cref="RegisterUplink"/>) and BEFORE <see cref="Start"/> — so a
+        /// channel-source closure that resolves an elected provider via
+        /// <c>Kernel.Query</c> at Tick time (the comms backend election, see
+        /// <c>Sitrep.Host.Comms.CommsElection</c>) sees a resolved kernel by
+        /// the first tick. Separate from <see cref="Start"/> so a headless test
+        /// can register, resolve, and inspect the election without standing up
+        /// the Courier thread/listener.
+        ///
+        /// <para>Fail-soft: a throwing <see cref="Kernel.Resolve"/> (an
+        /// ambiguous/cyclic capability graph) is caught and logged rather than
+        /// aborting engine startup — a mis-declared capability must not take
+        /// down the whole telemetry spine. The bundled comms wiring cannot
+        /// produce such a graph, but a future third-party capability provider
+        /// might.</para>
+        /// </summary>
+        public ResolveResult ResolveCapabilities()
+        {
+            try
+            {
+                return _kernel.Resolve(new ResolveOptions
+                {
+                    KernelVersion = Sitrep.Contract.ContractVersion.Major + "." + Sitrep.Contract.ContractVersion.Minor + ".0",
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[ChannelEngine] capability resolution threw: " + SafeExceptionMessage(ex));
+                return new ResolveResult();
+            }
+        }
 
         public void SetAvailability(Availability availability)
         {
