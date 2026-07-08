@@ -179,23 +179,13 @@ export function CameraFeed({
 
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
   // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
-  // hook, satisfying the seam's rules-of-hooks contract.
-  //
-  // PENDING dependency bump: the `useStream` prop landed in kerbcam @ 133888f
-  // but is not yet in a released `@jonpepler/kerbcast-react` (current: 1.2.x),
-  // so its types don't declare the prop. The empty-object cast keeps the JS
-  // build green against the installed types; at runtime the prop is forwarded
-  // and an SDK without the seam simply ignores it. Replace with a plain
-  // `useStream={useDelayedKerbcastStream}` once the SDK release is consumed.
-  const useStreamProp = {
-    useStream: useDelayedKerbcastStream,
-  } as unknown as Record<never, never>;
-
+  // hook, satisfying the seam's rules-of-hooks contract. Its signature matches
+  // the SDK's `CameraStreamHook` type, so the prop is passed plainly.
   return (
     <KerbcastProvider client={client} subscriptions={subscriptions}>
       <SharedCameraFeed
         ref={feedRef}
-        {...useStreamProp}
+        useStream={useDelayedKerbcastStream}
         flightId={requested}
         onSelectCamera={(nextFlightId) =>
           onConfigChange?.({
