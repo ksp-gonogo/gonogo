@@ -56,6 +56,49 @@ function waitForStatus(
   });
 }
 
+/**
+ * A hand-driven fake `WebSocket` for the event-timing edge cases MSW can't
+ * easily produce (an `error` with no `close`, a socket that fires `close`
+ * twice). Records every constructed instance so a test can assert how many
+ * sockets the retry loop opened.
+ */
+function makeFakeSocketCtor() {
+  const instances: Array<{
+    fire: (type: "open" | "close" | "error") => void;
+    readyState: number;
+  }> = [];
+
+  class FakeSocket {
+    static readonly OPEN = 1;
+    readyState = 0;
+    private readonly listeners = new Map<string, Array<() => void>>();
+    constructor(_url: string) {
+      instances.push(this);
+    }
+    send(): void {}
+    close(): void {
+      this.readyState = 3;
+    }
+    addEventListener(type: string, listener: () => void): void {
+      const bucket = this.listeners.get(type) ?? [];
+      bucket.push(listener);
+      this.listeners.set(type, bucket);
+    }
+    fire(type: "open" | "close" | "error"): void {
+      for (const l of this.listeners.get(type) ?? []) l();
+    }
+  }
+
+  return {
+    ctor: FakeSocket as unknown as ConstructorParameters<
+      typeof WebSocketTransport
+    >[0] extends { WebSocketImpl?: infer C }
+      ? NonNullable<C>
+      : never,
+    instances,
+  };
+}
+
 describe("WebSocketTransport", () => {
   it("connects and transitions reconnecting -> connected on open", async () => {
     server.use(link.addEventListener("connection", () => {}));
@@ -153,27 +196,125 @@ describe("WebSocketTransport", () => {
     transport.dispose();
   });
 
-  it("gives up to disconnected once the retry timeout elapses", async () => {
-    // Every connection is closed immediately; a monotonically advancing clock
-    // pushes past the retry-timeout budget so the give-up branch fires.
-    server.use(
-      link.addEventListener("connection", ({ client }) => {
-        setTimeout(() => client.close(), 0);
-      }),
-    );
+  it("gives up to disconnected once the retry timeout elapses without ever connecting", async () => {
+    // Give-up applies to an outage that never recovers: every socket fails to
+    // connect (fires `close` with no `open`, so the per-outage window is never
+    // reset), and a monotonically advancing clock pushes past the retry-timeout
+    // budget so the give-up branch fires.
+    const fakes = makeFakeSocketCtor();
     let clock = 0;
     const transport = new WebSocketTransport({
       url: SITREP_URL,
-      retryIntervalMs: 5,
+      retryIntervalMs: 1,
       retryTimeoutMs: 20,
+      WebSocketImpl: fakes.ctor,
       now: () => {
         clock += 15;
         return clock;
       },
     });
 
-    await waitForStatus(transport, "disconnected");
+    // Fail the very first connect; the retry loop then opens fresh sockets that
+    // the loop below keeps failing until the budget is exhausted.
+    const failNext = () => {
+      const latest = fakes.instances.at(-1);
+      latest?.fire("close");
+    };
+    failNext();
+    await vi.waitFor(() => {
+      failNext();
+      expect(transport.status).toBe("disconnected");
+    });
     expect(transport.status).toBe("disconnected");
+    transport.dispose();
+  });
+
+  it("resets the give-up window per outage: a drop long after a successful reconnect still retries", async () => {
+    // Regression for the session-wide give-up clock. Track each connection so
+    // the test can close them on demand, and re-arm a close handle for every
+    // new connection.
+    const closers: Array<() => void> = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        closers.push(() => client.close());
+      }),
+    );
+
+    // A clock the test advances by hand. retryStart is only sampled inside the
+    // drop path, so driving `now` here fully controls the give-up arithmetic.
+    let clock = 0;
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 5,
+      retryTimeoutMs: 1_000,
+      now: () => clock,
+    });
+
+    // First connection comes up.
+    await waitForStatus(transport, "connected");
+    expect(closers).toHaveLength(1);
+
+    // First outage — well inside the window — reconnects.
+    closers[0]();
+    await waitForStatus(transport, "reconnecting");
+    await waitForStatus(transport, "connected");
+    await vi.waitFor(() => expect(closers).toHaveLength(2));
+
+    // Hours pass while happily connected: wall clock jumps far past
+    // retryTimeoutMs measured from the FIRST-ever drop.
+    clock = 10_000;
+
+    // Second outage. With a session-wide clock this would give up with zero
+    // retries; with a per-outage window it must reconnect again.
+    closers[1]();
+    await waitForStatus(transport, "reconnecting");
+    await waitForStatus(transport, "connected");
+    expect(transport.status).toBe("connected");
+    transport.dispose();
+  });
+
+  it("recovers from an `error` that never fires `close` (Fix #2)", async () => {
+    // A fake socket the test drives by hand — lets us fire `error` with no
+    // following `close`, which the real browser can do and which used to
+    // strand the transport in `error` forever.
+    const fakes = makeFakeSocketCtor();
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 1,
+      retryTimeoutMs: 10_000,
+      WebSocketImpl: fakes.ctor,
+    });
+    expect(fakes.instances).toHaveLength(1);
+
+    // Error only — no close event follows.
+    fakes.instances[0].fire("error");
+    expect(transport.status).toBe("reconnecting");
+
+    // The retry loop opens a fresh socket despite never seeing a `close`.
+    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2));
+    transport.dispose();
+  });
+
+  it("ignores a second `close` on the same socket (Fix #3)", async () => {
+    const fakes = makeFakeSocketCtor();
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 1,
+      retryTimeoutMs: 10_000,
+      WebSocketImpl: fakes.ctor,
+    });
+    const first = fakes.instances[0];
+
+    // Two close events on the same socket must trigger only ONE retry — the
+    // second is a no-op, so no leaked timer and no double-open.
+    first.fire("close");
+    first.fire("close");
+
+    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2));
+    // Give any erroneously-scheduled second timer a chance to fire; only the
+    // one legitimate reconnect should have opened a socket.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(fakes.instances).toHaveLength(2);
     transport.dispose();
   });
 

@@ -197,20 +197,20 @@ export class WebSocketTransport implements Transport {
     } catch {
       // Constructor threw synchronously (e.g. a malformed URL) — treat it the
       // same as a failed connection so the retry loop still governs.
-      this.onClose();
+      this.scheduleRetry();
       return;
     }
     this.ws = ws;
 
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
-      // NOTE: deliberately does NOT clear `retryStart` here — matching
-      // `TelemachusDataSource`, the overall give-up window is measured from
-      // the first drop and only reset by a fresh caller-driven lifecycle
-      // (a new transport instance), so a rapidly flapping connection still
-      // eventually gives up instead of retrying forever. The trade-off is a
-      // stale give-up window after a long outage then recovery; acceptable
-      // for a session-lived transport, same posture as the Telemachus source.
+      // Reset the give-up window: it measures the CURRENT outage, not the whole
+      // session. A successful open means we're healthy again, so the next drop
+      // starts a fresh `retryTimeoutMs` budget. Without this, `retryStart` is
+      // pinned to the first-ever drop and any later drop more than
+      // `retryTimeoutMs` of wall-clock after it would give up with zero
+      // retries — fatal for hours-long sessions.
+      this.retryStart = null;
       this.setStatus("connected");
       // Re-subscribe to everything still active, then drain queued commands.
       for (const topic of this.subscribedTopics) {
@@ -222,15 +222,35 @@ export class WebSocketTransport implements Transport {
     ws.addEventListener("message", (event) => {
       if (this.ws === ws) this.handleMessage(event.data);
     });
-    ws.addEventListener("close", () => {
-      if (this.ws === ws) this.onClose();
-    });
-    ws.addEventListener("error", () => {
-      if (this.ws === ws) this.setStatus("error");
-    });
+    // Both `close` and `error` route through the same drop handler. An `error`
+    // that never fires `close` would otherwise strand the transport (Fix #2);
+    // and a socket firing `close` twice would otherwise pass the guard twice,
+    // leaking a retry timer and double-opening (Fix #3). `handleDrop` nulls
+    // `this.ws` on the first event so any second event on the same socket is
+    // ignored by the `this.ws === ws` guard.
+    ws.addEventListener("close", () => this.handleDrop(ws));
+    ws.addEventListener("error", () => this.handleDrop(ws));
   }
 
-  private onClose(): void {
+  /**
+   * A socket dropped (closed or errored). Idempotent per socket: the first
+   * event nulls `this.ws`, so a follow-up `close` after an `error` (or a
+   * double `close`) is a no-op.
+   */
+  private handleDrop(ws: WebSocketLike): void {
+    if (this.ws !== ws) return;
+    this.ws = null;
+    // Defensive close for the error path (harmless on an already-closed socket)
+    // so a stuck-open socket can't linger while we reconnect.
+    try {
+      ws.close();
+    } catch {
+      // ignore — best-effort teardown
+    }
+    this.scheduleRetry();
+  }
+
+  private scheduleRetry(): void {
     if (this.disposed) return;
     if (this.retryStart === null) this.retryStart = this.now();
 

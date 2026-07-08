@@ -14,12 +14,16 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
  * Nothing internal is mocked — the REAL `SitrepTelemetryProvider`, a REAL
  * `TelemetryClient`/`TimelineStore`, the REAL `useDataValue` shim and a REAL
  * registered legacy source all run. The transport injected here is a REAL
- * `StubTransport` (the SDK's scriptable in-memory `Transport`, not a spy) —
- * the LIVE `WebSocketTransport` is separately proven over the MSW WebSocket
- * boundary in `packages/sitrep-client/src/websocket-transport.test.ts` (the
- * app's jsdom `installDomStubs` no-op WebSocket makes a single MSW `ws`
- * connection's inbound delivery unreliable, so the wire transport is tested in
- * its own package where MSW controls the real global WebSocket).
+ * `StubTransport` (the SDK's scriptable in-memory `Transport`, not a spy).
+ *
+ * The LIVE `WebSocketTransport` is exercised two ways: over the MSW WebSocket
+ * boundary in `packages/sitrep-client/src/websocket-transport.test.ts`, and —
+ * end-to-end inside this very provider — in `sitrep-stream-wire.test.tsx`,
+ * where the provider builds its own real `WebSocketTransport` and MSW's `ws`
+ * interceptor (installed in `server.listen()`, after the app's
+ * `installDomStubs` no-op WebSocket) carries a frame all the way to a widget
+ * re-render. This file keeps the `StubTransport` variant because it's the
+ * cleaner way to assert the carried-vs-legacy routing without wire timing.
  */
 
 beforeEach(() => clearRegistry());
