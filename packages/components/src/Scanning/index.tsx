@@ -42,7 +42,7 @@ function ScanningComponent({
   const activeBody = useDataValue<string>("data", "v.body");
   const bodyName = config?.bodyName ?? activeBody;
   const biome = useDataValue<string>("data", "v.biome");
-  const scanAvailable = useDataValue<boolean>("data", "scan.available");
+  const scanAvailable = useDataValue<boolean>("data", "scansat.available");
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 
@@ -174,7 +174,7 @@ function CoverageRow({
 }: Readonly<{ bodyName: string; scanType: SCANType }>) {
   const pct = useDataValue<number>(
     "data",
-    `scan.coverage[${bodyName},${scanType}]`,
+    `scansat.coverage.${bodyName}.${scanType}`,
   );
   const value = typeof pct === "number" ? pct : 0;
   return (
@@ -369,8 +369,8 @@ registerComponent<ScanningConfig>({
   component: ScanningComponent,
   openConfigOnAdd: false,
   dataRequirements: [
-    "scan.available",
-    "scan.scanningVessels",
+    "scansat.available",
+    "scansat.scanningVessels",
     "v.body",
     "v.biome",
   ],

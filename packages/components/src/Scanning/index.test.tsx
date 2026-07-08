@@ -12,19 +12,19 @@ import { axe } from "../test/axe";
 import { ScanningComponent } from "./index";
 
 const KEYS: DataKey[] = [
-  { key: "scan.available" },
-  { key: "scan.scanningVessels" },
+  { key: "scansat.available" },
+  { key: "scansat.scanningVessels" },
   { key: "v.body" },
   { key: "v.lat" },
   { key: "v.long" },
   // Coverage bars — DISPLAY_SCAN_TYPES: AltimetryHiRes=2, AltimetryLoRes=1, Biome=8, Anomaly=16, ResourceHiRes=256
-  { key: "scan.coverage[Kerbin,2]" },
-  { key: "scan.coverage[Kerbin,1]" },
-  { key: "scan.coverage[Kerbin,8]" },
-  { key: "scan.coverage[Kerbin,16]" },
-  { key: "scan.coverage[Kerbin,256]" },
+  { key: "scansat.coverage.Kerbin.2" },
+  { key: "scansat.coverage.Kerbin.1" },
+  { key: "scansat.coverage.Kerbin.8" },
+  { key: "scansat.coverage.Kerbin.16" },
+  { key: "scansat.coverage.Kerbin.256" },
   // Anomaly list
-  { key: "scan.anomalies[Kerbin]" },
+  { key: "scansat.anomalies.Kerbin" },
 ];
 
 describe("ScanningComponent", () => {
@@ -48,7 +48,7 @@ describe("ScanningComponent", () => {
   it("shows the empty state when SCANsat is not installed", () => {
     render(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
-      source.emit("scan.available", false);
+      source.emit("scansat.available", false);
     });
     expect(screen.getByText(/SCANsat is not installed/i)).toBeInTheDocument();
   });
@@ -56,9 +56,9 @@ describe("ScanningComponent", () => {
   it("renders the coverage / vessels / anomalies layout when SCANsat is present", () => {
     render(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
-      source.emit("scan.available", true);
+      source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
-      source.emit("scan.scanningVessels", []);
+      source.emit("scansat.scanningVessels", []);
     });
     expect(screen.getByText(/Coverage — Kerbin/)).toBeInTheDocument();
     expect(screen.getByText(/Scanning vessels/)).toBeInTheDocument();
@@ -70,15 +70,15 @@ describe("ScanningComponent", () => {
   it("renders coverage percentages for each scan type when values are emitted", () => {
     render(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
-      source.emit("scan.available", true);
+      source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
-      source.emit("scan.scanningVessels", []);
+      source.emit("scansat.scanningVessels", []);
       // Distinct non-zero values for each of the 5 DISPLAY_SCAN_TYPES
-      source.emit("scan.coverage[Kerbin,2]", 12.3); // AltimetryHiRes
-      source.emit("scan.coverage[Kerbin,1]", 34.5); // AltimetryLoRes
-      source.emit("scan.coverage[Kerbin,8]", 56.7); // Biome
-      source.emit("scan.coverage[Kerbin,16]", 78.9); // Anomaly
-      source.emit("scan.coverage[Kerbin,256]", 91.0); // ResourceHiRes
+      source.emit("scansat.coverage.Kerbin.2", 12.3); // AltimetryHiRes
+      source.emit("scansat.coverage.Kerbin.1", 34.5); // AltimetryLoRes
+      source.emit("scansat.coverage.Kerbin.8", 56.7); // Biome
+      source.emit("scansat.coverage.Kerbin.16", 78.9); // Anomaly
+      source.emit("scansat.coverage.Kerbin.256", 91.0); // ResourceHiRes
     });
     expect(screen.getByText("12.3%")).toBeInTheDocument();
     expect(screen.getByText("34.5%")).toBeInTheDocument();
@@ -90,10 +90,10 @@ describe("ScanningComponent", () => {
   it("renders anomaly names according to discovery state", () => {
     render(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
-      source.emit("scan.available", true);
+      source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
-      source.emit("scan.scanningVessels", []);
-      source.emit("scan.anomalies[Kerbin]", [
+      source.emit("scansat.scanningVessels", []);
+      source.emit("scansat.anomalies.Kerbin", [
         // detail=true → show the name
         {
           name: "Monolith One",
@@ -130,7 +130,7 @@ describe("ScanningComponent", () => {
       <ScanningComponent config={{}} id="scanning" />,
     );
     act(() => {
-      source.emit("scan.available", false);
+      source.emit("scansat.available", false);
     });
     await expect(axe(container)).resolves.toHaveNoViolations();
   });

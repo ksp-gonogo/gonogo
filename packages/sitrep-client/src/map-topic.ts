@@ -693,8 +693,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "mh.name",
   "mh.outcome",
   "mh.phase",
-  "scan.available",
-  "scan.scanningVessels",
+  "scansat.available",
+  "scansat.scanningVessels",
   "ksp.canRevertToEditor",
   "ksp.canRevertToLaunch",
 ]);

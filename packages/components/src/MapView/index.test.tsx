@@ -32,13 +32,13 @@ const MAPVIEW_KEYS: DataKey[] = [
   { key: "a.physicsMode" },
   { key: "land.predictedLat" },
   { key: "land.predictedLon" },
-  { key: "scan.scanningVessels" },
-  { key: "scan.anomalies[Kerbin]" },
-  { key: "scan.coverage[Kerbin,2]" },
-  { key: "scan.coverage[Kerbin,1]" },
-  { key: "scan.coverage[Kerbin,8]" },
-  { key: "scan.coverage[Kerbin,256]" },
-  { key: "scan.coverage[Kerbin,128]" },
+  { key: "scansat.scanningVessels" },
+  { key: "scansat.anomalies.Kerbin" },
+  { key: "scansat.coverage.Kerbin.2" },
+  { key: "scansat.coverage.Kerbin.1" },
+  { key: "scansat.coverage.Kerbin.8" },
+  { key: "scansat.coverage.Kerbin.256" },
+  { key: "scansat.coverage.Kerbin.128" },
 ];
 
 function kerbinCircularPatch(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
@@ -212,7 +212,7 @@ describe("MapViewComponent", () => {
     source.emit("v.altitude", 100_000);
     source.emit("t.universalTime", 5_000);
     source.emit("a.physicsMode", "patched_conics");
-    source.emit("scan.anomalies[Kerbin]", [
+    source.emit("scansat.anomalies.Kerbin", [
       // Near the vessel (lat 12, lon 35) → smallest distance.
       {
         name: "Near Site",
@@ -238,7 +238,7 @@ describe("MapViewComponent", () => {
         detail: false,
       },
     ]);
-    source.emit("scan.scanningVessels", [
+    source.emit("scansat.scanningVessels", [
       {
         vesselId: "v1",
         vesselName: "Mapper",
@@ -271,11 +271,11 @@ describe("MapViewComponent", () => {
         trackColor: { r: 0, g: 255, b: 200, a: 200 },
       },
     ]);
-    source.emit("scan.coverage[Kerbin,2]", 45.6);
-    source.emit("scan.coverage[Kerbin,1]", 67.6);
-    source.emit("scan.coverage[Kerbin,8]", 29.6);
-    source.emit("scan.coverage[Kerbin,256]", 7.4);
-    source.emit("scan.coverage[Kerbin,128]", 0);
+    source.emit("scansat.coverage.Kerbin.2", 45.6);
+    source.emit("scansat.coverage.Kerbin.1", 67.6);
+    source.emit("scansat.coverage.Kerbin.8", 29.6);
+    source.emit("scansat.coverage.Kerbin.256", 7.4);
+    source.emit("scansat.coverage.Kerbin.128", 0);
   }
 
   it("anomaly panel lists known anomalies sorted by distance with bearing", () => {

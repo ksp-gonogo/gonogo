@@ -20,7 +20,7 @@ import { applyScanCoverageToMask } from "./scanCoverageSync";
  * Visual (LoRes/HiRes) and Anomaly are deliberately excluded:
  *   - Visual* are deprecated in modern KSP / SCANsat — no stock parts emit
  *     them.
- *   - Anomaly markers are surfaced via `scan.anomalies[body]` directly
+ *   - Anomaly markers are surfaced via `scansat.anomalies.body` directly
  *     (point-based, not area-based fog).
  */
 export const FOG_SCAN_TYPES: readonly SCANType[] = [
@@ -32,7 +32,7 @@ export const FOG_SCAN_TYPES: readonly SCANType[] = [
 ];
 
 /**
- * Subscribe to one `scan.maskBitmap[body, scanType]` per relevant scan
+ * Subscribe to one `scansat.mask.body.scanType` per relevant scan
  * type and merge each push into its own per-type fog mask. SCANsat's
  * coverage is per-program (cross-vessel, persists with the save), so
  * each per-type mask reflects the union of every scanner of that type
@@ -49,7 +49,10 @@ export function useScanSatFogSync(
   body: BodyDefinition | undefined,
   dataSourceId = "data",
 ): void {
-  const scanAvailable = useDataValue<boolean>(dataSourceId, "scan.available");
+  const scanAvailable = useDataValue<boolean>(
+    dataSourceId,
+    "scansat.available",
+  );
   const cache = useFogMaskCache();
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export function useScanSatFogSync(
     for (const scanType of FOG_SCAN_TYPES) {
       void cache.acquire(body.id, scanType).then((mask) => {
         if (cancelled) return;
-        const key = `scan.maskBitmap[${body.name},${scanType}]`;
+        const key = `scansat.mask.${body.name}.${scanType}`;
         const unsub = source.subscribe(key, (value) => {
           if (!value || typeof value !== "object") return;
           const bitmap = value as Partial<SCANCoverageBitmap>;

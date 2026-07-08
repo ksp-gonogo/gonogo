@@ -32,7 +32,7 @@ export function useScanCoverage(
 ): DecodedCoverage | null | undefined {
   const raw = useDataValue<SCANCoverageBitmap | null>(
     dataSourceId,
-    bodyName ? `scan.maskBitmap[${bodyName},${scanType}]` : "scan.available",
+    bodyName ? `scansat.mask.${bodyName}.${scanType}` : "scansat.available",
   );
   return useMemo(() => {
     if (!bodyName) return undefined;
@@ -51,7 +51,7 @@ export function useScanHeightGrid(
 ): DecodedHeights | null | undefined {
   const raw = useDataValue<SCANHeightGrid | null>(
     dataSourceId,
-    bodyName ? `scan.heightGrid[${bodyName}]` : "scan.available",
+    bodyName ? `scansat.height.${bodyName}` : "scansat.available",
   );
   return useMemo(() => {
     if (!bodyName) return undefined;
@@ -70,7 +70,7 @@ export function useScanBiomeGrid(
 ): DecodedBiomes | null | undefined {
   const raw = useDataValue<SCANBiomeGrid | null>(
     dataSourceId,
-    bodyName ? `scan.biomeGrid[${bodyName}]` : "scan.available",
+    bodyName ? `scansat.biome.${bodyName}` : "scansat.available",
   );
   return useMemo(() => {
     if (!bodyName) return undefined;
@@ -91,7 +91,7 @@ export function useScanAnomalies(
 ): SCANAnomalyEntry[] | null | undefined {
   const raw = useDataValue<SCANAnomalyEntry[] | null>(
     dataSourceId,
-    bodyName ? `scan.anomalies[${bodyName}]` : "scan.available",
+    bodyName ? `scansat.anomalies.${bodyName}` : "scansat.available",
   );
   if (!bodyName) return undefined;
   if (raw == null) return raw as null | undefined;
@@ -109,6 +109,6 @@ export function useScanningVessels(
 ): SCANScanningVessel[] | null | undefined {
   return useDataValue<SCANScanningVessel[] | null>(
     dataSourceId,
-    "scan.scanningVessels",
+    "scansat.scanningVessels",
   );
 }

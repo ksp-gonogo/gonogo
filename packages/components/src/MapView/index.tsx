@@ -1101,8 +1101,8 @@ const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
 /**
  * Compact per-scan-type coverage readout for the mapped body, plus a
  * summary of which scan types currently have an in-range / best-range
- * scanner. Driven entirely by `scan.coverage[body,type]` and the
- * sensors on `scan.scanningVessels` for this body.
+ * scanner. Driven entirely by `scansat.coverage.body.type` and the
+ * sensors on `scansat.scanningVessels` for this body.
  */
 function CoveragePanelView({
   bodyName,
@@ -1158,7 +1158,7 @@ function CoverageRow({
 }>) {
   const pct = useDataValue<number>(
     "data",
-    `scan.coverage[${bodyName},${scanType}]`,
+    `scansat.coverage.${bodyName}.${scanType}`,
   );
   const value = typeof pct === "number" ? pct : 0;
   return (
@@ -1208,7 +1208,7 @@ registerComponent<MapViewConfig>({
     // Body-parametric scan.* keys (heightGrid / biomeGrid / maskBitmap /
     // coverage / anomalies) can't be declared statically — they're
     // resolved per mapped body at runtime. scanningVessels is global.
-    "scan.scanningVessels",
+    "scansat.scanningVessels",
   ],
   defaultConfig: {
     trajectoryLength: 2000,
