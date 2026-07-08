@@ -2,6 +2,114 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+export enum CommandErrorCode {
+	None = 0,
+	Unknown = 1,
+	NoVessel = 2,
+	ModeUnavailable = 3,
+	Range = 4,
+	NotFound = 5,
+	Timeout = 6
+}
+export interface CommandResult
+{
+	success: boolean;
+	errorCode: CommandErrorCode;
+}
+export interface CommandResultOf<T> extends CommandResult
+{
+	payload?: T;
+}
+export enum CommsControlSource {
+	None = 0,
+	Partial = 1,
+	Full = 2
+}
+export interface CommsConnectivity
+{
+	connected: boolean;
+	controlSource: CommsControlSource;
+	hasLocalControl: boolean;
+	meta: PayloadMeta;
+}
+export interface CommsSignalStrength
+{
+	value: number;
+	meta: PayloadMeta;
+}
+export enum CommsControlStateKind {
+	None = 0,
+	PartialManoeuvre = 1,
+	Full = 2
+}
+export interface CommsControlState
+{
+	state: CommsControlStateKind;
+	reason?: string;
+	meta: PayloadMeta;
+}
+export enum CommsHopKind {
+	Home = 0,
+	Relay = 1,
+	Vessel = 2
+}
+export interface CommsHop
+{
+	from: string;
+	to: string;
+	kind: CommsHopKind;
+	distanceMeters?: number;
+	bandRateBitsPerSec?: number;
+}
+export interface CommsPath
+{
+	hops: CommsHop[];
+	meta: PayloadMeta;
+}
+export interface CommsNetworkNode
+{
+	id: string;
+	kind: CommsHopKind;
+}
+export interface CommsNetworkEdge
+{
+	a: string;
+	b: string;
+	active: boolean;
+}
+export interface CommsNetwork
+{
+	nodes: CommsNetworkNode[];
+	edges: CommsNetworkEdge[];
+	meta: PayloadMeta;
+}
+export enum CommsDelaySource {
+	None = 0,
+	SignalDelay = 1
+}
+export interface CommsDelay
+{
+	oneWaySeconds: number;
+	source: CommsDelaySource;
+	meta: PayloadMeta;
+}
+export interface CommsLinkQuality
+{
+	value: number;
+	meta: PayloadMeta;
+}
+export interface CommsDataRate
+{
+	upBitsPerSec: number;
+	downBitsPerSec: number;
+	meta: PayloadMeta;
+}
+export interface CommsLinkMargin
+{
+	decibelMargin: number;
+	closesLink: boolean;
+	meta: PayloadMeta;
+}
 export interface StreamData<T>
 {
 	type: "stream-data";
@@ -49,6 +157,31 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+export interface KosProcessorInfo
+{
+	coreId: number;
+	tag?: string;
+	hasBooted: boolean;
+	bootFilePath?: string;
+	processorMode: string;
+}
+export interface KosComputeStatus
+{
+	running: boolean;
+	lastGoodAt?: number;
+	scriptError?: string;
+	parseError?: string;
+	paused: boolean;
+}
+export interface KosExecArgs
+{
+	coreId: number;
+	scriptId: string;
+}
+export interface KosReEnableArgs
+{
+	scriptId: string;
+}
 export enum Quality {
 	OnRails = 0,
 	Loaded = 1
@@ -70,4 +203,310 @@ export interface Meta
 	staleness: Staleness;
 	timelineEpoch: number;
 	confidence?: number;
+}
+export interface PayloadMeta
+{
+	source: string;
+	quality: Quality;
+}
+export interface Vec3
+{
+	x: number;
+	y: number;
+	z: number;
+}
+export interface VesselAttitude
+{
+	pitch: number;
+	heading: number;
+	roll: number;
+	meta: PayloadMeta;
+}
+export interface SetEnabledArgs
+{
+	enabled: boolean;
+}
+export interface SetSasModeArgs
+{
+	mode: SasMode;
+}
+export interface SetThrottleArgs
+{
+	value: number;
+}
+export interface SetActionGroupArgs
+{
+	group: number;
+	state: boolean;
+}
+export interface AddManeuverNodeArgs
+{
+	ut: number;
+	prograde: number;
+	normal: number;
+	radialOut: number;
+}
+export interface UpdateManeuverNodeArgs
+{
+	nodeId: string;
+	ut: number;
+	prograde: number;
+	normal: number;
+	radialOut: number;
+}
+export interface RemoveManeuverNodeArgs
+{
+	nodeId: string;
+}
+export interface SetTargetArgs
+{
+	kind: TargetKind;
+	vesselId?: string;
+	bodyIndex?: number;
+}
+export interface SetWarpIndexArgs
+{
+	index: number;
+}
+export interface SetPausedArgs
+{
+	paused: boolean;
+}
+export enum ControlState {
+	None = 0,
+	Probe = 1,
+	Kerbal = 2,
+	Partial = 3,
+	Full = 4,
+	ProbeNone = 5,
+	ProbePartial = 6,
+	ProbeFull = 7,
+	KerbalNone = 8,
+	KerbalPartial = 9,
+	KerbalFull = 10,
+	Unknown = 11
+}
+export interface VesselComms
+{
+	connected: boolean;
+	signalStrength: number;
+	controlState: ControlState;
+	meta: PayloadMeta;
+}
+export enum SasMode {
+	StabilityAssist = 0,
+	Prograde = 1,
+	Retrograde = 2,
+	Normal = 3,
+	Antinormal = 4,
+	RadialIn = 5,
+	RadialOut = 6,
+	Target = 7,
+	AntiTarget = 8,
+	Maneuver = 9,
+	Unknown = 10
+}
+export interface VesselControl
+{
+	sas?: boolean;
+	sasMode?: SasMode;
+	rcs?: boolean;
+	gear?: boolean;
+	brakes?: boolean;
+	lights?: boolean;
+	throttle?: number;
+	actionGroups?: boolean[];
+	meta: PayloadMeta;
+}
+export interface VesselCrew
+{
+	count: number;
+	meta: PayloadMeta;
+}
+export interface DockAlignment
+{
+	relativePosition: Vec3;
+	relativeVelocity: Vec3;
+	distance: number;
+	forwardDot?: number;
+	meta: PayloadMeta;
+}
+export enum Situation {
+	Landed = 0,
+	Splashed = 1,
+	PreLaunch = 2,
+	Orbiting = 3,
+	Escaping = 4,
+	Flying = 5,
+	SubOrbital = 6,
+	Docked = 7,
+	Unknown = 8
+}
+export enum VesselType {
+	Ship = 0,
+	Station = 1,
+	Lander = 2,
+	Probe = 3,
+	Rover = 4,
+	Base = 5,
+	Relay = 6,
+	EVA = 7,
+	Flag = 8,
+	Debris = 9,
+	SpaceObject = 10,
+	DeployedScienceController = 11,
+	DeployedSciencePart = 12,
+	DroppedPart = 13,
+	Unknown = 14
+}
+export enum TransitionType {
+	Initial = 0,
+	Final = 1,
+	Encounter = 2,
+	Escape = 3,
+	Maneuver = 4,
+	Collision = 5,
+	Unknown = 6
+}
+export interface VesselFlight
+{
+	latitude: number;
+	longitude: number;
+	altitudeAsl: number;
+	altitudeTerrain: number;
+	verticalSpeed: number;
+	surfaceSpeed: number;
+	orbitalSpeed: number;
+	gForce: number;
+	dynamicPressureKPa: number;
+	mach: number;
+	atmDensity: number;
+	meta: PayloadMeta;
+}
+export interface VesselIdentity
+{
+	vesselId: string;
+	name: string;
+	vesselType: VesselType;
+	situation: Situation;
+	parentBodyIndex?: number;
+	launchUt?: number;
+	meta: PayloadMeta;
+}
+export interface ManeuverNode
+{
+	id: string;
+	ut: number;
+	dvRadial?: number;
+	dvNormal?: number;
+	dvPrograde?: number;
+	dvTotal?: number;
+}
+export interface VesselManeuver
+{
+	nodes: ManeuverNode[];
+	meta: PayloadMeta;
+}
+export interface VesselOrbit
+{
+	referenceBodyIndex: number;
+	sma: number;
+	ecc: number;
+	inc: number;
+	lan?: number;
+	argPe?: number;
+	meanAnomalyAtEpoch: number;
+	epoch: number;
+	mu: number;
+	encounter?: OrbitEncounter;
+	meta: PayloadMeta;
+}
+export interface OrbitEncounter
+{
+	transitionType: TransitionType;
+	transitionUt: number;
+	bodyIndex?: number;
+}
+export interface VesselOrbitTruth
+{
+	position: Vec3;
+	velocity: Vec3;
+	frameRotating: boolean;
+	meta: PayloadMeta;
+}
+export interface VesselPropulsion
+{
+	totalMass: number;
+	dryMass: number;
+	currentThrust: number;
+	availableThrust: number;
+	meta: PayloadMeta;
+}
+export interface ResourceAmount
+{
+	current: number;
+	max: number;
+	active: boolean;
+}
+export interface VesselResources
+{
+	resources: { [key:string]: ResourceAmount };
+	meta: PayloadMeta;
+}
+export interface VesselStructure
+{
+	currentStage: number;
+	stageCount?: number;
+	partCount?: number;
+	meta: PayloadMeta;
+}
+export interface VesselSurface
+{
+	biome?: string;
+	landedAt?: string;
+	heightFromTerrain?: number;
+	meta: PayloadMeta;
+}
+export enum TargetKind {
+	Vessel = 0,
+	Body = 1,
+	Other = 2
+}
+export interface VesselTarget
+{
+	name: string;
+	kind: TargetKind;
+	vesselId?: string;
+	bodyIndex?: number;
+	relativePosition?: Vec3;
+	relativeVelocity?: Vec3;
+	orbit?: VesselOrbit;
+	meta: PayloadMeta;
+}
+export interface ThermalHottestPart
+{
+	internalTemp: number;
+	maxTemp: number;
+	skinTemp: number;
+	skinMaxTemp: number;
+}
+export interface VesselThermal
+{
+	maxSkinTempRatio?: number;
+	maxInternalTempRatio?: number;
+	hottestPart?: ThermalHottestPart;
+	meta: PayloadMeta;
+}
+export enum WarpMode {
+	High = 0,
+	Low = 1,
+	Unknown = 2
+}
+export interface WarpState
+{
+	warpRate: number;
+	warpRateIndex: number;
+	warpMode: WarpMode;
+	paused: boolean;
+	meta: PayloadMeta;
 }

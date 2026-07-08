@@ -11,10 +11,8 @@ describe("generated contract.ts", () => {
   it("is an ES module (export, no `module` wrapper)", () => {
     expect(src).toMatch(/export interface StreamData<T>/);
     expect(src).not.toMatch(/^\s*module /m);
-    // no I-prefix on any generated interfaces
-    expect(src).not.toMatch(/interface IStreamData/);
-    expect(src).not.toMatch(/interface IMeta/);
-    expect(src).not.toMatch(/interface ICommandResponse/);
+    // no I-prefix on ANY generated interface (AutoI(false) convention)
+    expect(src).not.toMatch(/\binterface I[A-Z]/);
   });
   it("has camelCase properties", () => {
     expect(src).toMatch(/validAt:\s*number/);
@@ -37,5 +35,26 @@ describe("generated contract.ts", () => {
   it("emits optional properties", () => {
     expect(src).toMatch(/requestId\?:/);
     expect(src).toMatch(/confidence\?:/);
+  });
+  it("emits the wire payload types, not just the envelope", () => {
+    expect(src).toMatch(/export interface VesselOrbit\b/);
+    expect(src).toMatch(/export interface VesselComms\b/);
+    expect(src).toMatch(/export interface CommsConnectivity\b/);
+    expect(src).toMatch(/export interface KosProcessorInfo\b/);
+    expect(src).toMatch(/export interface Vec3\b/);
+    // shared value shapes carry data only — no static factory methods leaked
+    expect(src).toMatch(/export interface CommandResult\b/);
+    expect(src).not.toMatch(/Ok\s*\(/);
+    expect(src).not.toMatch(/Fail\s*\(/);
+    // generic result renamed to avoid a TS2428 arity clash with its base
+    expect(src).toMatch(
+      /export interface CommandResultOf<T> extends CommandResult\b/,
+    );
+  });
+  it("emits the wire enums", () => {
+    expect(src).toMatch(/export enum CommandErrorCode \{/);
+    expect(src).toMatch(/export enum VesselType \{/);
+    expect(src).toMatch(/export enum Situation \{/);
+    expect(src).toMatch(/export enum ControlState \{/);
   });
 });

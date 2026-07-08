@@ -70,7 +70,9 @@ public enum CommandErrorCode
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
-[TsInterface]
+// AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
+// not wire shape — without this rtcli emits them as bogus interface members.
+[TsInterface(AutoExportMethods = false)]
 #endif
 public class CommandResult
 {
@@ -95,7 +97,9 @@ public class CommandResult
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
-[TsInterface]
+// AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
+// not wire shape — without this rtcli emits them as bogus interface members.
+[TsInterface(AutoExportMethods = false)]
 #endif
 public class CommandResult<T> : CommandResult
 {
