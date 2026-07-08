@@ -277,6 +277,25 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // same `parts.power`/`parts.robotics` "key == topic" precedent above.
   // ScienceOfficer/index.tsx's `parseLab` reads it directly. ---
   "science.lab": "science.lab",
+
+  // --- M3 science-domain finale: DeployedScience un-gap. `science.deployed`
+  // (raw FLAT array of individual `ModuleGroundExperiment` entries — no
+  // legacy base/power-balance grouping — ScienceViewProvider.BuildDeployed,
+  // itself fed by Gonogo.KSP.KspHost.BuildDeployedScience's GLOBAL
+  // FlightGlobals.Vessels walk, see that method's doc comment) is routed
+  // onto the SAME widget-facing key `deployed.bases` used to point at,
+  // same "one parser accepts either wire shape" pattern `science.experiments`
+  // established above. DeployedScience/index.tsx's `parseBases` now detects
+  // the shape (legacy: numeric `id`; new: string `vesselName`, no `id`) and,
+  // for the new shape, groups the flat list by `vesselName` into the
+  // existing `DeployedBase[]` display type
+  // (`groupFlatDeployedEntries`) — vesselName groups 1:1 with a Breaking
+  // Ground cluster, itself its own vessel. `powerAvailable`/`powerRequired`
+  // (no EC numbers on the new wire, only a coarse `powerState` enum) degrade
+  // to `0`/`0`, same "no new-wire equivalent, degrade" posture the M3b
+  // career-detail batch's `currentLevelText`/`nextLevelText` established.
+  // `deployed.available` stays gapped below — see that entry for why. ---
+  "deployed.bases": "science.deployed",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -654,7 +673,18 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "s.sensor.pres",
   "s.sensor.grav",
   "s.sensor.acc",
-  "deployed.bases",
+  // deployed.bases un-gapped M3 science-domain finale — see CLEAN_HOMES
+  // above (science.deployed, DeployedScience's parseBases now reads BOTH
+  // the legacy grouped-base shape and the new flat-per-experiment shape).
+  // deployed.available stays gapped: the new wire can't distinguish "no
+  // Breaking Ground installed" from "Breaking Ground installed but nothing
+  // deployed yet" — both collapse to an absent/empty science.deployed list
+  // (Gonogo.KSP.KspHost.BuildDeployedScience's doc comment: "absent DLC ->
+  // the type never appears -> empty walk -> group returns null", same
+  // shape as "installed, zero clusters in physics range"). No boolean
+  // capability flag exists on the new wire to disambiguate the two, so this
+  // key stays on the legacy DataSource path.
+  // gap: no DLC-presence boolean on the new wire; migrate in M3
   "deployed.available",
   "mh.score",
   "mh.objectives",

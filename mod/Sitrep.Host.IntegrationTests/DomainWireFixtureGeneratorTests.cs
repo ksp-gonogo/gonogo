@@ -791,6 +791,221 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
+        /// <summary>
+        /// REAL-SHAPE SYNTHETIC fixture for the M3 science-domain finale
+        /// (DeployedScience). Sibling to
+        /// <see cref="GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot"/>
+        /// above — same rationale, different domain: the deployed-science
+        /// global-capture fix (<c>.superpowers/sdd/deployed-science-fix-report.md</c>,
+        /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c>) landed and
+        /// redeployed, but no recording carries deployed-science data yet
+        /// (the user hasn't re-captured with a Breaking Ground cluster
+        /// standing). Rather than block the DeployedScience migration on
+        /// that re-capture, this test hand-authors a synthetic "science"
+        /// RAW snapshot dict carrying a "deployed" sub-group that matches
+        /// <see cref="ScienceViewProvider"/>'s own documented raw encoding
+        /// EXACTLY (see its doc comment / <c>Gonogo.KSP.KspHost.
+        /// BuildDeployedScience</c>'s doc comment for the authoritative
+        /// field list) and replays it through the REAL
+        /// <see cref="ScienceViewProvider.BuildDeployed"/> mapper via the
+        /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
+        /// fixture in this file uses. The resulting WIRE SHAPE is therefore
+        /// the provider's genuine mapping output, not a hand-guessed shape —
+        /// only the underlying VALUES are synthetic/invented. Real-recording
+        /// validation is deferred to the user's next Space Center capture
+        /// with a deployed Breaking Ground cluster in physics range; see
+        /// <c>.superpowers/sdd/m3-deployedscience-report.md</c>.
+        /// </summary>
+        [Fact]
+        public async Task GeneratesSyntheticDeployedScienceWireFixtureFromHandAuthoredRealShapeSnapshot()
+        {
+            const string fixtureFileName = "reference-wire-fixture-deployed-synthetic.json";
+            var session = BuildSyntheticDeployedScienceSession();
+            var topics = new[] { ScienceViewProvider.DeployedTopic };
+
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepExtension[] { new TestScienceExtension() }, topics);
+            Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
+
+            // ScienceViewProvider.BuildDeployed's payload IS the entry list
+            // itself (see BuildList), not a wrapping dict — parse the raw
+            // StreamData payloads, same as every other science.* channel in
+            // this file.
+            var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
+            Assert.True(deployedStream.Count > 0, "expected at least one science.deployed frame");
+
+            var deployedEntries = deployedStream
+                .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
+                .OfType<IDictionary<string, object?>>()
+                .ToList();
+            // Two identical-content snapshot entries (T=0/T=15, see
+            // BuildSyntheticDeployedScienceSession) each independently
+            // re-emit the 3-entry list as its own keyframe (EmissionQuantum.
+            // Absolute(0) — same behavior every other synthetic fixture in
+            // this file exhibits), so 3 authored entries land as 6 captured
+            // entries across the two frames.
+            Assert.Equal(6, deployedEntries.Count);
+
+            // Two distinct deployed-cluster vessels, neither the active
+            // vessel — the exact regression shape ScienceViewProviderTests'
+            // BuildDeployedMapsGroundExperimentsFromSeparateNonActiveVessels
+            // guards at the C# unit level, now proven over the real wire.
+            var vesselNames = deployedEntries
+                .Select(e => e.TryGetValue("vesselName", out var v) ? v as string : null)
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
+            Assert.Equal(2, vesselNames.Count);
+
+            // One experiment still transmitting (completed but not yet 100%).
+            Assert.Contains(deployedEntries, e =>
+                e.TryGetValue("scienceCompletedPercentage", out var comp) && comp is double compD && compD > 0 && compD < 100 &&
+                e.TryGetValue("scienceTransmittedPercentage", out var trans) && trans is double transD && transD > 0 && transD < 100);
+
+            // One experiment fully complete and fully transmitted.
+            Assert.Contains(deployedEntries, e =>
+                e.TryGetValue("scienceCompletedPercentage", out var comp) && comp is double compD && compD == 100 &&
+                e.TryGetValue("scienceTransmittedPercentage", out var trans) && trans is double transD && transD == 100);
+
+            // Varied power/connection states — at least one fully powered +
+            // connected, at least one unpowered + disconnected.
+            Assert.Contains(deployedEntries, e =>
+                (e.TryGetValue("powerState", out var ps) ? ps as string : null) == "Powered" &&
+                (e.TryGetValue("connectionState", out var cs) ? cs as string : null) == "Connected");
+            Assert.Contains(deployedEntries, e =>
+                (e.TryGetValue("powerState", out var ps) ? ps as string : null) == "NoPower" &&
+                (e.TryGetValue("connectionState", out var cs) ? cs as string : null) == "NotConnected");
+
+            // Every entry carries the full documented field set.
+            foreach (var entry in deployedEntries)
+            {
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("vesselName", out var vn) ? vn as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("partName", out var pn) ? pn as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("body", out var b) ? b as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("situation", out var sit) ? sit as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("biome", out var bi) ? bi as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("experimentId", out var eid) ? eid as string : null));
+                Assert.True(entry.TryGetValue("scienceValue", out var sv) && sv is double);
+                Assert.True(entry.TryGetValue("scienceLimit", out var sl) && sl is double);
+                Assert.True(entry.TryGetValue("deployedOnGround", out var dog) && dog is bool);
+            }
+
+            _output.WriteLine(
+                $"synthetic deployed-science fixture: {deployedStream.Count} science.deployed frames, " +
+                $"{deployedEntries.Count} deployed entries across {vesselNames.Count} distinct vessels " +
+                "(real-shape synthetic — values hand-authored, wire shape produced by the real ScienceViewProvider mapper).");
+            WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot — no source recording file)", session.Entries.Count, topics, capture);
+        }
+
+        /// <summary>
+        /// Builds the hand-authored synthetic <see cref="RecordedSession"/>
+        /// backing <see cref="GeneratesSyntheticDeployedScienceWireFixtureFromHandAuthoredRealShapeSnapshot"/>.
+        /// Two identical-content snapshot entries (T=0 and T=15) so the
+        /// fixture carries more than one captured frame, same shape every
+        /// other generator in this file produces. Three deployed
+        /// experiments across TWO non-active ground-cluster vessels — the
+        /// raw "science"/"deployed" list mirrors EXACTLY the shape
+        /// <see cref="ScienceViewProvider"/>'s own doc comment documents
+        /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c> must populate.
+        /// </summary>
+        private static RecordedSession BuildSyntheticDeployedScienceSession()
+        {
+            var entries = new List<RecordedEntry>();
+            foreach (var t in new[] { 0.0, 15.0 })
+            {
+                entries.Add(new RecordedEntry
+                {
+                    T = t,
+                    Kind = "snapshot",
+                    WallClockUtc = DateTime.UtcNow,
+                    Seq = entries.Count,
+                    Snapshot = new RecordedSnapshotPayload
+                    {
+                        // BuildScience rebuilds fresh Dictionary trees per
+                        // Sample() call in the real host — a NEW raw dict
+                        // per entry keeps that same "no shared mutable state
+                        // across ticks" shape, even though content is
+                        // identical.
+                        Values = new Dictionary<string, object?>
+                        {
+                            ["science"] = new Dictionary<string, object?>
+                            {
+                                ["deployed"] = BuildSyntheticDeployedScienceRaw(),
+                            },
+                        },
+                    },
+                });
+            }
+
+            return new RecordedSession
+            {
+                SchemaVersion = RecordedSessionCodec.CurrentSchemaVersion,
+                StartUt = 0.0,
+                Entries = entries,
+            };
+        }
+
+        private static List<object?> BuildSyntheticDeployedScienceRaw()
+        {
+            return new List<object?>
+            {
+                // Mun cluster, experiment 1 — still transmitting (completed
+                // past halfway, transmitted percentage lags completion, the
+                // normal in-progress relay state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Mun Surface Science Base",
+                    ["partName"] = "Atmospheric Fluid Spectro-Variometer",
+                    ["body"] = "Mun",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Highlands",
+                    ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
+                    ["scienceCompletedPercentage"] = 62.5,
+                    ["scienceTransmittedPercentage"] = 30.0,
+                    ["scienceValue"] = 18.75,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "Powered",
+                    ["connectionState"] = "Connected",
+                    ["deployedOnGround"] = true,
+                },
+                // Mun cluster, experiment 2 — fully complete and fully
+                // transmitted (the "done" state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Mun Surface Science Base",
+                    ["partName"] = "Seismic Accelerometer",
+                    ["body"] = "Mun",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Highlands",
+                    ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
+                    ["scienceCompletedPercentage"] = 100.0,
+                    ["scienceTransmittedPercentage"] = 100.0,
+                    ["scienceValue"] = 30.0,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "Powered",
+                    ["connectionState"] = "Connected",
+                    ["deployedOnGround"] = true,
+                },
+                // Minmus cluster — a separate vessel entirely, unpowered and
+                // disconnected (a brownout/no-relay-in-view state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Minmus Flats Outpost",
+                    ["partName"] = "Barometer",
+                    ["body"] = "Minmus",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Flats",
+                    ["experimentId"] = "surfaceExperimentBarometer",
+                    ["scienceCompletedPercentage"] = 15.0,
+                    ["scienceTransmittedPercentage"] = 0.0,
+                    ["scienceValue"] = 4.5,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "NoPower",
+                    ["connectionState"] = "NotConnected",
+                    ["deployedOnGround"] = true,
+                },
+            };
+        }
+
         [Fact]
         public async Task GeneratesPartsWireFixtureFromPartsRecording()
         {
