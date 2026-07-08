@@ -194,6 +194,20 @@ namespace Sitrep.Core.Serialization
                     // (Meta.quality / Meta.staleness).
                     AppendCommandResult(sb, commandResult);
                     break;
+                case Sitrep.Contract.CommsDelay commsDelay:
+                    // Same "producer owns the flatten" boundary as CommandResult
+                    // above: comms.delay's payload is a CommsDelay POCO (see
+                    // Gonogo.KSP.CommsCoreUplink.HandleOnCourier, which publishes
+                    // the raw value), which JsonWriter otherwise cannot serialize
+                    // — before this case it fail-softed at the wire boundary,
+                    // meaning a client that subscribed comms.delay got nothing.
+                    // Flattened to { oneWaySeconds, source, meta:{ source,
+                    // quality } } with enum ordinals + camelCase keys, matching
+                    // every other enum/field in this codec. Additive: no wire
+                    // fixture serialized a CommsDelay successfully before this,
+                    // so nothing existing changes shape.
+                    AppendCommsDelay(sb, commsDelay);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -240,6 +254,42 @@ namespace Sitrep.Core.Serialization
                 sb.Append(':');
                 AppendValue(sb, payload);
             }
+
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
+        /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
+        /// Enum values (<c>source</c>, <c>meta.quality</c>) are emitted as their
+        /// integer ordinal, the same convention as <c>Meta.quality</c>/
+        /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
+        /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendCommsDelay(StringBuilder sb, Sitrep.Contract.CommsDelay delay)
+        {
+            sb.Append('{');
+            AppendString(sb, "oneWaySeconds");
+            sb.Append(':');
+            AppendNumber(sb, delay.OneWaySeconds);
+
+            sb.Append(',');
+            AppendString(sb, "source");
+            sb.Append(':');
+            AppendInteger(sb, (long)delay.Source);
+
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            sb.Append('{');
+            AppendString(sb, "source");
+            sb.Append(':');
+            AppendString(sb, delay.Meta?.Source ?? "");
+            sb.Append(',');
+            AppendString(sb, "quality");
+            sb.Append(':');
+            AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
+            sb.Append('}');
 
             sb.Append('}');
         }

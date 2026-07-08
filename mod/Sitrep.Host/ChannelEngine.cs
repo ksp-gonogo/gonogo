@@ -96,6 +96,35 @@ namespace Sitrep.Host
         private readonly SubscriptionRegistry _subscriptions = new SubscriptionRegistry();
         private readonly ChannelEmitter _emitter;
 
+        // ---- Server-side reveal gate (spec-streaming-delay-model §4 / §7.3
+        // Steps 1–3): the choke point that makes DelayRole LIVE on the host.
+        // A Delayed channel's change-gated (UT,value) decisions are held here
+        // and only Record()ed to the Courier — i.e. put on the wire for EVERY
+        // client (SDK, curl, third-party, station relay) — once the per-channel
+        // reveal horizon (now − delay) reaches them. TrueNow channels (and
+        // comms.delay itself, which DEFINES the delay) bypass entirely and are
+        // recorded live. Courier-thread-only, same discipline as _emitter/_born.
+        //
+        // The literal MUST match Gonogo.KSP.CommsCoreUplink.DelayTopic — that
+        // uplink is KSP-facing (this project builds without the KSP DLLs), so
+        // the topic is duplicated here rather than referenced.
+        internal const string CommsDelayTopic = "comms.delay";
+
+        // Current one-way signal delay (seconds), snooped off the comms.delay
+        // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
+        // — CommsDelaySource.None / signal-delay-disabled / pre-first-emit —
+        // which reveals everything live, byte-identical to the pre-gate LAN
+        // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
+        private double _signalDelaySeconds;
+
+        // Per-topic buffer of change-gated (UT,value) decisions for Delayed
+        // channels not yet past their reveal horizon. Flushed to the Courier in
+        // insertion (UT-ascending) order once the horizon reaches each entry
+        // (see FlushReveal). Bounded by the delay window — entries leave as the
+        // horizon advances — never by session length (§5.1). Courier-thread-only.
+        private readonly Dictionary<string, List<BufferedReveal>> _revealBuffer =
+            new Dictionary<string, List<BufferedReveal>>();
+
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
 
@@ -1289,6 +1318,137 @@ namespace Sitrep.Host
             }
         }
 
+        // ----------------------------------------------------------------
+        // Server-side reveal gate (spec §4 / §7.3 Steps 1–3) — Courier-thread-only
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Route one emit decision through the reveal gate — the single funnel
+        /// every <see cref="Courier.Record"/> now goes through, replacing the
+        /// bare Record calls in <see cref="ProcessTick"/>/<see cref="ProcessPublish"/>.
+        /// Snoops <c>comms.delay</c> to keep the gate's delay value current
+        /// (§7.3 Step 2). A TrueNow / zero-delay channel is recorded LIVE,
+        /// inline, exactly as before the gate existed — so with signal delay
+        /// disabled (delay 0) every channel takes this path and the wire is
+        /// byte-identical to the pre-gate LAN behaviour. A Delayed channel with
+        /// a positive delay is buffered until <see cref="FlushReveal"/>'s
+        /// horizon reaches its UT.
+        /// </summary>
+        private void Emit(string topic, object? value, double ut)
+        {
+            if (topic == CommsDelayTopic)
+            {
+                CaptureSignalDelay(value);
+            }
+
+            if (RevealDelayFor(topic) <= 0.0)
+            {
+                _courier.Record(NodeId, topic, value, ut);
+                return;
+            }
+
+            if (!_revealBuffer.TryGetValue(topic, out var list))
+            {
+                list = new List<BufferedReveal>();
+                _revealBuffer[topic] = list;
+            }
+            list.Add(new BufferedReveal(ut, value));
+        }
+
+        /// <summary>
+        /// The reveal-horizon delay (seconds) for <paramref name="topic"/>: 0
+        /// for a <see cref="DelayRole.TrueNow"/> channel and for
+        /// <c>comms.delay</c> itself (the value that DEFINES the delay must
+        /// never be gated by it — defended here regardless of how it was
+        /// declared, §4.0), otherwise the current signal delay. Fail-soft: a
+        /// non-finite or negative delay collapses to 0 (reveal live — never
+        /// worse than today).
+        /// </summary>
+        private double RevealDelayFor(string topic)
+        {
+            if (topic == CommsDelayTopic)
+            {
+                return 0.0;
+            }
+            if (_channelDeclarations.TryGetValue(topic, out var decl) && decl.Delay == DelayRole.TrueNow)
+            {
+                return 0.0;
+            }
+
+            var delay = _signalDelaySeconds;
+            if (double.IsNaN(delay) || double.IsInfinity(delay) || delay <= 0.0)
+            {
+                return 0.0;
+            }
+            return delay;
+        }
+
+        /// <summary>
+        /// Update <see cref="_signalDelaySeconds"/> from a just-emitted
+        /// <c>comms.delay</c> payload. <see cref="CommsDelaySource.None"/> (and
+        /// the flag-off / no-geometry cases that produce it) already carries
+        /// <c>OneWaySeconds == 0</c>, so the raw value is used directly. An
+        /// unrecognized payload leaves the previous delay untouched (fail-soft
+        /// — never reveals a Delayed channel earlier than the last known-good
+        /// horizon by accident).
+        /// </summary>
+        private void CaptureSignalDelay(object? value)
+        {
+            if (value is CommsDelay commsDelay)
+            {
+                _signalDelaySeconds = commsDelay.OneWaySeconds;
+            }
+        }
+
+        /// <summary>
+        /// Release every buffered Delayed-channel sample whose UT has reached
+        /// its reveal horizon (<paramref name="now"/> − delay), recording it
+        /// into the Courier so it goes on the wire. Called once per tick BEFORE
+        /// the clock advance, so the Courier schedules the freed deliveries and
+        /// the same <see cref="ManualClock.AdvanceTo"/> fires them. Runs
+        /// independently of the channel loop, so a value that was buffered on an
+        /// earlier tick — and whose change-gated channel emitted nothing since —
+        /// still surfaces the moment the horizon overtakes it. The post-horizon
+        /// tail stays buffered. This is the server-side twin of the SDK
+        /// <c>ViewClock.confirmedEdgeUt()</c> clamp (§4.0).
+        /// </summary>
+        private void FlushReveal(double now)
+        {
+            if (_revealBuffer.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var topic in new List<string>(_revealBuffer.Keys))
+            {
+                var list = _revealBuffer[topic];
+                var horizon = now - RevealDelayFor(topic);
+
+                var writeIdx = 0;
+                for (var readIdx = 0; readIdx < list.Count; readIdx++)
+                {
+                    var entry = list[readIdx];
+                    if (entry.Ut <= horizon)
+                    {
+                        _courier.Record(NodeId, topic, entry.Value, entry.Ut);
+                    }
+                    else
+                    {
+                        list[writeIdx++] = entry;
+                    }
+                }
+
+                if (writeIdx < list.Count)
+                {
+                    list.RemoveRange(writeIdx, list.Count - writeIdx);
+                }
+                if (list.Count == 0)
+                {
+                    _revealBuffer.Remove(topic);
+                }
+            }
+        }
+
         private void ProcessTick(TickJob tick)
         {
             // Quickload / timeline-rewind detection: paired 1:1 with the
@@ -1305,6 +1465,11 @@ namespace Sitrep.Host
             {
                 _courier.ResetTimeline(tick.Ut);
                 _emitter.Reset(tick.Ut);
+                // Drop every un-revealed buffered sample: they belong to the
+                // abandoned pre-rewind timeline and must never surface on the
+                // new one (the reveal-gate analogue of ResetTimeline dropping
+                // in-flight Courier deliveries — §7.3 Step 3, on-reset flush).
+                _revealBuffer.Clear();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
             }
@@ -1468,9 +1633,14 @@ namespace Sitrep.Host
                 }
                 if (decision.ShouldEmit)
                 {
-                    _courier.Record(NodeId, topic, decision.Value, tick.Ut);
+                    Emit(topic, decision.Value, tick.Ut);
                 }
             }
+
+            // Release any buffered Delayed-channel samples the advancing horizon
+            // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
+            // Courier schedules fire within this same clock advance (§7.3 Step 1/3).
+            FlushReveal(tick.Ut);
 
             _clock.AdvanceTo(tick.Ut);
             tick.Done?.Set();
@@ -1509,7 +1679,14 @@ namespace Sitrep.Host
             }
             if (decision.ShouldEmit)
             {
-                _courier.Record(NodeId, publish.Topic, decision.Value, ut);
+                // Event-driven publish rides the SAME reveal gate as a
+                // Tick-driven channel. comms.delay (the production delay
+                // authority — CommsCoreUplink publishes it via a Publisher) is
+                // TrueNow, so it records live and updates the gate's delay here;
+                // a Delayed publish is buffered and released by a subsequent
+                // Tick's FlushReveal (ProcessPublish carries no clock advance
+                // of its own — the horizon only moves on Tick).
+                Emit(publish.Topic, decision.Value, ut);
             }
         }
 
@@ -1968,6 +2145,22 @@ namespace Sitrep.Host
                 Capture = capture;
                 Handle = handle;
                 TopicPrefixes = topicPrefixes;
+            }
+        }
+
+        /// <summary>
+        /// One change-gated (UT, value) decision held in the reveal gate's
+        /// <see cref="_revealBuffer"/> until its channel's horizon reaches
+        /// <see cref="Ut"/> — see <see cref="Emit"/>/<see cref="FlushReveal"/>.
+        /// </summary>
+        private readonly struct BufferedReveal
+        {
+            public readonly double Ut;
+            public readonly object? Value;
+            public BufferedReveal(double ut, object? value)
+            {
+                Ut = ut;
+                Value = value;
             }
         }
 

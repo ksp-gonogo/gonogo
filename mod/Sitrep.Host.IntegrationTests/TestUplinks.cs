@@ -325,6 +325,108 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
+    /// Exercises the SERVER-SIDE reveal gate (spec-streaming-delay-model §4 /
+    /// §7.3 Steps 1–3). Declares three channels spanning the delay roles a raw
+    /// (non-SDK) client sees over the wire:
+    /// <list type="bullet">
+    /// <item><description><c>comms.delay</c> — TrueNow; the delay AUTHORITY.
+    /// Its <see cref="CommsDelay"/> payload sets the one-way delay the gate
+    /// applies to every Delayed channel, and it must never be gated by the
+    /// delay it defines.</description></item>
+    /// <item><description><c>rev.delayed</c> — Delayed; withheld until its UT
+    /// crosses the reveal horizon (now − delay).</description></item>
+    /// <item><description><c>rev.truenow</c> — TrueNow; revealed live regardless
+    /// of the delay.</description></item>
+    /// </list>
+    /// All three are pull channels reading the tick snapshot's Values bag, so a
+    /// test drives them purely through <c>TickAndWait</c>.
+    /// </summary>
+    internal sealed class RevealGateTestUplink : ISitrepUplink
+    {
+        public const string DelayedTopic = "rev.delayed";
+        public const string TrueNowTopic = "rev.truenow";
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "reveal-gate-test",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = DelayedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = TrueNowTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+            host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+            host.AddChannelSource(TrueNowTopic, snapshot => Read(snapshot, "truenow"));
+        }
+
+        private static object? MapDelay(KspSnapshot? snapshot)
+        {
+            var raw = Read(snapshot, "delay");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        private static object? Read(KspSnapshot? snapshot, string key)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            return value;
+        }
+
+        /// <summary>Build a tick snapshot. Any argument left null is simply absent from the Values bag (its channel emits nothing that tick).</summary>
+        public static KspSnapshot Snapshot(double ut, double? delay = null, double? delayed = null, double? trueNow = null)
+        {
+            var values = new Dictionary<string, object?>();
+            if (delay.HasValue)
+            {
+                values["delay"] = delay.Value;
+            }
+            if (delayed.HasValue)
+            {
+                values["delayed"] = delayed.Value;
+            }
+            if (trueNow.HasValue)
+            {
+                values["truenow"] = trueNow.Value;
+            }
+            return new KspSnapshot { Ut = ut, Values = values };
+        }
+    }
+
+    /// <summary>
     /// Trivial no-op <see cref="IVesselActuator"/> for <see cref="TestVesselUplink"/>
     /// — every call succeeds and does nothing observable. Sufficient for this
     /// project's replay-driven tests, none of which dispatch a vessel command
