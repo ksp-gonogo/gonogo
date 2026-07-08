@@ -56,6 +56,8 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   "system.bodies",
   // SystemViewProvider.cs's VesselsTopic (M3 vessel-gap batch roster add).
   "system.vessels",
+  // CareerViewProvider.cs's Topic (M3 career batch).
+  "career.status",
 ]);
 
 /**

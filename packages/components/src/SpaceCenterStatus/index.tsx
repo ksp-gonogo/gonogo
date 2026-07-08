@@ -3,10 +3,17 @@ import {
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  StreamStatusBadge,
+} from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -113,6 +120,14 @@ function SpaceCenterStatusComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
+  // M3 career batch: career.funds -> career.status.economy.funds is the one
+  // MAPPED read in this widget. kc.facilityLevels/partsAvailable/launchSite/
+  // padOccupied/padVesselTitle/scene are all still-gapped kc.* GonogoTelemetry
+  // keys — no career.status equivalent shape (see map-topic.ts's doc comment
+  // on the facilities gap) — and stay legacy. kc.upgradeFacility[...] (the
+  // spend command) has no command home either (KNOWN_COMMAND_GAPS) and falls
+  // back to legacy automatically.
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const facilities = parseFacilityLevels(facilitiesRaw);
@@ -173,7 +188,10 @@ function SpaceCenterStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>SPACE CENTER</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SPACE CENTER</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {padLine}
@@ -379,6 +397,15 @@ function formatTinyFunds(value: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Body = styled(ScrollArea)`
   flex: 1;

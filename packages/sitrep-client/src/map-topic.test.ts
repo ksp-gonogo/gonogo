@@ -115,12 +115,37 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
 
   it("returns undefined for known gaps (no silent identity fallback)", () => {
     // (tar.availableVessels was un-gapped in the M3 vessel-gap batch — it now
-    // maps to system.vessels; see the roster mapping test below.)
+    // maps to system.vessels; see the roster mapping test below. career.funds/
+    // reputation/science were un-gapped in the M3 career batch — see the
+    // career.status mapping test below.)
     expect(mapTopic("data", "land.speedAtImpact")).toBeUndefined();
     expect(mapTopic("data", "land.timeToImpact")).toBeUndefined();
-    expect(mapTopic("data", "career.funds")).toBeUndefined();
+    expect(mapTopic("data", "strategies.all")).toBeUndefined();
+    expect(mapTopic("data", "tech.nodes")).toBeUndefined();
+    expect(mapTopic("data", "contracts.active")).toBeUndefined();
     expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(true);
-    expect(isKnownTelemachusGap("data", "career.funds")).toBe(true);
+    expect(isKnownTelemachusGap("data", "strategies.all")).toBe(true);
+    expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(true);
+    expect(isKnownTelemachusGap("data", "contracts.active")).toBe(true);
+  });
+
+  it("maps the M3 career batch's economy scalars onto career.status", () => {
+    expect(mapTopic("data", "career.funds")).toBe(
+      "career.status.economy.funds",
+    );
+    expect(mapTopic("data", "career.reputation")).toBe(
+      "career.status.economy.reputation",
+    );
+    expect(mapTopic("data", "career.science")).toBe(
+      "career.status.economy.science",
+    );
+    expect(isKnownTelemachusGap("data", "career.funds")).toBe(false);
+    expect(isKnownTelemachusGap("data", "career.reputation")).toBe(false);
+    expect(isKnownTelemachusGap("data", "career.science")).toBe(false);
+    // career.mode stays gapped (ScienceBench/useGameContext, out of this
+    // batch's scope — no economy-group equivalent).
+    expect(mapTopic("data", "career.mode")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "career.mode")).toBe(true);
   });
 
   it("maps the M3 vessel-gap batch's newly-added roster / dock / node-id keys", () => {

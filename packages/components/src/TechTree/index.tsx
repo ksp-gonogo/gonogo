@@ -2,10 +2,17 @@ import type { ComponentProps } from "@gonogo/core";
 import {
   getSizeBucket,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { Panel, PanelSubtitle, PanelTitle, ScrollArea } from "@gonogo/ui";
+import {
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  ScrollArea,
+  StreamStatusBadge,
+} from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -264,9 +271,17 @@ function layoutGraph(
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
+  // M3 career batch: career.science -> career.status.economy.science is the
+  // one MAPPED read in this widget. tech.nodes stays legacy — the wire's
+  // career.status.tech only carries {unlockedCount, unlockedIds}, no
+  // titles/costs/parent edges/parts/Researchable-vs-Unavailable distinction
+  // this widget's tree view needs (see map-topic.ts's doc comment on the
+  // tech gap); tech.unlock[...] (the spend command) has no command home
+  // either (KNOWN_COMMAND_GAPS) and falls back to legacy automatically.
   const nodesRaw = useDataValue("data", "tech.nodes");
   const scene = useDataValue<string>("data", "kc.scene");
   const careerScience = useDataValue<number>("data", "career.science");
+  const streamStatus = useDataStreamStatus("data", "career.science");
   const execute = useExecuteAction("data");
 
   const allNodes = parseTechNodes(nodesRaw);
@@ -316,7 +331,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (allNodes === null) {
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && <PanelSubtitle>Awaiting tech telemetry</PanelSubtitle>}
       </Panel>
     );
@@ -324,7 +342,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (allNodes.length === 0) {
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && <PanelSubtitle>No tech nodes loaded</PanelSubtitle>}
       </Panel>
     );
@@ -338,7 +359,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   if (bucket === "tiny") {
     return (
       <Panel>
-        <PanelTitle>TECH</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <TinyBody>
           <TinyCount>
             {counts.researchable}
@@ -401,7 +425,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
     return (
       <Panel>
-        <PanelTitle>TECH TREE</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TECH TREE</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {subtitle}
         <GraphToolbar>
           <Legend aria-hidden="true">
@@ -468,7 +495,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
   return (
     <Panel>
-      <PanelTitle>TECH TREE</PanelTitle>
+      <TitleRow>
+        <PanelTitle>TECH TREE</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {subtitle}
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
@@ -906,6 +936,15 @@ function dsBorder(ds: DisplayState): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Controls = styled.div`
   display: flex;

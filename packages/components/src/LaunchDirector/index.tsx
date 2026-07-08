@@ -2,6 +2,7 @@ import type { AvailableVesselEntry, ComponentProps } from "@gonogo/core";
 import {
   formatDistance,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
@@ -11,6 +12,7 @@ import {
   PanelTitle,
   ScrollArea,
   Spinner,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -143,6 +145,13 @@ function LaunchDirectorComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
+  // M3 career batch: career.funds -> career.status.economy.funds is the one
+  // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
+  // the balance" rule). Every kc.*/ksp.*/crash.*/tar.availableVessels read
+  // below stays legacy — kc.* has no career.status equivalent shape (see
+  // map-topic.ts's doc comment on the facilities gap), the rest are separate
+  // provider families or vessel-provider gaps untouched by this batch.
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
   const vesselName = useDataValue<string>("data", "v.name");
   const missionTime = useDataValue<number>("data", "v.missionTime");
@@ -235,7 +244,10 @@ function LaunchDirectorComponent({
   if (ships === null) {
     return (
       <Panel>
-        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+        <TitleRow>
+          <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && (
           <PanelSubtitle>Awaiting launch-pad telemetry</PanelSubtitle>
         )}
@@ -273,7 +285,10 @@ function LaunchDirectorComponent({
 
   return (
     <Panel>
-      <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+      <TitleRow>
+        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {inFlight
@@ -738,6 +753,15 @@ function ArmedButton({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Body = styled(ScrollArea)`
   flex: 1;

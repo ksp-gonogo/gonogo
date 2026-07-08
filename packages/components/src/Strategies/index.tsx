@@ -2,6 +2,7 @@ import type { ComponentProps } from "@gonogo/core";
 import {
   getSizeBucket,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
@@ -13,6 +14,7 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -130,10 +132,19 @@ function StrategiesComponent({
   w,
   h,
 }: Readonly<ComponentProps<StrategiesConfig>>) {
+  // M3 career batch: career.funds/reputation/science -> career.status.
+  // economy.{funds,reputation,science} are the three MAPPED reads in this
+  // widget. strategies.all stays legacy — the wire's career.status.
+  // strategies.active only carries {title, department, factor}, no stable
+  // `id`/costs/canActivate/canDeactivate/effect text this widget's parser
+  // needs (see map-topic.ts's doc comment on the strategies gap); the
+  // activate/deactivate commands have no command home either
+  // (KNOWN_COMMAND_GAPS) and fall back to legacy automatically.
   const stratsRaw = useDataValue("data", "strategies.all");
   const funds = useDataValue<number>("data", "career.funds");
   const reputation = useDataValue<number>("data", "career.reputation");
   const science = useDataValue<number>("data", "career.science");
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
@@ -182,7 +193,10 @@ function StrategiesComponent({
   if (strategies === null) {
     return (
       <Panel>
-        <PanelTitle>Strategies</PanelTitle>
+        <Header>
+          <PanelTitle>Strategies</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         {showSubtitle && <PanelSubtitle>Awaiting career data…</PanelSubtitle>}
       </Panel>
     );
@@ -238,6 +252,7 @@ function StrategiesComponent({
             {active.length} active
             {overCap && ` / ${inferredCap}`}
           </Tally>
+          <StreamStatusBadge status={streamStatus} />
         </Header>
       </Panel>
     );
@@ -247,6 +262,7 @@ function StrategiesComponent({
     <Panel>
       <Header>
         <PanelTitle>Admin Building</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
         {/* HeaderMeta wraps to a second row at narrow widths so funds /
             rep / sci aren't clipped by the title's space-between layout.
             At very narrow widths (cols < 6) the funds/rep/sci line gets
