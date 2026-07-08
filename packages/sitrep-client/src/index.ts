@@ -17,6 +17,11 @@ export {
   useViewClockOptional,
   type ViewClockView,
 } from "./context";
+export {
+  COMMS_DELAY_TOPIC,
+  DelayAuthority,
+  type DelaySubscribable,
+} from "./delay-authority";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";

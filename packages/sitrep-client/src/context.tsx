@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import type { TelemetryClient } from "./client";
+import { DelayAuthority } from "./delay-authority";
 import { TimelineStore } from "./timeline-store";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock, type ViewClockOptions } from "./view-clock";
@@ -142,8 +143,8 @@ export function TelemetryProvider({
   carriedChannels: carriedChannelsProp,
 }: TelemetryProviderProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency (M2 finalization Fix 2) for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
-  const store = useMemo(() => {
-    if (providedStore) return providedStore;
+  const { store, delayAuthority } = useMemo(() => {
+    if (providedStore) return { store: providedStore, delayAuthority: null };
     // Auto-built store must rebuild on `client` identity change (M2
     // finalization Fix 2, bridge review Important #1): before this fix,
     // `client` was deliberately omitted from this memo's deps (the comment
@@ -157,11 +158,26 @@ export function TelemetryProvider({
     // deliberately independent of `client` (see the `attachStore`/
     // `subscribeStore` effects below, which still re-wire IT to a new
     // `client` without rebuilding it).
-    const built = new TimelineStore(new ViewClock(viewClockOptions));
+    // Streaming-delay spec §7.3 Step 4 — the SINGLE delay-wiring point. The
+    // auto-built clock's `delaySeconds` reads the `DelayAuthority` (fed from
+    // `comms.delay` by the effect below) instead of the `() => 0` stub, so
+    // the certainty horizon / predicted-present lead is sized to the real
+    // one-way light-time. This is legibility over the already-server-delayed
+    // wire, NOT enforcement (the mod's reveal gate already withheld the
+    // samples). A caller who passes an explicit `viewClockOptions.delaySeconds`
+    // (e.g. a fixed replay delay) still wins — the authority is only the
+    // default. Media (kerbcast) reads this same clock, so it aligns for free.
+    const authority = new DelayAuthority();
+    const built = new TimelineStore(
+      new ViewClock({
+        ...viewClockOptions,
+        delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
+      }),
+    );
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
     }
-    return built;
+    return { store: built, delayAuthority: authority };
   }, [providedStore, client]);
 
   // The carried-channels allowlist (M3 Wave 0, `./carried-channels.ts`):
@@ -201,6 +217,14 @@ export function TelemetryProvider({
   }, [client, carriedChannelsProp]);
 
   useEffect(() => client.attachStore(store), [client, store]);
+  // Streaming-delay spec §7.3 Step 4: keep the auto-built clock's delay value
+  // current by subscribing the `DelayAuthority` to `comms.delay`. Skipped when
+  // the caller supplied their own `store` (they own its clock's delay wiring),
+  // matching the auto-built store's client-identity lifetime above.
+  useEffect(() => {
+    if (!delayAuthority) return;
+    return delayAuthority.attach(client);
+  }, [client, delayAuthority]);
   useEffect(() => {
     // M2 finalization Fix 1: coalesce to (at most) one `beginFrame()` per
     // animation-frame tick, instead of one per `stream-data` message — see

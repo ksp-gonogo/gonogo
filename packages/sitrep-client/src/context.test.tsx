@@ -1,3 +1,4 @@
+import { CommsDelaySource } from "@gonogo/sitrep-sdk";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
@@ -8,6 +9,7 @@ import {
   useViewClockOptional,
   type ViewClockView,
 } from "./context";
+import { COMMS_DELAY_TOPIC } from "./delay-authority";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -284,5 +286,79 @@ describe("useViewClock exposes the provider's ONE shared ViewClock (single delay
     }
     render(<OptionalProbe />);
     expect(optional).toBeUndefined();
+  });
+});
+
+describe("TelemetryProvider wires comms.delay into the auto-built ViewClock (spec §7.3 Step 4)", () => {
+  it("subscribes comms.delay and the delay value drives the clock's delaySeconds", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    let store: TimelineStore | undefined;
+    function Capture() {
+      store = useTelemetryStore();
+      return null;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Capture />
+      </TelemetryProvider>,
+    );
+
+    // The auto-built store's DelayAuthority attached on mount → the transport
+    // saw a subscribe for comms.delay (the single wiring point).
+    expect(transport.isSubscribed(COMMS_DELAY_TOPIC)).toBe(true);
+    expect(store?.clock.delaySeconds()).toBe(0); // no value yet
+
+    act(() => {
+      transport.emit(COMMS_DELAY_TOPIC, {
+        oneWaySeconds: 4.2,
+        source: CommsDelaySource.SignalDelay,
+      });
+    });
+    expect(store?.clock.delaySeconds()).toBe(4.2);
+
+    act(() => {
+      transport.emit(COMMS_DELAY_TOPIC, {
+        oneWaySeconds: 0,
+        source: CommsDelaySource.None,
+      });
+    });
+    expect(store?.clock.delaySeconds()).toBe(0);
+
+    client.dispose();
+  });
+
+  it("a caller-supplied viewClockOptions.delaySeconds wins over the authority (advanced override)", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    let store: TimelineStore | undefined;
+    function Capture() {
+      store = useTelemetryStore();
+      return null;
+    }
+
+    render(
+      <TelemetryProvider
+        client={client}
+        viewClockOptions={{ delaySeconds: () => 30 }}
+      >
+        <Capture />
+      </TelemetryProvider>,
+    );
+
+    // Explicit delay wins; a comms.delay arrival must not override it.
+    expect(store?.clock.delaySeconds()).toBe(30);
+    act(() => {
+      transport.emit(COMMS_DELAY_TOPIC, {
+        oneWaySeconds: 4.2,
+        source: CommsDelaySource.SignalDelay,
+      });
+    });
+    expect(store?.clock.delaySeconds()).toBe(30);
+
+    client.dispose();
   });
 });
