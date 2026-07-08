@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 
@@ -9,7 +10,7 @@ namespace Gonogo.KSP
     /// live recording carries KSC/career state (funds/reputation/science,
     /// facility levels+costs, contracts, strategies, unlocked tech count)
     /// alongside <c>system.*</c>/<c>vessel.*</c>. Mirrors
-    /// <see cref="SystemExtension"/>'s retrofit shape exactly: this class is
+    /// <see cref="SystemUplink"/>'s retrofit shape exactly: this class is
     /// thin KSP-adjacent wiring; the actual mapping lives in the KSP-free
     /// <c>Sitrep.Host</c> assembly (<see cref="CareerViewProvider"/>),
     /// headlessly testable there. No <see cref="ISnapshotSampler"/> is
@@ -22,9 +23,10 @@ namespace Gonogo.KSP
     /// activate/deactivate strategy) is a follow-up, scoped in the master
     /// plan's Career/KSC section.</para>
     /// </summary>
-    public sealed class CareerExtension : ISitrepExtension
+    [SitrepUplink("career")]
+    public sealed class CareerUplink : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "career",
             Version = "1.0.0",
@@ -46,7 +48,7 @@ namespace Gonogo.KSP
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
         }

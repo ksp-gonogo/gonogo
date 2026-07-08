@@ -14,6 +14,7 @@ namespace Sitrep.Contract;
 /// whole record to re-emit every tick — see
 /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

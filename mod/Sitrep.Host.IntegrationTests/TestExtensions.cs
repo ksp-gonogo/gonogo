@@ -6,8 +6,8 @@ using Sitrep.Host;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The integration-test project's own tiny <see cref="ISitrepExtension"/>
-    /// — NOT a copy of <c>Gonogo.KSP.SystemExtension</c> (this project can't
+    /// The integration-test project's own tiny <see cref="ISitrepUplink"/>
+    /// — NOT a copy of <c>Gonogo.KSP.SystemUplink</c> (this project can't
     /// reference the net472/KSP-referencing <c>Gonogo.KSP</c> assembly at
     /// all, per this project's own csproj comment), but a few lines instead
     /// of the ~300-line hand-copied <c>ReplayBodiesServer</c> the previous
@@ -27,11 +27,11 @@ namespace Sitrep.Host.IntegrationTests
     /// registered channel at once.</description></item>
     /// </list>
     /// </summary>
-    internal sealed class TestSystemExtension : ISitrepExtension
+    internal sealed class TestSystemExtension : ISitrepUplink
     {
         public const string RawTopic = "test.raw";
 
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-system",
             Version = "1.0.0",
@@ -52,7 +52,7 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
             host.AddChannelSource(RawTopic, RawPassthrough);
@@ -79,11 +79,11 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// M1 Task 4a milestone test's KSP-free replica of
-    /// <c>Gonogo.KSP.VesselExtension</c> — same cross-project rationale as
+    /// <c>Gonogo.KSP.VesselUplink</c> — same cross-project rationale as
     /// <see cref="TestSystemExtension"/>'s own doc comment: this project
     /// cannot reference the net472 <c>Gonogo.KSP</c> assembly, so the
     /// manifest/wiring (17 channels + 17 commands, verbatim from the real
-    /// extension) is duplicated here against a trivial
+    /// uplink) is duplicated here against a trivial
     /// <see cref="NoOpVesselActuator"/> rather than the real
     /// <c>KspVesselActuator</c>. This milestone suite replays a REAL
     /// recording (snapshots + lifecycle events only — no client ever
@@ -95,7 +95,7 @@ namespace Sitrep.Host.IntegrationTests
     /// itself is `internal` to <c>Sitrep.Host.Tests</c> and unreachable from
     /// here for the same reason <c>Gonogo.KSP</c> is.
     /// </summary>
-    internal sealed class TestVesselExtension : ISitrepExtension
+    internal sealed class TestVesselExtension : ISitrepUplink
     {
         private readonly IVesselActuator _actuator;
 
@@ -104,7 +104,7 @@ namespace Sitrep.Host.IntegrationTests
             _actuator = actuator ?? new NoOpVesselActuator();
         }
 
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "vessel",
             Version = "1.0.0",
@@ -151,7 +151,7 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(VesselViewProvider.IdentityTopic, VesselViewProvider.BuildIdentityWire);
             host.AddChannelSource(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire);
@@ -207,7 +207,7 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// KSP-free integration-test replica of <c>Gonogo.KSP.CareerExtension</c>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.CareerUplink</c>
     /// — that assembly is net472/KSP-referencing and unreachable from this
     /// project, same cross-project rationale as <see cref="TestSystemExtension"/>'s
     /// own doc comment. Registers the <c>career.status</c> channel against
@@ -215,9 +215,9 @@ namespace Sitrep.Host.IntegrationTests
     /// domain wire-fixture generator can replay a career-mode recording
     /// through the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestCareerExtension : ISitrepExtension
+    internal sealed class TestCareerExtension : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-career",
             Version = "1.0.0",
@@ -232,23 +232,23 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
         }
     }
 
     /// <summary>
-    /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceExtension</c>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceUplink</c>
     /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
     /// doc comment. Registers all three <c>science.*</c> channels against
     /// <see cref="ScienceViewProvider"/>'s builders verbatim, so the domain
     /// wire-fixture generator can replay a science-mode recording through
     /// the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestScienceExtension : ISitrepExtension
+    internal sealed class TestScienceExtension : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-science",
             Version = "1.0.0",
@@ -275,7 +275,7 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
@@ -284,16 +284,16 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// KSP-free integration-test replica of <c>Gonogo.KSP.PartsExtension</c>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.PartsUplink</c>
     /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
     /// doc comment. Registers both <c>parts.*</c> channels against
     /// <see cref="PartsViewProvider"/>'s builders verbatim, so the domain
     /// wire-fixture generator can replay a parts/robotics-mode recording
     /// through the real engine pipeline exactly like a live capture would.
     /// </summary>
-    internal sealed class TestPartsExtension : ISitrepExtension
+    internal sealed class TestPartsExtension : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "test-parts",
             Version = "1.0.0",
@@ -314,7 +314,7 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
             host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);

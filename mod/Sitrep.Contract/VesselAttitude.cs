@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// suffix. Not derivable from orbital elements (attitude depends on vessel
 /// orientation, not trajectory), hence streamed raw.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

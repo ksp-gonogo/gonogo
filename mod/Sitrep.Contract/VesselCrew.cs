@@ -12,6 +12,7 @@ namespace Sitrep.Contract;
 /// part of the wart-fix — a future roster addition is additive to this
 /// record, not a new topic.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

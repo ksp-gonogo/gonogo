@@ -11,8 +11,8 @@ namespace Sitrep.Host
     /// history.
     ///
     /// KSP-free (this is the reusable, headlessly-testable half of the
-    /// mechanism); <c>Gonogo.KSP.VesselExtension</c> only constructs and
-    /// registers one instance via <see cref="IExtensionHost.AddSampler"/>.
+    /// mechanism); <c>Gonogo.KSP.VesselUplink</c> only constructs and
+    /// registers one instance via <see cref="IUplinkHost.AddSampler"/>.
     /// Registering it as an <see cref="ISnapshotSampler"/> — rather than
     /// detecting the change inside one of the channel mappers themselves —
     /// guarantees the force happens BEFORE any of this tick's channel
@@ -21,20 +21,20 @@ namespace Sitrep.Host
     /// registered sampler, THEN loops channel sources, in that fixed order,
     /// every tick.
     ///
-    /// <see cref="IExtensionHost.ForceKeyframe"/> is the same mechanism a
+    /// <see cref="IUplinkHost.ForceKeyframe"/> is the same mechanism a
     /// genuine 0→1 subscribe transition already uses internally
     /// (<c>ChannelEmitter.NotifySubscribed</c>) — reused here rather than
     /// inventing a second "unconditional next emission" concept.
     ///
-    /// Also calls <see cref="IExtensionHost.ResetChannelBirth"/> for the same
-    /// topic set, ALONGSIDE (not instead of) <see cref="IExtensionHost.ForceKeyframe"/>
+    /// Also calls <see cref="IUplinkHost.ResetChannelBirth"/> for the same
+    /// topic set, ALONGSIDE (not instead of) <see cref="IUplinkHost.ForceKeyframe"/>
     /// — the M2 subject-scoped-birth fix. Without this, the engine's
     /// per-topic "has this channel ever emitted a real value" birth-guard
     /// (see <c>ChannelEngine</c>'s <c>_born</c> field) is keyed purely by
     /// topic, not by (topic, subject): switching to a vessel that has never
     /// populated a given channel (e.g. no target set) would otherwise
     /// inherit the PREVIOUS vessel's "born" state for that topic and, since
-    /// <see cref="IExtensionHost.ForceKeyframe"/> makes the very next
+    /// <see cref="IUplinkHost.ForceKeyframe"/> makes the very next
     /// <c>Decide</c> call unconditional, immediately emit a spurious
     /// tombstone for data the new subject never had in the first place.
     ///
@@ -51,7 +51,7 @@ namespace Sitrep.Host
     /// </summary>
     public sealed class VesselEpochSampler : ISnapshotSampler
     {
-        private readonly IExtensionHost _host;
+        private readonly IUplinkHost _host;
         private string? _lastVesselId;
 
         // The M2 re-verification "rewind-aware sampler" fix: tracks the Ut
@@ -61,7 +61,7 @@ namespace Sitrep.Host
         // Null before the first observation.
         private double? _lastUt;
 
-        public VesselEpochSampler(IExtensionHost host)
+        public VesselEpochSampler(IUplinkHost host)
         {
             _host = host;
         }

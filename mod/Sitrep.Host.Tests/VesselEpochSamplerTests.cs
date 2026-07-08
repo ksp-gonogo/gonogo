@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
     /// Unit tests for <see cref="VesselEpochSampler"/>: the M1 "subject
     /// provenance + epoching" mechanism
     /// (local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1) in
-    /// isolation, via <see cref="FakeExtensionHost"/> rather than a full
+    /// isolation, via <see cref="FakeUplinkHost"/> rather than a full
     /// <see cref="ChannelEngine"/> — this is the "detect a vessel-guid
     /// change and force a keyframe on every vessel.* channel" logic on its
     /// own, decoupled from engine plumbing (which
@@ -25,7 +25,7 @@ namespace Sitrep.Host.Tests
         public void FirstObservationOfAVesselDoesNotCountAsASwitch()
         {
             var forced = new List<string>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(t => forced.Add(t)));
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(t => forced.Add(t)));
 
             sampler.Sample(SnapshotFor(VesselA));
 
@@ -36,7 +36,7 @@ namespace Sitrep.Host.Tests
         public void SwitchingToADifferentVesselForcesAKeyframeOnEveryVesselTopic()
         {
             var forced = new List<string>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(t => forced.Add(t)));
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(t => forced.Add(t)));
 
             sampler.Sample(SnapshotFor(VesselA));
             sampler.Sample(SnapshotFor(VesselA)); // same vessel again -- no force
@@ -49,7 +49,7 @@ namespace Sitrep.Host.Tests
         public void ReSamplingTheSameVesselNeverForcesAKeyframe()
         {
             var forced = new List<string>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(t => forced.Add(t)));
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(t => forced.Add(t)));
 
             sampler.Sample(SnapshotFor(VesselA));
             for (var i = 0; i < 5; i++)
@@ -64,7 +64,7 @@ namespace Sitrep.Host.Tests
         public void ATemporaryGapWithNoActiveVesselDoesNotErasePriorSubjectMemory()
         {
             var forced = new List<string>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(t => forced.Add(t)));
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(t => forced.Add(t)));
 
             sampler.Sample(SnapshotFor(VesselA));
             sampler.Sample(NoVesselSnapshot()); // e.g. a trip through the main menu
@@ -82,7 +82,7 @@ namespace Sitrep.Host.Tests
         public void NoActiveVesselNeverForcesAKeyframe()
         {
             var forced = new List<string>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(t => forced.Add(t)));
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(t => forced.Add(t)));
 
             sampler.Sample(NoVesselSnapshot());
             sampler.Sample(NoVesselSnapshot());
@@ -107,7 +107,7 @@ namespace Sitrep.Host.Tests
         {
             var forced = new List<string>();
             var birthReset = new List<IReadOnlyCollection<string>>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(
                 t => forced.Add(t),
                 topics => birthReset.Add(new List<string>(topics))));
 
@@ -144,7 +144,7 @@ namespace Sitrep.Host.Tests
         {
             var forced = new List<string>();
             var birthReset = new List<IReadOnlyCollection<string>>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(
                 t => forced.Add(t),
                 topics => birthReset.Add(new List<string>(topics))));
 
@@ -196,7 +196,7 @@ namespace Sitrep.Host.Tests
         {
             var forced = new List<string>();
             var birthReset = new List<IReadOnlyCollection<string>>();
-            var sampler = new VesselEpochSampler(new FakeExtensionHost(
+            var sampler = new VesselEpochSampler(new FakeUplinkHost(
                 t => forced.Add(t),
                 topics => birthReset.Add(new List<string>(topics))));
 

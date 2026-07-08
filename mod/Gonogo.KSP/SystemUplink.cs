@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 
@@ -6,23 +7,24 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The <c>system.bodies</c> retrofit — the reference
-    /// <see cref="ISitrepExtension"/>, proving the extension contract fits
+    /// <see cref="ISitrepUplink"/>, proving the uplink contract fits
     /// the exact channel <c>GonogoBodiesServer</c> used to hand-wire. See
-    /// <c>local_docs/telemetry-mod/extension-sdk-contract-design.md</c> §6.1
+    /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §6.1
     /// (this class matches that sketch almost verbatim).
     ///
     /// Only ONE line of actual wiring survives the retrofit:
     /// <see cref="SystemViewProvider.BuildSystemBodies"/> drops straight in
-    /// as the <see cref="IExtensionHost.AddChannelSource"/> mapper argument,
+    /// as the <see cref="IUplinkHost.AddChannelSource"/> mapper argument,
     /// unchanged. No <see cref="ISnapshotSampler"/> is registered because
     /// <c>KspHost.Sample</c> already populates the raw <c>"bodies"</c>
     /// snapshot key unconditionally (see its own doc comment) — a future
-    /// extension whose data ISN'T already on the snapshot is what
-    /// <see cref="IExtensionHost.AddSampler"/> exists for.
+    /// uplink whose data ISN'T already on the snapshot is what
+    /// <see cref="IUplinkHost.AddSampler"/> exists for.
     /// </summary>
-    public sealed class SystemExtension : ISitrepExtension
+    [SitrepUplink("system")]
+    public sealed class SystemUplink : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "system",
             Version = "1.0.0",
@@ -57,7 +59,7 @@ namespace Gonogo.KSP
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
             host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);

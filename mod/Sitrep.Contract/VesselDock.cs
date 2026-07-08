@@ -24,6 +24,7 @@ namespace Sitrep.Contract;
 /// intentionally ships the raw dot product rather than a pre-baked
 /// percentage so the mapping stays a client concern.</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

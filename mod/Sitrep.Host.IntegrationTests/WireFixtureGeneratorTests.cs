@@ -26,7 +26,7 @@ namespace Sitrep.Host.IntegrationTests
     /// (<see cref="TestSystemExtension"/> + <see cref="TestVesselExtension"/>
     /// registered, zero network delay), but instead of asserting on the
     /// stream in-process, CAPTURES every raw wire frame for the FULL set of
-    /// channels the vessel + system extensions serve (<c>vessel.identity</c>,
+    /// channels the vessel + system uplinks serve (<c>vessel.identity</c>,
     /// <c>vessel.orbit</c>, <c>vessel.flight</c>, <c>vessel.attitude</c>,
     /// <c>vessel.resources</c>, <c>vessel.thermal</c>, <c>vessel.control</c>,
     /// <c>vessel.comms</c>, <c>vessel.propulsion</c>, <c>vessel.maneuver</c>,
@@ -97,7 +97,7 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(json);
             _output.WriteLine($"Reference recording found: {session.Entries.Count} entries.");
 
-            // The full set the vessel + system extensions serve -- every
+            // The full set the vessel + system uplinks serve -- every
             // vessel.* channel plus the two context channels -- so the TS-side
             // golden dual-run has real recorded frames to validate EVERY
             // widget's mapping against, not just the six that happened to be
@@ -129,8 +129,8 @@ namespace Sitrep.Host.IntegrationTests
             var rewindCount = 0;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0.0);
-            server.RegisterExtension(new TestSystemExtension());
-            server.RegisterExtension(new TestVesselExtension());
+            server.RegisterUplink(new TestSystemExtension());
+            server.RegisterUplink(new TestVesselExtension());
             server.Start();
 
             try

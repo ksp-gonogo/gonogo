@@ -48,6 +48,7 @@ public enum SasMode
 /// NEW wart (lying about upstream game truth); the range is documented,
 /// reader beware.</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

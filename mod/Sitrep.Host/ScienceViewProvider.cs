@@ -38,7 +38,7 @@ namespace Sitrep.Host
     /// distinguished by "vesselName".
     /// </code>
     /// Three separate channels (one per sub-group) rather than one combined
-    /// topic — see <c>Gonogo.KSP.ScienceExtension</c>'s doc comment for why.
+    /// topic — see <c>Gonogo.KSP.ScienceUplink</c>'s doc comment for why.
     /// </summary>
     public static class ScienceViewProvider
     {

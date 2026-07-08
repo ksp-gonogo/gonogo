@@ -202,7 +202,7 @@ namespace Sitrep.Host.Tests
             };
 
             var forcedTopics = new List<string>();
-            var epochSampler = new VesselEpochSampler(new FakeExtensionHost(t => forcedTopics.Add(t)));
+            var epochSampler = new VesselEpochSampler(new FakeUplinkHost(t => forcedTopics.Add(t)));
 
             var sawOrbitWithRealElements = false;
             var sawFlightWithRealLatLong = false;

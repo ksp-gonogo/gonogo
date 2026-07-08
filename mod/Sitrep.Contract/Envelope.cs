@@ -4,6 +4,7 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -18,6 +19,7 @@ public class StreamData<T>
     public Meta Meta { get; set; } = new();
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -32,6 +34,7 @@ public class EventMsg
     public Meta Meta { get; set; } = new();
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -47,6 +50,7 @@ public class CommandRequest<TArgs>
     public double SentAt { get; set; }
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -61,6 +65,7 @@ public class CommandResponse<TResult>
     public Meta Meta { get; set; } = new();
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -76,6 +81,7 @@ public class ErrorMsg
     public string Message { get; set; } = "";
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -88,6 +94,7 @@ public class Subscribe
     public string Topic { get; set; } = "";
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

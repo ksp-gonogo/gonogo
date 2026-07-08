@@ -23,6 +23,7 @@ namespace Sitrep.Contract;
 /// <c>heightFromTerrain</c> even when there's no meaningful "terrain"
 /// underneath at all).</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

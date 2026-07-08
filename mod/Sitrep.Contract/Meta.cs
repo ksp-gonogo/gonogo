@@ -14,6 +14,7 @@ public enum Quality { OnRails, Loaded }
 #endif
 public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -65,6 +66,7 @@ public class Meta
 /// envelope alone. Staleness is a separate, not-yet-implemented M2 concern
 /// and deliberately has no home here either.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

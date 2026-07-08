@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 /// CONVENTION today, enforced by never binding it from a widget, not by
 /// engine-level gating.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

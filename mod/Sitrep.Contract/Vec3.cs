@@ -11,6 +11,7 @@ namespace Sitrep.Contract;
 /// Sitrep.Contract uses this type; units are documented on the FIELD that
 /// holds a <see cref="Vec3"/>, never implied by the shape itself.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

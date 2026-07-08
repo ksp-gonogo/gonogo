@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// the correct actuator call with the correct values", per M1 Task 3's
     /// verification plan) and returns a per-method, test-configurable
     /// result (defaulting to success) instead of ever touching KSP. Mirrors
-    /// <see cref="FakeExtensionHost"/>'s "record + configurable" convention
+    /// <see cref="FakeUplinkHost"/>'s "record + configurable" convention
     /// for this project's other seam interfaces.
     /// </summary>
     internal sealed class FakeVesselActuator : IVesselActuator

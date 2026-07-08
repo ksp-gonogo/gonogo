@@ -14,6 +14,7 @@ namespace Sitrep.Contract;
 /// fire-and-forget void), and failure is structured data, not a thrown
 /// exception a client has to string-match.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -36,6 +37,7 @@ public class Ack
 /// design doc §3/§6.2's <c>toggleActionGroup</c> caution); every M1 actuation
 /// command is set-semantics only, so that footgun doesn't exist here at all.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -44,6 +46,7 @@ public class SetEnabledArgs
     public bool Enabled { get; set; }
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -52,6 +55,7 @@ public class SetSasModeArgs
     public SasMode Mode { get; set; }
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -65,6 +69,7 @@ public class SetThrottleArgs
 /// <c>vessel.control.stage</c>'s result — a real value comes back (the new
 /// current stage index), unlike Telemachus's <c>f.stage</c> void fire-and-forget.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -84,6 +89,7 @@ public class StageResult
 /// folded into this one — kept separate so a client never has to string-match
 /// a group name to flip the landing gear.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -105,6 +111,7 @@ public class SetActionGroupArgs
 /// preserve this exact component assignment rather than "helpfully"
 /// reordering it.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -120,6 +127,7 @@ public class AddManeuverNodeArgs
 }
 
 /// <summary>Result of <c>vessel.maneuver.add</c> — O-6 fixed: the created node's opaque id is actually returned.</summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -139,6 +147,7 @@ public class AddManeuverNodeResult
 /// (O-4's second half: Telemachus's <c>updateManeuverNode</c> shifted every
 /// later sibling's index by one).
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -155,6 +164,7 @@ public class UpdateManeuverNodeArgs
     public double RadialOut { get; set; }
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -174,6 +184,7 @@ public class RemoveManeuverNodeArgs
 /// index are separate fields in separate namespaces, so they can never be
 /// confused for one another.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -192,6 +203,7 @@ public class SetTargetArgs
 /// <c>time.setWarpIndex</c>'s args — sim-meta, never delayed (light-time
 /// fiction doesn't apply to a ground-side simulation control).
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -200,6 +212,7 @@ public class SetWarpIndexArgs
     public int Index { get; set; }
 }
 
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

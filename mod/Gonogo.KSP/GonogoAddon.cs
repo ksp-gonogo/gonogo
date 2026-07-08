@@ -54,6 +54,17 @@ namespace Gonogo.KSP
         // with warp.
         private const double FlushIntervalSeconds = 60.0;
 
+        /// <summary>
+        /// M3 R3's shared id registry, hoisted to a mod-wide static so the
+        /// discovery-required parameterless <c>VesselUplink()</c> constructor
+        /// (see its own doc comment) can build a <see cref="KspVesselActuator"/>
+        /// against the SAME instance <see cref="KspHost"/> stamps
+        /// <c>vessel.maneuver</c> node ids from, without <see cref="UplinkDiscovery"/>
+        /// needing any KSP-specific constructor-argument-resolution mechanism.
+        /// Set once, here, before discovery runs; never reassigned afterward.
+        /// </summary>
+        internal static ReferenceIdRegistry<ManeuverNode> SharedManeuverNodeIdRegistry { get; } = new ReferenceIdRegistry<ManeuverNode>();
+
         private KspHost? _host;
         private Recorder? _recorder;
         private ChannelEngine? _engine;
@@ -68,22 +79,20 @@ namespace Gonogo.KSP
 
             try
             {
-                // M3 R3: ONE shared id registry for the whole session, handed
-                // to both the read side (KspHost stamps vessel.maneuver node
-                // ids from it) and the write side (KspVesselActuator resolves
-                // update/remove's nodeId argument against it) — see
-                // ReferenceIdRegistry's doc comment for why sharing this
-                // single instance is what makes a node's id usable in a
-                // command at all.
-                var maneuverNodeIdRegistry = new ReferenceIdRegistry<ManeuverNode>();
-                _host = new KspHost(maneuverNodeIdRegistry);
+                _host = new KspHost(SharedManeuverNodeIdRegistry);
                 _recorder = new Recorder(_host);
                 _engine = new ChannelEngine(BindUri);
-                _engine.RegisterExtension(new SystemExtension());
-                _engine.RegisterExtension(new VesselExtension(new KspVesselActuator(maneuverNodeIdRegistry)));
-                _engine.RegisterExtension(new CareerExtension());
-                _engine.RegisterExtension(new ScienceExtension());
-                _engine.RegisterExtension(new PartsExtension());
+
+                // [SitrepUplink] assembly-scan discovery REPLACES the
+                // previous hardcoded RegisterUplink(new XyzUplink()) list —
+                // see Sitrep.Host.UplinkDiscovery's doc comment. The bundled
+                // core uplinks (System/Vessel/Career/Science/Parts) carry
+                // the attribute identically to any future third-party
+                // Uplink — nothing about this loop is special-cased to them.
+                foreach (var discovered in UplinkDiscovery.Discover())
+                {
+                    _engine.RegisterDiscoveredUplink(discovered.Uplink, discovered.ContractMajor, discovered.ContractMinor);
+                }
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,
@@ -162,7 +171,7 @@ namespace Gonogo.KSP
 
                 // The engine applies every registered channel's mapper
                 // (system.bodies's is SystemViewProvider.BuildSystemBodies,
-                // via SystemExtension) itself - GonogoAddon no longer builds
+                // via SystemUplink) itself - GonogoAddon no longer builds
                 // the payload by hand.
                 _engine.Tick(snapshot.Ut, snapshot);
             }

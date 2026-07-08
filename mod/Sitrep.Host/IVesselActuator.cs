@@ -24,7 +24,7 @@ namespace Sitrep.Host
     /// throwing — <see cref="ChannelEngine"/>'s fail-soft dispatch already
     /// catches a throwing handler, but a routine "nothing to act on right
     /// now" is not the same class of failure as a handler bug, so it gets a
-    /// typed result instead of tripping the extension-wide fail-soft.</para>
+    /// typed result instead of tripping the uplink-wide fail-soft.</para>
     /// </summary>
     public interface IVesselActuator
     {

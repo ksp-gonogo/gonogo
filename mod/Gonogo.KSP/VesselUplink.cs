@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// M1 Task 1/2/3 — the vessel telemetry extension foundation. Registers
+    /// M1 Task 1/2/3 — the vessel telemetry uplink foundation. Registers
     /// the M1 vessel/time.warp READ channels with
     /// <see cref="VesselViewProvider"/>'s typed mappers (via its wire-adapter
     /// <c>*Wire</c> overloads — see that class's doc comment), wires the
@@ -14,16 +14,16 @@ namespace Gonogo.KSP
     /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1/§8.1 call
     /// "must-ship, unretrofittable": every <c>vessel.*</c> sample already
     /// carries <c>meta.source = "vessel:&lt;guid&gt;"</c> (VesselViewProvider's
-    /// job); this extension additionally registers <see cref="VesselEpochSampler"/>,
+    /// job); this uplink additionally registers <see cref="VesselEpochSampler"/>,
     /// which detects an active-vessel GUID change and forces an
     /// unconditional keyframe on every vessel channel for that same tick via
-    /// <see cref="IExtensionHost.ForceKeyframe"/>. Task 3 adds the typed
+    /// <see cref="IUplinkHost.ForceKeyframe"/>. Task 3 adds the typed
     /// vessel/action COMMANDS (<see cref="VesselCommandProvider"/>'s
     /// <c>Handle*</c> glue against the <see cref="IVesselActuator"/> this
-    /// extension is constructed with — <see cref="KspVesselActuator"/> in
+    /// uplink is constructed with — <see cref="KspVesselActuator"/> in
     /// production, <c>Sitrep.Host.Tests.FakeVesselActuator</c> in tests).
     ///
-    /// Mirrors <see cref="SystemExtension"/>'s retrofit shape exactly: this
+    /// Mirrors <see cref="SystemUplink"/>'s retrofit shape exactly: this
     /// class is thin KSP-adjacent wiring; all the actual mapping/epoching/
     /// command-parsing logic lives in the KSP-free <c>Sitrep.Host</c>
     /// assembly (<see cref="VesselViewProvider"/>/<see cref="VesselEpochSampler"/>/
@@ -32,16 +32,32 @@ namespace Gonogo.KSP
     /// touches KSP directly, exactly like <see cref="KspHost"/> on the read
     /// side.
     /// </summary>
-    public sealed class VesselExtension : ISitrepExtension
+    [SitrepUplink("vessel")]
+    public sealed class VesselUplink : ISitrepUplink
     {
         private readonly IVesselActuator _actuator;
 
-        public VesselExtension(IVesselActuator actuator)
+        public VesselUplink(IVesselActuator actuator)
         {
             _actuator = actuator;
         }
 
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        /// <summary>
+        /// The discovery-required parameterless constructor (see
+        /// <c>Sitrep.Host.UplinkDiscovery</c>'s doc comment: a discoverable
+        /// Uplink resolves any real dependency itself rather than taking it
+        /// as a discovery-time argument). Builds its own
+        /// <see cref="KspVesselActuator"/> against the mod-wide SHARED
+        /// maneuver-node id registry (<see cref="GonogoAddon.SharedManeuverNodeIdRegistry"/>)
+        /// — the same single instance <see cref="KspHost"/> stamps node ids
+        /// from, per that registry's own doc comment on why sharing it is
+        /// what makes a node id usable in a command at all.
+        /// </summary>
+        public VesselUplink() : this(new KspVesselActuator(GonogoAddon.SharedManeuverNodeIdRegistry))
+        {
+        }
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "vessel",
             Version = "1.0.0",
@@ -51,7 +67,7 @@ namespace Gonogo.KSP
                 // Orbital elements barely move on-rails (maneuver/SOI
                 // transitions only) but can move every tick off-rails
                 // (powered/atmospheric flight) -- a 30s keyframe cadence
-                // follows system.bodies' precedent (SystemExtension). The
+                // follows system.bodies' precedent (SystemUplink). The
                 // payload is a Dictionary tree (see VesselViewProvider's
                 // wire-adapter doc comment), so ChannelEmitter's change-gate
                 // falls back to reference/Equals comparison exactly like
@@ -116,7 +132,7 @@ namespace Gonogo.KSP
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(VesselViewProvider.IdentityTopic, VesselViewProvider.BuildIdentityWire);
             host.AddChannelSource(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire);

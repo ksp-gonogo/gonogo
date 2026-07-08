@@ -17,4 +17,10 @@
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The CI "lying minor" contract-shape gate's baseline — see
+         ContractShapeGateTests's doc comment. Wired in the same
+         golden-fixtures/ pattern Sitrep.Core.Tests already uses. -->
+    <None Include="../Sitrep.Contract/contract-shape.baseline.json" Link="golden-fixtures/contract-shape.baseline.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

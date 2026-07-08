@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 
@@ -9,7 +10,7 @@ namespace Gonogo.KSP
     /// recording carries power production (solar/battery/fuel-cell/
     /// alternator) and Breaking Ground robotics (rotor/hinge/piston servo)
     /// state alongside <c>career.*</c>/<c>science.*</c>. Mirrors
-    /// <see cref="CareerExtension"/>'s retrofit shape; the actual mapping
+    /// <see cref="CareerUplink"/>'s retrofit shape; the actual mapping
     /// lives in <see cref="PartsViewProvider"/>. No <see cref="ISnapshotSampler"/>
     /// is registered — <c>KspHost.Sample</c> already populates the raw
     /// <c>"parts"</c> snapshot key (guarded to "there's an active vessel" —
@@ -23,9 +24,10 @@ namespace Gonogo.KSP
     /// actuation (servo/rotor set-target/motor/lock/brake) is a follow-up,
     /// per the master plan's Parts/engineering section.</para>
     /// </summary>
-    public sealed class PartsExtension : ISitrepExtension
+    [SitrepUplink("parts")]
+    public sealed class PartsUplink : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "parts",
             Version = "1.0.0",
@@ -46,7 +48,7 @@ namespace Gonogo.KSP
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
             host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);

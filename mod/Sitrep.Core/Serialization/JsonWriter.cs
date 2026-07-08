@@ -111,7 +111,7 @@ namespace Sitrep.Core.Serialization
         /// uniformly however deeply nested the value is.
         ///
         /// WIDER NUMERIC TYPES (C2-2, second fail-soft round): a channel
-        /// mapper is extension-authored and can legitimately hand back any
+        /// mapper is uplink-authored and can legitimately hand back any
         /// of the numeric CLR types <c>ChannelEmitter.TryToDouble</c>
         /// already accepts for its deadband gate — <c>short</c>/<c>sbyte</c>/
         /// <c>byte</c>/<c>uint</c>/<c>ulong</c>/<c>decimal</c>, not just

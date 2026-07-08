@@ -17,7 +17,7 @@ namespace Sitrep.Host.IntegrationTests
     /// exercises — proving the multi-topic/multi-command generalization
     /// itself (not just that the retrofitted <c>system.bodies</c> channel
     /// still behaves like <c>GonogoBodiesServer</c> did). See
-    /// <c>local_docs/telemetry-mod/extension-sdk-contract-design.md</c> §1.1
+    /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §1.1
     /// (delivery classes) and §4.3 (the <c>delayed</c> command flag).
     /// </summary>
     public class ChannelEngineTests
@@ -28,7 +28,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task MultipleRegisteredChannelsEmitAndSubscriptionGateIndependently()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.RegisterUplink(new MultiChannelTestExtension());
             engine.Start();
             try
             {
@@ -105,7 +105,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ReliableOrderedNeverDropsAFrameWhileLossyLatestMayCoalesceUnderRapidEmission()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new DeliveryClassTestExtension());
+            engine.RegisterUplink(new DeliveryClassTestExtension());
             engine.Start();
             try
             {
@@ -162,7 +162,7 @@ namespace Sitrep.Host.IntegrationTests
         public void DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
-            engine.RegisterExtension(new DelayFlagTestExtension());
+            engine.RegisterUplink(new DelayFlagTestExtension());
             engine.Start();
             try
             {
@@ -217,7 +217,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt"/>
         /// above (the M0.5 command-delay test), now exercised against the
         /// actual vessel command manifest via <see cref="VesselCommandTestExtension"/>
-        /// (a KSP-free stand-in for <c>Gonogo.KSP.VesselExtension</c> — this
+        /// (a KSP-free stand-in for <c>Gonogo.KSP.VesselUplink</c> — this
         /// project deliberately never references <c>Gonogo.KSP</c>, see this
         /// file's own top-of-class doc comment).
         /// </summary>
@@ -226,7 +226,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
             var actuator = new RecordingVesselActuator();
-            engine.RegisterExtension(new VesselCommandTestExtension(actuator));
+            engine.RegisterUplink(new VesselCommandTestExtension(actuator));
             engine.Start();
             try
             {
@@ -282,7 +282,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5);
             var actuator = new RecordingVesselActuator();
-            engine.RegisterExtension(new VesselCommandTestExtension(actuator));
+            engine.RegisterUplink(new VesselCommandTestExtension(actuator));
             engine.Start();
             try
             {
@@ -327,8 +327,8 @@ namespace Sitrep.Host.IntegrationTests
         public async Task UnguardedCommandHandlerExceptionFailSoftsOnlyThatCommandAndKeepsTheCourierThreadAlive()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new CrashyCommandTestExtension());
-            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.RegisterUplink(new CrashyCommandTestExtension());
+            engine.RegisterUplink(new MultiChannelTestExtension());
             engine.Start();
             try
             {
@@ -357,7 +357,7 @@ namespace Sitrep.Host.IntegrationTests
                 // no response ever arrives, and the engine is permanently
                 // wedged (proven below). Post-fix: InvokeCommandHandler
                 // catches it, fail-softs just this command's owning
-                // extension, and the caller still gets a (graceful, null)
+                // uplink, and the caller still gets a (graceful, null)
                 // response instead of hanging forever.
                 var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
                 Assert.Equal("r1", response.RequestId);
@@ -390,7 +390,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task StructuredWireArgsMismatchedAgainstADeclaredScalarHandlerFailSoftsInsteadOfCrashing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new ScalarArgCommandTestExtension());
+            engine.RegisterUplink(new ScalarArgCommandTestExtension());
             engine.Start();
             try
             {
@@ -418,24 +418,24 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// IMPORTANT-A (task-review): availability was TRACKED but never
-        /// CONSULTED — a throwing <see cref="ISitrepExtension.Register"/>
+        /// CONSULTED — a throwing <see cref="ISitrepUplink.Register"/>
         /// flipped <see cref="ChannelEngine.AvailabilityOf"/> but every
-        /// channel that extension had already registered (before the throw)
-        /// stayed live forever. Here the extension registers TWO channels
+        /// channel that uplink had already registered (before the throw)
+        /// stayed live forever. Here the uplink registers TWO channels
         /// successfully, then throws — proving NEITHER channel ever emits
         /// afterward (checked via <see cref="ChannelEngine.ChannelCounters"/>'s
         /// <c>Considered</c>, since "nothing arrived on the wire" alone
         /// doesn't distinguish this from nobody subscribing either way —
         /// same rationale <c>ZeroSubscribersNeverReachTheEmitter...</c> in
         /// <c>ReplayToWebSocketEndToEndTests</c> uses it for), while a
-        /// totally unrelated, healthy extension's channel is unaffected.
+        /// totally unrelated, healthy uplink's channel is unaffected.
         /// </summary>
         [Fact]
         public async Task ExtensionThatThrowsAfterRegisteringChannelsTakesBothItsChannelsInertButLeavesOthersUnaffected()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new ThrowsAfterRegisteringTwoChannelsExtension());
-            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.RegisterUplink(new ThrowsAfterRegisteringTwoChannelsExtension());
+            engine.RegisterUplink(new MultiChannelTestExtension());
             engine.Start();
             try
             {
@@ -458,14 +458,14 @@ namespace Sitrep.Host.IntegrationTests
                 };
                 engine.TickAndWait(0.0, snapshot, Timeout);
 
-                // NEITHER of the broken extension's channels was even
+                // NEITHER of the broken uplink's channels was even
                 // considered — registration having thrown after both
                 // AddChannelSource calls succeeded takes the WHOLE
-                // extension's channels inert together.
+                // uplink's channels inert together.
                 Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan1).Considered);
                 Assert.Equal(0, engine.ChannelCounters(ThrowsAfterRegisteringTwoChannelsExtension.Chan2).Considered);
 
-                // A totally unrelated, healthy extension's channel is
+                // A totally unrelated, healthy uplink's channel is
                 // unaffected.
                 Assert.Equal(1, engine.ChannelCounters("chan.a").Considered);
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
@@ -481,7 +481,7 @@ namespace Sitrep.Host.IntegrationTests
         /// MEDIUM-3 (task-review): <see cref="ChannelEngine"/>'s subscribe
         /// handler used to bail unless the topic had a pull-style
         /// <c>AddChannelSource</c> mapper registered — a
-        /// <see cref="IExtensionHost.Publisher"/>-only (event-driven) channel
+        /// <see cref="IUplinkHost.Publisher"/>-only (event-driven) channel
         /// was DECLARED (in the manifest) but could never actually be
         /// subscribed, so <see cref="IChannelPublisher.Publish"/> for it was
         /// permanently a no-op (nobody could ever be "subscribed" to receive
@@ -491,8 +491,8 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PublisherOnlyChannelCanBeSubscribedAndPublishReachesTheSubscriber()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var extension = new PublisherOnlyTestExtension();
-            engine.RegisterExtension(extension);
+            var uplink = new PublisherOnlyTestExtension();
+            engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
@@ -509,7 +509,7 @@ namespace Sitrep.Host.IntegrationTests
                 // it, so Publish could never reach anyone); the delivery
                 // mechanism itself is the same Courier path every channel
                 // uses.
-                extension.Publisher!.Publish(42.0, 1.0);
+                uplink.Publisher!.Publish(42.0, 1.0);
                 engine.TickAndWait(1.0, null, Timeout);
 
                 var delivered = await ReceiveStreamDataAsync(client, Timeout);
@@ -526,26 +526,26 @@ namespace Sitrep.Host.IntegrationTests
         /// C2-1 (second-round fail-soft re-attack): <c>_emitter.Decide</c> is
         /// called OUTSIDE the try/catch that already guards <c>map()</c> in
         /// <see cref="ChannelEngine.ProcessTick"/> -- but <c>Decide</c> itself
-        /// runs extension-authored code for a structured payload (the
+        /// runs uplink-authored code for a structured payload (the
         /// deadband falls back to <c>Equals</c> -- see
         /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>). A throwing
         /// <c>Equals</c> used to escape the channel loop entirely, skipping
         /// <c>_clock.AdvanceTo</c> for the WHOLE tick -- not just this
         /// channel -- which is why a totally unrelated, healthy channel
-        /// (owned by a DIFFERENT extension, so IMPORTANT-A's per-extension
+        /// (owned by a DIFFERENT uplink, so IMPORTANT-A's per-uplink
         /// fail-soft can't mask the bug) is asserted on here: pre-fix its
         /// delivery is delayed/stuck for this tick and any that follow until
         /// some later tick's AdvanceTo happens to catch up; post-fix it
         /// keeps arriving promptly, tick after tick, while the throwing
-        /// channel's own topic goes permanently silent and its extension
+        /// channel's own topic goes permanently silent and its uplink
         /// flips Unavailable.
         /// </summary>
         [Fact]
         public async Task ThrowingEqualsDuringDecideFailSoftsOnlyThatChannelAndClockKeepsAdvancing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new EqualsThrowsTestExtension());
-            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.RegisterUplink(new EqualsThrowsTestExtension());
+            engine.RegisterUplink(new MultiChannelTestExtension());
             engine.Start();
             try
             {
@@ -579,7 +579,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(2.0, Convert.ToDouble(afterA.Payload));
 
                 // The throwing channel's own topic never emits again -- its
-                // owning extension went Unavailable -- and nothing else
+                // owning uplink went Unavailable -- and nothing else
                 // arrives for it.
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
                 Assert.False(engine.AvailabilityOf(EqualsThrowsTestExtension.ExtensionId).IsAvailable);
@@ -605,14 +605,14 @@ namespace Sitrep.Host.IntegrationTests
         /// boxed <c>decimal</c> passed the emitter's deadband gate fine but
         /// threw <c>NotSupportedException</c> at delivery-serialization time.
         /// Proves the widening: the value now serializes (as a JSON number)
-        /// and reaches the subscriber, and the owning extension is never
+        /// and reaches the subscriber, and the owning uplink is never
         /// marked Unavailable.
         /// </summary>
         [Fact]
         public async Task DecimalChannelValueSerializesAndDeliversAfterJsonWriterWidening()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new DecimalPayloadTestExtension());
+            engine.RegisterUplink(new DecimalPayloadTestExtension());
             engine.Start();
             try
             {
@@ -636,7 +636,7 @@ namespace Sitrep.Host.IntegrationTests
         /// C2-2(b): a payload that is genuinely unserializable (not fixed by
         /// the (a) widening -- an arbitrary CLR object, not a recognized
         /// numeric/string/dictionary/enumerable shape) must fail-soft the
-        /// OWNING extension on the first failed delivery rather than
+        /// OWNING uplink on the first failed delivery rather than
         /// recurring silently forever. Proven via <c>ChannelCounters</c>'s
         /// <c>Considered</c>: pinned at 1 (IMPORTANT-A's availability gate
         /// stops the channel from even being considered again) rather than
@@ -646,7 +646,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task GenuinelyUnserializablePayloadFailsSoftTheOwningExtensionInsteadOfRecurringSilently()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new PoisonPayloadTestExtension());
+            engine.RegisterUplink(new PoisonPayloadTestExtension());
             engine.Start();
             try
             {
@@ -686,7 +686,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task SubscribeCatchUpThrowRollsBackBookkeepingInsteadOfOrphaningTheSubscriber()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new PoisonPayloadTestExtension());
+            engine.RegisterUplink(new PoisonPayloadTestExtension());
             engine.Start();
             try
             {
@@ -726,13 +726,13 @@ namespace Sitrep.Host.IntegrationTests
         /// receives ANY response (not even an error) and the failure is
         /// unattributed. Post-fix: the client gets an explicit
         /// <see cref="ErrorMsg"/> instead of silence, and the owning
-        /// extension is marked Unavailable.
+        /// uplink is marked Unavailable.
         /// </summary>
         [Fact]
         public async Task UnserializableCommandResultSendsAnErrorResponseInsteadOfSilence()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new PoisonResultCommandTestExtension());
+            engine.RegisterUplink(new PoisonResultCommandTestExtension());
             engine.Start();
             try
             {
@@ -760,8 +760,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// C1-pub: <c>ProcessPublish</c> trusted the caller-stamped
         /// <c>ut</c> with no sanity check against the clock's current
-        /// position. An extension that captures "now" (via
-        /// <c>IExtensionHost.NowUt()</c>) and only gets around to
+        /// position. An uplink that captures "now" (via
+        /// <c>IUplinkHost.NowUt()</c>) and only gets around to
         /// <c>Publish</c>ing it AFTER a quickload rewound the clock backward
         /// hands the engine a ghost timestamp from the abandoned timeline --
         /// numerically AHEAD of the rewound clock, so it can never be caught
@@ -776,8 +776,8 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PublishedUtFromBeforeAQuickloadRewindIsClampedRatherThanGhostingIntoTheArchive()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var extension = new GhostPublishTestExtension();
-            engine.RegisterExtension(extension);
+            var uplink = new GhostPublishTestExtension();
+            engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
@@ -785,15 +785,15 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, GhostPublishTestExtension.Topic, Timeout);
 
                 // Advance to a high UT, establishing the "old" timeline the
-                // extension will (mis-)remember.
+                // uplink will (mis-)remember.
                 engine.TickAndWait(500.0, null, Timeout);
 
                 // Quickload: rewinds the clock back to UT 10.
                 engine.TickAndWait(10.0, null, Timeout);
 
-                // The extension captured "now" (500) BEFORE the rewind and
+                // The uplink captured "now" (500) BEFORE the rewind and
                 // only gets around to Publishing it afterward.
-                extension.Publisher!.Publish(42.0, 500.0);
+                uplink.Publisher!.Publish(42.0, 500.0);
 
                 // Advance far enough that the ghost's ORIGINAL (unclamped)
                 // fireUt=500 would have fired by now too, whether or not the
@@ -820,10 +820,10 @@ namespace Sitrep.Host.IntegrationTests
         /// attribution at all — unlike a channel mapper or command handler
         /// (see <see cref="IsChannelAvailable"/>/<see cref="IsCommandAvailable"/>),
         /// a sampler that throws was caught (so the Courier thread survived
-        /// — CRITICAL-2) but never marked its owning extension
+        /// — CRITICAL-2) but never marked its owning uplink
         /// <see cref="Availability.Unavailable"/>, so the SAME throwing
         /// sampler was re-invoked, and re-logged, every single tick forever.
-        /// Proves both halves of the fix: the owning extension goes
+        /// Proves both halves of the fix: the owning uplink goes
         /// Unavailable after the first throw, AND the sampler is skipped
         /// (not re-invoked) on the very next tick.
         /// </summary>
@@ -831,21 +831,21 @@ namespace Sitrep.Host.IntegrationTests
         public void ThrowingSamplerFailSoftsItsOwningExtensionAndIsSkippedOnTheNextTick()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var extension = new ThrowingSamplerTestExtension();
-            engine.RegisterExtension(extension);
+            var uplink = new ThrowingSamplerTestExtension();
+            engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
                 var snapshot = new KspSnapshot { Values = new Dictionary<string, object?>() };
 
                 engine.TickAndWait(0.0, snapshot, Timeout);
-                Assert.Equal(1, extension.Sampler.CallCount);
+                Assert.Equal(1, uplink.Sampler.CallCount);
 
-                // Pre-fix: no owner attribution means the extension stays
+                // Pre-fix: no owner attribution means the uplink stays
                 // Available no matter how many times its sampler throws.
                 Assert.False(
                     engine.AvailabilityOf(ThrowingSamplerTestExtension.ExtensionId).IsAvailable,
-                    "owning extension should be Unavailable after its sampler threw");
+                    "owning uplink should be Unavailable after its sampler threw");
 
                 engine.TickAndWait(1.0, snapshot, Timeout);
 
@@ -853,7 +853,7 @@ namespace Sitrep.Host.IntegrationTests
                 // registered sampler every tick, so CallCount would climb to
                 // 2 here. Post-fix: the owner is Unavailable, so this second
                 // tick must SKIP it entirely — CallCount stays pinned at 1.
-                Assert.Equal(1, extension.Sampler.CallCount);
+                Assert.Equal(1, uplink.Sampler.CallCount);
             }
             finally
             {
@@ -870,7 +870,7 @@ namespace Sitrep.Host.IntegrationTests
         /// exception can override it to throw — so a poisoned Message getter
         /// aborted the fail-soft guard before it ever attributed the
         /// failure, escaping to <c>CourierLoop</c>'s own non-attributing
-        /// backstop try/catch. The offending extension never went
+        /// backstop try/catch. The offending uplink never went
         /// Unavailable and (for a non-delayed command, as here) the
         /// dispatch's <c>onResult</c>/<c>Done</c> callback never fired
         /// either, since the escape happens before <c>ProcessDispatchCommand</c>
@@ -880,8 +880,8 @@ namespace Sitrep.Host.IntegrationTests
         public void CommandHandlerThrowingAnExceptionWhoseMessageGetterThrowsStillMarksTheOwnerUnavailable()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new MessageGetterThrowsCommandTestExtension());
-            engine.RegisterExtension(new MultiChannelTestExtension());
+            engine.RegisterUplink(new MessageGetterThrowsCommandTestExtension());
+            engine.RegisterUplink(new MultiChannelTestExtension());
             engine.Start();
             try
             {
@@ -899,7 +899,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.True(resolved, "onResult should still fire (with a graceful null) once the guard attributes and returns");
                 Assert.False(
                     engine.AvailabilityOf(MessageGetterThrowsCommandTestExtension.ExtensionId).IsAvailable,
-                    "owning extension should be Unavailable even though ex.Message itself throws");
+                    "owning uplink should be Unavailable even though ex.Message itself throws");
             }
             finally
             {
@@ -908,7 +908,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// M1 vessel-extension foundation: proves <c>IExtensionHost.
+        /// M1 vessel-uplink foundation: proves <c>IUplinkHost.
         /// ForceKeyframe</c> actually reaches <c>ChannelEmitter</c> and makes
         /// the NEXT <c>Decide</c> call unconditional, even for a value that
         /// would otherwise be suppressed by the deadband/rate-clamp gates --
@@ -916,7 +916,7 @@ namespace Sitrep.Host.IntegrationTests
         /// turn a vessel-guid change into a clean epoch boundary (see
         /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1).
         /// <c>VesselEpochSampler</c> itself is unit-tested against a fake
-        /// <c>IExtensionHost</c> in <c>Sitrep.Host.Tests</c> (no real engine
+        /// <c>IUplinkHost</c> in <c>Sitrep.Host.Tests</c> (no real engine
         /// needed there); THIS test is the complementary proof that the
         /// engine-level plumbing behind <c>ForceKeyframe</c> is real.
         /// </summary>
@@ -924,7 +924,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new ForceKeyframeTestExtension());
+            engine.RegisterUplink(new ForceKeyframeTestExtension());
             engine.Start();
             try
             {
@@ -985,12 +985,12 @@ namespace Sitrep.Host.IntegrationTests
             public override int GetHashCode() => 0;
         }
 
-        private sealed class EqualsThrowsTestExtension : ISitrepExtension
+        private sealed class EqualsThrowsTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-equals-throws";
             public const string Topic = "equals.throws";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1005,7 +1005,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("throws", out var v) ? v : null);
             }
@@ -1019,12 +1019,12 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class DecimalPayloadTestExtension : ISitrepExtension
+        private sealed class DecimalPayloadTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-decimal-payload";
             public const string Topic = "decimal.topic";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1039,7 +1039,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("value", out var v) ? v : null);
             }
@@ -1051,12 +1051,12 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>Backs <c>ForceKeyframeMakesTheNextDecideCallUnconditionalEvenWithinTheDeadband</c> — a wide deadband (100) and long keyframe cadence (10,000 UT) so an in-deadband re-tick would ordinarily be skipped, isolating the forced-keyframe path from cadence/change-gate noise.</summary>
-        private sealed class ForceKeyframeTestExtension : ISitrepExtension
+        private sealed class ForceKeyframeTestExtension : ISitrepUplink
         {
             public const string Topic = "force.keyframe.topic";
             public const string ForceCommand = "force.keyframe.command";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-force-keyframe",
                 Version = "1.0.0",
@@ -1075,7 +1075,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("v", out var v) ? v : null);
                 host.AddCommandHandler<object?, object?>(ForceCommand, _ =>
@@ -1093,12 +1093,12 @@ namespace Sitrep.Host.IntegrationTests
             public int Marker;
         }
 
-        private sealed class PoisonPayloadTestExtension : ISitrepExtension
+        private sealed class PoisonPayloadTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-poison-payload";
             public const string Topic = "poison.topic";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1113,7 +1113,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Topic, s => new PoisonPayload());
             }
@@ -1121,12 +1121,12 @@ namespace Sitrep.Host.IntegrationTests
             public static KspSnapshot Snapshot() => new KspSnapshot { Values = new Dictionary<string, object?>() };
         }
 
-        private sealed class PoisonResultCommandTestExtension : ISitrepExtension
+        private sealed class PoisonResultCommandTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-poison-result-command";
             public const string Command = "poison.result.command";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1136,19 +1136,19 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<object?, object?>(Command, _ => new PoisonPayload());
             }
         }
 
-        private sealed class GhostPublishTestExtension : ISitrepExtension
+        private sealed class GhostPublishTestExtension : ISitrepUplink
         {
             public const string Topic = "ghost.publish.topic";
 
             public IChannelPublisher? Publisher { get; private set; }
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-ghost-publish",
                 Version = "1.0.0",
@@ -1163,7 +1163,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 Publisher = host.Publisher(Topic);
             }
@@ -1184,12 +1184,12 @@ namespace Sitrep.Host.IntegrationTests
         // CourierTimelineResetTests and the wire-level
         // ServerClockRewindResets... test.
 
-        private sealed class CrashyCommandTestExtension : ISitrepExtension
+        private sealed class CrashyCommandTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-crashy-command";
             public const string Command = "crashy.command";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1199,18 +1199,18 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<string, string>(Command, args => "pong:" + args);
             }
         }
 
-        private sealed class ScalarArgCommandTestExtension : ISitrepExtension
+        private sealed class ScalarArgCommandTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-scalar-arg-command";
             public const string Command = "scalar.command";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1220,19 +1220,19 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<double, double>(Command, x => x * 2);
             }
         }
 
-        private sealed class ThrowsAfterRegisteringTwoChannelsExtension : ISitrepExtension
+        private sealed class ThrowsAfterRegisteringTwoChannelsExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-throws-after-registering";
             public const string Chan1 = "broken.chan1";
             public const string Chan2 = "broken.chan2";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1253,21 +1253,21 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Chan1, s => s != null && s.Values.TryGetValue("chan1", out var v) ? v : null);
                 host.AddChannelSource(Chan2, s => s != null && s.Values.TryGetValue("chan2", out var v) ? v : null);
-                throw new InvalidOperationException("boom -- simulated bad extension");
+                throw new InvalidOperationException("boom -- simulated bad uplink");
             }
         }
 
-        private sealed class PublisherOnlyTestExtension : ISitrepExtension
+        private sealed class PublisherOnlyTestExtension : ISitrepUplink
         {
             public const string Topic = "publisher.only";
 
             public IChannelPublisher? Publisher { get; private set; }
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-publisher-only",
                 Version = "1.0.0",
@@ -1282,15 +1282,15 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 Publisher = host.Publisher(Topic);
             }
         }
 
-        private sealed class MultiChannelTestExtension : ISitrepExtension
+        private sealed class MultiChannelTestExtension : ISitrepUplink
         {
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-multi",
                 Version = "1.0.0",
@@ -1311,7 +1311,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource("chan.a", s => s != null && s.Values.TryGetValue("a", out var v) ? v : null);
                 host.AddChannelSource("chan.b", s => s != null && s.Values.TryGetValue("b", out var v) ? v : null);
@@ -1334,19 +1334,19 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class ThrowingSamplerTestExtension : ISitrepExtension
+        private sealed class ThrowingSamplerTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-throwing-sampler";
 
             public ThrowingSampler Sampler { get; } = new ThrowingSampler();
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddSampler(Sampler);
             }
@@ -1358,12 +1358,12 @@ namespace Sitrep.Host.IntegrationTests
             public override string Message => throw new InvalidOperationException("boom -- Message getter itself throws");
         }
 
-        private sealed class MessageGetterThrowsCommandTestExtension : ISitrepExtension
+        private sealed class MessageGetterThrowsCommandTestExtension : ISitrepUplink
         {
             public const string ExtensionId = "test-message-getter-throws-command";
             public const string Command = "message.getter.throws.command";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = ExtensionId,
                 Version = "1.0.0",
@@ -1373,18 +1373,18 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<object?, object?>(Command, _ => throw new MessageThrowsException());
             }
         }
 
-        private sealed class DeliveryClassTestExtension : ISitrepExtension
+        private sealed class DeliveryClassTestExtension : ISitrepUplink
         {
             public const string ReliableTopic = "reliable.topic";
             public const string LossyTopic = "lossy.topic";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-delivery",
                 Version = "1.0.0",
@@ -1405,7 +1405,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(ReliableTopic, ReadValue);
                 host.AddChannelSource(LossyTopic, ReadValue);
@@ -1420,12 +1420,12 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private sealed class DelayFlagTestExtension : ISitrepExtension
+        private sealed class DelayFlagTestExtension : ISitrepUplink
         {
             public const string InfraCommand = "infra.ping";
             public const string VesselCommand = "vessel.ping";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-delay-flag",
                 Version = "1.0.0",
@@ -1436,7 +1436,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<string, string>(InfraCommand, args => "pong:" + args);
                 host.AddCommandHandler<string, string>(VesselCommand, args => "pong:" + args);
@@ -1494,7 +1494,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A KSP-free stand-in for <c>Gonogo.KSP.VesselExtension</c>'s
+        /// A KSP-free stand-in for <c>Gonogo.KSP.VesselUplink</c>'s
         /// COMMAND half only (no channels — this test only exercises
         /// command dispatch) — the exact same manifest declarations and the
         /// exact same <see cref="VesselCommandProvider"/> handler wiring
@@ -1504,7 +1504,7 @@ namespace Sitrep.Host.IntegrationTests
         /// reference <c>Gonogo.KSP</c> directly (net472 + KSP/Unity
         /// reference assemblies).
         /// </summary>
-        private sealed class VesselCommandTestExtension : ISitrepExtension
+        private sealed class VesselCommandTestExtension : ISitrepUplink
         {
             private readonly IVesselActuator _actuator;
 
@@ -1513,7 +1513,7 @@ namespace Sitrep.Host.IntegrationTests
                 _actuator = actuator;
             }
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-vessel-commands",
                 Version = "1.0.0",
@@ -1539,7 +1539,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));
                 host.AddCommandHandler<SetSasModeArgs, Ack>(VesselCommandProvider.SetSasModeCommand, args => VesselCommandProvider.HandleSetSasMode(_actuator, args));
@@ -1571,7 +1571,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task PresentToNullEmitsExactlyOneTombstoneThenNullToNullIsSuppressedByTheDeadband()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestExtension());
             engine.Start();
             try
             {
@@ -1614,7 +1614,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ChannelThatHasNeverEmittedProducesNoTombstoneForANullMapperResult()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestExtension());
             engine.Start();
             try
             {
@@ -1642,7 +1642,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestExtension());
             engine.Start();
             try
             {
@@ -1692,14 +1692,14 @@ namespace Sitrep.Host.IntegrationTests
         /// A single nullable-valued channel for the tombstone tests above —
         /// deliberately separate from <see cref="MultiChannelTestExtension"/>
         /// (whose "chan.a"/"chan.b" mappers can also return null) so these
-        /// tests aren't coupled to that extension's unrelated two-channel
+        /// tests aren't coupled to that uplink's unrelated two-channel
         /// subscription-gating scenarios.
         /// </summary>
-        private sealed class TombstoneTestExtension : ISitrepExtension
+        private sealed class TombstoneTestExtension : ISitrepUplink
         {
             public const string Topic = "chan.tombstone";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-tombstone",
                 Version = "1.0.0",
@@ -1714,7 +1714,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("t", out var v) ? v : null);
             }
@@ -1761,7 +1761,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             const double delaySeconds = 2.0;
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
-            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestExtension());
             engine.Start();
             try
             {
@@ -1846,7 +1846,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindRecomputesBirthFromTheArchiveTailSoAStaleValueGetsCorrectedByATombstoneInsteadOfGhostingForever()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TombstoneTestExtension());
+            engine.RegisterUplink(new TombstoneTestExtension());
             engine.Start();
             try
             {
@@ -1927,7 +1927,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselExtension());
             engine.Start();
             try
             {
@@ -1993,7 +1993,7 @@ namespace Sitrep.Host.IntegrationTests
         /// the save was taken, then quickloaded back to it), the sampler's
         /// plain non-null-to-different-non-null guid check mis-detects this
         /// as a GENUINE subject switch and calls
-        /// <c>IExtensionHost.ResetChannelBirth</c> for every <c>vessel.*</c>
+        /// <c>IUplinkHost.ResetChannelBirth</c> for every <c>vessel.*</c>
         /// topic -- undoing the archive recompute's correct result (the
         /// target topic's surviving tail is the real "Mun" value, so it was
         /// correctly recomputed as born) moments after it ran, in the very
@@ -2018,7 +2018,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselExtension());
             engine.Start();
             try
             {
@@ -2129,7 +2129,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task RewindTickWithNoVesselStillColdStartsSoALaterDifferentVesselDoesNotUndoTheArchiveRecomputedBirth()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new TestVesselExtension());
+            engine.RegisterUplink(new TestVesselExtension());
             engine.Start();
             try
             {
@@ -2227,7 +2227,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             const double delaySeconds = 2.0;
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
-            engine.RegisterExtension(new EpochWireTestExtension());
+            engine.RegisterUplink(new EpochWireTestExtension());
             engine.Start();
             try
             {
@@ -2299,7 +2299,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task TimelineResetEventsAndSubscribeAckCarryTheCurrentTimelineEpoch()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterExtension(new EpochWireTestExtension());
+            engine.RegisterUplink(new EpochWireTestExtension());
             engine.Start();
             try
             {
@@ -2336,7 +2336,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// A trivial raw-passthrough channel (same shape as
         /// <see cref="TestSystemExtension.RawTopic"/>, kept separate so
-        /// these epoch-focused tests aren't coupled to that extension's
+        /// these epoch-focused tests aren't coupled to that uplink's
         /// unrelated <c>system.bodies</c>/rewind-stall scenarios) plus two
         /// commands for defect B's epoch-on-command-response proof: a
         /// delayed one (rides the Courier's light-time round trip) and a
@@ -2344,13 +2344,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="DelayedCommandResponseAfterARewindCarriesTheCurrentTimelineEpochNotZero"/>'s
         /// doc comment).
         /// </summary>
-        private sealed class EpochWireTestExtension : ISitrepExtension
+        private sealed class EpochWireTestExtension : ISitrepUplink
         {
             public const string RawTopic = "test.epoch-raw";
             public const string EchoCommand = "test.epoch-echo";
             public const string SyncCommand = "test.epoch-sync";
 
-            public ExtensionManifest Manifest { get; } = new ExtensionManifest
+            public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-epoch-wire",
                 Version = "1.0.0",
@@ -2370,7 +2370,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IExtensionHost host)
+            public void Register(IUplinkHost host)
             {
                 host.AddChannelSource(RawTopic, s => s != null && s.Values.TryGetValue("v", out var v) ? v : null);
                 host.AddCommandHandler<string, string>(EchoCommand, args => "echo:" + args);

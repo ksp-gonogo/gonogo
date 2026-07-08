@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 
@@ -8,7 +9,7 @@ namespace Gonogo.KSP
     /// The <c>science.*</c> capture surface — added THIS session so a live
     /// recording carries onboard experiment/container data, science-lab
     /// processing state, and Breaking Ground deployed-experiment status
-    /// alongside <c>career.*</c>. Mirrors <see cref="CareerExtension"/>'s
+    /// alongside <c>career.*</c>. Mirrors <see cref="CareerUplink"/>'s
     /// retrofit shape exactly: this class is thin KSP-adjacent wiring; the
     /// actual mapping lives in the KSP-free <c>Sitrep.Host</c> assembly
     /// (<see cref="ScienceViewProvider"/>), headlessly testable there. No
@@ -27,9 +28,10 @@ namespace Gonogo.KSP
     /// <para>Read-only capture for this session — no commands. Science
     /// actuation (deploy/reset/transmit/collect) is a follow-up.</para>
     /// </summary>
-    public sealed class ScienceExtension : ISitrepExtension
+    [SitrepUplink("science")]
+    public sealed class ScienceUplink : ISitrepUplink
     {
-        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "science",
             Version = "1.0.0",
@@ -40,7 +42,7 @@ namespace Gonogo.KSP
                     Topic = ScienceViewProvider.ExperimentsTopic,
                     Delivery = Delivery.LossyLatest,
                     // Same 30s-keyframe + "fresh Dictionary every call reads
-                    // as changed" cadence CareerExtension/SystemExtension
+                    // as changed" cadence CareerUplink/SystemUplink
                     // already use for structured, not-every-tick data.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
@@ -59,7 +61,7 @@ namespace Gonogo.KSP
             },
         };
 
-        public void Register(IExtensionHost host)
+        public void Register(IUplinkHost host)
         {
             host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);

@@ -6,8 +6,8 @@ namespace Sitrep.Host
     /// KSP-free command-handling logic for M1 Task 3's typed vessel/action
     /// commands — the command-side twin of <see cref="VesselViewProvider"/>.
     /// Each <c>Handle*</c> method is the exact delegate
-    /// <c>Gonogo.KSP.VesselExtension.Register</c> hands to
-    /// <see cref="IExtensionHost.AddCommandHandler{TArgs,TResult}"/>: parse
+    /// <c>Gonogo.KSP.VesselUplink.Register</c> hands to
+    /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: parse
     /// the already-typed args, call the one matching
     /// <see cref="IVesselActuator"/> method, hand back an already-typed
     /// result. No KSP/Unity type appears anywhere in this file — every

@@ -8,6 +8,7 @@ namespace Sitrep.Contract;
 /// Raw readings for whichever part is hottest by internal-temperature ratio
 /// — see <see cref="VesselThermal.HottestPart"/>.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -38,6 +39,7 @@ public class ThermalHottestPart
 /// ThermalStatus migration degrades to headline ratios only until those
 /// land.</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

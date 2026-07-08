@@ -25,7 +25,7 @@ namespace Sitrep.Host.IntegrationTests
     /// This now runs against the SAME <see cref="ChannelEngine"/> class
     /// <c>Gonogo.KSP.GonogoAddon</c> constructs in production (registering
     /// this project's own tiny <see cref="TestSystemExtension"/> instead of
-    /// <c>Gonogo.KSP.SystemExtension</c>, since this project can't reference
+    /// <c>Gonogo.KSP.SystemUplink</c>, since this project can't reference
     /// the net472 <c>Gonogo.KSP</c> assembly at all) -- there is no more
     /// hand-copied <c>ReplayBodiesServer</c> duplicating the engine's
     /// Courier/emitter/subscription wiring.
@@ -90,7 +90,7 @@ namespace Sitrep.Host.IntegrationTests
             host.Lifecycle += lifecycleEvents.Add;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", NetworkDelaySeconds);
-            server.RegisterExtension(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemExtension());
             server.Start();
             try
             {
@@ -211,7 +211,7 @@ namespace Sitrep.Host.IntegrationTests
             const double delaySeconds = 2.0;
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", delaySeconds);
-            server.RegisterExtension(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemExtension());
             server.Start();
             try
             {
@@ -307,7 +307,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ZeroSubscribersNeverReachTheEmitterButStreamImmediatelyOnceSomeoneSubscribes()
         {
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            server.RegisterExtension(new TestSystemExtension());
+            server.RegisterUplink(new TestSystemExtension());
             server.Start();
             try
             {

@@ -20,9 +20,9 @@ namespace Sitrep.Host.IntegrationTests
     /// M1 Task 4a — the MILESTONE-level end-to-end replay validation: the
     /// WHOLE M1 pipeline (<see cref="ReplayKspHost"/> -&gt;
     /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemExtension"/>
-    /// (the KSP-free replica of <c>Gonogo.KSP.SystemExtension</c>) AND
+    /// (the KSP-free replica of <c>Gonogo.KSP.SystemUplink</c>) AND
     /// <see cref="TestVesselExtension"/> (the KSP-free replica of
-    /// <c>Gonogo.KSP.VesselExtension</c>) registered together -- 18 declared
+    /// <c>Gonogo.KSP.VesselUplink</c>) registered together -- 18 declared
     /// channels, 17 declared commands, exactly as production wires them)
     /// driven by the REAL 7.5&#160;MB reference capture
     /// (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
@@ -84,11 +84,11 @@ namespace Sitrep.Host.IntegrationTests
             var session = RecordedSessionCodec.Parse(json);
             _output.WriteLine($"Reference recording found: {session.Entries.Count} entries.");
 
-            // All 18 channels this milestone must prove: VesselExtension's 17
+            // All 18 channels this milestone must prove: VesselUplink's 17
             // (vessel.* + time.warp, including the M3 R3 vessel.dock/
-            // vessel.surface capture-adds) plus SystemExtension's
+            // vessel.surface capture-adds) plus SystemUplink's
             // system.bodies. (system.vessels is a SEPARATE, newer
-            // SystemExtension roster channel not yet exercised by this
+            // SystemUplink roster channel not yet exercised by this
             // specific reference recording/milestone -- see
             // SystemViewProviderTests for its own headless coverage.)
             var topics = VesselViewProvider.Topics.Concat(new[] { SystemViewProvider.Topic }).ToArray();
@@ -234,8 +234,8 @@ namespace Sitrep.Host.IntegrationTests
             var result = new PassResult();
 
             using var server = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds);
-            server.RegisterExtension(new TestSystemExtension());
-            server.RegisterExtension(new TestVesselExtension());
+            server.RegisterUplink(new TestSystemExtension());
+            server.RegisterUplink(new TestVesselExtension());
             server.Start();
 
             try

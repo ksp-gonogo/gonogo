@@ -46,6 +46,7 @@ public enum ControlState
 /// <c>comm.signalDelay</c> does NOT get a field here; that successor is
 /// <c>comms.delay</c>, a different provider entirely.</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

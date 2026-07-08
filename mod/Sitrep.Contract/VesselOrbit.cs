@@ -23,6 +23,7 @@ namespace Sitrep.Contract;
 /// m1-provider-taxonomy-design.md §6.7 (converting would desync from every
 /// KSP reference and the recorder's own raw values).
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -57,6 +58,7 @@ public class VesselOrbit
 }
 
 /// <summary>One upcoming SOI patch transition — see <see cref="VesselOrbit.Encounter"/>.</summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

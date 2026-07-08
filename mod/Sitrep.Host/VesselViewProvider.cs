@@ -9,7 +9,7 @@ namespace Sitrep.Host
     /// KSP-free mapping logic for the four M1 "core" vessel channels —
     /// <c>vessel.identity</c>/<c>vessel.orbit</c>/<c>vessel.orbit.truth</c>/
     /// <c>vessel.flight</c> — the Task 1 foundation for the vessel telemetry
-    /// extension. See local_docs/telemetry-mod/m1-provider-taxonomy-design.md
+    /// uplink. See local_docs/telemetry-mod/m1-provider-taxonomy-design.md
     /// §2.2 and telemachus-api-issues.md O-1/O-8/O-9/O-10/V-10/V-12/V-13.
     /// Reads <see cref="KspSnapshot.Values"/>'s <c>"vessel"</c> groups (see
     /// <c>Gonogo.KSP.KspHost.BuildVesselEntry</c>'s doc comment for the raw
@@ -34,7 +34,7 @@ namespace Sitrep.Host
     /// arbitrary typed POCO (like <see cref="VesselIdentity"/>) falls through
     /// to its "unsupported CLR value type" throw, which
     /// <c>ChannelEngine</c>'s delivery-time guard would treat as a genuinely
-    /// poisoned payload and fail-soft the WHOLE extension (see
+    /// poisoned payload and fail-soft the WHOLE uplink (see
     /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
     /// GenuinelyUnserializablePayloadFailsSoftTheOwningExtensionInsteadOfRecurringSilently</c>,
     /// which deliberately pins that behavior for a genuinely-unrecognized
@@ -45,8 +45,8 @@ namespace Sitrep.Host
     /// <c>Dictionary&lt;string, object?&gt;</c> tree shape
     /// <c>SystemViewProvider.BuildSystemBodies</c> already uses. The
     /// <c>Build*Wire</c> methods (typed mapper + flatten) are what
-    /// <c>VesselExtension.Register</c> actually hands to
-    /// <c>IExtensionHost.AddChannelSource</c>; the plain <c>Build*</c> methods
+    /// <c>VesselUplink.Register</c> actually hands to
+    /// <c>IUplinkHost.AddChannelSource</c>; the plain <c>Build*</c> methods
     /// are the typed logic itself, exercised directly by unit/replay
     /// tests.</para>
     /// </summary>
@@ -74,7 +74,7 @@ namespace Sitrep.Host
         public const string DockTopic = "vessel.dock";
         public const string SurfaceTopic = "vessel.surface";
 
-        /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselExtension"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
+        /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics — shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,

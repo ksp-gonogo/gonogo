@@ -14,6 +14,7 @@ namespace Sitrep.Contract;
 /// THIRD, different display order) is the textbook arg-order footgun this
 /// named shape makes impossible to mis-order.
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -63,6 +64,7 @@ public class ManeuverNode
 /// preview (elements + node → new elements — consumer-side math, per the
 /// design doc §2.2/§5).
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

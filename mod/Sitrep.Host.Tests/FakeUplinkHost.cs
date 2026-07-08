@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// A minimal <see cref="IExtensionHost"/> test double that only records
+    /// A minimal <see cref="IUplinkHost"/> test double that only records
     /// <see cref="ForceKeyframe"/> (and, optionally, <see cref="ResetChannelBirth"/>)
     /// calls — used to unit-test <see cref="VesselEpochSampler"/> (and any
     /// future sampler/handler that only needs those two) in isolation,
@@ -15,7 +15,7 @@ namespace Sitrep.Host.Tests
     /// a test that starts needing one of them should extend this double
     /// deliberately, not silently rely on a guessed default.
     /// </summary>
-    internal sealed class FakeExtensionHost : IExtensionHost
+    internal sealed class FakeUplinkHost : IUplinkHost
     {
         private readonly Action<string> _onForceKeyframe;
         private readonly Action<IEnumerable<string>> _onResetChannelBirth;
@@ -29,7 +29,7 @@ namespace Sitrep.Host.Tests
         /// callback to assert on it, matching <paramref name="onForceKeyframe"/>'s
         /// shape.
         /// </param>
-        public FakeExtensionHost(Action<string> onForceKeyframe, Action<IEnumerable<string>>? onResetChannelBirth = null)
+        public FakeUplinkHost(Action<string> onForceKeyframe, Action<IEnumerable<string>>? onResetChannelBirth = null)
         {
             _onForceKeyframe = onForceKeyframe;
             _onResetChannelBirth = onResetChannelBirth ?? (_ => { });

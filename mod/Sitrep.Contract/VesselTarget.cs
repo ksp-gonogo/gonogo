@@ -51,6 +51,7 @@ public enum TargetKind
 /// means nothing is targeted — the common case, R1(b), never a sentinel
 /// zero-distance/zero-vector record.</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

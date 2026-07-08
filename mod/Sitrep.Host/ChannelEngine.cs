@@ -16,13 +16,13 @@ namespace Sitrep.Host
     /// <summary>
     /// The multi-topic generalization of <c>Gonogo.KSP.GonogoBodiesServer</c> /
     /// <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer</c> (both retired —
-    /// see <c>local_docs/telemetry-mod/extension-sdk-contract-design.md</c>
+    /// see <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c>
     /// §1.2/§6.1). Owns EVERYTHING those two paired, hand-copied classes
     /// owned — the <see cref="SubscriptionRegistry"/> outer gate, the
     /// per-topic <see cref="ChannelEmitter"/> inner gate, the <see cref="Courier"/>
     /// + delay, the timeline-reset broadcast, and the three-domain threading
     /// model (main-loop / Courier / socket) — but drives a SET of channels
-    /// and commands registered by <see cref="ISitrepExtension"/>s, not one
+    /// and commands registered by <see cref="ISitrepUplink"/>s, not one
     /// hardwired <c>system.bodies</c> topic. This is the design doc's central
     /// rule made concrete: "providers are registered mappers; the engine owns
     /// the pipeline."
@@ -34,7 +34,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IExtensionHost, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -46,7 +46,7 @@ namespace Sitrep.Host
         /// clock's current position at processing time. A tiny epsilon
         /// (rather than an exact `&gt;`) absorbs floating-point noise only --
         /// it is NOT meant to tolerate genuine slack between when an
-        /// extension reads "now" and when its Publish call is processed.
+        /// uplink reads "now" and when its Publish call is processed.
         /// </summary>
         private const double PublishUtToleranceSeconds = 1e-6;
 
@@ -76,12 +76,12 @@ namespace Sitrep.Host
         // Owner travels WITH each sampler (rather than a parallel dictionary
         // keyed by the sampler instance) because a sampler has no natural
         // string key the way a channel/command topic does. Populated in
-        // AddSampler from _currentRegisteringExtensionId, same mechanism
+        // AddSampler from _currentRegisteringUplinkId, same mechanism
         // _channelOwner/_commandOwner use below.
         private readonly List<(string OwnerId, ISnapshotSampler Sampler)> _samplers = new List<(string OwnerId, ISnapshotSampler Sampler)>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
-        // topic/command -> owning extension id, populated in RegisterExtension
+        // topic/command -> owning uplink id, populated in RegisterUplink
         // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
         // channel loop and ProcessDispatchCommand consult _availability
         // per-channel/per-command (see IsChannelAvailable/IsCommandAvailable)
@@ -89,9 +89,9 @@ namespace Sitrep.Host
         // the fail-soft half of the contract that used to be missing: a
         // throwing Register(), or a channel mapper/command handler that
         // throws at RUNTIME (see FailSoftChannel/FailSoftCommand), now takes
-        // the WHOLE owning extension's channels/commands inert together,
+        // the WHOLE owning uplink's channels/commands inert together,
         // rather than leaving already-registered ones live against a
-        // half-broken extension. The sampler loop (see ProcessTick) applies
+        // half-broken uplink. The sampler loop (see ProcessTick) applies
         // the exact same rule via each pair's OwnerId above.
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
@@ -125,7 +125,7 @@ namespace Sitrep.Host
         // it for the stale-tombstone-tail case above.
         //
         // Subject-scoped (vessel-switch) resets are a SEPARATE, narrower
-        // mechanism: see ResetChannelBirth/IExtensionHost.ResetChannelBirth,
+        // mechanism: see ResetChannelBirth/IUplinkHost.ResetChannelBirth,
         // called by VesselEpochSampler alongside (not instead of)
         // ForceKeyframe -- clearing birth on every 0->1 subscribe (which
         // ForceKeyframe alone doubles as) would wrongly suppress the
@@ -133,7 +133,7 @@ namespace Sitrep.Host
         // see for an already-tombstoned channel.
         private readonly HashSet<string> _born = new HashSet<string>();
 
-        private string? _currentRegisteringExtensionId;
+        private string? _currentRegisteringUplinkId;
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
 
@@ -156,7 +156,7 @@ namespace Sitrep.Host
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path —
             // fired from the Courier thread's own clock callback, see
-            // Courier.ScheduleCommand — fail-softs its owning extension
+            // Courier.ScheduleCommand — fail-softs its owning uplink
             // instead of unwinding out of the Courier's scheduled callback
             // and killing the thread. See InvokeCommandHandler's doc comment.
             _courier.SetCommandHandler((command, args, node) => InvokeCommandHandler(command, args));
@@ -166,14 +166,14 @@ namespace Sitrep.Host
             _emitter = new ChannelEmitter(topic => _channelDeclarations[topic].Emission);
         }
 
-        // NOTE: every RegisterExtension call MUST happen before Start().
+        // NOTE: every RegisterUplink call MUST happen before Start().
         // Registration mutates plain (non-concurrent) Dictionary/List fields
         // (_channelDeclarations, _channelSources, _commandDeclarations,
         // _commandHandlers, _samplers, _channelOwner, _commandOwner) that the
         // Courier thread — started by Start() — later only ever ENUMERATES,
         // never mutates itself. That single-writer-before-start / read-only-
         // after-start split is what makes those plain collections safe
-        // without locks; registering an extension AFTER Start() would race
+        // without locks; registering an uplink AFTER Start() would race
         // the Courier thread's enumeration of them with no synchronization.
         public void Start()
         {
@@ -201,39 +201,39 @@ namespace Sitrep.Host
         public void Dispose() => Stop();
 
         // ----------------------------------------------------------------
-        // Extension registration (main thread, at load)
+        // Uplink registration (main thread, at load)
         // ----------------------------------------------------------------
 
         /// <summary>
-        /// Registers one <see cref="ISitrepExtension"/>: records every
+        /// Registers one <see cref="ISitrepUplink"/>: records every
         /// channel/command it declares (manifest-first — see
         /// <see cref="ChannelDeclaration"/>'s doc comment), then calls its
-        /// <see cref="ISitrepExtension.Register"/> so it can wire mappers/
-        /// handlers against this engine (passed as <see cref="IExtensionHost"/>).
-        /// A throwing <see cref="ISitrepExtension.Register"/> fail-softs ONLY
-        /// this extension (see <see cref="Availability"/>) — every other
-        /// registered extension is unaffected.
+        /// <see cref="ISitrepUplink.Register"/> so it can wire mappers/
+        /// handlers against this engine (passed as <see cref="IUplinkHost"/>).
+        /// A throwing <see cref="ISitrepUplink.Register"/> fail-softs ONLY
+        /// this uplink (see <see cref="Availability"/>) — every other
+        /// registered uplink is unaffected.
         /// </summary>
-        public void RegisterExtension(ISitrepExtension extension)
+        public void RegisterUplink(ISitrepUplink uplink)
         {
-            var id = extension.Manifest.Id;
+            var id = uplink.Manifest.Id;
             _availability[id] = Availability.Available;
 
-            foreach (var channel in extension.Manifest.Channels)
+            foreach (var channel in uplink.Manifest.Channels)
             {
                 _channelDeclarations[channel.Topic] = channel;
                 _channelOwner[channel.Topic] = id;
             }
-            foreach (var command in extension.Manifest.Commands)
+            foreach (var command in uplink.Manifest.Commands)
             {
                 _commandDeclarations[command.Command] = command;
                 _commandOwner[command.Command] = id;
             }
 
-            _currentRegisteringExtensionId = id;
+            _currentRegisteringUplinkId = id;
             try
             {
-                extension.Register(this);
+                uplink.Register(this);
             }
             catch (Exception ex)
             {
@@ -241,37 +241,70 @@ namespace Sitrep.Host
             }
             finally
             {
-                _currentRegisteringExtensionId = null;
+                _currentRegisteringUplinkId = null;
             }
         }
 
-        public Availability AvailabilityOf(string extensionId)
+        public Availability AvailabilityOf(string uplinkId)
         {
-            return _availability.TryGetValue(extensionId, out var availability)
+            return _availability.TryGetValue(uplinkId, out var availability)
                 ? availability
-                : Availability.Unavailable("unknown extension \"" + extensionId + "\"");
+                : Availability.Unavailable("unknown uplink \"" + uplinkId + "\"");
+        }
+
+        /// <summary>
+        /// The version-checked entry point <see cref="UplinkDiscovery.Discover"/>'s
+        /// caller uses instead of the raw <see cref="RegisterUplink(ISitrepUplink)"/>
+        /// — see <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>'s
+        /// handshake design. A MAJOR mismatch between
+        /// <paramref name="contractMajor"/> (what the Uplink was built
+        /// against — see <see cref="Sitrep.Contract.SitrepUplinkAttribute"/>'s
+        /// doc comment for why that's reliable even for a stale binary) and
+        /// <see cref="Sitrep.Contract.ContractVersion.Major"/> (what THIS
+        /// core actually is) fail-softs the Uplink WITHOUT ever calling its
+        /// <see cref="ISitrepUplink.Register"/> — an Uplink built against a
+        /// different major is not just "maybe buggy", it may not even
+        /// deserialize/type-check against this core's contract shapes at
+        /// all, so skipping Register entirely (rather than letting it run
+        /// and rely on ordinary fail-soft) avoids handing it live wire types
+        /// it was never compiled to expect. A MINOR mismatch (either
+        /// direction) is fine — Minor bumps are additive-only, so an older-
+        /// or newer-Minor Uplink and this core can always talk on their
+        /// shared subset.
+        /// </summary>
+        public void RegisterDiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor)
+        {
+            if (contractMajor != Sitrep.Contract.ContractVersion.Major)
+            {
+                var id = uplink.Manifest.Id;
+                _availability[id] = Availability.Unavailable(
+                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor} — major mismatch");
+                return;
+            }
+
+            RegisterUplink(uplink);
         }
 
         // ----------------------------------------------------------------
-        // IExtensionHost
+        // IUplinkHost
         // ----------------------------------------------------------------
 
-        // NOTE: called from the main thread (a registered extension calling
-        // this via its IExtensionHost during e.g. a command handler that
+        // NOTE: called from the main thread (a registered uplink calling
+        // this via its IUplinkHost during e.g. a command handler that
         // wants "now") while _clock itself is Courier-thread-owned — a
         // cross-thread READ of ManualClock's private double _currentUt with
         // no lock. This is fine on any 64-bit target (this mod's only
         // target — see the .csproj): a naturally-aligned double field read/
         // write is atomic on x86-64/ARM64, so this can observe a slightly
         // stale value but never a torn (half-written) one.
-        double IExtensionHost.NowUt() => _clock.Now();
+        double IUplinkHost.NowUt() => _clock.Now();
 
-        // Recorded against the CURRENTLY-registering extension id, same
+        // Recorded against the CURRENTLY-registering uplink id, same
         // mechanism AddChannelSource/AddCommandHandler rely on implicitly via
         // _channelOwner/_commandOwner — see the sampler loop in ProcessTick
         // for how this is consulted (skip-if-Unavailable) and acted on
         // (attribute-and-disable on a throw).
-        public void AddSampler(ISnapshotSampler sampler) => _samplers.Add((_currentRegisteringExtensionId ?? "", sampler));
+        public void AddSampler(ISnapshotSampler sampler) => _samplers.Add((_currentRegisteringUplinkId ?? "", sampler));
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
         {
@@ -291,7 +324,7 @@ namespace Sitrep.Host
             {
                 throw new InvalidOperationException(
                     $"AddCommandHandler(\"{command}\") has no matching CommandDeclaration — " +
-                    "declare it in the registering extension's Manifest.Commands first.");
+                    "declare it in the registering uplink's Manifest.Commands first.");
             }
             // The raw (TArgs)args! cast below throws InvalidCastException for
             // any wire-shaped arg that doesn't match TArgs (EnvelopeCodec
@@ -302,7 +335,7 @@ namespace Sitrep.Host
             // needed to close this out); it's caught one layer up, in
             // InvokeCommandHandler, which is the SOLE call site for every
             // registered command handler and fail-softs just this command's
-            // owning extension instead of crashing the Courier thread.
+            // owning uplink instead of crashing the Courier thread.
             _commandHandlers[command] = args => handler((TArgs)args!);
         }
 
@@ -310,13 +343,13 @@ namespace Sitrep.Host
 
         public void SetAvailability(Availability availability)
         {
-            if (_currentRegisteringExtensionId != null)
+            if (_currentRegisteringUplinkId != null)
             {
-                _availability[_currentRegisteringExtensionId] = availability;
+                _availability[_currentRegisteringUplinkId] = availability;
             }
         }
 
-        // Courier-thread-only (see IExtensionHost.ForceKeyframe's doc
+        // Courier-thread-only (see IUplinkHost.ForceKeyframe's doc
         // comment) -- every legitimate call site (a registered
         // ISnapshotSampler's Sample, or a command handler invoked via
         // InvokeCommandHandler) already runs on this thread, per
@@ -335,7 +368,7 @@ namespace Sitrep.Host
         // subject switch, for every topic it owns, so a channel the NEW
         // subject has never populated goes back to "not yet a subject"
         // rather than inheriting the PREVIOUS subject's birth state -- see
-        // IExtensionHost.ResetChannelBirth's doc comment for the full
+        // IUplinkHost.ResetChannelBirth's doc comment for the full
         // rationale.
         public void ResetChannelBirth(IEnumerable<string> topics)
         {
@@ -374,7 +407,7 @@ namespace Sitrep.Host
             {
                 throw new InvalidOperationException(
                     $"{caller}(\"{topic}\") has no matching ChannelDeclaration — " +
-                    "declare it in the registering extension's Manifest.Channels first.");
+                    "declare it in the registering uplink's Manifest.Channels first.");
             }
         }
 
@@ -383,21 +416,21 @@ namespace Sitrep.Host
         // exception fail-soft (CRITICAL-2) — Courier-thread-only.
         // ----------------------------------------------------------------
 
-        /// <summary>Whether <paramref name="topic"/>'s owning extension (if tracked) is currently available — an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
+        /// <summary>Whether <paramref name="topic"/>'s owning uplink (if tracked) is currently available — an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
         private bool IsChannelAvailable(string topic)
         {
             return !_channelOwner.TryGetValue(topic, out var ownerId) || IsExtensionAvailable(ownerId);
         }
 
-        /// <summary>Whether <paramref name="command"/>'s owning extension (if tracked) is currently available.</summary>
+        /// <summary>Whether <paramref name="command"/>'s owning uplink (if tracked) is currently available.</summary>
         private bool IsCommandAvailable(string command)
         {
             return !_commandOwner.TryGetValue(command, out var ownerId) || IsExtensionAvailable(ownerId);
         }
 
-        private bool IsExtensionAvailable(string extensionId)
+        private bool IsExtensionAvailable(string uplinkId)
         {
-            return !_availability.TryGetValue(extensionId, out var availability) || availability.IsAvailable;
+            return !_availability.TryGetValue(uplinkId, out var availability) || availability.IsAvailable;
         }
 
         /// <summary>
@@ -405,15 +438,15 @@ namespace Sitrep.Host
         /// handler — shared by <see cref="ProcessDispatchCommand"/>'s
         /// non-delayed (ground-infrastructure) branch and the delayed path's
         /// Courier clock-callback (wired via <see cref="Courier.SetCommandHandler"/>
-        /// in the constructor). A command whose owning extension has gone
+        /// in the constructor). A command whose owning uplink has gone
         /// <see cref="Availability.Unavailable"/> (whether from a throwing
-        /// <see cref="ISitrepExtension.Register"/> or a PRIOR runtime throw
+        /// <see cref="ISitrepUplink.Register"/> or a PRIOR runtime throw
         /// caught here) is skipped entirely, matching "unknown command"
         /// behavior. Otherwise the handler runs inside a try/catch: a
         /// mismatched-type wire arg (<see cref="AddCommandHandler{TArgs,TResult}"/>'s
         /// <c>(TArgs)args!</c> cast) or any other handler-author bug throws
         /// HERE rather than unwinding onto the Courier thread — caught,
-        /// fail-softs just this command's owning extension (every other
+        /// fail-softs just this command's owning uplink (every other
         /// registered channel/command is unaffected), and returns
         /// <c>null</c> as a graceful failure result instead of propagating
         /// and killing the thread (the CRITICAL-2 fix).
@@ -445,7 +478,7 @@ namespace Sitrep.Host
             // BEFORE the _commandOwner lookup/MarkExtensionUnavailable call,
             // so a throwing getter aborted this method early, escaping to
             // CourierLoop's non-attributing backstop try/catch and leaving
-            // the offending extension's command live (and re-throwing)
+            // the offending uplink's command live (and re-throwing)
             // forever. SafeExceptionMessage below can never throw, so the
             // owner lookup + MarkExtensionUnavailable are now guaranteed to
             // run regardless of what ex.Message does.
@@ -470,7 +503,7 @@ namespace Sitrep.Host
         /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>
         /// — the coverage-sweep fix for the sampler loop's missing owner
         /// attribution (see <see cref="ProcessTick"/>'s sampler loop). Marks
-        /// the sampler's owning extension Unavailable so it (and every other
+        /// the sampler's owning uplink Unavailable so it (and every other
         /// sampler/channel/command it owns) is skipped from the next tick
         /// onward, instead of the same throwing sampler recurring forever.
         /// </summary>
@@ -480,9 +513,9 @@ namespace Sitrep.Host
             Console.Error.WriteLine("[ChannelEngine] sampler " + sampler.GetType().Name + " threw: " + SafeExceptionMessage(ex));
         }
 
-        private void MarkExtensionUnavailable(string extensionId, string reason)
+        private void MarkExtensionUnavailable(string uplinkId, string reason)
         {
-            _availability[extensionId] = Availability.Unavailable(reason);
+            _availability[uplinkId] = Availability.Unavailable(reason);
         }
 
         /// <summary>
@@ -581,7 +614,7 @@ namespace Sitrep.Host
                     // (ProcessTick's channel loop) and per-command
                     // (InvokeCommandHandler) fail-soft above already catch
                     // the specific, expected failure shapes and attribute
-                    // them to the right extension. This try/catch is the
+                    // them to the right uplink. This try/catch is the
                     // backstop for anything else that still manages to
                     // throw here (a bug in subscribe/unsubscribe/disconnect
                     // bookkeeping, say) — the Courier thread must NEVER die:
@@ -647,18 +680,18 @@ namespace Sitrep.Host
                 foreach (var (ownerId, sampler) in _samplers)
                 {
                     // Coverage-sweep fix: a sampler is third-party
-                    // (extension) code running on the Courier thread — an
+                    // (uplink) code running on the Courier thread — an
                     // unguarded throw here used to kill the thread, so this
                     // catch is CRITICAL-2's original guard. But it used to
                     // stop there: no owner attribution meant a Sample() that
                     // throws every tick just logged forever and was
                     // re-invoked next tick regardless — unlike a channel
                     // mapper or command handler (see IsChannelAvailable/
-                    // IsCommandAvailable), the extension never actually went
+                    // IsCommandAvailable), the uplink never actually went
                     // Unavailable. Now mirrors that same pattern: skip a
                     // sampler whose owner already went Unavailable (from a
                     // PRIOR tick's throw, or a throwing Register()), and on a
-                    // throw here, attribute it to the owning extension via
+                    // throw here, attribute it to the owning uplink via
                     // FailSoftSampler so it stops recurring from the NEXT
                     // tick onward.
                     if (!IsExtensionAvailable(ownerId))
@@ -682,7 +715,7 @@ namespace Sitrep.Host
                 var topic = channelSource.Key;
                 if (!IsChannelAvailable(topic))
                 {
-                    // IMPORTANT-A: the owning extension went Unavailable
+                    // IMPORTANT-A: the owning uplink went Unavailable
                     // (registration threw, or a PRIOR tick's mapper threw
                     // below) — every channel it owns goes inert together,
                     // not just the one that originally failed.
@@ -702,10 +735,10 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    // CRITICAL-2: a channel mapper is extension-authored
+                    // CRITICAL-2: a channel mapper is uplink-authored
                     // code; a throw here (e.g. an unexpected snapshot shape)
                     // used to kill the Courier thread. Caught here instead:
-                    // fail-softs ONLY this channel's owning extension (see
+                    // fail-softs ONLY this channel's owning uplink (see
                     // FailSoftChannel) and skips to the NEXT channel this
                     // same tick — every other registered channel keeps
                     // ticking normally.
@@ -743,7 +776,7 @@ namespace Sitrep.Host
                 }
 
                 // C2-1 (second fail-soft round): Decide is ALSO
-                // extension-authored code -- a structured payload's deadband
+                // uplink-authored code -- a structured payload's deadband
                 // falls back to object.Equals (see
                 // ChannelEmitter.HasChangedBeyondQuantum), which invokes the
                 // VALUE's own Equals override. Before this fix, a throwing
@@ -752,7 +785,7 @@ namespace Sitrep.Host
                 // _clock.AdvanceTo below for the WHOLE tick -- wedging every
                 // OTHER channel's delivery too, not just this one. Guarded
                 // exactly like map(): fail-soft ONLY this channel's owning
-                // extension and move on to the next channel, same tick.
+                // uplink and move on to the next channel, same tick.
                 EmissionDecision decision;
                 try
                 {
@@ -780,10 +813,10 @@ namespace Sitrep.Host
                 return;
             }
 
-            // C1-pub: publish.Ut is caller/extension-stamped (typically via
-            // IExtensionHost.NowUt(), read at some earlier point), entirely
+            // C1-pub: publish.Ut is caller/uplink-stamped (typically via
+            // IUplinkHost.NowUt(), read at some earlier point), entirely
             // independent of the Tick-driven clock advance. If a quickload
-            // rewinds _clock backward AFTER an extension captured its "now"
+            // rewinds _clock backward AFTER an uplink captured its "now"
             // but BEFORE it got around to calling Publish, that captured ut
             // is a ghost from the abandoned timeline -- now numerically
             // AHEAD of the rewound clock's current position. Recording it
@@ -813,9 +846,9 @@ namespace Sitrep.Host
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // IMPORTANT-A: an unknown command AND a command whose owning
-            // extension has gone Unavailable are treated identically —
+            // uplink has gone Unavailable are treated identically —
             // "unknown/unavailable command" — a future wire-level
-            // E_UNAVAILABLE response is the natural extension of this, not
+            // E_UNAVAILABLE response is the natural uplink of this, not
             // built here.
             if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
             {
@@ -832,7 +865,7 @@ namespace Sitrep.Host
                 // design doc §4.3. Routed through InvokeCommandHandler (the
                 // SAME funnel the delayed path uses via
                 // Courier.SetCommandHandler) so a throwing handler
-                // fail-softs its own extension instead of killing the
+                // fail-softs its own uplink instead of killing the
                 // Courier thread — the CRITICAL-2 fix.
                 var result = InvokeCommandHandler(job.Command, job.Args);
                 job.OnResult(result);
@@ -857,7 +890,7 @@ namespace Sitrep.Host
             // AddChannelSource mapper) is a legitimate channel too, and used
             // to be permanently unsubscribable because this check only ever
             // recognized the pull-style half of the two ways a channel can
-            // be backed (see IExtensionHost.AddChannelSource vs. Publisher).
+            // be backed (see IUplinkHost.AddChannelSource vs. Publisher).
             if (!_channelDeclarations.ContainsKey(topic) || session.Unsubscribers.ContainsKey(topic))
             {
                 return;
@@ -880,14 +913,14 @@ namespace Sitrep.Host
             {
                 unsubscribe = _courier.SubscribeStream(NodeId, topic, vantage, streamData =>
                 {
-                    // C2-2(b): streamData.Payload is extension-authored --
+                    // C2-2(b): streamData.Payload is uplink-authored --
                     // some CLR shapes JsonWriter can never serialize (an
                     // arbitrary POCO, not a recognized numeric/string/
                     // dictionary/enumerable). This closure is invoked for
                     // EVERY delivery to this subscriber (both the
                     // synchronous subscribe-time catch-up below AND every
                     // later Courier-scheduled delivery), so guarding it here
-                    // fail-softs the owning extension on the FIRST failed
+                    // fail-softs the owning uplink on the FIRST failed
                     // serialization instead of the throw recurring silently,
                     // unattributed, on every subsequent tick.
                     byte[] bytes;
@@ -926,7 +959,7 @@ namespace Sitrep.Host
                 // ack below are ever reached: an orphaned subscriber with no
                 // ack and no bookkeeping for ProcessDisconnect to clean up
                 // later. Roll back the registry-level subscribe so no
-                // orphaned count survives, fail-soft the owning extension,
+                // orphaned count survives, fail-soft the owning uplink,
                 // and bail out WITHOUT setting Unsubscribers/sending an ack
                 // — the client's subscribe simply never completes, matching
                 // "unavailable channel" behavior elsewhere in this class.
@@ -1066,8 +1099,8 @@ namespace Sitrep.Host
                     case CommandRequest<object?> req:
                         DispatchCommand(req.Command, req.Args, session.Connection.Id, result =>
                         {
-                            // C2-4: `result` is whatever the extension's
-                            // command handler returned -- extension-owned,
+                            // C2-4: `result` is whatever the uplink's
+                            // command handler returned -- uplink-owned,
                             // same as a channel payload. This serialization
                             // used to run OUTSIDE InvokeCommandHandler's
                             // guard entirely (it happens here, in the
@@ -1075,9 +1108,9 @@ namespace Sitrep.Host
                             // itself), so an unserializable result threw
                             // unattributed and the client got no response at
                             // all, not even an error -- true silence. Guard
-                            // it the same way as every other extension-value
+                            // it the same way as every other uplink-value
                             // touch point: fail-soft the owning command's
-                            // extension and send an explicit error response
+                            // uplink and send an explicit error response
                             // instead of dropping the reply on the floor.
                             try
                             {

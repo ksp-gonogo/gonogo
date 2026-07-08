@@ -47,6 +47,7 @@ public enum WarpMode
 /// comment for the emission rule now in force (present whenever
 /// <c>Values["time"]</c> itself is present, nothing else).</para>
 /// </summary>
+[SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
