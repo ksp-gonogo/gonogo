@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Contracts;
+using Expansions.Serenity;
 using Sitrep.Host;
 using Strategies;
 using UnityEngine;
@@ -133,6 +135,17 @@ namespace Gonogo.KSP
                     if (activeVessel != null)
                     {
                         values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry);
+
+                        // Science + parts/power/robotics capture-adds (this
+                        // session) - both require an active vessel to have
+                        // any parts to walk, so they're gated here alongside
+                        // "vessel" itself rather than sampled unconditionally
+                        // like "career" below. TryBuildGroup gives each its
+                        // own try/catch-and-omit, same "one group's failure
+                        // doesn't take out another" discipline as every
+                        // vessel.* group above.
+                        TryBuildGroup(values, "science", () => BuildScience(activeVessel));
+                        TryBuildGroup(values, "parts", () => BuildParts(activeVessel));
                     }
 
                     // M3 R3 capture-add: the FULL known-vessel roster (not
@@ -1451,6 +1464,655 @@ namespace Gonogo.KSP
             }
 
             return entry;
+        }
+
+        // ----------------------------------------------------------------
+        // Science capture (onboard experiments/containers, science lab
+        // processing state, Breaking Ground deployed experiments)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Primitives-only snapshot of the active vessel's science state -
+        /// mirrors <see cref="BuildCareer"/>'s "own try per sub-group"
+        /// discipline via <see cref="TryBuildGroup"/> so a failure reading
+        /// e.g. a Breaking Ground module can't blank the onboard-experiment
+        /// list. Speed-prioritized for THIS session: every field is a raw
+        /// primitive pass-through of what KSP already tracks - no derived
+        /// "true" science value is computed here (that's
+        /// <c>ResearchAndDevelopment.Instance.ScienceValue</c>'s job, a
+        /// follow-up if a consumer needs it).
+        /// </summary>
+        private static Dictionary<string, object?> BuildScience(Vessel vessel)
+        {
+            var entry = new Dictionary<string, object?>();
+            TryBuildGroup(entry, "experiments", () => BuildScienceExperiments(vessel));
+            TryBuildGroup(entry, "lab", () => BuildScienceLab(vessel));
+            TryBuildGroup(entry, "deployed", () => BuildDeployedScience(vessel));
+            return entry;
+        }
+
+        /// <summary>
+        /// One entry per <see cref="ScienceData"/> currently held by any
+        /// <see cref="ModuleScienceExperiment"/> (data collected in the
+        /// experiment itself, not yet transferred - <c>location:
+        /// "experiment"</c>) or <see cref="ModuleScienceContainer"/> (data
+        /// already collected into an onboard container - <c>location:
+        /// "container"</c>) on the vessel. Both classes expose a public
+        /// <c>GetData()</c> directly (confirmed via decompile) - called on
+        /// the concrete type rather than through <c>IScienceDataContainer</c>
+        /// (that interface decompiled with no visible members, so nothing is
+        /// assumed about it). Null when the vessel carries no science data
+        /// at all, never an empty list (same "omit entirely" convention
+        /// <see cref="BuildManeuverNodes"/> uses).
+        /// </summary>
+        private static List<object?>? BuildScienceExperiments(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+            var situation = vessel.situation.ToString();
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                var experiments = part.Modules.GetModules<ModuleScienceExperiment>();
+                if (experiments != null)
+                {
+                    foreach (var exp in experiments)
+                    {
+                        if (exp == null)
+                        {
+                            continue;
+                        }
+
+                        ScienceData[]? data;
+                        try { data = exp.GetData(); } catch { data = null; }
+                        if (data == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (var d in data)
+                        {
+                            if (d == null)
+                            {
+                                continue;
+                            }
+                            list ??= new List<object?>();
+                            list.Add(BuildScienceDataEntry(d, partName, situation, "experiment", exp.experimentID, exp.Deployed, exp.Inoperable));
+                        }
+                    }
+                }
+
+                var containers = part.Modules.GetModules<ModuleScienceContainer>();
+                if (containers != null)
+                {
+                    foreach (var container in containers)
+                    {
+                        if (container == null)
+                        {
+                            continue;
+                        }
+
+                        ScienceData[]? data;
+                        try { data = container.GetData(); } catch { data = null; }
+                        if (data == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (var d in data)
+                        {
+                            if (d == null)
+                            {
+                                continue;
+                            }
+                            list ??= new List<object?>();
+                            list.Add(BuildScienceDataEntry(d, partName, situation, "container", null, null, null));
+                        }
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        private static Dictionary<string, object?> BuildScienceDataEntry(ScienceData data, string partName, string situation, string location, string? experimentId, bool? deployed, bool? inoperable)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["partName"] = partName,
+                // "experiment" = still sitting in the experiment module,
+                // uncollected; "container" = already collected into an
+                // onboard ModuleScienceContainer. KSP doesn't track a
+                // separate "already transmitted" flag on ScienceData itself
+                // (transmission is a fire-and-forget action, not persisted
+                // state) - the consumer reads location as the closest
+                // available "stored vs not yet collected" signal.
+                ["location"] = location,
+                ["experimentId"] = experimentId,
+                ["subjectId"] = data.subjectID,
+                ["title"] = data.title,
+                ["dataAmount"] = (double)data.dataAmount,
+                ["scienceValueRatio"] = (double)data.scienceValueRatio,
+                ["baseTransmitValue"] = (double)data.baseTransmitValue,
+                ["transmitBonus"] = (double)data.transmitBonus,
+                ["labValue"] = (double)data.labValue,
+                ["deployed"] = deployed,
+                ["inoperable"] = inoperable,
+                ["situation"] = situation,
+            };
+        }
+
+        /// <summary>
+        /// One entry per <see cref="ModuleScienceLab"/> (MPL) on the vessel.
+        /// <c>scienceRate</c> comes from <c>ModuleScienceConverter.
+        /// CalculateScienceRate(dataStored)</c> via the lab's public
+        /// <c>Converter</c> property (confirmed via decompile) - wrapped in
+        /// its own try since a lab with no converter configured is a valid
+        /// (if unusual) part config. <c>scientistCount</c> counts
+        /// <c>part.protoModuleCrew</c> entries whose <c>trait == "Scientist"</c>
+        /// (both confirmed via decompile - <c>Part.protoModuleCrew</c> is a
+        /// public field, <c>ProtoCrewMember.trait</c> a public string).
+        /// </summary>
+        private static List<object?>? BuildScienceLab(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var labs = part.Modules.GetModules<ModuleScienceLab>();
+                if (labs == null)
+                {
+                    continue;
+                }
+
+                foreach (var lab in labs)
+                {
+                    if (lab == null)
+                    {
+                        continue;
+                    }
+
+                    var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                    double? rate = null;
+                    try
+                    {
+                        var converter = lab.Converter;
+                        if (converter != null)
+                        {
+                            rate = converter.CalculateScienceRate(lab.dataStored);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning("[Gonogo] science.lab rate read failed on \"" + partName + "\", omitting: " + ex);
+                    }
+
+                    var scientistCount = 0;
+                    var crew = part.protoModuleCrew;
+                    if (crew != null)
+                    {
+                        foreach (var kerbal in crew)
+                        {
+                            if (kerbal != null && kerbal.trait == "Scientist")
+                            {
+                                scientistCount++;
+                            }
+                        }
+                    }
+
+                    bool? isOperational = null;
+                    try { isOperational = lab.IsOperational(); } catch { isOperational = null; }
+
+                    list ??= new List<object?>();
+                    list.Add(new Dictionary<string, object?>
+                    {
+                        ["partName"] = partName,
+                        ["dataStored"] = (double)lab.dataStored,
+                        ["dataStorage"] = (double)lab.dataStorage,
+                        ["storedScience"] = (double)lab.storedScience,
+                        ["processingData"] = lab.processingData,
+                        ["statusText"] = lab.statusText,
+                        ["scientistCount"] = scientistCount,
+                        ["scienceRate"] = rate,
+                        ["isOperational"] = isOperational,
+                    });
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Breaking Ground deployed-experiment modules
+        /// (<c>ModuleGroundExperiment</c>) - reflected by type NAME rather
+        /// than a hard static reference. Decompile surfaced the type as the
+        /// oddly-named <c>A.ModuleGroundExperiment</c> with an empty member
+        /// body (ilspycmd couldn't fully resolve it this session); rather
+        /// than hardcode a namespace that might not be stable, this walks
+        /// every <c>PartModule</c> on the vessel and matches on
+        /// <c>GetType().Name == "ModuleGroundExperiment"</c>, then reads the
+        /// handful of fields <see cref="ModuleScienceExperiment"/> already
+        /// confirmed use the same naming idiom for
+        /// (<c>experimentID</c>/<c>Deployed</c>/<c>Inoperable</c>) via
+        /// reflection. Returns null - the whole group - whenever Breaking
+        /// Ground isn't installed or nothing is deployed, same "omit
+        /// entirely" convention as every other group in this class. A
+        /// future session with a clean decompile can replace this with a
+        /// direct typed reference and richer fields (rate/transmitted) -
+        /// this is deliberately the minimal safe slice for THIS session.
+        /// </summary>
+        private static List<object?>? BuildDeployedScience(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+            var situation = vessel.situation.ToString();
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                foreach (var module in part.Modules)
+                {
+                    if (module == null || module.GetType().Name != "ModuleGroundExperiment")
+                    {
+                        continue;
+                    }
+
+                    list ??= new List<object?>();
+                    var type = module.GetType();
+                    list.Add(new Dictionary<string, object?>
+                    {
+                        ["partName"] = partName,
+                        ["experimentId"] = ReflectField<string>(type, module, "experimentID"),
+                        ["deployed"] = ReflectField<bool?>(type, module, "Deployed"),
+                        ["inoperable"] = ReflectField<bool?>(type, module, "Inoperable"),
+                        ["situation"] = situation,
+                    });
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Reads a public instance field named <paramref name="fieldName"/>
+        /// off <paramref name="instance"/> via reflection, tolerating the
+        /// field being absent/renamed (returns <c>default</c>, never
+        /// throws) - the guard <see cref="BuildDeployedScience"/>'s doc
+        /// comment describes for a type this class can't safely reference
+        /// statically.
+        /// </summary>
+        private static T? ReflectField<T>(Type type, object instance, string fieldName)
+        {
+            try
+            {
+                var field = type.GetField(fieldName, BindingFlags.Public | BindingFlags.Instance);
+                if (field == null)
+                {
+                    return default;
+                }
+                var value = field.GetValue(instance);
+                return value is T typed ? typed : default;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] reflective read of " + type.Name + "." + fieldName + " failed, omitting: " + ex);
+                return default;
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Parts/power/robotics capture (solar/battery/fuel-cell/alternator
+        // power production, Breaking Ground robotics)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Primitives-only snapshot of the active vessel's power production
+        /// and robotics state. Same "own try per sub-group" discipline as
+        /// <see cref="BuildScience"/>.
+        /// </summary>
+        private static Dictionary<string, object?> BuildParts(Vessel vessel)
+        {
+            var entry = new Dictionary<string, object?>();
+            TryBuildGroup(entry, "power", () => BuildPartsPower(vessel));
+            TryBuildGroup(entry, "robotics", () => BuildPartsRobotics(vessel));
+            return entry;
+        }
+
+        /// <summary>
+        /// Solar panels (<see cref="ModuleDeployableSolarPanel"/>: deploy
+        /// state + live/rated flow), batteries (any part's <c>ElectricCharge</c>
+        /// resource capacity - per-part granularity, complementing
+        /// <see cref="BuildResources"/>'s vessel-wide sum), fuel cells
+        /// (<see cref="ModuleResourceConverter"/> whose recipe outputs
+        /// <c>ElectricCharge</c> - confirmed via decompile that
+        /// <c>BaseConverter.outputList</c>/<c>ResourceRatio.ResourceName</c>
+        /// are public), and alternators (<see cref="ModuleAlternator"/>'s
+        /// live <c>outputRate</c>). <c>totalProductionEc</c> sums solar
+        /// <c>flowRate</c> + alternator <c>outputRate</c> only - the "if
+        /// cheap" aggregate the task called for; fuel-cell/consumption isn't
+        /// cheaply derivable from these fields alone and is left to the
+        /// consumer. Each part's read is individually try/caught so one bad
+        /// part can't blank the whole group. Null when the vessel has
+        /// nothing at all in any of the four lists.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildPartsPower(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            var solarPanels = new List<object?>();
+            var batteries = new List<object?>();
+            var fuelCells = new List<object?>();
+            var alternators = new List<object?>();
+            double totalProduction = 0;
+
+            foreach (var part in parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                try
+                {
+                    var panels = part.Modules != null ? part.Modules.GetModules<ModuleDeployableSolarPanel>() : null;
+                    if (panels != null)
+                    {
+                        foreach (var panel in panels)
+                        {
+                            if (panel == null)
+                            {
+                                continue;
+                            }
+                            solarPanels.Add(new Dictionary<string, object?>
+                            {
+                                ["partName"] = partName,
+                                ["deployState"] = panel.deployState.ToString(),
+                                ["flowRate"] = (double)panel.flowRate,
+                                ["chargeRate"] = (double)panel.chargeRate,
+                                ["sunAOA"] = (double)panel.sunAOA,
+                            });
+                            totalProduction += panel.flowRate;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] parts.power solar read failed on \"" + partName + "\", skipping: " + ex);
+                }
+
+                try
+                {
+                    var resources = part.Resources;
+                    if (resources != null && resources.Contains("ElectricCharge"))
+                    {
+                        var ec = resources["ElectricCharge"];
+                        if (ec != null && ec.maxAmount > 0)
+                        {
+                            batteries.Add(new Dictionary<string, object?>
+                            {
+                                ["partName"] = partName,
+                                ["current"] = ec.amount,
+                                ["max"] = ec.maxAmount,
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] parts.power battery read failed on \"" + partName + "\", skipping: " + ex);
+                }
+
+                try
+                {
+                    var converters = part.Modules != null ? part.Modules.GetModules<ModuleResourceConverter>() : null;
+                    if (converters != null)
+                    {
+                        foreach (var converter in converters)
+                        {
+                            if (converter == null)
+                            {
+                                continue;
+                            }
+
+                            var producesEc = false;
+                            var outputs = converter.outputList;
+                            if (outputs != null)
+                            {
+                                foreach (var output in outputs)
+                                {
+                                    if (output.ResourceName == "ElectricCharge")
+                                    {
+                                        producesEc = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!producesEc)
+                            {
+                                continue;
+                            }
+
+                            fuelCells.Add(new Dictionary<string, object?>
+                            {
+                                ["partName"] = partName,
+                                ["active"] = converter.IsActivated,
+                                ["status"] = converter.status,
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] parts.power fuel cell read failed on \"" + partName + "\", skipping: " + ex);
+                }
+
+                try
+                {
+                    var alts = part.Modules != null ? part.Modules.GetModules<ModuleAlternator>() : null;
+                    if (alts != null)
+                    {
+                        foreach (var alt in alts)
+                        {
+                            if (alt == null)
+                            {
+                                continue;
+                            }
+                            alternators.Add(new Dictionary<string, object?>
+                            {
+                                ["partName"] = partName,
+                                ["outputRate"] = (double)alt.outputRate,
+                            });
+                            totalProduction += alt.outputRate;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] parts.power alternator read failed on \"" + partName + "\", skipping: " + ex);
+                }
+            }
+
+            if (solarPanels.Count == 0 && batteries.Count == 0 && fuelCells.Count == 0 && alternators.Count == 0)
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["solarPanels"] = solarPanels,
+                ["batteries"] = batteries,
+                ["fuelCells"] = fuelCells,
+                ["alternators"] = alternators,
+                ["totalProductionEc"] = totalProduction,
+            };
+        }
+
+        /// <summary>
+        /// Breaking Ground robotics - rotors (<see cref="ModuleRoboticServoRotor"/>),
+        /// hinges (<see cref="ModuleRoboticServoHinge"/>), and pistons
+        /// (<see cref="ModuleRoboticServoPiston"/>), all confirmed via
+        /// decompile to subclass the shared <see cref="BaseServo"/> (common
+        /// lock/motor/engaged/limit/state fields - all public). Unlike
+        /// <see cref="BuildDeployedScience"/>'s reflection guard, these
+        /// three types decompiled cleanly with stable namespaces
+        /// (<c>Expansions.Serenity</c>) baked into the SAME Assembly-CSharp.dll
+        /// this project already references, so a direct static reference is
+        /// safe - "DLC absent" here just means no part on the vessel uses
+        /// these modules, which the empty-list -&gt; null fallback already
+        /// covers without any special-casing. Null when the vessel has no
+        /// robotic parts at all.
+        /// </summary>
+        private static List<object?>? BuildPartsRobotics(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+
+                try
+                {
+                    var rotors = part.Modules.GetModules<ModuleRoboticServoRotor>();
+                    if (rotors != null)
+                    {
+                        foreach (var rotor in rotors)
+                        {
+                            if (rotor == null)
+                            {
+                                continue;
+                            }
+                            list ??= new List<object?>();
+                            list.Add(BuildServoEntry(
+                                rotor, partName, "rotor",
+                                currentAngle: null, targetAngle: null, traverseVelocity: null,
+                                currentRpm: rotor.currentRPM, rpmLimit: rotor.rpmLimit,
+                                normalizedOutput: rotor.normalizedOutput, brakePercentage: rotor.brakePercentage,
+                                currentExtension: null, targetExtension: null));
+                        }
+                    }
+
+                    var hinges = part.Modules.GetModules<ModuleRoboticServoHinge>();
+                    if (hinges != null)
+                    {
+                        foreach (var hinge in hinges)
+                        {
+                            if (hinge == null)
+                            {
+                                continue;
+                            }
+                            list ??= new List<object?>();
+                            list.Add(BuildServoEntry(
+                                hinge, partName, "hinge",
+                                currentAngle: hinge.currentAngle, targetAngle: hinge.targetAngle, traverseVelocity: hinge.traverseVelocity,
+                                currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
+                                currentExtension: null, targetExtension: null));
+                        }
+                    }
+
+                    var pistons = part.Modules.GetModules<ModuleRoboticServoPiston>();
+                    if (pistons != null)
+                    {
+                        foreach (var piston in pistons)
+                        {
+                            if (piston == null)
+                            {
+                                continue;
+                            }
+                            list ??= new List<object?>();
+                            list.Add(BuildServoEntry(
+                                piston, partName, "piston",
+                                currentAngle: null, targetAngle: null, traverseVelocity: piston.traverseVelocity,
+                                currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
+                                currentExtension: piston.currentExtension, targetExtension: piston.targetExtension));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] parts.robotics read failed on \"" + partName + "\", skipping: " + ex);
+                }
+            }
+
+            return list;
+        }
+
+        private static Dictionary<string, object?> BuildServoEntry(
+            BaseServo servo, string partName, string type,
+            float? currentAngle, float? targetAngle, float? traverseVelocity,
+            float? currentRpm, float? rpmLimit, float? normalizedOutput, float? brakePercentage,
+            float? currentExtension, float? targetExtension)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["partName"] = partName,
+                ["type"] = type,
+                ["servoIsLocked"] = servo.servoIsLocked,
+                ["servoIsMotorized"] = servo.servoIsMotorized,
+                ["servoMotorIsEngaged"] = servo.servoMotorIsEngaged,
+                ["servoMotorLimit"] = (double)servo.servoMotorLimit,
+                ["motorState"] = servo.motorState,
+                ["currentAngle"] = currentAngle.HasValue ? (double?)currentAngle.Value : null,
+                ["targetAngle"] = targetAngle.HasValue ? (double?)targetAngle.Value : null,
+                ["traverseVelocity"] = traverseVelocity.HasValue ? (double?)traverseVelocity.Value : null,
+                ["currentRPM"] = currentRpm.HasValue ? (double?)currentRpm.Value : null,
+                ["rpmLimit"] = rpmLimit.HasValue ? (double?)rpmLimit.Value : null,
+                ["normalizedOutput"] = normalizedOutput.HasValue ? (double?)normalizedOutput.Value : null,
+                ["brakePercentage"] = brakePercentage.HasValue ? (double?)brakePercentage.Value : null,
+                ["currentExtension"] = currentExtension.HasValue ? (double?)currentExtension.Value : null,
+                ["targetExtension"] = targetExtension.HasValue ? (double?)targetExtension.Value : null,
+            };
         }
 
         // ----------------------------------------------------------------

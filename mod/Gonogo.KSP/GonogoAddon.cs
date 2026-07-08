@@ -82,6 +82,8 @@ namespace Gonogo.KSP
                 _engine.RegisterExtension(new SystemExtension());
                 _engine.RegisterExtension(new VesselExtension(new KspVesselActuator(maneuverNodeIdRegistry)));
                 _engine.RegisterExtension(new CareerExtension());
+                _engine.RegisterExtension(new ScienceExtension());
+                _engine.RegisterExtension(new PartsExtension());
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,
