@@ -1,6 +1,6 @@
 {
   "Major": 2,
-  "Minor": 1,
+  "Minor": 2,
   "Types": {
     "Sitrep.Contract.AddManeuverNodeArgs": [
       "Normal:System.Double",
@@ -25,7 +25,9 @@
       "ErrorCode:Sitrep.Contract.CommandErrorCode",
       "Success:System.Boolean"
     ],
-    "Sitrep.Contract.CommandResult\u00601": ["Payload:T"],
+    "Sitrep.Contract.CommandResult\u00601": [
+      "Payload:T"
+    ],
     "Sitrep.Contract.DockAlignment": [
       "Distance:System.Double",
       "ForwardDot:System.Nullable\u00601[System.Double]",
@@ -45,6 +47,27 @@
       "Name:System.String",
       "Topic:System.String",
       "Type:System.String"
+    ],
+    "Sitrep.Contract.KosComputeStatus": [
+      "LastGoodAt:System.Nullable\u00601[System.Double]",
+      "ParseError:System.String",
+      "Paused:System.Boolean",
+      "Running:System.Boolean",
+      "ScriptError:System.String"
+    ],
+    "Sitrep.Contract.KosExecArgs": [
+      "CoreId:System.Int32",
+      "ScriptId:System.String"
+    ],
+    "Sitrep.Contract.KosProcessorInfo": [
+      "BootFilePath:System.String",
+      "CoreId:System.Int32",
+      "HasBooted:System.Boolean",
+      "ProcessorMode:System.String",
+      "Tag:System.String"
+    ],
+    "Sitrep.Contract.KosReEnableArgs": [
+      "ScriptId:System.String"
     ],
     "Sitrep.Contract.ManeuverNode": [
       "DvNormal:System.Nullable\u00601[System.Double]",
@@ -75,7 +98,9 @@
       "Quality:Sitrep.Contract.Quality",
       "Source:System.String"
     ],
-    "Sitrep.Contract.RemoveManeuverNodeArgs": ["NodeId:System.String"],
+    "Sitrep.Contract.RemoveManeuverNodeArgs": [
+      "NodeId:System.String"
+    ],
     "Sitrep.Contract.ResourceAmount": [
       "Active:System.Boolean",
       "Current:System.Double",
@@ -85,23 +110,36 @@
       "Group:System.Int32",
       "State:System.Boolean"
     ],
-    "Sitrep.Contract.SetEnabledArgs": ["Enabled:System.Boolean"],
-    "Sitrep.Contract.SetPausedArgs": ["Paused:System.Boolean"],
-    "Sitrep.Contract.SetSasModeArgs": ["Mode:Sitrep.Contract.SasMode"],
+    "Sitrep.Contract.SetEnabledArgs": [
+      "Enabled:System.Boolean"
+    ],
+    "Sitrep.Contract.SetPausedArgs": [
+      "Paused:System.Boolean"
+    ],
+    "Sitrep.Contract.SetSasModeArgs": [
+      "Mode:Sitrep.Contract.SasMode"
+    ],
     "Sitrep.Contract.SetTargetArgs": [
       "BodyIndex:System.Nullable\u00601[System.Int32]",
       "Kind:Sitrep.Contract.TargetKind",
       "VesselId:System.String"
     ],
-    "Sitrep.Contract.SetThrottleArgs": ["Value:System.Double"],
-    "Sitrep.Contract.SetWarpIndexArgs": ["Index:System.Int32"],
+    "Sitrep.Contract.SetThrottleArgs": [
+      "Value:System.Double"
+    ],
+    "Sitrep.Contract.SetWarpIndexArgs": [
+      "Index:System.Int32"
+    ],
     "Sitrep.Contract.StreamData\u00601": [
       "Meta:Sitrep.Contract.Meta",
       "Payload:T",
       "Topic:System.String",
       "Type:System.String"
     ],
-    "Sitrep.Contract.Subscribe": ["Topic:System.String", "Type:System.String"],
+    "Sitrep.Contract.Subscribe": [
+      "Topic:System.String",
+      "Type:System.String"
+    ],
     "Sitrep.Contract.ThermalHottestPart": [
       "InternalTemp:System.Double",
       "MaxTemp:System.Double",
@@ -268,7 +306,10 @@
       "ProbePartial:6",
       "Unknown:11"
     ],
-    "Sitrep.Contract.Quality": ["Loaded:1", "OnRails:0"],
+    "Sitrep.Contract.Quality": [
+      "Loaded:1",
+      "OnRails:0"
+    ],
     "Sitrep.Contract.SasMode": [
       "AntiTarget:8",
       "Antinormal:4",
@@ -298,7 +339,11 @@
       "HeldStale:1",
       "LastBeforeBlackout:2"
     ],
-    "Sitrep.Contract.TargetKind": ["Body:1", "Other:2", "Vessel:0"],
+    "Sitrep.Contract.TargetKind": [
+      "Body:1",
+      "Other:2",
+      "Vessel:0"
+    ],
     "Sitrep.Contract.TransitionType": [
       "Collision:5",
       "Encounter:2",
@@ -325,6 +370,10 @@
       "Station:1",
       "Unknown:14"
     ],
-    "Sitrep.Contract.WarpMode": ["High:0", "Low:1", "Unknown:2"]
+    "Sitrep.Contract.WarpMode": [
+      "High:0",
+      "Low:1",
+      "Unknown:2"
+    ]
   }
 }

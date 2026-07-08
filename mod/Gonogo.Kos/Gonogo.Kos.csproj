@@ -73,10 +73,11 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Harmony — not used by any P0 code (no patches ship yet), but
-       referenced now so this assembly compiles against the full P1+
-       dependency set up front (spec §6's single observe-only
-       ScreenBuffer.Print postfix is P1). Loaded from 000_Harmony's own
+  <!-- Harmony — P1 uses it for the ONE observe-only postfix on
+       ScreenBuffer.Print (spec §4(b)/§6, KosComputeHarmony.cs), the compute
+       feed's at-source capture. Installed only when the version-guard
+       confirms the target exists; otherwise compute falls back to the
+       snapshot-scrape (spec §4.4). Loaded from 000_Harmony's own
        mod folder; Private=false — every other Harmony-dependent mod in
        this install already provides it, GonogoKos must not bundle a
        second copy. -->
