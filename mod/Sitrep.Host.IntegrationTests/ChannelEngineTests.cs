@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core;
@@ -412,6 +413,202 @@ namespace Sitrep.Host.IntegrationTests
             finally
             {
                 engine.Stop();
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // F2 Part 1 — main-thread command execution seam. The WRITE-side
+        // twin of F1's capture-on-main / handle-on-Courier read seam: a
+        // command handler (live KSP/Unity actuation in production) must run
+        // on the Unity main thread, never the Courier thread.
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// F2 Part 1: with <c>executeCommandsOnMainThread: true</c>, a command
+        /// handler runs on whatever thread drives
+        /// <see cref="ChannelEngine.RunPendingCommands"/> (the main-thread pump,
+        /// = <c>GonogoAddon.FixedUpdate</c> in production) — proven by the
+        /// handler recording its own thread id and this test asserting it
+        /// equals the pump thread's id and differs from the dispatching thread.
+        /// Mirrors F1's main-vs-Courier seam test, on the WRITE path.
+        /// </summary>
+        [Fact]
+        public void CommandHandlerRunsOnTheMainThreadPumpNotTheCourierThread()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new MainThreadProbeUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+
+            using var stop = new ManualResetEventSlim(false);
+            using var pumpReady = new ManualResetEventSlim(false);
+            var pumpThreadId = 0;
+            var pump = new Thread(() =>
+            {
+                pumpThreadId = Thread.CurrentThread.ManagedThreadId;
+                pumpReady.Set();
+                while (!stop.IsSet)
+                {
+                    engine.RunPendingCommands();
+                    Thread.Sleep(2);
+                }
+                engine.RunPendingCommands();
+            })
+            { IsBackground = true, Name = "test-main-thread-pump" };
+            pump.Start();
+            Assert.True(pumpReady.Wait(Timeout));
+
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", _ => resolved.Set());
+                Assert.True(resolved.Wait(Timeout), "a delayed:false command should resolve once the main-thread pump drains it");
+
+                Assert.Equal(pumpThreadId, uplink.LastHandlerThreadId);
+                Assert.NotEqual(Thread.CurrentThread.ManagedThreadId, uplink.LastHandlerThreadId);
+            }
+            finally
+            {
+                stop.Set();
+                pump.Join(Timeout);
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// F2 Part 1: the flag genuinely GATES the marshaling. Without it (the
+        /// default), a command resolves even though
+        /// <see cref="ChannelEngine.RunPendingCommands"/> is never called —
+        /// proof the handler ran inline on the Courier thread, exactly the
+        /// pre-F2 behavior, so the default path is unchanged for every headless
+        /// caller/test.
+        /// </summary>
+        [Fact]
+        public void WithoutTheMainThreadFlagACommandResolvesInlineWithNoPump()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var uplink = new MainThreadProbeUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", _ => resolved.Set());
+                Assert.True(resolved.Wait(Timeout), "with no main-thread pump and the flag off, the command must resolve inline on the Courier thread");
+                Assert.NotEqual(-1, uplink.LastHandlerThreadId);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// F2 Part 2: with the F2 classification, a vessel.maneuver.* command
+        /// (reclassified delayed:true — a maneuver node is craft-side state) now
+        /// rides the Courier's light-time delay and does NOT execute until the
+        /// clock advances past t0 + uplink light-time, while a time.* command
+        /// (delayed:false sim-meta) bypasses the delay and executes immediately.
+        /// Exercised THROUGH the main-thread seam (executeCommandsOnMainThread:
+        /// true) so it proves the delay model and the main-thread execution
+        /// path compose correctly.
+        /// </summary>
+        [Fact]
+        public void DelayedManeuverCommandExecutesAtT0PlusLightTimeWhileInstantTimeCommandBypasses()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 5, executeCommandsOnMainThread: true);
+            var actuator = new RecordingVesselActuator();
+            engine.RegisterUplink(new VesselCommandTestUplink(actuator));
+            engine.Start();
+
+            using var stop = new ManualResetEventSlim(false);
+            var pump = new Thread(() =>
+            {
+                while (!stop.IsSet)
+                {
+                    engine.RunPendingCommands();
+                    Thread.Sleep(2);
+                }
+                engine.RunPendingCommands();
+            })
+            { IsBackground = true, Name = "test-main-thread-pump" };
+            pump.Start();
+
+            try
+            {
+                // ---- delayed:true uplink: vessel.maneuver.add ----
+                using var maneuverResolved = new ManualResetEventSlim(false);
+                engine.DispatchCommand(
+                    VesselCommandProvider.ManeuverAddCommand,
+                    new AddManeuverNodeArgs { Ut = 100, Prograde = 1, Normal = 0, RadialOut = 0 },
+                    "vantage-1",
+                    _ => maneuverResolved.Set());
+
+                // Nothing has advanced the clock: the command is in flight on
+                // the Courier, so neither the handler nor the response has run.
+                Assert.False(maneuverResolved.Wait(TimeSpan.FromMilliseconds(300)),
+                    "delayed:true vessel.maneuver.add must not execute before the Courier's scheduled UT");
+                Assert.Equal(0, actuator.ManeuverAddCallCount);
+
+                // Advance past the full round trip (5s up + 5s down = 10 UT-s):
+                // the execute callback fires on the Courier, marshals to the
+                // main-thread pump, the confirm fires, and the response returns.
+                engine.TickAndWait(10.0, null, Timeout);
+                Assert.True(maneuverResolved.Wait(Timeout));
+                Assert.Equal(1, actuator.ManeuverAddCallCount);
+
+                // ---- delayed:false sim-meta: time.setPaused ----
+                using var pauseResolved = new ManualResetEventSlim(false);
+                engine.DispatchCommand(
+                    VesselCommandProvider.SetPausedCommand,
+                    new SetPausedArgs { Paused = true },
+                    "vantage-1",
+                    _ => pauseResolved.Set());
+
+                // No further clock advance needed: an instant command bypasses
+                // the Courier delay and executes on the pump right away.
+                Assert.True(pauseResolved.Wait(Timeout),
+                    "delayed:false time.setPaused should execute immediately without any clock advance");
+                Assert.Equal(1, actuator.SetPauseCallCount);
+            }
+            finally
+            {
+                stop.Set();
+                pump.Join(Timeout);
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Minimal uplink whose single delayed:false command records the
+        /// managed thread id it runs on — the probe for
+        /// <see cref="CommandHandlerRunsOnTheMainThreadPumpNotTheCourierThread"/>
+        /// and <see cref="WithoutTheMainThreadFlagACommandResolvesInlineWithNoPump"/>.
+        /// </summary>
+        private sealed class MainThreadProbeUplink : ISitrepUplink
+        {
+            public const string Command = "probe.capture-thread";
+
+            private int _lastHandlerThreadId = -1;
+            public int LastHandlerThreadId => Volatile.Read(ref _lastHandlerThreadId);
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "main-thread-probe",
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddCommandHandler<object?, CommandResult>(Command, _ =>
+                {
+                    Volatile.Write(ref _lastHandlerThreadId, Thread.CurrentThread.ManagedThreadId);
+                    return CommandResult.Ok();
+                });
             }
         }
 
@@ -1562,6 +1759,8 @@ namespace Sitrep.Host.IntegrationTests
             public bool? LastSetSasEnabled;
             public bool? LastSetAbortEnabled;
             public int ClearTargetCallCount;
+            public int ManeuverAddCallCount;
+            public int SetPauseCallCount;
 
             public CommandResult SetSas(bool enabled)
             {
@@ -1584,8 +1783,11 @@ namespace Sitrep.Host.IntegrationTests
             public CommandResult SetThrottle(double value) => CommandResult.Ok();
             public CommandResult<int> Stage() => CommandResult<int>.Ok(0);
             public CommandResult SetActionGroup(int group, bool state) => CommandResult.Ok();
-            public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut) =>
-                CommandResult<string>.Ok("node-1");
+            public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut)
+            {
+                ManeuverAddCallCount++;
+                return CommandResult<string>.Ok("node-1");
+            }
             public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => CommandResult.Ok();
             public CommandResult RemoveManeuverNode(string nodeId) => CommandResult.Ok();
             public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => CommandResult.Ok();
@@ -1597,7 +1799,12 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             public CommandResult SetWarp(int index) => CommandResult.Ok();
-            public CommandResult SetPause(bool paused) => CommandResult.Ok();
+
+            public CommandResult SetPause(bool paused)
+            {
+                SetPauseCallCount++;
+                return CommandResult.Ok();
+            }
         }
 
         /// <summary>
@@ -1636,9 +1843,9 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.StageCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand, Delayed = true },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand, Delayed = true },
                     new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand, Delayed = false },
                     new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand, Delayed = false },
                     new CommandDeclaration { Command = VesselCommandProvider.SetWarpIndexCommand, Delayed = false },

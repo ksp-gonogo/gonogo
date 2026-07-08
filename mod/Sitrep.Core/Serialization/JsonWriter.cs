@@ -178,6 +178,22 @@ namespace Sitrep.Core.Serialization
                 case string s:
                     AppendString(sb, s);
                     break;
+                case Sitrep.Contract.CommandResult commandResult:
+                    // F2 Part 3 (R7 wire-flatten): a CommandResult /
+                    // CommandResult<T> POCO is what every command handler
+                    // returns and travels back as CommandResponse.Result.
+                    // JsonWriter otherwise has no idea how to serialize an
+                    // arbitrary POCO, so before this case existed EVERY
+                    // command response (success OR failure) fail-softed at the
+                    // wire boundary (see EnvelopeCodec.WriteCommandResponse ->
+                    // this method). Flattened here, in the SAME "producer owns
+                    // the flatten" spirit as VesselViewProvider.ToWire, rather
+                    // than adding a wire-shape method to the BCL-only contract
+                    // type. Enum error code is emitted as its integer ordinal,
+                    // matching how every other enum in this codec serializes
+                    // (Meta.quality / Meta.staleness).
+                    AppendCommandResult(sb, commandResult);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -188,6 +204,44 @@ namespace Sitrep.Core.Serialization
                     throw new System.NotSupportedException(
                         $"JsonWriter.AppendValue: unsupported CLR value type {value.GetType()}");
             }
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.CommandResult"/> (or its
+        /// generic <c>CommandResult&lt;T&gt;</c> subtype) to the wire object
+        /// <c>{ success, errorCode, [payload] }</c>. <c>errorCode</c> is the
+        /// enum's integer ordinal (same convention as every other enum in
+        /// this codec). The <c>payload</c> key is emitted ONLY for the
+        /// generic subtype — read reflectively because <c>T</c> is open here —
+        /// so a plain <see cref="Sitrep.Contract.CommandResult"/> (the "no
+        /// payload" actuation ack) serializes without a payload key at all.
+        /// A null payload on a <c>CommandResult&lt;T&gt;</c> (the failure
+        /// case) is still a real value and IS written as JSON <c>null</c>,
+        /// via <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendCommandResult(StringBuilder sb, Sitrep.Contract.CommandResult result)
+        {
+            sb.Append('{');
+            AppendString(sb, "success");
+            sb.Append(':');
+            AppendBool(sb, result.Success);
+
+            sb.Append(',');
+            AppendString(sb, "errorCode");
+            sb.Append(':');
+            AppendInteger(sb, (long)result.ErrorCode);
+
+            var type = result.GetType();
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Sitrep.Contract.CommandResult<>))
+            {
+                var payload = type.GetProperty("Payload")!.GetValue(result);
+                sb.Append(',');
+                AppendString(sb, "payload");
+                sb.Append(':');
+                AppendValue(sb, payload);
+            }
+
+            sb.Append('}');
         }
 
         private static void AppendObject(StringBuilder sb, IDictionary<string, object?> obj)

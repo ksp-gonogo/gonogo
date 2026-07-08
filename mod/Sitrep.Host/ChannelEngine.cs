@@ -60,6 +60,21 @@ namespace Sitrep.Host
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
 
+        // F2 Part 1 (main-thread command execution): when true, a command
+        // handler is NOT run inline on the Courier thread but marshaled onto
+        // this queue, drained by RunPendingCommands on the Unity main thread
+        // (GonogoAddon.FixedUpdate). The Courier thread blocks on the queued
+        // job's completion signal and returns its typed result — the symmetric
+        // WRITE-side twin of F1's capture-on-main / handle-on-Courier read
+        // seam (AddSampledSource). KSP/Unity actuation (KspVesselActuator)
+        // MUST run on the main thread; calling it from the Courier thread is
+        // the crash class this closes. When false (the default, and every
+        // headless test that doesn't stand up a main-thread pump), handlers
+        // run inline on the Courier thread exactly as before — same behavior
+        // the pre-F2 engine had.
+        private readonly bool _executeCommandsOnMainThread;
+        private readonly ConcurrentQueue<MainThreadCommand> _mainThreadCommands = new ConcurrentQueue<MainThreadCommand>();
+
         // The OUTER (SubscriptionRegistry) / INNER (ChannelEmitter) gate pair,
         // Courier-thread-only, shared across every registered topic — both
         // classes are already keyed by channelId/topic internally, so no
@@ -186,8 +201,18 @@ namespace Sitrep.Host
         /// <c>GonogoBodiesServer</c>'s identical constructor parameter for the
         /// same-machine/LAN rationale.
         /// </param>
-        public ChannelEngine(string bindUri, double networkDelaySeconds = 0)
+        /// <param name="executeCommandsOnMainThread">
+        /// F2 Part 1: when <c>true</c>, command handlers are marshaled onto the
+        /// main-thread queue (drained by <see cref="RunPendingCommands"/> from
+        /// <c>GonogoAddon.FixedUpdate</c>) instead of running inline on the
+        /// Courier thread — required in production so live KSP/Unity actuation
+        /// runs on the main thread. Defaults to <c>false</c> (inline on the
+        /// Courier thread) for headless callers/tests that don't stand up a
+        /// main-thread pump.
+        /// </param>
+        public ChannelEngine(string bindUri, double networkDelaySeconds = 0, bool executeCommandsOnMainThread = false)
         {
+            _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _clock = new ManualClock();
             _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
             _courier = new Courier(_clock, _network);
@@ -228,6 +253,12 @@ namespace Sitrep.Host
             _listener.Stop();
 
             EnqueueJob(new StopJob());
+            // Unblock any command handler currently marshaled onto the
+            // main-thread queue (the pump has stopped, so it would never
+            // complete on its own) BEFORE the Join, so the Courier thread can
+            // finish its in-flight job and reach the StopJob rather than
+            // wedging out the full 5s timeout.
+            FailPendingMainThreadCommands();
             _courierThread.Join(TimeSpan.FromSeconds(5));
 
             foreach (var session in _sessions.Values)
@@ -577,12 +608,97 @@ namespace Sitrep.Host
 
             try
             {
-                return handler(args);
+                // F2 Part 1: route the ACTUAL handler onto the Unity main
+                // thread when configured (production), else run it inline on
+                // the Courier thread (headless default). Either way the same
+                // try/catch fail-softs a throwing handler to its owning
+                // uplink — a marshaled throw is captured on the main thread,
+                // re-surfaced here on the Courier thread (see RunOnMainThread),
+                // and handled identically to an inline throw, so a bad command
+                // never tears down the loop or any other command/uplink (F1
+                // fail-soft parity).
+                return _executeCommandsOnMainThread
+                    ? RunOnMainThread(handler, args)
+                    : handler(args);
             }
             catch (Exception ex)
             {
                 FailSoftCommand(command, ex);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Marshals one command handler invocation onto the main-thread queue
+        /// and blocks the CALLING (Courier) thread until
+        /// <see cref="RunPendingCommands"/> runs it on the Unity main thread,
+        /// then returns its result (or re-throws its exception on the Courier
+        /// thread so <see cref="InvokeCommandHandler"/>'s fail-soft catch
+        /// attributes it exactly as an inline throw). Blocking-handoff by
+        /// design: a command's typed <see cref="CommandResult"/> must travel
+        /// back to the Courier so the existing request-id correlation and
+        /// <c>CommandResponse&lt;TResult&gt;</c> return path are unchanged.
+        /// No deadlock in production: <c>GonogoAddon.FixedUpdate</c> runs
+        /// independently of (and does not block on) the Courier thread, so it
+        /// keeps draining this queue while the Courier waits.
+        /// </summary>
+        private object? RunOnMainThread(Func<object?, object?> handler, object? args)
+        {
+            var job = new MainThreadCommand(handler, args);
+            _mainThreadCommands.Enqueue(job);
+            job.Done.Wait();
+            job.Captured?.Throw();
+            return job.Result;
+        }
+
+        /// <summary>
+        /// Drains every command execution marshaled by <see cref="RunOnMainThread"/>,
+        /// running each handler on the CURRENT thread. MUST be called from the
+        /// Unity main thread — in production, once per <c>GonogoAddon.FixedUpdate</c>,
+        /// alongside the snapshot build / <see cref="Tick"/>. Each handler's
+        /// result (or its thrown exception, captured to re-surface on the
+        /// Courier thread) is stored back on the job and its completion signal
+        /// set, unblocking the waiting Courier thread. A no-op when nothing is
+        /// queued (the common per-tick case). Never throws: a handler throw is
+        /// captured, not propagated, so one bad command can't break the pump
+        /// for the rest of the batch.
+        /// </summary>
+        public void RunPendingCommands()
+        {
+            while (_mainThreadCommands.TryDequeue(out var job))
+            {
+                try
+                {
+                    job.Result = job.Handler(job.Args);
+                }
+                catch (Exception ex)
+                {
+                    job.Captured = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex);
+                }
+                finally
+                {
+                    job.Done.Set();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Fails every command execution still blocked on the main-thread queue
+        /// so the Courier thread can unblock and observe the <see cref="StopJob"/>
+        /// instead of wedging until <see cref="Stop"/>'s Join times out — the
+        /// main-thread pump (<c>GonogoAddon.FixedUpdate</c>) has stopped by the
+        /// time <see cref="Stop"/> runs, so a command marshaled but not yet
+        /// drained would otherwise never complete. Best-effort: a command
+        /// enqueued in the tiny window after this drains still relies on the
+        /// Join timeout as the backstop.
+        /// </summary>
+        private void FailPendingMainThreadCommands()
+        {
+            while (_mainThreadCommands.TryDequeue(out var job))
+            {
+                job.Captured = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(
+                    new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread."));
+                job.Done.Set();
             }
         }
 
@@ -1635,6 +1751,32 @@ namespace Sitrep.Host
 
         private sealed class StopJob : IEngineJob
         {
+        }
+
+        /// <summary>
+        /// F2 Part 1: one command handler invocation marshaled from the
+        /// Courier thread onto the main-thread queue. Exactly one of
+        /// <see cref="Result"/> / <see cref="Captured"/> is meaningful once
+        /// <see cref="Done"/> is set — a non-null <see cref="Captured"/> means
+        /// the handler threw on the main thread and the Courier thread
+        /// re-throws it (preserving the original stack) so the existing
+        /// fail-soft attribution runs. Not an <see cref="IEngineJob"/>: it
+        /// rides its OWN queue (<see cref="_mainThreadCommands"/>), drained on
+        /// the main thread, not the Courier's job queue.
+        /// </summary>
+        private sealed class MainThreadCommand
+        {
+            public readonly Func<object?, object?> Handler;
+            public readonly object? Args;
+            public object? Result;
+            public System.Runtime.ExceptionServices.ExceptionDispatchInfo? Captured;
+            public readonly ManualResetEventSlim Done = new ManualResetEventSlim(false);
+
+            public MainThreadCommand(Func<object?, object?> handler, object? args)
+            {
+                Handler = handler;
+                Args = args;
+            }
         }
 
         private sealed class ClientSession

@@ -25,25 +25,18 @@ namespace Gonogo.KSP
     /// direction of data flow rather than folded into <see cref="KspHost"/>
     /// itself).</para>
     ///
-    /// <para><b>Known, deliberately-deferred gap — main-thread marshaling:</b>
-    /// <see cref="ChannelEngine"/> currently invokes every registered command
-    /// handler (delayed or not) from its own Courier thread (see
-    /// <c>ChannelEngine.ProcessDispatchCommand</c>/<c>InvokeCommandHandler</c>),
-    /// never from Unity's main thread. Calling live Unity/KSP APIs from a
-    /// background thread is exactly the class of bug the RETIRED
-    /// <c>GonogoTelemetry</c> staging plugin already hit and fixed via
-    /// <c>GonogoTelemetryAddon.Defer</c> (see <c>LaunchApi</c>'s doc comment)
-    /// for its scene-transition commands — the same fix (a main-thread job
-    /// queue <see cref="GonogoAddon"/> drains every <c>FixedUpdate</c>, with
-    /// the command handler blocking the Courier thread until the queued
-    /// action completes) is the natural follow-up here, but is NOT wired in
-    /// this task: M1 Task 3's scope is the typed command contract, the
-    /// actuator seam's API shape, and engine-level delay-disposition
-    /// dispatch — proven against <c>Sitrep.Host.Tests.FakeVesselActuator</c>,
-    /// never this class, which is untested by design (see the task's own
-    /// "commands are live-only for real firing — test the seam, not KSP"
-    /// scoping note). Live-firing THIS class before the marshaling fix lands
-    /// risks exactly the crash <c>LaunchApi</c>'s comment describes.</para>
+    /// <para><b>Main-thread marshaling (F2 — resolved):</b> every method here
+    /// now runs on the Unity main thread. <see cref="ChannelEngine"/> is
+    /// constructed with <c>executeCommandsOnMainThread: true</c> (see
+    /// <c>GonogoAddon.Awake</c>), so it marshals each command handler onto its
+    /// main-thread queue and blocks the Courier thread until
+    /// <c>GonogoAddon.FixedUpdate</c> drains it via
+    /// <c>ChannelEngine.RunPendingCommands</c> — exactly the "main-thread job
+    /// queue drained every FixedUpdate, Courier thread blocked until the
+    /// action completes" fix the RETIRED <c>GonogoTelemetry</c> staging plugin
+    /// used (<c>GonogoTelemetryAddon.Defer</c>). This closes the previously-
+    /// deferred crash class: no KSP/Unity API here is ever touched from the
+    /// Courier thread.</para>
     /// </summary>
     public sealed class KspVesselActuator : IVesselActuator
     {

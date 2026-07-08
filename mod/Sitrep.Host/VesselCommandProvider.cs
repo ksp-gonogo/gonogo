@@ -48,7 +48,9 @@ namespace Sitrep.Host
         public const string StageCommand = "vessel.control.stage";
         public const string SetActionGroupCommand = "vessel.control.setActionGroup";
 
-        // ---- vessel.maneuver.* -- delayed:false (planning, not actuation) ----
+        // ---- vessel.maneuver.* -- delayed:true (F2: a maneuver node is
+        // craft-side state, so add/update/remove is an uplink that rides
+        // light-time; see VesselUplink's command-classification table) ----
         public const string ManeuverAddCommand = "vessel.maneuver.add";
         public const string ManeuverUpdateCommand = "vessel.maneuver.update";
         public const string ManeuverRemoveCommand = "vessel.maneuver.remove";

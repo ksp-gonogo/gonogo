@@ -103,13 +103,35 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.DockTopic),
                 Channel(VesselViewProvider.SurfaceTopic),
             },
-            // ---- M1 Task 3 commands -- see local_docs/telemetry-mod/
-            // m1-provider-taxonomy-design.md §3 for the full ruling this
-            // Delayed split follows: actuation rides light-time (true);
-            // planning/designation/sim-meta do not (false) -- a ground-side
-            // maneuver plan or a warp/pause toggle isn't a signal TO the
-            // vessel, so delaying it would double planner-iteration latency
-            // for zero realism.
+            // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
+            // truth — the ONE table to edit) ====================================
+            // Rule (F2 Part 2 / delay-architecture-resolution.md §3): a command
+            // that is a genuine UPLINK TO THE CRAFT rides the same light-time
+            // delay the telemetry model applies (delayed: true) — it takes
+            // effect at t0 + uplink light-time when signal delay is enabled,
+            // and instantly when it is disabled (delay == 0). A LOCAL/PLAYER or
+            // GAME-LEVEL/META action is not a signal to the vessel and executes
+            // immediately (delayed: false).
+            //
+            //   DELAYED  (uplink to the craft):
+            //     - vessel.control.*   (actuation: stage/sas/rcs/gear/brakes/
+            //                            lights/abort/throttle/actionGroup)
+            //     - vessel.maneuver.*  (add/update/remove — the node lives on
+            //                            the craft's flight computer, so placing/
+            //                            editing/clearing it is an uplink)
+            //   INSTANT  (local/player or game-level/meta — NOT an uplink):
+            //     - vessel.target.*    (nav aid on the ground station)
+            //     - time.*             (warp/pause — sim-meta, never a light-time
+            //                            fiction)
+            //     - any future game-level command (launch/revert/recover/scene/
+            //                            facility/contracts/tech/strategies):
+            //                            declare it delayed: false here.
+            //
+            // Additive by construction: a NEW/unknown command that never reaches
+            // this table falls back to CommandDeclaration.Delayed's own default
+            // (true) at dispatch time (see ChannelEngine.ProcessDispatchCommand)
+            // — the safe "treat an unclassified command as an uplink" bucket.
+            // Terminal/kOS uplink delay is a SEPARATE stream, not this table.
             Commands = new List<CommandDeclaration>
             {
                 Command(VesselCommandProvider.SetSasCommand, delayed: true),
@@ -122,9 +144,13 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
                 Command(VesselCommandProvider.StageCommand, delayed: true),
                 Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverAddCommand, delayed: false),
-                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: false),
-                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: false),
+                // vessel.maneuver.* — F2 reclassified to delayed:true: a
+                // maneuver node is craft-side state, so placing/editing/removing
+                // it is an uplink that rides light-time like every other
+                // actuation (was delayed:false pre-F2).
+                Command(VesselCommandProvider.ManeuverAddCommand, delayed: true),
+                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: true),
+                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: true),
                 Command(VesselCommandProvider.TargetSetCommand, delayed: false),
                 Command(VesselCommandProvider.TargetClearCommand, delayed: false),
                 Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),

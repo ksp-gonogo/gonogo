@@ -142,9 +142,11 @@ namespace Sitrep.Host.IntegrationTests
                 Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
                 Command(VesselCommandProvider.StageCommand, delayed: true),
                 Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverAddCommand, delayed: false),
-                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: false),
-                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: false),
+                // F2: vessel.maneuver.* reclassified delayed:true (mirrors
+                // Gonogo.KSP.VesselUplink's command-classification table).
+                Command(VesselCommandProvider.ManeuverAddCommand, delayed: true),
+                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: true),
+                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: true),
                 Command(VesselCommandProvider.TargetSetCommand, delayed: false),
                 Command(VesselCommandProvider.TargetClearCommand, delayed: false),
                 Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),

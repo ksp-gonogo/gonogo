@@ -81,7 +81,13 @@ namespace Gonogo.KSP
             {
                 _host = new KspHost(SharedManeuverNodeIdRegistry);
                 _recorder = new Recorder(_host);
-                _engine = new ChannelEngine(BindUri);
+                // executeCommandsOnMainThread: true — F2 Part 1. The engine
+                // marshals every command handler onto its main-thread queue,
+                // drained by _engine.RunPendingCommands() in FixedUpdate below,
+                // so live KSP/Unity actuation (KspVesselActuator) runs on the
+                // Unity main thread, never the Courier thread (the crash class
+                // KspVesselActuator's doc comment used to describe as deferred).
+                _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
 
                 // [SitrepUplink] assembly-scan discovery REPLACES the
                 // previous hardcoded RegisterUplink(new XyzUplink()) list —
@@ -120,6 +126,14 @@ namespace Gonogo.KSP
             {
                 return;
             }
+
+            // F2 Part 1: drain any command handler marshaled onto the engine's
+            // main-thread queue (see ChannelEngine.RunPendingCommands). Done
+            // every physics frame, BEFORE the sample-cadence gate below, so a
+            // command executes promptly on the main thread even on ticks where
+            // no telemetry sample is taken — the Courier thread is blocked
+            // waiting on exactly this drain. Never throws.
+            _engine.RunPendingCommands();
 
             // Periodic flush check, independent of the sampling cadence
             // below: FlushRecording catches its own exceptions and logs
