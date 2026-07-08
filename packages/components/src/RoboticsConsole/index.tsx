@@ -2,10 +2,17 @@ import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
-import { EmptyState, Panel, PanelTitle, ToggleButton } from "@gonogo/ui";
+import {
+  EmptyState,
+  Panel,
+  PanelTitle,
+  StreamStatusBadge,
+  ToggleButton,
+} from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -18,6 +25,14 @@ import styled from "styled-components";
  *
  * Reads `robotics.servos` + `robotics.available`; degrades to a muted empty
  * state without Breaking Ground or when no servo is present.
+ *
+ * M3 science/parts batch: the identity list (partId-keyed selection +
+ * commands) stays entirely on `robotics.servos` — `parts.robotics`
+ * (map-topic.ts) carries the same live hinge readouts but no stable id (see
+ * map-topic.ts's TELEMACHUS_KNOWN_GAPS entry for `robotics.servos`).
+ * `useStreamServoEntry` below merges the live numeric fields onto the
+ * selected legacy servo BY NAME when a matching `parts.robotics` entry is
+ * carried, same mixed-source pattern as DistanceToTarget's Vec3 merges.
  */
 
 type RoboticsConsoleConfig = Record<string, never>;
@@ -73,6 +88,55 @@ export function parseServos(raw: unknown): ServoInfo[] | null {
   return out;
 }
 
+/**
+ * `parts.robotics` entry shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a
+ * raw array of BOTH hinges and rotors; RoboticsConsole only ever merges
+ * `type !== "rotor"` entries (rotors are Rotor Tachometer's domain). No
+ * `partId`/stable id field exists — correlation with the legacy
+ * `robotics.servos` list is by `partName` only.
+ */
+interface StreamServoEntry {
+  partName: string;
+  type: string;
+  servoIsLocked: boolean | null;
+  servoIsMotorized: boolean | null;
+  servoMotorIsEngaged: boolean | null;
+  servoMotorLimit: number | null;
+  currentAngle: number | null;
+  targetAngle: number | null;
+}
+
+/** Merges live `parts.robotics` numeric/boolean fields onto a legacy
+ * `ServoInfo` by name. Identity (`partId`, `type`) always stays from
+ * `base` — only the values a physical servo's live state actually is are
+ * candidates for the stream's fresher read, each independently `??`-falling
+ * back to the legacy value when the stream field is absent. */
+function mergeServo(
+  base: ServoInfo,
+  live: StreamServoEntry | undefined,
+): ServoInfo {
+  if (!live) return base;
+  return {
+    ...base,
+    current:
+      typeof live.currentAngle === "number" ? live.currentAngle : base.current,
+    target:
+      typeof live.targetAngle === "number" ? live.targetAngle : base.target,
+    motorEngaged:
+      typeof live.servoMotorIsEngaged === "boolean"
+        ? live.servoMotorIsEngaged
+        : base.motorEngaged,
+    locked:
+      typeof live.servoIsLocked === "boolean"
+        ? live.servoIsLocked
+        : base.locked,
+    torqueLimit:
+      typeof live.servoMotorLimit === "number"
+        ? live.servoMotorLimit
+        : base.torqueLimit,
+  };
+}
+
 const roboticsActions = [
   {
     id: "targetUp",
@@ -108,11 +172,22 @@ function RoboticsConsoleComponent(
   const servosRaw = useDataValue("data", "robotics.servos");
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
+  const streamServos = useDataValue<StreamServoEntry[]>(
+    "data",
+    "parts.robotics",
+  );
+  const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
   const servos = parseServos(servosRaw) ?? [];
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const selected =
+  const rawSelected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
+  const liveEntry = rawSelected
+    ? streamServos?.find(
+        (e) => e.type !== "rotor" && e.partName === rawSelected.name,
+      )
+    : undefined;
+  const selected = rawSelected ? mergeServo(rawSelected, liveEntry) : null;
 
   const setTarget = (id: number, value: number) =>
     void execute(`robotics.servo.setTarget[${id},${Math.round(value)}]`);
@@ -153,7 +228,10 @@ function RoboticsConsoleComponent(
   if (servos.length === 0 || !selected) {
     return (
       <Panel>
-        <PanelTitle>ROBOTICS</PanelTitle>
+        <TitleRow>
+          <PanelTitle>ROBOTICS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -167,7 +245,10 @@ function RoboticsConsoleComponent(
 
   return (
     <Panel>
-      <PanelTitle>ROBOTICS</PanelTitle>
+      <TitleRow>
+        <PanelTitle>ROBOTICS</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <Body>
         <Readout>
           <Current>
@@ -258,6 +339,14 @@ function RoboticsConsoleComponent(
     </Panel>
   );
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div`
   display: flex;
@@ -407,7 +496,7 @@ registerComponent<RoboticsConsoleConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },
   component: RoboticsConsoleComponent,
-  dataRequirements: ["robotics.servos", "robotics.available"],
+  dataRequirements: ["robotics.servos", "robotics.available", "parts.robotics"],
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,

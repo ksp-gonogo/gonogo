@@ -29,6 +29,13 @@ describe("PowerSystems DOM snapshots", () => {
           Widget: PowerSystemsComponent,
           fixture,
           mode,
+          // PowerSystems now adopts useDataStreamStatus (M3 science/parts
+          // batch) — connect the raw MockDataSource so the rendered status
+          // badge reflects "connected, streaming" rather than the shared
+          // harness's opt-out-by-default "disconnected" convention (see
+          // setupMockDataSource.ts's connectSource doc comment, and
+          // FuelStatus/snapshots.test.tsx for the precedent).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

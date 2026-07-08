@@ -1,11 +1,17 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue, useGameContext } from "@gonogo/core";
+import {
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+  useGameContext,
+} from "@gonogo/core";
 import {
   DimmedOverlay,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -136,9 +142,19 @@ export interface ParsedExperiment {
 }
 
 /**
- * Parses Telemachus Reborn's `sci.experiments` payload — an array of
- * `{ part, title, dataAmount, scienceValueBase, transmitBoost, subjectId }`
- * objects (see ScienceCareerDataLinkHandler in the Telemachus fork).
+ * Parses `sci.experiments`. Two wire shapes land here:
+ *
+ * - Legacy Telemachus Reborn: `{ part, title, dataAmount,
+ *   scienceValueBase, transmitBoost, subjectId }` (see
+ *   ScienceCareerDataLinkHandler in the Telemachus fork).
+ * - New SDK `science.experiments` (M3 science/parts batch, mapped onto this
+ *   same widget-facing key via `map-topic.ts`): `{ partName, location,
+ *   experimentId, subjectId, title, dataAmount, ... }` —
+ *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,
+ *   `partName` in place of `part`. `entry.partName ?? entry.part` below
+ *   reads either wire's field name identically; every other field the
+ *   widget needs (`title`/`dataAmount`/`subjectId`) is spelled the same on
+ *   both.
  */
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
@@ -150,9 +166,15 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
     const e = entry as Record<string, unknown>;
     const subjectId =
       typeof e.subjectId === "string" ? e.subjectId : `experiment-${i}`;
+    const part =
+      typeof e.partName === "string"
+        ? e.partName
+        : typeof e.part === "string"
+          ? e.part
+          : null;
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      part: typeof e.part === "string" ? e.part : null,
+      part,
       dataAmount: typeof e.dataAmount === "number" ? e.dataAmount : null,
       subjectId,
     });
@@ -240,6 +262,12 @@ function ScienceBenchComponent({
   const sciDataAmount = useDataValue("data", "sci.dataAmount");
   const sciExperimentsRaw = useDataValue("data", "sci.experiments");
   const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
+  // M3 science/parts batch: sci.experiments is mapped onto science.experiments
+  // (map-topic.ts) — the rest of the science reads above stay legacy-only.
+  const experimentsStreamStatus = useDataStreamStatus(
+    "data",
+    "sci.experiments",
+  );
 
   const careerMode = useDataValue("data", "career.mode") as string | undefined;
   const careerScience = useDataValue("data", "career.science");
@@ -300,7 +328,10 @@ function ScienceBenchComponent({
 
   return (
     <Panel>
-      <PanelTitle>SCIENCE</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SCIENCE</PanelTitle>
+        <StreamStatusBadge status={experimentsStreamStatus} />
+      </TitleRow>
       <DimmedOverlay
         show={dimNonCareer}
         message="Sensors require flight"
@@ -515,6 +546,14 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const SituationLine = styled(PanelSubtitle)`
   display: flex;

@@ -220,6 +220,39 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "career.funds": "career.status.economy.funds",
   "career.reputation": "career.status.economy.reputation",
   "career.science": "career.status.economy.science",
+
+  // --- M3 science/parts batch: science.experiments un-gap. ScienceCapture's
+  // `science.experiments` (mod/Sitrep.Host/ScienceViewProvider.cs) is a raw
+  // array whose entries are a strict SUPERSET of the legacy `sci.experiments`
+  // shape — `partName` replaces `part` (same string, renamed field;
+  // `parseExperiments` in ScienceBench/index.tsx reads `partName ?? part` so
+  // both wire shapes parse identically), plus new fields
+  // (location/experimentId/scienceValueRatio/baseTransmitValue/
+  // transmitBonus/labValue/deployed/inoperable/situation) the widget doesn't
+  // read. `sci.count`/`sci.dataAmount`/`sci.experimentBreakdown` stay gapped
+  // below — no equivalent aggregate/enriched field exists on the new wire
+  // (count/dataAmount ARE derivable client-side from this same array, but
+  // the widget's existing two separate reads are left untouched this batch).
+  "sci.experiments": "science.experiments",
+
+  // --- M3 science/parts batch: NEW capability, no legacy widget key existed
+  // for either — `parts.power` (dict: solarPanels/batteries/fuelCells/
+  // alternators/totalProductionEc, mod/Sitrep.Host/PartsViewProvider.cs) and
+  // `parts.robotics` (raw array of hinge+rotor servo state) are both
+  // 2-segment raw wire topics read WHOLESALE (same "no legacy analogue, key
+  // == topic" shape as `tar.relativePosition` etc. above) rather than a
+  // `<domain>.<channel>.<field>` walk — matches `system.vessels`'s own
+  // whole-topic mapping precedent. PowerSystems reads `parts.power` as a
+  // MIXED-source enrichment (preferring `totalProductionEc` over its
+  // topology-summed total when carried, `??` falls back otherwise — same
+  // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
+  // RotorTachometer read `parts.robotics` (filtered by `type`) to merge live
+  // numeric readouts (angle/RPM/output/brake) onto the still-legacy
+  // `robotics.servos`/`robotics.rotors` identity list (no `partId`/stable id
+  // on the new wire — see those two keys' own TELEMACHUS_KNOWN_GAPS entries
+  // below, unchanged, for why the full list itself isn't migrated).
+  "parts.power": "parts.power",
+  "parts.robotics": "parts.robotics",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -473,6 +506,19 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "v.topology",
   "v.topologySeq",
   "robotics.available",
+  // robotics.rotors/robotics.servos: RotorTachometer/RoboticsConsole read
+  // `{partId, name, ...}[]` lists keyed on a numeric `partId` that both
+  // commands (robotics.rotor.setRpmLimit[id,...] etc.) and React list
+  // selection depend on. `parts.robotics` (M3 science/parts batch,
+  // CLEAN_HOMES above) carries the same live hinge/rotor readouts
+  // (currentAngle/targetAngle/currentRPM/rpmLimit/normalizedOutput/
+  // brakePercentage/servoIsLocked/servoIsMotorized/servoMotorIsEngaged) but
+  // NO id field at all — the same "no stable id" shape-mismatch class as the
+  // career batch's contracts/strategies gaps. The full identity list (and
+  // therefore selection + every command) stays on this legacy read; the two
+  // widgets separately read the NEW `parts.robotics` key to merge live
+  // numeric values onto the selected part by name (mixed-source pattern).
+  // gap: no partId/stable id on the new wire; migrate in M3
   "robotics.rotors",
   "robotics.servos",
 
@@ -584,9 +630,20 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // wire, not just the unlocked-id list; migrate in M3
   "tech.nodes",
 
+  // sci.count/sci.dataAmount: ScienceBench reads two separate scalar
+  // aggregates. `science.experiments` (now CLEAN_HOMES above) carries the
+  // raw per-experiment array these were always summarized FROM, but no
+  // separate pre-aggregated count/total-dataAmount field exists on the new
+  // wire — the widget's two independent `useDataValue` reads for these stay
+  // on the legacy path this batch rather than being rewritten to derive
+  // client-side from the (now migrated) experiments array.
+  // gap: no aggregate field on the new wire; migrate in M3
   "sci.count",
   "sci.dataAmount",
-  "sci.experiments",
+  // sci.experimentBreakdown: GonogoTelemetry-only enriched shape (biome/
+  // situation/remainingPotential per subject) — no equivalent on the M1/M2
+  // science channel at all.
+  // gap: GonogoTelemetry-only enrichment, no new-wire equivalent; migrate in M3
   "sci.experimentBreakdown",
   "sci.instruments",
   "s.sensor.temp",

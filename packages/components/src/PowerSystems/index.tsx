@@ -7,6 +7,8 @@ import {
   getWidgetShape,
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
+  useDataValue,
 } from "@gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
 import {
@@ -20,6 +22,7 @@ import {
   ScrollArea,
   Select,
   Sparkline,
+  StreamStatusBadge,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
@@ -59,6 +62,16 @@ interface Contribution {
   nominalFlow?: number;
 }
 
+/**
+ * `parts.power` wire shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a NEW
+ * capability with no legacy Telemachus analogue (M3 science/parts batch,
+ * map-topic.ts). Only `totalProductionEc` is consumed today; the per-part
+ * arrays exist on the wire for a future breakdown but aren't read here yet.
+ */
+interface PartsPowerPayload {
+  totalProductionEc?: number;
+}
+
 function PowerSystemsComponent({
   config,
   w,
@@ -70,6 +83,17 @@ function PowerSystemsComponent({
     [topology],
   );
   const liveByFlightId = usePartsLive(flightIds);
+
+  // M3 science/parts batch: `parts.power` mixed-source enrichment. The
+  // per-part Producers/Consumers/Idle breakdown above stays entirely on
+  // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design —
+  // no partId/flightId exists on the new wire to key a per-part breakdown
+  // off), but the vessel-wide EC production TOTAL has a direct home on
+  // `parts.power.totalProductionEc`. Preferred over the topology-summed
+  // total when carried; `??` falls back to the existing computation
+  // otherwise — same mixed-source pattern as DistanceToTarget's Vec3 merges.
+  const streamPower = useDataValue<PartsPowerPayload>("data", "parts.power");
+  const streamStatus = useDataStreamStatus("data", "parts.power");
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
@@ -169,7 +193,12 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
-  const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
+  const computedTotalProduced = producers.reduce((s, c) => s + c.flow, 0);
+  const totalProduced =
+    resource === "ElectricCharge" &&
+    typeof streamPower?.totalProductionEc === "number"
+      ? streamPower.totalProductionEc
+      : computedTotalProduced;
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
 
@@ -229,7 +258,10 @@ function PowerSystemsComponent({
   if (!topology) {
     return (
       <Panel>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <Header>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         <Hint>Waiting for vessel topology…</Hint>
       </Panel>
     );
@@ -238,7 +270,10 @@ function PowerSystemsComponent({
   if (resourcesWithFlow.length === 0) {
     return (
       <Panel>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <Header>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         {showHeader && (
           <PanelSubtitle>No active flow on any resource</PanelSubtitle>
         )}
@@ -256,7 +291,10 @@ function PowerSystemsComponent({
   if (!showFullList) {
     return (
       <Panel>
-        <PanelTitle>POWER</PanelTitle>
+        <Header>
+          <PanelTitle>POWER</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         <CompactBody>
           <CompactResource>{splitCamel(resource)}</CompactResource>
           <CompactNet $tone={netTone}>
@@ -271,7 +309,10 @@ function PowerSystemsComponent({
   return (
     <Panel>
       <Header>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <HeaderTitle>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </HeaderTitle>
         <ResourceSelect
           value={resource}
           onChange={(e) => setResource(e.target.value)}
@@ -485,6 +526,13 @@ const Header = styled.div`
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+`;
+
+const HeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 `;
 
 const ResourceSelect = styled(Select)`
@@ -761,6 +809,7 @@ registerComponent<PowerSystemsConfig>({
     "v.topologySeq",
     "v.topology",
     "r.resource[ElectricCharge]",
+    "parts.power",
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
