@@ -18,6 +18,19 @@ public class ResourceAmount
 {
     public double Current { get; set; }
     public double Max { get; set; }
+
+    /// <summary>
+    /// R7 Fix 2: explicit presence flag so a present-but-zero resource
+    /// (<c>{current: 0, max: &gt; 0, active: true}</c>) is distinguishable
+    /// from one that has stopped being reported — killing the R-3
+    /// "absence-as-signal" Telemachus wart where a resource simply vanishing
+    /// from the map created a 0-vs-unknown ambiguity. Producers set this true
+    /// for every resource they actually report this tick; a consumer treating
+    /// a missing/false entry as "not reported" then never confuses it with a
+    /// genuine zero reading. This is presence ONLY — flow/rate is a separate
+    /// future channel (see this class's doc comment), deliberately not added here.
+    /// </summary>
+    public bool Active { get; set; } = true;
 }
 
 /// <summary>

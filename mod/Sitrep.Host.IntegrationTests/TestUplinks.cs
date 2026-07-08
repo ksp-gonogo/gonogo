@@ -174,23 +174,23 @@ namespace Sitrep.Host.IntegrationTests
 
             host.AddSampler(new VesselEpochSampler(host));
 
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));
-            host.AddCommandHandler<SetSasModeArgs, Ack>(VesselCommandProvider.SetSasModeCommand, args => VesselCommandProvider.HandleSetSasMode(_actuator, args));
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetRcsCommand, args => VesselCommandProvider.HandleSetRcs(_actuator, args));
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));
-            host.AddCommandHandler<SetEnabledArgs, Ack>(VesselCommandProvider.SetAbortCommand, args => VesselCommandProvider.HandleSetAbort(_actuator, args));
-            host.AddCommandHandler<SetThrottleArgs, Ack>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
-            host.AddCommandHandler<object?, StageResult>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
-            host.AddCommandHandler<SetActionGroupArgs, Ack>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));
-            host.AddCommandHandler<AddManeuverNodeArgs, AddManeuverNodeResult>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
-            host.AddCommandHandler<UpdateManeuverNodeArgs, Ack>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
-            host.AddCommandHandler<RemoveManeuverNodeArgs, Ack>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));
-            host.AddCommandHandler<SetTargetArgs, Ack>(VesselCommandProvider.TargetSetCommand, args => VesselCommandProvider.HandleTargetSet(_actuator, args));
-            host.AddCommandHandler<object?, Ack>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
-            host.AddCommandHandler<SetWarpIndexArgs, Ack>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
-            host.AddCommandHandler<SetPausedArgs, Ack>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));
+            host.AddCommandHandler<SetSasModeArgs, CommandResult>(VesselCommandProvider.SetSasModeCommand, args => VesselCommandProvider.HandleSetSasMode(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetRcsCommand, args => VesselCommandProvider.HandleSetRcs(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetAbortCommand, args => VesselCommandProvider.HandleSetAbort(_actuator, args));
+            host.AddCommandHandler<SetThrottleArgs, CommandResult>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
+            host.AddCommandHandler<object?, CommandResult<int>>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
+            host.AddCommandHandler<SetActionGroupArgs, CommandResult>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));
+            host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
+            host.AddCommandHandler<UpdateManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
+            host.AddCommandHandler<RemoveManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));
+            host.AddCommandHandler<SetTargetArgs, CommandResult>(VesselCommandProvider.TargetSetCommand, args => VesselCommandProvider.HandleTargetSet(_actuator, args));
+            host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
+            host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
+            host.AddCommandHandler<SetPausedArgs, CommandResult>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
         }
 
         private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
@@ -331,24 +331,24 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class NoOpVesselActuator : IVesselActuator
     {
-        public Ack SetSas(bool enabled) => Ack.Ok();
-        public Ack SetSasMode(SasMode mode) => Ack.Ok();
-        public Ack SetRcs(bool enabled) => Ack.Ok();
-        public Ack SetGear(bool enabled) => Ack.Ok();
-        public Ack SetBrakes(bool enabled) => Ack.Ok();
-        public Ack SetLights(bool enabled) => Ack.Ok();
-        public Ack SetAbort(bool enabled) => Ack.Ok();
-        public Ack SetThrottle(double value) => Ack.Ok();
-        public StageResult Stage() => new StageResult { Success = true, NewStage = 1 };
-        public Ack SetActionGroup(int group, bool state) => Ack.Ok();
-        public AddManeuverNodeResult AddManeuverNode(double ut, double prograde, double normal, double radialOut) =>
-            new AddManeuverNodeResult { Success = true, NodeId = "node-1" };
-        public Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => Ack.Ok();
-        public Ack RemoveManeuverNode(string nodeId) => Ack.Ok();
-        public Ack SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => Ack.Ok();
-        public Ack ClearTarget() => Ack.Ok();
-        public Ack SetWarp(int index) => Ack.Ok();
-        public Ack SetPause(bool paused) => Ack.Ok();
+        public CommandResult SetSas(bool enabled) => CommandResult.Ok();
+        public CommandResult SetSasMode(SasMode mode) => CommandResult.Ok();
+        public CommandResult SetRcs(bool enabled) => CommandResult.Ok();
+        public CommandResult SetGear(bool enabled) => CommandResult.Ok();
+        public CommandResult SetBrakes(bool enabled) => CommandResult.Ok();
+        public CommandResult SetLights(bool enabled) => CommandResult.Ok();
+        public CommandResult SetAbort(bool enabled) => CommandResult.Ok();
+        public CommandResult SetThrottle(double value) => CommandResult.Ok();
+        public CommandResult<int> Stage() => CommandResult<int>.Ok(1);
+        public CommandResult SetActionGroup(int group, bool state) => CommandResult.Ok();
+        public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut) =>
+            CommandResult<string>.Ok("node-1");
+        public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut) => CommandResult.Ok();
+        public CommandResult RemoveManeuverNode(string nodeId) => CommandResult.Ok();
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex) => CommandResult.Ok();
+        public CommandResult ClearTarget() => CommandResult.Ok();
+        public CommandResult SetWarp(int index) => CommandResult.Ok();
+        public CommandResult SetPause(bool paused) => CommandResult.Ok();
     }
 
     /// <summary>

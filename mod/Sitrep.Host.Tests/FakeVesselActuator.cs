@@ -44,86 +44,86 @@ namespace Sitrep.Host.Tests
         public bool? LastSetPause;
 
         // ---- configurable results (default: success) ----
-        public Ack SetSasResult = Ack.Ok();
-        public Ack SetSasModeResult = Ack.Ok();
-        public Ack SetRcsResult = Ack.Ok();
-        public Ack SetGearResult = Ack.Ok();
-        public Ack SetBrakesResult = Ack.Ok();
-        public Ack SetLightsResult = Ack.Ok();
-        public Ack SetAbortResult = Ack.Ok();
-        public Ack SetThrottleResult = Ack.Ok();
-        public StageResult StageResultValue = new StageResult { Success = true, NewStage = 1 };
-        public Ack SetActionGroupResult = Ack.Ok();
-        public AddManeuverNodeResult AddManeuverNodeResultValue = new AddManeuverNodeResult { Success = true, NodeId = "node-1" };
-        public Ack UpdateManeuverNodeResult = Ack.Ok();
-        public Ack RemoveManeuverNodeResult = Ack.Ok();
-        public Ack SetTargetResult = Ack.Ok();
-        public Ack ClearTargetResult = Ack.Ok();
-        public Ack SetWarpResult = Ack.Ok();
-        public Ack SetPauseResult = Ack.Ok();
+        public CommandResult SetSasResult = CommandResult.Ok();
+        public CommandResult SetSasModeResult = CommandResult.Ok();
+        public CommandResult SetRcsResult = CommandResult.Ok();
+        public CommandResult SetGearResult = CommandResult.Ok();
+        public CommandResult SetBrakesResult = CommandResult.Ok();
+        public CommandResult SetLightsResult = CommandResult.Ok();
+        public CommandResult SetAbortResult = CommandResult.Ok();
+        public CommandResult SetThrottleResult = CommandResult.Ok();
+        public CommandResult<int> StageResultValue = CommandResult<int>.Ok(1);
+        public CommandResult SetActionGroupResult = CommandResult.Ok();
+        public CommandResult<string> AddManeuverNodeResultValue = CommandResult<string>.Ok("node-1");
+        public CommandResult UpdateManeuverNodeResult = CommandResult.Ok();
+        public CommandResult RemoveManeuverNodeResult = CommandResult.Ok();
+        public CommandResult SetTargetResult = CommandResult.Ok();
+        public CommandResult ClearTargetResult = CommandResult.Ok();
+        public CommandResult SetWarpResult = CommandResult.Ok();
+        public CommandResult SetPauseResult = CommandResult.Ok();
 
-        public Ack SetSas(bool enabled)
+        public CommandResult SetSas(bool enabled)
         {
             LastSetSasEnabled = enabled;
             return SetSasResult;
         }
 
-        public Ack SetSasMode(SasMode mode)
+        public CommandResult SetSasMode(SasMode mode)
         {
             LastSetSasMode = mode;
             return SetSasModeResult;
         }
 
-        public Ack SetRcs(bool enabled)
+        public CommandResult SetRcs(bool enabled)
         {
             LastSetRcsEnabled = enabled;
             return SetRcsResult;
         }
 
-        public Ack SetGear(bool enabled)
+        public CommandResult SetGear(bool enabled)
         {
             LastSetGearEnabled = enabled;
             return SetGearResult;
         }
 
-        public Ack SetBrakes(bool enabled)
+        public CommandResult SetBrakes(bool enabled)
         {
             LastSetBrakesEnabled = enabled;
             return SetBrakesResult;
         }
 
-        public Ack SetLights(bool enabled)
+        public CommandResult SetLights(bool enabled)
         {
             LastSetLightsEnabled = enabled;
             return SetLightsResult;
         }
 
-        public Ack SetAbort(bool enabled)
+        public CommandResult SetAbort(bool enabled)
         {
             LastSetAbortEnabled = enabled;
             return SetAbortResult;
         }
 
-        public Ack SetThrottle(double value)
+        public CommandResult SetThrottle(double value)
         {
             LastSetThrottleValue = value;
             return SetThrottleResult;
         }
 
-        public StageResult Stage()
+        public CommandResult<int> Stage()
         {
             StageCallCount++;
             return StageResultValue;
         }
 
-        public Ack SetActionGroup(int group, bool state)
+        public CommandResult SetActionGroup(int group, bool state)
         {
             LastActionGroup = group;
             LastActionGroupState = state;
             return SetActionGroupResult;
         }
 
-        public AddManeuverNodeResult AddManeuverNode(double ut, double prograde, double normal, double radialOut)
+        public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut)
         {
             LastManeuverAddUt = ut;
             LastManeuverAddPrograde = prograde;
@@ -132,7 +132,7 @@ namespace Sitrep.Host.Tests
             return AddManeuverNodeResultValue;
         }
 
-        public Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
+        public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
         {
             LastManeuverUpdateNodeId = nodeId;
             LastManeuverUpdateUt = ut;
@@ -142,13 +142,13 @@ namespace Sitrep.Host.Tests
             return UpdateManeuverNodeResult;
         }
 
-        public Ack RemoveManeuverNode(string nodeId)
+        public CommandResult RemoveManeuverNode(string nodeId)
         {
             LastManeuverRemoveNodeId = nodeId;
             return RemoveManeuverNodeResult;
         }
 
-        public Ack SetTarget(TargetKind kind, string? vesselId, int? bodyIndex)
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex)
         {
             LastSetTargetKind = kind;
             LastSetTargetVesselId = vesselId;
@@ -156,19 +156,19 @@ namespace Sitrep.Host.Tests
             return SetTargetResult;
         }
 
-        public Ack ClearTarget()
+        public CommandResult ClearTarget()
         {
             ClearTargetCallCount++;
             return ClearTargetResult;
         }
 
-        public Ack SetWarp(int index)
+        public CommandResult SetWarp(int index)
         {
             LastSetWarpIndex = index;
             return SetWarpResult;
         }
 
-        public Ack SetPause(bool paused)
+        public CommandResult SetPause(bool paused)
         {
             LastSetPause = paused;
             return SetPauseResult;

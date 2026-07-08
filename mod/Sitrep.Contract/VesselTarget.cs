@@ -87,8 +87,8 @@ public class VesselTarget
     /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>
     public Vec3? RelativePosition { get; set; }
 
-    /// <summary>m/s, self-relative.</summary>
-    public Vec3 RelativeVelocity { get; set; } = new();
+    /// <summary>m/s, self-relative. R7 Fix 3: nullable for consistency with <see cref="RelativePosition"/> — null (never a sentinel <c>(0,0,0)</c>, the V-10 ambiguity) when the transform data needed to compute it wasn't available this tick.</summary>
+    public Vec3? RelativeVelocity { get; set; }
 
     /// <summary>Null when the target has no orbit (e.g. it's landed, or its orbit couldn't be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }

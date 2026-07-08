@@ -5,31 +5,6 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The generic success/failure result for every command in this file that
-/// doesn't need its own richer payload. <see cref="Success"/> false pairs
-/// with a machine-readable <see cref="ErrorCode"/> (<c>"E_MODE_UNAVAILABLE"</c>,
-/// <c>"E_RANGE"</c>, <c>"E_NOT_FOUND"</c>, <c>"E_NO_VESSEL"</c>) rather than a
-/// free-text message — the design doc §3's <c>Result&lt;T, CommandError&gt;</c>
-/// ruling in its simplest shape: results are always delivered (never a
-/// fire-and-forget void), and failure is structured data, not a thrown
-/// exception a client has to string-match.
-/// </summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-public class Ack
-{
-    public bool Success { get; set; } = true;
-
-    public string? ErrorCode { get; set; }
-
-    public static Ack Ok() => new Ack { Success = true };
-
-    public static Ack Fail(string errorCode) => new Ack { Success = false, ErrorCode = errorCode };
-}
-
-/// <summary>
 /// Args shared by every plain boolean actuation command (<c>setSas</c>/
 /// <c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/<c>setLights</c>) — an
 /// ABSOLUTE state to apply, never a toggle. Under light-time delay a toggle
@@ -61,26 +36,16 @@ public class SetSasModeArgs
 #endif
 public class SetThrottleArgs
 {
-    /// <summary>0..1 — validated (not silently clamped) at admission; out of range yields <see cref="Ack.ErrorCode"/> <c>"E_RANGE"</c> (A-10's inconsistency fixed at the send gate).</summary>
+    /// <summary>0..1 — validated (not silently clamped) at admission; out of range yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/> (A-10's inconsistency fixed at the send gate).</summary>
     public double Value { get; set; }
 }
 
 /// <summary>
-/// <c>vessel.control.stage</c>'s result — a real value comes back (the new
-/// current stage index), unlike Telemachus's <c>f.stage</c> void fire-and-forget.
+/// <c>vessel.control.stage</c>'s result is <c>CommandResult&lt;int&gt;</c> — a
+/// real value comes back (the new current stage index in <c>Payload</c>),
+/// unlike Telemachus's <c>f.stage</c> void fire-and-forget. See
+/// <see cref="CommandResult{T}"/>.
 /// </summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-public class StageResult
-{
-    public bool Success { get; set; } = true;
-
-    public string? ErrorCode { get; set; }
-
-    public int NewStage { get; set; }
-}
 
 /// <summary>
 /// <c>vessel.control.setActionGroup</c>'s args — <see cref="Group"/> is the
@@ -95,7 +60,7 @@ public class StageResult
 #endif
 public class SetActionGroupArgs
 {
-    /// <summary>1..10. Any other value yields <see cref="Ack.ErrorCode"/> <c>"E_RANGE"</c>.</summary>
+    /// <summary>1..10. Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
     public int Group { get; set; }
 
     public bool State { get; set; }
@@ -126,24 +91,11 @@ public class AddManeuverNodeArgs
     public double RadialOut { get; set; }
 }
 
-/// <summary>Result of <c>vessel.maneuver.add</c> — O-6 fixed: the created node's opaque id is actually returned.</summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-public class AddManeuverNodeResult
-{
-    public bool Success { get; set; } = true;
-
-    public string? ErrorCode { get; set; }
-
-    /// <summary>Null when <see cref="Success"/> is false.</summary>
-    public string? NodeId { get; set; }
-}
+/// <summary>Result of <c>vessel.maneuver.add</c> is <c>CommandResult&lt;string&gt;</c> — O-6 fixed: the created node's opaque id is actually returned in <c>Payload</c>. See <see cref="CommandResult{T}"/>.</summary>
 
 /// <summary>
 /// <c>vessel.maneuver.update</c>'s args — keyed by the opaque <see cref="NodeId"/>
-/// <see cref="AddManeuverNodeResult"/> returned, never a positional index
+/// that <c>vessel.maneuver.add</c>'s <c>CommandResult&lt;string&gt;</c> returned, never a positional index
 /// (O-4's second half: Telemachus's <c>updateManeuverNode</c> shifted every
 /// later sibling's index by one).
 /// </summary>

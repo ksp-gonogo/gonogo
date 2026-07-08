@@ -15,7 +15,7 @@ namespace Sitrep.Host
     /// the args themselves) happens HERE; every check that does (mode
     /// availability, whether a target id actually resolves, whether a
     /// vessel exists at all) is the actuator's job and comes back as a typed
-    /// <see cref="Ack.ErrorCode"/>.
+    /// <see cref="CommandResult.ErrorCode"/>.
     ///
     /// <para><b>Absolute set, never toggle</b> (design doc §3/§6.2): every
     /// boolean actuation command takes the state to APPLY, not "flip
@@ -61,80 +61,80 @@ namespace Sitrep.Host
         public const string SetWarpIndexCommand = "time.setWarpIndex";
         public const string SetPausedCommand = "time.setPaused";
 
-        public static Ack HandleSetSas(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetSas(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetSas(args.Enabled);
 
-        public static Ack HandleSetSasMode(IVesselActuator actuator, SetSasModeArgs args) =>
+        public static CommandResult HandleSetSasMode(IVesselActuator actuator, SetSasModeArgs args) =>
             actuator.SetSasMode(args.Mode);
 
-        public static Ack HandleSetRcs(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetRcs(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetRcs(args.Enabled);
 
-        public static Ack HandleSetGear(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetGear(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetGear(args.Enabled);
 
-        public static Ack HandleSetBrakes(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetBrakes(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetBrakes(args.Enabled);
 
-        public static Ack HandleSetLights(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetLights(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetLights(args.Enabled);
 
-        public static Ack HandleSetAbort(IVesselActuator actuator, SetEnabledArgs args) =>
+        public static CommandResult HandleSetAbort(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetAbort(args.Enabled);
 
         /// <summary>Validated (not silently clamped) at THIS admission gate — A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
-        public static Ack HandleSetThrottle(IVesselActuator actuator, SetThrottleArgs args)
+        public static CommandResult HandleSetThrottle(IVesselActuator actuator, SetThrottleArgs args)
         {
             if (args.Value < 0.0 || args.Value > 1.0)
             {
-                return Ack.Fail("E_RANGE");
+                return CommandResult.Fail(CommandErrorCode.Range);
             }
             return actuator.SetThrottle(args.Value);
         }
 
-        public static StageResult HandleStage(IVesselActuator actuator, object? _) =>
+        public static CommandResult<int> HandleStage(IVesselActuator actuator, object? _) =>
             actuator.Stage();
 
-        public static Ack HandleSetActionGroup(IVesselActuator actuator, SetActionGroupArgs args)
+        public static CommandResult HandleSetActionGroup(IVesselActuator actuator, SetActionGroupArgs args)
         {
             if (args.Group < 1 || args.Group > 10)
             {
-                return Ack.Fail("E_RANGE");
+                return CommandResult.Fail(CommandErrorCode.Range);
             }
             return actuator.SetActionGroup(args.Group, args.State);
         }
 
-        public static AddManeuverNodeResult HandleManeuverAdd(IVesselActuator actuator, AddManeuverNodeArgs args) =>
+        public static CommandResult<string> HandleManeuverAdd(IVesselActuator actuator, AddManeuverNodeArgs args) =>
             actuator.AddManeuverNode(args.Ut, args.Prograde, args.Normal, args.RadialOut);
 
-        public static Ack HandleManeuverUpdate(IVesselActuator actuator, UpdateManeuverNodeArgs args) =>
+        public static CommandResult HandleManeuverUpdate(IVesselActuator actuator, UpdateManeuverNodeArgs args) =>
             actuator.UpdateManeuverNode(args.NodeId, args.Ut, args.Prograde, args.Normal, args.RadialOut);
 
-        public static Ack HandleManeuverRemove(IVesselActuator actuator, RemoveManeuverNodeArgs args) =>
+        public static CommandResult HandleManeuverRemove(IVesselActuator actuator, RemoveManeuverNodeArgs args) =>
             actuator.RemoveManeuverNode(args.NodeId);
 
         /// <summary>
         /// Structurally-invalid args (the discriminated union's "wrong field
-        /// for this Kind is missing" case) fail-fast here as <c>"E_NOT_FOUND"</c>
+        /// for this Kind is missing" case) fail-fast here as <c>CommandErrorCode.NotFound</c>
         /// without ever reaching the actuator — there is nothing a real KSP
         /// lookup could resolve from a null id. A well-formed request that
         /// simply doesn't match a live vessel/body is the actuator's own
-        /// <c>"E_NOT_FOUND"</c> to return (it's the one with FlightGlobals in
+        /// <c>CommandErrorCode.NotFound</c> to return (it's the one with FlightGlobals in
         /// hand).
         /// </summary>
-        public static Ack HandleTargetSet(IVesselActuator actuator, SetTargetArgs args)
+        public static CommandResult HandleTargetSet(IVesselActuator actuator, SetTargetArgs args)
         {
             switch (args.Kind)
             {
                 case TargetKind.Vessel when string.IsNullOrEmpty(args.VesselId):
                 case TargetKind.Body when !args.BodyIndex.HasValue:
                 case TargetKind.Other:
-                    return Ack.Fail("E_NOT_FOUND");
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
             }
             return actuator.SetTarget(args.Kind, args.VesselId, args.BodyIndex);
         }
 
-        public static Ack HandleTargetClear(IVesselActuator actuator, object? _) =>
+        public static CommandResult HandleTargetClear(IVesselActuator actuator, object? _) =>
             actuator.ClearTarget();
 
         /// <summary>
@@ -144,19 +144,19 @@ namespace Sitrep.Host
         /// command in this file. The real upper bound
         /// (<c>TimeWarp.warpRates.Length</c>) is only known live, so
         /// <c>KspVesselActuator.SetWarp</c> is responsible for rejecting an
-        /// index beyond it with the same <c>"E_RANGE"</c> code — this
+        /// index beyond it with the same <c>CommandErrorCode.Range</c> code — this
         /// provider can't see that bound at all.
         /// </summary>
-        public static Ack HandleSetWarpIndex(IVesselActuator actuator, SetWarpIndexArgs args)
+        public static CommandResult HandleSetWarpIndex(IVesselActuator actuator, SetWarpIndexArgs args)
         {
             if (args.Index < 0)
             {
-                return Ack.Fail("E_RANGE");
+                return CommandResult.Fail(CommandErrorCode.Range);
             }
             return actuator.SetWarp(args.Index);
         }
 
-        public static Ack HandleSetPaused(IVesselActuator actuator, SetPausedArgs args) =>
+        public static CommandResult HandleSetPaused(IVesselActuator actuator, SetPausedArgs args) =>
             actuator.SetPause(args.Paused);
     }
 }

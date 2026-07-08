@@ -948,7 +948,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Munar Relay", target!.Name);
             Assert.Equal(TargetKind.Vessel, target.Kind);
             Assert.Equal(10.0, target.RelativePosition!.X);
-            Assert.Equal(1.0, target.RelativeVelocity.X);
+            Assert.Equal(1.0, target.RelativeVelocity!.X);
             Assert.Null(target.Orbit);
         }
 

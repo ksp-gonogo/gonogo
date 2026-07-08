@@ -65,18 +65,18 @@ namespace Gonogo.KSP
             _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
         }
 
-        public Ack SetSas(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetSas(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.SAS, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
-        public Ack SetSasMode(SasMode mode)
+        public CommandResult SetSasMode(SasMode mode)
         {
             var vessel = FlightGlobals.ActiveVessel;
             if (vessel == null || vessel.Autopilot == null)
             {
-                return Ack.Fail("E_NO_VESSEL");
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
             // SasMode.Unknown (the contract's own parse-fallback for an
@@ -85,7 +85,7 @@ namespace Gonogo.KSP
             // rather than casting an out-of-range int into a native enum.
             if (mode == SasMode.Unknown)
             {
-                return Ack.Fail("E_MODE_UNAVAILABLE");
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
             }
 
             // VesselAutopilot.SetMode returns false when the requested mode
@@ -94,38 +94,38 @@ namespace Gonogo.KSP
             // signature `bool SetMode(AutopilotMode mode)` /
             // `bool CanSetMode(AutopilotMode mode)`.
             return vessel.Autopilot.SetMode((VesselAutopilot.AutopilotMode)(int)mode)
-                ? Ack.Ok()
-                : Ack.Fail("E_MODE_UNAVAILABLE");
+                ? CommandResult.Ok()
+                : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
         }
 
-        public Ack SetRcs(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetRcs(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.RCS, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
-        public Ack SetGear(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetGear(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.Gear, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
-        public Ack SetBrakes(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetBrakes(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.Brakes, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
-        public Ack SetLights(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetLights(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.Light, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
-        public Ack SetAbort(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetAbort(bool enabled) => WithActionGroups(actionGroups =>
         {
             actionGroups.SetGroup(KSPActionGroup.Abort, enabled);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
         /// <summary>
@@ -136,29 +136,29 @@ namespace Gonogo.KSP
         /// <c>vessel.ctrlState.mainThrottle</c> itself is read-only ground
         /// truth downstream of this, not the write target).
         /// </summary>
-        public Ack SetThrottle(double value)
+        public CommandResult SetThrottle(double value)
         {
             if (FlightGlobals.ActiveVessel == null)
             {
-                return Ack.Fail("E_NO_VESSEL");
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
             FlightInputHandler.state.mainThrottle = (float)value;
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
-        public StageResult Stage()
+        public CommandResult<int> Stage()
         {
             var vessel = FlightGlobals.ActiveVessel;
             if (vessel == null)
             {
-                return new StageResult { Success = false, ErrorCode = "E_NO_VESSEL" };
+                return CommandResult<int>.Fail(CommandErrorCode.NoVessel);
             }
             StageManager.ActivateNextStage();
-            return new StageResult { Success = true, NewStage = vessel.currentStage };
+            return CommandResult<int>.Ok(vessel.currentStage);
         }
 
         /// <summary>1..10 maps to <c>KSPActionGroup.Custom01..Custom10</c> -- validated by <see cref="VesselCommandProvider.HandleSetActionGroup"/> before this is ever called.</summary>
-        public Ack SetActionGroup(int group, bool state) => WithActionGroups(actionGroups =>
+        public CommandResult SetActionGroup(int group, bool state) => WithActionGroups(actionGroups =>
         {
             var kspGroup = group switch
             {
@@ -176,10 +176,10 @@ namespace Gonogo.KSP
             };
             if (kspGroup == KSPActionGroup.None)
             {
-                return Ack.Fail("E_RANGE");
+                return CommandResult.Fail(CommandErrorCode.Range);
             }
             actionGroups.SetGroup(kspGroup, state);
-            return Ack.Ok();
+            return CommandResult.Ok();
         });
 
         /// <summary>
@@ -189,12 +189,12 @@ namespace Gonogo.KSP
         /// <c>KspHost.BuildManeuverNodes</c>' identical doc comment). This
         /// assignment must NOT be reordered.
         /// </summary>
-        public AddManeuverNodeResult AddManeuverNode(double ut, double prograde, double normal, double radialOut)
+        public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut)
         {
             var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
             if (solver == null)
             {
-                return new AddManeuverNodeResult { Success = false, ErrorCode = "E_NO_VESSEL" };
+                return CommandResult<string>.Fail(CommandErrorCode.NoVessel);
             }
 
             var node = solver.AddManeuverNode(ut);
@@ -202,34 +202,34 @@ namespace Gonogo.KSP
             solver.UpdateFlightPlan();
 
             var nodeId = _maneuverNodeIdRegistry.GetOrAssign(node);
-            return new AddManeuverNodeResult { Success = true, NodeId = nodeId };
+            return CommandResult<string>.Ok(nodeId);
         }
 
-        public Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
+        public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
         {
             if (!TryResolveNode(nodeId, out var node) || node?.solver == null)
             {
-                return Ack.Fail("E_NOT_FOUND");
+                return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
             node.UT = ut;
             node.DeltaV = new Vector3d(radialOut, normal, prograde);
             node.solver.UpdateFlightPlan();
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
-        public Ack RemoveManeuverNode(string nodeId)
+        public CommandResult RemoveManeuverNode(string nodeId)
         {
             if (!TryResolveNode(nodeId, out var node))
             {
-                return Ack.Fail("E_NOT_FOUND");
+                return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
             if (node?.solver != null)
             {
                 node.solver.RemoveManeuverNode(node);
             }
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
         /// <summary>
@@ -260,12 +260,12 @@ namespace Gonogo.KSP
         /// server-side against live <c>FlightGlobals</c> state (T-1/T-2) --
         /// the client never needs (or supplies) a live array index itself.
         /// </summary>
-        public Ack SetTarget(TargetKind kind, string? vesselId, int? bodyIndex)
+        public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex)
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
             {
-                return Ack.Fail("E_NO_VESSEL");
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
             if (kind == TargetKind.Vessel)
@@ -281,10 +281,10 @@ namespace Gonogo.KSP
                 }
                 if (found == null)
                 {
-                    return Ack.Fail("E_NOT_FOUND");
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
                 fetch.SetVesselTarget(found);
-                return Ack.Ok();
+                return CommandResult.Ok();
             }
 
             if (kind == TargetKind.Body)
@@ -292,24 +292,24 @@ namespace Gonogo.KSP
                 var bodies = FlightGlobals.Bodies;
                 if (bodyIndex == null || bodyIndex.Value < 0 || bodyIndex.Value >= bodies.Count)
                 {
-                    return Ack.Fail("E_NOT_FOUND");
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
                 fetch.SetVesselTarget(bodies[bodyIndex.Value]);
-                return Ack.Ok();
+                return CommandResult.Ok();
             }
 
-            return Ack.Fail("E_NOT_FOUND");
+            return CommandResult.Fail(CommandErrorCode.NotFound);
         }
 
-        public Ack ClearTarget()
+        public CommandResult ClearTarget()
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
             {
-                return Ack.Fail("E_NO_VESSEL");
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
             fetch.SetVesselTarget(null);
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
         /// <summary>
@@ -320,34 +320,34 @@ namespace Gonogo.KSP
         /// the ONLY place the real upper bound is known
         /// (<c>TimeWarp.fetch.warpRates.Length</c> -- the live rate table,
         /// which differs between on-rails and physics warp and isn't a fixed
-        /// contract-side constant), so the design table's <c>Ack | E_RANGE</c>
+        /// contract-side constant), so the design table's <c>CommandResult | CommandErrorCode.Range</c>
         /// (§3) is enforced here rather than silently clamped/passed to
         /// <c>TimeWarp.SetRate</c>, which does no bounds checking of its own.
         /// </summary>
-        public Ack SetWarp(int index)
+        public CommandResult SetWarp(int index)
         {
             var warpRates = TimeWarp.fetch?.warpRates;
             if (warpRates == null || index < 0 || index >= warpRates.Length)
             {
-                return Ack.Fail("E_RANGE");
+                return CommandResult.Fail(CommandErrorCode.Range);
             }
             TimeWarp.SetRate(index, instant: true);
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
         /// <summary>Sim-meta, not vessel-scoped -- <c>FlightDriver.SetPause</c> is a static call.</summary>
-        public Ack SetPause(bool paused)
+        public CommandResult SetPause(bool paused)
         {
             FlightDriver.SetPause(paused);
-            return Ack.Ok();
+            return CommandResult.Ok();
         }
 
-        private static Ack WithActionGroups(Func<ActionGroupList, Ack> action)
+        private static CommandResult WithActionGroups(Func<ActionGroupList, CommandResult> action)
         {
             var vessel = FlightGlobals.ActiveVessel;
             if (vessel == null || vessel.ActionGroups == null)
             {
-                return Ack.Fail("E_NO_VESSEL");
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
             return action(vessel.ActionGroups);
         }

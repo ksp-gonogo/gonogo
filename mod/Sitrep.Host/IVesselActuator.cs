@@ -20,7 +20,7 @@ namespace Sitrep.Host
     /// no per-call vessel selector — same scoping as every M1 read channel:
     /// "the vessel" means <c>FlightGlobals.ActiveVessel</c>). A real
     /// implementation with no active vessel returns a failure result
-    /// (<see cref="Ack.ErrorCode"/> <c>"E_NO_VESSEL"</c>) rather than
+    /// (<see cref="CommandResult.ErrorCode"/> <c>CommandErrorCode.NoVessel</c>) rather than
     /// throwing — <see cref="ChannelEngine"/>'s fail-soft dispatch already
     /// catches a throwing handler, but a routine "nothing to act on right
     /// now" is not the same class of failure as a handler bug, so it gets a
@@ -28,38 +28,38 @@ namespace Sitrep.Host
     /// </summary>
     public interface IVesselActuator
     {
-        Ack SetSas(bool enabled);
+        CommandResult SetSas(bool enabled);
 
-        Ack SetSasMode(SasMode mode);
+        CommandResult SetSasMode(SasMode mode);
 
-        Ack SetRcs(bool enabled);
+        CommandResult SetRcs(bool enabled);
 
-        Ack SetGear(bool enabled);
+        CommandResult SetGear(bool enabled);
 
-        Ack SetBrakes(bool enabled);
+        CommandResult SetBrakes(bool enabled);
 
-        Ack SetLights(bool enabled);
+        CommandResult SetLights(bool enabled);
 
-        Ack SetAbort(bool enabled);
+        CommandResult SetAbort(bool enabled);
 
-        Ack SetThrottle(double value);
+        CommandResult SetThrottle(double value);
 
-        StageResult Stage();
+        CommandResult<int> Stage();
 
-        Ack SetActionGroup(int group, bool state);
+        CommandResult SetActionGroup(int group, bool state);
 
-        AddManeuverNodeResult AddManeuverNode(double ut, double prograde, double normal, double radialOut);
+        CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut);
 
-        Ack UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut);
+        CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut);
 
-        Ack RemoveManeuverNode(string nodeId);
+        CommandResult RemoveManeuverNode(string nodeId);
 
-        Ack SetTarget(TargetKind kind, string? vesselId, int? bodyIndex);
+        CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex);
 
-        Ack ClearTarget();
+        CommandResult ClearTarget();
 
-        Ack SetWarp(int index);
+        CommandResult SetWarp(int index);
 
-        Ack SetPause(bool paused);
+        CommandResult SetPause(bool paused);
     }
 }

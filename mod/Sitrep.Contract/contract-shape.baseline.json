@@ -1,38 +1,34 @@
 {
-  "major": 1,
-  "minor": 0,
-  "types": {
-    "Sitrep.Contract.Ack": [
-      "ErrorCode:System.String",
-      "Success:System.Boolean"
-    ],
+  "Major": 2,
+  "Minor": 0,
+  "Types": {
     "Sitrep.Contract.AddManeuverNodeArgs": [
       "Normal:System.Double",
       "Prograde:System.Double",
       "RadialOut:System.Double",
       "Ut:System.Double"
     ],
-    "Sitrep.Contract.AddManeuverNodeResult": [
-      "ErrorCode:System.String",
-      "NodeId:System.String",
-      "Success:System.Boolean"
-    ],
-    "Sitrep.Contract.CommandRequest`1": [
+    "Sitrep.Contract.CommandRequest\u00601": [
       "Args:TArgs",
       "Command:System.String",
       "RequestId:System.String",
       "SentAt:System.Double",
       "Type:System.String"
     ],
-    "Sitrep.Contract.CommandResponse`1": [
+    "Sitrep.Contract.CommandResponse\u00601": [
       "Meta:Sitrep.Contract.Meta",
       "RequestId:System.String",
       "Result:TResult",
       "Type:System.String"
     ],
+    "Sitrep.Contract.CommandResult": [
+      "ErrorCode:Sitrep.Contract.CommandErrorCode",
+      "Success:System.Boolean"
+    ],
+    "Sitrep.Contract.CommandResult\u00601": ["Payload:T"],
     "Sitrep.Contract.DockAlignment": [
       "Distance:System.Double",
-      "ForwardDot:System.Nullable`1[System.Double]",
+      "ForwardDot:System.Nullable\u00601[System.Double]",
       "Meta:Sitrep.Contract.PayloadMeta",
       "RelativePosition:Sitrep.Contract.Vec3",
       "RelativeVelocity:Sitrep.Contract.Vec3"
@@ -51,16 +47,16 @@
       "Type:System.String"
     ],
     "Sitrep.Contract.ManeuverNode": [
-      "DvNormal:System.Nullable`1[System.Double]",
-      "DvPrograde:System.Nullable`1[System.Double]",
-      "DvRadial:System.Nullable`1[System.Double]",
-      "DvTotal:System.Nullable`1[System.Double]",
+      "DvNormal:System.Nullable\u00601[System.Double]",
+      "DvPrograde:System.Nullable\u00601[System.Double]",
+      "DvRadial:System.Nullable\u00601[System.Double]",
+      "DvTotal:System.Nullable\u00601[System.Double]",
       "Id:System.String",
       "Ut:System.Double"
     ],
     "Sitrep.Contract.Meta": [
       "Active:System.Boolean",
-      "Confidence:System.Nullable`1[System.Double]",
+      "Confidence:System.Nullable\u00601[System.Double]",
       "DeliveredAt:System.Double",
       "Quality:Sitrep.Contract.Quality",
       "Seq:System.Int64",
@@ -71,7 +67,7 @@
       "Vantage:System.String"
     ],
     "Sitrep.Contract.OrbitEncounter": [
-      "BodyIndex:System.Nullable`1[System.Int32]",
+      "BodyIndex:System.Nullable\u00601[System.Int32]",
       "TransitionType:Sitrep.Contract.TransitionType",
       "TransitionUt:System.Double"
     ],
@@ -81,6 +77,7 @@
     ],
     "Sitrep.Contract.RemoveManeuverNodeArgs": ["NodeId:System.String"],
     "Sitrep.Contract.ResourceAmount": [
+      "Active:System.Boolean",
       "Current:System.Double",
       "Max:System.Double"
     ],
@@ -92,18 +89,13 @@
     "Sitrep.Contract.SetPausedArgs": ["Paused:System.Boolean"],
     "Sitrep.Contract.SetSasModeArgs": ["Mode:Sitrep.Contract.SasMode"],
     "Sitrep.Contract.SetTargetArgs": [
-      "BodyIndex:System.Nullable`1[System.Int32]",
+      "BodyIndex:System.Nullable\u00601[System.Int32]",
       "Kind:Sitrep.Contract.TargetKind",
       "VesselId:System.String"
     ],
     "Sitrep.Contract.SetThrottleArgs": ["Value:System.Double"],
     "Sitrep.Contract.SetWarpIndexArgs": ["Index:System.Int32"],
-    "Sitrep.Contract.StageResult": [
-      "ErrorCode:System.String",
-      "NewStage:System.Int32",
-      "Success:System.Boolean"
-    ],
-    "Sitrep.Contract.StreamData`1": [
+    "Sitrep.Contract.StreamData\u00601": [
       "Meta:Sitrep.Contract.Meta",
       "Payload:T",
       "Topic:System.String",
@@ -146,14 +138,14 @@
     ],
     "Sitrep.Contract.VesselControl": [
       "ActionGroups:System.Boolean[]",
-      "Brakes:System.Nullable`1[System.Boolean]",
-      "Gear:System.Nullable`1[System.Boolean]",
-      "Lights:System.Nullable`1[System.Boolean]",
+      "Brakes:System.Nullable\u00601[System.Boolean]",
+      "Gear:System.Nullable\u00601[System.Boolean]",
+      "Lights:System.Nullable\u00601[System.Boolean]",
       "Meta:Sitrep.Contract.PayloadMeta",
-      "Rcs:System.Nullable`1[System.Boolean]",
-      "Sas:System.Nullable`1[System.Boolean]",
-      "SasMode:System.Nullable`1[Sitrep.Contract.SasMode]",
-      "Throttle:System.Nullable`1[System.Double]"
+      "Rcs:System.Nullable\u00601[System.Boolean]",
+      "Sas:System.Nullable\u00601[System.Boolean]",
+      "SasMode:System.Nullable\u00601[Sitrep.Contract.SasMode]",
+      "Throttle:System.Nullable\u00601[System.Double]"
     ],
     "Sitrep.Contract.VesselCrew": [
       "Count:System.Int32",
@@ -174,25 +166,25 @@
       "VerticalSpeed:System.Double"
     ],
     "Sitrep.Contract.VesselIdentity": [
-      "LaunchUt:System.Nullable`1[System.Double]",
+      "LaunchUt:System.Nullable\u00601[System.Double]",
       "Meta:Sitrep.Contract.PayloadMeta",
       "Name:System.String",
-      "ParentBodyIndex:System.Nullable`1[System.Int32]",
+      "ParentBodyIndex:System.Nullable\u00601[System.Int32]",
       "Situation:Sitrep.Contract.Situation",
       "VesselId:System.String",
       "VesselType:Sitrep.Contract.VesselType"
     ],
     "Sitrep.Contract.VesselManeuver": [
       "Meta:Sitrep.Contract.PayloadMeta",
-      "Nodes:System.Collections.Generic.List`1[Sitrep.Contract.ManeuverNode]"
+      "Nodes:System.Collections.Generic.List\u00601[Sitrep.Contract.ManeuverNode]"
     ],
     "Sitrep.Contract.VesselOrbit": [
-      "ArgPe:System.Nullable`1[System.Double]",
+      "ArgPe:System.Nullable\u00601[System.Double]",
       "Ecc:System.Double",
       "Encounter:Sitrep.Contract.OrbitEncounter",
       "Epoch:System.Double",
       "Inc:System.Double",
-      "Lan:System.Nullable`1[System.Double]",
+      "Lan:System.Nullable\u00601[System.Double]",
       "MeanAnomalyAtEpoch:System.Double",
       "Meta:Sitrep.Contract.PayloadMeta",
       "Mu:System.Double",
@@ -214,22 +206,22 @@
     ],
     "Sitrep.Contract.VesselResources": [
       "Meta:Sitrep.Contract.PayloadMeta",
-      "Resources:System.Collections.Generic.Dictionary`2[System.String,Sitrep.Contract.ResourceAmount]"
+      "Resources:System.Collections.Generic.Dictionary\u00602[System.String,Sitrep.Contract.ResourceAmount]"
     ],
     "Sitrep.Contract.VesselStructure": [
       "CurrentStage:System.Int32",
       "Meta:Sitrep.Contract.PayloadMeta",
-      "PartCount:System.Nullable`1[System.Int32]",
-      "StageCount:System.Nullable`1[System.Int32]"
+      "PartCount:System.Nullable\u00601[System.Int32]",
+      "StageCount:System.Nullable\u00601[System.Int32]"
     ],
     "Sitrep.Contract.VesselSurface": [
       "Biome:System.String",
-      "HeightFromTerrain:System.Nullable`1[System.Double]",
+      "HeightFromTerrain:System.Nullable\u00601[System.Double]",
       "LandedAt:System.String",
       "Meta:Sitrep.Contract.PayloadMeta"
     ],
     "Sitrep.Contract.VesselTarget": [
-      "BodyIndex:System.Nullable`1[System.Int32]",
+      "BodyIndex:System.Nullable\u00601[System.Int32]",
       "Kind:Sitrep.Contract.TargetKind",
       "Meta:Sitrep.Contract.PayloadMeta",
       "Name:System.String",
@@ -240,8 +232,8 @@
     ],
     "Sitrep.Contract.VesselThermal": [
       "HottestPart:Sitrep.Contract.ThermalHottestPart",
-      "MaxInternalTempRatio:System.Nullable`1[System.Double]",
-      "MaxSkinTempRatio:System.Nullable`1[System.Double]",
+      "MaxInternalTempRatio:System.Nullable\u00601[System.Double]",
+      "MaxSkinTempRatio:System.Nullable\u00601[System.Double]",
       "Meta:Sitrep.Contract.PayloadMeta"
     ],
     "Sitrep.Contract.WarpState": [
@@ -252,7 +244,15 @@
       "WarpRateIndex:System.Int32"
     ]
   },
-  "enums": {
+  "Enums": {
+    "Sitrep.Contract.CommandErrorCode": [
+      "ModeUnavailable:3",
+      "NoVessel:2",
+      "None:0",
+      "NotFound:5",
+      "Range:4",
+      "Unknown:1"
+    ],
     "Sitrep.Contract.ControlState": [
       "Full:4",
       "Kerbal:2",

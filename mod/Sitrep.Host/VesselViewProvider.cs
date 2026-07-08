@@ -402,7 +402,10 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                map[kvp.Key] = new ResourceAmount { Current = current.Value, Max = max.Value };
+                // R7 Fix 2: Active = true -- every resource this producer emits
+                // is one it actually reported this tick (a present-but-zero
+                // resource is a real reading, not an absence).
+                map[kvp.Key] = new ResourceAmount { Current = current.Value, Max = max.Value, Active = true };
             }
 
             return new VesselResources
@@ -648,13 +651,11 @@ namespace Sitrep.Host
                 return null;
             }
 
+            // R7 Fix 3: relativeVelocity is now Vec3? (matching relativePosition)
+            // -- a missing value is carried as null rather than collapsing the
+            // whole record or fabricating a sentinel (0,0,0). The channel is
+            // still absent entirely when there is no target at all (above).
             var relativeVelocity = GetVec3(target, "relativeVelocity");
-            if (relativeVelocity == null)
-            {
-                // Required field missing -- a partial target record is
-                // worse than none, same convention as vessel.orbit/flight.
-                return null;
-            }
 
             VesselOrbit? orbit = null;
             if (TryGetGroup(target, "orbit", out var rawOrbit))
@@ -998,6 +999,7 @@ namespace Sitrep.Host
         {
             ["current"] = amount.Current,
             ["max"] = amount.Max,
+            ["active"] = amount.Active,
         };
 
         private static Dictionary<string, object?> ToWire(VesselThermal thermal) => new Dictionary<string, object?>
@@ -1069,7 +1071,7 @@ namespace Sitrep.Host
             ["vesselId"] = target.VesselId,
             ["bodyIndex"] = target.BodyIndex,
             ["relativePosition"] = target.RelativePosition != null ? ToWire(target.RelativePosition) : null,
-            ["relativeVelocity"] = ToWire(target.RelativeVelocity),
+            ["relativeVelocity"] = target.RelativeVelocity != null ? ToWire(target.RelativeVelocity) : null,
             ["orbit"] = target.Orbit != null ? ToWire(target.Orbit) : null,
             ["meta"] = ToWire(target.Meta),
         };

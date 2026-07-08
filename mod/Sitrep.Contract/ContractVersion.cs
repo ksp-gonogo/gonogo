@@ -22,15 +22,35 @@ namespace Sitrep.Contract
     /// </summary>
     public static class ContractVersion
     {
-        public const int Major = 1;
+        /// <summary>
+        /// Bumped 1 -&gt; 2 (Minor reset to 0): the R7 pre-release contract
+        /// consolidation. Collapsed the three hand-rolled command result
+        /// records (<c>Ack</c>/<c>StageResult</c>/<c>AddManeuverNodeResult</c>)
+        /// into one generic <see cref="CommandResult"/>/<see cref="CommandResult{T}"/>
+        /// with a typed <see cref="CommandErrorCode"/> enum replacing the bare
+        /// <c>string</c> error codes — REMOVING/renaming
+        /// <see cref="SitrepContractAttribute"/>-marked types, which the shape
+        /// gate correctly flags as breaking. Also made
+        /// <c>VesselTarget.RelativeVelocity</c> nullable and added
+        /// <c>ResourceAmount.Active</c> (both additive, riding the same bump).
+        /// Sanctioned because the mod is pre-release with NO external Uplinks
+        /// yet — every bundled uplink rebuilds together against the new shape.
+        /// See <c>.superpowers/sdd/r7-contract-fixes-brief.md</c>.
+        /// </summary>
+        public const int Major = 2;
 
         /// <summary>
-        /// Bumped 0 -&gt; 1: additive-only Minor for dynamic-namespace channel
+        /// Reset to 0 alongside the Major 1 -&gt; 2 bump (see <see cref="Major"/>).
+        /// The Minor history below (0-&gt;1-&gt;2-&gt;3) belongs to the Major-1
+        /// line and is retained for provenance; every one of those additive
+        /// changes is carried forward into Major 2.
+        ///
+        /// <para>Major-1 history — Bumped 0 -&gt; 1: additive-only Minor for dynamic-namespace channel
         /// registration (<see cref="IUplinkHost.RegisterDynamicNamespace"/>/
         /// <see cref="IDynamicChannelSource"/>) plus per-channel
         /// <see cref="ChannelDeclaration.Delay"/> disposition. Neither
         /// touches an existing <see cref="ISitrepUplink"/>'s compile-time
-        /// surface — see <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>.
+        /// surface — see <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>.</para>
         ///
         /// <para>Bumped 1 -&gt; 2: additive-only Minor for the
         /// capture-on-main / handle-on-Courier seam
@@ -47,6 +67,6 @@ namespace Sitrep.Contract
         /// <see cref="ISitrepUplink"/> built against an older Minor. See
         /// <c>.superpowers/sdd/f1-hardening-report.md</c>.</para>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 0;
     }
 }

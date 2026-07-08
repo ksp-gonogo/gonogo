@@ -43,12 +43,12 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void HandleSetSasModeSurfacesTheActuatorsModeUnavailableError()
         {
-            var actuator = new FakeVesselActuator { SetSasModeResult = Ack.Fail("E_MODE_UNAVAILABLE") };
+            var actuator = new FakeVesselActuator { SetSasModeResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
 
             var result = VesselCommandProvider.HandleSetSasMode(actuator, new SetSasModeArgs { Mode = SasMode.Maneuver });
 
             Assert.False(result.Success);
-            Assert.Equal("E_MODE_UNAVAILABLE", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
 
         [Fact]
@@ -116,19 +116,19 @@ namespace Sitrep.Host.Tests
             var result = VesselCommandProvider.HandleSetThrottle(actuator, new SetThrottleArgs { Value = value });
 
             Assert.False(result.Success);
-            Assert.Equal("E_RANGE", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
             Assert.Null(actuator.LastSetThrottleValue);
         }
 
         [Fact]
         public void HandleStageCallsTheActuatorAndReturnsItsNewStageResult()
         {
-            var actuator = new FakeVesselActuator { StageResultValue = new StageResult { Success = true, NewStage = 3 } };
+            var actuator = new FakeVesselActuator { StageResultValue = CommandResult<int>.Ok(3) };
 
             var result = VesselCommandProvider.HandleStage(actuator, null);
 
             Assert.Equal(1, actuator.StageCallCount);
-            Assert.Equal(3, result.NewStage);
+            Assert.Equal(3, result.Payload);
         }
 
         [Theory]
@@ -154,7 +154,7 @@ namespace Sitrep.Host.Tests
             var result = VesselCommandProvider.HandleSetActionGroup(actuator, new SetActionGroupArgs { Group = group, State = true });
 
             Assert.False(result.Success);
-            Assert.Equal("E_RANGE", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
             Assert.Null(actuator.LastActionGroup);
         }
 
@@ -209,12 +209,12 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void HandleManeuverUpdateSurfacesTheActuatorsNotFoundError()
         {
-            var actuator = new FakeVesselActuator { UpdateManeuverNodeResult = Ack.Fail("E_NOT_FOUND") };
+            var actuator = new FakeVesselActuator { UpdateManeuverNodeResult = CommandResult.Fail(CommandErrorCode.NotFound) };
 
             var result = VesselCommandProvider.HandleManeuverUpdate(actuator, new UpdateManeuverNodeArgs { NodeId = "missing" });
 
             Assert.False(result.Success);
-            Assert.Equal("E_NOT_FOUND", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
         }
 
         [Fact]
@@ -257,7 +257,7 @@ namespace Sitrep.Host.Tests
             var result = VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Vessel, VesselId = null });
 
             Assert.False(result.Success);
-            Assert.Equal("E_NOT_FOUND", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
             Assert.Null(actuator.LastSetTargetKind);
         }
 
@@ -269,7 +269,7 @@ namespace Sitrep.Host.Tests
             var result = VesselCommandProvider.HandleTargetSet(actuator, new SetTargetArgs { Kind = TargetKind.Body, BodyIndex = null });
 
             Assert.False(result.Success);
-            Assert.Equal("E_NOT_FOUND", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
             Assert.Null(actuator.LastSetTargetKind);
         }
 
@@ -296,7 +296,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Mirrors <see cref="HandleSetActionGroupRejectsOutOfRangeGroupsBeforeEverCallingTheActuator"/> —
         /// the design table's <c>time.setWarpIndex</c> row (§3) specifies
-        /// <c>Ack | E_RANGE</c>, but nothing was admission-checking a
+        /// <c>CommandResult | CommandErrorCode.Range</c>, but nothing was admission-checking a
         /// negative index before this fix. The real upper bound
         /// (<c>TimeWarp.warpRates.Length</c>) is only known live in
         /// <c>KspVesselActuator</c>; the provider's own job is to reject the
@@ -313,7 +313,7 @@ namespace Sitrep.Host.Tests
             var result = VesselCommandProvider.HandleSetWarpIndex(actuator, new SetWarpIndexArgs { Index = index });
 
             Assert.False(result.Success);
-            Assert.Equal("E_RANGE", result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
             Assert.Null(actuator.LastSetWarpIndex);
         }
 
