@@ -3,6 +3,7 @@ import {
   formatDistance,
   registerComponent,
   resolveTargetName,
+  useDataStreamStatus,
   useDataValue,
 } from "@gonogo/core";
 import {
@@ -18,11 +19,63 @@ import {
   Panel,
   PanelTitle,
   Select,
+  StreamStatusBadge,
   Switch,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+
+/**
+ * `{x,y,z}` — the wire shape of every `vessel.target`/`vessel.dock` Vec3
+ * field (`mod/Sitrep.Contract/Vec3.cs`), as opposed to the tuple arrays
+ * Telemachus used elsewhere (e.g. `AvailableVesselEntry.position`).
+ */
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+function vecMagnitude(v: Vec3): number {
+  return Math.hypot(v.x, v.y, v.z);
+}
+
+/**
+ * Signed range-rate along the line of sight — d|relativePosition|/dt =
+ * dot(relativePosition, relativeVelocity) / |relativePosition|. Matches the
+ * legacy `tar.o.relativeVelocity` sign convention (positive = opening,
+ * negative = closing): if the position vector points from us to the target
+ * and the target is receding, the dot product is positive. `undefined` when
+ * the position is exactly zero (can't form a unit vector) — never divides
+ * by zero.
+ */
+function radialSpeed(position: Vec3, velocity: Vec3): number | undefined {
+  const distance = vecMagnitude(position);
+  if (distance === 0) return undefined;
+  const dot =
+    position.x * velocity.x + position.y * velocity.y + position.z * velocity.z;
+  return dot / distance;
+}
+
+/**
+ * Derives docking alignment angles (degrees off boresight, matching the
+ * legacy `dock.ax`/`dock.ay` convention the reticle math below already
+ * expects) from `vessel.dock.relativePosition` — a genuinely NEW client-side
+ * derivation (M3 vessel-gap batch), not a reproduction of a legacy
+ * Telemachus formula (the fork never published the raw vector these were
+ * computed from). Assumes the docking-port-local frame's `z` is the
+ * approach/boresight axis and `x`/`y` are the lateral offsets, mirroring
+ * `KspVesselActuator`'s use of the SAME axis convention for `x`/`y` (used
+ * verbatim below as the drop-in replacement for `dock.x`/`dock.y`). No `az`
+ * (roll) equivalent exists on the wire — `vessel.dock` carries no roll
+ * data at all, so that readout stays legacy-only.
+ */
+function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
+  const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;
+  const ay = (Math.atan2(position.y, Math.abs(position.z)) * 180) / Math.PI;
+  return { ax, ay };
+}
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -58,17 +111,60 @@ function DistanceToTargetComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  const tarDistance = useDataValue("data", "tar.distance");
+  const legacyTarDistance = useDataValue("data", "tar.distance");
   const tarName = resolveTargetName(useDataValue("data", "tar.name"));
   const tarType = useDataValue("data", "tar.type");
-  const relVel = useDataValue("data", "tar.o.relativeVelocity");
+  const legacyRelVel = useDataValue("data", "tar.o.relativeVelocity");
   const closestApproachUT = useDataValue("data", "o.closestTgtApprUT");
   const universalTime = useDataValue("data", "t.universalTime");
-  const dockAx = useDataValue("data", "dock.ax");
-  const dockAy = useDataValue("data", "dock.ay");
+  const legacyDockAx = useDataValue("data", "dock.ax");
+  const legacyDockAy = useDataValue("data", "dock.ay");
   const dockAz = useDataValue("data", "dock.az");
-  const dockX = useDataValue("data", "dock.x");
-  const dockY = useDataValue("data", "dock.y");
+  const legacyDockX = useDataValue("data", "dock.x");
+  const legacyDockY = useDataValue("data", "dock.y");
+
+  // M3 vessel-gap batch: the NEW `vessel.target`/`vessel.dock` Vec3 reads.
+  // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
+  // `dock.ay` themselves stay legacy-only (map-topic.ts's
+  // TELEMACHUS_KNOWN_GAPS — different shape); these coexist and, when
+  // carried, win via the `??` merges below — the same MIXED-source pattern
+  // CurrentOrbit's M3 batch-2 migration established.
+  const tarRelPos = useDataValue<Vec3>("data", "tar.relativePosition");
+  const tarRelVelVec = useDataValue<Vec3>("data", "tar.relativeVelocityVec");
+  // vessel.dock is null unless the target is a docking port with a free
+  // port on the active vessel — undefined here legitimately means "not a
+  // docking scenario right now", not "still loading".
+  const dockRelPos = useDataValue<Vec3>("data", "dock.relativePosition");
+  const dockRelVelVec = useDataValue<Vec3>("data", "dock.relativeVelocityVec");
+  const dockDistanceStream = useDataValue<number>(
+    "data",
+    "dock.distanceScalar",
+  );
+  const dockForwardDot = useDataValue<number>("data", "dock.forwardDot");
+  const streamStatus = useDataStreamStatus("data", "tar.relativePosition");
+
+  const derivedTarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
+  const tarDistance = derivedTarDistance ?? legacyTarDistance;
+  const derivedRelVel =
+    tarRelPos && tarRelVelVec
+      ? radialSpeed(tarRelPos, tarRelVelVec)
+      : undefined;
+  const relVel = derivedRelVel ?? legacyRelVel;
+  const derivedDockAngles = dockRelPos
+    ? deriveDockAngles(dockRelPos)
+    : undefined;
+  const dockAx = derivedDockAngles?.ax ?? legacyDockAx;
+  const dockAy = derivedDockAngles?.ay ?? legacyDockAy;
+  const dockX = dockRelPos?.x ?? legacyDockX;
+  const dockY = dockRelPos?.y ?? legacyDockY;
+  const derivedDockRelVel =
+    dockRelPos && dockRelVelVec
+      ? radialSpeed(dockRelPos, dockRelVelVec)
+      : undefined;
+  // Docking HUD's Δv row prefers the port-to-port closing rate (more
+  // accurate at close range) over the general vessel-to-vessel figure.
+  const dockingRelVel = derivedDockRelVel ?? relVel;
+  const dockingDistance = dockDistanceStream ?? tarDistance;
 
   // Mode hysteresis — sticky so we don't strobe near a threshold, and the
   // upgrade direction is asymmetric (smaller window to enter than to exit).
@@ -99,7 +195,10 @@ function DistanceToTargetComponent({
   if (tarName === undefined) {
     return (
       <Panel>
-        <PanelTitle>TARGET</PanelTitle>
+        <TitleRow>
+          <PanelTitle>TARGET</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <NoTarget>No target set in KSP</NoTarget>
       </Panel>
     );
@@ -115,13 +214,14 @@ function DistanceToTargetComponent({
     return (
       <DockingHud
         name={tarName}
-        distance={tarDistance}
-        relVel={relVel}
+        distance={dockingDistance}
+        relVel={dockingRelVel}
         ax={dockAx}
         ay={dockAy}
         az={dockAz}
         x={dockX}
         y={dockY}
+        forwardDot={dockForwardDot}
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}
         cols={cols}
@@ -153,7 +253,10 @@ function DistanceToTargetComponent({
 
   return (
     <Panel>
-      <PanelTitle>TARGET</PanelTitle>
+      <TitleRow>
+        <PanelTitle>TARGET</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <TrackingBody>
         {showTargetName && <TargetName>{tarName}</TargetName>}
         {tarDistance === undefined ? (
@@ -295,6 +398,13 @@ interface DockingHudProps {
   az: number | undefined;
   x: number | undefined;
   y: number | undefined;
+  /**
+   * `vessel.dock.forwardDot` — cosine of the angle between the two ports'
+   * forward vectors (1 = perfectly aligned). When present this is a more
+   * direct alignment signal than the derived `ax`/`ay` angle heuristic
+   * below and takes priority for the reticle's aligned/misaligned tint.
+   */
+  forwardDot: number | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
@@ -317,6 +427,7 @@ function DockingHud(props: DockingHudProps) {
     az,
     x,
     y,
+    forwardDot,
     showCamera,
     cameraFlightId,
     cols,
@@ -356,11 +467,16 @@ function DockingHud(props: DockingHudProps) {
   const dx = axClamped / MAX_DEG;
   const dy = -ayClamped / MAX_DEG;
 
+  // forwardDot (cosine of port-forward-vector angle) is the more direct
+  // alignment signal when available — 0.9998 ~= within ~1° of dead-on,
+  // matching the derived-angle heuristic's < 1° threshold below.
   const aligned =
-    ax !== undefined &&
-    ay !== undefined &&
-    Math.abs(ax) < 1 &&
-    Math.abs(ay) < 1;
+    forwardDot !== undefined
+      ? forwardDot > 0.9998
+      : ax !== undefined &&
+        ay !== undefined &&
+        Math.abs(ax) < 1 &&
+        Math.abs(ay) < 1;
 
   // Closing if relVel is negative (standard KSP convention: positive = opening).
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
@@ -566,6 +682,12 @@ registerComponent<DistanceToTargetConfig>({
     "dock.az",
     "dock.x",
     "dock.y",
+    "tar.relativePosition",
+    "tar.relativeVelocityVec",
+    "dock.relativePosition",
+    "dock.relativeVelocityVec",
+    "dock.distanceScalar",
+    "dock.forwardDot",
   ],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   pushable: true,
@@ -575,6 +697,14 @@ registerComponent<DistanceToTargetConfig>({
 export { DistanceToTargetComponent };
 
 // ── Styles — compact mode ─────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const TrackingBody = styled.div`
   flex: 1;

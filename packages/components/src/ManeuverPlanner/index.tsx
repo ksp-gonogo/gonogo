@@ -5,6 +5,7 @@ import {
   getBody,
   registerComponent,
   resolveTargetName,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
   useOrbitElements,
@@ -16,6 +17,7 @@ import {
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -46,6 +48,18 @@ import { usePlannerInputs } from "./usePlannerInputs";
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
+
+/** One entry of `vessel.maneuver.nodes` — the M3 R3 shape (id + burn
+ * vector components only, no post-burn orbit preview). Only `id` is read
+ * here; the rest exists for documentation/type completeness. */
+interface StreamManeuverNode {
+  id: string;
+  ut: number;
+  dvRadial: number;
+  dvNormal: number;
+  dvPrograde: number;
+  dvTotal: number;
+}
 
 function ManeuverPlannerComponent({
   config,
@@ -104,6 +118,39 @@ function ManeuverPlannerComponent({
   const vesselDeltaV = useVesselDeltaV();
   const execute = useExecuteAction("data");
   const schema = useDataSchema("data");
+
+  // M3 vessel-gap batch: the maneuver-node id round-trip. `o.maneuverNodes`
+  // itself (behind `useManeuverNodes` above) stays a legacy/gapped read —
+  // the new `vessel.maneuver.nodes` shape has no deltaV tuple or post-burn
+  // orbit preview (map-topic.ts's TELEMACHUS_KNOWN_GAPS). This SEPARATE,
+  // narrower `o.maneuverNodeIds` read exists purely to recover each node's
+  // now-round-tripping stable `id` (M3 R3) for the update/remove commands —
+  // it never touches the rendered node list (see ManeuverNodeList/NodeRow,
+  // unchanged). `streamNodeIds`/`nodes` come from two independently-timed
+  // reads of what is ultimately the same underlying KSP maneuver-node list,
+  // correlated by ARRAY POSITION (both server-side lists reflect the same
+  // ordering) — `resolveNodeId` below is the correlation point.
+  const streamNodeIds = useDataValue<StreamManeuverNode[]>(
+    "data",
+    "o.maneuverNodeIds",
+  );
+  const nodeIdStreamStatus = useDataStreamStatus("data", "o.maneuverNodeIds");
+
+  /**
+   * Resolves the command-string id for the node at legacy array position
+   * `index`: the real stream guid when the id-only read has delivered a
+   * node at that position, else the plain positional index (string) — the
+   * same value `handleDelete`/`handleEdit` have always sent, so a widget
+   * with no live stream (or one whose `vessel.maneuver.nodes[index].id`
+   * hasn't arrived yet) behaves exactly as before. See map-command.ts's
+   * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
+   * accepted-risk note on this fallback when reads/commands are carried
+   * unevenly.
+   */
+  function resolveNodeId(index: number): string {
+    const real = streamNodeIds?.[index]?.id;
+    return typeof real === "string" && real.length > 0 ? real : String(index);
+  }
 
   const { completedNodes } = useBurnCompletionTracker(nodes, execute);
 
@@ -318,7 +365,7 @@ function ManeuverPlannerComponent({
 
   async function handleDelete(id: number) {
     try {
-      await execute(`o.removeManeuverNode[${id}]`);
+      await execute(`o.removeManeuverNode[${resolveNodeId(id)}]`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -328,7 +375,7 @@ function ManeuverPlannerComponent({
     // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
     // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
     // RADIAL, NORMAL, PROGRADE — *not* prograde-first.
-    const action = `o.updateManeuverNode[${id},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
+    const action = `o.updateManeuverNode[${resolveNodeId(id)},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
     try {
       await execute(action);
       setError(null);
@@ -342,7 +389,7 @@ function ManeuverPlannerComponent({
     // Remove from the highest index down — removing index 0 first would
     // shift every subsequent id and break the loop.
     for (let i = nodes.length - 1; i >= 0; i--) {
-      await execute(`o.removeManeuverNode[${i}]`);
+      await execute(`o.removeManeuverNode[${resolveNodeId(i)}]`);
     }
   }
 
@@ -437,7 +484,10 @@ function ManeuverPlannerComponent({
 
   return (
     <Panel>
-      <PanelTitle>MANEUVER PLANNER</PanelTitle>
+      <TitleRow>
+        <PanelTitle>MANEUVER PLANNER</PanelTitle>
+        <StreamStatusBadge status={nodeIdStreamStatus} />
+      </TitleRow>
       {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
       <ScrollBody>
         {principia && (
@@ -518,6 +568,7 @@ registerComponent<ManeuverPlannerConfig>({
     "o.radius",
     "o.referenceBody",
     "o.maneuverNodes",
+    "o.maneuverNodeIds",
     "t.universalTime",
     "a.physicsMode",
     "v.body",
@@ -542,6 +593,14 @@ export { ManeuverPlannerComponent };
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Section = styled.section`
   display: flex;

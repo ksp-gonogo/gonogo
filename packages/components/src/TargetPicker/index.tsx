@@ -9,6 +9,7 @@ import {
   registerComponent,
   resolveTargetName,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
@@ -22,6 +23,7 @@ import {
   PanelTitle,
   ScrollArea,
   Spinner,
+  StreamStatusBadge,
   Tabs,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
@@ -33,6 +35,95 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 // retired in favour of native `tar.availableVessels`.
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
+
+/**
+ * `system.vessels`' roster shape (`SystemViewProvider.BuildSystemVessels`) —
+ * the M3 vessel-gap batch's replacement for the legacy `tar.availableVessels`
+ * array. NO position/distance field (the new channel is a static snapshot
+ * list, not per-vessel kinematics) — `normalizeRoster` below always reports
+ * `Number.POSITIVE_INFINITY` distance for these entries, which
+ * `formatDistance` already renders as "—".
+ */
+interface RosterVesselEntry {
+  vesselId: string;
+  name: string;
+  vesselType: number;
+  situation: number;
+  bodyIndex: number | null;
+}
+interface RosterPayload {
+  vessels: RosterVesselEntry[];
+}
+
+/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
+ * ordinal -> display-label bridge for the new roster shape. */
+const VESSEL_TYPE_LABELS: readonly string[] = [
+  "Ship",
+  "Station",
+  "Lander",
+  "Probe",
+  "Rover",
+  "Base",
+  "Relay",
+  "EVA",
+  "Flag",
+  "Debris",
+  "SpaceObject",
+  "DeployedScienceController",
+  "DeployedSciencePart",
+  "DroppedPart",
+  "Unknown",
+];
+
+/** Common display shape both the legacy `AvailableVesselEntry[]` and the
+ * new `system.vessels` roster normalize into — the widget renders/sorts
+ * off this alone, never branching on the source shape past this point. */
+interface DisplayVesselEntry {
+  /** React list key + `pendingTarget` disambiguator. */
+  key: string;
+  /** Exact bracket arg for `tar.setTargetVessel[...]` — a legacy positional
+   * index (`String(index)`) or the roster's stable `vesselId` guid. */
+  targetArg: string;
+  name: string;
+  type: string;
+  body: string | null;
+  distance: number;
+}
+
+function isRosterPayload(
+  raw: AvailableVesselEntry[] | RosterPayload,
+): raw is RosterPayload {
+  return !Array.isArray(raw);
+}
+
+function normalizeRoster(
+  raw: AvailableVesselEntry[] | RosterPayload | undefined,
+  bodies: ReturnType<typeof useCelestialBodies>,
+): DisplayVesselEntry[] {
+  if (raw === undefined) return [];
+  if (!isRosterPayload(raw)) {
+    return raw.map((entry) => ({
+      key: `legacy:${entry.index}`,
+      targetArg: String(entry.index),
+      name: entry.name,
+      type: entry.type,
+      body: entry.body || null,
+      distance: vectorMagnitude(entry.position),
+    }));
+  }
+  return raw.vessels.map((entry) => ({
+    key: `roster:${entry.vesselId}`,
+    targetArg: entry.vesselId,
+    name: entry.name,
+    type: VESSEL_TYPE_LABELS[entry.vesselType] ?? "Unknown",
+    body:
+      entry.bodyIndex === null
+        ? null
+        : (bodies.find((b) => b.index === entry.bodyIndex)?.name ?? null),
+    // No position on the new roster shape — formatDistance(Infinity) -> "—".
+    distance: Number.POSITIVE_INFINITY,
+  }));
+}
 
 const targetPickerActions = [
   {
@@ -54,6 +145,7 @@ function TargetPickerComponent({
   const tarDistance = useDataValue("data", "tar.distance");
   const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "tar.availableVessels");
 
   const [tab, setTab] = useState<TabId>("bodies");
   const [filter, setFilter] = useState("");
@@ -105,17 +197,28 @@ function TargetPickerComponent({
   // Native Telemachus path now — used to be a kOS managed script; replaced
   // 2026-05-14. One subscription, server filters Flag/EVA/Debris/Unknown
   // and the active vessel itself, position vector is local-frame so the
-  // client derives distance from `magnitude`.
-  const availableVessels = useDataValue("data", "tar.availableVessels");
+  // client derives distance from `magnitude`. M3 vessel-gap batch: mapped
+  // onto `system.vessels` (map-topic.ts) when a TelemetryProvider carries
+  // it — a structurally different roster shape (no position/distance field),
+  // normalized into `DisplayVesselEntry` above so the rest of this
+  // component never branches on which shape fed it.
+  const availableVessels = useDataValue<AvailableVesselEntry[] | RosterPayload>(
+    "data",
+    "tar.availableVessels",
+  );
+  const displayVessels = useMemo(
+    () => normalizeRoster(availableVessels, bodies),
+    [availableVessels, bodies],
+  );
 
-  const targetVessel = (entry: AvailableVesselEntry) => {
+  const targetVessel = (entry: DisplayVesselEntry) => {
     setPendingTarget({
       kind: "vessel",
-      id: `vessel:${entry.index}`,
+      id: `vessel:${entry.key}`,
       expectedName: entry.name,
       since: Date.now(),
     });
-    void execute(`tar.setTargetVessel[${entry.index}]`);
+    void execute(`tar.setTargetVessel[${entry.targetArg}]`);
   };
 
   const filterText = filter.trim().toLowerCase();
@@ -215,14 +318,13 @@ function TargetPickerComponent({
   );
 
   const vesselsContent = (() => {
-    const raw = (availableVessels ?? []) as AvailableVesselEntry[];
-    const spaceObjectCount = raw.filter((v) => v.type === "SpaceObject").length;
+    const spaceObjectCount = displayVessels.filter(
+      (v) => v.type === "SpaceObject",
+    ).length;
     const filtered = showSpaceObjects
-      ? raw
-      : raw.filter((v) => v.type !== "SpaceObject");
-    const sorted = [...filtered]
-      .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
-      .sort((a, b) => a.distance - b.distance);
+      ? displayVessels
+      : displayVessels.filter((v) => v.type !== "SpaceObject");
+    const sorted = [...filtered].sort((a, b) => a.distance - b.distance);
 
     return (
       <VesselsTab>
@@ -253,12 +355,12 @@ function TargetPickerComponent({
           <Hint>No targets in range.</Hint>
         ) : (
           <BodyList>
-            {sorted.map(({ entry, distance }) => {
+            {sorted.map((entry) => {
               const isCurrent = tarName === entry.name;
-              const isPending = pendingTarget?.id === `vessel:${entry.index}`;
+              const isPending = pendingTarget?.id === `vessel:${entry.key}`;
               return (
                 <BodyRow
-                  key={entry.index}
+                  key={entry.key}
                   type="button"
                   $depth={0}
                   $current={isCurrent}
@@ -271,7 +373,9 @@ function TargetPickerComponent({
                       {entry.body ? ` · ${entry.body}` : ""}
                     </VesselType>
                   </VesselName>
-                  <VesselDistance>{formatDistance(distance)}</VesselDistance>
+                  <VesselDistance>
+                    {formatDistance(entry.distance)}
+                  </VesselDistance>
                   {isPending && <Spinner ariaLabel="Setting target" />}
                   {!isPending && isCurrent && <BodyTag>TARGET</BodyTag>}
                 </BodyRow>
@@ -331,7 +435,10 @@ function TargetPickerComponent({
   if (!showTabs) {
     return (
       <Panel>
-        <PanelTitle>TARGET</PanelTitle>
+        <CompactTitleRow>
+          <PanelTitle>TARGET</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </CompactTitleRow>
         <CompactCurrent>
           {tarName ? (
             <>
@@ -354,7 +461,10 @@ function TargetPickerComponent({
   return (
     <Panel>
       <PickerHeader>
-        <PanelTitle>TARGET PICKER</PanelTitle>
+        <PickerHeaderTitle>
+          <PanelTitle>TARGET PICKER</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </PickerHeaderTitle>
         {tarName && (
           <CurrentTargetChip
             type="button"
@@ -464,6 +574,21 @@ const PickerHeader = styled.div`
   justify-content: space-between;
   gap: 8px;
   min-height: 0;
+`;
+
+const PickerHeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const CompactTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
 `;
 
 /** Chip row that collapses to zero height when there's no encounter / apsis
@@ -742,7 +867,7 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab streams `tar.availableVessels` (Telemachus fork addition) and click-to-target by integer index. Current tab shows the active target's name / type / distance / Δv with a clear button.",
+    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab streams `tar.availableVessels` (mapped onto `system.vessels`'s roster once live) and click-to-target by index or stable vessel id. Current tab shows the active target's name / type / distance / Δv with a clear button.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },

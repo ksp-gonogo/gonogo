@@ -49,8 +49,13 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   "vessel.target",
   "vessel.crew",
   "vessel.structure",
+  // M3 R3 capture-adds (VesselViewProvider.cs's DockTopic/SurfaceTopic).
+  "vessel.dock",
+  "vessel.surface",
   "time.warp",
   "system.bodies",
+  // SystemViewProvider.cs's VesselsTopic (M3 vessel-gap batch roster add).
+  "system.vessels",
 ]);
 
 /**

@@ -234,24 +234,92 @@ describe("mapCommand", () => {
   });
 
   // ---------------------------------------------------------------------
-  // Bridge 2: index -> stable-id (the honest "can't safely bridge" outcome)
+  // Bridge 2: index -> stable-id — UN-GAPPED (M3 vessel-gap batch)
+  //
+  // The read side now round-trips a stable id (vessel.maneuver.nodes[].id
+  // and system.vessels[].vesselId, M3 R3), so ManeuverPlanner/TargetPicker
+  // resolve the real id and pass it as the FIRST positional arg — these
+  // three commands now have real homes instead of being declared gaps.
   // ---------------------------------------------------------------------
 
-  describe("index -> stable-id bridge — genuinely unresolvable, declared gaps", () => {
-    it("o.updateManeuverNode / o.removeManeuverNode never resolve — no NodeId exists to send", () => {
+  describe("index -> stable-id bridge — un-gapped now that the id round-trips", () => {
+    it("o.updateManeuverNode carries the node id as arg[0], RADIAL/NORMAL/PROGRADE for the rest", () => {
       expect(
-        mapCommand("data", "o.updateManeuverNode[0,100,1,2,3]"),
-      ).toBeUndefined();
-      expect(mapCommand("data", "o.removeManeuverNode[0]")).toBeUndefined();
+        mapCommand(
+          "data",
+          "o.updateManeuverNode[3aabdda0-9d2a-4931-8511-d9bfa4be4b4e,100,1,2,3]",
+        ),
+      ).toEqual({
+        command: "vessel.maneuver.update",
+        args: {
+          nodeId: "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e",
+          ut: 100,
+          radialOut: 1,
+          normal: 2,
+          prograde: 3,
+        },
+      });
       expect(
-        isKnownCommandGap("data", "o.updateManeuverNode[0,100,1,2,3]"),
-      ).toBe(true);
-      expect(isKnownCommandGap("data", "o.removeManeuverNode[0]")).toBe(true);
+        isKnownCommandGap(
+          "data",
+          "o.updateManeuverNode[3aabdda0-9d2a-4931-8511-d9bfa4be4b4e,100,1,2,3]",
+        ),
+      ).toBe(false);
     });
 
-    it("tar.setTargetVessel never resolves — no roster channel to resolve the index against", () => {
-      expect(mapCommand("data", "tar.setTargetVessel[2]")).toBeUndefined();
-      expect(isKnownCommandGap("data", "tar.setTargetVessel[2]")).toBe(true);
+    it("o.removeManeuverNode carries the node id as arg[0]", () => {
+      expect(
+        mapCommand(
+          "data",
+          "o.removeManeuverNode[3aabdda0-9d2a-4931-8511-d9bfa4be4b4e]",
+        ),
+      ).toEqual({
+        command: "vessel.maneuver.remove",
+        args: { nodeId: "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e" },
+      });
+      expect(
+        isKnownCommandGap(
+          "data",
+          "o.removeManeuverNode[3aabdda0-9d2a-4931-8511-d9bfa4be4b4e]",
+        ),
+      ).toBe(false);
+    });
+
+    it("a fallback positional-index id (pre-round-trip / no-stream) still resolves — the server no-ops an unknown id", () => {
+      // ManeuverPlanner's resolveNodeId falls back to String(index) when no
+      // stream id has arrived; it's still a non-empty string, so the command
+      // builds. (Accepted-risk: a stale index is a harmless server-side miss,
+      // never a crash — see map-command.ts's own doc comment.)
+      expect(mapCommand("data", "o.removeManeuverNode[0]")).toEqual({
+        command: "vessel.maneuver.remove",
+        args: { nodeId: "0" },
+      });
+    });
+
+    it("a malformed maneuver-update numeric arg falls back to legacy", () => {
+      expect(
+        mapCommand("data", "o.updateManeuverNode[some-id,100,notanumber,2,3]"),
+      ).toBeUndefined();
+    });
+
+    it("an empty node id falls back to legacy (never dispatch a blank id)", () => {
+      expect(mapCommand("data", "o.removeManeuverNode[]")).toBeUndefined();
+    });
+
+    it("tar.setTargetVessel carries the vessel id as arg[0] with kind=Vessel(0)", () => {
+      expect(
+        mapCommand("data", "tar.setTargetVessel[aaaa-1111-bbbb-2222]"),
+      ).toEqual({
+        command: "vessel.target.set",
+        args: { kind: 0, vesselId: "aaaa-1111-bbbb-2222" },
+      });
+      expect(
+        isKnownCommandGap("data", "tar.setTargetVessel[aaaa-1111-bbbb-2222]"),
+      ).toBe(false);
+    });
+
+    it("an empty tar.setTargetVessel id falls back to legacy", () => {
+      expect(mapCommand("data", "tar.setTargetVessel[]")).toBeUndefined();
     });
   });
 

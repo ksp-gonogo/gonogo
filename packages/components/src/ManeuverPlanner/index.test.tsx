@@ -171,7 +171,15 @@ describe("ManeuverPlannerComponent", () => {
       ]);
     });
 
-    const banner = screen.getByRole("status");
+    // Two role="status" live-regions now coexist: the ΔV-shortfall banner
+    // (asserted here) and the M3 title-row stream-status badge (which reads
+    // "OFFLINE" in this no-TelemetryProvider legacy test, since the mock
+    // source reports disconnected without a comm.connected emit). Scope to
+    // the shortfall banner by its text rather than the bare role.
+    const banner = screen
+      .getByText(/shortfall/i)
+      .closest('[role="status"]') as HTMLElement;
+    expect(banner).not.toBeNull();
     expect(banner.textContent).toMatch(/shortfall/i);
     expect(banner.textContent).toMatch(/short\.?$/i);
 

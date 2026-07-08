@@ -169,6 +169,46 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "t.timeWarp": "time.warp.warpRateIndex",
   "t.warpMode": "time.warp.warpMode",
   "t.isPaused": "time.warp.paused",
+
+  // --- M3 vessel-gap batch: DistanceToTarget/TargetPicker dock+roster
+  // migration. `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/
+  // `dock.ax`/`dock.ay`/`dock.az` themselves STAY in TELEMACHUS_KNOWN_GAPS
+  // below — none of the new topics carry the exact scalar/angle shape those
+  // keys imply. These are NEW widget-facing keys (no legacy equivalent —
+  // added by the migrating widgets themselves) that expose the raw Vec3
+  // fields so the widget can derive the scalar/angle client-side and merge
+  // it with the still-legacy read via a `??` fallback — the same
+  // MIXED-source-within-one-render pattern CurrentOrbit's M3 batch-2
+  // migration already established. See DistanceToTarget/index.tsx's
+  // `vecMagnitude`/`deriveDockAngles`. ---
+  "tar.relativePosition": "vessel.target.relativePosition",
+  "tar.relativeVelocityVec": "vessel.target.relativeVelocity",
+  // vessel.dock is null whenever the target isn't a docking port with a
+  // free port on the active vessel (DockAlignment's own doc comment,
+  // mod/Sitrep.Host/VesselViewProvider.cs) — undefined here means "not a
+  // docking scenario", not "not loaded yet".
+  "dock.relativePosition": "vessel.dock.relativePosition",
+  "dock.relativeVelocityVec": "vessel.dock.relativeVelocity",
+  "dock.distanceScalar": "vessel.dock.distance",
+  "dock.forwardDot": "vessel.dock.forwardDot",
+
+  // --- M3 vessel-gap batch: ManeuverPlanner node-id command bridge. NEW
+  // widget-facing key (no legacy equivalent) exposing the raw
+  // `vessel.maneuver.nodes` array purely so the widget can read each node's
+  // now-round-tripping `id` (M3 R3) and pass the real guid into the
+  // update/remove commands instead of a positional array index. The
+  // full-preview read `o.maneuverNodes` itself STAYS gapped below (shape
+  // mismatch: no deltaV tuple, no post-burn orbit preview on the wire) — see
+  // ManeuverPlanner/index.tsx's `resolveNodeId`. ---
+  "o.maneuverNodeIds": "vessel.maneuver.nodes",
+
+  // --- M3 vessel-gap batch: TargetPicker roster. NEW shape — {vessels:
+  // [{vesselId, name, vesselType, situation, bodyIndex}]}, no position/
+  // distance field (system.vessels' own doc comment,
+  // mod/Sitrep.Host/SystemViewProvider.cs) — TargetPicker normalizes both
+  // shapes into a common display type client-side; see index.tsx's
+  // `normalizeRoster`. ---
+  "tar.availableVessels": "system.vessels",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -376,9 +416,6 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // f.precisionControl's existing gap below).
   // gap: no field on the vessel.control contract yet; migrate in M3
   "v.precisionControlValue",
-
-  // --- the biggest vessel-scope gap: no roster channel yet ---
-  "tar.availableVessels",
 
   // --- land.* — no channel; terrain-touching fields need a terrain asset ---
   "land.timeToImpact",

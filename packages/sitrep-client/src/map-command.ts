@@ -46,23 +46,21 @@
  *    returns `INVALID` — the shim falls back to legacy rather than ever
  *    dispatching an ambiguous toggle as a blind set. See `toggleHome`/
  *    `actionGroupHome` below.
- * 2. **index -> stable-id.** `o.updateManeuverNode[id,...]`/
- *    `o.removeManeuverNode[id]` carry a positional array INDEX (`useManeuverNodes
- *    .ts`: "Index of this node in `o.maneuverNodes`"); the new
- *    `vessel.maneuver.update`/`.remove` commands need the opaque `NodeId`
- *    `vessel.maneuver.add`'s OWN result returns (`KspVesselActuator
- *    .AddManeuverNode`: `Guid.NewGuid().ToString()` — a random id with NO
- *    relationship to array position, tracked server-side only for nodes
- *    created through the command path). No read channel carries a per-node
- *    `nodeId` (`o.maneuverNodes`/`vessel.maneuver.nodes` are both
- *    read-side gaps — `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`), so there is
- *    no data-safe way to resolve an index to a `NodeId` client-side today.
- *    Rather than guess, these two actions are explicit `KNOWN_COMMAND_GAPS`
- *    entries — the honest outcome of actually attempting this bridge, not a
- *    skipped one. `vessel.maneuver.add` itself needs no id (it's a CREATE)
- *    and maps cleanly (bridge 3 below). `tar.setTargetVessel[index]` is the
- *    same shape of problem (a roster INDEX where `SetTargetArgs.VesselId`
- *    needs a stable opaque id) and is gapped for the identical reason — see
+ * 2. **index -> stable-id — UN-GAPPED as of the M3 vessel-gap batch.**
+ *    `o.updateManeuverNode[id,...]`/`o.removeManeuverNode[id]` used to carry
+ *    only a positional array INDEX (`useManeuverNodes.ts`: "Index of this
+ *    node in `o.maneuverNodes`"), while the new `vessel.maneuver.update`/
+ *    `.remove` commands need the opaque `NodeId` `vessel.maneuver.add`'s OWN
+ *    result returns (`KspVesselActuator.AddManeuverNode`:
+ *    `Guid.NewGuid().ToString()`). M3 R3 closed this by making
+ *    `vessel.maneuver.nodes[].id` republish that same guid on EVERY node,
+ *    not just ones created through the command path — `map-topic.ts`'s new
+ *    `o.maneuverNodeIds` key exposes it, and `ManeuverPlanner` resolves the
+ *    real id from that read before dispatching. `tar.setTargetVessel[index]`
+ *    is the identical shape of problem — `system.vessels`' roster entries
+ *    now carry a stable `vesselId` too (`SystemViewProvider
+ *    .BuildSystemVessels`), so `TargetPicker` resolves that the same way.
+ *    Both are real `TELEMACHUS_COMMAND_HOMES` entries below now, not
  *    `KNOWN_COMMAND_GAPS`.
  * 3. **positional -> named.** `f.setThrottle[v]`, `f.setSASMode[Mode]`,
  *    `tar.setTargetBody[index]`, `o.addManeuverNode[ut,radial,normal,prograde]`
@@ -344,6 +342,67 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
 
   // --- vessel.maneuver.* — add is a CREATE, needs no id (bridge 3) ---
   "o.addManeuverNode": maneuverAddHome(),
+
+  // --- M3 vessel-gap batch: bridge 2 un-gap. vessel.maneuver.nodes[].id now
+  // round-trips a stable per-node guid (M3 R3 capture-add), closing this
+  // file's own doc comment's "no read channel carries a per-node nodeId" gap.
+  // ManeuverPlanner resolves the real id via the new `o.maneuverNodeIds`
+  // mapTopic read (map-topic.ts) when available, falling back to the legacy
+  // positional array-index STRING otherwise (`String(index)`) — buildArgs
+  // below takes rawArgs[0] verbatim either way, matching
+  // `UpdateManeuverNodeArgs.NodeId`/`RemoveManeuverNodeArgs.NodeId`'s plain
+  // `string` field (the server no-ops on an unrecognized id rather than
+  // erroring, so a stale/fallback-index id is a harmless miss, not a crash —
+  // same accepted-risk class as this file's toggle bridges when a read is
+  // carried but the sibling command topic isn't yet).
+  "o.updateManeuverNode": {
+    // VesselCommandProvider.ManeuverUpdateCommand — same RADIAL, NORMAL,
+    // PROGRADE positional order as maneuverAddHome above (ManeuverPlanner's
+    // own `handleEdit` builds `[id,ut,radial,normal,prograde]`).
+    command: "vessel.maneuver.update",
+    buildArgs: (rawArgs) => {
+      const nodeId = rawArgs[0];
+      const ut = parseFiniteNumber(rawArgs[1]);
+      const radialOut = parseFiniteNumber(rawArgs[2]);
+      const normal = parseFiniteNumber(rawArgs[3]);
+      const prograde = parseFiniteNumber(rawArgs[4]);
+      if (
+        !nodeId ||
+        ut === INVALID ||
+        radialOut === INVALID ||
+        normal === INVALID ||
+        prograde === INVALID
+      ) {
+        return INVALID;
+      }
+      return { nodeId, ut, prograde, normal, radialOut };
+    },
+  },
+  "o.removeManeuverNode": {
+    // VesselCommandProvider.ManeuverRemoveCommand
+    command: "vessel.maneuver.remove",
+    buildArgs: (rawArgs) => {
+      const nodeId = rawArgs[0];
+      return nodeId ? { nodeId } : INVALID;
+    },
+  },
+
+  // --- M3 vessel-gap batch: bridge 2 un-gap. system.vessels' roster entries
+  // now carry a stable vesselId (Vessel.id guid, SystemViewProvider
+  // .BuildSystemVessels), closing this file's own "index -> stable-id" gap
+  // for target-by-vessel. TargetPicker passes that guid verbatim as
+  // rawArgs[0] when it read the roster off the NEW system.vessels shape;
+  // same fallback-to-positional-index / carried-gate reasoning as the
+  // maneuver-node bridge above when running off the legacy roster shape.
+  "tar.setTargetVessel": {
+    // VesselCommandProvider.TargetSetCommand
+    command: "vessel.target.set",
+    buildArgs: (rawArgs) => {
+      const vesselId = rawArgs[0];
+      if (!vesselId) return INVALID;
+      return { kind: 0 /* TargetKind.Vessel */, vesselId };
+    },
+  },
 };
 
 /**
@@ -357,21 +416,6 @@ export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   // f.abort: VesselControl has no Abort field anywhere on the wire (not even
   // in the ActionGroups array) — see actionGroupHome's own doc comment.
   "f.abort",
-
-  // --- index -> stable-id: genuinely unresolvable client-side (bridge 2) ---
-  // o.updateManeuverNode / o.removeManeuverNode: legacy carries only a
-  // positional array index; the new commands need the opaque NodeId
-  // vessel.maneuver.add's OWN result returns (a random Guid, unrelated to
-  // array position) and no read channel republishes it per-node. See the
-  // file doc comment's bridge 2 for the full analysis.
-  "o.updateManeuverNode",
-  "o.removeManeuverNode",
-  // tar.setTargetVessel: same shape of problem — SetTargetArgs.VesselId
-  // needs a stable opaque id; the legacy action carries only a live roster
-  // INDEX, and tar.availableVessels (the only roster source) is itself a
-  // read-side gap (map-topic.ts: "the biggest vessel-scope gap: no roster
-  // channel yet") — nothing to resolve the index against.
-  "tar.setTargetVessel",
 
   // --- no discrete command exists for a continuous raw control axis ---
   // v.setPitch/setYaw/setRoll/setTranslation: the M1 vessel.control.*

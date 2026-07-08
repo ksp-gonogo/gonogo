@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -47,11 +47,33 @@ interface ParsedFrame {
 }
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
-const fixturePath = path.join(
+const recordingsDir = path.join(
   currentDir,
-  "../../../local_docs/telemetry-mod/recordings/reference-wire-fixture.json",
+  "../../../local_docs/telemetry-mod/recordings",
 );
+const fixturePath = path.join(recordingsDir, "reference-wire-fixture.json");
 const fixtureExists = existsSync(fixturePath);
+
+/**
+ * All per-domain reference wire fixtures (`reference-wire-fixture*.json`) —
+ * the base 15-channel one plus the per-domain captures
+ * (`-dock`/`-maneuver`/`-comms`/`-career`, M3 fixture-family additions,
+ * `WireFixtureGeneratorTests.cs`). A raw-field target's channel may only be
+ * captured in a per-domain fixture (e.g. `vessel.dock.*` lives ONLY in
+ * `reference-wire-fixture-dock.json`, since `vessel.dock` is null in the base
+ * capture's non-docking flight); merging their sample payloads lets this test
+ * validate every CLEAN_HOMES raw-field entry against SOME real captured
+ * payload, wherever it was recorded.
+ */
+function listWireFixturePaths(): string[] {
+  if (!existsSync(recordingsDir)) return [];
+  return readdirSync(recordingsDir)
+    .filter(
+      (name) =>
+        name.startsWith("reference-wire-fixture") && name.endsWith(".json"),
+    )
+    .map((name) => path.join(recordingsDir, name));
+}
 
 /** Derived-channel roots (`vessel.state.*`) are out of this raw-field convention's scope — mirrors `map-topic.rawFieldRoots.coverage.test.ts`'s own carve-out. */
 const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set(["vessel.state"]);
@@ -86,24 +108,27 @@ describe.skipIf(!fixtureExists)(
       return;
     }
 
-    const fixture: WireFixture = JSON.parse(readFileSync(fixturePath, "utf-8"));
-
-    // One representative non-null payload per raw topic — the first one
-    // seen in fixture (arrival) order is enough; this test only cares
-    // whether the FIELD PATH exists on a genuine record shape, not about
-    // any particular value.
+    // One representative non-null payload per raw topic, merged across every
+    // per-domain fixture (the first one seen in arrival order per topic is
+    // enough; this test only cares whether the FIELD PATH exists on a genuine
+    // record shape, not about any particular value).
     const samplePayloadByTopic = new Map<string, Record<string, unknown>>();
-    for (const raw of fixture.frames) {
-      const frame = JSON.parse(raw) as ParsedFrame;
-      if (frame.type !== "stream-data" || !frame.topic) continue;
-      if (samplePayloadByTopic.has(frame.topic)) continue;
-      if (frame.payload === null || typeof frame.payload !== "object") {
-        continue; // tombstone/absent — not a shape sample
-      }
-      samplePayloadByTopic.set(
-        frame.topic,
-        frame.payload as Record<string, unknown>,
+    for (const fixtureFile of listWireFixturePaths()) {
+      const fixture: WireFixture = JSON.parse(
+        readFileSync(fixtureFile, "utf-8"),
       );
+      for (const raw of fixture.frames) {
+        const frame = JSON.parse(raw) as ParsedFrame;
+        if (frame.type !== "stream-data" || !frame.topic) continue;
+        if (samplePayloadByTopic.has(frame.topic)) continue;
+        if (frame.payload === null || typeof frame.payload !== "object") {
+          continue; // tombstone/absent — not a shape sample
+        }
+        samplePayloadByTopic.set(
+          frame.topic,
+          frame.payload as Record<string, unknown>,
+        );
+      }
     }
 
     const rawFieldEntries = Object.entries(TELEMACHUS_CLEAN_HOMES).filter(

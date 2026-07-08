@@ -114,11 +114,29 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   });
 
   it("returns undefined for known gaps (no silent identity fallback)", () => {
-    expect(mapTopic("data", "tar.availableVessels")).toBeUndefined();
+    // (tar.availableVessels was un-gapped in the M3 vessel-gap batch — it now
+    // maps to system.vessels; see the roster mapping test below.)
+    expect(mapTopic("data", "land.speedAtImpact")).toBeUndefined();
     expect(mapTopic("data", "land.timeToImpact")).toBeUndefined();
     expect(mapTopic("data", "career.funds")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "tar.availableVessels")).toBe(true);
+    expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(true);
     expect(isKnownTelemachusGap("data", "career.funds")).toBe(true);
+  });
+
+  it("maps the M3 vessel-gap batch's newly-added roster / dock / node-id keys", () => {
+    // tar.availableVessels roster -> system.vessels (2-segment whole topic).
+    expect(mapTopic("data", "tar.availableVessels")).toBe("system.vessels");
+    expect(isKnownTelemachusGap("data", "tar.availableVessels")).toBe(false);
+    // The raw Vec3 reads DistanceToTarget derives its scalars/angles from.
+    expect(mapTopic("data", "tar.relativePosition")).toBe(
+      "vessel.target.relativePosition",
+    );
+    expect(mapTopic("data", "dock.relativePosition")).toBe(
+      "vessel.dock.relativePosition",
+    );
+    expect(mapTopic("data", "dock.forwardDot")).toBe("vessel.dock.forwardDot");
+    // ManeuverPlanner's node-id read for the update/remove command bridge.
+    expect(mapTopic("data", "o.maneuverNodeIds")).toBe("vessel.maneuver.nodes");
   });
 
   it("treats stage-scoped resource keys and derived per-body rotation as gaps, not clean homes", () => {
