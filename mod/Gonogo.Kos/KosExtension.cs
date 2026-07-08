@@ -11,6 +11,8 @@ using Sitrep.Contract;
 using kOS.Module;
 using kOS.Safe.Screen;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Gonogo.Kos.Tests")]
+
 namespace Gonogo.Kos
 {
     /// <summary>
@@ -47,6 +49,25 @@ namespace Gonogo.Kos
         private IDynamicChannelSource? _computeSource;
         private IChannelPublisher? _processorsPublisher;
 
+        // Subscription short-circuit for OnPrint (adversarial-review I1): true
+        // iff at least one kos.compute.* topic currently has a subscriber. Wired
+        // to the host's subscription mirror in Register; null (→ treated as "no
+        // gate") only in headless tests that don't call Register.
+        private Func<bool>? _computeSubscribed;
+
+        // Reverse-map from a ScreenBuffer to the owning CPU's KOSCoreId,
+        // resolved ONLY when a [KOSDATA] block completes (never per fragment).
+        // Injectable so headless tests can count invocations and avoid the live
+        // kOSProcessor.AllInstances() call; defaults to the real reverse-map.
+        internal Func<object, int> CoreIdResolver { get; set; } = ResolveCoreId;
+
+        // Error sink for the command main-thread path. Kept as a delegate (not a
+        // direct UnityEngine.Debug call inside the dispatched lambda) so that
+        // lambda body carries NO UnityEngine type reference and therefore JITs
+        // in a headless test runtime — Debug.LogError is resolved lazily, only
+        // if actually invoked. Defaults to Debug.LogError in production.
+        private readonly Action<string> _logError;
+
         public MainThreadDispatcher Dispatcher { get; }
 
         public KosExtension() : this(null, null)
@@ -58,7 +79,13 @@ namespace Gonogo.Kos
             Dispatcher = dispatcher ?? new MainThreadDispatcher(
                 ex => Debug.LogError("[Gonogo.Kos] dispatched action threw: " + ex));
             _bindDispatcherAddon = bindDispatcherAddon ?? BindRealAddon;
+            _logError = LogErrorToUnity;
         }
+
+        // Named static helper (not an inline lambda) so ONLY this method's body
+        // references UnityEngine — a headless test that never invokes it never
+        // needs UnityEngine loaded.
+        private static void LogErrorToUnity(string message) => Debug.LogError(message);
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -133,6 +160,14 @@ namespace Gonogo.Kos
                     Delay = DelayRole.Delayed,
                 });
 
+            // Subscription short-circuit source for OnPrint: every kerboscript
+            // PRINT flows through the postfix, but if nobody is subscribed under
+            // kos.compute.* the whole capture (resolve + accumulate + publish)
+            // must be skipped so a terminal-only session burns no GC on the main
+            // thread (adversarial-review I1). Reads the engine's thread-safe
+            // subscribed-topics mirror.
+            _computeSubscribed = () => host.IsAnyTopicSubscribed(KosChannels.ComputePrefix);
+
             if (guard.ComputePostfixAvailable)
             {
                 KosComputeHarmony.Sink = OnPrint;
@@ -154,6 +189,19 @@ namespace Gonogo.Kos
             host.AddCommandHandler<KosExecArgs, CommandResult>(KosChannels.ExecCommand, Exec);
             host.AddCommandHandler<KosExecArgs, CommandResult>(KosChannels.DispatchNowCommand, Exec);
             host.AddCommandHandler<KosReEnableArgs, CommandResult>(KosChannels.ReEnableCommand, ReEnable);
+        }
+
+        /// <summary>
+        /// Test-only: wire the compute publish target and the subscription gate
+        /// directly, bypassing <see cref="Register"/> (which needs a live
+        /// kOS/Unity process for the version guard + Harmony install). Pair with
+        /// <see cref="CoreIdResolver"/> to exercise <see cref="OnPrint"/>
+        /// headlessly.
+        /// </summary>
+        internal void WireComputeForTests(IDynamicChannelSource computeSource, Func<bool>? computeSubscribed)
+        {
+            _computeSource = computeSource;
+            _computeSubscribed = computeSubscribed;
         }
 
         // ----------------------------------------------------------------
@@ -197,27 +245,52 @@ namespace Gonogo.Kos
 
         /// <summary>
         /// The <see cref="KosComputeHarmony.Sink"/> — runs on the KSP main
-        /// thread synchronously inside kOS's <c>PRINT</c>. Reverse-resolves the
-        /// emitting CPU (spec §4.2), accumulates the fragment, and publishes
-        /// every completed <c>[KOSDATA]</c> block's fields to
-        /// <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c>. Must be cheap and
-        /// non-blocking (it is inside PRINT).
+        /// thread synchronously inside kOS's <c>PRINT</c>, on EVERY kerboscript
+        /// <c>PRINT</c> fragment, so it must be as close to free as possible on
+        /// the common path. It:
+        /// <list type="number">
+        /// <item>short-circuits immediately when no <c>kos.compute.*</c>
+        /// subscriber exists (adversarial-review I1) — no accumulation, no CPU
+        /// reverse-map, no allocation;</item>
+        /// <item>otherwise accumulates the fragment keyed by the
+        /// <c>ScreenBuffer</c> reference already in hand (NOT by a resolved CPU
+        /// id — so <c>kOSProcessor.AllInstances()</c> is never walked per
+        /// fragment);</item>
+        /// <item>resolves the owning CPU's <c>KOSCoreId</c> exactly ONCE, only
+        /// when at least one <c>[KOSDATA]</c> block has completed and is about
+        /// to publish (spec §4.2), stamps it onto the completed blocks, and
+        /// publishes each field to <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c>.</item>
+        /// </list>
+        /// Must be cheap and non-blocking (it is inside PRINT).
         /// </summary>
-        private void OnPrint(object screen, string text)
+        internal void OnPrint(object screen, string text)
         {
-            if (_computeSource == null || string.IsNullOrEmpty(text))
+            if (_computeSource == null || screen == null || string.IsNullOrEmpty(text))
             {
                 return;
             }
 
-            int coreId = ResolveCoreId(screen);
-            if (coreId < 0)
+            // I1: burn nothing while no client is looking. Every terminal PRINT
+            // hits this; without the gate even a zero-subscriber session would
+            // accumulate + reverse-map on the main thread.
+            if (_computeSubscribed != null && !_computeSubscribed())
             {
                 return;
             }
 
-            foreach (var block in _accumulator.Append(coreId, text))
+            var blocks = _accumulator.Append(screen, text);
+            if (blocks.Count == 0)
             {
+                // Common case for a fragment that only extends an open block (or
+                // ordinary terminal output): no CPU lookup, no publish.
+                return;
+            }
+
+            // A block completed — NOW resolve the emitting CPU once (spec §4.2).
+            int coreId = CoreIdResolver(screen);
+            foreach (var block in blocks)
+            {
+                block.CoreId = coreId;
                 foreach (var kv in block.Fields)
                 {
                     var sub = KosChannels.ComputeFieldSubTopic(block.Topic, kv.Key);
@@ -231,7 +304,9 @@ namespace Gonogo.Kos
         /// the owning CPU's <c>KOSCoreId</c> (spec §4.2:
         /// <c>AllInstances().First(p =&gt; p.GetScreen() == __instance)</c>).
         /// Returns -1 when no CPU owns the screen (should not happen for a
-        /// script PRINT, but fail-soft).
+        /// script PRINT, but fail-soft). Called ONLY on block completion — never
+        /// per <c>PRINT</c> fragment — so its <c>AllInstances()</c> allocation
+        /// is off the hot path.
         /// </summary>
         private static int ResolveCoreId(object screen)
         {
@@ -249,8 +324,8 @@ namespace Gonogo.Kos
         // Commands — dispatched on the Courier thread, marshalled to main
         // ----------------------------------------------------------------
 
-        /// <summary>Bounded wait for a main-thread kOS call to complete before the Courier gives up (F2 backstop analogue).</summary>
-        private static readonly TimeSpan CommandMainThreadTimeout = TimeSpan.FromSeconds(5);
+        /// <summary>Bounded wait for a main-thread kOS call to complete before the Courier gives up (F2 backstop analogue). Instance field so headless tests can shorten it.</summary>
+        internal TimeSpan CommandMainThreadTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
         private CommandResult Exec(KosExecArgs args)
         {
@@ -324,33 +399,91 @@ namespace Gonogo.Kos
         /// <see cref="CommandErrorCode.Timeout"/>). Any exception from
         /// <paramref name="work"/> becomes a typed <c>Unknown</c> failure — a
         /// command must always return a structured result, never throw.
+        ///
+        /// <para><b>Timeout is drop-not-run</b> (adversarial-review M1, mirroring
+        /// the engine's F2/F3 fix): the naive <c>using var done</c> form had two
+        /// faults when the dispatcher drained the action AFTER the 5s wait
+        /// expired — (1) the deferred action's <c>Set()</c> hit an already-
+        /// disposed handle (a spurious <see cref="ObjectDisposedException"/>),
+        /// and (2) the kOS <c>RUNPATH</c> mutation STILL executed, seconds after
+        /// the client was told <see cref="CommandErrorCode.Timeout"/> — so a
+        /// client retry double-fired the script. Here the waiter marks the job
+        /// <see cref="MainThreadJob.Abandoned"/> on timeout and does NOT dispose
+        /// the handle; the dispatcher then DROPS an abandoned job (never runs
+        /// <paramref name="work"/>) and disposes the handle itself. Exactly one
+        /// side disposes, and no <c>Set()</c> ever lands on a disposed handle.</para>
         /// </summary>
-        private CommandResult RunOnMainThread(Func<CommandResult> work)
+        internal CommandResult RunOnMainThread(Func<CommandResult> work)
         {
-            CommandResult? result = null;
-            using var done = new ManualResetEventSlim(false);
+            var job = new MainThreadJob();
             Dispatcher.Dispatch(() =>
             {
+                // Drop if the waiter already timed out: running the kOS mutation
+                // now would fire RUNPATH after the client got Timeout (M1). The
+                // waiter left disposal of the handle to us on that path.
+                if (job.Abandoned)
+                {
+                    job.Done.Dispose();
+                    return;
+                }
+
                 try
                 {
-                    result = work();
+                    job.Result = work();
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError("[Gonogo.Kos] command main-thread work threw: " + ex);
-                    result = CommandResult.Fail(CommandErrorCode.Unknown);
+                    _logError("[Gonogo.Kos] command main-thread work threw: " + ex);
+                    job.Result = CommandResult.Fail(CommandErrorCode.Unknown);
                 }
                 finally
                 {
-                    done.Set();
+                    job.Done.Set();
+                    // If the waiter abandoned this job WHILE work ran (flag flipped
+                    // after the top-of-action check), nobody will observe the
+                    // result or dispose the handle — so this side owns disposal.
+                    if (job.Abandoned)
+                    {
+                        job.Done.Dispose();
+                    }
                 }
             });
 
-            if (!done.Wait(CommandMainThreadTimeout))
+            if (!job.Done.Wait(CommandMainThreadTimeout))
             {
+                // Do NOT dispose here — the dispatcher may still dequeue this job
+                // and would Set()/Dispose() it; a Set() on a disposed handle
+                // throws. The abandoned flag routes both the drop and the
+                // disposal to whichever side drains the job.
+                job.Abandoned = true;
                 return CommandResult.Fail(CommandErrorCode.Timeout);
             }
-            return result ?? CommandResult.Fail(CommandErrorCode.Unknown);
+
+            try
+            {
+                return job.Result ?? CommandResult.Fail(CommandErrorCode.Unknown);
+            }
+            finally
+            {
+                // Completed path: the dispatcher's Set() has already returned and
+                // the action left Abandoned false, so nothing else touches Done.
+                job.Done.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// One <see cref="RunOnMainThread"/> marshaled call. Mirrors the engine's
+        /// <c>MainThreadCommand</c>: the <see cref="Abandoned"/> flag (set by the
+        /// waiter on timeout) is the sole signal that routes both "drop the work"
+        /// and "who disposes <see cref="Done"/>" between the waiter and the
+        /// dispatcher, so the handle is disposed exactly once and never
+        /// <c>Set()</c>-after-dispose.
+        /// </summary>
+        private sealed class MainThreadJob
+        {
+            public readonly ManualResetEventSlim Done = new ManualResetEventSlim(false);
+            public volatile bool Abandoned;
+            public CommandResult? Result;
         }
 
         private static void BindRealAddon(MainThreadDispatcher dispatcher)

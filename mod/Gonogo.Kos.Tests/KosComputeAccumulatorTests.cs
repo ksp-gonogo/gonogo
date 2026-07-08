@@ -20,7 +20,10 @@ namespace Gonogo.Kos.Tests
             var blocks = acc.Append(7, "[KOSDATA:t]v=1[/KOSDATA]").ToList();
 
             var block = Assert.Single(blocks);
-            Assert.Equal(7, block.CoreId);
+            // CoreId is no longer known to the accumulator (keyed by screen ref,
+            // not CPU id) — it is stamped by OnPrint on completion, so it stays
+            // at the -1 sentinel here.
+            Assert.Equal(-1, block.CoreId);
             Assert.Equal("t", block.Topic);
             Assert.Equal(1.0, block.Fields["v"]);
         }
@@ -40,20 +43,23 @@ namespace Gonogo.Kos.Tests
         }
 
         [Fact]
-        public void Append_DifferentCpus_AreIsolated()
+        public void Append_DifferentScreens_AreIsolated()
         {
             var acc = new KosComputeAccumulator();
 
-            Assert.Empty(acc.Append(1, "[KOSDATA:a]x=1"));
-            Assert.Empty(acc.Append(2, "[KOSDATA:b]y=2"));
+            // Distinct screen keys (here plain ints as opaque stand-ins for two
+            // different ScreenBuffer references) buffer independently.
+            var screenA = new object();
+            var screenB = new object();
 
-            var one = acc.Append(1, "[/KOSDATA]").ToList();
-            var two = acc.Append(2, "[/KOSDATA]").ToList();
+            Assert.Empty(acc.Append(screenA, "[KOSDATA:a]x=1"));
+            Assert.Empty(acc.Append(screenB, "[KOSDATA:b]y=2"));
 
-            Assert.Equal(1, Assert.Single(one).CoreId);
-            Assert.Equal("a", one[0].Topic);
-            Assert.Equal(2, Assert.Single(two).CoreId);
-            Assert.Equal("b", two[0].Topic);
+            var one = acc.Append(screenA, "[/KOSDATA]").ToList();
+            var two = acc.Append(screenB, "[/KOSDATA]").ToList();
+
+            Assert.Equal("a", Assert.Single(one).Topic);
+            Assert.Equal("b", Assert.Single(two).Topic);
         }
 
         [Fact]

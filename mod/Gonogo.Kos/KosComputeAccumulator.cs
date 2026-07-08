@@ -14,13 +14,22 @@ namespace Gonogo.Kos
     /// </summary>
     public sealed class KosComputeBlock
     {
-        public int CoreId { get; }
+        /// <summary>
+        /// The emitting CPU's <c>KOSCoreId</c> (spec §4.2). The accumulator
+        /// itself no longer knows this — it keys buffers by the
+        /// <c>ScreenBuffer</c> reference, not the resolved CPU id, so no
+        /// <c>AllInstances()</c> reverse-map runs per <c>PRINT</c> fragment
+        /// (adversarial-review I1). The owning CPU is resolved ONCE and stamped
+        /// here by <c>KosExtension.OnPrint</c> at the moment the block completes
+        /// and is about to publish. <c>-1</c> until stamped.
+        /// </summary>
+        public int CoreId { get; internal set; } = -1;
+
         public string Topic { get; }
         public IReadOnlyDictionary<string, object> Fields { get; }
 
-        public KosComputeBlock(int coreId, string topic, IReadOnlyDictionary<string, object> fields)
+        public KosComputeBlock(string topic, IReadOnlyDictionary<string, object> fields)
         {
-            CoreId = coreId;
             Topic = topic;
             Fields = fields;
         }
@@ -46,13 +55,21 @@ namespace Gonogo.Kos
     /// <para>NOT thread-safe by itself — every call happens inside the
     /// <c>ScreenBuffer.Print</c> postfix, i.e. already on the KSP main thread
     /// (spec §2). The dispatcher/pump boundary is elsewhere.</para>
+    ///
+    /// <para>Buffers are keyed by the <b>emitting screen reference</b> (the
+    /// postfix's <c>ScreenBuffer __instance</c>), NOT the CPU's
+    /// <c>KOSCoreId</c>. Keying by the object already in hand means no
+    /// <c>kOSProcessor.AllInstances()</c> reverse-map runs per <c>PRINT</c>
+    /// fragment (adversarial-review I1) — the CPU id is resolved once, later,
+    /// only when a block completes. In tests the key can be any stable object
+    /// (an <c>int</c>, a sentinel) — it is used purely as a dictionary key.</para>
     /// </summary>
     public sealed class KosComputeAccumulator
     {
-        /// <summary>Per-CPU buffer hard cap — a block that never closes can't grow the buffer past this.</summary>
+        /// <summary>Per-screen buffer hard cap — a block that never closes can't grow the buffer past this.</summary>
         public const int MaxBufferChars = 64 * 1024;
 
-        private readonly Dictionary<int, StringBuilder> _buffers = new Dictionary<int, StringBuilder>();
+        private readonly Dictionary<object, StringBuilder> _buffers = new Dictionary<object, StringBuilder>();
 
         // Matches ONE complete block and captures the index just past its
         // close, so we can drop everything up to and including the last
@@ -69,18 +86,18 @@ namespace Gonogo.Kos
         /// buffer; any trailing partial (an opened-but-unclosed block) is
         /// retained for the next fragment.
         /// </summary>
-        public IReadOnlyList<KosComputeBlock> Append(int coreId, string text)
+        public IReadOnlyList<KosComputeBlock> Append(object screen, string text)
         {
             var blocks = new List<KosComputeBlock>();
-            if (string.IsNullOrEmpty(text))
+            if (screen == null || string.IsNullOrEmpty(text))
             {
                 return blocks;
             }
 
-            if (!_buffers.TryGetValue(coreId, out var buffer))
+            if (!_buffers.TryGetValue(screen, out var buffer))
             {
                 buffer = new StringBuilder();
-                _buffers[coreId] = buffer;
+                _buffers[screen] = buffer;
             }
 
             buffer.Append(KosDataParser.StripAnsi(text));
@@ -91,7 +108,7 @@ namespace Gonogo.Kos
             {
                 var topic = m.Groups[1].Success ? m.Groups[1].Value : KosDataParser.DefaultTopic;
                 var fields = KosDataParser.ParseBody(m.Groups[2].Value);
-                blocks.Add(new KosComputeBlock(coreId, topic, fields));
+                blocks.Add(new KosComputeBlock(topic, fields));
                 lastEnd = m.Index + m.Length;
             }
 
@@ -110,8 +127,8 @@ namespace Gonogo.Kos
             return blocks;
         }
 
-        /// <summary>Discards the buffer for a CPU that has left (unload / scene change) — call from the main thread.</summary>
-        public void Forget(int coreId) => _buffers.Remove(coreId);
+        /// <summary>Discards the buffer for a screen that has left (unload / scene change) — call from the main thread.</summary>
+        public void Forget(object screen) => _buffers.Remove(screen);
 
         /// <summary>Discards every buffer.</summary>
         public void Clear() => _buffers.Clear();

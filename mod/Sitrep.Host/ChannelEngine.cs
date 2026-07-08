@@ -1021,6 +1021,30 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// <see cref="IUplinkHost.IsAnyTopicSubscribed"/> — the public,
+        /// single-prefix form of <see cref="AnyTopicPrefixSubscribed"/>. Reads
+        /// only the thread-safe <see cref="_subscribedTopics"/> mirror, so it is
+        /// callable from any thread (the kOS Uplink calls it from the KSP main
+        /// thread, inside kOS's <c>PRINT</c>).
+        /// </summary>
+        public bool IsAnyTopicSubscribed(string topicPrefix)
+        {
+            if (string.IsNullOrEmpty(topicPrefix))
+            {
+                return false;
+            }
+
+            foreach (var topic in _subscribedTopics.Keys)
+            {
+                if (topic.StartsWith(topicPrefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Push a payload directly to <paramref name="topic"/> (obtained via
         /// <see cref="Publisher"/>) — the event-driven counterpart to
         /// <see cref="Tick"/>'s pull-style mapping. Goes through the SAME

@@ -37,7 +37,20 @@ namespace Gonogo.Kos
         /// <summary>Sub-topic (relative to <see cref="ComputePrefix"/>) for one compute field: <c>"&lt;id&gt;.&lt;field&gt;"</c>.</summary>
         public static string ComputeFieldSubTopic(string scriptId, string field) => scriptId + "." + field;
 
-        /// <summary>Sub-topic (relative to <see cref="ComputePrefix"/>) for one compute feed's status: <c>"&lt;id&gt;.status"</c>.</summary>
+        /// <summary>
+        /// Sub-topic (relative to <see cref="ComputePrefix"/>) for one compute
+        /// feed's status: <c>"&lt;id&gt;.status"</c>.
+        ///
+        /// <para><b>P1 has no producer for this sub-topic.</b> The status channel
+        /// (<c>KosComputeStatus</c> — running / lastGoodAt / scriptError /
+        /// parseError / paused) is only fed once the mod-side per-topic breaker
+        /// lands in P2 (see <see cref="ReEnableCommand"/>'s P1-no-op note and the
+        /// spec §4.4 breaker). Until then the client's <c>useKosScriptStatus</c>
+        /// receives nothing on this topic — the additive contract type + the
+        /// topic convention ship now (so the wire shape is fixed and the client
+        /// can migrate), the producer follows in P2. This is a deliberate,
+        /// disclosed gap, not a wiring omission.</para>
+        /// </summary>
         public static string ComputeStatusSubTopic(string scriptId) => scriptId + ".status";
     }
 }
