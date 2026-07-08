@@ -522,6 +522,40 @@ namespace Sitrep.Host
 
         public Kernel Kernel => _kernel;
 
+        /// <summary>
+        /// Drives the capability <see cref="Kernel"/> once every uplink has
+        /// registered (its capabilities/providers wired during
+        /// <see cref="RegisterUplink"/>) and BEFORE <see cref="Start"/> — so a
+        /// channel-source closure that resolves an elected provider via
+        /// <c>Kernel.Query</c> at Tick time (the comms backend election, see
+        /// <c>Sitrep.Host.Comms.CommsElection</c>) sees a resolved kernel by
+        /// the first tick. Separate from <see cref="Start"/> so a headless test
+        /// can register, resolve, and inspect the election without standing up
+        /// the Courier thread/listener.
+        ///
+        /// <para>Fail-soft: a throwing <see cref="Kernel.Resolve"/> (an
+        /// ambiguous/cyclic capability graph) is caught and logged rather than
+        /// aborting engine startup — a mis-declared capability must not take
+        /// down the whole telemetry spine. The bundled comms wiring cannot
+        /// produce such a graph, but a future third-party capability provider
+        /// might.</para>
+        /// </summary>
+        public ResolveResult ResolveCapabilities()
+        {
+            try
+            {
+                return _kernel.Resolve(new ResolveOptions
+                {
+                    KernelVersion = Sitrep.Contract.ContractVersion.Major + "." + Sitrep.Contract.ContractVersion.Minor + ".0",
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[ChannelEngine] capability resolution threw: " + SafeExceptionMessage(ex));
+                return new ResolveResult();
+            }
+        }
+
         public void SetAvailability(Availability availability)
         {
             if (_currentRegisteringUplinkId != null)

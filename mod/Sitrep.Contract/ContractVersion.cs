@@ -72,7 +72,22 @@ namespace Sitrep.Contract
         /// scene-load backstop failure code). A new enum member cannot break an
         /// Uplink built against an older Minor — see
         /// <c>.superpowers/sdd/f2-fix-brief.md</c>.</para>
+        ///
+        /// <para>Bumped 1 -&gt; 2: additive-only Minor adding the comms.* wire
+        /// contract (U2 — comms trio): the <see cref="CommsConnectivity"/>/
+        /// <see cref="CommsSignalStrength"/>/<see cref="CommsControlState"/>/
+        /// <see cref="CommsPath"/>/<see cref="CommsHop"/>/<see cref="CommsNetwork"/>
+        /// (+ node/edge)/<see cref="CommsDelay"/>/<see cref="CommsLinkQuality"/>/
+        /// <see cref="CommsDataRate"/>/<see cref="CommsLinkMargin"/> payloads and
+        /// their enums (<see cref="CommsControlSource"/>/
+        /// <see cref="CommsControlStateKind"/>/<see cref="CommsHopKind"/>/
+        /// <see cref="CommsDelaySource"/>). All brand-new types — additive, so it
+        /// cannot break an Uplink built against an older Minor. The
+        /// <see cref="ICommsBackend"/> capability seam is NOT a wire type (no
+        /// <see cref="SitrepContractAttribute"/>) — it is the pure Kernel-elected
+        /// object, so it never appears in the shape baseline. See
+        /// <c>local_docs/telemetry-mod/comms-uplink-design.md</c>.</para>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }
