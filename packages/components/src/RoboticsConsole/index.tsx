@@ -28,11 +28,19 @@ import styled from "styled-components";
  *
  * M3 science/parts batch: the identity list (partId-keyed selection +
  * commands) stays entirely on `robotics.servos` — `parts.robotics`
- * (map-topic.ts) carries the same live hinge readouts but no stable id (see
- * map-topic.ts's TELEMACHUS_KNOWN_GAPS entry for `robotics.servos`).
- * `useStreamServoEntry` below merges the live numeric fields onto the
- * selected legacy servo BY NAME when a matching `parts.robotics` entry is
- * carried, same mixed-source pattern as DistanceToTarget's Vec3 merges.
+ * (map-topic.ts) carries the same live hinge readouts. `mergeServo` below
+ * merges the live numeric fields onto the selected legacy servo, chosen by
+ * `selectLiveServoEntry`.
+ *
+ * M3 whole-branch review #1: `parts.robotics` originally carried no stable
+ * id, so the join was BY NAME — a `.find`, first-match-wins. Symmetric
+ * arms/legs are commonly N identically-named parts, so a name join could
+ * silently attribute a DIFFERENT joint's live reading to the selected one.
+ * `selectLiveServoEntry` now prefers a stable `partId` join when the wire
+ * carries one, and — since the wire may still lag that capture change —
+ * falls back to a name join ONLY when the name is unique among the
+ * streamed (non-rotor) entries; an ambiguous name refuses to merge at all
+ * (staying on the correct legacy value beats a confidently-wrong one).
  */
 
 type RoboticsConsoleConfig = Record<string, never>;
@@ -91,11 +99,17 @@ export function parseServos(raw: unknown): ServoInfo[] | null {
 /**
  * `parts.robotics` entry shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a
  * raw array of BOTH hinges and rotors; RoboticsConsole only ever merges
- * `type !== "rotor"` entries (rotors are Rotor Tachometer's domain). No
- * `partId`/stable id field exists — correlation with the legacy
- * `robotics.servos` list is by `partName` only.
+ * `type !== "rotor"` entries (rotors are Rotor Tachometer's domain).
+ * `partId` is `Part.flightID` STRINGIFIED (`Gonogo.KSP.KspHost`'s `partId =
+ * part.flightID != 0 ? part.flightID.ToString() : null`) — a STRING, unlike
+ * the legacy `robotics.servos` list's numeric `ServoInfo.partId` (the same
+ * underlying flightID, just carried as a JS number there). Nullable/absent
+ * on an older wire snapshot recorded before the stable-id capture change, or
+ * when flightID read as the uninitialized 0 sentinel — `selectLiveServoEntry`
+ * below handles both, comparing via `String(selected.partId)`.
  */
 interface StreamServoEntry {
+  partId?: string | null;
   partName: string;
   type: string;
   servoIsLocked: boolean | null;
@@ -104,6 +118,32 @@ interface StreamServoEntry {
   servoMotorLimit: number | null;
   currentAngle: number | null;
   targetAngle: number | null;
+}
+
+/**
+ * Picks the `parts.robotics` entry (if any) that live-updates `selected`.
+ * See the module doc comment / M3 whole-branch review #1: prefer a stable
+ * `partId` join (string-vs-number coerced — same underlying flightID, see
+ * `StreamServoEntry`'s doc comment); only fall back to a name join when the
+ * name is unique among the streamed (non-rotor) entries, and refuse to
+ * merge at all when it's ambiguous — never let `.find`'s first-match-wins
+ * attribute a sibling joint's reading to the selected one.
+ */
+export function selectLiveServoEntry(
+  entries: StreamServoEntry[] | undefined,
+  selected: ServoInfo,
+): StreamServoEntry | undefined {
+  if (!entries) return undefined;
+  const servoEntries = entries.filter((e) => e.type !== "rotor");
+
+  const selectedId = String(selected.partId);
+  const idMatches = servoEntries.filter(
+    (e) => typeof e.partId === "string" && e.partId === selectedId,
+  );
+  if (idMatches.length > 0) return idMatches[0];
+
+  const nameMatches = servoEntries.filter((e) => e.partName === selected.name);
+  return nameMatches.length === 1 ? nameMatches[0] : undefined;
 }
 
 /** Merges live `parts.robotics` numeric/boolean fields onto a legacy
@@ -183,9 +223,7 @@ function RoboticsConsoleComponent(
   const rawSelected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
   const liveEntry = rawSelected
-    ? streamServos?.find(
-        (e) => e.type !== "rotor" && e.partName === rawSelected.name,
-      )
+    ? selectLiveServoEntry(streamServos, rawSelected)
     : undefined;
   const selected = rawSelected ? mergeServo(rawSelected, liveEntry) : null;
 

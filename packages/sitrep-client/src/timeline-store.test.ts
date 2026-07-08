@@ -619,6 +619,100 @@ describe("TimelineStore.isUnresolvableField — phantom-field diagnostic (M2 bri
   });
 });
 
+describe("TimelineStore.isUnresolvableField — RAW-FIELD phantom-mapping diagnostic (M3 whole-branch review #2)", () => {
+  /**
+   * Before this fix, `isUnresolvableField` only guarded DERIVED-channel
+   * parents (`this.derivedChannels.has(parentTopic)` — see the describe
+   * block above). A raw record field-subtopic (e.g.
+   * `"vessel.resources.resources.<name>.current"` — `resolveRawFieldSubtopic`)
+   * fell straight through that guard and always returned `false`, even once
+   * its RAW parent had arrived whole and genuinely lacked the field — so a
+   * wrong/drifted raw fieldpath served a permanent `undefined` with no
+   * legacy fallback (`useDataValue.ts`'s belt-and-suspenders check never
+   * fired for it). This mirrors the derived-channel behavior for the raw
+   * case: `false` while the parent hasn't arrived (ordinary loading) or is
+   * tombstoned (confirmed absence), `true` only once the parent is a whole,
+   * live record that genuinely doesn't have the field.
+   */
+  function rawPoint(
+    payload: Record<string, unknown> | null,
+  ): TimelinePoint<Record<string, unknown> | null> {
+    return {
+      validAt: 0,
+      payload,
+      meta: makeMeta({ validAt: 0, deliveredAt: 0 }),
+      epoch: 0,
+    };
+  }
+
+  it("false while the raw parent hasn't produced a whole record yet (ordinary loading, not phantom)", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.beginFrame();
+    expect(store.isUnresolvableField("vessel.control.throttle")).toBe(false);
+  });
+
+  it("false when the raw parent is tombstoned (confirmed absence, not phantom)", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.ingest("vessel.control", rawPoint(null));
+    store.beginFrame();
+    expect(store.isUnresolvableField("vessel.control.throttle")).toBe(false);
+  });
+
+  it("false for a field the raw parent's record actually has", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.ingest("vessel.control", rawPoint({ throttle: 0.5 }));
+    store.beginFrame();
+    expect(store.isUnresolvableField("vessel.control.throttle")).toBe(false);
+  });
+
+  it("true once the raw parent has a whole record but the requested field is genuinely not on it (the FuelStatus-class bug)", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.ingest("vessel.control", rawPoint({ notThrottle: 0.5 }));
+    store.beginFrame();
+    expect(store.isUnresolvableField("vessel.control.throttle")).toBe(true);
+  });
+
+  it("true for a 2-level nested raw fieldpath whose intermediate segment is genuinely absent", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.ingest(
+      "vessel.resources",
+      rawPoint({ resources: { LiquidFuel: { current: 100 } } }),
+    );
+    store.beginFrame();
+    // Real field genuinely present.
+    expect(
+      store.isUnresolvableField(
+        "vessel.resources.resources.LiquidFuel.current",
+      ),
+    ).toBe(false);
+    // Wrong/drifted resource name — a phantom mapping one layer deeper than
+    // the raw-topic root, exactly the class of bug
+    // `map-topic.rawFieldResolution.fixture.test.ts` guards against.
+    expect(
+      store.isUnresolvableField("vessel.resources.resources.Monoprop.current"),
+    ).toBe(true);
+  });
+
+  it("false for a raw topic with fewer than 3 segments (not a field-subtopic form at all)", () => {
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.ingest("vessel.orbit", rawPoint({ sma: 700_000 }));
+    store.beginFrame();
+    expect(store.isUnresolvableField("vessel.orbit")).toBe(false);
+  });
+});
+
 describe("lerpPayload — angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
   it("wraps a longitude field the SHORT way around the antimeridian, instead of lerping straight through the planet", () => {
     // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a

@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { isCiEnvironment } from "./ci-env";
 import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
 
 /**
@@ -28,11 +29,19 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * permanent `undefined` instead of falling back to its working legacy
  * `DataSource` read.
  *
- * Skip-cleanly contract, same as `reference-wire-fixture.test.ts` and the
- * C# generator: the fixture is gitignored/local-only (`local_docs/` is
- * blanket-ignored) and never present in CI — this suite is a local/branch
- * gate, not a CI one. Regenerate via `dotnet test --filter
+ * Skip-cleanly contract on a DEV machine, same as `reference-wire-fixture.test.ts`
+ * and the C# generator: the fixture is gitignored/local-only (`local_docs/`
+ * is blanket-ignored). Regenerate via `dotnet test --filter
  * WireFixtureGeneratorTests` in `mod/`.
+ *
+ * M3 whole-branch review #2: skip-cleanly must NOT extend to CI. Before this
+ * fix, an absent fixture made this whole suite a no-op `it("SKIPPED: …")`
+ * everywhere, including CI — the deepest guard against a bad/drifted
+ * raw-field mapping was effectively never run there, so a bad mapping could
+ * slip straight to `main` with a fully green CI run. `isCiEnvironment()`
+ * (`./ci-env.ts`) flips that: in CI, a missing fixture is now a loud,
+ * failing test instead of a silent skip. A dev machine without the fixture
+ * still gets the convenience skip.
  */
 
 interface WireFixture {
@@ -100,11 +109,32 @@ function resolvesFieldPath(payload: unknown, fieldPath: string[]): boolean {
   return true;
 }
 
+// M3 whole-branch review #2: in CI, a missing fixture must fail loudly, not
+// silently skip (see this file's doc comment). `describe.skipIf` only ever
+// skips (never fails), so the CI case gets its OWN always-failing suite
+// instead of reusing the skip path.
+if (!fixtureExists && isCiEnvironment()) {
+  describe("mapTopic raw-field paths resolve against the real grown reference wire fixture", () => {
+    it("FAILS LOUDLY: reference-wire-fixture.json is required in CI (M3 whole-branch review #2) but was not found", () => {
+      throw new Error(
+        `reference-wire-fixture.json not found at ${fixturePath}. This is ` +
+          "the deepest guard against a bad/drifted raw-field mapping " +
+          "(map-topic.ts's TELEMACHUS_CLEAN_HOMES raw-field entries) — it " +
+          "must not silently no-op in CI. Commit the fixture (or a build " +
+          "step that produces it) alongside whatever raw-field mapping " +
+          "change is landing, or regenerate it locally via `dotnet test " +
+          "--filter WireFixtureGeneratorTests` in `mod/` and commit the " +
+          "result.",
+      );
+    });
+  });
+}
+
 describe.skipIf(!fixtureExists)(
   "mapTopic raw-field paths resolve against the real grown reference wire fixture",
   () => {
     if (!fixtureExists) {
-      it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only — regenerate via `dotnet test --filter WireFixtureGeneratorTests`)", () => {});
+      it("SKIPPED (dev machine only — CI fails loudly instead, see above): reference-wire-fixture.json not found (gitignored, local-only — regenerate via `dotnet test --filter WireFixtureGeneratorTests`)", () => {});
       return;
     }
 

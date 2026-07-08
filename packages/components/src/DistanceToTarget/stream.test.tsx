@@ -127,4 +127,67 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
 
     teardownMockDataSource(legacyAux);
   });
+
+  it("M3 whole-branch review #4: degrades correctly (not stale) when the target is cleared — vessel.target present -> null tombstone", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target"],
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [{ key: "tar.name" }, { key: "tar.type" }],
+      connectSource: true,
+    });
+
+    const { container } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "dtt-cleared" }}>
+          <DistanceToTargetComponent id="dtt-cleared" w={6} h={9} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      // `tar.name` is itself mapped (-> vessel.target.name — a raw-field
+      // subtopic of the SAME `vessel.target` record `tar.relativePosition`
+      // reads), so this legacy emit is a decoy: once the stream carries a
+      // real `vessel.target` payload, it wins. It stays here, unchanged,
+      // for the rest of the test — proving the widget does NOT fall back
+      // to this stale legacy name once the target is cleared on the wire.
+      legacyAux.source.emit("tar.name", "Rendezvous Target");
+      legacyAux.source.emit("tar.type", "Vessel");
+      fixture.emit("vessel.target", {
+        name: "Rendezvous Target",
+        kind: 0,
+        vesselId: "target-vessel",
+        bodyIndex: null,
+        relativePosition: { x: 6000, y: 0, z: 8000 },
+        relativeVelocity: { x: 30, y: 0, z: 40 },
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("10.0 km")).toBeTruthy());
+    expect(screen.getByText("Rendezvous Target")).toBeTruthy();
+
+    // Target cleared in KSP — the mod publishes a tombstone (payload: null)
+    // for the whole `vessel.target` record, not merely an absent field.
+    act(() => {
+      fixture.emit("vessel.target", null);
+    });
+
+    await waitFor(() => {
+      if (container.textContent?.includes("SYNCING")) {
+        throw new Error("stream status has not settled to live yet");
+      }
+      expect(screen.getByText("No target set in KSP")).toBeTruthy();
+    });
+    // Must NOT still show the stale distance/name from before the clear —
+    // a real regression here would silently keep rendering "10.0 km" /
+    // "Rendezvous Target" forever (the tombstone read as "not arrived yet"
+    // instead of "confirmed absence", or the stale legacy value winning).
+    expect(screen.queryByText("10.0 km")).toBeNull();
+    expect(screen.queryByText("Rendezvous Target")).toBeNull();
+
+    teardownMockDataSource(legacyAux);
+  });
 });

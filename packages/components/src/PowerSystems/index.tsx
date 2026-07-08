@@ -88,10 +88,19 @@ function PowerSystemsComponent({
   // per-part Producers/Consumers/Idle breakdown above stays entirely on
   // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design —
   // no partId/flightId exists on the new wire to key a per-part breakdown
-  // off), but the vessel-wide EC production TOTAL has a direct home on
-  // `parts.power.totalProductionEc`. Preferred over the topology-summed
-  // total when carried; `??` falls back to the existing computation
-  // otherwise — same mixed-source pattern as DistanceToTarget's Vec3 merges.
+  // off). `parts.power.totalProductionEc` is a SEPARATE vessel-wide
+  // measurement of the same quantity the itemized rows sum to.
+  //
+  // M3 whole-branch review #3: this used to WIN over the topology-summed
+  // total whenever carried, so PROD/NET (which drives a charge/consume
+  // read the operator relies on) could silently contradict the itemized
+  // Producers rows right below it — the widget's own tests enshrined a
+  // PROD of +42.00 over a single +5.00 row as "expected". Fixed: PROD/NET
+  // now ALWAYS derive from the itemized total (`computedTotalProduced`
+  // below), so they can never disagree with the rows. When the streamed
+  // measurement meaningfully DISAGREES with that total, it's surfaced
+  // separately as an explicitly-labeled "MEASURED" reading (see the
+  // `Totals` cells) instead of being silently dropped OR silently winning.
   const streamPower = useDataValue<PartsPowerPayload>("data", "parts.power");
   const streamStatus = useDataStreamStatus("data", "parts.power");
 
@@ -193,14 +202,24 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
-  const computedTotalProduced = producers.reduce((s, c) => s + c.flow, 0);
-  const totalProduced =
+  // Single source of truth for PROD/NET: the itemized rows below, always —
+  // see the M3 whole-branch review #3 doc comment on `streamPower` above.
+  const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
+  const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
+  const net = totalProduced + totalConsumed;
+
+  // The streamed measurement, surfaced separately (never substituted into
+  // PROD/NET) only when it MEANINGFULLY disagrees with the itemized total —
+  // agreement (the common/healthy case) shows nothing extra, keeping the
+  // Totals row exactly as it always has been.
+  const measuredTotalProduced =
     resource === "ElectricCharge" &&
     typeof streamPower?.totalProductionEc === "number"
       ? streamPower.totalProductionEc
-      : computedTotalProduced;
-  const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
-  const net = totalProduced + totalConsumed;
+      : undefined;
+  const measuredDisagrees =
+    measuredTotalProduced !== undefined &&
+    Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
   // Storage totals across every part that stores this resource — fuel
   // tanks + EC batteries + monoprop tanks. Independent of flow rows.
@@ -341,6 +360,14 @@ function PowerSystemsComponent({
             {totalProduced.toFixed(2)}
           </CellValue>
         </TotalsCell>
+        {measuredDisagrees && (
+          <MeasuredCell
+            title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+          >
+            <CellLabel>MEASURED</CellLabel>
+            <CellValue>{measuredTotalProduced?.toFixed(2)}</CellValue>
+          </MeasuredCell>
+        )}
         <TotalsCell>
           <CellLabel>CONS</CellLabel>
           <CellValue $sign="neg">{totalConsumed.toFixed(2)}</CellValue>
@@ -576,6 +603,16 @@ const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
       : $tone === "warn"
         ? "var(--color-status-warning-bg)"
         : "var(--color-surface-raised)"};
+`;
+
+/* M3 whole-branch review #3: a distinctly-bordered cell for the streamed
+   `parts.power.totalProductionEc` reading, shown ONLY when it disagrees
+   with the itemized PROD total — a visible "these two numbers don't match"
+   signal (dashed border, muted warning tint) rather than either silently
+   overriding PROD/NET or silently vanishing. */
+const MeasuredCell = styled(TotalsCell)`
+  border-style: dashed;
+  border-color: var(--color-status-warning-bg);
 `;
 
 const CellLabel = styled.span`

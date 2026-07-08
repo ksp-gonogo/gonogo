@@ -29,11 +29,20 @@ import { useElementSize } from "../shared/useElementSize";
  *
  * M3 science/parts batch: the identity list (partId-keyed selection +
  * commands) stays entirely on `robotics.rotors` — `parts.robotics`
- * (map-topic.ts) carries the same live rotor readouts but no stable id (see
- * map-topic.ts's TELEMACHUS_KNOWN_GAPS entry for `robotics.rotors`).
- * `mergeRotor` below merges the live numeric fields onto the selected
- * legacy rotor BY NAME when a matching `parts.robotics` entry is carried,
- * same mixed-source pattern as DistanceToTarget's Vec3 merges.
+ * (map-topic.ts) carries the same live rotor readouts. `mergeRotor` below
+ * merges the live numeric fields onto the selected legacy rotor, chosen by
+ * `selectLiveRotorEntry`.
+ *
+ * M3 whole-branch review #1: `parts.robotics` originally carried no stable
+ * id, so the join was BY NAME — a `.find`, first-match-wins. KSP multirotors
+ * (quadcopters, coaxial helis) and symmetric arms are commonly N
+ * identically-named parts, so a name join could silently attribute a
+ * DIFFERENT rotor's live reading to the selected one. `selectLiveRotorEntry`
+ * now prefers a stable `partId` join when the wire carries one, and — since
+ * the wire may still lag that capture change — falls back to a name join
+ * ONLY when the name is unique among the streamed rotors; an ambiguous name
+ * refuses to merge at all (staying on the correct legacy value beats a
+ * confidently-wrong stream value).
  */
 
 type RotorTachometerConfig = Record<string, never>;
@@ -93,11 +102,17 @@ export function parseRotors(raw: unknown): RotorInfo[] | null {
 /**
  * `parts.robotics` entry shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a
  * raw array of both hinges and rotors; only `type === "rotor"` entries are
- * candidates here (hinges are Robotics Console's domain). No `partId`/stable
- * id field — correlation with the legacy `robotics.rotors` list is by
- * `partName` only.
+ * candidates here (hinges are Robotics Console's domain). `partId` is
+ * `Part.flightID` STRINGIFIED (`Gonogo.KSP.KspHost`'s `partId =
+ * part.flightID != 0 ? part.flightID.ToString() : null`) — a STRING, unlike
+ * the legacy `robotics.rotors` list's numeric `RotorInfo.partId` (the same
+ * underlying flightID, just carried as a JS number there). Nullable/absent
+ * on an older wire snapshot recorded before the stable-id capture change, or
+ * when flightID read as the uninitialized 0 sentinel — `selectLiveRotorEntry`
+ * below handles both, comparing via `String(selected.partId)`.
  */
 interface StreamRotorEntry {
+  partId?: string | null;
   partName: string;
   type: string;
   servoIsLocked: boolean | null;
@@ -108,6 +123,32 @@ interface StreamRotorEntry {
   rpmLimit: number | null;
   normalizedOutput: number | null;
   brakePercentage: number | null;
+}
+
+/**
+ * Picks the `parts.robotics` entry (if any) that live-updates `selected`.
+ * See the module doc comment / M3 whole-branch review #1: prefer a stable
+ * `partId` join (string-vs-number coerced — same underlying flightID, see
+ * `StreamRotorEntry`'s doc comment); only fall back to a name join when the
+ * name is unique among the streamed rotors, and refuse to merge at all when
+ * it's ambiguous — never let `.find`'s first-match-wins attribute a sibling
+ * rotor's reading to the selected one.
+ */
+export function selectLiveRotorEntry(
+  entries: StreamRotorEntry[] | undefined,
+  selected: RotorInfo,
+): StreamRotorEntry | undefined {
+  if (!entries) return undefined;
+  const rotorEntries = entries.filter((e) => e.type === "rotor");
+
+  const selectedId = String(selected.partId);
+  const idMatches = rotorEntries.filter(
+    (e) => typeof e.partId === "string" && e.partId === selectedId,
+  );
+  if (idMatches.length > 0) return idMatches[0];
+
+  const nameMatches = rotorEntries.filter((e) => e.partName === selected.name);
+  return nameMatches.length === 1 ? nameMatches[0] : undefined;
 }
 
 /** Merges live `parts.robotics` rotor fields onto a legacy `RotorInfo` by
@@ -205,9 +246,7 @@ function RotorTachometerComponent({
   const rawSelected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
   const liveEntry = rawSelected
-    ? streamRotors?.find(
-        (e) => e.type === "rotor" && e.partName === rawSelected.name,
-      )
+    ? selectLiveRotorEntry(streamRotors, rawSelected)
     : undefined;
   const selected = rawSelected ? mergeRotor(rawSelected, liveEntry) : null;
 

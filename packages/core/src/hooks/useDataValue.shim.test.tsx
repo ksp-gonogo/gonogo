@@ -236,6 +236,74 @@ describe("useDataValue shim — no TelemetryProvider mounted behaves exactly lik
   });
 });
 
+describe("useDataValue shim — raw-field phantom fallback (M3 whole-branch review #2)", () => {
+  it(
+    "falls back to legacy when a mapped raw-field's field is missing from an otherwise-whole parent record " +
+      "(wire-shape drift / a wrong fieldpath), instead of serving a permanent dead undefined",
+    async () => {
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport);
+      const legacySource = makeLegacySource();
+      registerDataSource(legacySource);
+
+      function Throttle() {
+        const throttle = useDataValue("data", "f.throttle");
+        return (
+          <div>throttle:{throttle === undefined ? "—" : String(throttle)}</div>
+        );
+      }
+
+      const renderTree = () => (
+        // "f.throttle" maps to the raw-field subtopic
+        // "vessel.control.throttle", resolved down to the real wire topic
+        // "vessel.control" (see the carried-channels gate test above).
+        <TelemetryProvider client={client} carriedChannels={["vessel.control"]}>
+          <Throttle />
+        </TelemetryProvider>
+      );
+      const { rerender } = render(renderTree());
+
+      expect(screen.getByText("throttle:—")).toBeTruthy();
+
+      act(() => legacySource.emit("f.throttle", 0.4));
+      // Still streamed (carried), so the legacy emit must not surface yet —
+      // even though the eventual wire record will turn out not to carry the
+      // mapped field.
+      expect(screen.getByText("throttle:—")).toBeTruthy();
+
+      // The parent record arrives WHOLE but WITHOUT the mapped field — a
+      // drifted/wrong wire shape, or a phantom migration-table entry (the
+      // FuelStatus-class bug from the review: `?? 0` would otherwise mask
+      // this as an empty gauge instead of falling back).
+      act(() => {
+        transport.emit("vessel.control", { notThrottle: 1 });
+      });
+
+      // The streamed VALUE itself stays `undefined` both before and after
+      // this ingest (loading -> genuinely-absent-field are both
+      // `undefined`), so `useSyncExternalStore`'s own change-detection never
+      // fires a re-render on its own — by design, it only notifies on an
+      // actual snapshot change. `rerender` forces React to re-execute the
+      // hook regardless, the same way any OTHER prop/state change on a real
+      // widget would — `renderTree()` must build a FRESH element each call
+      // (not a reused constant): React/RTL treat handing the exact same
+      // element object back to `rerender` as a no-op. Retried via `waitFor`
+      // to give the provider's coalesced `beginFrame()`
+      // (rAF/setTimeout-scheduled) a chance to actually run first.
+      //
+      // Before the fix: stays "—" forever even after any number of
+      // rerenders — a permanently-dead undefined — even though a perfectly
+      // good legacy value exists. After the fix:
+      // `TimelineStore.isUnresolvableField`'s raw-field branch fires and the
+      // shim falls back to the legacy value.
+      await waitFor(() => {
+        rerender(renderTree());
+        expect(screen.getByText("throttle:0.4")).toBeTruthy();
+      });
+    },
+  );
+});
+
 describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-bang blank-out fix, m3-migration-plan.md §5.1)", () => {
   it(
     "a MAPPED topic NOT in carriedChannels reads the LEGACY value, never a blank — " +

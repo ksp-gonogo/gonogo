@@ -593,6 +593,18 @@ export class TimelineStore {
    * fallback safety) that needs to tell "still loading, keep waiting" apart
    * from "this can never resolve, fall back to another source" — never
    * folded into `sample()`'s own return value.
+   *
+   * M3 whole-branch review #2: this guard originally only covered DERIVED
+   * channel parents. A RAW record field-subtopic (`resolveRawFieldSubtopic`
+   * — e.g. `"vessel.resources.resources.<name>.current"`) fell straight
+   * through and always returned `false`, so a wrong/drifted raw fieldpath
+   * served a permanent `undefined` with no fallback (the FuelStatus-class
+   * bug: `useDataValue("data", vesselKey) ?? 0` turning a silent resolution
+   * failure into an empty gauge). The second branch below applies the exact
+   * same "whole-but-missing-field = unresolvable" check to a raw parent,
+   * walking the FULL fieldpath (which may be 1+ segments, unlike the
+   * single-segment derived-channel case above) via the same walk
+   * `sampleRawFieldSubtopic`/`sampleRange` use.
    */
   isUnresolvableField(
     topic: string,
@@ -602,14 +614,37 @@ export class TimelineStore {
     if (dot === -1) return false;
     const parentTopic = topic.slice(0, dot);
     const field = topic.slice(dot + 1);
-    if (!this.derivedChannels.has(parentTopic)) return false;
+
+    if (this.derivedChannels.has(parentTopic)) {
+      const parentPoint = this.sample<Record<string, unknown>>(
+        parentTopic,
+        token,
+      );
+      if (!parentPoint || parentPoint.payload === null) return false;
+      return !(field in parentPoint.payload);
+    }
+
+    const rawField = this.resolveRawFieldSubtopic(topic);
+    if (!rawField) return false;
 
     const parentPoint = this.sample<Record<string, unknown>>(
-      parentTopic,
+      rawField.rawTopic,
       token,
     );
     if (!parentPoint || parentPoint.payload === null) return false;
-    return !(field in parentPoint.payload);
+
+    let cursor: unknown = parentPoint.payload;
+    for (const segment of rawField.fieldPath) {
+      if (
+        cursor === null ||
+        typeof cursor !== "object" ||
+        !(segment in (cursor as object))
+      ) {
+        return true; // whole parent, but this field path doesn't resolve
+      }
+      cursor = (cursor as Record<string, unknown>)[segment];
+    }
+    return false;
   }
 
   /**

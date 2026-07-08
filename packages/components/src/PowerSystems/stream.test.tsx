@@ -31,7 +31,13 @@ const TOPOLOGY = {
 };
 
 describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch)", () => {
-  it("prefers parts.power's totalProductionEc over the topology-summed total when carried", async () => {
+  it("uses the SAME total for PROD/NET as the itemized per-part rows sum to, even when parts.power's totalProductionEc disagrees (M3 whole-branch review #3)", async () => {
+    // Before the fix: `totalProduced` preferred the streamed scalar
+    // whenever present, so PROD/NET could show a number that contradicts
+    // the itemized Producers rows below it — and NET drives a
+    // charge/consume read the operator relies on. This is the concrete
+    // case from the review: a single +5.00 producer row, but
+    // `totalProductionEc` (a stale/disagreeing measurement) says 42.
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.power"],
       pinnedUt: 10,
@@ -46,7 +52,7 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
       connectSource: true,
     });
 
-    render(
+    const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "ps-stream" }}>
           <PowerSystemsComponent id="ps-stream" w={8} h={12} />
@@ -80,12 +86,84 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
       });
     });
 
-    // The stream total (42.00) wins for NET + PROD; the per-part
-    // contribution row is untouched (still legacy-only via usePartsLive)
-    // and stays +5.00.
-    await waitFor(() => expect(screen.getByText("+42.00/s")).toBeTruthy());
-    expect(screen.getByText("+42.00")).toBeTruthy();
-    expect(screen.getByText("+5.00")).toBeTruthy();
+    // Wait for the stream leg to actually settle (mirrors dual-run.test.tsx's
+    // "has not settled to live yet" idiom) before asserting — otherwise the
+    // check can race the async store update and pass for the wrong reason
+    // (checked before the merge would even have applied).
+    await waitFor(() => {
+      if (container.textContent?.includes("SYNCING")) {
+        throw new Error("stream status has not settled to live yet");
+      }
+      expect(screen.getByText("MEASURED")).toBeTruthy();
+    });
+
+    // A disagreeing measurement must never win PROD/NET over the itemized
+    // rows — the header must stay CONSISTENT with what's actually listed
+    // below it. "+42.00/s"/"+42.00" (the old, wrong, enshrined behavior)
+    // must never appear.
+    expect(screen.queryByText("+42.00/s")).toBeNull();
+    expect(screen.getByText("+5.00/s")).toBeTruthy();
+    expect(screen.getAllByText("+5.00")).toHaveLength(2); // PROD cell + the one row
+
+    // The disagreeing measurement must not be silently dropped either —
+    // it's surfaced as a clearly separate, explicitly-labeled reading so
+    // the operator isn't blind to a real sensor/topology mismatch.
+    expect(screen.getByText("42.00")).toBeTruthy();
+
+    teardownMockDataSource(legacyAux);
+  });
+
+  it("shows no separate MEASURED reading when parts.power's totalProductionEc agrees with the itemized total", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["parts.power"],
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [
+        { key: "v.topologySeq" },
+        { key: "v.topology" },
+        { key: "r.resourceFor[1]" },
+      ],
+      connectSource: true,
+    });
+
+    const { container } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: "ps-stream-agree" }}
+        >
+          <PowerSystemsComponent id="ps-stream-agree" w={8} h={12} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      legacyAux.source.emit("v.topologySeq", 1);
+      legacyAux.source.emit("v.topology", TOPOLOGY);
+      legacyAux.source.emit("r.resourceFor[1]", {
+        ElectricCharge: { amount: 10, maxAmount: 100, flow: 5, nominalFlow: 5 },
+      });
+    });
+    await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
+
+    act(() => {
+      fixture.emit("parts.power", {
+        solarPanels: [],
+        batteries: [],
+        fuelCells: [],
+        alternators: [],
+        totalProductionEc: 5,
+      });
+    });
+
+    await waitFor(() => {
+      if (container.textContent?.includes("SYNCING")) {
+        throw new Error("stream status has not settled to live yet");
+      }
+      expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
+    });
+    expect(screen.queryByText("MEASURED")).toBeNull();
 
     teardownMockDataSource(legacyAux);
   });
