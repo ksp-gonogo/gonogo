@@ -2,6 +2,7 @@ import type { ComponentProps } from "@gonogo/core";
 import {
   getWidgetShape,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
 } from "@gonogo/core";
@@ -11,6 +12,7 @@ import {
   PanelTitle,
   ScrollArea,
   Spinner,
+  StreamStatusBadge,
 } from "@gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -53,6 +55,54 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   return out;
 }
 
+export interface LabStatus {
+  partName: string;
+  dataStored: number | null;
+  dataStorage: number | null;
+  storedScience: number | null;
+  processingData: boolean;
+  statusText: string | null;
+  scientistCount: number | null;
+  scienceRate: number | null;
+  isOperational: boolean;
+}
+
+/**
+ * Parses `science.lab` (M3 science/parts batch, `mod/Sitrep.Host/
+ * ScienceViewProvider.cs`'s `BuildLab`) — a NEW capability, no legacy
+ * Telemachus/GonogoTelemetry analogue existed for Mobile Processing Lab
+ * status, so this is a straight whole-topic raw-array read (same
+ * `parts.power`/`parts.robotics` "key == topic" precedent in
+ * `map-topic.ts`), not a migration of an existing `sci.*` field. Each entry
+ * is a lab part on the active vessel; an idle-but-operational lab (crewed,
+ * no data loaded) is a normal, valid state — `dataStored`/`processingData`/
+ * `scienceRate` all sitting at zero doesn't mean "no lab", it means "lab
+ * with nothing to process yet".
+ */
+export function parseLab(raw: unknown): LabStatus[] | null {
+  if (raw === null || raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  const out: LabStatus[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    out.push({
+      partName: typeof e.partName === "string" ? e.partName : "Lab",
+      dataStored: typeof e.dataStored === "number" ? e.dataStored : null,
+      dataStorage: typeof e.dataStorage === "number" ? e.dataStorage : null,
+      storedScience:
+        typeof e.storedScience === "number" ? e.storedScience : null,
+      processingData: e.processingData === true,
+      statusText: typeof e.statusText === "string" ? e.statusText : null,
+      scientistCount:
+        typeof e.scientistCount === "number" ? e.scientistCount : null,
+      scienceRate: typeof e.scienceRate === "number" ? e.scienceRate : null,
+      isOperational: e.isOperational === true,
+    });
+  }
+  return out;
+}
+
 function ScienceOfficerComponent({
   w,
   h,
@@ -66,8 +116,17 @@ function ScienceOfficerComponent({
       ? dataAmountRaw
       : 0;
 
+  // M3 science/parts batch: science.lab is a NEW capability (no legacy
+  // sci.instruments equivalent — the Mobile Processing Lab is a different
+  // part from the crew-report/goo/barometer instruments sci.instruments
+  // tracks), read independently of the instrument list above.
+  const labRaw = useDataValue("data", "science.lab");
+  const labs = parseLab(labRaw);
+  const labStreamStatus = useDataStreamStatus("data", "science.lab");
+
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
+  const showLab = rows >= 4;
   // Wide-short: flow the instrument groups into columns so they use the width
   // instead of a single stranded column.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
@@ -75,10 +134,14 @@ function ScienceOfficerComponent({
   if (instruments === null) {
     return (
       <Panel>
-        <PanelTitle>SCIENCE LAB</PanelTitle>
+        <TitleRow>
+          <PanelTitle>SCIENCE LAB</PanelTitle>
+          <StreamStatusBadge status={labStreamStatus} />
+        </TitleRow>
         {showSubtitle && (
           <PanelSubtitle>Awaiting instrument telemetry</PanelSubtitle>
         )}
+        {showLab && <LabSection labs={labs} />}
       </Panel>
     );
   }
@@ -86,8 +149,12 @@ function ScienceOfficerComponent({
   if (instruments.length === 0) {
     return (
       <Panel>
-        <PanelTitle>SCIENCE LAB</PanelTitle>
+        <TitleRow>
+          <PanelTitle>SCIENCE LAB</PanelTitle>
+          <StreamStatusBadge status={labStreamStatus} />
+        </TitleRow>
         {showSubtitle && <PanelSubtitle>No instruments aboard</PanelSubtitle>}
+        {showLab && <LabSection labs={labs} />}
       </Panel>
     );
   }
@@ -100,7 +167,10 @@ function ScienceOfficerComponent({
 
   return (
     <Panel>
-      <PanelTitle>SCIENCE LAB</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SCIENCE LAB</PanelTitle>
+        <StreamStatusBadge status={labStreamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
@@ -112,6 +182,7 @@ function ScienceOfficerComponent({
           )}
         </PanelSubtitle>
       )}
+      {showLab && <LabSection labs={labs} />}
       <Body $row={isLandscape}>
         {grouped.map(({ expId, items }) => (
           <Group key={expId}>
@@ -232,6 +303,50 @@ function InstrumentActions({
   );
 }
 
+/**
+ * Mobile Processing Lab status, from `science.lab`. Renders nothing when
+ * there's no lab data yet (`null`, still loading) or the vessel carries no
+ * lab (`[]`) — same "silent until real content" contract as the rest of the
+ * widget, so a lab-less vessel's layout is unaffected.
+ */
+function LabSection({ labs }: { labs: LabStatus[] | null }) {
+  if (labs === null || labs.length === 0) return null;
+  return (
+    <LabList>
+      {labs.map((lab, i) => (
+        // No stable id on a science.lab entry (unlike sci.instruments'
+        // partId) — the list is never reordered within a render, so index
+        // just disambiguates two labs that happen to share a partName.
+        // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
+        <LabRow key={`${lab.partName}-${i}`}>
+          <LabHeader>
+            <LabName>{lab.partName}</LabName>
+            <LabBadges>
+              <Badge $kind={lab.isOperational ? "data" : "inop"}>
+                {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
+              </Badge>
+              {lab.processingData && <Badge $kind="deployed">PROCESSING</Badge>}
+            </LabBadges>
+          </LabHeader>
+          <LabMeta>
+            {lab.scientistCount !== null && (
+              <span>
+                {lab.scientistCount} scientist
+                {lab.scientistCount === 1 ? "" : "s"}
+              </span>
+            )}
+            {lab.dataStored !== null && lab.dataStorage !== null && (
+              <span>
+                {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)} data
+              </span>
+            )}
+          </LabMeta>
+        </LabRow>
+      ))}
+    </LabList>
+  );
+}
+
 interface InstrumentGroup {
   expId: string;
   items: Instrument[];
@@ -265,6 +380,60 @@ function summarise(instruments: Instrument[]): {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const LabList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-surface-raised);
+`;
+
+const LabRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const LabHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const LabName = styled.span`
+  font-size: 12px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+`;
+
+const LabBadges = styled.span`
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+`;
+
+const LabMeta = styled.div`
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+`;
 
 const Body = styled(ScrollArea)<{ $row?: boolean }>`
   flex: 1;
@@ -420,12 +589,12 @@ registerComponent<ScienceOfficerConfig>({
   id: "science-officer",
   name: "Science Lab",
   description:
-    "All science instruments on the current vessel grouped by experiment. Shows which have stored data, which have already been deployed, which are one-shot, and which are inoperable.",
+    "All science instruments on the current vessel grouped by experiment, plus Mobile Processing Lab status. Shows which instruments have stored data, which have already been deployed, which are one-shot, and which are inoperable.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ScienceOfficerComponent,
-  dataRequirements: ["sci.instruments", "sci.dataAmount"],
+  dataRequirements: ["sci.instruments", "sci.dataAmount", "science.lab"],
   defaultConfig: {},
   actions: [],
   pushable: true,

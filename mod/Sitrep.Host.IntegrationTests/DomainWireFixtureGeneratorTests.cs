@@ -310,6 +310,65 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task GeneratesLabWireFixtureFromLabRecording()
+        {
+            const string recordingFileName = "reference-lab-2026-07-08.json";
+            const string fixtureFileName = "reference-wire-fixture-lab.json";
+            var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
+            if (!File.Exists(recordingPath))
+            {
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                return;
+            }
+
+            var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
+            // Sibling to GeneratesScienceWireFixtureFromScienceRecording above,
+            // but replaying a session where a Mobile Processing Lab IS
+            // onboard — OPERATIONAL and crewed (2 scientists) but IDLE (no
+            // data loaded, dataStored/scienceRate both 0). Subscribes
+            // science.lab + science.experiments (not deployed — this
+            // recording carries no Breaking Ground ground experiment).
+            var topics = new[]
+            {
+                ScienceViewProvider.LabTopic,
+                ScienceViewProvider.ExperimentsTopic,
+            };
+
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepExtension[] { new TestScienceExtension() }, topics);
+            Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
+
+            // ScienceViewProvider.BuildLab's payload IS the entry list itself
+            // (see BuildList), not a wrapping dict — parse the raw
+            // StreamData payloads rather than ParsePayloads' IDictionary-only
+            // filter, same as the science.experiments/parts.robotics channels
+            // above.
+            var labStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.LabTopic);
+            Assert.True(labStream.Count > 0, "expected at least one science.lab frame");
+
+            var labEntries = labStream
+                .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
+                .OfType<IDictionary<string, object?>>()
+                .ToList();
+            // JsonReader (see its own doc comment) always parses numbers to
+            // double regardless of the writer-side C# type — scientistCount
+            // (int on the wire-build side) and dataStorage both come back as
+            // double after the real wire round-trip, same as every other
+            // numeric assertion in this file (career funds, dock forwardDot).
+            Assert.Contains(labEntries, l =>
+                (l.TryGetValue("isOperational", out var op) && op is bool opb && opb) &&
+                (l.TryGetValue("scientistCount", out var sc) && sc is double scD && scD == 2) &&
+                (l.TryGetValue("dataStorage", out var ds) && ds is double dsD && dsD == 750));
+
+            var experimentsStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.ExperimentsTopic);
+
+            _output.WriteLine(
+                $"lab fixture: {labStream.Count} science.lab frames, {labEntries.Count} lab entries " +
+                $"(operational/2 scientists/750 storage confirmed); {experimentsStream.Count} science.experiments frames.");
+
+            WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
+        }
+
+        [Fact]
         public async Task GeneratesPartsWireFixtureFromPartsRecording()
         {
             const string recordingFileName = "reference-science-parts-2026-07-08.json";

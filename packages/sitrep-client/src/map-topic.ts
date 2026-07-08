@@ -253,6 +253,16 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // below, unchanged, for why the full list itself isn't migrated).
   "parts.power": "parts.power",
   "parts.robotics": "parts.robotics",
+
+  // --- M3 ScienceOfficer batch: science.lab un-gap. NEW capability, no
+  // legacy widget key existed — `science.lab` (raw array of Mobile
+  // Processing Lab entries, ScienceViewProvider.BuildLab) has no
+  // pre-existing `sci.*` analogue at all (`sci.instruments` below tracks a
+  // DIFFERENT set of parts — crew-report/mystery-goo/barometer experiment
+  // modules — not the lab itself), so this is a whole-topic identity read,
+  // same `parts.power`/`parts.robotics` "key == topic" precedent above.
+  // ScienceOfficer/index.tsx's `parseLab` reads it directly. ---
+  "science.lab": "science.lab",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -645,6 +655,11 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // science channel at all.
   // gap: GonogoTelemetry-only enrichment, no new-wire equivalent; migrate in M3
   "sci.experimentBreakdown",
+  // sci.instruments: ScienceOfficer's per-instrument list (crew report/
+  // mystery goo/barometer, etc, keyed by partId) — no equivalent exists on
+  // the new wire; science.lab (now CLEAN_HOMES above) is a DIFFERENT part
+  // entirely (the Mobile Processing Lab), not a richer form of this list.
+  // gap: no per-instrument array on the new wire; migrate in a future batch
   "sci.instruments",
   "s.sensor.temp",
   "s.sensor.pres",

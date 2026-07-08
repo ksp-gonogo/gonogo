@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "capturedAt": "2026-07-08",
+    "vessel": "science station",
+    "notes": "Operational Mobile Processing Lab MPL-LG-2, idle (no data loaded, 2 crew aboard, scienceRate 0) — matches local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json's first science.lab frame, folded into reference-wire-fixture-lab.json."
+  },
+  "sci.instruments": [
+    {
+      "partId": 1,
+      "partTitle": "Mystery Goo™ Containment Unit",
+      "expId": "mysteryGoo",
+      "deployed": false,
+      "hasData": false,
+      "rerunnable": false,
+      "inoperable": false
+    }
+  ],
+  "sci.dataAmount": 0,
+  "science.lab": [
+    {
+      "partName": "Mobile Processing Lab MPL-LG-2",
+      "dataStored": 0,
+      "dataStorage": 750,
+      "storedScience": 0,
+      "processingData": false,
+      "statusText": "Operational",
+      "scientistCount": 2,
+      "scienceRate": 0,
+      "isOperational": true
+    }
+  ]
+}
