@@ -70,6 +70,7 @@ import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
 import { SettingsFab, SettingsProvider, SettingsService } from "../settings";
 import { initSoundSettings } from "../sound";
+import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { DEMO_CONFIG } from "./demoConfig";
 
 // ---------------------------------------------------------------------------
@@ -198,74 +199,82 @@ export function MainScreen() {
   }, []);
 
   return (
-    <ScreenProvider value="main">
-      <SettingsProvider service={settingsService}>
-        <AnalyticsConsentHost
-          service={analyticsConsentService}
-          peerHost={peerHostService}
-        />
-        <AlarmHostProvider service={alarmHost}>
-          <NotesHostProvider service={notesHost}>
-            <ManeuverTriggerProvider service={maneuverTriggerHost}>
-              <CpuRegistryProvider service={cpuRegistry}>
-                <MissionProfilesProvider service={missionProfiles}>
-                  <GoNoGoHostProvider service={goNoGoHost}>
-                    <PushHostProvider service={pushHost}>
-                      <FogMaskCacheProvider store={fogMaskStore}>
-                        <SerialDeviceProvider service={serialService}>
-                          <OverlayProvider
-                            addItem={dashboard.addItem}
-                            updateItemConfig={dashboard.updateItemConfig}
-                          >
-                            <MainAlarmsLauncherScope>
-                              <Layout as="main" aria-label="Mission control">
-                                <Dashboard
-                                  items={dashboard.items}
-                                  layouts={dashboard.layouts}
-                                  currentLayouts={dashboard.currentLayouts}
-                                  breakpoint={dashboard.breakpoint}
-                                  onLayoutChange={dashboard.handleLayoutChange}
-                                  onBreakpointChange={
-                                    dashboard.handleBreakpointChange
-                                  }
-                                  updateItemConfig={dashboard.updateItemConfig}
-                                  updateItemMappings={
-                                    dashboard.updateItemMappings
-                                  }
-                                  updateItemMobileWidth={
-                                    dashboard.updateItemMobileWidth
-                                  }
-                                  updateItemMobileHeight={
-                                    dashboard.updateItemMobileHeight
-                                  }
-                                  removeItem={dashboard.removeItem}
-                                  moveItemUp={dashboard.moveItemUp}
-                                  moveItemDown={dashboard.moveItemDown}
-                                  lastAddedId={dashboard.lastAddedId}
-                                  clearLastAdded={dashboard.clearLastAdded}
-                                />
-                                <FabClusterProvider>
-                                  <ComponentOverlay
+    <SitrepTelemetryProvider>
+      <ScreenProvider value="main">
+        <SettingsProvider service={settingsService}>
+          <AnalyticsConsentHost
+            service={analyticsConsentService}
+            peerHost={peerHostService}
+          />
+          <AlarmHostProvider service={alarmHost}>
+            <NotesHostProvider service={notesHost}>
+              <ManeuverTriggerProvider service={maneuverTriggerHost}>
+                <CpuRegistryProvider service={cpuRegistry}>
+                  <MissionProfilesProvider service={missionProfiles}>
+                    <GoNoGoHostProvider service={goNoGoHost}>
+                      <PushHostProvider service={pushHost}>
+                        <FogMaskCacheProvider store={fogMaskStore}>
+                          <SerialDeviceProvider service={serialService}>
+                            <OverlayProvider
+                              addItem={dashboard.addItem}
+                              updateItemConfig={dashboard.updateItemConfig}
+                            >
+                              <MainAlarmsLauncherScope>
+                                <Layout as="main" aria-label="Mission control">
+                                  <Dashboard
+                                    items={dashboard.items}
+                                    layouts={dashboard.layouts}
                                     currentLayouts={dashboard.currentLayouts}
-                                  />
-                                  <FlightsFab />
-                                  <SerialPortRecoveryWatcher />
-                                  <StationLinkFab />
-                                  <FullscreenFab bottom={204} />
-                                  <SettingsFab bottom={264} />
-                                  <MissionProfilesFab
-                                    bottom={324}
-                                    currentItems={dashboard.items}
-                                    currentLayouts={dashboard.layouts}
-                                    onLoad={(p) =>
-                                      dashboard.replaceState(p.items, p.layouts)
+                                    breakpoint={dashboard.breakpoint}
+                                    onLayoutChange={
+                                      dashboard.handleLayoutChange
                                     }
+                                    onBreakpointChange={
+                                      dashboard.handleBreakpointChange
+                                    }
+                                    updateItemConfig={
+                                      dashboard.updateItemConfig
+                                    }
+                                    updateItemMappings={
+                                      dashboard.updateItemMappings
+                                    }
+                                    updateItemMobileWidth={
+                                      dashboard.updateItemMobileWidth
+                                    }
+                                    updateItemMobileHeight={
+                                      dashboard.updateItemMobileHeight
+                                    }
+                                    removeItem={dashboard.removeItem}
+                                    moveItemUp={dashboard.moveItemUp}
+                                    moveItemDown={dashboard.moveItemDown}
+                                    lastAddedId={dashboard.lastAddedId}
+                                    clearLastAdded={dashboard.clearLastAdded}
                                   />
-                                  <MainAlarmsFab />
-                                </FabClusterProvider>
-                                <ReplayBanner />
-                                <BannerStack>
-                                  {/* BannerStack is row-reverse —
+                                  <FabClusterProvider>
+                                    <ComponentOverlay
+                                      currentLayouts={dashboard.currentLayouts}
+                                    />
+                                    <FlightsFab />
+                                    <SerialPortRecoveryWatcher />
+                                    <StationLinkFab />
+                                    <FullscreenFab bottom={204} />
+                                    <SettingsFab bottom={264} />
+                                    <MissionProfilesFab
+                                      bottom={324}
+                                      currentItems={dashboard.items}
+                                      currentLayouts={dashboard.layouts}
+                                      onLoad={(p) =>
+                                        dashboard.replaceState(
+                                          p.items,
+                                          p.layouts,
+                                        )
+                                      }
+                                    />
+                                    <MainAlarmsFab />
+                                  </FabClusterProvider>
+                                  <ReplayBanner />
+                                  <BannerStack>
+                                    {/* BannerStack is row-reverse —
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -273,36 +282,37 @@ export function MainScreen() {
                                         unscheduled warp) stack to its
                                         left as separate single-row
                                         pills. */}
-                                  <AlarmBanner />
-                                  <SafetyMarginPill />
-                                  <FiredAlarmPills />
-                                  <UnscheduledWarpPill />
-                                  <SignalLossIndicator />
-                                  <TelemachusAntennaBanner />
-                                  <SustainedFailureBanner />
-                                  <SceneChangeBanner />
-                                  <FlightOutcomeBanner />
-                                  <SceneSwitchPrompt
-                                    onLoad={(items, layouts) =>
-                                      dashboard.replaceState(items, layouts)
-                                    }
-                                  />
-                                </BannerStack>
-                                <PushedDashboardOverlay />
-                              </Layout>
-                            </MainAlarmsLauncherScope>
-                          </OverlayProvider>
-                        </SerialDeviceProvider>
-                      </FogMaskCacheProvider>
-                    </PushHostProvider>
-                  </GoNoGoHostProvider>
-                </MissionProfilesProvider>
-              </CpuRegistryProvider>
-            </ManeuverTriggerProvider>
-          </NotesHostProvider>
-        </AlarmHostProvider>
-      </SettingsProvider>
-    </ScreenProvider>
+                                    <AlarmBanner />
+                                    <SafetyMarginPill />
+                                    <FiredAlarmPills />
+                                    <UnscheduledWarpPill />
+                                    <SignalLossIndicator />
+                                    <TelemachusAntennaBanner />
+                                    <SustainedFailureBanner />
+                                    <SceneChangeBanner />
+                                    <FlightOutcomeBanner />
+                                    <SceneSwitchPrompt
+                                      onLoad={(items, layouts) =>
+                                        dashboard.replaceState(items, layouts)
+                                      }
+                                    />
+                                  </BannerStack>
+                                  <PushedDashboardOverlay />
+                                </Layout>
+                              </MainAlarmsLauncherScope>
+                            </OverlayProvider>
+                          </SerialDeviceProvider>
+                        </FogMaskCacheProvider>
+                      </PushHostProvider>
+                    </GoNoGoHostProvider>
+                  </MissionProfilesProvider>
+                </CpuRegistryProvider>
+              </ManeuverTriggerProvider>
+            </NotesHostProvider>
+          </AlarmHostProvider>
+        </SettingsProvider>
+      </ScreenProvider>
+    </SitrepTelemetryProvider>
   );
 }
 

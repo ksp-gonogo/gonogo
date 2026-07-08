@@ -80,3 +80,10 @@ export type {
   ViewClockOptions,
 } from "./view-clock";
 export { ViewClock } from "./view-clock";
+export type {
+  StreamFrameInfo,
+  WebSocketCtor,
+  WebSocketLike,
+  WebSocketTransportOptions,
+} from "./websocket-transport";
+export { WebSocketTransport } from "./websocket-transport";

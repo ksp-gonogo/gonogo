@@ -34,6 +34,17 @@ interface ImportMetaEnv {
    * true when unset.
    */
   readonly VITE_PEER_SECURE?: string;
+  /**
+   * Dev feature flag for the live Sitrep telemetry stream. "true" mounts a
+   * WebSocketTransport-backed <TelemetryProvider> on the main screen so
+   * carried topics read from the mod stream instead of legacy Telemachus.
+   * Dev-channel first; the release default is off (hard cut at R6 cutover).
+   */
+  readonly VITE_SITREP_STREAM?: string;
+  /** Host for the Sitrep mod WebSocket (default localhost). */
+  readonly VITE_SITREP_HOST?: string;
+  /** Port for the Sitrep mod WebSocket (default 8090). */
+  readonly VITE_SITREP_PORT?: string;
 }
 
 interface ImportMeta {

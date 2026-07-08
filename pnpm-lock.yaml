@@ -122,6 +122,9 @@ importers:
       '@gonogo/serial':
         specifier: workspace:*
         version: link:../serial
+      '@gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
@@ -549,6 +552,9 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      msw:
+        specifier: ^2.13.2
+        version: 2.13.2(@types/node@22.19.17)(typescript@5.9.3)
       react:
         specifier: ^18.0.0
         version: 18.3.1

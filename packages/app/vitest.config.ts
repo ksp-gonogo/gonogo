@@ -24,6 +24,10 @@ export default defineConfig({
         import.meta.dirname,
         "../serial/src/index.ts",
       ),
+      "@gonogo/sitrep-client": path.resolve(
+        import.meta.dirname,
+        "../sitrep-client/src/index.ts",
+      ),
     },
   },
   test: {
