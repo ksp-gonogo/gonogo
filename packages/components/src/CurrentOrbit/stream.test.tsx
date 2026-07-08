@@ -11,24 +11,43 @@ import { CurrentOrbitComponent } from "./index";
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * CurrentOrbit is the most GAP-heavy of the batch-2 four: only `o.sma`,
- * `o.eccentricity`, `o.inclination`, `o.argumentOfPeriapsis` are MAPPED
- * (all raw fields on `vessel.orbit`). Everything else this widget reads —
- * `o.ApA`/`o.PeA`/`o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe` (via the shared
- * `useOrbitElements` hook), `o.trueAnomaly`, `o.period`, `o.referenceBody`,
- * `v.body` — is a declared GAP (`map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`)
- * and stays legacy. With no legacy source registered in this file, every
- * gapped field renders its normal "no data" fallback ("—"), which is
- * itself the assertion that a partially-mapped widget degrades gracefully.
+ * `o.sma`/`o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are MAPPED
+ * raw fields on `vessel.orbit`; `o.period`/`o.trueAnomaly`/`o.timeToAp`/
+ * `o.timeToPe` are MAPPED derived fields on `vessel.state` (M3
+ * vessel-state-extend — un-gapped now that `deriveVesselState` actually
+ * produces them). `o.timeToAp`/`o.timeToPe` (read via the shared
+ * `useOrbitElements` hook) resolve to REAL values here because they only
+ * need `vessel.orbit`'s elements, already emitted below — no `system.bodies`
+ * dependency, unlike their apsis-altitude siblings. `o.ApA`/`o.PeA` (also via
+ * `useOrbitElements`) ARE mapped too, but stay `undefined` in this file:
+ * they need `system.bodies` for the reference body's radius
+ * (`vessel-state.ts`'s `deriveApsides`), and nothing here emits it — genuine
+ * "still resyncing," not a gap. `o.ApR`/`o.PeR`/`o.referenceBody`/`v.body`
+ * are the still-declared GAPS (`map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`) and
+ * stay legacy. With no legacy source registered in this file, every
+ * gapped/unresolved field renders its normal "no data" fallback ("—"), which
+ * is itself the assertion that a partially-mapped widget degrades
+ * gracefully.
+ *
+ * `carriedChannels` lists all FOUR of `vessel.state`'s declared inputs
+ * (`vessel.orbit`/`vessel.flight`/`vessel.identity`/`system.bodies`) even
+ * though most of the fields this widget reads only actually consult
+ * `vessel.orbit` — the carried-channels gate is parent-channel-scoped, not
+ * per-field (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
  */
 afterEach(() => {
   cleanup();
 });
 
 describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
-  it("reads sma/eccentricity/inclination/argPe off the real stream pipeline, not legacy", async () => {
+  it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+      ],
       pinnedUt: 10,
     });
 
@@ -48,12 +67,21 @@ describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
     // StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
+    // meanAnomalyAtEpoch: 0, epoch: pinnedUt (10) -> elapsed time is 0 at
+    // this frame, so trueAnomaly is exactly 0° (periapsis) regardless of
+    // eccentricity — a clean, hand-checkable value with no float-formatting
+    // ambiguity.
+    const sma = 682500;
+    const mu = 3.5316e12; // Kerbin's GM
     act(() => {
       fixture.emit("vessel.orbit", {
-        sma: 682500,
+        sma,
         ecc: 0.00367,
         inc: 0.3,
         argPe: 12.5,
+        mu,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
       });
     });
 
@@ -61,8 +89,21 @@ describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
     await waitFor(() => expect(screen.getByText("0.3°")).toBeTruthy());
     // Eccentricity (toFixed(4)) also renders off the mapped stream value.
     expect(screen.getByText("0.0037")).toBeTruthy();
-    // Ap/Pe/t-Ap/t-Pe/T/subtitle all read GAPPED keys — with no legacy
-    // source here they stay "—"/hidden rather than a fabricated value.
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(4);
+    // Period (T row, formatDuration) renders off the newly-mapped
+    // vessel.state.period — 2π·sqrt(sma³/mu), floored to whole seconds.
+    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31m 25s";
+    // the formula itself has its own dedicated unit coverage in
+    // vessel-state.test.ts.)
+    await waitFor(() => expect(screen.getByText("31m 25s")).toBeTruthy());
+    // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the newly-mapped
+    // vessel.state.timeToAp/timeToPe — meanAnomalyAtEpoch: 0, epoch: 10 ==
+    // pinnedUt means meanAnomaly is exactly 0 (periapsis) at this frame, so
+    // timeToPe is 0 and timeToAp is exactly half the period.
+    expect(screen.getByText("0s")).toBeTruthy();
+    expect(screen.getByText("15m 42s")).toBeTruthy();
+    // Ap/Pe are MAPPED but still unresolved here (system.bodies isn't
+    // emitted in this file); ApR/PeR/referenceBody/v.body are still declared
+    // GAPS. Either way they stay "—" rather than a fabricated value.
+    expect(screen.getAllByText("—").length).toBe(2);
   });
 });

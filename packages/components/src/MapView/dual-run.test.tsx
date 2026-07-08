@@ -54,7 +54,15 @@ describe("MapView — behavior-preservation golden dual-run (delay=0)", () => {
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "vessel.flight"],
+      // vessel.identity/system.bodies: vessel.state's carried-channels gate
+      // is parent-channel-scoped (M3 vessel-state-extend) — see the matching
+      // note in stream.test.tsx.
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+      ],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({

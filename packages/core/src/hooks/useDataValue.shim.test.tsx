@@ -113,16 +113,26 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
         // mapped topic only routes to the stream once its raw inputs are
         // actually carried. `StubTransport` doesn't declare
         // `carriedChannels` (it's test-scriptable, not a real serving
-        // guarantee), so this test explicitly promotes the two raw inputs
-        // `vessel.state.altitudeAsl` resolves to — the "dev-first per-topic
-        // opt-in" half of the gate. Without this, the mapped topic would
-        // stay on the legacy path and the rest of this test (which proves
-        // the DERIVED-channel wiring) would never even exercise the stream.
-        // See `useDataValue gate — carried-channels allowlist` below for the
-        // gate's own dedicated coverage.
+        // guarantee), so this test explicitly promotes the four raw inputs
+        // `vessel.state.altitudeAsl` resolves to (vessel-state-extend, M3:
+        // `vesselStateChannel.inputs` grew to include `vessel.identity`/
+        // `system.bodies` for `met`/apoapsides — the carried-channels gate
+        // is parent-channel-scoped, so EVERY `vessel.state.*` field,
+        // including this one, now needs all four carried, not just the two
+        // it happens to read) — the "dev-first per-topic opt-in" half of the
+        // gate. Without this, the mapped topic would stay on the legacy path
+        // and the rest of this test (which proves the DERIVED-channel
+        // wiring) would never even exercise the stream. See `useDataValue
+        // gate — carried-channels allowlist` below for the gate's own
+        // dedicated coverage.
         <TelemetryProvider
           client={client}
-          carriedChannels={["vessel.orbit", "vessel.flight"]}
+          carriedChannels={[
+            "vessel.orbit",
+            "vessel.flight",
+            "vessel.identity",
+            "system.bodies",
+          ]}
         >
           <Alt />
         </TelemetryProvider>,
@@ -137,6 +147,8 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
       // ever produces.
       expect(transport.isSubscribed("vessel.orbit")).toBe(true);
       expect(transport.isSubscribed("vessel.flight")).toBe(true);
+      expect(transport.isSubscribed("vessel.identity")).toBe(true);
+      expect(transport.isSubscribed("system.bodies")).toBe(true);
       expect(transport.isSubscribed("vessel.state.altitudeAsl")).toBe(false);
 
       // Feeding the legacy DataSource must NOT surface — the mapped key is
@@ -357,11 +369,20 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
       act(() => legacySource.emit("v.altitude", 1));
       expect(screen.getByText("alt:1")).toBeTruthy();
 
-      // Promote both inputs.
+      // Promote all four inputs (vessel-state-extend, M3: vessel.state.*'s
+      // carried-channels gate is parent-channel-scoped, so altitudeAsl needs
+      // vessel.identity/system.bodies carried too now, even though it
+      // doesn't itself read them — see vessel-state.ts's vesselStateChannel
+      // doc comment).
       rerender(
         <TelemetryProvider
           client={client}
-          carriedChannels={["vessel.orbit", "vessel.flight"]}
+          carriedChannels={[
+            "vessel.orbit",
+            "vessel.flight",
+            "vessel.identity",
+            "system.bodies",
+          ]}
         >
           <Alt />
         </TelemetryProvider>,

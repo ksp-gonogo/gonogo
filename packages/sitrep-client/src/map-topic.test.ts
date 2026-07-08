@@ -72,7 +72,15 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "o.orbitalSpeed")).toMatch(/^vessel\.state\./);
   });
 
-  it("gaps the 7 vessel.state.* keys with no real VesselState field yet (M2 bridge task Fix 2 — phantom-field mapTopic entries)", () => {
+  it("maps the 7 derivable orbital vessel.state.* keys (M3 vessel-state-extend un-gap — M2 bridge task Fix 2's phantom entries now have a real produced field)", () => {
+    expect(mapTopic("data", "v.missionTime")).toBe("vessel.state.met");
+    expect(mapTopic("data", "o.ApA")).toBe("vessel.state.apoapsisAlt");
+    expect(mapTopic("data", "o.PeA")).toBe("vessel.state.periapsisAlt");
+    expect(mapTopic("data", "o.period")).toBe("vessel.state.period");
+    expect(mapTopic("data", "o.timeToAp")).toBe("vessel.state.timeToAp");
+    expect(mapTopic("data", "o.timeToPe")).toBe("vessel.state.timeToPe");
+    expect(mapTopic("data", "o.trueAnomaly")).toBe("vessel.state.trueAnomaly");
+
     for (const key of [
       "v.missionTime",
       "o.ApA",
@@ -82,8 +90,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
       "o.timeToPe",
       "o.trueAnomaly",
     ]) {
-      expect(mapTopic("data", key)).toBeUndefined();
-      expect(isKnownTelemachusGap("data", key)).toBe(true);
+      expect(isKnownTelemachusGap("data", key)).toBe(false);
     }
   });
 

@@ -71,21 +71,41 @@ export interface StateVector {
 }
 
 /**
- * Solve for the state vector of `orbit` at time `ut` (UT seconds). Mirrors
- * `KeplerProvider.Solve`. Deterministic -- same inputs, same outputs, no
- * wall-clock/random dependence. Throws for parabolic/hyperbolic
- * eccentricities (ecc < 0 or ecc >= 1), same guard as the C# side.
+ * The angular part of a Kepler solve: mean anomaly (from the epoch + mean
+ * motion), eccentric anomaly (Newton-Raphson on Kepler's equation), and true
+ * anomaly -- everything `solve()` needs before it gets to the perifocal
+ * position/velocity. All in RADIANS. `meanMotion` (rad/s) is exposed
+ * alongside them so a caller that needs a period/time-to-apsis (derived from
+ * mean motion, not from any one anomaly) doesn't have to recompute
+ * `sqrt(mu/sma^3)` a second time.
  */
-export function solve(orbit: OrbitElements, ut: number): StateVector {
+export interface Anomalies {
+  meanAnomaly: number;
+  eccentricAnomaly: number;
+  trueAnomaly: number;
+  /** Mean motion, radians/second: `sqrt(mu / sma^3)`. */
+  meanMotion: number;
+}
+
+/**
+ * Solves for `orbit`'s mean/eccentric/true anomaly at time `ut` -- the exact
+ * angular computation `solve()` itself uses, exposed standalone for callers
+ * that need an anomaly (or the mean motion) without a full state vector
+ * (`vessel-state.ts`'s `trueAnomaly`/`period`/`timeToAp`/`timeToPe` derived
+ * fields). Reuses the SAME Newton-Raphson solve `solve()` calls below --
+ * never reimplement Kepler's equation a second time. Same ellipse-only guard
+ * as `solve()`.
+ */
+export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
   if (orbit.ecc < 0.0 || orbit.ecc >= 1.0) {
     throw new RangeError(
       `KeplerProvider only supports elliptical orbits (0 <= ecc < 1); got ecc=${orbit.ecc}`,
     );
   }
 
-  const n = Math.sqrt(orbit.mu / (orbit.sma * orbit.sma * orbit.sma));
+  const meanMotion = Math.sqrt(orbit.mu / (orbit.sma * orbit.sma * orbit.sma));
   const meanAnomaly = wrapTwoPi(
-    orbit.meanAnomalyAtEpoch + n * (ut - orbit.epoch),
+    orbit.meanAnomalyAtEpoch + meanMotion * (ut - orbit.epoch),
   );
 
   const eccentricAnomaly = solveEccentricAnomaly(meanAnomaly, orbit.ecc);
@@ -96,6 +116,19 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
       Math.sqrt(1.0 + orbit.ecc) * Math.sin(eccentricAnomaly / 2.0),
       Math.sqrt(1.0 - orbit.ecc) * Math.cos(eccentricAnomaly / 2.0),
     );
+
+  return { meanAnomaly, eccentricAnomaly, trueAnomaly, meanMotion };
+}
+
+/**
+ * Solve for the state vector of `orbit` at time `ut` (UT seconds). Mirrors
+ * `KeplerProvider.Solve`. Deterministic -- same inputs, same outputs, no
+ * wall-clock/random dependence. Throws for parabolic/hyperbolic
+ * eccentricities (ecc < 0 or ecc >= 1), same guard as the C# side (via
+ * `solveAnomalies`).
+ */
+export function solve(orbit: OrbitElements, ut: number): StateVector {
+  const { eccentricAnomaly, trueAnomaly } = solveAnomalies(orbit, ut);
 
   const radius = orbit.sma * (1.0 - orbit.ecc * Math.cos(eccentricAnomaly));
 

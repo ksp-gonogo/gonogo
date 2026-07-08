@@ -51,7 +51,16 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
   it("reads altitude/atmosphericDensity off the real stream pipeline, not legacy", async () => {
     registerStockBodies();
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "vessel.flight"],
+      // vessel.identity/system.bodies: vessel.state's carried-channels gate
+      // is parent-channel-scoped (M3 vessel-state-extend grew
+      // vesselStateChannel.inputs to four) — altitudeAsl needs all four
+      // carried even though it doesn't itself read the two new ones.
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+      ],
       pinnedUt: 10,
     });
 

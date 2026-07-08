@@ -96,6 +96,17 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.orbitalVelocity": "vessel.state.orbitalSpeed",
   "o.orbitalSpeed": "vessel.state.orbitalSpeed",
 
+  // --- vessel.state (M3 vessel-state-extend: derivable orbital fields —
+  // un-gapped now that deriveVesselState actually produces them, see
+  // vessel-state.ts) ---
+  "v.missionTime": "vessel.state.met",
+  "o.ApA": "vessel.state.apoapsisAlt",
+  "o.PeA": "vessel.state.periapsisAlt",
+  "o.period": "vessel.state.period",
+  "o.timeToAp": "vessel.state.timeToAp",
+  "o.timeToPe": "vessel.state.timeToPe",
+  "o.trueAnomaly": "vessel.state.trueAnomaly",
+
   // --- vessel.flight (raw measurements) ---
   "v.lat": "vessel.flight.latitude",
   "v.long": "vessel.flight.longitude",
@@ -204,25 +215,14 @@ const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
  * assert "mapped OR declared gap" without a silent third case.
  */
 export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
-  // --- M2 bridge task Fix 2: phantom vessel.state.* mapTopic targets. These
-  // 7 keys previously pointed at TELEMACHUS_CLEAN_HOMES entries under
-  // vessel.state.* that don't exist on the shipped VesselState (see
-  // vessel-state.ts) — met/apoapsisAlt/periapsisAlt/period/timeToAp/
-  // timeToPe/trueAnomaly are none of them fields deriveVesselState actually
-  // produces (it derives only position/velocity/altitudeAsl/verticalSpeed/
-  // surfaceSpeed/orbitalSpeed/basis/subjectId). A widget migrated onto one of
-  // these would have silently rendered a permanently-dead undefined instead
-  // of falling back to its working legacy DataSource read — the same
-  // dead-mapping class the mapTopic-target-is-a-real-field coverage test
-  // (vessel-state-mapping.coverage.test.ts) now guards against recurring.
-  // gap: needs vessel.state field (system.bodies/identity inputs) — M3
-  "v.missionTime",
-  "o.ApA",
-  "o.PeA",
-  "o.period",
-  "o.timeToAp",
-  "o.timeToPe",
-  "o.trueAnomaly",
+  // --- M2 bridge task Fix 2's phantom vessel.state.* mapTopic targets
+  // (met/apoapsisAlt/periapsisAlt/period/timeToAp/timeToPe/trueAnomaly) are
+  // UN-GAPPED as of M3 vessel-state-extend: deriveVesselState now actually
+  // produces all seven (vessel-state.ts, reading vessel.orbit's elements
+  // plus vessel.identity/system.bodies), so they moved up to
+  // TELEMACHUS_CLEAN_HOMES above. vessel-state-mapping.coverage.test.ts
+  // keeps enforcing "every vessel.state.* mapTopic target is a real produced
+  // field" so this class of dead-mapping bug can't silently recur.
 
   // --- CRITICAL-review shape-mismatch gaps (M2 Task 7 fix): each of these
   // was previously in TELEMACHUS_CLEAN_HOMES pointing at a new topic whose

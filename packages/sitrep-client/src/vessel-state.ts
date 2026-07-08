@@ -1,6 +1,6 @@
 import { Quality } from "@gonogo/sitrep-sdk";
 import type { OrbitElements, Vector3 } from "./kepler";
-import { solve } from "./kepler";
+import { solve, solveAnomalies } from "./kepler";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
@@ -51,17 +51,74 @@ export interface VesselFlightPayload {
 }
 
 /**
+ * The `vessel.identity` channel payload — hand-mirrored subset relevant to
+ * `deriveVesselState`'s `met` field (mirrors `mod/Sitrep.Contract/
+ * VesselIdentity.cs`; envelope `Meta`, same as `VesselOrbitPayload`/
+ * `VesselFlightPayload` above, is not part of this payload shape). `vesselType`/
+ * `situation` are the raw C# enum ordinals on the wire (no TS enum exists yet
+ * for either — see `map-topic.ts`'s note on `v.situationString`).
+ *
+ * `launchUt`: sampleUt - missionTime; `null` before the vessel's launch clock
+ * has started (see the C# class doc) — the source of `VesselState.met`'s own
+ * `null`-before-launch case.
+ */
+export interface VesselIdentityPayload {
+  vesselId: string;
+  name: string;
+  vesselType: number;
+  situation: number;
+  parentBodyIndex: number | null;
+  launchUt: number | null;
+}
+
+/** One body's orbital elements within `system.bodies` — `null` only for the root star (mirrors `SystemViewProvider.BuildOrbit`). Units match `VesselOrbitPayload`'s (degrees for inc/lan/argPe, radians for meanAnomalyAtEpoch). */
+export interface SystemBodyOrbitPayload {
+  sma: number | null;
+  ecc: number | null;
+  inc: number | null;
+  lan: number | null;
+  argPe: number | null;
+  meanAnomalyAtEpoch: number | null;
+  epoch: number | null;
+}
+
+/** One entry in the `system.bodies` array (mirrors `SystemViewProvider.BuildBody`). `index` — not array position — is the stable id `vessel.orbit.referenceBodyIndex`/`vessel.identity.parentBodyIndex` point at. */
+export interface SystemBodyPayload {
+  name: string | null;
+  index: number;
+  parentIndex: number | null;
+  /** Mean radius, metres. `null` when the live game hasn't reported it yet. */
+  radius: number | null;
+  orbit: SystemBodyOrbitPayload | null;
+}
+
+/** The `system.bodies` channel payload (mirrors `SystemViewProvider.BuildSystemBodies`'s `{ "bodies": [...] }` shape) — the source of `VesselState.apoapsisAlt`/`periapsisAlt`'s reference-body radius. */
+export interface SystemBodiesPayload {
+  bodies: SystemBodyPayload[];
+}
+
+/**
  * The quality-picked, widget-facing kinematic surface (M2 design §2.4; M1
  * §6.2/§8.2's `vessel.state` obligation — the V-12 dual-altitude fix).
  *
- * Scope note: this T3 cut derives ONLY from `vessel.orbit` + `vessel.flight`
- * (no `system.bodies`/`vessel.identity` inputs yet), so fields that need body
- * geometry (altitude-from-propagated-position, lat/long from rotation,
- * apsides, MET) are out of scope here and deferred to a later task that adds
- * those inputs. `altitudeAsl`/`verticalSpeed`/`surfaceSpeed` are populated
- * only in the "measured" (Loaded) basis, straight off `vessel.flight` — see
+ * Scope note: the original T3 cut derived ONLY from `vessel.orbit` +
+ * `vessel.flight` (no `system.bodies`/`vessel.identity` inputs), so fields
+ * needing body geometry or the launch clock were out of scope. This M3 task
+ * adds seven fields that ARE derivable from already-served data —
+ * `met`/`period`/`trueAnomaly`/`apoapsisAlt`/`periapsisAlt`/`timeToAp`/
+ * `timeToPe` — reading `vessel.identity` (for `met`'s `launchUt`) and
+ * `system.bodies` (for the apsides' reference-body radius) alongside the
+ * original two inputs. `altitude-from-propagated-position`/`lat-long-from-
+ * rotation` still need more than these seven do and remain deferred.
+ * `altitudeAsl`/`verticalSpeed`/`surfaceSpeed` are populated only in the
+ * "measured" (Loaded) basis, straight off `vessel.flight` — see
  * `deriveVesselState`'s doc for why the "propagated" (OnRails) basis leaves
- * them `null` rather than fabricating a body-less approximation.
+ * them `null` rather than fabricating a body-less approximation. The seven
+ * new fields below take the OPPOSITE split — orbital-elements-derived, so
+ * they're OnRails-only and `null` in the "measured" basis, same reasoning
+ * (Loaded-basis orbital elements are osculating garbage, not a trajectory
+ * worth deriving a period/apsis/anomaly from — this file's own doc on the
+ * OnRails/Loaded branches explains the "osculating garbage" call).
  */
 export interface VesselState {
   /** Parent-body-relative, metres. `null` in the "measured" basis — `vessel.flight` carries no position vector (needs `system.bodies` to reconstruct one; deferred). */
@@ -74,6 +131,50 @@ export interface VesselState {
   surfaceSpeed: number | null;
   /** m/s. Populated in BOTH bases: propagated from `|velocity|` when on-rails, taken straight from `vessel.flight.orbitalSpeed` when loaded. */
   orbitalSpeed: number | null;
+  /**
+   * Mission elapsed time, seconds: `viewUt - vessel.identity.launchUt`.
+   * OnRails basis only (see class doc); `null` in the "measured" basis,
+   * before launch (`launchUt` still `null` on `vessel.identity`), while
+   * `vessel.identity` hasn't arrived yet (a secondary input — its absence
+   * nulls this ONE field, not the whole record), or on a non-finite result.
+   */
+  met: number | null;
+  /**
+   * Orbital period, seconds: `2π·sqrt(sma³/mu)`. OnRails basis only; `null`
+   * in the "measured" basis or on a non-finite result (e.g. a degenerate
+   * `mu`).
+   */
+  period: number | null;
+  /**
+   * True anomaly at `viewUt`, DEGREES wrapped to [0, 360) — the Telemachus/
+   * KSP widget-facing convention (`vessel.orbit.inc`/`argPe`'s own
+   * precedent; `kepler.ts`'s internal radians are converted at this
+   * boundary, never leaked past it). OnRails basis only; `null` in the
+   * "measured" basis. Reuses `kepler.solveAnomalies` — never a second Kepler
+   * solve.
+   */
+  trueAnomaly: number | null;
+  /**
+   * Apoapsis altitude above the reference body's mean radius, metres:
+   * `sma·(1+ecc) - bodyRadius`. OnRails basis only. `undefined` while
+   * `system.bodies` isn't whole yet, or is whole but doesn't (yet) carry the
+   * referenced body's radius — both "still resyncing", never conflated with
+   * `null` (see the class-level `undefined` vs `null` discipline, applied
+   * here at the FIELD level: `system.bodies` tombstoned is a confirmed
+   * absence and DOES map to `null`). `null` in the "measured" basis or on a
+   * non-finite result.
+   */
+  apoapsisAlt: number | null | undefined;
+  /** Periapsis altitude above the reference body's mean radius, metres: `sma·(1-ecc) - bodyRadius`. Same basis/`undefined`-vs-`null` rules as `apoapsisAlt`. */
+  periapsisAlt: number | null | undefined;
+  /**
+   * Seconds from `viewUt` until the mean anomaly next reaches apoapsis (π),
+   * wrapped forward — 0 if already there. OnRails basis only; `null` in the
+   * "measured" basis or on a non-finite/non-positive mean motion.
+   */
+  timeToAp: number | null;
+  /** Seconds from `viewUt` until the mean anomaly next reaches periapsis (0), wrapped forward. Same basis/finite-guard rules as `timeToAp`. */
+  timeToPe: number | null;
   /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
   basis: "propagated" | "measured";
   /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
@@ -86,6 +187,91 @@ function magnitude(v: Vector3): number {
 
 function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
+}
+
+function radToDeg(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+/** Wraps a degree value into [0, 360) — the Telemachus/KSP widget-facing angle convention (contrast `kepler.ts`'s internal [0, 2π) radian wrap). */
+function wrapDegrees360(deg: number): number {
+  const wrapped = deg % 360;
+  return wrapped < 0 ? wrapped + 360 : wrapped;
+}
+
+/** `x` if finite, else `null` — the discipline every new derived scalar field in this file follows (never a NaN/Infinity escapes onto `VesselState`). */
+function finiteOrNull(x: number): number | null {
+  return Number.isFinite(x) ? x : null;
+}
+
+/**
+ * Seconds from `meanAnomaly` (radians) until the mean anomaly next reaches
+ * `targetMeanAnomaly` (radians), wrapped forward to `[0, period)` — 0 when
+ * already there. `null` for a non-finite or non-positive `meanMotion` (never
+ * divide by zero/negative — a degenerate orbit has no well-defined period to
+ * count down within).
+ */
+function timeToMeanAnomaly(
+  meanAnomaly: number,
+  targetMeanAnomaly: number,
+  meanMotion: number,
+): number | null {
+  if (
+    !Number.isFinite(meanAnomaly) ||
+    !Number.isFinite(targetMeanAnomaly) ||
+    !Number.isFinite(meanMotion) ||
+    meanMotion <= 0
+  ) {
+    return null;
+  }
+  const twoPi = 2 * Math.PI;
+  let delta = (targetMeanAnomaly - meanAnomaly) % twoPi;
+  if (delta < 0) delta += twoPi;
+  return delta / meanMotion;
+}
+
+/**
+ * The apoapsis/periapsis altitude pair — needs the reference body's mean
+ * radius from `system.bodies`, looked up by `orbit.referenceBodyIndex`
+ * (`SystemBodyPayload.index`, the STABLE id, never array position). Kept as
+ * its own function so `deriveVesselState`'s OnRails branch reads as a flat
+ * list of field computations rather than an inline `system.bodies`-walking
+ * block.
+ *
+ * `undefined` (not whole yet — "still resyncing") both when `system.bodies`
+ * itself hasn't arrived and when it HAS arrived but the referenced body (or
+ * its radius specifically) isn't in it yet — neither is a confirmed absence.
+ * `null` only when `system.bodies` is an outright tombstone (the channel's
+ * own confirmed-absent case, per the class-level `undefined`-vs-`null`
+ * discipline applied here at the field level).
+ */
+function deriveApsides(
+  get: DerivedGet,
+  orbit: VesselOrbitPayload,
+): {
+  apoapsisAlt: number | null | undefined;
+  periapsisAlt: number | null | undefined;
+} {
+  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
+  if (!bodiesPoint) {
+    return { apoapsisAlt: undefined, periapsisAlt: undefined };
+  }
+  if (bodiesPoint.payload === null) {
+    return { apoapsisAlt: null, periapsisAlt: null };
+  }
+
+  const body = bodiesPoint.payload.bodies.find(
+    (b) => b.index === orbit.referenceBodyIndex,
+  );
+  const radius = body?.radius;
+  if (radius == null) {
+    return { apoapsisAlt: undefined, periapsisAlt: undefined };
+  }
+
+  return {
+    apoapsisAlt: finiteOrNull(orbit.sma * (1 + orbit.ecc) - radius),
+    periapsisAlt: finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius),
+  };
 }
 
 /**
@@ -104,7 +290,15 @@ function degToRad(deg: number): number {
  *   case — substituting 0 doesn't change the resulting state vector, it just
  *   picks an arbitrary node/apsis reference on a circle where none is
  *   physically distinguished), then `kepler.solve(elements, viewUt)` for
- *   position/velocity. `basis: "propagated"`.
+ *   position/velocity, plus `kepler.solveAnomalies(elements, viewUt)` for
+ *   `period`/`trueAnomaly`/`timeToAp`/`timeToPe` (M3: derivable straight from
+ *   the same elements, no extra input). `met` additionally reads
+ *   `vessel.identity.launchUt`; `apoapsisAlt`/`periapsisAlt` additionally
+ *   read `system.bodies` for the reference body's radius (`deriveApsides`).
+ *   Both are now declared in `vesselStateChannel.inputs` (see that const's
+ *   own doc comment for why growing that array is a real, deliberate,
+ *   repo-wide change and not a free extra input to add lightly). `basis:
+ *   "propagated"`.
  * - **Loaded** (powered/atmospheric): elements are osculating garbage for
  *   surface quantities, so altitude/vertical/surface speed come off
  *   `vessel.flight` at `viewUt` via `getInterpolated` — a straight-line lerp
@@ -154,6 +348,34 @@ export function deriveVesselState(
       mu: orbit.mu,
     };
     const { position, velocity } = solve(elements, viewUt);
+    const anomalies = solveAnomalies(elements, viewUt);
+
+    const period = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
+    const trueAnomaly = finiteOrNull(
+      wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
+    );
+    const timeToAp = timeToMeanAnomaly(
+      anomalies.meanAnomaly,
+      Math.PI,
+      anomalies.meanMotion,
+    );
+    const timeToPe = timeToMeanAnomaly(
+      anomalies.meanAnomaly,
+      0,
+      anomalies.meanMotion,
+    );
+
+    // A secondary input: its own absence nulls ONLY `met`, not the whole
+    // record (contrast `vessel.orbit`/`vessel.flight` above, whose absence
+    // is a whole-record `undefined`/`null`) — see `VesselState.met`'s doc.
+    const identityPoint = get<VesselIdentityPayload>("vessel.identity");
+    const launchUt =
+      identityPoint && identityPoint.payload !== null
+        ? identityPoint.payload.launchUt
+        : null;
+    const met = launchUt == null ? null : finiteOrNull(viewUt - launchUt);
+
+    const { apoapsisAlt, periapsisAlt } = deriveApsides(get, orbit);
 
     return {
       position,
@@ -162,12 +384,21 @@ export function deriveVesselState(
       verticalSpeed: null,
       surfaceSpeed: null,
       orbitalSpeed: magnitude(velocity),
+      met,
+      period,
+      trueAnomaly,
+      apoapsisAlt,
+      periapsisAlt,
+      timeToAp,
+      timeToPe,
       basis: "propagated",
       subjectId,
     };
   }
 
-  // Loaded.
+  // Loaded — orbital elements are osculating garbage here (same reasoning
+  // position/velocity aren't propagated in this basis), so all seven
+  // orbital-derived fields stay null rather than deriving anything from them.
   const flightPoint = getInterpolated<VesselFlightPayload>("vessel.flight");
   if (!flightPoint) return undefined; // not whole yet — no point at all
   if (flightPoint.payload === null) return null; // tombstone — vessel confirmed absent
@@ -180,6 +411,13 @@ export function deriveVesselState(
     verticalSpeed: flight.verticalSpeed,
     surfaceSpeed: flight.surfaceSpeed,
     orbitalSpeed: flight.orbitalSpeed,
+    met: null,
+    period: null,
+    trueAnomaly: null,
+    apoapsisAlt: null,
+    periapsisAlt: null,
+    timeToAp: null,
+    timeToPe: null,
     basis: "measured",
     subjectId,
   };
@@ -226,10 +464,32 @@ export function deriveVesselStateStatus(
  * `fields: true` exposes `vessel.state.<field>` subtopics (e.g.
  * `vessel.state.altitudeAsl`) reading off this one memoized record, per
  * `TimelineStore`'s field-subtopic mechanism.
+ *
+ * `inputs` grew to four with the M3 vessel-state-extend task
+ * (`vessel.identity`/`system.bodies`, for `met`/`apoapsisAlt`/`periapsisAlt`
+ * — see `deriveVesselState`'s doc). This array is NOT just documentation: the
+ * M3 carried-channels gate (`carried-channels.ts`'s `isTopicCarried`, via
+ * `TimelineStore.resolveSubscriptionTopics`) is PARENT-CHANNEL-scoped, not
+ * per-field — a consumer of ANY `vessel.state.*` field (including the
+ * already-shipped `altitudeAsl`/`orbitalSpeed`) is only "carried" once ALL
+ * FOUR inputs are in its `carriedChannels` allowlist, not just the ones the
+ * particular field it reads actually consults. Every existing
+ * `carriedChannels` allowlist that lists `vessel.orbit`/`vessel.flight` for
+ * a `vessel.state.*` read was updated alongside this change to also list
+ * `vessel.identity`/`system.bodies` (harmless additions — a topic never
+ * emitted on a given test's transport simply never arrives, same as any
+ * other declared-but-quiet input). The alternative — leaving this array at
+ * two and reading the new inputs via `get()` without declaring them — was
+ * tried and rejected: it left `met`/`apoapsisAlt`/`periapsisAlt` "carried"
+ * (since the gate only checks the declared two) but their extra inputs never
+ * actually subscribed, so they'd read as a PERMANENT stuck `undefined`
+ * instead of falling back to the still-working legacy `DataSource` read —
+ * exactly the "big-bang blank-out" class of bug the carried-channels gate
+ * exists to prevent (`carried-channels.ts`'s own doc comment).
  */
 export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   topic: "vessel.state",
-  inputs: ["vessel.orbit", "vessel.flight"],
+  inputs: ["vessel.orbit", "vessel.flight", "vessel.identity", "system.bodies"],
   derive: deriveVesselState,
   deriveStatus: deriveVesselStateStatus,
   fields: true,

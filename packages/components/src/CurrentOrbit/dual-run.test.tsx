@@ -19,27 +19,44 @@ import { CurrentOrbitComponent } from "./index";
  * `circular-lko` is chosen because it populates every field the widget
  * reads, including `showDiagram`'s default-true mini orbit diagram
  * (`hasOrbit` needs `o.ApR`/`o.PeR`, both GAPPED) — the widest MIXED-source
- * shape of the batch-2 four: 4 MAPPED `vessel.orbit.*` fields (sma/
- * eccentricity/inclination/argumentOfPeriapsis) coexisting with 10 GAPPED
- * legacy-AUX fields (ApA/PeA/ApR/PeR/trueAnomaly/period/timeToAp/timeToPe/
- * referenceBody/v.body) feeding the SAME diagram and grid on one render.
+ * shape: 6 MAPPED fields (sma/eccentricity/inclination/argumentOfPeriapsis
+ * raw off `vessel.orbit`, plus period/trueAnomaly/timeToAp/timeToPe/ApA/PeA
+ * derived off `vessel.state` — M3 vessel-state-extend un-gapped all six)
+ * coexisting with 4 GAPPED legacy-AUX fields (ApR/PeR/referenceBody/v.body)
+ * feeding the SAME diagram and grid on one render.
+ *
+ * ApA/PeA/period/trueAnomaly/timeToAp/timeToPe are all DERIVED from the same
+ * `vessel.orbit` elements (plus `system.bodies`' reference-body radius for
+ * the two apsides) at the pinned `viewUt` — computed here with the exact
+ * same formulas `vessel-state.ts` uses (never hand-picked magic numbers)
+ * so the LEGACY leg's static `circular-lko` fixture values can be
+ * overridden to match EXACTLY what the STREAM leg will independently
+ * derive, keeping the dual-run byte-identical without relying on
+ * coincidental rounding.
  */
 afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = [
-  "o.ApA",
-  "o.PeA",
-  "o.ApR",
-  "o.PeR",
-  "o.trueAnomaly",
-  "o.period",
-  "o.timeToAp",
-  "o.timeToPe",
-  "o.referenceBody",
-  "v.body",
-] as const;
+const GAPPED_KEYS = ["o.ApR", "o.PeR", "o.referenceBody", "v.body"] as const;
+
+// The one orbit state driving BOTH legs. meanAnomalyAtEpoch: 0, epoch:
+// PINNED_UT means meanAnomaly is exactly 0 (periapsis) at the pinned view
+// time, so trueAnomaly is a clean 0° and timeToPe a clean 0s — no
+// inverse-Kepler reconstruction needed to hit a specific legacy fixture
+// angle. The reference body radius (600,000 m) is chosen to land ApA/PeA
+// close to the original fixture's illustrative 85/80 km (implied by its own
+// ApR - ApA / PeR - PeA = 600,000 m).
+const PINNED_UT = 10;
+const SMA = 682500;
+const ECC = 0.00367;
+const MU = 3.5316e12; // Kerbin's GM
+const BODY_RADIUS = 600_000;
+const PERIOD = 2 * Math.PI * Math.sqrt(SMA ** 3 / MU);
+const MEAN_MOTION = Math.sqrt(MU / SMA ** 3);
+const TIME_TO_AP = Math.PI / MEAN_MOTION; // meanAnomaly 0 -> π is half the period
+const APOAPSIS_ALT = SMA * (1 + ECC) - BODY_RADIUS;
+const PERIAPSIS_ALT = SMA * (1 - ECC) - BODY_RADIUS;
 
 describe("CurrentOrbit — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same orbit state", async () => {
@@ -47,14 +64,33 @@ describe("CurrentOrbit — behavior-preservation golden dual-run (delay=0)", () 
 
     const legacyHtml = await snapshotWidgetMode({
       Widget: CurrentOrbitComponent,
-      fixture: circularLko,
+      fixture: {
+        ...circularLko,
+        "o.trueAnomaly": 0,
+        "o.period": PERIOD,
+        "o.timeToAp": TIME_TO_AP,
+        "o.timeToPe": 0,
+        "o.ApA": APOAPSIS_ALT,
+        "o.PeA": PERIAPSIS_ALT,
+      },
       mode,
       connectSource: true,
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
-      pinnedUt: 10,
+      // vessel.identity/system.bodies: vessel.state's carried-channels gate
+      // is parent-channel-scoped (M3 vessel-state-extend grew
+      // vesselStateChannel.inputs to four) — every field this widget now
+      // reads off vessel.state needs all four carried, even the ones (like
+      // period/timeToAp/timeToPe) that don't themselves consult
+      // vessel.identity/system.bodies.
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+      ],
+      pinnedUt: PINNED_UT,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -78,21 +114,45 @@ describe("CurrentOrbit — behavior-preservation golden dual-run (delay=0)", () 
         );
       }
       streamFixture.emit("vessel.orbit", {
+        referenceBodyIndex: 1,
         sma: circularLko["o.sma"],
         ecc: circularLko["o.eccentricity"],
         inc: circularLko["o.inclination"],
         argPe: circularLko["o.argumentOfPeriapsis"],
+        mu: MU,
+        meanAnomalyAtEpoch: 0,
+        epoch: PINNED_UT,
+      });
+      streamFixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: BODY_RADIUS,
+            orbit: null,
+          },
+        ],
       });
     });
 
     // "Kerbin" alone isn't sufficient — that text comes from the legacy AUX
     // source's o.referenceBody, which can land before the STREAM leg's
-    // mapped vessel.orbit emission has actually propagated through the
-    // store. Wait on a value the stream leg alone produces (the
+    // mapped vessel.orbit/system.bodies emissions have actually propagated
+    // through the store. Wait on a value the stream leg alone produces (the
     // inclination readout) so the race can't produce a false green.
     await waitFor(() => {
       if (!container.textContent?.includes("0.3°")) {
         throw new Error("stream leg has not rendered inclination yet");
+      }
+    });
+    // Also wait on the period readout specifically — it's the field this
+    // task un-gapped, and it only resolves once BOTH the emit above AND a
+    // frame tick have landed (TelemetryProvider coalesces beginFrame() to
+    // the next animation frame rather than firing synchronously).
+    await waitFor(() => {
+      if (!container.textContent?.includes("31m 25s")) {
+        throw new Error("stream leg has not rendered period yet");
       }
     });
 

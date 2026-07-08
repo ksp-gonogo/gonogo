@@ -21,8 +21,13 @@ export {
   DEFAULT_KEYFRAME_INTERVAL_UT,
   HeartbeatTracker,
 } from "./heartbeat-tracker";
-export type { OrbitElements, StateVector, Vector3 } from "./kepler";
-export { solve } from "./kepler";
+export type {
+  Anomalies,
+  OrbitElements,
+  StateVector,
+  Vector3,
+} from "./kepler";
+export { solve, solveAnomalies } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export type { GetCurrentValue, MappedCommand } from "./map-command";
 export {
