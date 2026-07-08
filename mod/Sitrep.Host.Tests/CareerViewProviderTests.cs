@@ -55,16 +55,18 @@ namespace Sitrep.Host.Tests
                         {
                             ["LaunchPad"] = new Dictionary<string, object?>
                             {
-                                ["level"] = 0.5,
-                                ["levelCount"] = 3,
+                                ["currentTier"] = 1,
+                                ["maxTier"] = 2,
                                 ["upgradeCost"] = 74_000.0,
                             },
                             // Not in the Space Center scene when captured -
-                            // levelCount/upgradeCost genuinely unavailable.
+                            // currentTier/maxTier/upgradeCost genuinely
+                            // unavailable (all three share one live-facility
+                            // gate - see KspHost.BuildCareerFacilities).
                             ["VehicleAssemblyBuilding"] = new Dictionary<string, object?>
                             {
-                                ["level"] = 1.0,
-                                ["levelCount"] = null,
+                                ["currentTier"] = null,
+                                ["maxTier"] = null,
                                 ["upgradeCost"] = null,
                             },
                         },
@@ -74,6 +76,7 @@ namespace Sitrep.Host.Tests
                             {
                                 new Dictionary<string, object?>
                                 {
+                                    ["id"] = "123456789012345",
                                     ["title"] = "Rescue Jebediah Kerman",
                                     ["agent"] = "Kerbin Rescue Corps",
                                     ["state"] = "Active",
@@ -86,12 +89,21 @@ namespace Sitrep.Host.Tests
                                     ["dateAccepted"] = 1000.0,
                                     ["dateDeadline"] = 500000.0,
                                     ["dateExpire"] = 0.0,
+                                    ["parameters"] = new List<object?>
+                                    {
+                                        new Dictionary<string, object?>
+                                        {
+                                            ["title"] = "Rescue Jebediah Kerman from orbit",
+                                            ["state"] = "Incomplete",
+                                        },
+                                    },
                                 },
                             },
                             ["offered"] = new List<object?>
                             {
                                 new Dictionary<string, object?>
                                 {
+                                    ["id"] = "987654321098765",
                                     ["title"] = "Test a Part on the Launchpad",
                                     ["agent"] = "Kerbin Space Program",
                                     ["state"] = "Offered",
@@ -104,6 +116,7 @@ namespace Sitrep.Host.Tests
                                     ["dateAccepted"] = 0.0,
                                     ["dateDeadline"] = 0.0,
                                     ["dateExpire"] = 200000.0,
+                                    ["parameters"] = new List<object?>(),
                                 },
                             },
                         },
@@ -113,9 +126,72 @@ namespace Sitrep.Host.Tests
                             {
                                 new Dictionary<string, object?>
                                 {
+                                    ["id"] = "OutsourceRnDStrategy",
                                     ["title"] = "Outsourced R&D",
+                                    ["description"] = "Outsource research to third parties.",
                                     ["department"] = "Science",
+                                    ["isActive"] = true,
                                     ["factor"] = 0.75,
+                                    ["dateActivated"] = 5000.0,
+                                    ["requiredReputation"] = 0.0,
+                                    ["initialCostFunds"] = 0.0,
+                                    ["initialCostScience"] = 0.0,
+                                    ["initialCostReputation"] = 10.0,
+                                    ["hasFactorSlider"] = true,
+                                    ["factorSliderDefault"] = 0.5,
+                                    ["factorSliderSteps"] = 10,
+                                    ["canActivate"] = false,
+                                    ["activateBlockedReason"] = "Already active",
+                                    ["canDeactivate"] = true,
+                                    ["deactivateBlockedReason"] = "",
+                                    ["effect"] = "Converts science into funds.",
+                                },
+                            },
+                            ["all"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "OutsourceRnDStrategy",
+                                    ["title"] = "Outsourced R&D",
+                                    ["description"] = "Outsource research to third parties.",
+                                    ["department"] = "Science",
+                                    ["isActive"] = true,
+                                    ["factor"] = 0.75,
+                                    ["dateActivated"] = 5000.0,
+                                    ["requiredReputation"] = 0.0,
+                                    ["initialCostFunds"] = 0.0,
+                                    ["initialCostScience"] = 0.0,
+                                    ["initialCostReputation"] = 10.0,
+                                    ["hasFactorSlider"] = true,
+                                    ["factorSliderDefault"] = 0.5,
+                                    ["factorSliderSteps"] = 10,
+                                    ["canActivate"] = false,
+                                    ["activateBlockedReason"] = "Already active",
+                                    ["canDeactivate"] = true,
+                                    ["deactivateBlockedReason"] = "",
+                                    ["effect"] = "Converts science into funds.",
+                                },
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "BureaucracyStrategy",
+                                    ["title"] = "Bureaucracy",
+                                    ["description"] = "Bureaucratic overhead.",
+                                    ["department"] = "Admin",
+                                    ["isActive"] = false,
+                                    ["factor"] = 0.0,
+                                    ["dateActivated"] = 0.0,
+                                    ["requiredReputation"] = 0.0,
+                                    ["initialCostFunds"] = 1000.0,
+                                    ["initialCostScience"] = 0.0,
+                                    ["initialCostReputation"] = 0.0,
+                                    ["hasFactorSlider"] = false,
+                                    ["factorSliderDefault"] = 0.0,
+                                    ["factorSliderSteps"] = 1,
+                                    ["canActivate"] = true,
+                                    ["activateBlockedReason"] = "",
+                                    ["canDeactivate"] = false,
+                                    ["deactivateBlockedReason"] = "Not active",
+                                    ["effect"] = "",
                                 },
                             },
                             ["activeCount"] = 1,
@@ -124,6 +200,33 @@ namespace Sitrep.Host.Tests
                         {
                             ["unlockedCount"] = 2,
                             ["unlockedIds"] = new List<object?> { "start", "basicRocketry" },
+                            ["nodes"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "start",
+                                    ["title"] = "Start",
+                                    ["scienceCost"] = 0.0,
+                                    ["unlocked"] = true,
+                                    ["parents"] = new List<object?>(),
+                                },
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "basicRocketry",
+                                    ["title"] = "Basic Rocketry",
+                                    ["scienceCost"] = 5.0,
+                                    ["unlocked"] = true,
+                                    ["parents"] = new List<object?> { "start" },
+                                },
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "generalRocketry",
+                                    ["title"] = "General Rocketry",
+                                    ["scienceCost"] = 15.0,
+                                    ["unlocked"] = false,
+                                    ["parents"] = new List<object?> { "basicRocketry" },
+                                },
+                            },
                         },
                     },
                 },
@@ -140,34 +243,60 @@ namespace Sitrep.Host.Tests
 
             var facilities = Assert.IsType<Dictionary<string, object?>>(root["facilities"]);
             var launchPad = Assert.IsType<Dictionary<string, object?>>(facilities["LaunchPad"]);
-            Assert.Equal(0.5, launchPad["level"]);
-            Assert.Equal(3, launchPad["levelCount"]);
+            Assert.Equal(1, launchPad["currentTier"]);
+            Assert.Equal(2, launchPad["maxTier"]);
             Assert.Equal(74_000.0, launchPad["upgradeCost"]);
             var vab = Assert.IsType<Dictionary<string, object?>>(facilities["VehicleAssemblyBuilding"]);
-            Assert.Equal(1.0, vab["level"]);
-            Assert.Null(vab["levelCount"]); // scene-gated field, genuinely unavailable
+            Assert.Null(vab["currentTier"]); // scene-gated field, genuinely unavailable
+            Assert.Null(vab["maxTier"]);
             Assert.Null(vab["upgradeCost"]);
 
             var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
             var active = Assert.IsType<List<object?>>(contracts["active"]);
             var activeContract = Assert.IsType<Dictionary<string, object?>>(Assert.Single(active));
+            Assert.Equal("123456789012345", activeContract["id"]);
             Assert.Equal("Rescue Jebediah Kerman", activeContract["title"]);
             Assert.Equal("Kerbin Rescue Corps", activeContract["agent"]);
             Assert.Equal("Active", activeContract["state"]);
             Assert.Equal(15000.0, activeContract["fundsCompletion"]);
+            var activeContractParams = Assert.IsType<List<object?>>(activeContract["parameters"]);
+            var activeContractParam = Assert.IsType<Dictionary<string, object?>>(Assert.Single(activeContractParams));
+            Assert.Equal("Rescue Jebediah Kerman from orbit", activeContractParam["title"]);
+            Assert.Equal("Incomplete", activeContractParam["state"]);
             var offered = Assert.IsType<List<object?>>(contracts["offered"]);
-            Assert.Single(offered);
+            var offeredContract = Assert.IsType<Dictionary<string, object?>>(Assert.Single(offered));
+            Assert.Equal("987654321098765", offeredContract["id"]);
+            Assert.Empty(Assert.IsType<List<object?>>(offeredContract["parameters"]));
 
             var strategies = Assert.IsType<Dictionary<string, object?>>(root["strategies"]);
             var activeStrategies = Assert.IsType<List<object?>>(strategies["active"]);
             var strategy = Assert.IsType<Dictionary<string, object?>>(Assert.Single(activeStrategies));
+            Assert.Equal("OutsourceRnDStrategy", strategy["id"]);
             Assert.Equal("Outsourced R&D", strategy["title"]);
             Assert.Equal("Science", strategy["department"]);
             Assert.Equal(0.75, strategy["factor"]);
+            Assert.Equal(10.0, strategy["initialCostReputation"]);
+            Assert.Equal(false, strategy["canActivate"]);
+            Assert.Equal(true, strategy["canDeactivate"]);
             Assert.Equal(1, strategies["activeCount"]);
+            var allStrategies = Assert.IsType<List<object?>>(strategies["all"]);
+            Assert.Equal(2, allStrategies.Count);
+            var inactiveStrategy = Assert.IsType<Dictionary<string, object?>>(allStrategies[1]);
+            Assert.Equal("BureaucracyStrategy", inactiveStrategy["id"]);
+            Assert.Equal(false, inactiveStrategy["isActive"]);
+            Assert.Equal(true, inactiveStrategy["canActivate"]);
 
             var tech = Assert.IsType<Dictionary<string, object?>>(root["tech"]);
             Assert.Equal(2, tech["unlockedCount"]);
+            var techNodes = Assert.IsType<List<object?>>(tech["nodes"]);
+            Assert.Equal(3, techNodes.Count);
+            var generalRocketry = Assert.IsType<Dictionary<string, object?>>(techNodes[2]);
+            Assert.Equal("generalRocketry", generalRocketry["id"]);
+            Assert.Equal("General Rocketry", generalRocketry["title"]);
+            Assert.Equal(15.0, generalRocketry["scienceCost"]);
+            Assert.Equal(false, generalRocketry["unlocked"]);
+            var generalRocketryParents = Assert.IsType<List<object?>>(generalRocketry["parents"]);
+            Assert.Equal("basicRocketry", Assert.Single(generalRocketryParents));
             var ids = Assert.IsType<List<object?>>(tech["unlockedIds"]);
             Assert.Equal(2, ids.Count);
 

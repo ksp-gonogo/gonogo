@@ -1192,28 +1192,34 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Per-facility level/upgrade-cost, keyed by the raw
-        /// <c>SpaceCenterFacility</c> enum name (e.g. <c>"LaunchPad"</c>).
-        /// <c>level</c> is <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c>'s
-        /// own NORMALIZED [0,1] reading (confirmed via decompile - there is
-        /// no separate raw-integer-level accessor); <c>levelCount</c> is the
-        /// number of upgrade tiers, but ONLY resolvable while the facility's
-        /// live <c>UpgradeableFacility</c> GameObject is registered (i.e.
-        /// standing in the Space Center scene) - confirmed via decompile
-        /// that <c>ProtoUpgradeable.GetLevelCount()</c> returns the
-        /// sentinel <c>-1</c> otherwise, which is mapped to <c>null</c> here
-        /// rather than surfaced. <c>upgradeCost</c> (next-level funds cost)
-        /// comes from the same live-facility-only
-        /// <c>UpgradeableFacility.GetUpgradeCost()</c>, reached via
-        /// <c>ScenarioUpgradeableFacilities.protoUpgradeables</c> keyed by
-        /// <c>SlashSanitize(name)</c> (confirmed via decompile: the real
-        /// dictionary key is <c>"SpaceCenter/&lt;FacilityName&gt;"</c>, not
-        /// the bare enum name - <c>SlashSanitize</c> is the exact public API
-        /// that does that prefixing, used here instead of hand-rolling the
-        /// prefix so this stays correct if that convention ever changes).
-        /// Both <c>levelCount</c> and <c>upgradeCost</c> are commonly
-        /// <c>null</c> outside the Space Center scene - that's a genuine
-        /// "not available right now," not a bug.
+        /// Per-facility INTEGER tier/upgrade-cost, keyed by the raw
+        /// <c>SpaceCenterFacility</c> enum name (e.g. <c>"LaunchPad"</c> -
+        /// decompile-confirmed exact 9-member set: Administration/
+        /// AstronautComplex/LaunchPad/MissionControl/ResearchAndDevelopment/
+        /// Runway/TrackingStation/SpaceplaneHangar/VehicleAssemblyBuilding).
+        ///
+        /// <para>M3b career-detail capture-add: switched off the OLD
+        /// <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c> fractional
+        /// [0,1] reading (which the KSC widget can't turn into a tier
+        /// without also knowing the tier count) and onto
+        /// <c>UpgradeableFacility.FacilityLevel</c>/<c>MaxLevel</c> - both
+        /// confirmed via decompile as plain <c>int</c> properties on the
+        /// LIVE facility object (0-based: tier 0 is the starting/unupgraded
+        /// tier, <c>MaxLevel</c> is the top tier's own index, e.g. 2 for a
+        /// 3-tier facility). Reached the exact same way the old
+        /// <c>upgradeCost</c> capture already did -
+        /// <c>ScenarioUpgradeableFacilities.protoUpgradeables[SlashSanitize(name)]
+        /// .facilityRefs[0]</c> - so <c>currentTier</c>/<c>maxTier</c>/
+        /// <c>upgradeCost</c> share ONE gate: all three are only resolvable
+        /// while the facility's live <c>UpgradeableFacility</c> GameObject
+        /// is registered (i.e. standing in the Space Center scene;
+        /// confirmed via decompile that <c>ScenarioUpgradeableFacilities.
+        /// GetFacilityLevelCount</c> itself just proxies to this same
+        /// <c>facilityRefs[0].MaxLevel</c> read, returning the sentinel
+        /// <c>-1</c> otherwise - there never was a scene-independent tier
+        /// source). All three are commonly <c>null</c> outside the Space
+        /// Center scene - that's a genuine "not available right now," not a
+        /// bug.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerFacilities()
         {
@@ -1228,19 +1234,22 @@ namespace Gonogo.KSP
                 var facilityName = facility.ToString();
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
+                int? currentTier = null;
+                int? maxTier = null;
                 double? upgradeCost = null;
                 if (ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) &&
                     proto?.facilityRefs != null && proto.facilityRefs.Count > 0 && proto.facilityRefs[0] != null)
                 {
-                    upgradeCost = proto.facilityRefs[0].GetUpgradeCost();
+                    var live = proto.facilityRefs[0];
+                    currentTier = live.FacilityLevel;
+                    maxTier = live.MaxLevel;
+                    upgradeCost = live.GetUpgradeCost();
                 }
-
-                var levelCount = ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility);
 
                 result[facilityName] = new Dictionary<string, object?>
                 {
-                    ["level"] = (double)ScenarioUpgradeableFacilities.GetFacilityLevel(facility),
-                    ["levelCount"] = levelCount >= 0 ? (int?)levelCount : null,
+                    ["currentTier"] = currentTier,
+                    ["maxTier"] = maxTier,
                     ["upgradeCost"] = upgradeCost,
                 };
             }
@@ -1298,10 +1307,24 @@ namespace Gonogo.KSP
             };
         }
 
+        /// <summary>
+        /// <c>id</c>/<c>parameters</c> are the M3b career-detail
+        /// capture-add: <c>ContractManager</c>/<c>Objectives</c> hard-require
+        /// a stable per-contract id (they drop any entry without one) and
+        /// <c>parameters</c> drives their whole progress-bar UI - neither
+        /// existed on the wire before this session. <c>id</c> is
+        /// <c>Contract.ContractID</c> (decompile-confirmed <c>long</c>
+        /// field, stringified since KSP contract IDs routinely exceed
+        /// <c>Number.MAX_SAFE_INTEGER</c> on the JS side) rather than
+        /// <c>ContractGuid</c> - <c>ContractID</c> is the identifier every
+        /// other KSP-adjacent surface (save files, other mods) already keys
+        /// contracts by.
+        /// </summary>
         private static Dictionary<string, object?> BuildContractEntry(Contract contract)
         {
             return new Dictionary<string, object?>
             {
+                ["id"] = contract.ContractID.ToString(),
                 ["title"] = contract.Title,
                 ["agent"] = contract.Agent != null ? contract.Agent.Name : null,
                 ["state"] = contract.ContractState.ToString(),
@@ -1314,21 +1337,63 @@ namespace Gonogo.KSP
                 ["dateAccepted"] = contract.DateAccepted,
                 ["dateDeadline"] = contract.DateDeadline,
                 ["dateExpire"] = contract.DateExpire,
+                ["parameters"] = BuildContractParameters(contract),
             };
         }
 
         /// <summary>
-        /// Active strategies (title/department/factor) from
-        /// <c>StrategySystem.Instance.Strategies</c>, filtered to
-        /// <c>IsActive</c> - the RAW active list, unfiltered against any
-        /// admin-level cap. Deliberate: this project's own "KSP strategy
-        /// over-cap quirk" finding is that the stock UI silently lets a save
-        /// carry more active strategies than the Administration building's
-        /// level allows, and the raw active list is the only surface that
-        /// reveals it - re-deriving/enforcing the cap here would hide
-        /// exactly the thing worth capturing. <c>activeCount</c> is simply
-        /// this list's length, for a cheap "how many" read without a
-        /// consumer needing to count the list itself.
+        /// Flat top-level parameter list (title/state only, per the M3b
+        /// scope) - <c>Contract.GetParameter(int)</c>/<c>ParameterCount</c>
+        /// are the confirmed-via-decompile public <c>IContractParameterHost</c>
+        /// accessors. A <c>ContractParameter</c> can itself host nested
+        /// sub-parameters (same interface), but those aren't walked here -
+        /// the widget's progress UI only needs the top-level list.
+        /// <c>ParameterState</c>'s three values (Incomplete/Complete/Failed,
+        /// decompile-confirmed) map 1:1 onto the widget's own
+        /// <c>ContractParameterState</c> union, so <c>.ToString()</c> is a
+        /// safe direct pass-through.
+        /// </summary>
+        private static List<object?> BuildContractParameters(Contract contract)
+        {
+            var result = new List<object?>();
+            var count = contract.ParameterCount;
+            for (var i = 0; i < count; i++)
+            {
+                var parameter = contract.GetParameter(i);
+                if (parameter == null)
+                {
+                    continue;
+                }
+
+                result.Add(new Dictionary<string, object?>
+                {
+                    ["title"] = parameter.Title,
+                    ["state"] = parameter.State.ToString(),
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Active strategies (rich id/cost/eligibility shape - see
+        /// <see cref="BuildStrategyEntry"/>) from <c>StrategySystem.Instance.
+        /// Strategies</c>, filtered to <c>IsActive</c> - the RAW active
+        /// list, unfiltered against any admin-level cap. Deliberate: this
+        /// project's own "KSP strategy over-cap quirk" finding is that the
+        /// stock UI silently lets a save carry more active strategies than
+        /// the Administration building's level allows, and the raw active
+        /// list is the only surface that reveals it - re-deriving/enforcing
+        /// the cap here would hide exactly the thing worth capturing.
+        /// <c>activeCount</c> is simply this list's length, for a cheap
+        /// "how many" read without a consumer needing to count the list
+        /// itself.
+        ///
+        /// <para>M3b career-detail capture-add: <c>all</c> is the FULL
+        /// roster (active + inactive), same entry shape as <c>active</c> -
+        /// the Strategies widget's "browse and activate" list needs every
+        /// strategy the current save knows about, not just the ones
+        /// already committed to.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerStrategies()
         {
@@ -1339,29 +1404,76 @@ namespace Gonogo.KSP
             }
 
             var active = new List<object?>();
+            var all = new List<object?>();
             var strategies = system.Strategies;
             if (strategies != null)
             {
                 foreach (var strategy in strategies)
                 {
-                    if (strategy == null || !strategy.IsActive)
+                    if (strategy == null)
                     {
                         continue;
                     }
 
-                    active.Add(new Dictionary<string, object?>
+                    var entry = BuildStrategyEntry(strategy);
+                    all.Add(entry);
+                    if (strategy.IsActive)
                     {
-                        ["title"] = strategy.Title,
-                        ["department"] = strategy.DepartmentName,
-                        ["factor"] = (double)strategy.Factor,
-                    });
+                        active.Add(entry);
+                    }
                 }
             }
 
             return new Dictionary<string, object?>
             {
                 ["active"] = active,
+                ["all"] = all,
                 ["activeCount"] = active.Count,
+            };
+        }
+
+        /// <summary>
+        /// Per-strategy id/cost/eligibility, shared by <c>active</c> and
+        /// <c>all</c> in <see cref="BuildCareerStrategies"/> - the Strategies
+        /// widget's full parser shape (activate/deactivate need the stable
+        /// id; the cost/eligibility fields drive the affordability and
+        /// blocked-reason UI). Every field here is a plain public getter on
+        /// <c>Strategy</c>/<c>StrategyConfig</c>, confirmed via decompile -
+        /// no scene gating, no extra allocation beyond the one dictionary.
+        /// <c>id</c> is <c>StrategyConfig.Name</c> (the strategy's internal
+        /// cfg name, e.g. <c>"OutsourceRnDStrategy"</c> - stable across a
+        /// save, unlike a list index). <c>CanBeActivated</c>/
+        /// <c>CanBeDeactivated</c> are confirmed via decompile as pure
+        /// eligibility checks (Administration cap, conflicting-strategy
+        /// group tags, funds-on-hand) - no state mutation, safe to call on
+        /// every strategy including already-active ones.
+        /// </summary>
+        private static Dictionary<string, object?> BuildStrategyEntry(Strategy strategy)
+        {
+            var canActivate = strategy.CanBeActivated(out var activateBlockedReason);
+            var canDeactivate = strategy.CanBeDeactivated(out var deactivateBlockedReason);
+
+            return new Dictionary<string, object?>
+            {
+                ["id"] = strategy.Config != null ? strategy.Config.Name : null,
+                ["title"] = strategy.Title,
+                ["description"] = strategy.Description,
+                ["department"] = strategy.DepartmentName,
+                ["isActive"] = strategy.IsActive,
+                ["factor"] = (double)strategy.Factor,
+                ["dateActivated"] = strategy.DateActivated,
+                ["requiredReputation"] = (double)strategy.RequiredReputation,
+                ["initialCostFunds"] = (double)strategy.InitialCostFunds,
+                ["initialCostScience"] = (double)strategy.InitialCostScience,
+                ["initialCostReputation"] = (double)strategy.InitialCostReputation,
+                ["hasFactorSlider"] = strategy.HasFactorSlider,
+                ["factorSliderDefault"] = (double)strategy.FactorSliderDefault,
+                ["factorSliderSteps"] = strategy.FactorSliderSteps,
+                ["canActivate"] = canActivate,
+                ["activateBlockedReason"] = activateBlockedReason,
+                ["canDeactivate"] = canDeactivate,
+                ["deactivateBlockedReason"] = deactivateBlockedReason,
+                ["effect"] = strategy.Effect,
             };
         }
 
@@ -1408,7 +1520,102 @@ namespace Gonogo.KSP
             {
                 ["unlockedCount"] = unlockedTechIds.Count,
                 ["unlockedIds"] = new List<object?>(unlockedTechIds),
+                // M3b career-detail capture-add: see BuildCareerTechNodes -
+                // purely additive alongside unlockedCount/unlockedIds above
+                // (unchanged), so nothing that already reads those two
+                // regresses.
+                ["nodes"] = BuildCareerTechNodes(),
             };
+        }
+
+        /// <summary>
+        /// Full tech-node structure (id/title/scienceCost/unlocked/
+        /// prerequisite edges) for the TechTree widget. Sourced from
+        /// <c>AssetBase.RnDTechTree.GetTreeNodes()</c> - confirmed via
+        /// decompile to return the STATIC, scene-independent
+        /// <c>ProtoRDNode[]</c> graph (each node carries <c>parents</c>/
+        /// <c>children</c>/<c>tech</c>), unlike the live <c>RDTech</c>
+        /// <c>MonoBehaviour</c>s that only exist while the R&amp;D Building
+        /// scene is open - so this, like <c>unlockedCount</c>/
+        /// <c>unlockedIds</c> above, is available in career mode generally,
+        /// not scene-gated.
+        ///
+        /// <para>Per-node <c>title</c> comes from <c>ResearchAndDevelopment.
+        /// GetTechnologyTitle</c> and <c>unlocked</c> from
+        /// <c>ResearchAndDevelopment.GetTechnologyState</c> - both STATIC
+        /// methods confirmed via decompile to read the CURRENT save's live
+        /// state (not the tree's own baked default), and both confirmed to
+        /// null/no-op-guard their own <c>Instance</c>/
+        /// <c>HighLogic.CurrentGame</c> internally, so no extra guard is
+        /// needed here beyond this method's own <c>ResearchAndDevelopment.
+        /// Instance</c>/tree-null checks. <c>scienceCost</c> comes from
+        /// <c>ProtoTechNode.scienceCost</c> - the tree's own baked config
+        /// value, not save-scoped (a tech's cost doesn't change once
+        /// defined).</para>
+        ///
+        /// <para><c>parents</c> (prerequisite edges) is included rather
+        /// than deferred: <c>ProtoRDNode.parents</c> is already an in-memory
+        /// object graph the walk below needs anyway for <c>tech.techID</c>
+        /// resolution on the node itself, so collecting each parent's
+        /// <c>techID</c> alongside is free - no extra ConfigNode parsing.
+        /// A "Researchable" (prereqs-met-but-not-yet-unlocked) UI state is
+        /// NOT computed here - the raw <c>unlocked</c> bool + <c>parents</c>
+        /// edges are enough for a consumer to derive that client-side (the
+        /// TechTree widget already walks <c>parents</c> for its own graph
+        /// layout), matching this capture's usual "primitives, not derived
+        /// UI state" discipline.</para>
+        ///
+        /// <para>Returns <c>null</c> - the whole <c>nodes</c> list, never a
+        /// partial one - whenever the static tree itself isn't resolvable
+        /// (e.g. <c>AssetBase.RnDTechTree</c>'s backing <c>fetch</c> hasn't
+        /// spawned yet), which <see cref="BuildCareerTech"/>'s caller
+        /// (<c>TryBuildGroup</c>, one level up in <c>BuildCareer</c>) maps
+        /// to omitting the whole <c>tech</c> group on any exception - this
+        /// method itself only returns <c>null</c> for the "tree not ready"
+        /// case, it never throws deliberately.</para>
+        /// </summary>
+        private static List<object?>? BuildCareerTechNodes()
+        {
+            var tree = AssetBase.RnDTechTree;
+            var rdNodes = tree != null ? tree.GetTreeNodes() : null;
+            if (rdNodes == null)
+            {
+                return null;
+            }
+
+            var nodes = new List<object?>();
+            foreach (var rdNode in rdNodes)
+            {
+                var tech = rdNode != null ? rdNode.tech : null;
+                if (tech == null || string.IsNullOrEmpty(tech.techID))
+                {
+                    continue;
+                }
+
+                var parentIds = new List<object?>();
+                if (rdNode!.parents != null)
+                {
+                    foreach (var parent in rdNode.parents)
+                    {
+                        var parentTechId = parent != null && parent.tech != null ? parent.tech.techID : null;
+                        if (!string.IsNullOrEmpty(parentTechId))
+                        {
+                            parentIds.Add(parentTechId);
+                        }
+                    }
+                }
+
+                nodes.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = tech.techID,
+                    ["title"] = ResearchAndDevelopment.GetTechnologyTitle(tech.techID),
+                    ["scienceCost"] = (double)tech.scienceCost,
+                    ["unlocked"] = ResearchAndDevelopment.GetTechnologyState(tech.techID) == RDTech.State.Available,
+                    ["parents"] = parentIds,
+                });
+            }
+
+            return nodes;
         }
 
         /// <summary>
