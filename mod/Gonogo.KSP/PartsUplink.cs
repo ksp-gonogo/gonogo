@@ -38,12 +38,16 @@ namespace Gonogo.KSP
                     Topic = PartsViewProvider.PowerTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — part/vessel-sourced telemetry, rides the delay clock like vessel.*.
+                    Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
                 {
                     Topic = PartsViewProvider.RoboticsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — same as PowerTopic above.
+                    Delay = DelayRole.Delayed,
                 },
             },
         };

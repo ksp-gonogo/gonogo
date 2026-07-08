@@ -70,6 +70,19 @@ namespace Sitrep.Host
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
 
+        // Dynamic namespaces (see IUplinkHost.RegisterDynamicNamespace):
+        // prefix -> (template declaration, owning uplink id). A concrete
+        // "prefix + subTopic" topic is lazily materialized into
+        // _channelDeclarations/_channelOwner (cloned from the template) the
+        // first time it is published or subscribed — see
+        // EnsureDynamicTopicDeclared/FindDynamicNamespaceForTopic. Ordered
+        // by insertion is irrelevant; prefixes are matched by simple
+        // StartsWith, so two prefixes where one is a prefix of the other
+        // would be ambiguous — not a real concern for the small, hand-owned
+        // set of dynamic namespaces this exists for today.
+        private readonly Dictionary<string, ChannelDeclaration> _dynamicNamespaces = new Dictionary<string, ChannelDeclaration>();
+        private readonly Dictionary<string, string> _dynamicNamespaceOwner = new Dictionary<string, string>();
+
         private readonly Dictionary<string, CommandDeclaration> _commandDeclarations = new Dictionary<string, CommandDeclaration>();
         private readonly Dictionary<string, Func<object?, object?>> _commandHandlers = new Dictionary<string, Func<object?, object?>>();
 
@@ -316,6 +329,55 @@ namespace Sitrep.Host
         {
             RequireChannelDeclared(topic, nameof(Publisher));
             return new ChannelPublisher(this, topic);
+        }
+
+        public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template)
+        {
+            _dynamicNamespaces[prefix] = template;
+            _dynamicNamespaceOwner[prefix] = _currentRegisteringUplinkId ?? "";
+            return new DynamicChannelSource(this, prefix);
+        }
+
+        /// <summary>
+        /// Materializes <paramref name="fullTopic"/> (<c>prefix + subTopic</c>)
+        /// into an ordinary declared channel, cloned from
+        /// <paramref name="prefix"/>'s registered template, if it hasn't
+        /// been already — idempotent, safe to call on every publish/subscribe.
+        /// After this call, <paramref name="fullTopic"/> behaves exactly
+        /// like any statically-declared <see cref="ChannelDeclaration"/>:
+        /// its own independent <see cref="ChannelEmitter"/> state (via
+        /// <c>_channelDeclarations</c>'s per-topic Emission lookup), its own
+        /// birth-guard entry, its own availability tracking.
+        /// </summary>
+        private void EnsureDynamicTopicDeclared(string prefix, string fullTopic)
+        {
+            if (_channelDeclarations.ContainsKey(fullTopic))
+            {
+                return;
+            }
+
+            var template = _dynamicNamespaces[prefix];
+            _channelDeclarations[fullTopic] = new ChannelDeclaration
+            {
+                Topic = fullTopic,
+                Delivery = template.Delivery,
+                Emission = template.Emission,
+                Delay = template.Delay,
+            };
+            _channelOwner[fullTopic] = _dynamicNamespaceOwner[prefix];
+        }
+
+        /// <summary>Returns the registered dynamic-namespace prefix that <paramref name="topic"/> falls under, or null.</summary>
+        private string? FindDynamicNamespaceForTopic(string topic)
+        {
+            foreach (var prefix in _dynamicNamespaces.Keys)
+            {
+                if (topic.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    return prefix;
+                }
+            }
+            return null;
         }
 
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
@@ -891,7 +953,25 @@ namespace Sitrep.Host
             // to be permanently unsubscribable because this check only ever
             // recognized the pull-style half of the two ways a channel can
             // be backed (see IUplinkHost.AddChannelSource vs. Publisher).
-            if (!_channelDeclarations.ContainsKey(topic) || session.Unsubscribers.ContainsKey(topic))
+            //
+            // A topic that isn't declared yet but falls under a registered
+            // dynamic namespace (see RegisterDynamicNamespace) is ALSO a
+            // legitimate subscribe target — materialize its declaration now
+            // so a subscriber that connects before the uplink's first
+            // publish to this exact sub-topic still succeeds, instead of
+            // being permanently rejected for a topic that simply hasn't
+            // emitted yet.
+            if (!_channelDeclarations.ContainsKey(topic))
+            {
+                var dynamicPrefix = FindDynamicNamespaceForTopic(topic);
+                if (dynamicPrefix == null)
+                {
+                    return;
+                }
+                EnsureDynamicTopicDeclared(dynamicPrefix, topic);
+            }
+
+            if (session.Unsubscribers.ContainsKey(topic))
             {
                 return;
             }
@@ -1302,6 +1382,25 @@ namespace Sitrep.Host
             }
 
             public void Publish(object? payload, double ut) => _engine.Publish(_topic, payload, ut);
+        }
+
+        private sealed class DynamicChannelSource : IDynamicChannelSource
+        {
+            private readonly ChannelEngine _engine;
+            private readonly string _prefix;
+
+            public DynamicChannelSource(ChannelEngine engine, string prefix)
+            {
+                _engine = engine;
+                _prefix = prefix;
+            }
+
+            public IChannelPublisher Publisher(string subTopic)
+            {
+                var fullTopic = _prefix + subTopic;
+                _engine.EnsureDynamicTopicDeclared(_prefix, fullTopic);
+                return new ChannelPublisher(_engine, fullTopic);
+            }
         }
     }
 

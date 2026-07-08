@@ -178,6 +178,13 @@ namespace Gonogo.KSP
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            // Explicit retrofit, matching the DelayRole.Delayed default —
+            // every vessel.* channel describes the vessel itself, so ground
+            // learns about it at UT+delay like everything else vessel-sourced
+            // (delay-architecture-resolution.md §3). Stated explicitly here
+            // rather than relying on the default so this is provable, not
+            // inferred from silence — see ChannelDeclaration.Delay's doc comment.
+            Delay = DelayRole.Delayed,
         };
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration

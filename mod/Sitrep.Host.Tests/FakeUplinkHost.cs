@@ -48,6 +48,8 @@ namespace Sitrep.Host.Tests
 
         public IChannelPublisher Publisher(string topic) => throw new NotSupportedException();
 
+        public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();
+
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
         {
         }

@@ -45,6 +45,15 @@ namespace Gonogo.KSP
                     // every call - so every considered sample reads as
                     // "changed". Unchanged from GonogoBodiesServer.BodiesEmissionPolicy.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — celestial-body ephemeris is a
+                    // ground-side fact (known independent of any vessel's
+                    // comms link, same class as scansat.available), so this
+                    // is TrueNow, bypassing the delay clock. Judgment call
+                    // documented in contract-dynamic-delay-report.md: no
+                    // prior mechanism existed to state this either way, and
+                    // nothing observably reads it yet, so this is a
+                    // classification, not a behavior change.
+                    Delay = DelayRole.TrueNow,
                 },
                 // system.vessels -- the M3 R3 roster capture-add. Same cadence
                 // as system.bodies: a re-emit every sample tick reads as
@@ -54,6 +63,10 @@ namespace Gonogo.KSP
                 {
                     Topic = SystemViewProvider.VesselsTopic,
                     Delivery = Delivery.LossyLatest,
+                    // Explicit retrofit — the roster's positions/identities
+                    // of OTHER vessels is comms-derived (the same class as
+                    // vessel.* telemetry), so this rides the delay clock.
+                    Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
             },

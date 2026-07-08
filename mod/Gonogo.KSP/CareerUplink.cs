@@ -44,6 +44,12 @@ namespace Gonogo.KSP
                     // ChannelEmitter's change-gate falls back to
                     // reference/Equals comparison).
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit, judgment call documented in
+                    // contract-dynamic-delay-report.md: career state (funds,
+                    // contracts, strategies) is KSC/ground-side bookkeeping,
+                    // not something learned over a vessel's comms link, so
+                    // TrueNow — same class as system.bodies/scansat.available.
+                    Delay = DelayRole.TrueNow,
                 },
             },
         };

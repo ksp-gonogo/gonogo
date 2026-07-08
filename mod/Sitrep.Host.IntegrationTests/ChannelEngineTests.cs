@@ -84,6 +84,75 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// Proves the dynamic-namespace mechanism
+        /// (<see cref="IUplinkHost.RegisterDynamicNamespace"/>): two
+        /// runtime-computed sub-topics under the same registered prefix
+        /// (never individually pre-declared in
+        /// <see cref="DynamicNamespaceTestUplink.Manifest"/>) each get their
+        /// own independent keyframe/lossy-latest-value state, exactly like
+        /// two ordinary fixed channels would — the per-concrete-topic
+        /// semantics <see cref="IDynamicChannelSource"/>'s doc comment
+        /// promises.
+        /// </summary>
+        [Fact]
+        public async Task DynamicNamespaceSubTopicsGetIndependentKeyframeAndLossySemantics()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new DynamicNamespaceTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                var topicKerbin = DynamicNamespaceTestUplink.Prefix + "Kerbin";
+                var topicMun = DynamicNamespaceTestUplink.Prefix + "Mun";
+
+                // Subscribe to only ONE of the two sub-topics -- neither was
+                // ever pre-declared, so this also proves ProcessSubscribe's
+                // dynamic-prefix materialization path.
+                await SubscribeAsync(client, topicKerbin, Timeout);
+
+                uplink.PublishTo("Kerbin", 1, ut: 0.0);
+                uplink.PublishTo("Mun", 999, ut: 0.0);
+                engine.TickAndWait(0.0, null, Timeout);
+
+                Assert.Equal(1, engine.ChannelCounters(topicKerbin).Emitted);
+                // "Mun" was published too, but the emitter never even
+                // considers a topic with zero subscribers -- proving the
+                // materialized dynamic sub-topic is gated exactly like a
+                // fixed one, independently of its sibling.
+                Assert.Equal(0, engine.ChannelCounters(topicMun).Considered);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(topicKerbin, delivered.Topic);
+                Assert.Equal(1.0, Convert.ToDouble(delivered.Payload));
+
+                // Now subscribe to "Mun" too, and re-publish the SAME value
+                // to "Kerbin" (no change) alongside a NEW value for "Mun" --
+                // "Kerbin"'s lossy-latest change-gate should suppress the
+                // unchanged re-publish while "Mun" gets its own subscribe-
+                // triggered keyframe, proving the two sub-topics' emitter
+                // state is genuinely independent, not shared off the prefix.
+                await SubscribeAsync(client, topicMun, Timeout);
+                uplink.PublishTo("Kerbin", 1, ut: 1.0);
+                uplink.PublishTo("Mun", 2, ut: 1.0);
+                engine.TickAndWait(1.0, null, Timeout);
+
+                Assert.Equal(1, engine.ChannelCounters(topicKerbin).Emitted);
+                Assert.Equal(1, engine.ChannelCounters(topicMun).Emitted);
+
+                var second = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(topicMun, second.Topic);
+                Assert.Equal(2.0, Convert.ToDouble(second.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Proves the <see cref="Delivery"/> split: a <c>reliable-ordered</c>
         /// channel's outbox lane is an unbounded FIFO queue that is NEVER
         /// overwritten, so every emitted sample WILL eventually reach the

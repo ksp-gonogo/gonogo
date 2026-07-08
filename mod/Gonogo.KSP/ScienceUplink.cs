@@ -45,18 +45,24 @@ namespace Gonogo.KSP
                     // as changed" cadence CareerUplink/SystemUplink
                     // already use for structured, not-every-tick data.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — vessel/experiment-sourced, rides the delay clock.
+                    Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
                 {
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — same as ExperimentsTopic above.
+                    Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
                 {
                     Topic = ScienceViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — same as ExperimentsTopic above.
+                    Delay = DelayRole.Delayed,
                 },
             },
         };

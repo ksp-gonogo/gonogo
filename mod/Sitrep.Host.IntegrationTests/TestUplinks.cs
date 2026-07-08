@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
@@ -348,5 +349,41 @@ namespace Sitrep.Host.IntegrationTests
         public Ack ClearTarget() => Ack.Ok();
         public Ack SetWarp(int index) => Ack.Ok();
         public Ack SetPause(bool paused) => Ack.Ok();
+    }
+
+    /// <summary>
+    /// Exercises <see cref="IUplinkHost.RegisterDynamicNamespace"/> — the
+    /// contract's dynamic-topic mechanism (see
+    /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>). Registers
+    /// ONE dynamic namespace (<see cref="Prefix"/>) with a template
+    /// declaration, then lets a test publish to any runtime-computed
+    /// sub-topic under it via <see cref="PublishTo"/> without that sub-topic
+    /// ever appearing in <see cref="Manifest"/>.
+    /// </summary>
+    internal sealed class DynamicNamespaceTestUplink : ISitrepUplink
+    {
+        public const string Prefix = "dyn.";
+
+        private IDynamicChannelSource? _source;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "dyn-test",
+            Version = "1.0.0",
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+            });
+        }
+
+        /// <summary>Publish to <c>Prefix + subTopic</c> — the sub-topic need not have been used before.</summary>
+        public void PublishTo(string subTopic, object? payload, double ut) =>
+            (_source ?? throw new InvalidOperationException("Register was never called")).Publisher(subTopic).Publish(payload, ut);
     }
 }

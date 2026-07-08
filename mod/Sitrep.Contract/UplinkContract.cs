@@ -22,6 +22,24 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// A channel's delay disposition — Minor-bump addition backing/replacing
+    /// the hardcoded topic-name-keyed delay routing that used to live only
+    /// client-side (<c>packages/sitrep-client/src/</c>). See
+    /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3
+    /// for the settled rule this enum encodes per-channel instead of by
+    /// convention: everything is <see cref="Delayed"/> (rides the Courier's
+    /// light-time delay clock) unless it's a ground-side fact with no
+    /// analogue in flight (e.g. <c>scansat.available</c> — is the SCANsat
+    /// assembly even present — which is <see cref="TrueNow"/>, delivered
+    /// immediately, bypassing the delay clock entirely).
+    /// </summary>
+    public enum DelayRole
+    {
+        Delayed,
+        TrueNow,
+    }
+
+    /// <summary>
     /// One channel an uplink declares in its <see cref="UplinkManifest"/>
     /// — the wire-visible metadata <see cref="Sitrep.Host.ChannelEngine.AddChannelSource"/>
     /// looks up by <see cref="Topic"/> when an uplink calls it during
@@ -35,6 +53,23 @@ namespace Sitrep.Contract
         public string Topic { get; set; } = "";
         public Delivery Delivery { get; set; } = Delivery.LossyLatest;
         public EmissionPolicy Emission { get; set; } = null!;
+
+        /// <summary>
+        /// Defaults to <see cref="DelayRole.Delayed"/> — mirrors
+        /// <see cref="CommandDeclaration.Delayed"/>'s own default-true
+        /// precedent, and is the contract-conservative choice: nothing in
+        /// <see cref="Sitrep.Host.ChannelEngine"/> branches on this value
+        /// today (it is purely declarative, feeding the SDK/client's future
+        /// delay routing), so EVERY existing bundled channel's host-observable
+        /// behavior is unchanged regardless of what this defaults to — see
+        /// the ContractDelayDispositionTests round-trip test and the
+        /// contract-dynamic-delay-report.md for the "no behavior change"
+        /// proof. Every bundled channel (vessel/system/career/science/parts)
+        /// nonetheless sets this EXPLICITLY at its declaration site rather
+        /// than relying on the default, so the disposition is provable by
+        /// reading the declaration, not inferred from silence.
+        /// </summary>
+        public DelayRole Delay { get; set; } = DelayRole.Delayed;
     }
 
     /// <summary>
@@ -119,6 +154,32 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// A registered dynamic namespace's emitter factory — returned by
+    /// <see cref="IUplinkHost.RegisterDynamicNamespace"/>. Generalizes the
+    /// fixed single-topic <see cref="IUplinkHost.Publisher"/> to a
+    /// runtime-computed sub-topic under a declared prefix (e.g.
+    /// <c>scansat.coverage.</c> + <c>"Kerbin.AltimetryLoRes"</c> =
+    /// <c>scansat.coverage.Kerbin.AltimetryLoRes</c>) — the mechanism U1's
+    /// GonogoScansatUplink report flagged as missing (see
+    /// <c>.superpowers/sdd/u1-scansat-uplink-report.md</c>'s "Known,
+    /// disclosed gap"). Each concrete <c>prefix + subTopic</c> gets its own
+    /// independent <see cref="Sitrep.Host.ChannelEmitter"/>
+    /// keyframe-on-change/lossy-latest-value state, exactly as though it had
+    /// been declared as an ordinary fixed <see cref="ChannelDeclaration"/> —
+    /// the ENGINE materializes that declaration (cloned from the
+    /// <see cref="ChannelDeclaration"/> template passed to
+    /// <see cref="IUplinkHost.RegisterDynamicNamespace"/>) the first time a
+    /// concrete sub-topic is published or subscribed, so subscribers can
+    /// target a concrete dynamic topic string exactly as they would a fixed
+    /// one — no protocol change on the wire.
+    /// </summary>
+    public interface IDynamicChannelSource
+    {
+        /// <summary>Publisher for one concrete sub-topic (<c>prefix + subTopic</c>) under this dynamic namespace.</summary>
+        IChannelPublisher Publisher(string subTopic);
+    }
+
+    /// <summary>
     /// What <see cref="Sitrep.Host.ChannelEngine"/> hands an <see cref="ISitrepUplink"/>
     /// during <see cref="ISitrepUplink.Register"/> — see the design doc
     /// §1.2. Uplinks register PURE pieces here; they never touch the
@@ -143,6 +204,22 @@ namespace Sitrep.Contract
 
         /// <summary>Push-style channel source — see <see cref="IChannelPublisher"/>.</summary>
         IChannelPublisher Publisher(string topic);
+
+        /// <summary>
+        /// Declares a dynamic namespace: a <paramref name="prefix"/> the
+        /// calling uplink owns, plus a <paramref name="template"/>
+        /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>
+        /// is ignored — every materialized sub-topic gets its own) whose
+        /// <see cref="ChannelDeclaration.Delivery"/>/<see cref="ChannelDeclaration.Emission"/>/
+        /// <see cref="ChannelDeclaration.Delay"/> apply to every concrete
+        /// <c>prefix + subTopic</c> the returned <see cref="IDynamicChannelSource"/>
+        /// is asked to publish. Unlike a fixed <see cref="ChannelDeclaration"/>,
+        /// nothing under this prefix needs to be individually pre-declared
+        /// in <see cref="UplinkManifest.Channels"/> — see
+        /// <see cref="IDynamicChannelSource"/>'s doc comment for the
+        /// per-concrete-topic keyframe/lossy semantics this preserves.
+        /// </summary>
+        IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template);
 
         /// <summary>
         /// Registers the handler for a command the calling uplink already

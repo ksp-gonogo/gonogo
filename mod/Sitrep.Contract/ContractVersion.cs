@@ -23,6 +23,15 @@ namespace Sitrep.Contract
     public static class ContractVersion
     {
         public const int Major = 1;
-        public const int Minor = 0;
+
+        /// <summary>
+        /// Bumped 0 -&gt; 1: additive-only Minor for dynamic-namespace channel
+        /// registration (<see cref="IUplinkHost.RegisterDynamicNamespace"/>/
+        /// <see cref="IDynamicChannelSource"/>) plus per-channel
+        /// <see cref="ChannelDeclaration.Delay"/> disposition. Neither
+        /// touches an existing <see cref="ISitrepUplink"/>'s compile-time
+        /// surface — see <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>.
+        /// </summary>
+        public const int Minor = 1;
     }
 }
