@@ -1,0 +1,22 @@
+GonogoRealAntennasUplink integrates with RealAntennas
+(https://github.com/kerbalnet/RealAntennas) entirely at ARM'S LENGTH: it reads
+RealAntennas' runtime state through its PUBLIC API by reflection ONLY, and
+re-derives link-budget figures from RealAntennas' PUBLIC static formulas and
+constants (see local_docs/telemetry-mod/comms-uplink-design.md §4). It does NOT
+link the RealAntennas assembly at build time, does NOT derive from RealAntennas
+types, and bundles NO RealAntennas source or assets.
+
+RealAntennas is distributed under the Creative Commons Attribution-ShareAlike
+4.0 International licence (CC-BY-SA-4.0):
+
+  https://creativecommons.org/licenses/by-sa/4.0/
+
+Because this uplink incorporates none of RealAntennas' code (arm's-length
+reflection + independent re-derivation of published formulas), the CC-BY-SA-4.0
+ShareAlike obligation is not triggered, and GonogoRealAntennasUplink is licensed
+GPL-3.0-only. This notice is retained to attribute RealAntennas and its authors
+for the public API and documented link-budget model this uplink reads and
+reasons from.
+
+RealAntennas authors: Kerbalnet / RealAntennas contributors. See the project's
+repository and CKAN metadata for the full author list.
