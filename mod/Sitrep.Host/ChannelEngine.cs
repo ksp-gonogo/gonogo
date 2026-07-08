@@ -230,10 +230,13 @@ namespace Sitrep.Host
         /// before returning a synthetic <see cref="CommandErrorCode.Timeout"/>
         /// failure. Generous enough to ride a slow frame / brief load, finite
         /// so the Courier can never park indefinitely (the pause self-wedge the
-        /// F2 review found). Only consulted when
+        /// F2 review found), and — F4 — kept BELOW <see cref="Stop"/>'s 5s Join
+        /// so the timeout backstop can never dead-heat the Join even if the
+        /// shutdown re-check in <see cref="RunOnMainThread"/> is somehow missed.
+        /// Only consulted when
         /// <paramref name="executeCommandsOnMainThread"/> is <c>true</c>.
         /// </param>
-        public ChannelEngine(string bindUri, double networkDelaySeconds = 0, bool executeCommandsOnMainThread = false, double mainThreadCommandTimeoutSeconds = 5.0)
+        public ChannelEngine(string bindUri, double networkDelaySeconds = 0, bool executeCommandsOnMainThread = false, double mainThreadCommandTimeoutSeconds = 4.0)
         {
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
@@ -689,6 +692,23 @@ namespace Sitrep.Host
             var job = new MainThreadCommand(handler, args);
             _mainThreadCommands.Enqueue(job);
 
+            // F4 (F2-fix residual): close the enqueue/flush race. The check
+            // above can pass, then Stop() raise _engineStopping AND run its
+            // single-pass FailPendingMainThreadCommands flush, and only THEN
+            // this Enqueue land — leaving the job to sit until the timeout
+            // (default a dead heat with Stop()'s 5s Join). Re-check AFTER
+            // enqueuing: if shutdown has begun, mark the job abandoned so the
+            // pump (should it ever resume) drops it, and fail fast with the SAME
+            // exception the flush surfaces rather than blocking. We do not
+            // dispose Done here — FailPendingMainThreadCommands may still dequeue
+            // and Set() it; the abandoned flag routes disposal to whichever of
+            // the pump/flush drains it.
+            if (_engineStopping)
+            {
+                job.Abandoned = true;
+                throw new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread.");
+            }
+
             // F2-fix (pause backstop): a BOUNDED wait. In production the drain
             // rides Update() (runs even when Time.timeScale == 0), so a paused
             // game no longer wedges this; the timeout is the last-resort guard
@@ -735,6 +755,18 @@ namespace Sitrep.Host
         {
             while (_mainThreadCommands.TryDequeue(out var job))
             {
+                // F3 (F2-fix residual): the waiter already timed out, reported
+                // Timeout to the caller, and abandoned this job. Running the
+                // handler now would apply its side effect (staging, a maneuver
+                // node) seconds AFTER the caller was told it failed. So DROP the
+                // job — do not run the handler — and dispose the handle (the
+                // waiter deliberately left it for the pump to own on this path).
+                if (job.Abandoned)
+                {
+                    job.Done.Dispose();
+                    continue;
+                }
+
                 try
                 {
                     job.Result = job.Handler(job.Args);
@@ -746,10 +778,11 @@ namespace Sitrep.Host
                 finally
                 {
                     job.Done.Set();
-                    // F2-fix: if the waiter already timed out and abandoned this
-                    // job, no one will observe the result or dispose the handle,
-                    // so the pump disposes it here. The waiter deliberately does
-                    // NOT dispose on its timeout path, so this is the sole owner.
+                    // If the waiter abandoned this job WHILE the handler was
+                    // running (the flag flipped after the top-of-loop check),
+                    // no one will observe the result or dispose the handle, so
+                    // the pump disposes it here — the waiter never disposes on
+                    // its timeout path, so this is the sole owner.
                     if (job.Abandoned)
                     {
                         job.Done.Dispose();

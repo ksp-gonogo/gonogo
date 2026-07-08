@@ -547,6 +547,54 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// F3 (F2-fix residual): once a command's bounded wait has timed out and
+        /// reported <see cref="CommandErrorCode.Timeout"/> to the caller, a pump
+        /// that resumes LATER must DROP the abandoned job — it must NOT run the
+        /// handler. Otherwise the side effect (staging, a maneuver node) applies
+        /// seconds after the caller was already told it failed. Proven by a
+        /// handler that records whether it ran: after the timeout resolves, a
+        /// deliberate <see cref="ChannelEngine.RunPendingCommands"/> must leave
+        /// the side-effect counter at zero.
+        /// </summary>
+        [Fact]
+        public void AbandonedCommandIsDroppedByThePumpAndItsHandlerNeverRunsLate()
+        {
+            var probe = new SideEffectProbeUplink();
+            using var engine = new ChannelEngine(
+                "ws://127.0.0.1:0",
+                executeCommandsOnMainThread: true,
+                mainThreadCommandTimeoutSeconds: 0.5);
+            engine.RegisterUplink(probe);
+            engine.Start();
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                object? captured = null;
+                // No pump running: the command can only complete via the timeout
+                // backstop, which abandons the job.
+                engine.DispatchCommand(SideEffectProbeUplink.Command, null, "vantage-1", r =>
+                {
+                    captured = r;
+                    resolved.Set();
+                });
+
+                Assert.True(resolved.Wait(Timeout), "the command must resolve via the timeout backstop");
+                var result = Assert.IsType<CommandResult>(captured);
+                Assert.Equal(CommandErrorCode.Timeout, result.ErrorCode);
+
+                // The pump resumes only NOW (e.g. the scene finished loading).
+                // The abandoned job must be dropped, not run.
+                engine.RunPendingCommands();
+
+                Assert.Equal(0, probe.HandlerRunCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// F2-fix (Fix #2, shutdown gate): a shutdown with multiple instant
         /// commands in flight against a main-thread seam whose pump is NOT
         /// running must complete promptly and never leave the Courier thread
@@ -697,6 +745,38 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<object?, CommandResult>(Command, _ =>
                 {
                     Volatile.Write(ref _lastHandlerThreadId, Thread.CurrentThread.ManagedThreadId);
+                    return CommandResult.Ok();
+                });
+            }
+        }
+
+        /// <summary>
+        /// Uplink whose single delayed:false command records how many times its
+        /// handler actually RAN — the probe for
+        /// <see cref="AbandonedCommandIsDroppedByThePumpAndItsHandlerNeverRunsLate"/>.
+        /// </summary>
+        private sealed class SideEffectProbeUplink : ISitrepUplink
+        {
+            public const string Command = "probe.side-effect";
+
+            private int _handlerRunCount;
+            public int HandlerRunCount => Volatile.Read(ref _handlerRunCount);
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "side-effect-probe",
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delayed = false },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddCommandHandler<object?, CommandResult>(Command, _ =>
+                {
+                    Interlocked.Increment(ref _handlerRunCount);
                     return CommandResult.Ok();
                 });
             }

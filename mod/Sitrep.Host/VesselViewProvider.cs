@@ -1222,11 +1222,26 @@ namespace Sitrep.Host
 
         private static VesselType ParseVesselType(string? raw) => SharedMappers.ParseVesselType(raw);
 
+        // The Contract enums carry compile-time-only Reinforced.Typings
+        // attributes whose assembly is PrivateAssets="all" (not in bin at
+        // runtime). Reflective enum parsing (Enum.TryParse/Parse) eagerly
+        // resolves EVERY custom-attribute type on the enum → FileNotFoundException
+        // on net10.0 (and a real crash risk on KSP's Mono). So these parsers are
+        // hand-rolled switches — case-insensitive as the originals were, Unknown
+        // fallback — and NO code path resolves a Contract enum's attributes.
+
         private static TransitionType ParseTransitionType(string? raw)
         {
-            return raw != null && Enum.TryParse<TransitionType>(raw, ignoreCase: true, out var parsed)
-                ? parsed
-                : TransitionType.Unknown;
+            return raw?.ToLowerInvariant() switch
+            {
+                "initial" => TransitionType.Initial,
+                "final" => TransitionType.Final,
+                "encounter" => TransitionType.Encounter,
+                "escape" => TransitionType.Escape,
+                "maneuver" => TransitionType.Maneuver,
+                "collision" => TransitionType.Collision,
+                _ => TransitionType.Unknown,
+            };
         }
 
         private static SasMode? ParseSasMode(string? raw)
@@ -1235,21 +1250,49 @@ namespace Sitrep.Host
             {
                 return null;
             }
-            return Enum.TryParse<SasMode>(raw, ignoreCase: true, out var parsed) ? parsed : SasMode.Unknown;
+            return raw.ToLowerInvariant() switch
+            {
+                "stabilityassist" => SasMode.StabilityAssist,
+                "prograde" => SasMode.Prograde,
+                "retrograde" => SasMode.Retrograde,
+                "normal" => SasMode.Normal,
+                "antinormal" => SasMode.Antinormal,
+                "radialin" => SasMode.RadialIn,
+                "radialout" => SasMode.RadialOut,
+                "target" => SasMode.Target,
+                "antitarget" => SasMode.AntiTarget,
+                "maneuver" => SasMode.Maneuver,
+                _ => SasMode.Unknown,
+            };
         }
 
         private static ControlState ParseControlState(string? raw)
         {
-            return raw != null && Enum.TryParse<ControlState>(raw, ignoreCase: true, out var parsed)
-                ? parsed
-                : ControlState.Unknown;
+            return raw?.ToLowerInvariant() switch
+            {
+                "none" => ControlState.None,
+                "probe" => ControlState.Probe,
+                "kerbal" => ControlState.Kerbal,
+                "partial" => ControlState.Partial,
+                "full" => ControlState.Full,
+                "probenone" => ControlState.ProbeNone,
+                "probepartial" => ControlState.ProbePartial,
+                "probefull" => ControlState.ProbeFull,
+                "kerbalnone" => ControlState.KerbalNone,
+                "kerbalpartial" => ControlState.KerbalPartial,
+                "kerbalfull" => ControlState.KerbalFull,
+                _ => ControlState.Unknown,
+            };
         }
 
         private static WarpMode ParseWarpMode(string? raw)
         {
-            return raw != null && Enum.TryParse<WarpMode>(raw, ignoreCase: true, out var parsed)
-                ? parsed
-                : WarpMode.Unknown;
+            return raw?.ToLowerInvariant() switch
+            {
+                "high" => WarpMode.High,
+                "low" => WarpMode.Low,
+                _ => WarpMode.Unknown,
+            };
         }
 
         /// <summary>
@@ -1265,7 +1308,7 @@ namespace Sitrep.Host
             {
                 return TargetKind.Body;
             }
-            if (raw != null && Enum.TryParse<VesselType>(raw, ignoreCase: true, out _))
+            if (SharedMappers.IsKnownVesselType(raw))
             {
                 return TargetKind.Vessel;
             }
