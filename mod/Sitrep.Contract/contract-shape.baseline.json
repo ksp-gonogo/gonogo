@@ -28,65 +28,6 @@
     "Sitrep.Contract.CommandResult\u00601": [
       "Payload:T"
     ],
-    "Sitrep.Contract.CommsConnectivity": [
-      "Connected:System.Boolean",
-      "ControlSource:Sitrep.Contract.CommsControlSource",
-      "HasLocalControl:System.Boolean",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsControlState": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Reason:System.String",
-      "State:Sitrep.Contract.CommsControlStateKind"
-    ],
-    "Sitrep.Contract.CommsDataRate": [
-      "DownBitsPerSec:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "UpBitsPerSec:System.Double"
-    ],
-    "Sitrep.Contract.CommsDelay": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "OneWaySeconds:System.Double",
-      "Source:Sitrep.Contract.CommsDelaySource"
-    ],
-    "Sitrep.Contract.CommsHop": [
-      "BandRateBitsPerSec:System.Nullable\u00601[System.Double]",
-      "DistanceMeters:System.Nullable\u00601[System.Double]",
-      "From:System.String",
-      "Kind:Sitrep.Contract.CommsHopKind",
-      "To:System.String"
-    ],
-    "Sitrep.Contract.CommsLinkMargin": [
-      "ClosesLink:System.Boolean",
-      "DecibelMargin:System.Double",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsLinkQuality": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Value:System.Double"
-    ],
-    "Sitrep.Contract.CommsNetwork": [
-      "Edges:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsNetworkEdge]",
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Nodes:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsNetworkNode]"
-    ],
-    "Sitrep.Contract.CommsNetworkEdge": [
-      "A:System.String",
-      "Active:System.Boolean",
-      "B:System.String"
-    ],
-    "Sitrep.Contract.CommsNetworkNode": [
-      "Id:System.String",
-      "Kind:Sitrep.Contract.CommsHopKind"
-    ],
-    "Sitrep.Contract.CommsPath": [
-      "Hops:System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsHop]",
-      "Meta:Sitrep.Contract.PayloadMeta"
-    ],
-    "Sitrep.Contract.CommsSignalStrength": [
-      "Meta:Sitrep.Contract.PayloadMeta",
-      "Value:System.Double"
-    ],
     "Sitrep.Contract.DockAlignment": [
       "Distance:System.Double",
       "ForwardDot:System.Nullable\u00601[System.Double]",
@@ -106,6 +47,27 @@
       "Name:System.String",
       "Topic:System.String",
       "Type:System.String"
+    ],
+    "Sitrep.Contract.KosComputeStatus": [
+      "LastGoodAt:System.Nullable\u00601[System.Double]",
+      "ParseError:System.String",
+      "Paused:System.Boolean",
+      "Running:System.Boolean",
+      "ScriptError:System.String"
+    ],
+    "Sitrep.Contract.KosExecArgs": [
+      "CoreId:System.Int32",
+      "ScriptId:System.String"
+    ],
+    "Sitrep.Contract.KosProcessorInfo": [
+      "BootFilePath:System.String",
+      "CoreId:System.Int32",
+      "HasBooted:System.Boolean",
+      "ProcessorMode:System.String",
+      "Tag:System.String"
+    ],
+    "Sitrep.Contract.KosReEnableArgs": [
+      "ScriptId:System.String"
     ],
     "Sitrep.Contract.ManeuverNode": [
       "DvNormal:System.Nullable\u00601[System.Double]",
@@ -329,25 +291,6 @@
       "Range:4",
       "Timeout:6",
       "Unknown:1"
-    ],
-    "Sitrep.Contract.CommsControlSource": [
-      "Full:2",
-      "None:0",
-      "Partial:1"
-    ],
-    "Sitrep.Contract.CommsControlStateKind": [
-      "Full:2",
-      "None:0",
-      "PartialManoeuvre:1"
-    ],
-    "Sitrep.Contract.CommsDelaySource": [
-      "None:0",
-      "SignalDelay:1"
-    ],
-    "Sitrep.Contract.CommsHopKind": [
-      "Home:0",
-      "Relay:1",
-      "Vessel:2"
     ],
     "Sitrep.Contract.ControlState": [
       "Full:4",

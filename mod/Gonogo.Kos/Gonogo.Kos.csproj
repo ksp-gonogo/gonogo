@@ -1,0 +1,114 @@
+<!--
+  Gonogo.Kos — the kOS bridge extension for gonogo/Sitrep (mod/Gonogo.Kos).
+
+  This assembly compile-time links kOS (GPLv3, cloned for reference at
+  local_docs/reference/kos/) and, from P1 onward, 0Harmony for one
+  observe-only patch. Per local_docs/telemetry-mod/kos-migration-spec.md
+  §8: gonogo is GPLv3 overall, so direct-linking kOS is licence-compatible
+  and deliberate — no arm's-length reflection, no loopback telnet.
+
+  This program is free software: you can redistribute it and/or modify it
+  under the terms of the GNU General Public License v3.0 as published by
+  the Free Software Foundation. See the repository LICENSE for the full
+  text.
+
+  Packaging: Gonogo.Kos is a SEPARATE, optional deployable extension (its
+  own GameData/GonogoKos folder + its own CKAN/SpaceDock listing via
+  GonogoKos.netkan, GPLv3-linkage documented in NOTICE-KOS.txt) — build +
+  deploy with `build gonogokos` (build_gonogokos in
+  scripts/gonogo_claude_tools.sh). It must not bundle
+  core Gonogo's or kOS's or Harmony's assemblies; every Reference/
+  ProjectReference below that isn't unique to this extension is
+  Private="false" for exactly that reason (see each ItemGroup's comment).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <!-- net48, not net472: the live kOS.dll / kOS.Safe.dll we link
+         (local_docs/syncthing/kspdata/GameData/kOS/Plugins/) are built
+         against .NETFramework 4.8 (MSB3274/3275 otherwise) — KSP's Mono
+         runtime loads either target fine. Mirrors GonogoScansatUplink. -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Gonogo.Kos</AssemblyName>
+    <RootNamespace>Gonogo.Kos</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies — same portable copy + HintPath
+       pattern as Gonogo.KSP.csproj / GonogoTelemetry.csproj. Private=false:
+       never copied to output; KSP's own KSP_Data/Managed satisfies the
+       load at runtime. -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- kOS — the GPLv3 link that makes this assembly GPL (see the header
+       comment above). Loaded from the live KSP install's own kOS mod
+       folder; Private=false — kOS ships and updates itself, GonogoKos
+       must never bundle a stale copy of it. -->
+  <ItemGroup>
+    <Reference Include="kOS" Private="false">
+      <HintPath>..\..\local_docs\syncthing\kspdata\GameData\kOS\Plugins\kOS.dll</HintPath>
+    </Reference>
+    <Reference Include="kOS.Safe" Private="false">
+      <HintPath>..\..\local_docs\syncthing\kspdata\GameData\kOS\Plugins\kOS.Safe.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Harmony — P1 uses it for the ONE observe-only postfix on
+       ScreenBuffer.Print (spec §4(b)/§6, KosComputeHarmony.cs), the compute
+       feed's at-source capture. Installed only when the version-guard
+       confirms the target exists; otherwise compute falls back to the
+       snapshot-scrape (spec §4.4). Loaded from 000_Harmony's own
+       mod folder; Private=false — every other Harmony-dependent mod in
+       this install already provides it, GonogoKos must not bundle a
+       second copy. -->
+  <ItemGroup>
+    <Reference Include="0Harmony" Private="false">
+      <HintPath>..\..\local_docs\syncthing\kspdata\GameData\000_Harmony\0Harmony.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
+       Sitrep.Transport deps) — compile-time only. ISitrepExtension/
+       IExtensionHost/ExtensionManifest live in Sitrep.Host (see
+       ExtensionContract.cs, whose IExtensionHost.AddChannelSource
+       signature also reaches into Sitrep.Core's KspSnapshot); Sitrep.Contract
+       is the wire-DTO assembly P1+ channel payloads will use. Core Gonogo
+       already ships all four (GameData/Gonogo/Plugins/Sitrep.*.dll) and
+       KSP loads every GameData plugin into one AppDomain, so this
+       extension resolves those types from core's copy at runtime — it
+       must NOT bundle its own. Private=false on every one of these keeps
+       them out of this project's output/deploy set; each is listed
+       explicitly (not left to flow transitively through Sitrep.Host) —
+       Private=false on an OUTER ProjectReference does not, by itself,
+       suppress copying of that project's OWN transitive references, so
+       each link in the chain needs the flag itself. Mirrors
+       Gonogo.KSP.csproj's equivalent explicit three-project list, just
+       with Private=false added since THIS project deploys separately. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
+  </ItemGroup>
+
+</Project>

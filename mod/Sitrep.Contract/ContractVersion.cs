@@ -87,6 +87,14 @@ namespace Sitrep.Contract
         /// <see cref="SitrepContractAttribute"/>) — it is the pure Kernel-elected
         /// object, so it never appears in the shape baseline. See
         /// <c>local_docs/telemetry-mod/comms-uplink-design.md</c>.</para>
+        ///
+        /// <para>Bumped 1 -&gt; 2: additive-only Minor for the kOS Uplink P1
+        /// compute/processor wire types (<see cref="KosProcessorInfo"/>,
+        /// <see cref="KosComputeStatus"/>, <see cref="KosExecArgs"/>,
+        /// <see cref="KosReEnableArgs"/>) — brand-new <c>[SitrepContract]</c>
+        /// types only, no existing type touched, so it cannot break any Uplink
+        /// built against an older Minor. See <c>kos-migration-spec.md</c> §4-5
+        /// and <c>.superpowers/sdd/u3-kos-report.md</c>.</para>
         /// </summary>
         public const int Minor = 2;
     }

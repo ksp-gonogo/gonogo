@@ -1,0 +1,22 @@
+GonogoKos compile-time links kOS (kOS.dll / kOS.Safe.dll) and, from P1
+onward, Harmony (0Harmony.dll) for one observe-only ScreenBuffer.Print
+postfix. It reads kOS's public API in-process — no arm's-length reflection,
+no loopback telnet. See local_docs/telemetry-mod/kos-migration-spec.md §8.
+
+kOS is distributed under the GNU General Public License v3.0. Because
+GonogoKos direct-links kOS, GonogoKos is likewise GPLv3 (gonogo is GPLv3
+overall, so the linkage is licence-compatible and deliberate). The full
+GPLv3 text is in the repository root LICENSE.
+
+kOS:
+  Copyright (c) The kOS Team (https://github.com/KSP-KOS/KOS)
+  Licensed under GNU General Public License v3.0
+  https://github.com/KSP-KOS/KOS/blob/develop/LICENSE
+
+Harmony:
+  Copyright (c) Andreas Pardeike (https://github.com/pardeike/Harmony)
+  Licensed under the MIT License
+
+No kOS or Harmony assemblies are bundled with GonogoKos — both are
+reference-only (Private="false") and provided by the user's own kOS /
+Harmony installs at runtime.

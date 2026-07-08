@@ -266,6 +266,27 @@ namespace Sitrep.Contract
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes);
 
         /// <summary>
+        /// Point-in-time query: is at least one currently-subscribed channel
+        /// topic prefixed by <paramref name="topicPrefix"/> (ordinal
+        /// <c>StartsWith</c>)? This is the same subscription-awareness the
+        /// gated <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>
+        /// overload applies internally, exposed for an Uplink whose expensive
+        /// capture is NOT driven by the engine's sampled-source loop but by an
+        /// external callback it cannot gate declaratively — e.g. the kOS
+        /// Uplink's <c>ScreenBuffer.Print</c> Harmony postfix, which fires on
+        /// EVERY kerboscript <c>PRINT</c> and must short-circuit to nothing
+        /// while no <c>kos.compute.*</c> subscriber exists.
+        ///
+        /// <para>Reads the engine's thread-safe subscribed-topics mirror, so it
+        /// is safe to call from the KSP main thread (where the postfix runs) as
+        /// well as the Courier thread. Like the sampled-source gate it is a pure
+        /// early-out hint, never a correctness gate: a late subscriber still
+        /// gets the current value the ordinary way (keyframe-on-subscribe +
+        /// archive catch-up).</para>
+        /// </summary>
+        bool IsAnyTopicSubscribed(string topicPrefix);
+
+        /// <summary>
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the
         /// calling uplink owns, plus a <paramref name="template"/>
         /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>

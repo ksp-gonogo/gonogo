@@ -755,6 +755,40 @@ build_gonogoscansatuplink() {
   ls -la "$install_dir"
 }
 
+build_gonogokos() {
+  local proj="$ROOT/mod/Gonogo.Kos/Gonogo.Kos.csproj"
+  local out_dir="$ROOT/mod/Gonogo.Kos/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKos/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "Gonogo.Kos csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building Gonogo.Kos ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/Gonogo.Kos.dll" ]; then
+    echo "Gonogo.Kos.dll not produced (missing at $out_dir/Gonogo.Kos.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Only Gonogo.Kos.dll - Sitrep.*.dll (provided by GonogoCore) and
+  # kOS.dll/kOS.Safe.dll/0Harmony.dll (provided by the user's kOS + Harmony
+  # installs) are reference-only (Private="false") and must NOT be copied
+  # here - see .superpowers/sdd/uplink-packaging-pattern.md.
+  cp "$out_dir/Gonogo.Kos.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -919,9 +953,10 @@ case "${1:-help}" in
       kerbcast) build_kerbcast ;;
       gonogo) build_gonogo ;;
       gonogoscansatuplink) build_gonogoscansatuplink ;;
+      gonogokos) build_gonogokos ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogokos"
         exit 2
         ;;
     esac
