@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Comms;
 
 namespace Sitrep.Host.IntegrationTests
 {
@@ -414,6 +415,240 @@ namespace Sitrep.Host.IntegrationTests
             {
                 values["delay"] = delay.Value;
             }
+            if (delayed.HasValue)
+            {
+                values["delayed"] = delayed.Value;
+            }
+            if (trueNow.HasValue)
+            {
+                values["truenow"] = trueNow.Value;
+            }
+            return new KspSnapshot { Ut = ut, Values = values };
+        }
+    }
+
+    /// <summary>
+    /// KSP-FREE integration-test replica of the bundled
+    /// <c>Gonogo.KSP.CommsCoreUplink</c> — that assembly is net472/KSP-
+    /// referencing and unreachable from this project (same cross-project
+    /// rationale as <see cref="TestSystemUplink"/>'s doc comment), and it
+    /// hard-references <c>Gonogo.KSP.CommNetBackend</c> (a live-KSP
+    /// <see cref="ICommsBackend"/>) as its vanilla factory. Everything ELSE
+    /// the real uplink does is KSP-independent and reused verbatim here:
+    /// <list type="bullet">
+    /// <item>it OWNS the exclusive <c>"comms"</c> capability via
+    /// <see cref="CommsElection.RegisterCapability"/> (the two-pass
+    /// <see cref="IUplinkCapabilityDeclarer"/> path), but backed by a
+    /// synthetic <see cref="FakeCommsBackend"/> that supplies hop geometry
+    /// instead of the live CommNet backend;</item>
+    /// <item>it declares <c>comms.delay</c> as a TRUE-NOW channel (§1 — the
+    /// value that DEFINES the delay is never itself delay-gated) and sources
+    /// it from the CORE <see cref="SignalDelay.Compute"/> light-time math over
+    /// the elected backend's <see cref="CommsPath"/> — gonogo's own
+    /// computation, resolved every tick via
+    /// <c>Kernel.Query&lt;ICommsBackend&gt;</c>, exactly as the real uplink's
+    /// <c>CaptureOnMain</c> does.</item>
+    /// </list>
+    ///
+    /// <para>Only <c>comms.delay</c> is declared here: it is the single
+    /// <c>comms.*</c> payload <see cref="Sitrep.Core.Serialization.JsonWriter"/>
+    /// can serialize to the wire today (the other comms payload POCOs —
+    /// <see cref="CommsConnectivity"/> etc. — have no wire flatten and are
+    /// covered at the contract/election level, see
+    /// <c>CommsCoreEndToEndTests</c>). It is also the one channel that DRIVES
+    /// the server-side reveal gate (<see cref="ChannelEngine"/>'s
+    /// <c>RefreshSignalDelayFromCapability</c> reads exactly this registered
+    /// source every tick), so it is the meaningful end-to-end comms surface.</para>
+    /// </summary>
+    internal sealed class TestCommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
+    {
+        public const string DelayTopic = ChannelEngine.CommsDelayTopic;
+
+        private readonly double? _hopDistanceMeters;
+        private readonly SignalDelayConfig _config;
+        private Kernel? _kernel;
+
+        /// <param name="hopDistanceMeters">
+        /// One-hop distance the synthetic backend reports to KSC. Null models a
+        /// backend that can't supply per-hop geometry (SignalDelay then yields
+        /// <see cref="CommsDelaySource.None"/>).
+        /// </param>
+        /// <param name="signalDelayEnabled">
+        /// Whether the core SignalDelay capability is flag-enabled (§3). Off ⇒
+        /// <c>comms.delay</c> is 0 / <see cref="CommsDelaySource.None"/>.
+        /// </param>
+        public TestCommsCoreUplink(double? hopDistanceMeters, bool signalDelayEnabled)
+        {
+            _hopDistanceMeters = hopDistanceMeters;
+            _config = signalDelayEnabled
+                ? new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 }
+                : SignalDelayConfig.Off();
+        }
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "test-comms",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = DelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void DeclareCapabilities(Kernel kernel) =>
+            CommsElection.RegisterCapability(kernel, _ => new FakeCommsBackend("commnet", _hopDistanceMeters));
+
+        public void Register(IUplinkHost host)
+        {
+            _kernel = host.Kernel;
+            host.AddChannelSource(DelayTopic, MapDelay);
+        }
+
+        private object? MapDelay(KspSnapshot? snapshot)
+        {
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
+            if (backend == null)
+            {
+                return null;
+            }
+            var path = backend.Path();
+            return SignalDelay.Compute(
+                _config,
+                path,
+                path.Meta?.Source ?? "",
+                path.Meta?.Quality ?? Quality.OnRails);
+        }
+
+        /// <summary>
+        /// The one-way light-time (seconds) the core <see cref="SignalDelay"/>
+        /// math produces for this uplink's synthetic hop geometry at real
+        /// light-speed — the exact value a test asserts <c>comms.delay</c>
+        /// carries on the wire.
+        /// </summary>
+        public double ExpectedOneWaySeconds =>
+            (_hopDistanceMeters ?? 0.0) / SignalDelay.SpeedOfLightMetersPerSecond;
+
+        /// <summary>
+        /// KSP-free <see cref="ICommsBackend"/> — supplies exactly the shared
+        /// readouts both real backends honour (§6), with a single ground-hop
+        /// carrying the injected distance so <see cref="SignalDelay"/> has real
+        /// geometry to integrate over.
+        /// </summary>
+        internal sealed class FakeCommsBackend : ICommsBackend
+        {
+            private readonly double? _hopDistanceMeters;
+
+            public FakeCommsBackend(string id, double? hopDistanceMeters)
+            {
+                BackendId = id;
+                _hopDistanceMeters = hopDistanceMeters;
+            }
+
+            public string BackendId { get; }
+
+            public CommsConnectivity Connectivity() => new CommsConnectivity
+            {
+                Connected = true,
+                ControlSource = CommsControlSource.Full,
+                HasLocalControl = true,
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
+
+            public CommsSignalStrength SignalStrength() => new CommsSignalStrength
+            {
+                Value = 0.87,
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
+
+            public CommsControlState ControlState() => new CommsControlState
+            {
+                State = CommsControlStateKind.Full,
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
+
+            public CommsPath Path() => new CommsPath
+            {
+                Hops = new List<CommsHop>
+                {
+                    new CommsHop
+                    {
+                        From = "vessel",
+                        To = "kerbin-ksc",
+                        Kind = CommsHopKind.Home,
+                        DistanceMeters = _hopDistanceMeters,
+                    },
+                },
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
+
+            public CommsNetwork Network() => new CommsNetwork
+            {
+                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+            };
+        }
+    }
+
+    /// <summary>
+    /// Two role-carrying channels for the full-chain delay proof
+    /// (<c>RevealGateTests.FullChainDelayOverRealBackendComputedDelay</c>) —
+    /// deliberately WITHOUT a <c>comms.delay</c> channel of its own, so the
+    /// delay authority is owned solely by <see cref="TestCommsCoreUplink"/>
+    /// (whose value the reveal gate computes from real hop geometry). A
+    /// <c>vessel.*</c>-shaped Delayed channel plus a <c>time.warp</c>-shaped
+    /// TrueNow channel, both sourced from the tick snapshot's Values bag.
+    /// </summary>
+    internal sealed class DelayRolesTestUplink : ISitrepUplink
+    {
+        public const string DelayedTopic = "vessel.flight";
+        public const string TrueNowTopic = "time.warp";
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "test-delay-roles",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = DelayedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = TrueNowTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+            host.AddChannelSource(TrueNowTopic, snapshot => Read(snapshot, "truenow"));
+        }
+
+        private static object? Read(KspSnapshot? snapshot, string key)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            return value;
+        }
+
+        public static KspSnapshot Snapshot(double ut, double? delayed = null, double? trueNow = null)
+        {
+            var values = new Dictionary<string, object?>();
             if (delayed.HasValue)
             {
                 values["delayed"] = delayed.Value;

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
+using Sitrep.Host.Comms;
 using Xunit;
 
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -237,6 +238,99 @@ namespace Sitrep.Host.IntegrationTests
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
                 Assert.Equal(42.0, Latest(frames, RevealGateTestUplink.DelayedTopic));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// U5 "Layer A" full-chain delay proof — the headless proxy for
+        /// spec-streaming-delay-model §7.3 Step 6's host→client delay check,
+        /// but with the delay authority sourced END-TO-END from the REAL comms
+        /// stack instead of a raw snapshot number. A realistic multi-channel
+        /// session over one real ClientWebSocket:
+        /// <list type="bullet">
+        /// <item><c>comms.delay</c> is computed by the CORE
+        /// <see cref="SignalDelay"/> light-time math over the elected
+        /// <see cref="ICommsBackend"/>'s hop geometry
+        /// (<see cref="TestCommsCoreUplink"/>, election via
+        /// <see cref="CommsElection"/>) — a genuine 4s one-way delay from a
+        /// 4-light-second hop, not a hand-fed constant;</item>
+        /// <item><c>vessel.flight</c> is DELAYED — withheld until its UT crosses
+        /// the reveal horizon (now − 4);</item>
+        /// <item><c>time.warp</c> is TRUE-NOW — revealed live;</item>
+        /// <item><c>comms.delay</c> is TRUE-NOW — revealed live every tick,
+        /// never gated by the delay it defines.</item>
+        /// </list>
+        /// This closes the loop the single-channel RevealGate tests above leave
+        /// open: there the delay was a raw number in the snapshot; here the
+        /// whole comms election → SignalDelay geometry → reveal-gate chain
+        /// drives it, exactly as the in-game host will.
+        /// </summary>
+        [Fact]
+        public async Task FullChainDelayOverRealBackendComputedDelay()
+        {
+            // 4 light-seconds ⇒ SignalDelay computes exactly 4.0s one-way.
+            const double fourLightSeconds = 4.0 * SignalDelay.SpeedOfLightMetersPerSecond;
+            var commsUplink = new TestCommsCoreUplink(fourLightSeconds, signalDelayEnabled: true);
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterDiscoveredUplinks(new System.Collections.Generic.List<UplinkDiscovery.DiscoveredUplink>
+            {
+                new UplinkDiscovery.DiscoveredUplink(commsUplink, ContractVersion.Major, ContractVersion.Minor),
+                new UplinkDiscovery.DiscoveredUplink(new DelayRolesTestUplink(), ContractVersion.Major, ContractVersion.Minor),
+            });
+            engine.ResolveCapabilities();
+            Assert.Equal(4.0, commsUplink.ExpectedOneWaySeconds, precision: 6);
+
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, TestCommsCoreUplink.DelayTopic, Timeout);
+                await SubscribeAsync(client, DelayRolesTestUplink.DelayedTopic, Timeout);
+                await SubscribeAsync(client, DelayRolesTestUplink.TrueNowTopic, Timeout);
+
+                // UT 0: establish the delay authority. comms.delay (TrueNow)
+                // must reach the wire on this very tick, carrying the
+                // geometry-derived 4s — never gated by the 4s it defines.
+                engine.TickAndWait(0.0, DelayRolesTestUplink.Snapshot(0.0), Timeout);
+                var atUt0 = await DrainAllStreamDataAsync(client, Quiet);
+                var delay0 = atUt0.LastOrDefault(f => f.Topic == TestCommsCoreUplink.DelayTopic);
+                Assert.NotNull(delay0);
+                var delayPayload = Assert.IsType<System.Collections.Generic.Dictionary<string, object?>>(delay0!.Payload);
+                Assert.Equal(4.0, Convert.ToDouble(delayPayload["oneWaySeconds"]), precision: 6);
+                Assert.Equal(0.0, delay0.Meta.ValidAt);
+                Assert.Equal(0.0, delay0.Meta.DeliveredAt); // live, ungated
+
+                // UT 1: emit both role channels. time.warp (TrueNow) arrives;
+                // vessel.flight (Delayed) does NOT (horizon 1 − 4 = −3 ≪ its UT 1).
+                engine.TickAndWait(1.0, DelayRolesTestUplink.Snapshot(1.0, delayed: 10.0, trueNow: 20.0), Timeout);
+                var atUt1 = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Equal(20.0, Latest(atUt1, DelayRolesTestUplink.TrueNowTopic));
+                Assert.DoesNotContain(atUt1, f => f.Topic == DelayRolesTestUplink.DelayedTopic);
+                // comms.delay still live on this tick.
+                Assert.Contains(atUt1, f => f.Topic == TestCommsCoreUplink.DelayTopic && f.Meta.DeliveredAt == f.Meta.ValidAt);
+
+                // UT 2..4: still short of the horizon — vessel.flight withheld.
+                foreach (var ut in new[] { 2.0, 3.0, 4.0 })
+                {
+                    engine.TickAndWait(ut, DelayRolesTestUplink.Snapshot(ut, delayed: 10.0, trueNow: 20.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == DelayRolesTestUplink.DelayedTopic);
+
+                // UT 5: horizon 5 − 4 = 1 reaches the buffered sample's UT 1 —
+                // vessel.flight is revealed, carrying its true SCET (1), a full
+                // 4 UT-seconds after it was recorded.
+                engine.TickAndWait(5.0, DelayRolesTestUplink.Snapshot(5.0, delayed: 10.0, trueNow: 20.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == DelayRolesTestUplink.DelayedTopic);
+                Assert.NotNull(revealed);
+                Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
+                Assert.Equal(1.0, revealed.Meta.ValidAt);
             }
             finally
             {
