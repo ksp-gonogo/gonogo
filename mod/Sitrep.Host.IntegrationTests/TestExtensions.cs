@@ -207,6 +207,38 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.CareerExtension</c>
+    /// — that assembly is net472/KSP-referencing and unreachable from this
+    /// project, same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// own doc comment. Registers the <c>career.status</c> channel against
+    /// <see cref="CareerViewProvider.BuildCareer"/> verbatim, so the
+    /// domain wire-fixture generator can replay a career-mode recording
+    /// through the real engine pipeline exactly like a live capture would.
+    /// </summary>
+    internal sealed class TestCareerExtension : ISitrepExtension
+    {
+        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        {
+            Id = "test-career",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = CareerViewProvider.Topic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IExtensionHost host)
+        {
+            host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
+        }
+    }
+
+    /// <summary>
     /// Trivial no-op <see cref="IVesselActuator"/> for <see cref="TestVesselExtension"/>
     /// — every call succeeds and does nothing observable. Sufficient for this
     /// project's replay-driven tests, none of which dispatch a vessel command
