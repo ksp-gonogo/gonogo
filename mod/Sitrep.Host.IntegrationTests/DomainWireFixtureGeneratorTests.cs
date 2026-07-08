@@ -239,6 +239,127 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
+        [Fact]
+        public async Task GeneratesScienceWireFixtureFromScienceRecording()
+        {
+            const string recordingFileName = "reference-science-parts-2026-07-08.json";
+            const string fixtureFileName = "reference-wire-fixture-science.json";
+            var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
+            if (!File.Exists(recordingPath))
+            {
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                return;
+            }
+
+            var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
+            // All three science.* channels, INCLUDING lab/deployed even
+            // though this particular recording never populates them (no
+            // science lab or Breaking Ground deployed experiment onboard).
+            // Subscribing to them proves out ChannelEngine's own "born"
+            // semantics (see its doc comment around _born): a channel whose
+            // mapper NEVER returns a non-null value is never "born" and
+            // therefore emits ZERO wire frames — not a tombstone, not a
+            // null-payload keyframe, nothing at all. So a widget backed by
+            // science.lab/deployed against THIS fixture will see silence
+            // indistinguishable from "not subscribed", not an explicit
+            // null/absent signal — asserted below rather than assumed.
+            var topics = new[]
+            {
+                ScienceViewProvider.ExperimentsTopic,
+                ScienceViewProvider.LabTopic,
+                ScienceViewProvider.DeployedTopic,
+            };
+
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepExtension[] { new TestScienceExtension() }, topics);
+            Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
+
+            // ScienceViewProvider.BuildExperiments's payload IS the entry
+            // list itself (see its doc comment / BuildList), not a wrapping
+            // dict keyed "experiments" — same shape as parts.robotics below
+            // — so parse the raw StreamData payloads rather than
+            // ParsePayloads' IDictionary-only filter.
+            var experimentsStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.ExperimentsTopic);
+            Assert.True(experimentsStream.Count > 0, "expected at least one science.experiments frame");
+
+            var experimentEntries = experimentsStream
+                .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
+                .OfType<IDictionary<string, object?>>()
+                .ToList();
+            Assert.Contains(experimentEntries, e =>
+                (e.TryGetValue("experimentId", out var id) ? id as string : null) == "mysteryGoo" &&
+                !string.IsNullOrEmpty(e.TryGetValue("subjectId", out var subj) ? subj as string : null));
+
+            var situations = experimentEntries
+                .Select(e => e.TryGetValue("situation", out var s) ? s as string : null)
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct()
+                .ToList();
+            Assert.True(situations.Count >= 2, $"expected experiments across >=2 distinct situations, saw: {string.Join(", ", situations)}");
+
+            var labStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.LabTopic);
+            var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
+            Assert.True(labStream.Count == 0, "expected ZERO science.lab frames — this recording never carries a lab, so the channel is never 'born' (see ChannelEngine's _born doc comment) and should stay silent, not tombstone");
+            Assert.True(deployedStream.Count == 0, "expected ZERO science.deployed frames — this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
+
+            _output.WriteLine(
+                $"science fixture: {experimentsStream.Count} science.experiments frames, {experimentEntries.Count} experiment entries, " +
+                $"situations {{{string.Join(",", situations)}}}; science.lab {labStream.Count} frames; " +
+                $"science.deployed {deployedStream.Count} frames — both zero (never captured this session, channel never born) as expected.");
+
+            WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
+        }
+
+        [Fact]
+        public async Task GeneratesPartsWireFixtureFromPartsRecording()
+        {
+            const string recordingFileName = "reference-science-parts-2026-07-08.json";
+            const string fixtureFileName = "reference-wire-fixture-parts.json";
+            var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
+            if (!File.Exists(recordingPath))
+            {
+                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\" — gitignored local-only asset, not present in CI.");
+                return;
+            }
+
+            var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
+            var topics = new[]
+            {
+                PartsViewProvider.PowerTopic,
+                PartsViewProvider.RoboticsTopic,
+            };
+
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepExtension[] { new TestPartsExtension() }, topics);
+            Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
+
+            var powerFrames = ParsePayloads(capture.Frames, PartsViewProvider.PowerTopic);
+            Assert.True(powerFrames.Count > 0, "expected at least one parts.power frame");
+            Assert.Contains(powerFrames, p => p.TryGetValue("totalProductionEc", out var tp) && tp is double);
+            Assert.Contains(powerFrames, p =>
+                p.TryGetValue("solarPanels", out var raw) &&
+                raw is IEnumerable<object?> panels &&
+                panels.OfType<IDictionary<string, object?>>().Any(sp => !string.IsNullOrEmpty(sp.TryGetValue("partName", out var pn) ? pn as string : null)));
+
+            // parts.robotics's own payload IS the list (see PartsViewProvider.BuildRobotics
+            // — it returns List<object?> directly, not a wrapping dict), so
+            // ParsePayloads' IDictionary-only filter would yield nothing
+            // useful for this channel; parse the raw StreamData payloads
+            // instead.
+            var roboticsStream = ParseStreamFrames(capture.Frames, PartsViewProvider.RoboticsTopic);
+            Assert.True(roboticsStream.Count > 0, "expected at least one parts.robotics frame");
+            var roboticsEntries = roboticsStream
+                .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
+                .OfType<IDictionary<string, object?>>()
+                .ToList();
+            Assert.Contains(roboticsEntries, r => (r.TryGetValue("type", out var t) ? t as string : null) == "hinge");
+            var rotorPresent = roboticsEntries.Any(r => (r.TryGetValue("type", out var t) ? t as string : null) == "rotor");
+
+            _output.WriteLine(
+                $"parts fixture: {powerFrames.Count} parts.power frames, {roboticsStream.Count} parts.robotics frames, " +
+                $"{roboticsEntries.Count} servo entries; rotor present: {rotorPresent}.");
+
+            WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
+        }
+
         // ----------------------------------------------------------------
         // Shared replay/capture/fixture-writing plumbing
         // ----------------------------------------------------------------

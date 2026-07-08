@@ -239,6 +239,89 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceExtension</c>
+    /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// doc comment. Registers all three <c>science.*</c> channels against
+    /// <see cref="ScienceViewProvider"/>'s builders verbatim, so the domain
+    /// wire-fixture generator can replay a science-mode recording through
+    /// the real engine pipeline exactly like a live capture would.
+    /// </summary>
+    internal sealed class TestScienceExtension : ISitrepExtension
+    {
+        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        {
+            Id = "test-science",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ScienceViewProvider.ExperimentsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = ScienceViewProvider.LabTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = ScienceViewProvider.DeployedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IExtensionHost host)
+        {
+            host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
+            host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
+            host.AddChannelSource(ScienceViewProvider.DeployedTopic, ScienceViewProvider.BuildDeployed);
+        }
+    }
+
+    /// <summary>
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.PartsExtension</c>
+    /// — same cross-project rationale as <see cref="TestSystemExtension"/>'s
+    /// doc comment. Registers both <c>parts.*</c> channels against
+    /// <see cref="PartsViewProvider"/>'s builders verbatim, so the domain
+    /// wire-fixture generator can replay a parts/robotics-mode recording
+    /// through the real engine pipeline exactly like a live capture would.
+    /// </summary>
+    internal sealed class TestPartsExtension : ISitrepExtension
+    {
+        public ExtensionManifest Manifest { get; } = new ExtensionManifest
+        {
+            Id = "test-parts",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = PartsViewProvider.PowerTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = PartsViewProvider.RoboticsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IExtensionHost host)
+        {
+            host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
+            host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);
+        }
+    }
+
+    /// <summary>
     /// Trivial no-op <see cref="IVesselActuator"/> for <see cref="TestVesselExtension"/>
     /// — every call succeeds and does nothing observable. Sufficient for this
     /// project's replay-driven tests, none of which dispatch a vessel command
