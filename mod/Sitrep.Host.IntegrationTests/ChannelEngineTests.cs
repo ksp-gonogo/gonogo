@@ -83,6 +83,44 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task ASampledSourceCaptureIsSkippedWhileUnsubscribedAndRunsOnceSubscribed()
+        {
+            var uplink = new SampledGateTestUplink();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                // No subscriber yet: the sampled source declared its produced
+                // topic as a gate prefix, so its main-thread capture must be
+                // SKIPPED entirely (Fix #3) — no work, no publish.
+                engine.TickAndWait(0.0, new KspSnapshot { Ut = 0.0 }, Timeout);
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+                Assert.Equal(0, uplink.CaptureCount);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
+
+                // Now subscribe: the capture must RUN again (gate open) and its
+                // value reach the wire (keyframe-on-subscribe path intact). A
+                // second tick advances the clock so the sampled source's
+                // enqueued publish (recorded on a later job) becomes due.
+                await SubscribeAsync(client, SampledGateTestUplink.Topic, Timeout);
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+                engine.TickAndWait(3.0, new KspSnapshot { Ut = 3.0 }, Timeout);
+
+                Assert.True(uplink.CaptureCount >= 1, $"capture should have run once subscribed (was {uplink.CaptureCount})");
+                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                Assert.NotNull(delivered);
+                Assert.Equal(SampledGateTestUplink.Topic, delivered!.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>
         /// Proves the dynamic-namespace mechanism
         /// (<see cref="IUplinkHost.RegisterDynamicNamespace"/>): two

@@ -106,6 +106,19 @@ namespace Sitrep.Host
         private readonly List<SampledSource> _sampledSources = new List<SampledSource>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
+        // Thread-safe MIRROR of "which topics currently have >=1 subscriber",
+        // maintained on the Courier thread (the only writer — Process
+        // Subscribe/Unsubscribe/Disconnect + the C2-3 subscribe rollback, in
+        // lock-step with _subscriptions) and READ on the main-loop thread by
+        // RunCaptures to subscription-gate a SampledSource's capture (see
+        // AddSampledSource's prefix overload / SampledSource.TopicPrefixes).
+        // _subscriptions itself is a plain Dictionary that must never be touched
+        // off the Courier thread, so a capture running on the main-loop thread
+        // cannot consult it directly; this ConcurrentDictionary is the
+        // cross-thread window onto the same fact. Keyed by full concrete topic
+        // (dynamic sub-topics included), value byte is unused.
+        private readonly ConcurrentDictionary<string, byte> _subscribedTopics = new ConcurrentDictionary<string, byte>();
+
         // topic/command -> owning uplink id, populated in RegisterUplink
         // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
         // channel loop and ProcessDispatchCommand consult _availability
@@ -262,7 +275,13 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                _availability[id] = Availability.Unavailable("registration threw: " + ex.Message);
+                // Fix #4: route through MarkUplinkUnavailable (NOT a direct
+                // _availability write) so a Register() that added a SampledSource
+                // and THEN threw has that source's Disabled flag set too —
+                // otherwise RunCaptures (which gates only on source.Disabled)
+                // would keep invoking the half-initialised capture every tick
+                // forever. Safe here: registration is pre-Start, single-threaded.
+                MarkUplinkUnavailable(id, "registration threw: " + SafeExceptionMessage(ex));
             }
             finally
             {
@@ -338,7 +357,21 @@ namespace Sitrep.Host
         // for the full threading contract.
         public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
         {
-            _sampledSources.Add(new SampledSource(_currentRegisteringUplinkId ?? "", captureOnMainThread, handleOnCourier));
+            AddSampledSource(captureOnMainThread, handleOnCourier, Array.Empty<string>());
+        }
+
+        // Subscription-gated overload (see IUplinkHost.AddSampledSource's
+        // prefix overload): the declared topic prefixes let RunCaptures
+        // early-out the capture on the main-loop thread when nothing this
+        // source produces is subscribed. An empty prefix set means "never
+        // gate" — the original always-capture behaviour.
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+        {
+            _sampledSources.Add(new SampledSource(
+                _currentRegisteringUplinkId ?? "",
+                captureOnMainThread,
+                handleOnCourier,
+                subscriptionTopicPrefixes ?? Array.Empty<string>()));
         }
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
@@ -704,6 +737,18 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                // Fix #3: subscription-gate the capture. A source that declared
+                // the topic prefixes it produces is SKIPPED entirely (no
+                // main-thread work at all) on any tick where nothing under those
+                // prefixes is currently subscribed. A source with no declared
+                // prefixes is never gated (original always-capture behaviour).
+                // Reads the Courier-maintained _subscribedTopics mirror — never
+                // _subscriptions, which is Courier-thread-only.
+                if (!AnyTopicPrefixSubscribed(source.TopicPrefixes))
+                {
+                    continue;
+                }
+
                 try
                 {
                     captured.Add(new CapturedSample(i, source.Capture(snapshot), null));
@@ -715,6 +760,35 @@ namespace Sitrep.Host
             }
 
             return captured.Count == 0 ? null : captured.ToArray();
+        }
+
+        /// <summary>
+        /// Main-loop-thread subscription check for a <see cref="SampledSource"/>'s
+        /// declared topic prefixes (Fix #3). An EMPTY prefix set means the source
+        /// opted out of gating — always "subscribed" (original always-capture
+        /// behaviour). Otherwise returns true iff at least one currently-subscribed
+        /// topic starts with one of the prefixes. Reads only the thread-safe
+        /// <see cref="_subscribedTopics"/> mirror, never the Courier-owned
+        /// <see cref="_subscriptions"/>.
+        /// </summary>
+        private bool AnyTopicPrefixSubscribed(string[] prefixes)
+        {
+            if (prefixes.Length == 0)
+            {
+                return true;
+            }
+
+            foreach (var topic in _subscribedTopics.Keys)
+            {
+                for (var i = 0; i < prefixes.Length; i++)
+                {
+                    if (topic.StartsWith(prefixes[i], StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -1117,6 +1191,7 @@ namespace Sitrep.Host
             // the keyframe cadence remains.
             if (_subscriptions.Subscribe(topic))
             {
+                _subscribedTopics[topic] = 0;
                 _emitter.NotifySubscribed(topic);
             }
 
@@ -1178,7 +1253,10 @@ namespace Sitrep.Host
                 // and bail out WITHOUT setting Unsubscribers/sending an ack
                 // — the client's subscribe simply never completes, matching
                 // "unavailable channel" behavior elsewhere in this class.
-                _subscriptions.Unsubscribe(topic);
+                if (_subscriptions.Unsubscribe(topic))
+                {
+                    _subscribedTopics.TryRemove(topic, out _);
+                }
                 FailSoftChannel(topic, ex);
                 return;
             }
@@ -1267,7 +1345,10 @@ namespace Sitrep.Host
             {
                 unsubscribe();
                 session.Unsubscribers.Remove(topic);
-                _subscriptions.Unsubscribe(topic);
+                if (_subscriptions.Unsubscribe(topic))
+                {
+                    _subscribedTopics.TryRemove(topic, out _);
+                }
             }
         }
 
@@ -1275,7 +1356,10 @@ namespace Sitrep.Host
         {
             foreach (var topic in session.Unsubscribers.Keys)
             {
-                _subscriptions.Unsubscribe(topic);
+                if (_subscriptions.Unsubscribe(topic))
+                {
+                    _subscribedTopics.TryRemove(topic, out _);
+                }
             }
             foreach (var unsubscribe in session.Unsubscribers.Values)
             {
@@ -1470,13 +1554,21 @@ namespace Sitrep.Host
             public readonly string OwnerId;
             public readonly Func<KspSnapshot?, object?> Capture;
             public readonly Action<object?> Handle;
+
+            // Channel-topic prefixes this source PRODUCES. When non-empty,
+            // RunCaptures skips Capture on any tick where no subscribed topic
+            // starts with one of these (see AddSampledSource's prefix overload).
+            // Empty => never gated (original always-capture behaviour). Set once
+            // at registration, only read afterward.
+            public readonly string[] TopicPrefixes;
             public volatile bool Disabled;
 
-            public SampledSource(string ownerId, Func<KspSnapshot?, object?> capture, Action<object?> handle)
+            public SampledSource(string ownerId, Func<KspSnapshot?, object?> capture, Action<object?> handle, string[] topicPrefixes)
             {
                 OwnerId = ownerId;
                 Capture = capture;
                 Handle = handle;
+                TopicPrefixes = topicPrefixes;
             }
         }
 

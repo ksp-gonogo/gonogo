@@ -50,6 +50,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+        {
+        }
+
         public IChannelPublisher Publisher(string topic) => throw new NotSupportedException();
 
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();

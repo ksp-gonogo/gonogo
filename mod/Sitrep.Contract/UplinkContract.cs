@@ -246,6 +246,26 @@ namespace Sitrep.Contract
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier);
 
         /// <summary>
+        /// Subscription-gated overload of <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>
+        /// — identical capture-on-main / handle-on-Courier semantics, plus
+        /// <paramref name="subscriptionTopicPrefixes"/>: the set of channel-topic
+        /// prefixes this source PRODUCES (e.g. <c>"scansat.coverage."</c>). When
+        /// given, the engine SKIPS <paramref name="captureOnMainThread"/> entirely
+        /// on any tick where NO currently-subscribed topic starts with any of these
+        /// prefixes — so a source that does expensive main-thread work (grid copies,
+        /// stock-API reads) burns nothing while no client is looking. Pass the
+        /// prefix(es) an <see cref="RegisterDynamicNamespace"/> owns, and/or the exact
+        /// topics a <see cref="Publisher"/> targets (an exact topic is its own prefix).
+        ///
+        /// <para>The gate is a pure early-out, never a correctness change: a late
+        /// subscriber still gets the current value the ordinary way (the emitter's
+        /// keyframe-on-subscribe + the Courier archive's catch-up), because the very
+        /// next capture after a 0-&gt;1 subscription runs again. Omitting this overload
+        /// (or passing no prefixes) preserves the original always-capture behaviour.</para>
+        /// </summary>
+        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes);
+
+        /// <summary>
         /// Declares a dynamic namespace: a <paramref name="prefix"/> the
         /// calling uplink owns, plus a <paramref name="template"/>
         /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>

@@ -386,4 +386,53 @@ namespace Sitrep.Host.IntegrationTests
         public void PublishTo(string subTopic, object? payload, double ut) =>
             (_source ?? throw new InvalidOperationException("Register was never called")).Publisher(subTopic).Publish(payload, ut);
     }
+
+    /// <summary>
+    /// Exercises the F1-hardening Fix #3 subscription gate on the
+    /// capture-on-main / handle-on-Courier seam
+    /// (<see cref="IUplinkHost.AddSampledSource(System.Func{KspSnapshot?, object?}, System.Action{object?}, string[])"/>).
+    /// Registers ONE channel (<see cref="Topic"/>) and a sampled source that
+    /// declares that topic as its produced prefix, then publishes the tick's
+    /// UT through it. <see cref="CaptureCount"/> counts how many times the
+    /// main-thread capture actually ran — expected to stay 0 while nothing is
+    /// subscribed and increment only once a subscriber exists.
+    /// </summary>
+    internal sealed class SampledGateTestUplink : ISitrepUplink
+    {
+        public const string Topic = "sampled.gate";
+
+        private int _captureCount;
+        private IChannelPublisher? _publisher;
+
+        public int CaptureCount => System.Threading.Volatile.Read(ref _captureCount);
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "sampled-gate",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = Topic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _publisher = host.Publisher(Topic);
+            host.AddSampledSource(Capture, Handle, Topic);
+        }
+
+        private object? Capture(KspSnapshot? snapshot)
+        {
+            System.Threading.Interlocked.Increment(ref _captureCount);
+            return snapshot?.Ut ?? 0.0;
+        }
+
+        private void Handle(object? captured) => _publisher!.Publish(captured, Convert.ToDouble(captured));
+    }
 }

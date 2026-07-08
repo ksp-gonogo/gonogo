@@ -39,7 +39,14 @@ namespace Sitrep.Contract
         /// implements), so it cannot break any existing
         /// <see cref="ISitrepUplink"/> built against an older Minor. See
         /// <c>.superpowers/sdd/f1-main-thread-sampler-report.md</c>.</para>
+        ///
+        /// <para>Bumped 2 -&gt; 3: additive-only Minor for the
+        /// subscription-gated <see cref="IUplinkHost.AddSampledSource(System.Func{KspSnapshot?, object?}, System.Action{object?}, string[])"/>
+        /// overload — a new method on <see cref="IUplinkHost"/> (which an Uplink
+        /// CONSUMES, never implements), so it cannot break any existing
+        /// <see cref="ISitrepUplink"/> built against an older Minor. See
+        /// <c>.superpowers/sdd/f1-hardening-report.md</c>.</para>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

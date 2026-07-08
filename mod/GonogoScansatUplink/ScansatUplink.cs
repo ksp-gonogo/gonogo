@@ -165,7 +165,19 @@ namespace Gonogo.ScansatUplink
             // AddSampler(this) path, whose Sample() read KSP APIs on the
             // Courier thread (the F1 fix — see
             // .superpowers/sdd/f1-main-thread-sampler-report.md).
-            host.AddSampledSource(CaptureOnMain, HandleOnCourier);
+            // Subscription-gated (F1-hardening Fix #3): the coverage-grid copy,
+            // per-type GetCoverage calls, and once-per-body stock PQS/BiomeMap
+            // grid builds in CaptureOnMain are ALL skipped on the main thread
+            // when no client is subscribed to any topic this source produces.
+            // The prefixes cover every dynamic namespace it publishes to; the
+            // wire shape when subscribed is unchanged.
+            host.AddSampledSource(
+                CaptureOnMain,
+                HandleOnCourier,
+                ScanChannels.CoveragePrefix,
+                ScanChannels.MaskPrefix,
+                ScanChannels.HeightPrefix,
+                ScanChannels.BiomePrefix);
         }
 
         /// <summary>

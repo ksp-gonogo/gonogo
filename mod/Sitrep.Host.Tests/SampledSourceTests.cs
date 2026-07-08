@@ -116,21 +116,58 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2, healthyHandleCalls);
         }
 
+        [Fact]
+        public void ARegistrationThatAddsASampledSourceThenThrowsDisablesThatCaptureForever()
+        {
+            int captureCalls = 0;
+
+            // Register adds a sampled source, THEN throws. Fix #4: the catch
+            // must route through MarkUplinkUnavailable so the already-registered
+            // source's Disabled flag is set — otherwise RunCaptures (which gates
+            // only on source.Disabled, not _availability) keeps invoking the
+            // half-initialised capture every tick forever.
+            var failing = new RecordingUplink(
+                "sampled.regfail",
+                capture: _ =>
+                {
+                    captureCalls++;
+                    return new object();
+                },
+                handle: _ => { },
+                throwInRegister: true);
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(failing);
+            engine.Start();
+
+            Assert.False(engine.AvailabilityOf("sampled.regfail").IsAvailable);
+
+            engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+            engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+
+            // The capture never ran on either tick — the source was disabled
+            // by the registration-failure path, not left live.
+            Assert.Equal(0, captureCalls);
+        }
+
         private sealed class RecordingUplink : ISitrepUplink, ISnapshotSampler
         {
             private readonly Func<KspSnapshot?, object?> _capture;
             private readonly Action<object?> _handle;
             private readonly Action? _onSample;
+            private readonly bool _throwInRegister;
 
             public RecordingUplink(
                 string id,
                 Func<KspSnapshot?, object?> capture,
                 Action<object?> handle,
-                Action? onSample = null)
+                Action? onSample = null,
+                bool throwInRegister = false)
             {
                 _capture = capture;
                 _handle = handle;
                 _onSample = onSample;
+                _throwInRegister = throwInRegister;
                 Manifest = new UplinkManifest { Id = id, Version = "1.0.0" };
             }
 
@@ -142,6 +179,10 @@ namespace Sitrep.Host.Tests
                 if (_onSample != null)
                 {
                     host.AddSampler(this);
+                }
+                if (_throwInRegister)
+                {
+                    throw new InvalidOperationException("register boom (after AddSampledSource)");
                 }
             }
 
