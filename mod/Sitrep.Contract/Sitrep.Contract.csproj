@@ -3,6 +3,13 @@
     <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- Deliberate permissive carve-out: Sitrep.Contract is the public Uplink
+         surface. Core (Sitrep.Host/Core/etc.) is GPL-3.0-only because it
+         directly links kOS (GPLv3-only), but this assembly ships no kOS
+         code and exists specifically so third-party Uplinks under ANY
+         license (GPLv2, proprietary, etc.) can reference the contract
+         without inheriting GPL obligations. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli
        reads the [TsInterface]/[TsEnum] attributes baked into this

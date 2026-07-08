@@ -1,5 +1,6 @@
 {
   "name": "gonogo",
+  "license": "GPL-3.0-only",
   "private": true,
   "scripts": {
     "dev": "sh scripts/dev.sh",
