@@ -60,6 +60,9 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
         "vessel.flight",
         "vessel.identity",
         "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
       ],
       pinnedUt: 10,
     });

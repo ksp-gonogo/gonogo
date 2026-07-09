@@ -71,6 +71,42 @@ export interface VesselIdentityPayload {
   launchUt: number | null;
 }
 
+/**
+ * The `vessel.control` channel payload — hand-mirrored subset relevant to the
+ * `sasModeName` display map (mirrors `mod/Sitrep.Contract/VesselControl.cs`).
+ * `sasMode` is the raw `Sitrep.Contract.SasMode` enum ORDINAL on the wire
+ * (`VesselViewProvider` serializes `(int)control.SasMode`), individually
+ * nullable — `null` is a normal "this input isn't available this tick" per the
+ * C# class doc (R1(a)), NOT a sentinel.
+ */
+export interface VesselControlPayload {
+  sasMode: number | null;
+}
+
+/**
+ * The `vessel.target` channel payload — hand-mirrored subset relevant to the
+ * `targetKind` display map (mirrors `mod/Sitrep.Contract/VesselTarget.cs`).
+ * `kind` is the raw `Sitrep.Contract.TargetKind` enum ORDINAL on the wire
+ * (`(int)target.Kind`). The WHOLE channel is absent (no point) when nothing is
+ * targeted (R1(b)) — the common case — never a sentinel record.
+ */
+export interface VesselTargetPayload {
+  kind: number;
+}
+
+/**
+ * The `vessel.comms` channel payload — hand-mirrored subset relevant to the
+ * comms control-state display maps (mirrors `mod/Sitrep.Contract/
+ * VesselComms.cs`). `controlState` is the raw `Sitrep.Contract.ControlState`
+ * enum ORDINAL on the wire (`(int)comms.ControlState` in `VesselViewProvider`
+ * — despite the old `map-topic.ts` gap comment calling it a "STRING enum", the
+ * host serializes the integer, same as every other contract enum). The whole
+ * channel is absent when `vessel.connection` is null (R1(b)).
+ */
+export interface VesselCommsPayload {
+  controlState: number;
+}
+
 /** One body's orbital elements within `system.bodies` — `null` only for the root star (mirrors `SystemViewProvider.BuildOrbit`). Units match `VesselOrbitPayload`'s (degrees for inc/lan/argPe, radians for meanAnomalyAtEpoch). */
 export interface SystemBodyOrbitPayload {
   sma: number | null;
@@ -194,6 +230,71 @@ export interface VesselState {
    * `undefined`-vs-`null` rules as `parentBodyName`.
    */
   referenceBodyName: string | null | undefined;
+  /**
+   * Situation NAME — the display-map resolution of `vessel.identity.situation`
+   * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
+   * enum name string ("Landed", "Orbiting", …), the new home for the old
+   * Telemachus `v.situationString` string ScienceBench renders. Populated in
+   * BOTH bases (needs only `vessel.identity`, no propagation). `undefined`
+   * while `vessel.identity` hasn't arrived or the ordinal is out of the enum's
+   * range (unrecognized — "still resyncing"); `null` when `vessel.identity` is
+   * a confirmed tombstone. `Situation.Unknown` (ordinal 8) is a DEFINED value
+   * and resolves to the literal name "Unknown", not `undefined`.
+   */
+  situationName: string | null | undefined;
+  /**
+   * SAS-mode NAME — the display-map resolution of `vessel.control.sasMode` (a
+   * numeric `Sitrep.Contract.SasMode` enum ordinal) to its enum name string,
+   * the new home for the old Telemachus `f.sasMode` string. The names match
+   * Navball's `SAS_MODES` union EXACTLY (both mirror KSP's
+   * `VesselAutopilot.AutopilotMode` order), so the widget's `sasMode === mode`
+   * active-button compare works unchanged. Populated in BOTH bases.
+   * `undefined` while `vessel.control` hasn't arrived, when `sasMode` is `null`
+   * (not available this tick), or when the ordinal is out of range; `null`
+   * when `vessel.control` is a confirmed tombstone. `SasMode.Unknown` (ordinal
+   * 10) resolves to "Unknown" (not in `SAS_MODES`, so no button highlights —
+   * the same benign outcome as the legacy path).
+   */
+  sasModeName: string | null | undefined;
+  /**
+   * Target KIND string — the display-map resolution of `vessel.target.kind` (a
+   * numeric `Sitrep.Contract.TargetKind` enum ordinal: Vessel/Body/Other) to
+   * the string set TargetPicker/DistanceToTarget were written against, the new
+   * home for the old Telemachus `tar.type`. NOTE the deliberate
+   * NORMALIZATION: TargetKind's `Body` is mapped to the literal
+   * `"CelestialBody"` (not the C# name "Body"), because DistanceToTarget's
+   * dockable gate is a literal `tarType !== "CelestialBody"` compare against
+   * the legacy string — emitting "Body" would silently misclassify every
+   * body as dockable. `Vessel`→"Vessel", `Other`→"Other". (Coarser than
+   * legacy Telemachus, which returned the specific VesselType name e.g.
+   * "Station" for a vessel target — an inherent, documented coarsening of the
+   * `TargetKind` contract; the dockable gate is unaffected.) `undefined` when
+   * `vessel.target` is absent (nothing targeted — the common case) or the
+   * ordinal is out of range; `null` on a confirmed tombstone.
+   */
+  targetKind: string | null | undefined;
+  /**
+   * Comms control-state NAME — the display-map resolution of
+   * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
+   * ordinal) to its enum name string ("None", "Partial", "Full", "ProbeFull",
+   * …), the new home for the old Telemachus `comm.controlStateName` string
+   * CommSignal prefers for its label + tone. `undefined` while `vessel.comms`
+   * hasn't arrived or the ordinal is out of range; `null` on a confirmed
+   * tombstone. `ControlState.Unknown` (ordinal 11) resolves to "Unknown".
+   */
+  commsControlStateName: string | null | undefined;
+  /**
+   * Comms control-state ORDINAL in CommSignal's Telemachus 0/1/2 scheme
+   * (0=none, 1=partial, 2=full) — the new home for the old Telemachus numeric
+   * `comm.controlState`, DERIVED from `vessel.comms.controlState`'s
+   * `Sitrep.Contract.ControlState` enum by collapsing its 11 richer values
+   * onto the three control LEVELS CommSignal branches on (bars fallback +
+   * hasData): any `*Full`/bare `Probe`/`Kerbal` → 2, any `*Partial` → 1, any
+   * `*None`/bare `None` → 0. `undefined` while `vessel.comms` hasn't arrived,
+   * for `ControlState.Unknown`, or an out-of-range ordinal; `null` on a
+   * confirmed tombstone.
+   */
+  commsControlStateOrdinal: number | null | undefined;
   /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
   basis: "propagated" | "measured";
   /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
@@ -323,6 +424,183 @@ function resolveBodyName(
 }
 
 /**
+ * `Sitrep.Contract.Situation` names in C# declaration order (VesselEnums.cs).
+ * The wire carries `(int)id.Situation`; this is the ordinal→name table behind
+ * `vessel.state.situationName` (old Telemachus `v.situationString`).
+ */
+const SITUATION_NAMES: readonly string[] = [
+  "Landed", // 0
+  "Splashed", // 1
+  "PreLaunch", // 2
+  "Orbiting", // 3
+  "Escaping", // 4
+  "Flying", // 5
+  "SubOrbital", // 6
+  "Docked", // 7
+  "Unknown", // 8
+];
+
+/**
+ * `Sitrep.Contract.SasMode` names in C# declaration order (VesselControl.cs) —
+ * identical to Navball's `SAS_MODES` union (both mirror KSP's
+ * `VesselAutopilot.AutopilotMode`), with `Unknown` (10) the graceful fallback
+ * not present in `SAS_MODES`. Behind `vessel.state.sasModeName` (old `f.sasMode`).
+ */
+const SAS_MODE_NAMES: readonly string[] = [
+  "StabilityAssist", // 0
+  "Prograde", // 1
+  "Retrograde", // 2
+  "Normal", // 3
+  "Antinormal", // 4
+  "RadialIn", // 5
+  "RadialOut", // 6
+  "Target", // 7
+  "AntiTarget", // 8
+  "Maneuver", // 9
+  "Unknown", // 10
+];
+
+/**
+ * `Sitrep.Contract.TargetKind` (VesselTarget.cs) → the string set the widgets
+ * were written against. Index = the C# enum ordinal (Vessel 0 / Body 1 /
+ * Other 2). Body is deliberately NORMALIZED to "CelestialBody" (the legacy
+ * Telemachus string DistanceToTarget's dockable gate compares against) — see
+ * `VesselState.targetKind`'s doc. Behind `vessel.state.targetKind` (old `tar.type`).
+ */
+const TARGET_KIND_NAMES: readonly string[] = [
+  "Vessel", // 0
+  "CelestialBody", // 1  (C# name is "Body" — normalized for the widgets)
+  "Other", // 2
+];
+
+/**
+ * `Sitrep.Contract.ControlState` names in C# declaration order (VesselComms.cs).
+ * Behind `vessel.state.commsControlStateName` (old `comm.controlStateName`).
+ */
+const CONTROL_STATE_NAMES: readonly string[] = [
+  "None", // 0
+  "Probe", // 1
+  "Kerbal", // 2
+  "Partial", // 3
+  "Full", // 4
+  "ProbeNone", // 5
+  "ProbePartial", // 6
+  "ProbeFull", // 7
+  "KerbalNone", // 8
+  "KerbalPartial", // 9
+  "KerbalFull", // 10
+  "Unknown", // 11
+];
+
+/**
+ * `ControlState` ordinal → CommSignal's Telemachus 0/1/2 control-LEVEL scheme
+ * (behind `vessel.state.commsControlStateOrdinal`, old numeric
+ * `comm.controlState`). Collapses the 11 richer states onto the three levels
+ * the widget branches on: `*Full`/bare source → 2 (full), `*Partial` → 1,
+ * `*None`/`None` → 0. `Unknown` (11) → `undefined` (unrecognized). Index-aligned
+ * with `CONTROL_STATE_NAMES`.
+ */
+const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
+  0, // None
+  2, // Probe (has probe control → full)
+  2, // Kerbal (has crew control → full)
+  1, // Partial
+  2, // Full
+  0, // ProbeNone
+  1, // ProbePartial
+  2, // ProbeFull
+  0, // KerbalNone
+  1, // KerbalPartial
+  2, // KerbalFull
+  undefined, // Unknown
+];
+
+/**
+ * Generic enum-ordinal → NAME display-map resolver reading a single source
+ * channel, mirroring `resolveBodyName`'s `undefined`-vs-`null` discipline:
+ * `undefined` when the channel hasn't arrived (no point) or the ordinal is out
+ * of the `names` table's range ("still resyncing / unrecognized"); `null` on a
+ * confirmed tombstone. `ordinalOf` pulls the raw ordinal off the payload —
+ * returning `null`/`undefined` for a field-level "not available this tick"
+ * (mapped to `undefined`, never `null`, since it isn't a whole-channel
+ * absence). Never throws on a missing channel / missing field.
+ */
+function resolveEnumName<T>(
+  get: DerivedGet,
+  topic: string,
+  ordinalOf: (payload: T) => number | null | undefined,
+  names: readonly string[],
+): string | null | undefined {
+  const point = get<T>(topic);
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const ordinal = ordinalOf(point.payload);
+  if (ordinal == null) return undefined;
+  return names[ordinal] ?? undefined;
+}
+
+/**
+ * `vessel.comms.controlState`'s `ControlState` ordinal collapsed to CommSignal's
+ * Telemachus 0/1/2 control-level scheme (`vessel.state.commsControlStateOrdinal`).
+ * Same channel-presence discipline as `resolveEnumName`: `undefined` when
+ * `vessel.comms` hasn't arrived or the ordinal is out of range / maps to no
+ * level (`Unknown`); `null` on a confirmed tombstone.
+ */
+function resolveCommsControlStateOrdinal(
+  get: DerivedGet,
+): number | null | undefined {
+  const point = get<VesselCommsPayload>("vessel.comms");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  return CONTROL_STATE_LEVEL[point.payload.controlState] ?? undefined;
+}
+
+/**
+ * All five enum-ordinal display maps carried on `vessel.state` (migration
+ * task 1–4: `v.situationString`/`f.sasMode`/`tar.type`/`comm.controlStateName`
+ * + numeric `comm.controlState`). Bundled so both quality branches of
+ * `deriveVesselState` populate them identically — each needs only its source
+ * channel (`vessel.identity`/`vessel.control`/`vessel.target`/`vessel.comms`),
+ * no orbital propagation, so they're live in the Loaded (measured) basis too,
+ * same as the body-name display maps.
+ */
+function deriveEnumDisplayMaps(get: DerivedGet): {
+  situationName: string | null | undefined;
+  sasModeName: string | null | undefined;
+  targetKind: string | null | undefined;
+  commsControlStateName: string | null | undefined;
+  commsControlStateOrdinal: number | null | undefined;
+} {
+  return {
+    situationName: resolveEnumName<VesselIdentityPayload>(
+      get,
+      "vessel.identity",
+      (p) => p.situation,
+      SITUATION_NAMES,
+    ),
+    sasModeName: resolveEnumName<VesselControlPayload>(
+      get,
+      "vessel.control",
+      (p) => p.sasMode,
+      SAS_MODE_NAMES,
+    ),
+    targetKind: resolveEnumName<VesselTargetPayload>(
+      get,
+      "vessel.target",
+      (p) => p.kind,
+      TARGET_KIND_NAMES,
+    ),
+    commsControlStateName: resolveEnumName<VesselCommsPayload>(
+      get,
+      "vessel.comms",
+      (p) => p.controlState,
+      CONTROL_STATE_NAMES,
+    ),
+    commsControlStateOrdinal: resolveCommsControlStateOrdinal(get),
+  };
+}
+
+/**
  * The `vessel.state` derivation (M2 design §2.4/§9.1). Reads `vessel.orbit`
  * + `vessel.flight` at the SAME frozen `viewUt` (the `get` closure enforces
  * this structurally — see `TimelineStore`) and quality-picks per
@@ -448,6 +726,7 @@ export function deriveVesselState(
       timeToPe,
       parentBodyName,
       referenceBodyName,
+      ...deriveEnumDisplayMaps(get),
       basis: "propagated",
       subjectId,
     };
@@ -486,6 +765,7 @@ export function deriveVesselState(
     timeToPe: null,
     parentBodyName: resolveBodyName(get, parentBodyIndex),
     referenceBodyName: resolveBodyName(get, orbit.referenceBodyIndex),
+    ...deriveEnumDisplayMaps(get),
     basis: "measured",
     subjectId,
   };
@@ -557,7 +837,27 @@ export function deriveVesselStateStatus(
  */
 export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   topic: "vessel.state",
-  inputs: ["vessel.orbit", "vessel.flight", "vessel.identity", "system.bodies"],
+  // Grew from four to SEVEN with the enum-ordinal→name migration (tasks 1–4:
+  // `situationName`/`sasModeName`/`targetKind`/`commsControlState*`). The three
+  // additions — `vessel.control`/`vessel.target`/`vessel.comms` — are the
+  // source channels of the new display maps. Per this array's contract (above):
+  // adding an input makes EVERY `vessel.state.*` field "carried" only once ALL
+  // SEVEN inputs are, so every `carriedChannels` allowlist that reads any
+  // `vessel.state.*` field was extended to list these three too (the runtime
+  // default `DEFAULT_SITREP_CARRIED_TOPICS` already carries all three). The
+  // display maps consult only their own single source channel, so an absent
+  // one nulls just that ONE field (never the whole record) and never drags
+  // `deriveVesselStateStatus` (still orbit/flight-only — those three are not
+  // status-bearing kinematic inputs).
+  inputs: [
+    "vessel.orbit",
+    "vessel.flight",
+    "vessel.identity",
+    "system.bodies",
+    "vessel.control",
+    "vessel.target",
+    "vessel.comms",
+  ],
   derive: deriveVesselState,
   deriveStatus: deriveVesselStateStatus,
   fields: true,

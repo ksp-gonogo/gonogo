@@ -9,9 +9,12 @@ import {
   deriveVesselState,
   deriveVesselStateStatus,
   type SystemBodiesPayload,
+  type VesselCommsPayload,
+  type VesselControlPayload,
   type VesselFlightPayload,
   type VesselIdentityPayload,
   type VesselOrbitPayload,
+  type VesselTargetPayload,
 } from "./vessel-state";
 
 /** Kerbin's mean radius, metres — a realistic reference body for the apsides tests. */
@@ -85,6 +88,9 @@ function fakeGet(points: {
   "vessel.flight"?: TimelinePoint<VesselFlightPayload>;
   "vessel.identity"?: TimelinePoint<VesselIdentityPayload>;
   "system.bodies"?: TimelinePoint<SystemBodiesPayload>;
+  "vessel.control"?: TimelinePoint<VesselControlPayload>;
+  "vessel.target"?: TimelinePoint<VesselTargetPayload>;
+  "vessel.comms"?: TimelinePoint<VesselCommsPayload>;
 }): { get: DerivedGet; requestedTopics: string[] } {
   const requestedTopics: string[] = [];
   const get: DerivedGet = (<T>(topic: string) => {
@@ -152,6 +158,177 @@ const KERBIN_SYSTEM_BODIES: SystemBodiesPayload = {
     },
   ],
 };
+
+function controlPoint(
+  payload: VesselControlPayload | null,
+): TimelinePoint<VesselControlPayload> {
+  return {
+    validAt: 0,
+    payload,
+    meta: makeMeta({
+      validAt: 0,
+      quality: Quality.OnRails,
+      source: "vessel:abc-123",
+    }),
+    epoch: 0,
+  };
+}
+
+function targetPoint(
+  payload: VesselTargetPayload | null,
+): TimelinePoint<VesselTargetPayload> {
+  return {
+    validAt: 0,
+    payload,
+    meta: makeMeta({
+      validAt: 0,
+      quality: Quality.OnRails,
+      source: "vessel:abc-123",
+    }),
+    epoch: 0,
+  };
+}
+
+function commsPoint(
+  payload: VesselCommsPayload | null,
+): TimelinePoint<VesselCommsPayload> {
+  return {
+    validAt: 0,
+    payload,
+    meta: makeMeta({
+      validAt: 0,
+      quality: Quality.OnRails,
+      source: "vessel:abc-123",
+    }),
+    epoch: 0,
+  };
+}
+
+describe("enum-ordinal → NAME display maps — situationName/sasModeName/targetKind/commsControlState* (enum-ordinal→string-name migration)", () => {
+  const IDENTITY: VesselIdentityPayload = {
+    vesselId: "vessel:abc-123",
+    name: "Test Ship",
+    vesselType: 0,
+    situation: 0,
+    parentBodyIndex: 1,
+    launchUt: 0,
+  };
+
+  it("resolves each enum ordinal to the widget-facing value (OnRails)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint({ ...IDENTITY, situation: 3 }), // Orbiting
+      "vessel.control": controlPoint({ sasMode: 1 }), // Prograde
+      "vessel.target": targetPoint({ kind: 1 }), // Body → CelestialBody
+      "vessel.comms": commsPoint({ controlState: 4 }), // Full
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.situationName).toBe("Orbiting");
+    expect(state?.sasModeName).toBe("Prograde");
+    expect(state?.targetKind).toBe("CelestialBody");
+    expect(state?.commsControlStateName).toBe("Full");
+    expect(state?.commsControlStateOrdinal).toBe(2);
+  });
+
+  it("resolves the FIRST and LAST enum values (boundaries)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint({ ...IDENTITY, situation: 8 }), // Unknown (last)
+      "vessel.control": controlPoint({ sasMode: 0 }), // StabilityAssist (first)
+      "vessel.target": targetPoint({ kind: 0 }), // Vessel (first)
+      "vessel.comms": commsPoint({ controlState: 11 }), // Unknown (last)
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.situationName).toBe("Unknown");
+    expect(state?.sasModeName).toBe("StabilityAssist");
+    expect(state?.targetKind).toBe("Vessel");
+    expect(state?.commsControlStateName).toBe("Unknown");
+    // ControlState.Unknown maps to NO Telemachus level → undefined ordinal.
+    expect(state?.commsControlStateOrdinal).toBeUndefined();
+  });
+
+  it("targetKind maps TargetKind.Other, and commsControlStateOrdinal collapses richer levels (Partial→1, ProbeNone→0)", () => {
+    const partial = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({ kind: 2 }), // Other
+      "vessel.comms": commsPoint({ controlState: 3 }), // Partial
+    });
+    const s1 = deriveVesselState(partial.get, 0);
+    expect(s1?.targetKind).toBe("Other");
+    expect(s1?.commsControlStateName).toBe("Partial");
+    expect(s1?.commsControlStateOrdinal).toBe(1);
+
+    const probeNone = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.comms": commsPoint({ controlState: 5 }), // ProbeNone
+    });
+    const s2 = deriveVesselState(probeNone.get, 0);
+    expect(s2?.commsControlStateName).toBe("ProbeNone");
+    expect(s2?.commsControlStateOrdinal).toBe(0);
+  });
+
+  it("resolves in the Loaded (measured) basis too — not orbital-derived", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+      "vessel.identity": identityPoint({ ...IDENTITY, situation: 0 }), // Landed
+      "vessel.control": controlPoint({ sasMode: 9 }), // Maneuver
+      "vessel.comms": commsPoint({ controlState: 0 }), // None
+    });
+
+    const state = deriveVesselState(get, 0, get);
+    expect(state?.basis).toBe("measured");
+    expect(state?.situationName).toBe("Landed");
+    expect(state?.sasModeName).toBe("Maneuver");
+    expect(state?.commsControlStateName).toBe("None");
+    expect(state?.commsControlStateOrdinal).toBe(0);
+  });
+
+  it("undefined (never throws) when a source channel hasn't arrived, per-field", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      // no vessel.identity / vessel.control / vessel.target / vessel.comms
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.situationName).toBeUndefined();
+    expect(state?.sasModeName).toBeUndefined();
+    expect(state?.targetKind).toBeUndefined();
+    expect(state?.commsControlStateName).toBeUndefined();
+    expect(state?.commsControlStateOrdinal).toBeUndefined();
+  });
+
+  it("undefined for a field-level null (sasMode not available this tick) and an out-of-range ordinal", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.control": controlPoint({ sasMode: null }),
+      "vessel.identity": identityPoint({ ...IDENTITY, situation: 99 }), // out of range
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.sasModeName).toBeUndefined();
+    expect(state?.situationName).toBeUndefined();
+  });
+
+  it("null when a source channel is a confirmed tombstone", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint(null),
+      "vessel.control": controlPoint(null),
+      "vessel.target": targetPoint(null),
+      "vessel.comms": commsPoint(null),
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.situationName).toBeNull();
+    expect(state?.sasModeName).toBeNull();
+    expect(state?.targetKind).toBeNull();
+    expect(state?.commsControlStateName).toBeNull();
+    expect(state?.commsControlStateOrdinal).toBeNull();
+  });
+});
 
 describe("deriveVesselState", () => {
   describe("OnRails — propagated from vessel.orbit elements", () => {

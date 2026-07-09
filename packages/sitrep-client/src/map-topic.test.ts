@@ -103,6 +103,29 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "o.referenceBody")).toBe(false);
   });
 
+  it("maps the enum-ordinal→name keys onto their derived vessel.state.* subtopics (enum-ordinal→string-name migration un-gap)", () => {
+    expect(mapTopic("data", "v.situationString")).toBe(
+      "vessel.state.situationName",
+    );
+    expect(mapTopic("data", "f.sasMode")).toBe("vessel.state.sasModeName");
+    expect(mapTopic("data", "tar.type")).toBe("vessel.state.targetKind");
+    expect(mapTopic("data", "comm.controlStateName")).toBe(
+      "vessel.state.commsControlStateName",
+    );
+    expect(mapTopic("data", "comm.controlState")).toBe(
+      "vessel.state.commsControlStateOrdinal",
+    );
+    for (const key of [
+      "v.situationString",
+      "f.sasMode",
+      "tar.type",
+      "comm.controlStateName",
+      "comm.controlState",
+    ]) {
+      expect(isKnownTelemachusGap("data", key)).toBe(false);
+    }
+  });
+
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {
     expect(mapTopic("data", "b.name[0]")).toBe("system.bodies");
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
@@ -273,8 +296,12 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         "o.encounterTime", // number vs the vessel.orbit.encounter record
         "dock.x", // scalar vs vessel.target.relativePosition (Vec3)
         "dock.y", // scalar vs vessel.target.relativePosition (Vec3)
-        "comm.controlState", // number vs the vessel.comms.controlState string enum
-        "comm.controlStateName", // string vs the vessel.comms.controlState string enum
+        // comm.controlState / comm.controlStateName + v.situationString /
+        // f.sasMode / tar.type were here until the enum-ordinal→name migration;
+        // now that client-side ordinal→string/level display-map subtopics
+        // exist (vessel.state.commsControlStateOrdinal / commsControlStateName /
+        // situationName / sasModeName / targetKind), they map cleanly — see the
+        // dedicated enum-ordinal→name test above.
         "tar.o.relativeVelocity", // scalar vs vessel.target.relativeVelocity (Vec3)
         "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
         "dv.currentTWR", // no twr field on vessel.propulsion at all

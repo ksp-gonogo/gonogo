@@ -146,6 +146,26 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.body": "vessel.state.parentBodyName",
   "o.referenceBody": "vessel.state.referenceBodyName",
 
+  // --- vessel.state (derived enum-ordinal → NAME display maps — the
+  // enum-ordinal→string-name shape-mismatch migration). Each mod field is a
+  // NUMERIC contract-enum ordinal on the wire (`VesselViewProvider` serializes
+  // `(int)…`); the widgets read the STRING name (or, for `comm.controlState`,
+  // a Telemachus 0/1/2 numeric). `deriveVesselState` resolves each ordinal
+  // against the contract's C#-declared enum order and exposes the widget-shaped
+  // value as a `vessel.state.*` field subtopic — same client-side display-map
+  // pattern as the body-NAME maps above, zero per-widget change:
+  //  - situationName            (Situation enum → name; ScienceBench)
+  //  - sasModeName              (SasMode enum → name; Navball's SAS_MODES)
+  //  - targetKind               (TargetKind enum → widget string; Body→"CelestialBody")
+  //  - commsControlStateName    (ControlState enum → name; CommSignal label/tone)
+  //  - commsControlStateOrdinal (ControlState enum → CommSignal's 0/1/2 level)
+  // ---
+  "v.situationString": "vessel.state.situationName",
+  "f.sasMode": "vessel.state.sasModeName",
+  "tar.type": "vessel.state.targetKind",
+  "comm.controlStateName": "vessel.state.commsControlStateName",
+  "comm.controlState": "vessel.state.commsControlStateOrdinal",
+
   // --- vessel.control ---
   "f.throttle": "vessel.control.throttle",
   "f.sasEnabled": "vessel.control.sas",
@@ -403,15 +423,15 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "dock.x",
   "dock.y",
 
-  // comm.controlState/comm.controlStateName: CommSignal reads a `number` +
-  // a `string`, with a concrete `controlState === 2/1/0` numeric fallback
-  // path. Both collapse onto `vessel.comms.controlState`, a single STRING
-  // enum (11 values) — the numeric read is permanently wrong, and enum
-  // values the widget doesn't recognize silently fall through to a default
-  // "ok" tone.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "comm.controlState",
-  "comm.controlStateName",
+  // comm.controlState/comm.controlStateName UN-GAPPED (enum-ordinal→name
+  // migration task 4): the mod field `vessel.comms.controlState` is a NUMERIC
+  // `Sitrep.Contract.ControlState` enum ordinal on the wire (`(int)comms.
+  // ControlState` — despite this comment's former "STRING enum" wording, the
+  // host serializes the integer). `deriveVesselState` now resolves it BOTH
+  // ways: the ordinal → enum name string (`vessel.state.commsControlStateName`,
+  // the old `comm.controlStateName`) AND → CommSignal's Telemachus 0/1/2
+  // control-level (`vessel.state.commsControlStateOrdinal`, the old numeric
+  // `comm.controlState`). See TELEMACHUS_CLEAN_HOMES above.
 
   // --- M3 batch-2 fixture-audit finds: the grown 15-channel reference wire
   // fixture (WireFixtureGeneratorTests.cs) put real vessel.identity/
@@ -421,31 +441,14 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // CRITICAL-review findings above, just one level deeper than the raw-path
   // check `map-topic.rawFieldRoots.coverage.test.ts` already runs. ---
 
-  // v.situationString: ScienceBench reads a STRING ("In flight", "Landed",
-  // …). The real field, vessel.identity.situation, is a numeric
-  // Sitrep.Contract.Situation enum (fixture: situation: 2) — a migrated
-  // widget would render the raw number instead of a situation name.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "v.situationString",
-
-  // f.sasMode: Navball reads a STRING ("StabilityAssist", "Prograde", …),
-  // both rendered directly and compared against the SAS_MODES string union
-  // to highlight the active mode button. The real field,
-  // vessel.control.sasMode, is a numeric Sitrep.Contract.SasMode enum
-  // (fixture: sasMode: 0) — same ordinal order as SAS_MODES, but a
-  // migrated widget's string comparisons (`sasMode === "Prograde"`) would
-  // never match and the caption would show a bare number.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "f.sasMode",
-
-  // tar.type: TargetPicker/DistanceToTarget read a STRING ("Vessel",
-  // "CelestialBody", "Station", …) — DistanceToTarget's `dockable` gate
-  // does a literal `tarType !== "CelestialBody"` string compare. The real
-  // field, vessel.target.kind, is a numeric Sitrep.Contract.TargetKind enum
-  // (fixture: kind: 1) — the string compare would always be true,
-  // permanently misclassifying every target as dockable.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "tar.type",
+  // v.situationString / f.sasMode / tar.type UN-GAPPED (enum-ordinal→name
+  // migration tasks 1–3): each mod field (vessel.identity.situation /
+  // vessel.control.sasMode / vessel.target.kind) is a NUMERIC contract-enum
+  // ordinal on the wire; `deriveVesselState` resolves each to the STRING the
+  // widget reads — `vessel.state.situationName` / `sasModeName` / `targetKind`
+  // (`tar.type`'s `Body` normalized to the legacy "CelestialBody" string
+  // DistanceToTarget's dockable gate compares against). See
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // tar.o.relativeVelocity: DistanceToTarget/TargetPicker read a signed
   // scalar closing-speed number (`.toFixed(2)`, `< 0` sign check). The new
