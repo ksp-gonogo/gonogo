@@ -627,6 +627,76 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// REGRESSION (the live "all Delayed channels frozen while comms reads
+        /// connected" bug): a connectivity source that THROWS on a transient
+        /// tick, while the link is otherwise CONNECTED with a POSITIVE delay,
+        /// must NOT be treated as a disconnect. If a throwing tick flipped the
+        /// gate to DISCONNECTED (the production defect —
+        /// <c>Gonogo.KSP.CommsCoreUplink.ComputeConnectedOnMain</c> used to
+        /// swallow the throw and return a hard <c>false</c>), then:
+        /// <list type="number">
+        /// <item>the buffered Delayed sample would freeze during the throwing
+        /// tick, and</item>
+        /// <item>the very next CONNECTED tick would be a disconnect→reconnect
+        /// EDGE, DROPPING the backlog (<see cref="ChannelEngine"/>.SetCommsConnected)
+        /// — so the pre-throw sample would be lost forever and never reveal.</item>
+        /// </list>
+        /// The correct fail-soft (a thrown source ⇒ CONNECTED, retried) keeps the
+        /// gate connected across the blip, so the sample buffered before the throw
+        /// still matures at its horizon. Asserting the sample IS revealed at its
+        /// true SCET distinguishes the two precisely: it can only appear if the
+        /// gate never froze/dropped it. This is the engine-side contract the
+        /// production connectivity-source fix now satisfies (it propagates the
+        /// throw to THIS fail-soft instead of asserting a hard disconnect).
+        /// </summary>
+        [Fact]
+        public async Task ThrowingConnectivityTickDoesNotFreezeOrDropConnectedDelayedSample()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new RecoverableSourceTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, RecoverableSourceTestUplink.DelayedTopic, Timeout);
+
+                // Connected, delay 4. Buffer delayed=10 at UT 1 (horizon 1−4=−3).
+                engine.TickAndWait(0.0, RecoverableSourceTestUplink.Snapshot(0.0, connected: true, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, RecoverableSourceTestUplink.Snapshot(1.0, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+
+                // UT 2 — the connectivity source THROWS. It must fail-soft to
+                // CONNECTED, NOT flip the gate to disconnected. delay stays 4.
+                engine.TickAndWait(2.0, RecoverableSourceTestUplink.Snapshot(2.0, delay: 4.0, delayed: 10.0, throwConn: true), Timeout);
+                Assert.True(
+                    engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable,
+                    "comms uplink must stay Available after a transient connectivity-source throw");
+
+                // UT 3..4 — connected again, still short of the horizon.
+                foreach (var ut in new[] { 3.0, 4.0 })
+                {
+                    engine.TickAndWait(ut, RecoverableSourceTestUplink.Snapshot(ut, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == RecoverableSourceTestUplink.DelayedTopic);
+
+                // UT 5 — horizon 5−4=1 reaches the sample's UT 1. It is revealed,
+                // carrying its true SCET. Had the throwing tick frozen the gate,
+                // the following connected tick's reconnect edge would have dropped
+                // this sample and it would never appear.
+                engine.TickAndWait(5.0, RecoverableSourceTestUplink.Snapshot(5.0, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == RecoverableSourceTestUplink.DelayedTopic);
+                Assert.NotNull(revealed);
+                Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
+                Assert.Equal(1.0, revealed.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A delay/connectivity source that returns NULL (graceful "no authority /
         /// no path" — the real-world meaning of an unloaded/no-control-path
         /// vessel) must leave the last-known state untouched and reveal live,

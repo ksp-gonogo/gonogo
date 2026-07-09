@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
-using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -155,18 +154,28 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            try
-            {
-                return backend.Connectivity().Connected;
-            }
-            catch (Exception ex)
-            {
-                // A transient/unloaded-vessel read threw ⇒ report DISCONNECTED
-                // gracefully (the honest state — no live link), not an NRE. The
-                // source is retried next tick.
-                Debug.LogWarning("[Gonogo] ComputeConnectedOnMain: backend read threw (treating as disconnected): " + ex.Message);
-                return false;
-            }
+
+            // A transient backend-read THROW must NOT be swallowed into a hard
+            // `false`. The reveal gate treats a `false` from this source as an
+            // AUTHORITATIVE disconnect and FREEZES every Delayed channel — so a
+            // scene-settle / vessel-unload / vessel-change tick where the read
+            // throws (e.g. CommNetBackend's un-guarded Meta() dereferencing a
+            // torn ActiveVessel) would wrongly freeze ALL vessel.* telemetry,
+            // even though the link is up. Worse, the comms.connectivity CHANNEL
+            // fail-softs the SAME throw the opposite way (its capture returns
+            // null ⇒ keeps last-known `connected:true`), so the two diverge:
+            // the channel reads connected while the gate stays frozen — the
+            // exact live-KSP symptom.
+            //
+            // Let the throw PROPAGATE instead. The engine's recoverable
+            // connectivity fail-soft (ChannelEngine.CaptureConnectivityOnMain →
+            // RefreshConnectivityFromCapability) treats a thrown source as
+            // CONNECTED and retries next tick — matching the reveal gate's own
+            // documented "a source that threw ⇒ treated as CONNECTED" contract
+            // and never worsening LAN behaviour. A GENUINE disconnect still
+            // arrives as a clean `false` (Connection() null ⇒ Connected=false,
+            // no throw) and still freezes, as intended.
+            return backend.Connectivity().Connected;
         }
 
         /// <summary>
@@ -187,37 +196,23 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            CommsDelay delay;
-            CommsPath path;
-            try
-            {
-                path = backend.Path();
-                delay = SignalDelay.Compute(
-                    _signalDelayConfig,
-                    path,
-                    path.Meta?.Source ?? "",
-                    path.Meta?.Quality ?? Quality.OnRails);
-            }
-            catch (Exception)
-            {
-                // A backend that threw reading a transiently-unloaded / no-control
-                // -path vessel ⇒ graceful "no delay" (Source=None, OneWaySeconds=0)
-                // rather than an NRE that would trip the engine's fail-soft. The
-                // built-in CommNetBackend is already exception-safe; this guards a
-                // third-party backend (RealAntennas) too. The source is retried
-                // next tick (engine-side recoverable fail-soft).
-                return NoneDelay();
-            }
-            return delay;
+            // A transient backend-read THROW must PROPAGATE, not be swallowed
+            // into NoneDelay (OneWaySeconds=0). Dropping the delay to 0 on a
+            // one-tick read blip would momentarily collapse the reveal horizon
+            // and prematurely reveal a still-in-flight Delayed sample. The
+            // engine's recoverable delay fail-soft
+            // (ChannelEngine.CaptureSignalDelayOnMain →
+            // RefreshSignalDelayFromCapability → FailSoftSignalDelaySource)
+            // instead leaves the LAST-KNOWN delay untouched and retries next
+            // tick — the correct "never reveal earlier than the known horizon"
+            // behaviour, symmetric with ComputeConnectedOnMain above.
+            var path = backend.Path();
+            return SignalDelay.Compute(
+                _signalDelayConfig,
+                path,
+                path.Meta?.Source ?? "",
+                path.Meta?.Quality ?? Quality.OnRails);
         }
-
-        /// <summary>Graceful "no delay authority" result — Source=None, OneWaySeconds=0.</summary>
-        private static CommsDelay NoneDelay() => new CommsDelay
-        {
-            OneWaySeconds = 0.0,
-            Source = CommsDelaySource.None,
-            Meta = new PayloadMeta { Source = "", Quality = Quality.OnRails },
-        };
 
         /// <summary>
         /// MAIN-THREAD capture: resolves the elected backend and reads every
