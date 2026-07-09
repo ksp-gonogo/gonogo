@@ -219,6 +219,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.comms ---
   "comm.connected": "vessel.comms.connected",
   "comm.signalStrength": "vessel.comms.signalStrength",
+  // comm.signalDelay -> comms.delay.oneWaySeconds: gonogo's OWN SignalDelay
+  // authority (TrueNow), live on the wire via CommsCoreUplink. CommSignal's
+  // formatDelay reads a plain seconds number.
+  "comm.signalDelay": "comms.delay.oneWaySeconds",
 
   // --- vessel.resources (parametric — see PARAMETRIC_RULES below for the
   // r.resource[X]/r.resourceMax[X] family) ---
@@ -498,14 +502,12 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gap: needs a derived display-map/field subtopic; migrate in M3
   "dv.currentTWR",
 
-  // comm.signalDelay: CommSignal reads a plain `number`. `comms.delay` is
-  // an aspirational future capability channel (RemoteTech-default delay
-  // authority) referenced only in a doc comment — it has no implementation
-  // anywhere in this codebase, so mapping to it would resolve to
-  // permanently-undefined instead of falling back to the working legacy
-  // read.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "comm.signalDelay",
+  // comm.signalDelay UN-GAPPED (Step-3 live batch): the old rationale
+  // ("aspirational, no implementation") is STALE — comms.delay is live on the
+  // wire (CommsCoreUplink, TrueNow) as { oneWaySeconds, source, meta } and is
+  // gonogo's OWN SignalDelay authority. CommSignal reads a plain seconds
+  // number, so comm.signalDelay -> comms.delay.oneWaySeconds (raw-field walk).
+  // See TELEMACHUS_CLEAN_HOMES above.
 
   // --- M2 Task 7 fix, part 2: ActionGroup's dynamically-resolved keys
   // (see mapTopic.coverage.test.ts's collectDynamicTelemachusKeys). Of the

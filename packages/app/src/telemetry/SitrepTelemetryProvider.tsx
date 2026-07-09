@@ -68,6 +68,9 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "system.bodies",
   "system.vessels",
   "time.warp",
+  // Comms signal-delay channel (CommsCoreUplink, TrueNow) — the headline
+  // delay readout behind CommSignal's comm.signalDelay.
+  "comms.delay",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here —

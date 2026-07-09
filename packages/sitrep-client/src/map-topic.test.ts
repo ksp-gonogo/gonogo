@@ -126,6 +126,13 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     }
   });
 
+  it("maps comm.signalDelay onto comms.delay.oneWaySeconds (Step-3 un-gap: gonogo's live SignalDelay authority)", () => {
+    expect(mapTopic("data", "comm.signalDelay")).toBe(
+      "comms.delay.oneWaySeconds",
+    );
+    expect(isKnownTelemachusGap("data", "comm.signalDelay")).toBe(false);
+  });
+
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {
     expect(mapTopic("data", "b.name[0]")).toBe("system.bodies");
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
@@ -333,7 +340,8 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // dedicated enum-ordinal→name test above.
         "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
         "dv.currentTWR", // no twr field on vessel.propulsion at all
-        "comm.signalDelay", // comms.delay has no implementation anywhere yet
+        // comm.signalDelay moved to CLEAN_HOMES (Step-3): comms.delay is live
+        // on the wire — see the dedicated comm.signalDelay test above.
       ];
 
       for (const key of shapeMismatchedKeys) {

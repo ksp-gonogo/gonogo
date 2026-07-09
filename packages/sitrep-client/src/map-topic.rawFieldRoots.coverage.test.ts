@@ -58,6 +58,9 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   "system.vessels",
   // CareerViewProvider.cs's Topic (M3 career batch).
   "career.status",
+  // Comms uplink channels (CommsCoreUplink / RealAntennasUplink). comms.delay
+  // is the TrueNow signal-delay channel behind comm.signalDelay.
+  "comms.delay",
 ]);
 
 /**
