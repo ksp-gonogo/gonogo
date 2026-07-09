@@ -213,6 +213,71 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// REGRESSION (the production-shape reveal-gate bug): comms.delay is
+        /// registered the way the bundled <c>CommsCoreUplink</c> registers it —
+        /// via <see cref="IUplinkHost.Publisher"/> + a capture-on-main /
+        /// handle-on-Courier <see cref="IUplinkHost.AddSampledSource"/>, declared
+        /// TrueNow — NOT via <see cref="IUplinkHost.AddChannelSource"/> (the shape
+        /// every other reveal-gate test used, and the only shape the old
+        /// <c>RefreshSignalDelayFromCapability</c> could read). A raw client
+        /// subscribes ONLY the Delayed channel (never comms.delay). With a
+        /// non-zero computed one-way delay, the Delayed channel MUST still be
+        /// withheld until its UT crosses the reveal horizon.
+        ///
+        /// <para>Pre-fix this FAILED: the gate's delay authority was only ever
+        /// set from the <c>_channelSources</c> refresh (which production never
+        /// populates for comms.delay) or the subscription-gated <c>Emit</c>
+        /// snoop, so the delay stayed 0 and the Delayed channel was revealed
+        /// live — the exact live-KSP symptom (deliveredAt − validAt == 0 despite
+        /// comms.delay computing a real hop delay). The fix sources the delay
+        /// from the server-side, subscription-independent
+        /// <see cref="IUplinkHost.SetSignalDelaySource"/> seam every tick.</para>
+        /// </summary>
+        [Fact]
+        public async Task ProductionShapeCommsDelayStillGatesDelayedChannel()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new ProdShapeCommsRevealUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                // Subscribe ONLY the Delayed channel — deliberately NOT
+                // comms.delay. delay = 4s one-way is in every snapshot; the
+                // server-side delay source computes it each tick regardless.
+                await SubscribeAsync(client, ProdShapeCommsRevealUplink.DelayedTopic, Timeout);
+
+                engine.TickAndWait(0.0, ProdShapeCommsRevealUplink.Snapshot(0.0, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, ProdShapeCommsRevealUplink.Snapshot(1.0, delay: 4.0, delayed: 10.0), Timeout);
+
+                // Horizon at UT 1 is 1 − 4 = −3 ≪ the sample's UT 1: withheld.
+                var atUt1 = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(atUt1, f => f.Topic == ProdShapeCommsRevealUplink.DelayedTopic);
+
+                foreach (var ut in new[] { 2.0, 3.0, 4.0 })
+                {
+                    engine.TickAndWait(ut, ProdShapeCommsRevealUplink.Snapshot(ut, delay: 4.0, delayed: 10.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == ProdShapeCommsRevealUplink.DelayedTopic);
+
+                // UT 5: horizon 5 − 4 = 1 reaches the buffered sample's UT 1 —
+                // revealed now, carrying its true SCET.
+                engine.TickAndWait(5.0, ProdShapeCommsRevealUplink.Snapshot(5.0, delay: 4.0, delayed: 10.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == ProdShapeCommsRevealUplink.DelayedTopic);
+                Assert.NotNull(revealed);
+                Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
+                Assert.Equal(1.0, revealed.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Signal delay disabled (delay value 0 — <see cref="CommsDelaySource.None"/>
         /// semantics) ⇒ a Delayed channel is revealed LIVE, on the tick it is
         /// emitted, exactly as a TrueNow channel. This is today's LAN behaviour,
@@ -331,6 +396,141 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.NotNull(revealed);
                 Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
                 Assert.Equal(1.0, revealed.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// REPRO (freeze-on-disconnect): with the control link DOWN and delay 0
+        /// (<see cref="CommsDelaySource.None"/> — exactly what a lost path yields),
+        /// a Delayed channel must be FROZEN — withheld, never delivered. A TrueNow
+        /// channel (here <c>comms.delay</c>) must keep flowing so the operator
+        /// sees the outage live.
+        ///
+        /// <para>Pre-change this FAILED: a down link produces delay 0, and the
+        /// old gate keyed solely on delay magnitude — 0 ⇒ reveal live — so losing
+        /// the link kept telemetry streaming (you'd "receive" what never arrived).
+        /// The connectivity authority now distinguishes a real disconnect (freeze)
+        /// from a genuine connected zero-distance link (still live).</para>
+        /// </summary>
+        [Fact]
+        public async Task DisconnectFreezesDelayedChannelWhileTrueNowKeepsFlowing()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.TrueNowTopic, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+
+                // Link DOWN from the outset; delay 0 (no path ⇒ None). Emit the
+                // Delayed channel AND a TrueNow channel every tick.
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: false, delay: 0.0), Timeout);
+                foreach (var ut in new[] { 1.0, 2.0, 3.0, 4.0, 5.0 })
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 10.0 + ut, trueNow: 20.0 + ut), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                // FROZEN: the Delayed channel never reached the wire.
+                Assert.DoesNotContain(frames, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+                // LIVE: the TrueNow channel and comms.delay kept flowing.
+                Assert.Contains(frames, f => f.Topic == FreezeGateTestUplink.TrueNowTopic);
+                Assert.Contains(frames, f => f.Topic == ChannelEngine.CommsDelayTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Freeze-on-disconnect, connected leg: a genuinely CONNECTED link with a
+        /// positive delay still gates by the horizon (buffer then reveal) — the
+        /// connectivity signal does not change the connected-with-delay behaviour.
+        /// This is the existing gate contract, re-proven through the production
+        /// connectivity+delay seams.
+        /// </summary>
+        [Fact]
+        public async Task ConnectedWithDelayStillWithholdsThenReveals()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+
+                var atUt1 = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(atUt1, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+
+                foreach (var ut in new[] { 2.0, 3.0, 4.0 })
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+
+                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: true, delay: 4.0, delayed: 10.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+                Assert.NotNull(revealed);
+                Assert.Equal(10.0, Convert.ToDouble(revealed!.Payload));
+                Assert.Equal(1.0, revealed.Meta.ValidAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Reconnect: the backlog withheld during the outage is DROPPED (not
+        /// replayed), and delivery resumes from the reconnect moment. A value
+        /// buffered while disconnected must never reach the wire; a value emitted
+        /// after reconnect (delay 0 ⇒ live) must.
+        /// </summary>
+        [Fact]
+        public async Task ReconnectDropsBacklogAndResumesFromReconnectMoment()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+
+                // Outage UT 0..3: delayed=10 emitted while the link is down — it
+                // is buffered/frozen, never delivered.
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: false, delay: 0.0), Timeout);
+                foreach (var ut in new[] { 1.0, 2.0, 3.0 })
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 10.0), Timeout);
+                }
+                var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(duringOutage, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+
+                // Reconnect at UT 4 (delay 0 ⇒ live) and emit a fresh value.
+                engine.TickAndWait(4.0, FreezeGateTestUplink.Snapshot(4.0, connected: true, delay: 0.0, delayed: 99.0), Timeout);
+                var afterReconnect = await DrainAllStreamDataAsync(client, Quiet);
+
+                var delivered = afterReconnect.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
+                // Backlog dropped: the frozen 10 never surfaces.
+                Assert.DoesNotContain(delivered, f => Convert.ToDouble(f.Payload) == 10.0);
+                // Resumed: the post-reconnect 99 is delivered from the reconnect moment.
+                Assert.Contains(delivered, f => Convert.ToDouble(f.Payload) == 99.0);
+                Assert.Equal(4.0, delivered.Last(f => Convert.ToDouble(f.Payload) == 99.0).Meta.ValidAt);
             }
             finally
             {

@@ -310,6 +310,71 @@ namespace Sitrep.Contract
         /// </summary>
         void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler);
 
+        /// <summary>
+        /// Advertise the AUTHORITATIVE <c>comms.delay</c> one-way signal delay to
+        /// the engine's server-side reveal gate — the choke point that makes
+        /// <see cref="DelayRole.Delayed"/> channels actually withheld on the host
+        /// (spec-streaming-delay-model §4 / §7.3 Step 2). <paramref name="computeOnMainThread"/>
+        /// is evaluated on the SAME thread and cadence as
+        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>'s
+        /// capture (the Unity main thread in production), so it may safely read
+        /// the live elected comms backend, and it runs EVERY tick regardless of
+        /// what any client has subscribed — that subscription-independence is the
+        /// whole point.
+        ///
+        /// <para><b>Why this exists as a first-class seam:</b> the bundled
+        /// comms uplink publishes <c>comms.delay</c> through a
+        /// <see cref="Publisher"/> fed by a capture-on-main /
+        /// handle-on-Courier <see cref="AddSampledSource"/> (live KSP reads must
+        /// stay on the main thread). That is NOT the pull-style
+        /// <see cref="AddChannelSource"/> shape the engine's per-tick delay
+        /// refresh could read, and the publish path is subscription-gated — so
+        /// with the production registration the reveal gate never learned the
+        /// delay and delivered Delayed channels live. This seam hands the gate
+        /// the delay directly, computed server-side, subscription-independent.</para>
+        ///
+        /// <para>Fail-soft, mirroring the other registration points: a
+        /// <paramref name="computeOnMainThread"/> that throws takes only its
+        /// owning uplink inert (from the next tick onward); a <c>null</c> result
+        /// (or a <see cref="CommsDelaySource.None"/> / non-positive value) leaves
+        /// the last-known delay untouched and never reveals a Delayed channel
+        /// earlier than the known horizon. Registering no source at all keeps
+        /// today's behaviour: with no delay authority every channel is revealed
+        /// live.</para>
+        /// </summary>
+        void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread);
+
+        /// <summary>
+        /// Advertise the AUTHORITATIVE CONNECTED/DISCONNECTED control-link state
+        /// to the engine's server-side reveal gate — the freeze-on-disconnect
+        /// half of the enforcement <see cref="SetSignalDelaySource"/> started
+        /// (spec-streaming-delay-model). <paramref name="computeOnMainThread"/>
+        /// is evaluated on the SAME thread and cadence as
+        /// <see cref="SetSignalDelaySource"/> (the Unity main thread in
+        /// production, every tick, subscription-independently), so it may safely
+        /// read the elected comms backend's connectivity.
+        ///
+        /// <para><b>Why distinct from delay magnitude:</b> a down link produces a
+        /// <see cref="CommsDelaySource.None"/> / zero delay that is
+        /// INDISTINGUISHABLE from a genuine connected, in-LOS, zero-distance
+        /// link. Delay 0 alone must still reveal live; only a real DISCONNECTED
+        /// state freezes. When disconnected the gate withholds every
+        /// <see cref="DelayRole.Delayed"/> channel (nothing new delivered =
+        /// frozen at last-known) while <see cref="DelayRole.TrueNow"/> channels
+        /// (comms.delay / comms.connectivity / time.* / system.bodies) keep
+        /// flowing, so the operator sees the outage live; on reconnect the
+        /// withheld backlog is dropped and delivery resumes from the reconnect
+        /// moment.</para>
+        ///
+        /// <para>Fail-soft, mirroring <see cref="SetSignalDelaySource"/>: a
+        /// throwing source takes only its owning uplink inert and reverts the
+        /// gate to CONNECTED; a <c>null</c> result leaves the last-known state
+        /// untouched; registering no source at all keeps today's behaviour (the
+        /// gate treats the link as always CONNECTED — never worse than the
+        /// pre-freeze LAN path).</para>
+        /// </summary>
+        void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread);
+
         /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s capability/provider registry (see <see cref="Kernel"/>).</summary>
         Kernel Kernel { get; }
 

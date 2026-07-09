@@ -64,6 +64,14 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
+        {
+        }
+
+        public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread)
+        {
+        }
+
         public Kernel Kernel => throw new NotSupportedException();
 
         public void SetAvailability(Availability availability)

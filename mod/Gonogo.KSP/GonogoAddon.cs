@@ -100,6 +100,16 @@ namespace Gonogo.KSP
                 // comms election is correct regardless of the order the
                 // assembly scan happens to return uplinks in — see
                 // ChannelEngine.RegisterDiscoveredUplinks / the two-pass fix.
+                // Enable the light-time delay capability BEFORE discovery, so
+                // the comms uplink's SignalDelay source is configured at
+                // Register time. This wiring was previously MISSING —
+                // ConfigureSignalDelay had no caller, so SignalDelayConfig
+                // stayed at its Off() default and comms.delay was always 0
+                // (the headline delay feature was dormant). Config comes from
+                // PluginData/gonogo.cfg (a SIGNAL_DELAY node with `enabled` +
+                // `lightSpeedScale`) so delay can be tuned without a rebuild;
+                // absent config = ON at real light-speed (scale 1.0).
+                CommsCoreUplink.ConfigureSignalDelay(ReadSignalDelayConfig());
                 _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
                 // Drive the capability Kernel once every uplink has registered
                 // its providers (the comms backend election — CommNet vanilla vs
@@ -126,6 +136,46 @@ namespace Gonogo.KSP
             {
                 Debug.LogError("[Gonogo] Failed to start: " + ex);
             }
+        }
+
+        /// <summary>
+        /// Reads the light-time delay config from
+        /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>SIGNAL_DELAY</c>
+        /// node: <c>enabled = true|false</c>, <c>lightSpeedScale = &lt;double&gt;</c>).
+        /// Default when the file/node is absent: delay ON at real light-speed
+        /// (scale 1.0) — the mod's realism default. A smaller scale lengthens
+        /// delay (slower light); a larger scale shortens it. Never throws.
+        /// </summary>
+        private static Sitrep.Host.Comms.SignalDelayConfig ReadSignalDelayConfig()
+        {
+            var cfg = new Sitrep.Host.Comms.SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+            try
+            {
+                var path = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "gonogo.cfg");
+                if (File.Exists(path))
+                {
+                    var root = ConfigNode.Load(path);
+                    var node = root?.GetNode("SIGNAL_DELAY");
+                    if (node != null)
+                    {
+                        if (node.HasValue("enabled") && bool.TryParse(node.GetValue("enabled"), out var en))
+                        {
+                            cfg.Enabled = en;
+                        }
+                        if (node.HasValue("lightSpeedScale") && double.TryParse(node.GetValue("lightSpeedScale"), out var scale) && scale > 0.0)
+                        {
+                            cfg.LightSpeedScale = scale;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] signal-delay config read failed, using defaults: " + ex.Message);
+            }
+
+            Debug.Log("[Gonogo] SignalDelay enabled=" + cfg.Enabled + " lightSpeedScale=" + cfg.LightSpeedScale);
+            return cfg;
         }
 
         /// <summary>

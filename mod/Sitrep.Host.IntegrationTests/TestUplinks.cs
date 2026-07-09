@@ -595,6 +595,130 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
+    /// Registers <c>comms.delay</c> EXACTLY the way the bundled
+    /// <c>Gonogo.KSP.CommsCoreUplink</c> does in production — via a
+    /// <see cref="IUplinkHost.Publisher"/> plus a capture-on-main /
+    /// handle-on-Courier <see cref="IUplinkHost.AddSampledSource"/>, declared
+    /// <see cref="DelayRole.TrueNow"/> — NOT via
+    /// <see cref="IUplinkHost.AddChannelSource"/> (the shape every OTHER
+    /// reveal-gate test uplink used, which happened to be the ONLY shape
+    /// <c>RefreshSignalDelayFromCapability</c> could read). This is the
+    /// test-vs-production divergence that hid the reveal-gate bug: with this
+    /// production shape, the reveal gate's delay authority was never set, so
+    /// Delayed channels were delivered live despite a non-zero computed delay.
+    ///
+    /// <para>The delay authority is ALSO advertised to the engine via
+    /// <see cref="IUplinkHost.SetSignalDelaySource"/> — the fix's
+    /// subscription-independent, main-thread server-side seam, mirroring the
+    /// real uplink. The Delayed channel is a plain pull source; the bug is in
+    /// how the delay AUTHORITY reaches the gate, independent of the delayed
+    /// channel's own registration.</para>
+    /// </summary>
+    internal sealed class ProdShapeCommsRevealUplink : ISitrepUplink
+    {
+        public const string DelayedTopic = "prodrev.delayed";
+
+        private IChannelPublisher? _delay;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "prod-shape-comms-reveal",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = DelayedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            _delay = host.Publisher(ChannelEngine.CommsDelayTopic);
+            host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+
+            // Production shape: comms.delay is computed on the main thread and
+            // published from the Courier handle — the exact CommsCoreUplink
+            // seam. Subscription-gated on comms.delay's own topic, like the real
+            // uplink's comms.* prefix set.
+            host.AddSampledSource(CaptureDelay, HandleDelay, ChannelEngine.CommsDelayTopic);
+
+            // The fix: advertise the delay authority to the engine's reveal gate
+            // via the subscription-independent server-side seam, computed on the
+            // main thread every tick — mirrors CommsCoreUplink.
+            host.SetSignalDelaySource(ComputeDelay);
+        }
+
+        private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
+        {
+            var raw = Read(snapshot, "delay");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        private object? CaptureDelay(KspSnapshot? snapshot)
+        {
+            var delay = ComputeDelay(snapshot);
+            return delay == null ? null : (object?)new DelayCapture { Ut = snapshot?.Ut ?? 0.0, Delay = delay };
+        }
+
+        private void HandleDelay(object? captured)
+        {
+            if (captured is DelayCapture bundle)
+            {
+                _delay?.Publish(bundle.Delay, bundle.Ut);
+            }
+        }
+
+        private static object? Read(KspSnapshot? snapshot, string key)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            return value;
+        }
+
+        public static KspSnapshot Snapshot(double ut, double? delay = null, double? delayed = null)
+        {
+            var values = new Dictionary<string, object?>();
+            if (delay.HasValue)
+            {
+                values["delay"] = delay.Value;
+            }
+            if (delayed.HasValue)
+            {
+                values["delayed"] = delayed.Value;
+            }
+            return new KspSnapshot { Ut = ut, Values = values };
+        }
+
+        private sealed class DelayCapture
+        {
+            public double Ut;
+            public CommsDelay Delay = new();
+        }
+    }
+
+    /// <summary>
     /// Two role-carrying channels for the full-chain delay proof
     /// (<c>RevealGateTests.FullChainDelayOverRealBackendComputedDelay</c>) —
     /// deliberately WITHOUT a <c>comms.delay</c> channel of its own, so the
@@ -649,6 +773,129 @@ namespace Sitrep.Host.IntegrationTests
         public static KspSnapshot Snapshot(double ut, double? delayed = null, double? trueNow = null)
         {
             var values = new Dictionary<string, object?>();
+            if (delayed.HasValue)
+            {
+                values["delayed"] = delayed.Value;
+            }
+            if (trueNow.HasValue)
+            {
+                values["truenow"] = trueNow.Value;
+            }
+            return new KspSnapshot { Ut = ut, Values = values };
+        }
+    }
+
+    /// <summary>
+    /// Freeze-on-disconnect reveal-gate test uplink — mirrors
+    /// <see cref="ProdShapeCommsRevealUplink"/>'s PRODUCTION-shape delay
+    /// registration (subscription-independent <see cref="IUplinkHost.SetSignalDelaySource"/>)
+    /// and ADDS the CONNECTED/DISCONNECTED authority via
+    /// <see cref="IUplinkHost.SetConnectivitySource"/>, exactly as the bundled
+    /// <c>Gonogo.KSP.CommsCoreUplink</c> does. Declares:
+    /// <list type="bullet">
+    /// <item><c>comms.delay</c> — TrueNow; the delay authority, also emitted on
+    /// the wire so a test can prove a TrueNow channel keeps flowing during an
+    /// outage.</item>
+    /// <item><c>freeze.truenow</c> — TrueNow; a second live-through-outage
+    /// proof carrying a plain double.</item>
+    /// <item><c>freeze.delayed</c> — Delayed; the channel that must FREEZE
+    /// (withheld, never revealed) while the link is down.</item>
+    /// </list>
+    /// The tick snapshot carries <c>connected</c> (bool), <c>delay</c>,
+    /// <c>delayed</c>, <c>truenow</c> — any omitted key leaves that source
+    /// emitting nothing / the connectivity state unchanged.
+    /// </summary>
+    internal sealed class FreezeGateTestUplink : ISitrepUplink
+    {
+        public const string DelayedTopic = "freeze.delayed";
+        public const string TrueNowTopic = "freeze.truenow";
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "freeze-gate-test",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = TrueNowTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = DelayedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+            host.AddChannelSource(TrueNowTopic, snapshot => Read(snapshot, "truenow"));
+            host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+
+            // Production-shape, subscription-independent server-side seams.
+            host.SetSignalDelaySource(ComputeDelay);
+            host.SetConnectivitySource(ComputeConnected);
+        }
+
+        private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
+        {
+            var raw = Read(snapshot, "delay");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        private static object? MapDelay(KspSnapshot? snapshot) => ComputeDelay(snapshot);
+
+        private static bool? ComputeConnected(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue("connected", out var value) || value == null)
+            {
+                return null;
+            }
+            return Convert.ToBoolean(value);
+        }
+
+        private static object? Read(KspSnapshot? snapshot, string key)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            return value;
+        }
+
+        public static KspSnapshot Snapshot(double ut, bool? connected = null, double? delay = null, double? delayed = null, double? trueNow = null)
+        {
+            var values = new Dictionary<string, object?>();
+            if (connected.HasValue)
+            {
+                values["connected"] = connected.Value;
+            }
+            if (delay.HasValue)
+            {
+                values["delay"] = delay.Value;
+            }
             if (delayed.HasValue)
             {
                 values["delayed"] = delayed.Value;

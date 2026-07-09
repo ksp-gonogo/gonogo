@@ -117,6 +117,66 @@ namespace Gonogo.KSP
                 PathTopic,
                 NetworkTopic,
                 DelayTopic);
+
+            // Advertise comms.delay to the engine's server-side reveal gate as
+            // the AUTHORITATIVE, subscription-independent delay source (§7.3
+            // Step 2). Without this the gate only ever learned the delay from a
+            // pull-style AddChannelSource (which comms.delay is NOT — it rides
+            // the main-thread capture above) or the subscription-gated wire
+            // snoop, so a Delayed channel was delivered live whenever no client
+            // subscribed comms.delay. This closure is evaluated on the MAIN
+            // thread every tick (same seam as CaptureOnMain), so reading the
+            // live elected backend is safe.
+            host.SetSignalDelaySource(ComputeDelayOnMain);
+
+            // Freeze-on-disconnect: advertise the CONNECTED/DISCONNECTED state to
+            // the reveal gate the SAME subscription-independent, main-thread way
+            // as the delay. When the control link is down, the gate withholds
+            // (freezes) every Delayed channel instead of revealing it live off a
+            // zero/None delay; on reconnect it drops the backlog and resumes. See
+            // IUplinkHost.SetConnectivitySource.
+            host.SetConnectivitySource(ComputeConnectedOnMain);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD connectivity computation for the engine's reveal gate (see
+        /// <see cref="IUplinkHost.SetConnectivitySource"/>) — reads the elected
+        /// backend's <see cref="ICommsBackend.Connectivity"/> live, exactly where
+        /// <see cref="CaptureOnMain"/>/<see cref="ComputeDelayOnMain"/> run.
+        /// Returns null pre-election (no backend), which the gate treats as "no
+        /// authority yet" and leaves the last-known state untouched (default
+        /// CONNECTED) — never worse than today's LAN behaviour.
+        /// </summary>
+        internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
+        {
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
+            return backend?.Connectivity().Connected;
+        }
+
+        /// <summary>
+        /// MAIN-THREAD delay computation for the engine's reveal gate (see
+        /// <see cref="IUplinkHost.SetSignalDelaySource"/>) — the same elected-
+        /// backend resolution + core <see cref="SignalDelay"/> light-time math
+        /// <see cref="CaptureOnMain"/> performs for the <c>comms.delay</c>
+        /// channel, factored out so the gate and the channel share one
+        /// computation. Returns null pre-election (no backend), which the gate
+        /// treats as "no delay authority yet" and leaves the last-known delay
+        /// untouched.
+        /// </summary>
+        internal CommsDelay? ComputeDelayOnMain(KspSnapshot? snapshot)
+        {
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
+            if (backend == null)
+            {
+                return null;
+            }
+
+            var path = backend.Path();
+            return SignalDelay.Compute(
+                _signalDelayConfig,
+                path,
+                path.Meta?.Source ?? "",
+                path.Meta?.Quality ?? Quality.OnRails);
         }
 
         /// <summary>

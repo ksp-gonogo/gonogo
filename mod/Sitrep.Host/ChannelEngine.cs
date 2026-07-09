@@ -117,6 +117,52 @@ namespace Sitrep.Host
         // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
         private double _signalDelaySeconds;
 
+        // AUTHORITATIVE, subscription-independent server-side delay source (see
+        // IUplinkHost.SetSignalDelaySource): the closure the bundled comms
+        // uplink registers to compute comms.delay on the MAIN thread every tick,
+        // reading the live elected backend the way its AddSampledSource capture
+        // does. Invoked in RunCaptures (main-loop thread), its CommsDelay result
+        // carried on the TickJob and applied to _signalDelaySeconds in
+        // ProcessTick BEFORE the channel loop — so the gate learns the delay
+        // regardless of how comms.delay is otherwise registered (Publisher /
+        // AddSampledSource, never AddChannelSource in production) and regardless
+        // of whether any client subscribed comms.delay. Set once at registration
+        // (before Start), only read afterward; _signalDelaySourceDisabled is the
+        // single mutable-after-start field (a volatile bool, same discipline as
+        // SampledSource.Disabled) flipped by the fail-soft path / owner going
+        // Unavailable so a throwing source stops running on the main-loop thread.
+        private Func<KspSnapshot?, CommsDelay?>? _signalDelaySource;
+        private string _signalDelaySourceOwnerId = "";
+        private volatile bool _signalDelaySourceDisabled;
+
+        // Freeze-on-disconnect (server-side reveal-gate enforcement): the
+        // subscription-independent CONNECTED/DISCONNECTED signal, sourced the
+        // SAME way _signalDelaySource sources the delay (a main-thread closure
+        // reading the elected comms backend's Connectivity(), registered via
+        // IUplinkHost.SetConnectivitySource, captured every tick in
+        // CaptureConnectivityOnMain and applied Courier-side in
+        // RefreshConnectivityFromCapability BEFORE the channel loop/FlushReveal).
+        //
+        // When the link is DOWN, a Delayed channel is withheld as if the reveal
+        // horizon were infinitely far off (RevealDelayFor returns +Inf → Emit
+        // buffers rather than records live) AND FlushReveal releases nothing —
+        // even a pre-outage in-flight entry whose finite horizon the clock would
+        // otherwise overtake — so telemetry FREEZES at last-known. TrueNow
+        // channels (comms.delay / comms.connectivity / time.* / system.bodies)
+        // still flow, so the operator sees the outage live. This is DISTINCT
+        // from delay==0: a genuine connected, in-LOS zero-distance link still
+        // reveals live; only a real down-link freezes.
+        //
+        // Default true and fail-soft to true: unknown / no authority / a source
+        // that threw ⇒ treated as CONNECTED (reveal per normal delay), so this
+        // can never worsen today's LAN (no-comms-uplink) behaviour. Only a
+        // non-null capture result flips it; a null leaves the last value.
+        // Courier-thread-only, same discipline as _signalDelaySeconds.
+        private bool _commsConnected = true;
+        private Func<KspSnapshot?, bool?>? _connectivitySource;
+        private string _connectivitySourceOwnerId = "";
+        private volatile bool _connectivitySourceDisabled;
+
         // Per-topic buffer of change-gated (UT,value) decisions for Delayed
         // channels not yet past their reveal horizon. Flushed to the Courier in
         // insertion (UT-ascending) order once the horizon reaches each entry
@@ -583,6 +629,31 @@ namespace Sitrep.Host
         {
             RequireChannelDeclared(topic, nameof(AddChannelSource));
             _channelSources[topic] = map;
+        }
+
+        // Recorded against the CURRENTLY-registering uplink id, same mechanism
+        // as AddSampledSource above — its owner is what MarkUplinkUnavailable /
+        // FailSoftSignalDelaySource disable. See _signalDelaySource's field
+        // doc comment and IUplinkHost.SetSignalDelaySource. Last registration
+        // wins (a single delay authority is expected — the exclusive "comms"
+        // uplink); a second registration simply replaces it.
+        public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
+        {
+            _signalDelaySource = computeOnMainThread;
+            _signalDelaySourceOwnerId = _currentRegisteringUplinkId ?? "";
+            _signalDelaySourceDisabled = false;
+        }
+
+        // Recorded against the CURRENTLY-registering uplink id, same mechanism
+        // and lifecycle discipline as SetSignalDelaySource above — the
+        // subscription-independent CONNECTED/DISCONNECTED authority the reveal
+        // gate freezes on (see _commsConnected / CaptureConnectivityOnMain /
+        // RefreshConnectivityFromCapability). Last registration wins.
+        public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread)
+        {
+            _connectivitySource = computeOnMainThread;
+            _connectivitySourceOwnerId = _currentRegisteringUplinkId ?? "";
+            _connectivitySourceDisabled = false;
         }
 
         public IChannelPublisher Publisher(string topic)
@@ -1068,6 +1139,23 @@ namespace Sitrep.Host
                     source.Disabled = true;
                 }
             }
+
+            // Same rule for the server-side signal-delay source: once its owner
+            // is Unavailable, stop invoking it on the main-loop thread too (the
+            // main loop reads only this volatile flag, never _availability).
+            if (_signalDelaySource != null && _signalDelaySourceOwnerId == uplinkId)
+            {
+                _signalDelaySourceDisabled = true;
+            }
+
+            // Same rule for the connectivity source. Once disabled it stops
+            // firing on the main-loop thread; RefreshConnectivityFromCapability
+            // then reverts _commsConnected to CONNECTED (fail-soft) so a broken
+            // comms uplink can never leave the gate frozen forever.
+            if (_connectivitySource != null && _connectivitySourceOwnerId == uplinkId)
+            {
+                _connectivitySourceDisabled = true;
+            }
         }
 
         /// <summary>
@@ -1106,7 +1194,7 @@ namespace Sitrep.Host
         /// mapper delegates and the explicit job queue, never the Courier/
         /// clock directly (those are Courier-thread-only).
         /// </summary>
-        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), null));
+        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), null));
 
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
@@ -1164,6 +1252,70 @@ namespace Sitrep.Host
             }
 
             return captured.Count == 0 ? null : captured.ToArray();
+        }
+
+        /// <summary>
+        /// Runs the registered server-side signal-delay source (see
+        /// <see cref="IUplinkHost.SetSignalDelaySource"/>) on the CURRENT
+        /// (main-loop) thread — exactly where <see cref="RunCaptures"/> runs the
+        /// sampled-source captures, so it may read the live elected comms backend
+        /// safely. Called unconditionally every tick, NOT subscription-gated:
+        /// the reveal gate must know the delay even when no client subscribed
+        /// comms.delay. The <see cref="CommsDelay"/> (or a captured throw) is
+        /// carried on the <see cref="TickJob"/> to the Courier thread, where
+        /// <see cref="RefreshSignalDelayFromCapability"/> applies it before the
+        /// channel loop. A source whose owner already went Unavailable (its
+        /// <see cref="_signalDelaySourceDisabled"/> volatile flag is set) is
+        /// skipped, same as a Disabled <see cref="SampledSource"/>. A throw is
+        /// recorded (not rethrown) so the fail-soft attribution happens
+        /// Courier-side — see <see cref="FailSoftSignalDelaySource"/>.
+        /// </summary>
+        private SignalDelayCapture CaptureSignalDelayOnMain(KspSnapshot? snapshot)
+        {
+            var source = _signalDelaySource;
+            if (source == null || _signalDelaySourceDisabled)
+            {
+                return default;
+            }
+
+            try
+            {
+                return new SignalDelayCapture(source(snapshot), null);
+            }
+            catch (Exception ex)
+            {
+                return new SignalDelayCapture(null, ex);
+            }
+        }
+
+        /// <summary>
+        /// Freeze-on-disconnect twin of <see cref="CaptureSignalDelayOnMain"/>:
+        /// runs the registered connectivity source (see
+        /// <see cref="IUplinkHost.SetConnectivitySource"/>) on the CURRENT
+        /// (main-loop) thread so it may read the live elected comms backend,
+        /// every tick regardless of subscription. The <c>bool?</c> (or a
+        /// captured throw) is carried on the <see cref="TickJob"/> to the Courier
+        /// thread, where <see cref="RefreshConnectivityFromCapability"/> applies
+        /// it before the channel loop and <see cref="FlushReveal"/>. A source
+        /// whose owner already went Unavailable (its volatile disabled flag set)
+        /// is skipped. A throw is recorded, not rethrown.
+        /// </summary>
+        private ConnectivityCapture CaptureConnectivityOnMain(KspSnapshot? snapshot)
+        {
+            var source = _connectivitySource;
+            if (source == null || _connectivitySourceDisabled)
+            {
+                return default;
+            }
+
+            try
+            {
+                return new ConnectivityCapture(source(snapshot), null);
+            }
+            catch (Exception ex)
+            {
+                return new ConnectivityCapture(null, ex);
+            }
         }
 
         /// <summary>
@@ -1231,7 +1383,7 @@ namespace Sitrep.Host
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), barrier));
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), barrier));
             barrier.Wait(timeout);
         }
 
@@ -1381,6 +1533,20 @@ namespace Sitrep.Host
                 return 0.0;
             }
 
+            // Freeze-on-disconnect: a down control link means nothing new can
+            // reach KSC, so a Delayed channel is withheld as if the reveal
+            // horizon were infinitely far off — Emit buffers it (Inf is not
+            // ≤ 0) and FlushReveal never matures it (Ut ≤ now − Inf is always
+            // false), so it stays frozen at last-known until the link returns
+            // (on reconnect the backlog is DROPPED, see SetCommsConnected).
+            // Critically this fires even when _signalDelaySeconds is 0 (the
+            // disconnect case — no path ⇒ SignalDelay None ⇒ 0), which is
+            // exactly where the old delay-magnitude-only gate revealed live.
+            if (!_commsConnected)
+            {
+                return double.PositiveInfinity;
+            }
+
             var delay = _signalDelaySeconds;
             if (double.IsNaN(delay) || double.IsInfinity(delay) || delay <= 0.0)
             {
@@ -1434,29 +1600,121 @@ namespace Sitrep.Host
         /// <see cref="CommsDelay.OneWaySeconds"/> == 0 and
         /// <see cref="RevealDelayFor"/>'s ≤0 collapse to "reveal live".</para>
         /// </summary>
-        private void RefreshSignalDelayFromCapability(KspSnapshot? snapshot)
+        private void RefreshSignalDelayFromCapability(TickJob tick)
         {
-            if (!_channelSources.TryGetValue(CommsDelayTopic, out var map))
+            // Path 1 — the AUTHORITATIVE server-side delay source (production:
+            // CommsCoreUplink.SetSignalDelaySource). Computed on the main thread
+            // in CaptureSignalDelayOnMain regardless of subscription or of how
+            // comms.delay is otherwise registered — this is what closes the bug
+            // where a Publisher/AddSampledSource-registered comms.delay never
+            // reached the gate. A main-thread throw is fail-softed here, on the
+            // Courier thread (the correct thread for _availability writes).
+            if (tick.SignalDelay.Error != null)
             {
-                return;
+                FailSoftSignalDelaySource(tick.SignalDelay.Error);
             }
-            if (!IsChannelAvailable(CommsDelayTopic))
+            else if (tick.SignalDelay.Value != null)
             {
+                CaptureSignalDelay(tick.SignalDelay.Value);
+            }
+
+            // Path 2 — a comms.delay registered as a pull-style channel source
+            // (AddChannelSource). Production does NOT use this for comms.delay,
+            // but some tests / a future uplink might; kept so the refresh reads
+            // the delay whatever registration mechanism comms.delay lives in.
+            // Mapper runs on the Courier thread (safe only for a KSP-free
+            // mapper — the reason production uses the main-thread source above).
+            if (_channelSources.TryGetValue(CommsDelayTopic, out var map) && IsChannelAvailable(CommsDelayTopic))
+            {
+                object? value;
+                try
+                {
+                    value = map(tick.Snapshot);
+                }
+                catch (Exception ex)
+                {
+                    FailSoftChannel(CommsDelayTopic, ex);
+                    return;
+                }
+
+                CaptureSignalDelay(value);
+            }
+        }
+
+        /// <summary>
+        /// Fail-soft for a throwing server-side signal-delay source (see
+        /// <see cref="CaptureSignalDelayOnMain"/> / <see cref="SetSignalDelaySource"/>):
+        /// disables the source (its volatile flag, stopping it running on the
+        /// main-loop thread from the next tick) and marks its owning uplink
+        /// Unavailable, mirroring <see cref="FailSoftChannel"/>/<see cref="FailSoftSampledSource"/>.
+        /// The last-known delay is left untouched — never revealing a Delayed
+        /// channel earlier than the known horizon on the strength of a source
+        /// that just threw.
+        /// </summary>
+        private void FailSoftSignalDelaySource(Exception ex)
+        {
+            _signalDelaySourceDisabled = true;
+            MarkUplinkUnavailable(_signalDelaySourceOwnerId, "signal delay source threw: " + SafeExceptionMessage(ex));
+            Console.Error.WriteLine("[ChannelEngine] signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw: " + SafeExceptionMessage(ex));
+        }
+
+        /// <summary>
+        /// Freeze-on-disconnect refresh, run once per tick BEFORE the channel
+        /// loop and <see cref="FlushReveal"/> (right after
+        /// <see cref="RefreshSignalDelayFromCapability"/>). Applies the
+        /// main-thread connectivity capture to <see cref="_commsConnected"/>.
+        /// Fail-soft: a source that threw is attributed to its owning uplink and
+        /// connectivity REVERTS to CONNECTED (never leave the gate frozen on the
+        /// strength of a source that just threw); a null result leaves the
+        /// last-known connectivity untouched.
+        /// </summary>
+        private void RefreshConnectivityFromCapability(TickJob tick)
+        {
+            if (tick.Connectivity.Error != null)
+            {
+                FailSoftConnectivitySource(tick.Connectivity.Error);
+                SetCommsConnected(true);
                 return;
             }
 
-            object? value;
-            try
+            if (tick.Connectivity.Value.HasValue)
             {
-                value = map(snapshot);
+                SetCommsConnected(tick.Connectivity.Value.Value);
             }
-            catch (Exception ex)
-            {
-                FailSoftChannel(CommsDelayTopic, ex);
-                return;
-            }
+        }
 
-            CaptureSignalDelay(value);
+        /// <summary>
+        /// Apply a CONNECTED/DISCONNECTED transition to the reveal gate. On a
+        /// DISCONNECTED→CONNECTED edge (reconnect) the withheld backlog is
+        /// DROPPED rather than replayed: delivery resumes from the reconnect
+        /// moment (current − normal delay), latest-value channels jump forward
+        /// on their next change/keyframe, cumulative channels reflect accumulated
+        /// state via their current value, and reconstructing the gap is the
+        /// client's job — never the API's. Courier-thread-only.
+        /// </summary>
+        private void SetCommsConnected(bool connected)
+        {
+            var wasConnected = _commsConnected;
+            _commsConnected = connected;
+            if (!wasConnected && connected)
+            {
+                _revealBuffer.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Fail-soft for a throwing connectivity source — twin of
+        /// <see cref="FailSoftSignalDelaySource"/>. Disables the source and marks
+        /// its owning uplink Unavailable; the caller
+        /// (<see cref="RefreshConnectivityFromCapability"/>) additionally reverts
+        /// connectivity to CONNECTED so the gate never stays frozen on a source
+        /// that just threw.
+        /// </summary>
+        private void FailSoftConnectivitySource(Exception ex)
+        {
+            _connectivitySourceDisabled = true;
+            MarkUplinkUnavailable(_connectivitySourceOwnerId, "connectivity source threw: " + SafeExceptionMessage(ex));
+            Console.Error.WriteLine("[ChannelEngine] connectivity source (owner \"" + _connectivitySourceOwnerId + "\") threw: " + SafeExceptionMessage(ex));
         }
 
         /// <summary>
@@ -1474,6 +1732,18 @@ namespace Sitrep.Host
         private void FlushReveal(double now)
         {
             if (_revealBuffer.Count == 0)
+            {
+                return;
+            }
+
+            // Freeze-on-disconnect: while the link is down, release NOTHING —
+            // not even an entry buffered BEFORE the outage whose finite
+            // pre-outage horizon the advancing clock would otherwise overtake.
+            // You can't receive what never arrived; delivery stays frozen at
+            // last-known until reconnect. (New emits during the outage were
+            // buffered with an infinite horizon by RevealDelayFor, so this guard
+            // is what additionally freezes the still-in-flight finite ones.)
+            if (!_commsConnected)
             {
                 return;
             }
@@ -1613,7 +1883,14 @@ namespace Sitrep.Host
             // independent of any client subscription — BEFORE the channel loop
             // (so this tick's buffering decisions use the current delay) and
             // hence before FlushReveal. See RefreshSignalDelayFromCapability.
-            RefreshSignalDelayFromCapability(tick.Snapshot);
+            RefreshSignalDelayFromCapability(tick);
+
+            // Freeze-on-disconnect (server-side enforcement): apply the
+            // CONNECTED/DISCONNECTED authority BEFORE the channel loop (so this
+            // tick's Emit buffering decisions see it) and before FlushReveal (so
+            // a down link withholds every buffered sample, and a reconnect drops
+            // the backlog). See RefreshConnectivityFromCapability.
+            RefreshConnectivityFromCapability(tick);
 
             foreach (var channelSource in _channelSources)
             {
@@ -2155,13 +2432,69 @@ namespace Sitrep.Host
             // capture loop on the Courier thread. Null when no sampled source
             // is registered (or none produced a capture this tick).
             public readonly CapturedSample[]? Captures;
+
+            // AUTHORITATIVE signal-delay computed on the main-loop thread by
+            // CaptureSignalDelayOnMain (see _signalDelaySource) and applied to
+            // the reveal gate in ProcessTick before the channel loop. Default
+            // (both fields null) when no delay source is registered.
+            public readonly SignalDelayCapture SignalDelay;
+
+            // Freeze-on-disconnect: CONNECTED/DISCONNECTED computed on the
+            // main-loop thread by CaptureConnectivityOnMain (see
+            // _connectivitySource) and applied to the reveal gate in ProcessTick
+            // before the channel loop. Default (Value null, Error null) when no
+            // connectivity source is registered — the gate stays CONNECTED.
+            public readonly ConnectivityCapture Connectivity;
             public readonly ManualResetEventSlim? Done;
-            public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, ManualResetEventSlim? done)
+            public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, ManualResetEventSlim? done)
             {
                 Ut = ut;
                 Snapshot = snapshot;
                 Captures = captures;
+                SignalDelay = signalDelay;
+                Connectivity = connectivity;
                 Done = done;
+            }
+        }
+
+        /// <summary>
+        /// One server-side connectivity computation carried from the main-loop
+        /// thread to the Courier thread (see <see cref="CaptureConnectivityOnMain"/>).
+        /// Twin of <see cref="SignalDelayCapture"/>: a non-null <see cref="Error"/>
+        /// means the source threw and its owning uplink is fail-softed Courier-
+        /// side; a null <see cref="Value"/> with null <see cref="Error"/> means
+        /// "no source / nothing computed this tick" and leaves the last-known
+        /// connectivity untouched.
+        /// </summary>
+        private readonly struct ConnectivityCapture
+        {
+            public readonly bool? Value;
+            public readonly Exception? Error;
+            public ConnectivityCapture(bool? value, Exception? error)
+            {
+                Value = value;
+                Error = error;
+            }
+        }
+
+        /// <summary>
+        /// One server-side signal-delay computation carried from the main-loop
+        /// thread to the Courier thread (see <see cref="CaptureSignalDelayOnMain"/>).
+        /// At most one of <see cref="Value"/> / <see cref="Error"/> is
+        /// meaningful: a non-null <see cref="Error"/> means the source threw on
+        /// the main-loop thread and its owning uplink must be fail-softed
+        /// Courier-side; a null <see cref="Value"/> with null <see cref="Error"/>
+        /// means "no source registered / nothing computed this tick" and leaves
+        /// the last-known delay untouched.
+        /// </summary>
+        private readonly struct SignalDelayCapture
+        {
+            public readonly CommsDelay? Value;
+            public readonly Exception? Error;
+            public SignalDelayCapture(CommsDelay? value, Exception? error)
+            {
+                Value = value;
+                Error = error;
             }
         }
 
