@@ -183,6 +183,35 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "o.encounterTime": "vessel.state.encounterTime",
   "tar.o.relativeVelocity": "vessel.state.targetRelativeSpeed",
 
+  // --- vessel.state (derived, client-side A-tranche migration): the
+  // "derived quantities with no named field" cluster that IS cleanly
+  // recoverable from data already on the wire. Same display-map/derivation
+  // pattern as the batches above, zero per-widget change:
+  //  - apoapsisRadius/periapsisRadius (o.ApR/o.PeR) = sma·(1±ecc), the apsis
+  //    RADII from the body center — straight off the orbit elements, no body
+  //    table (unlike apoapsisAlt, which subtracts the radius).
+  //  - orbitalRadius (o.radius) = |propagated position| — current distance
+  //    from the body center (ManeuverPlanner's vis-viva computeMu input).
+  //  - nextApsisType/timeToNextApsis (o.nextApsisType/o.timeToNextApsis):
+  //    picked from the already-derived timeToAp/timeToPe (1=Ap, -1=Pe).
+  //  - horizontalSpeed (v.horizontalVelocity) = sqrt(surfaceSpeed² -
+  //    verticalSpeed²), the measured-basis surface-tangent speed.
+  //  - targetDistance (tar.distance) = |vessel.target.relativePosition|.
+  //  - targetPeriapsisAlt/targetPeriod/targetTrueAnomaly (tar.o.PeA/period/
+  //    trueAnomaly): the target's own orbit (vessel.target.orbit reuses the
+  //    VesselOrbit shape) propagated to the same viewUt as the self vessel.
+  // ---
+  "o.ApR": "vessel.state.apoapsisRadius",
+  "o.PeR": "vessel.state.periapsisRadius",
+  "o.radius": "vessel.state.orbitalRadius",
+  "o.nextApsisType": "vessel.state.nextApsisType",
+  "o.timeToNextApsis": "vessel.state.timeToNextApsis",
+  "v.horizontalVelocity": "vessel.state.horizontalSpeed",
+  "tar.distance": "vessel.state.targetDistance",
+  "tar.o.PeA": "vessel.state.targetPeriapsisAlt",
+  "tar.o.period": "vessel.state.targetPeriod",
+  "tar.o.trueAnomaly": "vessel.state.targetTrueAnomaly",
+
   // --- system.state (derived) — b.number is a plain COUNT; system.bodies is
   // the raw body ARRAY. `systemStateChannel` (system-state.ts) derives
   // `bodyCount = bodies.length` on its own SYSTEM-scoped derived channel
@@ -249,16 +278,18 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "t.isPaused": "time.warp.paused",
 
   // --- M3 vessel-gap batch: DistanceToTarget/TargetPicker dock+roster
-  // migration. `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/
-  // `dock.ax`/`dock.ay`/`dock.az` themselves STAY in TELEMACHUS_KNOWN_GAPS
-  // below — none of the new topics carry the exact scalar/angle shape those
-  // keys imply. These are NEW widget-facing keys (no legacy equivalent —
+  // migration. These are NEW widget-facing keys (no legacy equivalent —
   // added by the migrating widgets themselves) that expose the raw Vec3
-  // fields so the widget can derive the scalar/angle client-side and merge
-  // it with the still-legacy read via a `??` fallback — the same
+  // fields so the widget can derive a scalar/angle client-side and merge it
+  // with the still-legacy read via a `??` fallback — the same
   // MIXED-source-within-one-render pattern CurrentOrbit's M3 batch-2
-  // migration already established. See DistanceToTarget/index.tsx's
-  // `vecMagnitude`/`deriveDockAngles`. ---
+  // migration established. See DistanceToTarget/index.tsx's
+  // `vecMagnitude`/`deriveDockAngles`. Of the legacy keys that pattern backs,
+  // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y` have since been
+  // UN-GAPPED (they ARE cleanly derivable — see the batch-2 + A-tranche
+  // CLEAN_HOMES blocks above); only the docking-ORIENTATION angles
+  // `dock.ax`/`dock.ay`/`dock.az` stay gapped (no ax/ay/az decomposition on
+  // the wire, only a single ForwardDot — see TELEMACHUS_KNOWN_GAPS below). ---
   "tar.relativePosition": "vessel.target.relativePosition",
   "tar.relativeVelocityVec": "vessel.target.relativeVelocity",
   // vessel.dock is null whenever the target isn't a docking port with a
@@ -619,20 +650,50 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "f.precisionControl",
 
   // --- derived quantities with no named field on any M1/M2 channel yet ---
-  "v.horizontalVelocity",
+  // A-tranche migration UN-GAPPED the cleanly-derivable members of this
+  // cluster (o.ApR/o.PeR/o.radius/o.nextApsisType/o.timeToNextApsis/
+  // v.horizontalVelocity/tar.distance/tar.o.PeA/tar.o.period/
+  // tar.o.trueAnomaly) — all now derived on vessel.state.* (see
+  // TELEMACHUS_CLEAN_HOMES above). The keys BELOW are what genuinely can't be
+  // honestly derived from the current wire:
+
+  // v.isEVA / v.splashed: no boolean on any channel (situation is an enum
+  // ordinal on vessel.identity — "Splashed" IS a Situation value, but there's
+  // no dedicated isEVA/splashed field the widgets read as a plain bool).
+  // gap: no dedicated boolean field on the wire; migrate in M3
   "v.isEVA",
   "v.splashed",
+
+  // v.angleToPrograde: the angle between vessel facing and the prograde
+  // velocity direction. `vessel.attitude` carries only Euler heading/pitch/
+  // roll relative to the SURFACE frame — no raw facing unit vector — and
+  // "prograde" is itself frame-ambiguous (surface vs orbital). Reconstructing
+  // a facing vector from Euler angles and dotting it against a chosen prograde
+  // direction is neither cleanly nor unambiguously derivable from what's on
+  // the wire (and the one widget that lists it, Navball, doesn't even read it
+  // — dead requirement).
+  // gap: needs a facing vector + a defined prograde frame, neither on the wire; migrate in M3
   "v.angleToPrograde",
-  "o.ApR",
-  "o.PeR",
-  "o.radius",
+
+  // o.closestTgtApprUT: the UT of closest approach to the target — a two-body
+  // closest-approach solve over the two orbits, not a field on any channel.
+  // The consuming widget (DistanceToTarget) reads it legacy-only with no
+  // client-side derived replacement. Not cheaply/honestly derivable from the
+  // streamed elements.
+  // gap: needs a closest-approach solve, no wire field; migrate in M3
   "o.closestTgtApprUT",
-  "o.nextApsisType",
-  "o.timeToNextApsis",
-  "tar.distance",
-  "tar.o.PeA",
-  "tar.o.period",
-  "tar.o.trueAnomaly",
+
+  // dock.ax/dock.ay/dock.az: the docking-port ORIENTATION misalignment angles
+  // (yaw/pitch/roll between the two ports' frames). `vessel.dock`
+  // (DockAlignment) carries only RelativePosition/RelativeVelocity/Distance +
+  // a single scalar ForwardDot (the dot of the two forward axes) — ForwardDot
+  // gives the TOTAL forward-axis angle but not its yaw/pitch decomposition,
+  // and there's no roll (az) data at all. The true angles aren't recoverable.
+  // (DistanceToTarget's own deriveDockAngles computes LINE-OF-SIGHT offset
+  // angles off dock.relativePosition — a different quantity used as a HUD
+  // proxy, already wired via the raw Vec3 read — and still falls back to these
+  // legacy keys, so they stay gapped.)
+  // gap: only ForwardDot on the wire, no ax/ay/az decomposition or roll; migrate in M3
   "dock.ax",
   "dock.ay",
   "dock.az",

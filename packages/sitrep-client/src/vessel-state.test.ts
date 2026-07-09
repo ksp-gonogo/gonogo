@@ -497,6 +497,259 @@ describe("targetRelativeSpeed — signed range-rate (batch-2: tar.o.relativeVelo
   });
 });
 
+describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/o.PeR/o.radius/o.nextApsisType/o.timeToNextApsis/v.horizontalVelocity)", () => {
+  const ECCENTRIC: VesselOrbitPayload = {
+    ...CIRCULAR_ORBIT,
+    sma: 700_000,
+    ecc: 0.1,
+  };
+
+  it("apoapsisRadius/periapsisRadius = sma·(1±ecc) off the elements — no body table needed (OnRails)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
+      // deliberately NO system.bodies — radii need no body radius
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.apoapsisRadius).toBeCloseTo(700_000 * 1.1, 6);
+    expect(state?.periapsisRadius).toBeCloseTo(700_000 * 0.9, 6);
+  });
+
+  it("orbitalRadius equals |propagated position| (OnRails)", () => {
+    const viewUt = 1_234;
+    const elements: OrbitElements = {
+      sma: ECCENTRIC.sma,
+      ecc: ECCENTRIC.ecc,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: ECCENTRIC.meanAnomalyAtEpoch,
+      epoch: ECCENTRIC.epoch,
+      mu: ECCENTRIC.mu,
+    };
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
+    });
+
+    const { position } = solve(elements, viewUt);
+    const expected = Math.hypot(position[0], position[1], position[2]);
+    expect(deriveVesselState(get, viewUt)?.orbitalRadius).toBeCloseTo(
+      expected,
+      3,
+    );
+  });
+
+  it("nextApsis picks periapsis (type -1) when timeToPe is the smaller countdown; time equals timeToPe", () => {
+    // At meanAnomaly 0 (viewUt 0, epoch 0), timeToPe = 0 (already there),
+    // timeToAp = half a period — so the NEXT apsis is periapsis.
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.nextApsisType).toBe(-1);
+    expect(state?.timeToNextApsis).toBe(state?.timeToPe);
+    expect(state?.timeToNextApsis).toBe(0);
+  });
+
+  it("nextApsis picks apoapsis (type 1) just after periapsis (timeToAp becomes the smaller countdown)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
+    });
+
+    // A moment after periapsis: timeToPe wraps forward (nearly a full
+    // period), timeToAp is now the nearer of the two.
+    const period = 2 * Math.PI * Math.sqrt(ECCENTRIC.sma ** 3 / ECCENTRIC.mu);
+    const state = deriveVesselState(get, period * 0.01);
+    expect(state?.nextApsisType).toBe(1);
+    expect(state?.timeToNextApsis).toBe(state?.timeToAp);
+  });
+
+  it("horizontalSpeed is null OnRails (a measured-only surface quantity)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.OnRails }),
+    });
+    expect(deriveVesselState(get, 0)?.horizontalSpeed).toBeNull();
+  });
+
+  it("radii + next-apsis are null in the measured basis; horizontalSpeed = sqrt(surfaceSpeed² - verticalSpeed²)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+    });
+
+    const state = deriveVesselState(get, 0, get);
+    expect(state?.basis).toBe("measured");
+    expect(state?.apoapsisRadius).toBeNull();
+    expect(state?.periapsisRadius).toBeNull();
+    expect(state?.orbitalRadius).toBeNull();
+    expect(state?.nextApsisType).toBeNull();
+    expect(state?.timeToNextApsis).toBeNull();
+
+    const expected = Math.sqrt(
+      MEASURED_FLIGHT.surfaceSpeed ** 2 - MEASURED_FLIGHT.verticalSpeed ** 2,
+    );
+    expect(state?.horizontalSpeed).toBeCloseTo(expected, 6);
+  });
+
+  it("horizontalSpeed clamps to 0 (never NaN) when verticalSpeed exceeds surfaceSpeed (FP noise)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(ECCENTRIC, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint({
+        ...MEASURED_FLIGHT,
+        surfaceSpeed: 10,
+        verticalSpeed: 10.0000001,
+      }),
+    });
+    expect(deriveVesselState(get, 0, get)?.horizontalSpeed).toBe(0);
+  });
+});
+
+describe("target scalar distance + target orbit elements (A-tranche: tar.distance / tar.o.PeA / tar.o.period / tar.o.trueAnomaly)", () => {
+  const TARGET_ORBIT: VesselOrbitPayload = {
+    referenceBodyIndex: 1, // Kerbin
+    sma: 800_000,
+    ecc: 0.2,
+    inc: 0,
+    lan: null,
+    argPe: null,
+    meanAnomalyAtEpoch: 0,
+    epoch: 0,
+    mu: 3.5316e12,
+  };
+
+  it("targetDistance = |vessel.target.relativePosition| (a defined 0 at zero range, not undefined)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 3, y: 4, z: 12 },
+        relativeVelocity: { x: 0, y: 0, z: 0 },
+      }),
+    });
+    expect(deriveVesselState(get, 0)?.targetDistance).toBeCloseTo(13, 6);
+
+    const zero = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 0, y: 0, z: 0 },
+        relativeVelocity: null,
+      }),
+    });
+    expect(deriveVesselState(zero.get, 0)?.targetDistance).toBe(0);
+  });
+
+  it("targetDistance is undefined with no target / no relativePosition; null on a tombstone", () => {
+    const none = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+    });
+    expect(deriveVesselState(none.get, 0)?.targetDistance).toBeUndefined();
+
+    const noVec = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({ kind: 0, relativePosition: null }),
+    });
+    expect(deriveVesselState(noVec.get, 0)?.targetDistance).toBeUndefined();
+
+    const tomb = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint(null),
+    });
+    expect(deriveVesselState(tomb.get, 0)?.targetDistance).toBeNull();
+  });
+
+  it("targetPeriod/targetTrueAnomaly derive off vessel.target.orbit (no body table needed)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: TARGET_ORBIT,
+      }),
+    });
+
+    const state = deriveVesselState(get, 0);
+    const expectedPeriod =
+      2 * Math.PI * Math.sqrt(TARGET_ORBIT.sma ** 3 / TARGET_ORBIT.mu);
+    expect(state?.targetPeriod).toBeCloseTo(expectedPeriod, 6);
+    // meanAnomalyAtEpoch 0, epoch 0, viewUt 0 -> true anomaly 0.
+    expect(state?.targetTrueAnomaly).toBe(0);
+  });
+
+  it("targetPeriapsisAlt = sma·(1-ecc) - bodyRadius once system.bodies carries the target's reference body", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: TARGET_ORBIT,
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+
+    const expected = TARGET_ORBIT.sma * (1 - TARGET_ORBIT.ecc) - KERBIN_RADIUS;
+    expect(deriveVesselState(get, 0)?.targetPeriapsisAlt).toBeCloseTo(
+      expected,
+      6,
+    );
+  });
+
+  it("targetPeriapsisAlt is undefined (resyncing) while system.bodies is absent — period/trueAnomaly still resolve", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: TARGET_ORBIT,
+      }),
+      // no system.bodies
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.targetPeriapsisAlt).toBeUndefined();
+    expect(state?.targetPeriod).not.toBeUndefined();
+    expect(state?.targetTrueAnomaly).not.toBeUndefined();
+  });
+
+  it("all three target-orbit fields are undefined when the target has no orbit; null on a tombstone; derived in the measured basis too", () => {
+    const noOrbit = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: null,
+      }),
+    });
+    const s1 = deriveVesselState(noOrbit.get, 0);
+    expect(s1?.targetPeriapsisAlt).toBeUndefined();
+    expect(s1?.targetPeriod).toBeUndefined();
+    expect(s1?.targetTrueAnomaly).toBeUndefined();
+
+    const tomb = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint(null),
+    });
+    const s2 = deriveVesselState(tomb.get, 0);
+    expect(s2?.targetPeriod).toBeNull();
+    expect(s2?.targetTrueAnomaly).toBeNull();
+
+    const measured = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 1, y: 0, z: 0 },
+        orbit: TARGET_ORBIT,
+      }),
+    });
+    const s3 = deriveVesselState(measured.get, 0, measured.get);
+    expect(s3?.basis).toBe("measured");
+    expect(s3?.targetPeriod).not.toBeNull();
+    expect(s3?.targetTrueAnomaly).toBe(0);
+  });
+});
+
 describe("deriveVesselState", () => {
   describe("OnRails — propagated from vessel.orbit elements", () => {
     it("matches kepler.solve(orbit, viewUt) at the frozen viewUt", () => {

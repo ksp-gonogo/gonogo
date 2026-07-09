@@ -137,6 +137,18 @@ export interface VesselTargetPayload {
   kind: number;
   relativePosition?: Vec3 | null;
   relativeVelocity?: Vec3 | null;
+  /**
+   * The target's own orbit — the SAME `VesselOrbit` shape as the self vessel
+   * (`mod/Sitrep.Contract/VesselTarget.cs`'s `Orbit` deliberately reuses
+   * `VesselOrbit` so the SDK can propagate a target through the identical code
+   * path). The source of `vessel.state.targetPeriapsisAlt`/`targetPeriod`/
+   * `targetTrueAnomaly` (old Telemachus `tar.o.PeA`/`tar.o.period`/
+   * `tar.o.trueAnomaly`). `null` when the target has no orbit (landed, or its
+   * orbit couldn't be resolved this tick — the C# field's own null case);
+   * optional here because older recordings / the reference fixture may not
+   * carry it yet (treated identically to `null`).
+   */
+  orbit?: VesselOrbitPayload | null;
 }
 
 /**
@@ -319,6 +331,93 @@ export interface VesselState {
    * to project onto — never divides by zero); `null` on a confirmed tombstone.
    */
   targetRelativeSpeed: number | null | undefined;
+  /**
+   * Apoapsis RADIUS (distance from the reference body's CENTER, metres) —
+   * `sma·(1+ecc)`, the old Telemachus `o.ApR` (`useOrbitElements`,
+   * CurrentOrbit/OrbitView/ManeuverPlanner read it as a plain number). Derived
+   * straight from the orbit elements, so — unlike `apoapsisAlt`, which
+   * subtracts the body radius and is therefore `undefined` until
+   * `system.bodies` carries it — this needs NO body table and is always a
+   * finite number OnRails (`apoapsisAlt = apoapsisRadius - bodyRadius`
+   * whenever the radius is known). OnRails basis only; `null` in the
+   * "measured" basis or on a non-finite result.
+   */
+  apoapsisRadius: number | null;
+  /** Periapsis RADIUS from the body center, metres: `sma·(1-ecc)` (old `o.PeR`). Same basis/finite-guard rules as `apoapsisRadius`. */
+  periapsisRadius: number | null;
+  /**
+   * Current orbital RADIUS — distance from the reference body's center,
+   * metres: `|position|` (the propagated parent-body-relative position vector,
+   * the old Telemachus `o.radius` ManeuverPlanner feeds into its vis-viva
+   * `computeMu`). OnRails basis only (needs the propagated position); `null`
+   * in the "measured" basis (no position vector there) or on a non-finite
+   * result.
+   */
+  orbitalRadius: number | null;
+  /**
+   * Which apsis comes NEXT — `1` = apoapsis, `-1` = periapsis (the old
+   * Telemachus `o.nextApsisType` convention OrbitalEventChips/SystemView read;
+   * `0`/N-A never emitted — `null` when neither apsis is reachable). Derived
+   * by picking whichever of `timeToAp`/`timeToPe` is the smaller non-null
+   * countdown. OnRails basis only (both countdowns are `null` in the
+   * "measured" basis); `null` when neither countdown is available.
+   */
+  nextApsisType: number | null;
+  /**
+   * Seconds until the next apsis — the `timeToAp`/`timeToPe` matching
+   * `nextApsisType` (old Telemachus `o.timeToNextApsis`). OnRails basis only;
+   * `null` when neither countdown is available.
+   */
+  timeToNextApsis: number | null;
+  /**
+   * Horizontal (surface-tangent) speed, m/s — `sqrt(surfaceSpeed² -
+   * verticalSpeed²)`, the surface-frame Pythagorean split of the measured
+   * surface velocity (old Telemachus `v.horizontalVelocity`, OrbitalAscent's
+   * ascent read). MEASURED basis only — sourced straight from `vessel.flight`,
+   * exactly like `surfaceSpeed`/`verticalSpeed` themselves (both `null` in the
+   * "propagated" basis, so this is too). Clamped at 0 before the sqrt so
+   * floating-point `surfaceSpeed < verticalSpeed` noise never yields NaN.
+   * `null` in the "propagated" basis or on a non-finite result.
+   */
+  horizontalSpeed: number | null;
+  /**
+   * Scalar range to the current target, metres — `|vessel.target.
+   * relativePosition|` (old Telemachus `tar.distance`, DistanceToTarget/
+   * TargetPicker). Populated in BOTH bases (self-relative kinematics).
+   * `undefined` when `vessel.target` hasn't arrived or `relativePosition`
+   * isn't available this tick; `null` on a confirmed tombstone. A genuine
+   * zero range is a DEFINED `0`, not `undefined` (contrast
+   * `targetRelativeSpeed`, which is `undefined` at zero range because it can't
+   * form a line-of-sight unit vector — a distance needs no such vector).
+   */
+  targetDistance: number | null | undefined;
+  /**
+   * Target periapsis ALTITUDE above its reference body's mean radius, metres —
+   * `sma·(1-ecc) - bodyRadius` off `vessel.target.orbit` (old Telemachus
+   * `tar.o.PeA`, ManeuverPlanner). Populated in BOTH bases (the target's own
+   * orbit is valid regardless of the self vessel's basis). `undefined` when
+   * `vessel.target` hasn't arrived, the target has no orbit, or `system.bodies`
+   * doesn't (yet) carry the target's reference-body radius; `null` on a
+   * confirmed `vessel.target` tombstone. Same `undefined`-vs-`null` discipline
+   * as `apoapsisAlt`.
+   */
+  targetPeriapsisAlt: number | null | undefined;
+  /**
+   * Target orbital period, seconds — `2π·sqrt(sma³/mu)` off
+   * `vessel.target.orbit` (old Telemachus `tar.o.period`). Populated in BOTH
+   * bases; needs no body table. `undefined` when `vessel.target` hasn't
+   * arrived or the target has no orbit; `null` on a confirmed tombstone or a
+   * non-finite result.
+   */
+  targetPeriod: number | null | undefined;
+  /**
+   * Target true anomaly at `viewUt`, DEGREES wrapped to [0, 360) — off
+   * `vessel.target.orbit`, propagated to the SAME frozen `viewUt` as the self
+   * vessel (old Telemachus `tar.o.trueAnomaly`, ManeuverPlanner). Populated in
+   * BOTH bases. `undefined` when `vessel.target` hasn't arrived or the target
+   * has no orbit; `null` on a confirmed tombstone or a non-finite result.
+   */
+  targetTrueAnomaly: number | null | undefined;
   /**
    * Situation NAME — the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
@@ -580,6 +679,154 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
 }
 
 /**
+ * Build the internal-radian `OrbitElements` (`kepler.ts`) from a wire
+ * `VesselOrbitPayload` — the ONE place the wire's degree/radian unit mix is
+ * normalized (inc/lan/argPe degrees→radians; `meanAnomalyAtEpoch` already
+ * radians, the documented KSP quirk) and a `null` `lan`/`argPe` (undefined
+ * node/apsis on a near-equatorial/near-circular orbit) is substituted with 0
+ * — a physically-arbitrary-but-harmless reference. Shared by the self-vessel
+ * OnRails branch and the target-orbit derivation (`tar.o.*`), so both
+ * propagate through the identical conversion.
+ */
+function buildElements(o: VesselOrbitPayload): OrbitElements {
+  return {
+    sma: o.sma,
+    ecc: o.ecc,
+    inc: degToRad(o.inc),
+    lan: o.lan == null ? 0 : degToRad(o.lan),
+    argPe: o.argPe == null ? 0 : degToRad(o.argPe),
+    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch,
+    epoch: o.epoch,
+    mu: o.mu,
+  };
+}
+
+/**
+ * Resolve a body INDEX to its mean radius (metres) via `system.bodies` — the
+ * radius half of `deriveApsides`'s lookup, factored out for the target-orbit
+ * periapsis-altitude derivation (`targetPeriapsisAlt`). Same
+ * `undefined`-vs-`null` discipline as `resolveBodyName`: `undefined` when
+ * there's no index, `system.bodies` hasn't arrived, or the body / its radius
+ * isn't in it yet; `null` only on a `system.bodies` tombstone.
+ */
+function resolveBodyRadius(
+  get: DerivedGet,
+  index: number | null | undefined,
+): number | null | undefined {
+  if (index == null) return undefined;
+  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
+  if (!bodiesPoint) return undefined;
+  if (bodiesPoint.payload === null) return null;
+  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
+  return body?.radius ?? undefined;
+}
+
+/**
+ * Scalar range to the current target (`vessel.state.targetDistance`, old
+ * `tar.distance`) = `|vessel.target.relativePosition|`. `undefined` when
+ * `vessel.target` hasn't arrived or the vector isn't available this tick;
+ * `null` on a confirmed tombstone. A genuine zero range is a DEFINED `0` (a
+ * distance needs no unit vector — contrast `deriveTargetRelativeSpeed`, which
+ * is `undefined` at zero range). Never throws.
+ */
+function deriveTargetDistance(get: DerivedGet): number | null | undefined {
+  const point = get<VesselTargetPayload>("vessel.target");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const p = point.payload.relativePosition;
+  if (p == null) return undefined;
+  const distance = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+  return Number.isFinite(distance) ? distance : undefined;
+}
+
+/**
+ * The target's orbit-derived scalars (`vessel.state.targetPeriapsisAlt`/
+ * `targetPeriod`/`targetTrueAnomaly`, old `tar.o.PeA`/`tar.o.period`/
+ * `tar.o.trueAnomaly`) off `vessel.target.orbit` — the SAME `VesselOrbit`
+ * shape as the self vessel, propagated to the same frozen `viewUt` through
+ * `buildElements` + `kepler.solveAnomalies` (never a bespoke second solve).
+ * The target's own orbit is valid regardless of the SELF vessel's basis, so
+ * these are populated in both. `undefined` (all three) when `vessel.target`
+ * hasn't arrived or the target has no orbit; `null` (all three) on a confirmed
+ * tombstone. `targetPeriapsisAlt` additionally needs `system.bodies` for the
+ * reference-body radius — `undefined` (only it) until that's whole, `null`
+ * (only it) on a `system.bodies` tombstone — same `deriveApsides` discipline;
+ * `targetPeriod`/`targetTrueAnomaly` need no body table. Never throws.
+ */
+function deriveTargetOrbit(
+  get: DerivedGet,
+  viewUt: number,
+): {
+  targetPeriapsisAlt: number | null | undefined;
+  targetPeriod: number | null | undefined;
+  targetTrueAnomaly: number | null | undefined;
+} {
+  const point = get<VesselTargetPayload>("vessel.target");
+  if (!point) {
+    return {
+      targetPeriapsisAlt: undefined,
+      targetPeriod: undefined,
+      targetTrueAnomaly: undefined,
+    };
+  }
+  if (point.payload === null) {
+    return {
+      targetPeriapsisAlt: null,
+      targetPeriod: null,
+      targetTrueAnomaly: null,
+    };
+  }
+  const orbit = point.payload.orbit;
+  if (orbit == null) {
+    return {
+      targetPeriapsisAlt: undefined,
+      targetPeriod: undefined,
+      targetTrueAnomaly: undefined,
+    };
+  }
+
+  const elements = buildElements(orbit);
+  const anomalies = solveAnomalies(elements, viewUt);
+
+  const targetPeriod = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
+  const targetTrueAnomaly = finiteOrNull(
+    wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
+  );
+
+  const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
+  const targetPeriapsisAlt =
+    radius == null
+      ? radius
+      : finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius);
+
+  return { targetPeriapsisAlt, targetPeriod, targetTrueAnomaly };
+}
+
+/**
+ * Which apsis comes next (`vessel.state.nextApsisType`, old
+ * `o.nextApsisType`: `1` = Ap, `-1` = Pe) and the seconds until it
+ * (`timeToNextApsis`, old `o.timeToNextApsis`) — picked as whichever of the
+ * already-derived `timeToAp`/`timeToPe` countdowns is the smaller non-`null`
+ * value. `{ null, null }` when neither countdown is available (both `null` —
+ * e.g. the "measured" basis, where the orbital countdowns aren't derived).
+ * Never emits the legacy `0`/N-A sentinel — an unavailable next-apsis is
+ * `null`, which the consuming chip treats identically (it renders only for a
+ * `±1` type with a finite time).
+ */
+function deriveNextApsis(
+  timeToAp: number | null,
+  timeToPe: number | null,
+): { nextApsisType: number | null; timeToNextApsis: number | null } {
+  if (timeToAp != null && (timeToPe == null || timeToAp <= timeToPe)) {
+    return { nextApsisType: 1, timeToNextApsis: timeToAp };
+  }
+  if (timeToPe != null) {
+    return { nextApsisType: -1, timeToNextApsis: timeToPe };
+  }
+  return { nextApsisType: null, timeToNextApsis: null };
+}
+
+/**
  * `Sitrep.Contract.Situation` names in C# declaration order (VesselEnums.cs).
  * The wire carries `(int)id.Situation`; this is the ordinal→name table behind
  * `vessel.state.situationName` (old Telemachus `v.situationString`).
@@ -819,16 +1066,7 @@ export function deriveVesselState(
   const orbit = orbitPoint.payload;
 
   if (quality === Quality.OnRails) {
-    const elements: OrbitElements = {
-      sma: orbit.sma,
-      ecc: orbit.ecc,
-      inc: degToRad(orbit.inc),
-      lan: orbit.lan == null ? 0 : degToRad(orbit.lan),
-      argPe: orbit.argPe == null ? 0 : degToRad(orbit.argPe),
-      meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
-      epoch: orbit.epoch,
-      mu: orbit.mu,
-    };
+    const elements: OrbitElements = buildElements(orbit);
     const { position, velocity } = solve(elements, viewUt);
     const anomalies = solveAnomalies(elements, viewUt);
 
@@ -884,6 +1122,16 @@ export function deriveVesselState(
       referenceBodyName,
       ...deriveEncounter(get, orbit),
       targetRelativeSpeed: deriveTargetRelativeSpeed(get),
+      // Radii straight off the elements (no body table) — always finite here.
+      apoapsisRadius: finiteOrNull(orbit.sma * (1 + orbit.ecc)),
+      periapsisRadius: finiteOrNull(orbit.sma * (1 - orbit.ecc)),
+      orbitalRadius: finiteOrNull(magnitude(position)),
+      ...deriveNextApsis(timeToAp, timeToPe),
+      // Surface-frame horizontal speed is a MEASURED quantity — null in the
+      // propagated basis, exactly like surfaceSpeed/verticalSpeed above.
+      horizontalSpeed: null,
+      targetDistance: deriveTargetDistance(get),
+      ...deriveTargetOrbit(get, viewUt),
       ...deriveEnumDisplayMaps(get),
       basis: "propagated",
       subjectId,
@@ -925,6 +1173,29 @@ export function deriveVesselState(
     referenceBodyName: resolveBodyName(get, orbit.referenceBodyIndex),
     ...deriveEncounter(get, orbit),
     targetRelativeSpeed: deriveTargetRelativeSpeed(get),
+    // Orbital-radius/next-apsis are OnRails-only (osculating garbage here),
+    // same null posture as apoapsisAlt/timeToAp above.
+    apoapsisRadius: null,
+    periapsisRadius: null,
+    orbitalRadius: null,
+    nextApsisType: null,
+    timeToNextApsis: null,
+    // Horizontal speed is the measured-basis Pythagorean surface split — the
+    // one new field that's LIVE here and null OnRails (the opposite split from
+    // the orbital fields). Clamp before sqrt so FP noise never yields NaN.
+    horizontalSpeed: finiteOrNull(
+      Math.sqrt(
+        Math.max(
+          0,
+          flight.surfaceSpeed * flight.surfaceSpeed -
+            flight.verticalSpeed * flight.verticalSpeed,
+        ),
+      ),
+    ),
+    // The target's own kinematics/orbit are independent of the SELF basis, so
+    // they're derived identically here.
+    targetDistance: deriveTargetDistance(get),
+    ...deriveTargetOrbit(get, viewUt),
     ...deriveEnumDisplayMaps(get),
     basis: "measured",
     subjectId,

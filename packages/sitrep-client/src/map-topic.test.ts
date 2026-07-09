@@ -179,6 +179,58 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     }
   });
 
+  it("maps the A-tranche derived-quantity migrations onto their vessel.state.* subtopics (o.ApR/o.PeR/o.radius/nextApsis/horizontalVelocity/tar.distance/tar.o.*)", () => {
+    expect(mapTopic("data", "o.ApR")).toBe("vessel.state.apoapsisRadius");
+    expect(mapTopic("data", "o.PeR")).toBe("vessel.state.periapsisRadius");
+    expect(mapTopic("data", "o.radius")).toBe("vessel.state.orbitalRadius");
+    expect(mapTopic("data", "o.nextApsisType")).toBe(
+      "vessel.state.nextApsisType",
+    );
+    expect(mapTopic("data", "o.timeToNextApsis")).toBe(
+      "vessel.state.timeToNextApsis",
+    );
+    expect(mapTopic("data", "v.horizontalVelocity")).toBe(
+      "vessel.state.horizontalSpeed",
+    );
+    expect(mapTopic("data", "tar.distance")).toBe(
+      "vessel.state.targetDistance",
+    );
+    expect(mapTopic("data", "tar.o.PeA")).toBe(
+      "vessel.state.targetPeriapsisAlt",
+    );
+    expect(mapTopic("data", "tar.o.period")).toBe("vessel.state.targetPeriod");
+    expect(mapTopic("data", "tar.o.trueAnomaly")).toBe(
+      "vessel.state.targetTrueAnomaly",
+    );
+    for (const key of [
+      "o.ApR",
+      "o.PeR",
+      "o.radius",
+      "o.nextApsisType",
+      "o.timeToNextApsis",
+      "v.horizontalVelocity",
+      "tar.distance",
+      "tar.o.PeA",
+      "tar.o.period",
+      "tar.o.trueAnomaly",
+    ]) {
+      expect(isKnownTelemachusGap("data", key)).toBe(false);
+    }
+  });
+
+  it("leaves the genuinely-underivable A-tranche keys gapped (angleToPrograde, closest-approach UT, docking-orientation angles)", () => {
+    for (const key of [
+      "v.angleToPrograde",
+      "o.closestTgtApprUT",
+      "dock.ax",
+      "dock.ay",
+      "dock.az",
+    ]) {
+      expect(mapTopic("data", key)).toBeUndefined();
+      expect(isKnownTelemachusGap("data", key)).toBe(true);
+    }
+  });
+
   it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources's REAL wire shape (M3 batch-1 fix: the wire wraps in a 'resources' key, ToWire(VesselResources) in VesselViewProvider.cs — a flat vessel.resources.<X>.current target silently never resolves against the real payload)", () => {
     expect(mapTopic("data", "r.resource[LiquidFuel]")).toBe(
       "vessel.resources.resources.LiquidFuel.current",
