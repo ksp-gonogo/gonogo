@@ -40,15 +40,42 @@ function streamFrame(topic: string, payload: unknown): string {
   return JSON.stringify(message);
 }
 
-/** Resolves when `transport.status` reaches `target`. */
+/**
+ * Wait budget for the real-timer / real-network waits in this file (MSW WS
+ * handshake, reconnect backoff). These are the only genuinely time-dependent
+ * waits in the package; every other suite drives an injected clock/scheduler
+ * and is deterministic. The default `vi.waitFor` window is 1000ms, which is
+ * ample on an idle machine but too tight when the full 15-package `turbo test`
+ * saturates every core — a real WS handshake or reconnect can then legitimately
+ * take longer than a second. Sizing the window to the operation (not the idle
+ * case) is what stops this file from flaking under contention, without touching
+ * any assertion. See the "act-warnings load-dependent" note in CLAUDE.md.
+ */
+const WAIT_TIMEOUT_MS = 4000;
+
+/**
+ * Resolves when `transport.status` reaches `target`. Rejects with a clear
+ * message if it hasn't within `WAIT_TIMEOUT_MS`, so a genuine hang fails
+ * legibly instead of silently consuming the whole 5000ms `testTimeout` and
+ * surfacing as an opaque "Test timed out".
+ */
 function waitForStatus(
   transport: WebSocketTransport,
   target: TransportStatus,
 ): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (transport.status === target) return resolve();
+    const timer = setTimeout(() => {
+      off();
+      reject(
+        new Error(
+          `waitForStatus: status never reached "${target}" within ${WAIT_TIMEOUT_MS}ms (last: "${transport.status}")`,
+        ),
+      );
+    }, WAIT_TIMEOUT_MS);
     const off = transport.onStatusChange((status) => {
       if (status === target) {
+        clearTimeout(timer);
         off();
         resolve();
       }
@@ -133,17 +160,23 @@ describe("WebSocketTransport", () => {
     await waitForStatus(transport, "connected");
 
     transport.send({ type: "subscribe", topic: "vessel.orbit" });
-    await vi.waitFor(() => {
-      expect(received.map((raw) => JSON.parse(raw))).toContainEqual({
-        type: "subscribe",
-        topic: "vessel.orbit",
-      });
-    });
+    await vi.waitFor(
+      () => {
+        expect(received.map((raw) => JSON.parse(raw))).toContainEqual({
+          type: "subscribe",
+          topic: "vessel.orbit",
+        });
+      },
+      { timeout: WAIT_TIMEOUT_MS },
+    );
 
     serverClient?.send(streamFrame("vessel.orbit", { sma: 700000 }));
-    await vi.waitFor(() => {
-      expect(frames).toHaveLength(1);
-    });
+    await vi.waitFor(
+      () => {
+        expect(frames).toHaveLength(1);
+      },
+      { timeout: WAIT_TIMEOUT_MS },
+    );
 
     const frame = frames[0];
     expect(frame.type).toBe("stream-data");
@@ -180,19 +213,24 @@ describe("WebSocketTransport", () => {
     });
     await waitForStatus(transport, "connected");
     transport.send({ type: "subscribe", topic: "vessel.flight" });
-    await vi.waitFor(() => expect(receivedByConnection[0]).toHaveLength(1));
+    await vi.waitFor(() => expect(receivedByConnection[0]).toHaveLength(1), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
 
     // Server drops us -> reconnecting -> a fresh connection that re-subscribes.
     closeFirst?.();
     await waitForStatus(transport, "reconnecting");
     await waitForStatus(transport, "connected");
 
-    await vi.waitFor(() => {
-      expect(receivedByConnection).toHaveLength(2);
-      expect(receivedByConnection[1].map((raw) => JSON.parse(raw))).toEqual([
-        { type: "subscribe", topic: "vessel.flight" },
-      ]);
-    });
+    await vi.waitFor(
+      () => {
+        expect(receivedByConnection).toHaveLength(2);
+        expect(receivedByConnection[1].map((raw) => JSON.parse(raw))).toEqual([
+          { type: "subscribe", topic: "vessel.flight" },
+        ]);
+      },
+      { timeout: WAIT_TIMEOUT_MS },
+    );
     transport.dispose();
   });
 
@@ -221,10 +259,13 @@ describe("WebSocketTransport", () => {
       latest?.fire("close");
     };
     failNext();
-    await vi.waitFor(() => {
-      failNext();
-      expect(transport.status).toBe("disconnected");
-    });
+    await vi.waitFor(
+      () => {
+        failNext();
+        expect(transport.status).toBe("disconnected");
+      },
+      { timeout: WAIT_TIMEOUT_MS },
+    );
     expect(transport.status).toBe("disconnected");
     transport.dispose();
   });
@@ -258,7 +299,9 @@ describe("WebSocketTransport", () => {
     closers[0]();
     await waitForStatus(transport, "reconnecting");
     await waitForStatus(transport, "connected");
-    await vi.waitFor(() => expect(closers).toHaveLength(2));
+    await vi.waitFor(() => expect(closers).toHaveLength(2), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
 
     // Hours pass while happily connected: wall clock jumps far past
     // retryTimeoutMs measured from the FIRST-ever drop.
@@ -291,7 +334,9 @@ describe("WebSocketTransport", () => {
     expect(transport.status).toBe("reconnecting");
 
     // The retry loop opens a fresh socket despite never seeing a `close`.
-    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2));
+    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
     transport.dispose();
   });
 
@@ -310,7 +355,9 @@ describe("WebSocketTransport", () => {
     first.fire("close");
     first.fire("close");
 
-    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2));
+    await vi.waitFor(() => expect(fakes.instances).toHaveLength(2), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
     // Give any erroneously-scheduled second timer a chance to fire; only the
     // one legitimate reconnect should have opened a socket.
     await new Promise((r) => setTimeout(r, 20));
