@@ -198,6 +198,14 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "dock.x": "vessel.dock.relativePosition.x",
   "dock.y": "vessel.dock.relativePosition.y",
 
+  // --- vessel.surface capture-add (M3 R3): biome + landedAt now ship on the
+  // mod wire (VesselSurface.Biome/LandedAt), so these two — previously gapped
+  // as "needs capture add" — migrate as raw-field walks. vessel.surface is
+  // null while ORBITING/ESCAPING (capture-side guard), so widgets see these
+  // only near a surface, which matches the old Telemachus semantics.
+  "v.biome": "vessel.surface.biome",
+  "v.landedAt": "vessel.surface.landedAt",
+
   // --- vessel.control ---
   "f.throttle": "vessel.control.throttle",
   "f.sasEnabled": "vessel.control.sas",
@@ -571,9 +579,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "v.crew",
   "v.crewCapacity",
 
-  // --- needs capture add, not derivable client-side (G-10) ---
-  "v.biome",
-  "v.landedAt",
+  // v.biome / v.landedAt UN-GAPPED (R6 prep): vessel.surface now ships
+  // Biome + LandedAt — see TELEMACHUS_CLEAN_HOMES above.
 
   // --- stage-sim (G-14); vessel-level burn estimate is the interim ---
   "dv.stageCount",

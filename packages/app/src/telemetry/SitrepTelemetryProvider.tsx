@@ -65,6 +65,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.target",
   "vessel.maneuver",
   "vessel.dock",
+  "vessel.surface",
   "system.bodies",
   "system.vessels",
   "time.warp",

@@ -126,6 +126,13 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     }
   });
 
+  it("maps v.biome / v.landedAt onto vessel.surface fields (R6 prep un-gap: vessel.surface capture-add)", () => {
+    expect(mapTopic("data", "v.biome")).toBe("vessel.surface.biome");
+    expect(mapTopic("data", "v.landedAt")).toBe("vessel.surface.landedAt");
+    expect(isKnownTelemachusGap("data", "v.biome")).toBe(false);
+    expect(isKnownTelemachusGap("data", "v.landedAt")).toBe(false);
+  });
+
   it("maps comm.signalDelay onto comms.delay.oneWaySeconds (Step-3 un-gap: gonogo's live SignalDelay authority)", () => {
     expect(mapTopic("data", "comm.signalDelay")).toBe(
       "comms.delay.oneWaySeconds",
