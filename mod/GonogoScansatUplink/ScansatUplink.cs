@@ -128,6 +128,13 @@ namespace Gonogo.ScansatUplink
 
             if (!guard.IsAvailable)
             {
+                // Make the fail-soft VISIBLE: before this, a guard failure took
+                // every scansat.* channel silently inert (client subscribes,
+                // never gets stream-data) with no trace of WHY. Log the reason so
+                // a future API-drift / probe bug is never invisible again.
+                Debug.LogWarning("[Gonogo.ScansatUplink] SCANsat uplink UNAVAILABLE — "
+                    + (guard.Reason ?? "SCANsat unavailable")
+                    + " (all scansat.* channels disabled)");
                 host.SetAvailability(Availability.Unavailable(guard.Reason ?? "SCANsat unavailable"));
                 host.AddChannelSource(AvailableTopic, _ => false);
                 host.AddChannelSource(ScanningVesselsTopic, _ => new List<object>());

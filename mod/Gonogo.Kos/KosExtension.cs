@@ -227,16 +227,30 @@ namespace Gonogo.Kos
                     ProcessorMode = p.ProcessorMode.ToString(),
                 });
             }
-            return list;
+            // Carry the capture UT alongside the list (mirrors
+            // CommsCoreUplink.CommsCapture.Ut). Publishing at the real UT — not a
+            // hardcoded 0.0 — keeps this Delayed channel on the same UT-indexed
+            // timeline as every other vessel-sourced channel, so its periodic
+            // keyframe cadence and the server reveal gate both work; a fixed 0.0
+            // froze the emitter's keyframe clock and made a "Delayed" channel
+            // reveal as if TrueNow.
+            return new ProcessorsCapture { Ut = snapshot?.Ut ?? 0.0, List = list };
         }
 
         /// <summary>COURIER-THREAD handle: publish the captured list. Touches no kOS API.</summary>
         internal void HandleProcessors(object? captured)
         {
-            if (captured is List<KosProcessorInfo> list)
+            if (captured is ProcessorsCapture capture)
             {
-                _processorsPublisher?.Publish(list, 0.0);
+                _processorsPublisher?.Publish(capture.List, capture.Ut);
             }
+        }
+
+        /// <summary>Plain cross-thread payload bundle — no live kOS references (mirrors CommsCoreUplink.CommsCapture).</summary>
+        private sealed class ProcessorsCapture
+        {
+            public double Ut;
+            public List<KosProcessorInfo> List = new List<KosProcessorInfo>();
         }
 
         // ----------------------------------------------------------------

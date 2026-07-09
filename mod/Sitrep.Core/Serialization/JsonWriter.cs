@@ -208,6 +208,19 @@ namespace Sitrep.Core.Serialization
                     // so nothing existing changes shape.
                     AppendCommsDelay(sb, commsDelay);
                     break;
+                case Sitrep.Contract.KosProcessorInfo processor:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // CommandResult above: the kos.processors channel publishes a
+                    // List<KosProcessorInfo> (see Gonogo.Kos.KosExtension.
+                    // HandleProcessors). The list itself reaches AppendArray via
+                    // the IEnumerable case below, which calls AppendValue on each
+                    // element — this case flattens that element. Without it a
+                    // NON-EMPTY processor list threw NotSupportedException at the
+                    // wire boundary and fail-softed to nothing (an EMPTY list
+                    // serialized fine as `[]`, which is why a vessel WITH kOS CPUs
+                    // got zero stream-data while an empty one silently "worked").
+                    AppendKosProcessorInfo(sb, processor);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -290,6 +303,58 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
+
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.KosProcessorInfo"/> to the wire
+        /// object <c>{ coreId, tag, hasBooted, bootFilePath, processorMode }</c>
+        /// (camelCase keys, matching the generated TS contract the KosProcessors
+        /// widget consumes). Nullable <c>tag</c>/<c>bootFilePath</c> are written
+        /// as JSON <c>null</c> when absent (R7 typed-absence), never a sentinel
+        /// empty string. See the <c>case</c> in <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendKosProcessorInfo(StringBuilder sb, Sitrep.Contract.KosProcessorInfo p)
+        {
+            sb.Append('{');
+            AppendString(sb, "coreId");
+            sb.Append(':');
+            AppendInteger(sb, p.CoreId);
+
+            sb.Append(',');
+            AppendString(sb, "tag");
+            sb.Append(':');
+            if (p.Tag == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendString(sb, p.Tag);
+            }
+
+            sb.Append(',');
+            AppendString(sb, "hasBooted");
+            sb.Append(':');
+            AppendBool(sb, p.HasBooted);
+
+            sb.Append(',');
+            AppendString(sb, "bootFilePath");
+            sb.Append(':');
+            if (p.BootFilePath == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendString(sb, p.BootFilePath);
+            }
+
+            sb.Append(',');
+            AppendString(sb, "processorMode");
+            sb.Append(':');
+            AppendString(sb, p.ProcessorMode ?? "");
 
             sb.Append('}');
         }

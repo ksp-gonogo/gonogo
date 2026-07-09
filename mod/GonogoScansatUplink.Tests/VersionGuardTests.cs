@@ -30,6 +30,29 @@ namespace GonogoScansatUplink.Tests
         }
 
         [Fact]
+        public void ProbeTypes_OverloadedMembers_LikeScanSat21_Succeeds()
+        {
+            // Regression: SCANsat 21.1's isCovered/getData each have two
+            // overloads. The pre-fix RequireMethod called Type.GetMethod(name),
+            // which throws AmbiguousMatchException on an overloaded method — the
+            // throw bubbled up and flipped the whole uplink Unavailable against
+            // the real 21.1 assembly. The guard must treat overloaded members as
+            // present, not as a probe failure.
+            var types = new[]
+            {
+                typeof(GonogoScansatUplink.Tests.Fakes.Overloaded.SCANUtil),
+                typeof(GonogoScansatUplink.Tests.Fakes.Overloaded.SCANcontroller),
+                typeof(GonogoScansatUplink.Tests.Fakes.Overloaded.SCANdata),
+                typeof(GonogoScansatUplink.Tests.Fakes.Overloaded.SCANtype),
+            };
+
+            var result = VersionGuard.ProbeTypes(types);
+
+            Assert.True(result.IsAvailable, result.Reason);
+            Assert.Null(result.Reason);
+        }
+
+        [Fact]
         public void ProbeTypes_MissingMember_FailsSoft_DoesNotThrow()
         {
             var types = new[]
