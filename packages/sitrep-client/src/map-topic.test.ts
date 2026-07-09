@@ -131,9 +131,38 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
   });
 
-  it("gaps b.number — the widget reads a scalar count, not the raw system.bodies array (M2 T7 critical fix)", () => {
-    expect(mapTopic("data", "b.number")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "b.number")).toBe(true);
+  it("maps b.number onto the derived system.state.bodyCount (batch-2 migration — the plain COUNT off the raw system.bodies array)", () => {
+    expect(mapTopic("data", "b.number")).toBe("system.state.bodyCount");
+    expect(isKnownTelemachusGap("data", "b.number")).toBe(false);
+  });
+
+  it("maps the batch-2 shape-mismatch migrations (encounter scalars, target range-rate, dock offsets)", () => {
+    expect(mapTopic("data", "o.encounterExists")).toBe(
+      "vessel.state.encounterExists",
+    );
+    expect(mapTopic("data", "o.encounterBody")).toBe(
+      "vessel.state.encounterBody",
+    );
+    expect(mapTopic("data", "o.encounterTime")).toBe(
+      "vessel.state.encounterTime",
+    );
+    expect(mapTopic("data", "tar.o.relativeVelocity")).toBe(
+      "vessel.state.targetRelativeSpeed",
+    );
+    // dock.x/dock.y walk into the vessel.dock.relativePosition Vec3 via the
+    // raw-field-subtopic mechanism.
+    expect(mapTopic("data", "dock.x")).toBe("vessel.dock.relativePosition.x");
+    expect(mapTopic("data", "dock.y")).toBe("vessel.dock.relativePosition.y");
+    for (const key of [
+      "o.encounterExists",
+      "o.encounterBody",
+      "o.encounterTime",
+      "tar.o.relativeVelocity",
+      "dock.x",
+      "dock.y",
+    ]) {
+      expect(isKnownTelemachusGap("data", key)).toBe(false);
+    }
   });
 
   it("resolves the parametric r.resource[X] vessel-total family onto vessel.resources's REAL wire shape (M3 batch-1 fix: the wire wraps in a 'resources' key, ToWire(VesselResources) in VesselViewProvider.cs — a flat vessel.resources.<X>.current target silently never resolves against the real payload)", () => {
@@ -290,19 +319,18 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // now that a client-side index→name display-map subtopic exists
         // (vessel.state.parentBodyName / referenceBodyName), they map cleanly;
         // see the dedicated body-name test below.
-        "b.number", // number count vs the raw system.bodies array
-        "o.encounterExists", // number vs the vessel.orbit.encounter record
-        "o.encounterBody", // string vs the vessel.orbit.encounter record
-        "o.encounterTime", // number vs the vessel.orbit.encounter record
-        "dock.x", // scalar vs vessel.target.relativePosition (Vec3)
-        "dock.y", // scalar vs vessel.target.relativePosition (Vec3)
+        // b.number / o.encounter* / dock.x / dock.y / tar.o.relativeVelocity
+        // were here until the batch-2 shape-mismatch migration — now that
+        // client-side derived subtopics exist (system.state.bodyCount,
+        // vessel.state.encounter*, vessel.state.targetRelativeSpeed) and
+        // dock.x/y walk into vessel.dock.relativePosition, they map cleanly;
+        // see the dedicated batch-2 test above.
         // comm.controlState / comm.controlStateName + v.situationString /
         // f.sasMode / tar.type were here until the enum-ordinal→name migration;
         // now that client-side ordinal→string/level display-map subtopics
         // exist (vessel.state.commsControlStateOrdinal / commsControlStateName /
         // situationName / sasModeName / targetKind), they map cleanly — see the
         // dedicated enum-ordinal→name test above.
-        "tar.o.relativeVelocity", // scalar vs vessel.target.relativeVelocity (Vec3)
         "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
         "dv.currentTWR", // no twr field on vessel.propulsion at all
         "comm.signalDelay", // comms.delay has no implementation anywhere yet

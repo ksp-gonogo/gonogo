@@ -330,6 +330,173 @@ describe("enum-ordinal → NAME display maps — situationName/sasModeName/targe
   });
 });
 
+describe("encounter display maps — encounterExists/encounterBody/encounterTime (batch-2: o.encounterExists/Body/Time off vessel.orbit.encounter)", () => {
+  function orbitWithEncounter(
+    encounter: VesselOrbitPayload["encounter"],
+    quality = Quality.OnRails,
+  ) {
+    return orbitPoint({ ...CIRCULAR_ORBIT, encounter }, { quality });
+  }
+
+  it("ENCOUNTER (transitionType 2) → +1, resolves body NAME + transitionUt (OnRails)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitWithEncounter({
+        transitionType: 2, // Encounter
+        transitionUt: 12_345,
+        bodyIndex: 1, // Kerbin in KERBIN_SYSTEM_BODIES
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.encounterExists).toBe(1);
+    expect(state?.encounterBody).toBe("Kerbin");
+    expect(state?.encounterTime).toBe(12_345);
+  });
+
+  it("ESCAPE (transitionType 3) → -1", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitWithEncounter({
+        transitionType: 3, // Escape
+        transitionUt: 999,
+        bodyIndex: 0,
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.encounterExists).toBe(-1);
+    expect(state?.encounterBody).toBe("Kerbol");
+    expect(state?.encounterTime).toBe(999);
+  });
+
+  it("a non-surfaced transition type (Initial 0) → 0 exists (no chip), body/time still resolved", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitWithEncounter({
+        transitionType: 0, // Initial
+        transitionUt: 42,
+        bodyIndex: 1,
+      }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.encounterExists).toBe(0);
+  });
+
+  it("no encounter record → exists 0 (defined none), body/time undefined — never the whole-record undefined", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.encounterExists).toBe(0);
+    expect(state?.encounterBody).toBeUndefined();
+    expect(state?.encounterTime).toBeUndefined();
+  });
+
+  it("encounterBody undefined (resyncing) when system.bodies hasn't arrived; null on a tombstone", () => {
+    const resyncing = fakeGet({
+      "vessel.orbit": orbitWithEncounter({
+        transitionType: 2,
+        transitionUt: 5,
+        bodyIndex: 1,
+      }),
+      // no system.bodies
+    });
+    expect(deriveVesselState(resyncing.get, 0)?.encounterBody).toBeUndefined();
+
+    const tombstone = fakeGet({
+      "vessel.orbit": orbitWithEncounter({
+        transitionType: 2,
+        transitionUt: 5,
+        bodyIndex: 1,
+      }),
+      "system.bodies": bodiesPoint(null),
+    });
+    expect(deriveVesselState(tombstone.get, 0)?.encounterBody).toBeNull();
+  });
+
+  it("populated in the Loaded (measured) basis too", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitWithEncounter(
+        { transitionType: 2, transitionUt: 7, bodyIndex: 1 },
+        Quality.Loaded,
+      ),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+    const state = deriveVesselState(get, 0, get);
+    expect(state?.basis).toBe("measured");
+    expect(state?.encounterExists).toBe(1);
+    expect(state?.encounterBody).toBe("Kerbin");
+    expect(state?.encounterTime).toBe(7);
+  });
+});
+
+describe("targetRelativeSpeed — signed range-rate (batch-2: tar.o.relativeVelocity off vessel.target Vec3s)", () => {
+  it("NEGATIVE when closing (relVel points toward us along the line of sight)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 100, y: 0, z: 0 },
+        relativeVelocity: { x: -5, y: 0, z: 0 },
+      }),
+    });
+    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeCloseTo(-5, 6);
+  });
+
+  it("POSITIVE when opening; projects onto the line of sight (non-axis-aligned)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 0, y: 0, z: 10 },
+        relativeVelocity: { x: 3, y: 4, z: 2 }, // only z projects onto position
+      }),
+    });
+    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeCloseTo(2, 6);
+  });
+
+  it("undefined at zero range (no line of sight — never divides by zero)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: { x: 0, y: 0, z: 0 },
+        relativeVelocity: { x: 1, y: 1, z: 1 },
+      }),
+    });
+    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeUndefined();
+  });
+
+  it("undefined when vessel.target absent or a vector isn't available this tick", () => {
+    const noTarget = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+    });
+    expect(
+      deriveVesselState(noTarget.get, 0)?.targetRelativeSpeed,
+    ).toBeUndefined();
+
+    const noVec = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint({
+        kind: 0,
+        relativePosition: null,
+        relativeVelocity: { x: 1, y: 0, z: 0 },
+      }),
+    });
+    expect(
+      deriveVesselState(noVec.get, 0)?.targetRelativeSpeed,
+    ).toBeUndefined();
+  });
+
+  it("null on a confirmed vessel.target tombstone", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.target": targetPoint(null),
+    });
+    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeNull();
+  });
+});
+
 describe("deriveVesselState", () => {
   describe("OnRails — propagated from vessel.orbit elements", () => {
     it("matches kepler.solve(orbit, viewUt) at the frozen viewUt", () => {

@@ -9,6 +9,8 @@ import {
 } from "react";
 import type { TelemetryClient } from "./client";
 import { DelayAuthority } from "./delay-authority";
+import { systemStateChannel } from "./system-state";
+import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock, type ViewClockOptions } from "./view-clock";
@@ -268,7 +270,10 @@ export function TelemetryProvider({
  * wants to omit one) supplies its own pre-built `store` prop instead of
  * relying on the default.
  */
-const PRODUCTION_DERIVED_CHANNELS = [vesselStateChannel];
+const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] = [
+  vesselStateChannel as DerivedChannelDefinition<unknown>,
+  systemStateChannel as DerivedChannelDefinition<unknown>,
+];
 
 /** Reads the `TelemetryClient` supplied by the nearest `TelemetryProvider`. */
 export function useTelemetryClient(): TelemetryClient {

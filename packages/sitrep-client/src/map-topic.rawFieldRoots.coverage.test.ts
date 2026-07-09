@@ -68,10 +68,13 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
  * convention's scope entirely — it's checked instead by
  * `vessel-state-mapping.coverage.test.ts`. Mirrors `context.tsx`'s
  * `PRODUCTION_DERIVED_CHANNELS` (not exported, so hardcoded here rather than
- * imported — currently a single entry, `vesselStateChannel`, whose `.topic`
- * is `"vessel.state"`).
+ * imported — `vesselStateChannel` (`"vessel.state"`) and `systemStateChannel`
+ * (`"system.state"`)).
  */
-const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set(["vessel.state"]);
+const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set([
+  "vessel.state",
+  "system.state",
+]);
 
 function firstTwoSegments(topic: string): string {
   return topic.split(".").slice(0, 2).join(".");

@@ -6,6 +6,34 @@ import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 
 /**
+ * The canonical `{x,y,z}` vector shape every `vessel.target`/`vessel.dock`
+ * Vec3 field carries on the wire (`mod/Sitrep.Contract/Vec3.cs`).
+ */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * One upcoming SOI patch transition — the `vessel.orbit.encounter` nullable
+ * record (`mod/Sitrep.Contract/VesselOrbit.cs`'s `OrbitEncounter`). The whole
+ * record is `null` when there's no upcoming SOI transition on the current
+ * trajectory (the common case) — never a sentinel.
+ *
+ * `transitionType` is the raw `Sitrep.Contract.TransitionType` enum ORDINAL on
+ * the wire (Initial 0 / Final 1 / Encounter 2 / Escape 3 / Maneuver 4 /
+ * Collision 5 / Unknown 6 — VesselEnums.cs); `transitionUt` is the UT-seconds
+ * of the transition; `bodyIndex` is the `system.bodies` index of the body
+ * being transitioned INTO (`null` if it couldn't be resolved).
+ */
+export interface OrbitEncounterPayload {
+  transitionType: number;
+  transitionUt: number;
+  bodyIndex: number | null;
+}
+
+/**
  * The `vessel.orbit` channel payload — elements, never position (M2 design
  * §2.4, mirrors `mod/Sitrep.Contract/VesselOrbit.cs`). Not yet codegen'd into
  * `@gonogo/sitrep-sdk`'s `__generated__/contract.ts` (that's the mod-side
@@ -29,6 +57,15 @@ export interface VesselOrbitPayload {
   meanAnomalyAtEpoch: number;
   epoch: number;
   mu: number;
+  /**
+   * The next upcoming SOI transition, or `null` when there is none (the
+   * common case) — the source of `vessel.state.encounterExists`/
+   * `encounterBody`/`encounterTime` (old Telemachus `o.encounterExists`/
+   * `o.encounterBody`/`o.encounterTime`). Optional here because it's an
+   * additive field the reference wire fixture / older recordings may not
+   * carry yet — treated identically to `null` (no encounter).
+   */
+  encounter?: OrbitEncounterPayload | null;
 }
 
 /**
@@ -89,9 +126,17 @@ export interface VesselControlPayload {
  * `kind` is the raw `Sitrep.Contract.TargetKind` enum ORDINAL on the wire
  * (`(int)target.Kind`). The WHOLE channel is absent (no point) when nothing is
  * targeted (R1(b)) — the common case — never a sentinel record.
+ *
+ * `relativePosition`/`relativeVelocity` are the canonical `Vec3` fields
+ * (metres / m/s, self-relative), each individually `null` when the transform
+ * data needed to compute it wasn't available this tick (R7). They're the
+ * source of `vessel.state.targetRelativeSpeed` — the signed range-rate behind
+ * the old Telemachus scalar `tar.o.relativeVelocity`.
  */
 export interface VesselTargetPayload {
   kind: number;
+  relativePosition?: Vec3 | null;
+  relativeVelocity?: Vec3 | null;
 }
 
 /**
@@ -230,6 +275,50 @@ export interface VesselState {
    * `undefined`-vs-`null` rules as `parentBodyName`.
    */
   referenceBodyName: string | null | undefined;
+  /**
+   * Next-SOI-transition SIGN — the display-map resolution of
+   * `vessel.orbit.encounter` to the -1/0/1 scalar OrbitalEventChips reads as
+   * `o.encounterExists`: `1` = ENCOUNTER (entering another body's SOI —
+   * `TransitionType.Encounter`), `-1` = ESCAPE (leaving the current SOI —
+   * `TransitionType.Escape`), `0` = none (no encounter record, or a
+   * transition type the chip doesn't surface: Initial/Final/Maneuver/
+   * Collision/Unknown). `transitionType` DOES matter here — the widget keys
+   * its encounter-vs-escape variant off the sign, so a plain boolean would
+   * lose that distinction. `0` (a DEFINED "no encounter") whenever
+   * `vessel.orbit` is present but carries no encounter — never `undefined`,
+   * since `vessel.orbit`'s own presence already gates the whole record.
+   * Populated in BOTH bases (KSP predicts patched-conic transitions
+   * regardless of on-rails/loaded).
+   */
+  encounterExists: number | null | undefined;
+  /**
+   * Encounter body NAME — `vessel.orbit.encounter.bodyIndex` resolved against
+   * `system.bodies` (old Telemachus `o.encounterBody`). `undefined` when there
+   * is no encounter, the index isn't resolvable yet, or `system.bodies` hasn't
+   * arrived; `null` when `system.bodies` is a confirmed tombstone. Same
+   * `resolveBodyName` discipline as `parentBodyName`.
+   */
+  encounterBody: string | null | undefined;
+  /**
+   * Encounter time — `vessel.orbit.encounter.transitionUt` (UT seconds), the
+   * old Telemachus `o.encounterTime`. `undefined` when there is no encounter
+   * or the value is non-finite. The widget only shows the chip when this is a
+   * finite number > 0.
+   */
+  encounterTime: number | null | undefined;
+  /**
+   * Signed target closing/opening rate, m/s — the range-rate
+   * `dot(relativePosition, relativeVelocity) / |relativePosition|` derived from
+   * `vessel.target`'s two Vec3 fields, the new home for the old Telemachus
+   * scalar `tar.o.relativeVelocity`. Sign follows the standard KSP convention
+   * DistanceToTarget/TargetPicker were written against: POSITIVE = opening
+   * (gap growing), NEGATIVE = closing (the widgets' `< 0` = closing check).
+   * Populated in BOTH bases (self-relative kinematics, not orbital-elements
+   * derived). `undefined` when `vessel.target` hasn't arrived, either vector
+   * isn't available this tick, or `|relativePosition|` is ~0 (no line of sight
+   * to project onto — never divides by zero); `null` on a confirmed tombstone.
+   */
+  targetRelativeSpeed: number | null | undefined;
   /**
    * Situation NAME — the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
@@ -421,6 +510,73 @@ function resolveBodyName(
   if (bodiesPoint.payload === null) return null;
   const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
   return body?.name ?? undefined;
+}
+
+/** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces (VesselEnums.cs). */
+const TRANSITION_TYPE_ENCOUNTER = 2;
+const TRANSITION_TYPE_ESCAPE = 3;
+
+/**
+ * Resolve `vessel.orbit.encounter` to OrbitalEventChips' three legacy scalars
+ * (`o.encounterExists`/`o.encounterBody`/`o.encounterTime`). `orbit` is always
+ * present here (its channel gates the whole `vessel.state` record), so a
+ * missing/`null` encounter is a DEFINED "no encounter" — `encounterExists` 0,
+ * body/time `undefined` — never the whole-record `undefined`/`null`. The body
+ * NAME follows `resolveBodyName`'s `undefined`-vs-`null` discipline against
+ * `system.bodies`. Never throws on a missing encounter / missing body table.
+ */
+function deriveEncounter(
+  get: DerivedGet,
+  orbit: VesselOrbitPayload,
+): {
+  encounterExists: number | null | undefined;
+  encounterBody: string | null | undefined;
+  encounterTime: number | null | undefined;
+} {
+  const encounter = orbit.encounter;
+  if (encounter == null) {
+    return {
+      encounterExists: 0,
+      encounterBody: undefined,
+      encounterTime: undefined,
+    };
+  }
+  const encounterExists =
+    encounter.transitionType === TRANSITION_TYPE_ENCOUNTER
+      ? 1
+      : encounter.transitionType === TRANSITION_TYPE_ESCAPE
+        ? -1
+        : 0;
+  return {
+    encounterExists,
+    encounterBody: resolveBodyName(get, encounter.bodyIndex),
+    encounterTime: Number.isFinite(encounter.transitionUt)
+      ? encounter.transitionUt
+      : undefined,
+  };
+}
+
+/**
+ * Signed target range-rate (`vessel.state.targetRelativeSpeed`, old
+ * `tar.o.relativeVelocity`) = `dot(relPos, relVel) / |relPos|` — POSITIVE when
+ * the target is receding (opening), NEGATIVE when closing, matching the
+ * widgets' `< 0` = closing convention. Same channel-presence discipline as
+ * `resolveEnumName`: `undefined` when `vessel.target` hasn't arrived, either
+ * Vec3 isn't available this tick, `|relPos|` is ~0 (no unit vector to project
+ * onto — never divides by zero), or the result is non-finite; `null` on a
+ * confirmed tombstone.
+ */
+function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
+  const point = get<VesselTargetPayload>("vessel.target");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const { relativePosition: p, relativeVelocity: v } = point.payload;
+  if (p == null || v == null) return undefined;
+  const distance = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+  if (distance === 0) return undefined;
+  const dot = p.x * v.x + p.y * v.y + p.z * v.z;
+  const rangeRate = dot / distance;
+  return Number.isFinite(rangeRate) ? rangeRate : undefined;
 }
 
 /**
@@ -726,6 +882,8 @@ export function deriveVesselState(
       timeToPe,
       parentBodyName,
       referenceBodyName,
+      ...deriveEncounter(get, orbit),
+      targetRelativeSpeed: deriveTargetRelativeSpeed(get),
       ...deriveEnumDisplayMaps(get),
       basis: "propagated",
       subjectId,
@@ -765,6 +923,8 @@ export function deriveVesselState(
     timeToPe: null,
     parentBodyName: resolveBodyName(get, parentBodyIndex),
     referenceBodyName: resolveBodyName(get, orbit.referenceBodyIndex),
+    ...deriveEncounter(get, orbit),
+    targetRelativeSpeed: deriveTargetRelativeSpeed(get),
     ...deriveEnumDisplayMaps(get),
     basis: "measured",
     subjectId,

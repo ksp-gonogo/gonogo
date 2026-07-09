@@ -166,6 +166,38 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "comm.controlStateName": "vessel.state.commsControlStateName",
   "comm.controlState": "vessel.state.commsControlStateOrdinal",
 
+  // --- vessel.state (derived, client-side shape-mismatch migration batch 2):
+  // three more display maps + one range-rate derivation off already-served
+  // channels, same pattern as the enum maps above.
+  //  - encounterExists/encounterBody/encounterTime  <- vessel.orbit.encounter
+  //    (nullable OrbitEncounter record). exists = signed -1/0/1 keyed off
+  //    TransitionType (Encounter→1, Escape→-1, else 0 — the sign carries the
+  //    escape-vs-encounter distinction OrbitalEventChips branches on); body =
+  //    bodyIndex resolved to a NAME via system.bodies; time = transitionUt.
+  //  - targetRelativeSpeed <- vessel.target.relativePosition/relativeVelocity
+  //    (both Vec3): the SIGNED range-rate dot(relPos,relVel)/|relPos| the old
+  //    scalar tar.o.relativeVelocity carried (positive=opening, <0=closing).
+  // ---
+  "o.encounterExists": "vessel.state.encounterExists",
+  "o.encounterBody": "vessel.state.encounterBody",
+  "o.encounterTime": "vessel.state.encounterTime",
+  "tar.o.relativeVelocity": "vessel.state.targetRelativeSpeed",
+
+  // --- system.state (derived) — b.number is a plain COUNT; system.bodies is
+  // the raw body ARRAY. `systemStateChannel` (system-state.ts) derives
+  // `bodyCount = bodies.length` on its own SYSTEM-scoped derived channel
+  // (not vessel.state — the count must stay live even with no active vessel).
+  "b.number": "system.state.bodyCount",
+
+  // --- dock.x/dock.y — the two lateral docking-offset scalars (metres) are
+  // simply the x/y components of vessel.dock.relativePosition (the Vec3
+  // DistanceToTarget already uses verbatim as their drop-in replacement,
+  // rendering `${x.toFixed(2)} m`). Mapped via the raw-field-subtopic walk
+  // (`resolveRawFieldSubtopic`) into the Vec3 — no derived field needed, same
+  // nested-walk form as the career.status.* sub-tree reads.
+  "dock.x": "vessel.dock.relativePosition.x",
+  "dock.y": "vessel.dock.relativePosition.y",
+
   // --- vessel.control ---
   "f.throttle": "vessel.control.throttle",
   "f.sasEnabled": "vessel.control.sas",
@@ -399,29 +431,22 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // system.bodies into vessel.state.parentBodyName / referenceBodyName. See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // b.number: SystemView/useCelestialBodies.ts reads a plain `number`
-  // count. `system.bodies` is the raw static ARRAY, not a count.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "b.number",
+  // b.number UN-GAPPED (batch-2 migration): the plain body COUNT the widget
+  // reads is now derived on the SYSTEM-scoped `system.state.bodyCount`
+  // channel (system-state.ts, `bodies.length`) — see TELEMACHUS_CLEAN_HOMES.
 
-  // o.encounterExists/o.encounterBody/o.encounterTime: shared/
-  // OrbitalEventChips.tsx (also SystemView, MapView, TargetPicker) reads
-  // these as three independent scalars (number/string/number). All three
-  // collapse onto the single nullable `vessel.orbit.encounter` RECORD
-  // (`{ transitionType, transitionUt, bodyIndex }`) — none of the three old
-  // field semantics map cleanly onto one sub-field of it.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "o.encounterExists",
-  "o.encounterBody",
-  "o.encounterTime",
+  // o.encounterExists/o.encounterBody/o.encounterTime UN-GAPPED (batch-2
+  // migration): the single nullable `vessel.orbit.encounter` record now feeds
+  // three derived `vessel.state.*` fields shaped exactly as OrbitalEventChips
+  // reads them — signed -1/0/1 exists (keyed off TransitionType), the body
+  // NAME (bodyIndex→system.bodies), and transitionUt. See
+  // TELEMACHUS_CLEAN_HOMES above.
 
-  // dock.x/dock.y: DistanceToTarget expects two independent scalar
-  // docking-alignment numbers. Both collapse onto
-  // `vessel.target.relativePosition`, a single `Vec3 {x,y,z}` — different
-  // shape AND different semantics (alignment axes vs. a position vector).
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "dock.x",
-  "dock.y",
+  // dock.x/dock.y UN-GAPPED (batch-2 migration): NOT alignment axes after all
+  // — the widget renders them as metres and already uses
+  // vessel.dock.relativePosition.{x,y} as their verbatim drop-in replacement.
+  // Mapped straight through the raw-field-subtopic walk into that Vec3 (no
+  // derived field). See TELEMACHUS_CLEAN_HOMES above.
 
   // comm.controlState/comm.controlStateName UN-GAPPED (enum-ordinal→name
   // migration task 4): the mod field `vessel.comms.controlState` is a NUMERIC
@@ -450,12 +475,11 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // DistanceToTarget's dockable gate compares against). See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // tar.o.relativeVelocity: DistanceToTarget/TargetPicker read a signed
-  // scalar closing-speed number (`.toFixed(2)`, `< 0` sign check). The new
-  // home, `vessel.target.relativeVelocity`, is a `Vec3` — `.toFixed` throws
-  // on an object, and the sign check can never fire.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "tar.o.relativeVelocity",
+  // tar.o.relativeVelocity UN-GAPPED (batch-2 migration): the signed scalar
+  // closing-speed is now derived on `vessel.state.targetRelativeSpeed` — the
+  // range-rate dot(relPos,relVel)/|relPos| off vessel.target's two Vec3
+  // fields, positive=opening / <0=closing as the widgets expect. See
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // o.maneuverNodes: ManeuverPlanner/MapView read each node's `deltaV:
   // [x,y,z]` tuple plus a full post-burn orbit preview per node (PeA, ApA,
