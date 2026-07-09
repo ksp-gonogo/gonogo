@@ -67,6 +67,15 @@ namespace Gonogo.KSP
 
         private KspHost? _host;
         private Recorder? _recorder;
+        // Dev-capture recorder gate. OFF by default: the recorder writes a
+        // growing session-*.json every flush and spams the log heartbeat, which
+        // is pure overhead for a normal launch — it's only wanted when actively
+        // capturing a reference fixture. Opt in via PluginData/gonogo.cfg's
+        // RECORDING node (`enabled = true`). The recorder object is still
+        // CONSTRUCTED unconditionally (the FixedUpdate sample/Tick path that
+        // drives the live stream is guarded on `_recorder != null`); this flag
+        // gates only the Record + flush calls, never the live emit.
+        private bool _recordingEnabled;
         private ChannelEngine? _engine;
         private bool _shutDown;
         private double? _lastSampledUt;
@@ -110,6 +119,7 @@ namespace Gonogo.KSP
                 // `lightSpeedScale`) so delay can be tuned without a rebuild;
                 // absent config = ON at real light-speed (scale 1.0).
                 CommsCoreUplink.ConfigureSignalDelay(ReadSignalDelayConfig());
+                _recordingEnabled = ReadRecordingEnabled();
                 _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
                 // Drive the capability Kernel once every uplink has registered
                 // its providers (the comms backend election — CommNet vanilla vs
@@ -177,6 +187,39 @@ namespace Gonogo.KSP
 
             Debug.Log("[Gonogo] SignalDelay enabled=" + cfg.Enabled + " lightSpeedScale=" + cfg.LightSpeedScale);
             return cfg;
+        }
+
+        /// <summary>
+        /// Reads the dev-capture recorder toggle from
+        /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>RECORDING</c> node:
+        /// <c>enabled = true|false</c>). Defaults to <b>false</b> (off) — unlike
+        /// <see cref="ReadSignalDelayConfig"/>, absent config means OFF, because
+        /// recording is a dev fixture-capture tool that only wastes disk + log
+        /// on a normal launch. Opt in only when actively capturing a fixture.
+        /// </summary>
+        private static bool ReadRecordingEnabled()
+        {
+            var enabled = false;
+            try
+            {
+                var path = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "gonogo.cfg");
+                if (File.Exists(path))
+                {
+                    var root = ConfigNode.Load(path);
+                    var node = root?.GetNode("RECORDING");
+                    if (node != null && node.HasValue("enabled") && bool.TryParse(node.GetValue("enabled"), out var en))
+                    {
+                        enabled = en;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] recording config read failed, defaulting off: " + ex.Message);
+            }
+
+            Debug.Log("[Gonogo] Recording enabled=" + enabled);
+            return enabled;
         }
 
         /// <summary>
@@ -254,7 +297,10 @@ namespace Gonogo.KSP
                 // applies only to the emit path below (inside
                 // ChannelEngine.Tick, via SubscriptionRegistry + ChannelEmitter,
                 // per registered channel) - never to the recorder.
-                _recorder.Record(snapshot.Ut, snapshot);
+                if (_recordingEnabled)
+                {
+                    _recorder.Record(snapshot.Ut, snapshot);
+                }
 
                 // The engine applies every registered channel's mapper
                 // (system.bodies's is SystemViewProvider.BuildSystemBodies,
@@ -316,7 +362,7 @@ namespace Gonogo.KSP
         /// </summary>
         private void FlushRecording()
         {
-            if (_recorder == null || _sessionPath == null)
+            if (!_recordingEnabled || _recorder == null || _sessionPath == null)
             {
                 return;
             }
