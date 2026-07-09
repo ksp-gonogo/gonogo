@@ -18,6 +18,7 @@ export * from "./GroundSurvey";
 export * from "./KeplerPeriod";
 export * from "./KosFiles";
 export * from "./KosProcessors";
+export * from "./KosScriptRunner";
 export * from "./KosTerminal";
 export * from "./KosWidget";
 export * from "./KosWrapperTester";

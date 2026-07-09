@@ -374,6 +374,104 @@ describe("KosTerminal", () => {
     await waitFor(() => expect(events).toContain("closed"));
   });
 
+  it("line-mode: echoes typed chars locally without sending per-keystroke", async () => {
+    const received: string[] = [];
+    const clientReady = new Promise<void>((resolve) => {
+      server.use(
+        kosProxyWs.addEventListener("connection", ({ client }) => {
+          client.addEventListener("message", ({ data }) =>
+            received.push(data as string),
+          );
+          resolve();
+        }),
+      );
+    });
+
+    render(
+      <KosTerminalComponent config={{ ...DEFAULT_CONFIG, lineMode: true }} />,
+    );
+    await clientReady;
+
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+    const onData = vi.mocked(termSpies.onData).mock.calls[0][0] as (
+      d: string,
+    ) => void;
+
+    onData("l");
+    onData("s");
+
+    // Instant local echo …
+    expect(termSpies.write).toHaveBeenCalledWith("l");
+    expect(termSpies.write).toHaveBeenCalledWith("s");
+    // … but nothing on the wire until Enter.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(received).toHaveLength(0);
+  });
+
+  it("line-mode: sends the whole composed line as one message on Enter", async () => {
+    const received: string[] = [];
+    const clientReady = new Promise<void>((resolve) => {
+      server.use(
+        kosProxyWs.addEventListener("connection", ({ client }) => {
+          client.addEventListener("message", ({ data }) =>
+            received.push(data as string),
+          );
+          resolve();
+        }),
+      );
+    });
+
+    render(
+      <KosTerminalComponent config={{ ...DEFAULT_CONFIG, lineMode: true }} />,
+    );
+    await clientReady;
+
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+    const onData = vi.mocked(termSpies.onData).mock.calls[0][0] as (
+      d: string,
+    ) => void;
+
+    for (const ch of "list.") onData(ch);
+    onData("\r");
+
+    await waitFor(() => expect(received).toContain("list.\r"));
+    // Exactly one message for the whole line.
+    expect(received).toHaveLength(1);
+  });
+
+  it("line-mode: Backspace edits the buffer before send", async () => {
+    const received: string[] = [];
+    const clientReady = new Promise<void>((resolve) => {
+      server.use(
+        kosProxyWs.addEventListener("connection", ({ client }) => {
+          client.addEventListener("message", ({ data }) =>
+            received.push(data as string),
+          );
+          resolve();
+        }),
+      );
+    });
+
+    render(
+      <KosTerminalComponent config={{ ...DEFAULT_CONFIG, lineMode: true }} />,
+    );
+    await clientReady;
+
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+    const onData = vi.mocked(termSpies.onData).mock.calls[0][0] as (
+      d: string,
+    ) => void;
+
+    for (const ch of "lx") onData(ch);
+    onData("\x7f"); // Backspace removes the "x"
+    onData("s");
+    onData("\r");
+
+    await waitFor(() => expect(received).toContain("ls\r"));
+    // The erase sequence was echoed locally.
+    expect(termSpies.write).toHaveBeenCalledWith("\b \b");
+  });
+
   it("has no accessible violations", async () => {
     const connected = new Promise<void>((resolve) => {
       server.use(kosProxyWs.addEventListener("connection", () => resolve()));

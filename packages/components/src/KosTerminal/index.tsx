@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import {
   getDataSource,
   registerComponent,
@@ -6,10 +6,20 @@ import {
   useKosProxy,
 } from "@gonogo/core";
 import { useReplayActive } from "@gonogo/data";
-import { Panel, PanelTitle } from "@gonogo/ui";
+import {
+  ConfigForm,
+  Field,
+  FieldHint,
+  FieldLabel,
+  Input,
+  Panel,
+  PanelTitle,
+  Switch,
+  useModalSaveBar,
+} from "@gonogo/ui";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import "@xterm/xterm/css/xterm.css";
 
@@ -22,6 +32,14 @@ interface KosTerminalConfig {
    * If omitted, the menu is presented interactively.
    */
   cpuName?: string;
+  /**
+   * Line-mode composition (P3 spec §"Helper layer 1"). When on, the client
+   * composes a line locally with instant echo and only sends it — as one
+   * message — on Enter, instead of forwarding each keystroke individually.
+   * Under light-time delay char-by-char is N round-trips; a whole line is
+   * one. A per-terminal-instance toggle.
+   */
+  lineMode?: boolean;
 }
 
 // Matches a CPU row: " [1]   no    0     Vessel Name (KAL9000(tagname))"
@@ -114,6 +132,60 @@ function tryAutoSelectCpu(
   }
 }
 
+type TermWriter = { write(data: string): void };
+
+/**
+ * Line-mode local composition. Buffers a line client-side with instant echo
+ * into xterm and only flushes it — as a single `ws.send(line + "\r")` — when
+ * the user presses Enter. Handles printable chars, Backspace editing, and
+ * Enter; pasted / multi-char input is processed char-by-char. Returns the
+ * updated buffer.
+ *
+ * The batched send rides today's telnet-proxy byte path. The P3 target is to
+ * swap this one `ws.send` for a single delayed `kos.keystroke` command
+ * carrying the whole line (the mod's `TypeLine` helper types line + `\r`);
+ * only the send call changes — the local-compose UX is identical.
+ */
+function handleLineModeChar(
+  ch: string,
+  buffer: string,
+  term: TermWriter,
+  ws: WsLike,
+): string {
+  // Enter — flush the composed line as one message, then reset.
+  if (ch === "\r" || ch === "\n") {
+    if (ws.readyState === WebSocket.OPEN) ws.send(`${buffer}\r`);
+    term.write("\r\n");
+    return "";
+  }
+  // Backspace / Delete — erase one char locally if there is one.
+  if (ch === "\x7f" || ch === "\b") {
+    if (buffer.length === 0) return buffer;
+    term.write("\b \b");
+    return buffer.slice(0, -1);
+  }
+  // Ignore other control characters (arrows, escape sequences) — line-mode
+  // is a simple local composer, not a full readline.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching C0 control range is the intent
+  if (/[\x00-\x1f]/.test(ch)) return buffer;
+  // Printable — echo locally and append to the buffer.
+  term.write(ch);
+  return `${buffer}${ch}`;
+}
+
+function handleLineModeInput(
+  data: string,
+  buffer: string,
+  term: TermWriter,
+  ws: WsLike,
+): string {
+  let next = buffer;
+  for (const ch of data) {
+    next = handleLineModeChar(ch, next, term, ws);
+  }
+  return next;
+}
+
 /**
  * Fixed PTY width. We never send a width change to the proxy — width
  * changes during the kOS CPU menu (the most fragile moment in the
@@ -185,6 +257,7 @@ function KosTerminalLive({
   const { kosHost, kosPort } = getKosEndpoint();
   const readOnly = config?.readOnly ?? false;
   const cpuName = config?.cpuName;
+  const lineMode = config?.lineMode ?? false;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -288,11 +361,27 @@ function KosTerminalLive({
         term.writeln("\r\n\x1b[31m[connection error]\x1b[0m");
       });
 
-      // Terminal keystrokes → PTY (character-by-character, no buffering)
+      // Terminal keystrokes → PTY. Two paths:
+      //  - line-mode off (default): forward each keystroke char-by-char,
+      //    exactly as before — no buffering, no local echo.
+      //  - line-mode on: compose the line locally with instant echo and only
+      //    send it (as one message) on Enter. See handleLineModeInput.
       if (!readOnly) {
-        term.onData((data) => {
-          if (ws.readyState === WebSocket.OPEN) ws.send(data);
-        });
+        if (lineMode) {
+          let lineBuffer = "";
+          term.onData((data) => {
+            lineBuffer = handleLineModeInput(
+              data,
+              lineBuffer,
+              term,
+              ws as unknown as WsLike,
+            );
+          });
+        } else {
+          term.onData((data) => {
+            if (ws.readyState === WebSocket.OPEN) ws.send(data);
+          });
+        }
       }
 
       // Resize events → proxy (or PeerJS tunnel on stations). We always
@@ -368,10 +457,73 @@ function KosTerminalLive({
     kosPort,
     readOnly,
     cpuName,
+    lineMode,
     configEpoch,
   ]);
 
   return <Container ref={containerRef} $readOnly={readOnly} />;
+}
+
+function KosTerminalConfigComponent({
+  config,
+  onSave,
+}: Readonly<ConfigComponentProps<KosTerminalConfig>>) {
+  const [readOnly, setReadOnly] = useState(config?.readOnly ?? false);
+  const [lineMode, setLineMode] = useState(config?.lineMode ?? false);
+  const [cpuName, setCpuName] = useState(config?.cpuName ?? "");
+
+  const candidate = useMemo<KosTerminalConfig>(
+    () => ({
+      readOnly,
+      lineMode,
+      // Store an absent cpuName as undefined so the menu is presented
+      // interactively rather than auto-selecting an empty tagname.
+      cpuName: cpuName.trim() ? cpuName.trim() : undefined,
+    }),
+    [readOnly, lineMode, cpuName],
+  );
+
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+
+  return (
+    <ConfigForm>
+      <Field>
+        <FieldLabel htmlFor="kos-terminal-cpu">Auto-select CPU</FieldLabel>
+        <Input
+          id="kos-terminal-cpu"
+          type="text"
+          value={cpuName}
+          onChange={(e) => setCpuName(e.target.value)}
+          placeholder="e.g. lander"
+        />
+        <FieldHint>
+          Tagname to select automatically when the kOS connection menu appears.
+          Leave blank to pick from the menu each time.
+        </FieldHint>
+      </Field>
+
+      <Field>
+        <Switch checked={readOnly} onChange={setReadOnly} label="Read-only" />
+        <FieldHint>
+          When on, keystrokes are not forwarded — the terminal is a passive
+          viewer.
+        </FieldHint>
+      </Field>
+
+      <Field>
+        <Switch checked={lineMode} onChange={setLineMode} label="Line mode" />
+        <FieldHint>
+          Compose each line locally with instant echo and send it in one go on
+          Enter, rather than a keystroke at a time. Cuts round-trips under
+          light-time delay.
+        </FieldHint>
+      </Field>
+    </ConfigForm>
+  );
 }
 
 registerComponent<KosTerminalConfig>({
@@ -384,6 +536,7 @@ registerComponent<KosTerminalConfig>({
   minSize: { w: 8, h: 6 },
   openConfigOnAdd: true,
   component: KosTerminalComponent,
+  configComponent: KosTerminalConfigComponent,
   dataRequirements: [],
   defaultConfig: {},
 });
