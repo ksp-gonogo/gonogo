@@ -1451,8 +1451,36 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?> BuildStrategyEntry(Strategy strategy)
         {
-            var canActivate = strategy.CanBeActivated(out var activateBlockedReason);
-            var canDeactivate = strategy.CanBeDeactivated(out var deactivateBlockedReason);
+            // CanBeActivated/CanBeDeactivated are documented above as pure
+            // eligibility checks, but in practice KSP can throw a
+            // NullReferenceException *inside* Strategy.CanBeActivated for some
+            // strategies in some saves (observed live; related to the strategy
+            // over-cap quirk). An unguarded throw here propagates up through
+            // BuildCareerStrategies and makes TryBuildGroup drop the ENTIRE
+            // vessel.strategies channel every tick. Guard per-strategy so a
+            // single bad strategy degrades to canActivate=false + a reason,
+            // and the rest of the strategies still serve.
+            bool canActivate = false;
+            string? activateBlockedReason = null;
+            try
+            {
+                canActivate = strategy.CanBeActivated(out activateBlockedReason);
+            }
+            catch (Exception ex)
+            {
+                activateBlockedReason = "eligibility check failed: " + ex.GetType().Name;
+            }
+
+            bool canDeactivate = false;
+            string? deactivateBlockedReason = null;
+            try
+            {
+                canDeactivate = strategy.CanBeDeactivated(out deactivateBlockedReason);
+            }
+            catch (Exception ex)
+            {
+                deactivateBlockedReason = "eligibility check failed: " + ex.GetType().Name;
+            }
 
             return new Dictionary<string, object?>
             {
