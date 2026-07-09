@@ -38,7 +38,12 @@ afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = ["o.ApR", "o.PeR", "o.referenceBody", "v.body"] as const;
+// o.ApR/o.PeR migrated onto vessel.state (apoapsisRadius/periapsisRadius =
+// sma·(1±ecc), the true apsis radius real Telemachus also returns) — so the
+// stream leg now DERIVES them and the legacy leg reads element-consistent
+// values (see the fixture overrides below). referenceBody/v.body stay here as
+// still-legacy-AUX (string values, exact-match either way).
+const GAPPED_KEYS = ["o.referenceBody", "v.body"] as const;
 
 // The one orbit state driving BOTH legs. meanAnomalyAtEpoch: 0, epoch:
 // PINNED_UT means meanAnomaly is exactly 0 (periapsis) at the pinned view
@@ -72,6 +77,10 @@ describe("CurrentOrbit — behavior-preservation golden dual-run (delay=0)", () 
         "o.timeToPe": 0,
         "o.ApA": APOAPSIS_ALT,
         "o.PeA": PERIAPSIS_ALT,
+        // ApR/PeR now migrated + derived (sma·(1±ecc)); feed the legacy leg
+        // the same element-consistent radii so both legs render one geometry.
+        "o.ApR": SMA * (1 + ECC),
+        "o.PeR": SMA * (1 - ECC),
       },
       mode,
       connectSource: true,
