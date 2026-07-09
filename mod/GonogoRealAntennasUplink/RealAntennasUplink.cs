@@ -120,13 +120,27 @@ namespace Gonogo.RealAntennasUplink
             {
                 return null;
             }
-            var link = PrimaryControlLink();
-            if (link == null)
-            {
-                return null; // no path home — RA-only channels have nothing to report
-            }
 
             var capture = new RaCapture { Ut = snapshot?.Ut ?? 0.0, Source = Source() };
+
+            // Authoritative link state comes from CommNet connectivity, NOT from
+            // the geometry-only budget below. A geometric margin ignores occlusion
+            // and out-of-cone relays, so it can read a healthy positive margin for
+            // a link that is actually DOWN (bug: comms.linkMargin reported
+            // closesLink:true, 49 dB, while comms.connectivity correctly reported
+            // connected:false). Because these channels are LossyLatest, returning
+            // null on a down link would leave the last-good positive margin stale
+            // on the wire — which is exactly the observed failure. So when the link
+            // is not actually connected we PUBLISH a definitive link-down state
+            // (closesLink:false, zero throughput) rather than emit nothing.
+            var link = PrimaryControlLink();
+            if (!IsConnected() || link == null)
+            {
+                capture.LinkMargin = RaLinkDown.LinkMargin(capture.Source);
+                capture.LinkQuality = RaLinkDown.LinkQuality(capture.Source);
+                capture.DataRate = RaLinkDown.DataRate(capture.Source);
+                return capture;
+            }
 
             var fwd = _ra.ForwardDataRate(link);
             var rev = _ra.ReverseDataRate(link);
@@ -193,7 +207,12 @@ namespace Gonogo.RealAntennasUplink
                         capture.LinkMargin = new CommsLinkMargin
                         {
                             DecibelMargin = margin,
-                            ClosesLink = RaLinkBudget.ClosesLink(margin),
+                            // We only reach this branch when CommNet reports the
+                            // link connected, so the link DOES close — the
+                            // authoritative state wins over the geometry-only
+                            // margin sign (which can disagree, e.g. a marginal but
+                            // negotiated link).
+                            ClosesLink = true,
                             Meta = meta,
                         };
                         capture.LinkQuality = new CommsLinkQuality
@@ -218,6 +237,13 @@ namespace Gonogo.RealAntennasUplink
             if (capture.DataRate != null) _dataRate?.Publish(capture.DataRate, capture.Ut);
             if (capture.LinkMargin != null) _linkMargin?.Publish(capture.LinkMargin, capture.Ut);
             if (capture.LinkQuality != null) _linkQuality?.Publish(capture.LinkQuality, capture.Ut);
+        }
+
+        /// <summary>Whether the active vessel currently has a working comms link (CommNet authority).</summary>
+        private static bool IsConnected()
+        {
+            var conn = FlightGlobals.ActiveVessel?.connection;
+            return conn != null && conn.IsConnected;
         }
 
         /// <summary>The first hop of the active vessel's control path (the vessel's own link), or null.</summary>

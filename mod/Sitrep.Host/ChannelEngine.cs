@@ -117,44 +117,6 @@ namespace Sitrep.Host
         // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
         private double _signalDelaySeconds;
 
-        // TEMP diag — remove after live pin (BUG 2: comms.delay inconsistent
-        // live emit). Tracks the last-logged delay so we log only ON CHANGE (not
-        // every tick) whenever _signalDelaySeconds is (re)set from a comms.delay
-        // payload. NaN sentinel forces the first real value to log.
-        private double _diagLastLoggedDelay = double.NaN;
-        private string? _diagLastSignalDelayState;
-        private DateTime _diagDelayNextLog = DateTime.MinValue;
-
-        // TEMP diag — remove after live pin (BUG 2). Live KSP sets this to
-        // UnityEngine.Debug.Log (GonogoAddon.Start) so diagnostics land in
-        // KSP.log. Left NULL in tests: the Courier thread must NOT write to
-        // Console during xunit — a background-thread Console write outside an
-        // active test context destabilizes the timing-sensitive reveal-gate
-        // integration suite (blows an 11s run out to ~90s + spurious failures).
-        public static Action<string>? TempDiagLog;
-        private static void DiagLog(string msg) => TempDiagLog?.Invoke(msg);
-
-        // TEMP diag — remove after live pin (BUG 2). True only when the delay
-        // value changed AND at least a second has elapsed since the last log, so
-        // a per-tick-varying live delay logs at most once/sec (Console.Error is
-        // slow enough that an unthrottled per-tick log skews the timing-sensitive
-        // reveal-gate integration tests — and would spam KSP.log live).
-        private bool DiagDelayDue(double value)
-        {
-            if (value == _diagLastLoggedDelay)
-            {
-                return false;
-            }
-            var now = DateTime.UtcNow;
-            if (now < _diagDelayNextLog)
-            {
-                return false;
-            }
-            _diagLastLoggedDelay = value;
-            _diagDelayNextLog = now.AddSeconds(1);
-            return true;
-        }
-
         // AUTHORITATIVE, subscription-independent server-side delay source (see
         // IUplinkHost.SetSignalDelaySource): the closure the bundled comms
         // uplink registers to compute comms.delay on the MAIN thread every tick,
@@ -1607,16 +1569,6 @@ namespace Sitrep.Host
             if (value is CommsDelay commsDelay)
             {
                 _signalDelaySeconds = commsDelay.OneWaySeconds;
-
-                // TEMP diag — remove after live pin (BUG 2). On-change + ≤1/sec.
-                // Gated on the live-only sink so tests (TempDiagLog == null) pay
-                // zero per-tick cost — see TempDiagLog's doc comment.
-                if (TempDiagLog != null && DiagDelayDue(_signalDelaySeconds))
-                {
-                    DiagLog(string.Format(
-                        "[Gonogo][TEMP diag] ChannelEngine.CaptureSignalDelay: _signalDelaySeconds SET to {0} (source={1})",
-                        _signalDelaySeconds, commsDelay.Source));
-                }
             }
         }
 
@@ -1657,31 +1609,6 @@ namespace Sitrep.Host
             // where a Publisher/AddSampledSource-registered comms.delay never
             // reached the gate. A main-thread throw is fail-softed here, on the
             // Courier thread (the correct thread for _availability writes).
-            // TEMP diag — remove after live pin (BUG 2). Logs the authoritative
-            // source's per-tick outcome ON CHANGE (error / value / null) so a
-            // live KSP.log shows whether the main-thread ComputeDelayOnMain source
-            // is even feeding the gate.
-            // Gated on the live-only sink so tests (TempDiagLog == null) pay zero
-            // per-tick cost — see TempDiagLog's doc comment.
-            if (TempDiagLog != null)
-            {
-                var diagState = tick.SignalDelay.Error != null ? "ERROR"
-                    : tick.SignalDelay.Value != null ? "VALUE"
-                    : "NULL";
-                if (diagState != _diagLastSignalDelayState)
-                {
-                    _diagLastSignalDelayState = diagState;
-                    // On ERROR, surface the exception TYPE + MESSAGE + top stack
-                    // frame so a live KSP.log pins the exact throw (the transient
-                    // scene-settle NRE this fix targets), not just "state=ERROR".
-                    var detail = tick.SignalDelay.Error != null
-                        ? " " + DescribeException(tick.SignalDelay.Error)
-                        : "";
-                    DiagLog(
-                        "[Gonogo][TEMP diag] ChannelEngine.RefreshSignalDelayFromCapability: authoritative source state=" + diagState + detail);
-                }
-            }
-
             if (tick.SignalDelay.Error != null)
             {
                 FailSoftSignalDelaySource(tick.SignalDelay.Error);
@@ -1733,31 +1660,6 @@ namespace Sitrep.Host
         private void FailSoftSignalDelaySource(Exception ex)
         {
             Console.Error.WriteLine("[ChannelEngine] signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
-        }
-
-        /// <summary>
-        /// TEMP diag helper — remove after live pin (BUG 2). Renders an
-        /// exception's TYPE + MESSAGE + top stack frame for the ERROR-state diag
-        /// so the exact transient throw is pinned in KSP.log. Never throws (reads
-        /// Message via <see cref="SafeExceptionMessage"/>).
-        /// </summary>
-        private static string DescribeException(Exception ex)
-        {
-            var topFrame = "";
-            try
-            {
-                var stack = ex.StackTrace;
-                if (!string.IsNullOrEmpty(stack))
-                {
-                    var nl = stack!.IndexOf('\n');
-                    topFrame = " @ " + (nl >= 0 ? stack.Substring(0, nl) : stack).Trim();
-                }
-            }
-            catch (Exception)
-            {
-                topFrame = "";
-            }
-            return "exception=" + ex.GetType().FullName + " message=\"" + SafeExceptionMessage(ex) + "\"" + topFrame;
         }
 
         /// <summary>

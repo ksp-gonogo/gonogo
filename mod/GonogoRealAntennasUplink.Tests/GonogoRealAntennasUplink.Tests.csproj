@@ -19,9 +19,16 @@
   <!-- Compile only the PURE, KSP-free files from the uplink so the tests never
        need the KSP/reflection-dependent assembly (same selective-Compile pattern
        GonogoScansatUplink.Tests uses). RaLinkBudget is the re-derived RA
-       link-budget math (comms-uplink-design.md §4.3). -->
+       link-budget math (comms-uplink-design.md §4.3); RaLinkDown is the
+       link-DOWN payload builders (both KSP-free). -->
   <ItemGroup>
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkBudget.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaLinkDown.cs" />
+  </ItemGroup>
+
+  <!-- RaLinkDown builds Sitrep.Contract payloads (KSP-free). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
   </ItemGroup>
 
 </Project>

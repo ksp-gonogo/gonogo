@@ -122,5 +122,36 @@ namespace Gonogo.RealAntennasUplink.Tests
         {
             Assert.True(RaLinkBudget.NormaliseQuality(-5) < RaLinkBudget.NormaliseQuality(5));
         }
+
+        // Regression: with the vessel DISCONNECTED, comms.linkMargin must NOT
+        // report closesLink:true with a stale positive margin. The uplink's
+        // capture publishes the definitive link-down payloads instead of leaving
+        // the LossyLatest channels holding the last-good geometric value. The
+        // main-thread connectivity gate in CaptureOnMain reads FlightGlobals and
+        // is not exercised headlessly (guarded defensively); these assert the
+        // link-down payloads it emits are honest.
+        [Fact]
+        public void DownLinkMargin_DoesNotFalselyClose()
+        {
+            var margin = RaLinkDown.LinkMargin("vessel:test");
+
+            Assert.False(margin.ClosesLink);
+            Assert.False(margin.DecibelMargin > 0.0); // never a stale positive margin
+        }
+
+        [Fact]
+        public void DownLinkQuality_IsZero()
+        {
+            Assert.Equal(0.0, RaLinkDown.LinkQuality("vessel:test").Value);
+        }
+
+        [Fact]
+        public void DownDataRate_IsHonestZeroThroughput()
+        {
+            var rate = RaLinkDown.DataRate("vessel:test");
+
+            Assert.Equal(0.0, rate.UpBitsPerSec);
+            Assert.Equal(0.0, rate.DownBitsPerSec);
+        }
     }
 }

@@ -55,24 +55,6 @@ namespace Gonogo.KSP
 
         private Kernel? _kernel;
 
-        // TEMP diag — remove after live pin (BUG 2: comms.delay inconsistent
-        // live emit). Rate-limited to once per second per call-site so the diag
-        // never spams every FixedUpdate tick. See GonogoAddon logging convention.
-        private static float _diagCaptureNextT;
-        private static float _diagCourierNextT;
-        private static float _diagDelaySrcNextT;
-
-        private static bool DiagDue(ref float nextT)
-        {
-            var now = Time.realtimeSinceStartup;
-            if (now < nextT)
-            {
-                return false;
-            }
-            nextT = now + 1f;
-            return true;
-        }
-
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
             Topic = topic,
@@ -202,11 +184,6 @@ namespace Gonogo.KSP
             var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
-                // TEMP diag — remove after live pin (BUG 2)
-                if (DiagDue(ref _diagDelaySrcNextT))
-                {
-                    Debug.Log("[Gonogo][TEMP diag] ComputeDelayOnMain: backend NULL (election unresolved) -> returning null delay");
-                }
                 return null;
             }
 
@@ -221,7 +198,7 @@ namespace Gonogo.KSP
                     path.Meta?.Source ?? "",
                     path.Meta?.Quality ?? Quality.OnRails);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // A backend that threw reading a transiently-unloaded / no-control
                 // -path vessel ⇒ graceful "no delay" (Source=None, OneWaySeconds=0)
@@ -229,18 +206,7 @@ namespace Gonogo.KSP
                 // built-in CommNetBackend is already exception-safe; this guards a
                 // third-party backend (RealAntennas) too. The source is retried
                 // next tick (engine-side recoverable fail-soft).
-                if (DiagDue(ref _diagDelaySrcNextT))
-                {
-                    Debug.LogWarning("[Gonogo][TEMP diag] ComputeDelayOnMain: backend read threw (returning None delay): " + ex);
-                }
                 return NoneDelay();
-            }
-            // TEMP diag — remove after live pin (BUG 2)
-            if (DiagDue(ref _diagDelaySrcNextT))
-            {
-                Debug.Log(string.Format(
-                    "[Gonogo][TEMP diag] ComputeDelayOnMain: backend={0} hops={1} -> oneWaySeconds={2} source={3}",
-                    backend.BackendId, path.Hops?.Count ?? 0, delay.OneWaySeconds, delay.Source));
             }
             return delay;
         }
@@ -265,11 +231,6 @@ namespace Gonogo.KSP
             var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
-                // TEMP diag — remove after live pin (BUG 2)
-                if (DiagDue(ref _diagCaptureNextT))
-                {
-                    Debug.Log("[Gonogo][TEMP diag] CaptureOnMain: backend NULL (election unresolved / pre-flight) -> no comms capture this tick");
-                }
                 return null; // election not resolved / no backend (pre-flight)
             }
 
@@ -283,15 +244,6 @@ namespace Gonogo.KSP
                     path.Meta?.Quality ?? Quality.OnRails);
                 var connectivity = backend.Connectivity();
 
-                // TEMP diag — remove after live pin (BUG 2)
-                if (DiagDue(ref _diagCaptureNextT))
-                {
-                    Debug.Log(string.Format(
-                        "[Gonogo][TEMP diag] CaptureOnMain: backend={0} connected={1} hops={2} SignalDelay.source={3} oneWaySeconds={4} (config.enabled={5})",
-                        backend.BackendId, connectivity.Connected, path.Hops?.Count ?? 0,
-                        delay.Source, delay.OneWaySeconds, _signalDelayConfig.Enabled));
-                }
-
                 return new CommsCapture
                 {
                     Ut = snapshot?.Ut ?? 0.0,
@@ -303,17 +255,13 @@ namespace Gonogo.KSP
                     Delay = delay,
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // NULL-SAFE capture: a backend read that threw on a transient /
                 // unloaded vessel yields no comms capture THIS tick (last-known
                 // stays) rather than an exception that would fail-soft the whole
                 // comms uplink. Retried next tick. The built-in CommNetBackend is
                 // already exception-safe; this guards a third-party backend too.
-                if (DiagDue(ref _diagCaptureNextT))
-                {
-                    Debug.LogWarning("[Gonogo][TEMP diag] CaptureOnMain: backend read threw (no capture this tick): " + ex);
-                }
                 return null;
             }
         }
@@ -331,15 +279,6 @@ namespace Gonogo.KSP
             _path?.Publish(capture.Path, capture.Ut);
             _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
-
-            // TEMP diag — remove after live pin (BUG 2)
-            if (DiagDue(ref _diagCourierNextT))
-            {
-                Debug.Log(string.Format(
-                    "[Gonogo][TEMP diag] HandleOnCourier: PUBLISHED connectivity/signalStrength/controlState/path/network/delay at ut={0} (delay.oneWaySeconds={1} source={2}; publishers null? conn={3} delay={4})",
-                    capture.Ut, capture.Delay.OneWaySeconds, capture.Delay.Source,
-                    _connectivity == null, _delay == null));
-            }
         }
 
         /// <summary>Plain cross-thread payload bundle — no live KSP references.</summary>

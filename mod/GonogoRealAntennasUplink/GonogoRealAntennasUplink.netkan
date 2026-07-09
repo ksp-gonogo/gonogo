@@ -15,7 +15,9 @@
     "realantennas"
   ],
   "depends": [
-    { "name": "GonogoCore" },
+    { "name": "GonogoCore" }
+  ],
+  "recommends": [
     { "name": "RealAntennas" }
   ],
   "install": [
