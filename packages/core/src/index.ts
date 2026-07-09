@@ -1,5 +1,7 @@
+export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
+export * from "./augments";
 export * from "./bodies";
 export * from "./calc";
 export * from "./contexts/DashboardItemContext";

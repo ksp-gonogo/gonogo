@@ -255,6 +255,24 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * context reports `Unknown` and widgets stay live.
    */
   requires?: readonly ComponentRequirement[];
+  /**
+   * Addressable augment slots this widget owns (Uplink architecture spec §4.1).
+   * Each entry is a small, stable API the base widget exposes via
+   * `<AugmentSlot name="…" />`; any Uplink may contribute into it with
+   * `registerAugment`. Slot names are authored up front (`augment-slot-map.md`)
+   * and are discoverable/version-able like any contract surface. Not a
+   * core-widget privilege — an Uplink-owned widget can expose slots too (§4.6).
+   */
+  augmentSlots?: string[];
+  /**
+   * Replacement escape hatch (Uplink architecture spec §4.5): declares that this
+   * widget REPLACES the widget with the given id — the registry suppresses the
+   * original and renders this one instead. This is the "throw the whole widget
+   * away and render mine" case, distinct from (composable) augments. One active
+   * replacement wins; TWO widgets replacing the same target is a surfaced
+   * conflict ({@link getReplacementConflicts}), never silently merged.
+   */
+  replaces?: string;
 }
 
 /**
