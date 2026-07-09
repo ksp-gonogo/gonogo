@@ -94,6 +94,15 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     }
   });
 
+  it("maps v.body / o.referenceBody onto the derived body-NAME display-map subtopics (Step-2 migration task 1 un-gap)", () => {
+    expect(mapTopic("data", "v.body")).toBe("vessel.state.parentBodyName");
+    expect(mapTopic("data", "o.referenceBody")).toBe(
+      "vessel.state.referenceBodyName",
+    );
+    expect(isKnownTelemachusGap("data", "v.body")).toBe(false);
+    expect(isKnownTelemachusGap("data", "o.referenceBody")).toBe(false);
+  });
+
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {
     expect(mapTopic("data", "b.name[0]")).toBe("system.bodies");
     expect(mapTopic("data", "b.o.sma[3]")).toBe("system.bodies");
@@ -254,8 +263,10 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   describe("CRITICAL fix (M2 T7 review): shape-mismatched entries are gapped, not silently corrupting", () => {
     it("gaps every entry that used to collapse a scalar/string old key onto a composite/array/vector new topic", () => {
       const shapeMismatchedKeys = [
-        "v.body", // string body name vs int parentBodyIndex
-        "o.referenceBody", // string body name vs int referenceBodyIndex
+        // v.body / o.referenceBody were here until Step-2 migration task 1 —
+        // now that a client-side index→name display-map subtopic exists
+        // (vessel.state.parentBodyName / referenceBodyName), they map cleanly;
+        // see the dedicated body-name test below.
         "b.number", // number count vs the raw system.bodies array
         "o.encounterExists", // number vs the vessel.orbit.encounter record
         "o.encounterBody", // string vs the vessel.orbit.encounter record

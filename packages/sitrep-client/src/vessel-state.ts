@@ -175,6 +175,25 @@ export interface VesselState {
   timeToAp: number | null;
   /** Seconds from `viewUt` until the mean anomaly next reaches periapsis (0), wrapped forward. Same basis/finite-guard rules as `timeToAp`. */
   timeToPe: number | null;
+  /**
+   * Name of the body the vessel currently belongs to — the display-map
+   * resolution of `vessel.identity.parentBodyIndex` against `system.bodies`
+   * (the old Telemachus `v.body` string). Populated in BOTH bases (needs only
+   * the index + the body table, no orbital propagation). `undefined` while
+   * `vessel.identity` hasn't arrived, the index isn't resolvable yet (body or
+   * its name not in `system.bodies` yet, or `system.bodies` itself not whole),
+   * or there is no parent index at all; `null` when `system.bodies` is a
+   * confirmed tombstone — same `undefined`-vs-`null` "still resyncing vs.
+   * confirmed absent" discipline as `apoapsisAlt`/`periapsisAlt`.
+   */
+  parentBodyName: string | null | undefined;
+  /**
+   * Name of the vessel's orbit reference body — the display-map resolution of
+   * `vessel.orbit.referenceBodyIndex` against `system.bodies` (the old
+   * Telemachus `o.referenceBody` string). Populated in BOTH bases; same
+   * `undefined`-vs-`null` rules as `parentBodyName`.
+   */
+  referenceBodyName: string | null | undefined;
   /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
   basis: "propagated" | "measured";
   /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
@@ -272,6 +291,35 @@ function deriveApsides(
     apoapsisAlt: finiteOrNull(orbit.sma * (1 + orbit.ecc) - radius),
     periapsisAlt: finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius),
   };
+}
+
+/**
+ * Resolve a body INDEX (the stable `SystemBodyPayload.index`, never array
+ * position) to its NAME string via `system.bodies` — the client-side
+ * display-map behind `vessel.state.parentBodyName`/`referenceBodyName`, the
+ * new homes for the old Telemachus `v.body`/`o.referenceBody` name strings
+ * (`map-topic.ts`). Mirrors `deriveApsides`'s `undefined`-vs-`null`
+ * discipline:
+ * - `undefined` ("still resyncing / not resolvable yet") when there's no
+ *   index to resolve (`null`/`undefined` — e.g. `vessel.identity` absent, or
+ *   a body with no parent), when `system.bodies` hasn't arrived, or when it
+ *   HAS arrived but the referenced body (or its name specifically) isn't in
+ *   it yet.
+ * - `null` only when `system.bodies` is an outright tombstone — a confirmed
+ *   absence.
+ * Never throws on a missing index / missing table (the "not-yet-loaded" case
+ * the migration task calls out explicitly).
+ */
+function resolveBodyName(
+  get: DerivedGet,
+  index: number | null | undefined,
+): string | null | undefined {
+  if (index == null) return undefined;
+  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
+  if (!bodiesPoint) return undefined;
+  if (bodiesPoint.payload === null) return null;
+  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
+  return body?.name ?? undefined;
 }
 
 /**
@@ -377,6 +425,13 @@ export function deriveVesselState(
 
     const { apoapsisAlt, periapsisAlt } = deriveApsides(get, orbit);
 
+    const parentBodyIndex =
+      identityPoint && identityPoint.payload !== null
+        ? identityPoint.payload.parentBodyIndex
+        : null;
+    const parentBodyName = resolveBodyName(get, parentBodyIndex);
+    const referenceBodyName = resolveBodyName(get, orbit.referenceBodyIndex);
+
     return {
       position,
       velocity,
@@ -391,6 +446,8 @@ export function deriveVesselState(
       periapsisAlt,
       timeToAp,
       timeToPe,
+      parentBodyName,
+      referenceBodyName,
       basis: "propagated",
       subjectId,
     };
@@ -403,6 +460,15 @@ export function deriveVesselState(
   if (!flightPoint) return undefined; // not whole yet — no point at all
   if (flightPoint.payload === null) return null; // tombstone — vessel confirmed absent
   const flight = flightPoint.payload;
+
+  // Body-name resolution needs only the index + the body table (no orbital
+  // propagation), so it's populated in the Loaded basis too — unlike the
+  // orbital-derived fields above, which stay null here (osculating garbage).
+  const identityPoint = get<VesselIdentityPayload>("vessel.identity");
+  const parentBodyIndex =
+    identityPoint && identityPoint.payload !== null
+      ? identityPoint.payload.parentBodyIndex
+      : null;
 
   return {
     position: null,
@@ -418,6 +484,8 @@ export function deriveVesselState(
     periapsisAlt: null,
     timeToAp: null,
     timeToPe: null,
+    parentBodyName: resolveBodyName(get, parentBodyIndex),
+    referenceBodyName: resolveBodyName(get, orbit.referenceBodyIndex),
     basis: "measured",
     subjectId,
   };

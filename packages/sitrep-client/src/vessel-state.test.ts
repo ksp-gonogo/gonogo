@@ -599,6 +599,122 @@ describe("derivable orbital fields — met/period/trueAnomaly/apoapsisAlt/periap
   });
 });
 
+describe("body-NAME display maps — parentBodyName/referenceBodyName (Step-2 migration task 1: v.body/o.referenceBody index→name)", () => {
+  const IDENTITY = {
+    vesselId: "vessel:abc-123",
+    name: "Test Ship",
+    vesselType: 0,
+    situation: 0,
+    parentBodyIndex: 1, // Kerbin
+    launchUt: 0,
+  };
+
+  it("resolves parentBodyIndex + referenceBodyIndex against system.bodies to names (OnRails)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint(IDENTITY),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+
+    const state = deriveVesselState(get, 0);
+    // referenceBodyIndex 1 and parentBodyIndex 1 both resolve to Kerbin.
+    expect(state?.referenceBodyName).toBe("Kerbin");
+    expect(state?.parentBodyName).toBe("Kerbin");
+  });
+
+  it("resolves a Mun (index 2) parent distinct from a Kerbin (index 1) reference", () => {
+    const bodies: SystemBodiesPayload = {
+      bodies: [
+        ...KERBIN_SYSTEM_BODIES.bodies,
+        {
+          name: "Mun",
+          index: 2,
+          parentIndex: 1,
+          radius: 200_000,
+          orbit: null,
+        },
+      ],
+    };
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(
+        { ...CIRCULAR_ORBIT, referenceBodyIndex: 1 },
+        { quality: Quality.OnRails },
+      ),
+      "vessel.identity": identityPoint({ ...IDENTITY, parentBodyIndex: 2 }),
+      "system.bodies": bodiesPoint(bodies),
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.referenceBodyName).toBe("Kerbin");
+    expect(state?.parentBodyName).toBe("Mun");
+  });
+
+  it("resolves names in the Loaded (measured) basis too — not orbital-derived", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+      "vessel.identity": identityPoint(IDENTITY),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+
+    const state = deriveVesselState(get, 0, get);
+    expect(state?.basis).toBe("measured");
+    expect(state?.referenceBodyName).toBe("Kerbin");
+    expect(state?.parentBodyName).toBe("Kerbin");
+  });
+
+  it("returns undefined (not-yet-loaded, never throws) when system.bodies is absent", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint(IDENTITY),
+      // no system.bodies
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.referenceBodyName).toBeUndefined();
+    expect(state?.parentBodyName).toBeUndefined();
+  });
+
+  it("parentBodyName is undefined when vessel.identity hasn't arrived; referenceBodyName still resolves", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+      // no vessel.identity
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.parentBodyName).toBeUndefined();
+    expect(state?.referenceBodyName).toBe("Kerbin");
+  });
+
+  it("returns undefined when the referenced index isn't in system.bodies yet (still resyncing, not a confirmed absence)", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(
+        { ...CIRCULAR_ORBIT, referenceBodyIndex: 99 },
+        { quality: Quality.OnRails },
+      ),
+      "vessel.identity": identityPoint({ ...IDENTITY, parentBodyIndex: 99 }),
+      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.referenceBodyName).toBeUndefined();
+    expect(state?.parentBodyName).toBeUndefined();
+  });
+
+  it("returns null when system.bodies is a confirmed tombstone", () => {
+    const { get } = fakeGet({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
+      "vessel.identity": identityPoint(IDENTITY),
+      "system.bodies": bodiesPoint(null),
+    });
+
+    const state = deriveVesselState(get, 0);
+    expect(state?.referenceBodyName).toBeNull();
+    expect(state?.parentBodyName).toBeNull();
+  });
+});
+
 /** Builds a `getStatus` callback from a fixed topic -> status map, defaulting anything unlisted to "resyncing" (the safe "never heard from it" default). */
 function fakeGetStatus(
   statuses: Partial<Record<string, StreamStatusValue>>,

@@ -134,6 +134,18 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.identity ---
   "v.name": "vessel.identity.name",
 
+  // --- vessel.state (derived body-NAME display maps — Step-2 migration task
+  // 1). The mod's new homes for these are `vessel.identity.parentBodyIndex` /
+  // `vessel.orbit.referenceBodyIndex`, both `int?` INDEXES into
+  // `system.bodies`, NOT the body-NAME strings ~14 widgets read and feed to
+  // `getBody(id: string)`. `deriveVesselState` (vessel-state.ts) now resolves
+  // each index against `system.bodies`'s per-body `name`/`index` and exposes
+  // the resolved name as a `vessel.state.*` field subtopic — same client-side
+  // display-map pattern as the seven orbital fields above, so the widgets get
+  // the NAME string transparently with zero per-widget change. ---
+  "v.body": "vessel.state.parentBodyName",
+  "o.referenceBody": "vessel.state.referenceBodyName",
+
   // --- vessel.control ---
   "f.throttle": "vessel.control.throttle",
   "f.sasEnabled": "vessel.control.sas",
@@ -361,16 +373,11 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // fires until the real fix (a derived display-map/field subtopic, or a
   // server-side field the contract doesn't have yet) lands in M3.
 
-  // v.body / o.referenceBody: ~14 widgets (ManeuverPlanner, ScienceBench,
-  // CurrentOrbit, OrbitalAscent, Scanning, SystemView, AtmosphereProfile,
-  // KeplerPeriod, MapView, LandingStatus, OrbitView, shared/useIsOrbiting.ts)
-  // read these as a body NAME string fed to getBody(id: string). The new
-  // homes are `vessel.identity.parentBodyIndex`/`vessel.orbit.
-  // referenceBodyIndex` — both `int?` INDEXES into `system.bodies`, not
-  // names. No index→name display-map subtopic exists yet.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "v.body",
-  "o.referenceBody",
+  // v.body / o.referenceBody UN-GAPPED (Step-2 migration task 1): the
+  // index→name display-map subtopic now exists — deriveVesselState resolves
+  // vessel.identity.parentBodyIndex / vessel.orbit.referenceBodyIndex against
+  // system.bodies into vessel.state.parentBodyName / referenceBodyName. See
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // b.number: SystemView/useCelestialBodies.ts reads a plain `number`
   // count. `system.bodies` is the raw static ARRAY, not a count.
