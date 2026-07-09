@@ -5,6 +5,7 @@ export * from "./calc";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
 export * from "./fog";
+export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
 export * from "./hooks/useCommand";
 export * from "./hooks/useDataSourceSubscription";
