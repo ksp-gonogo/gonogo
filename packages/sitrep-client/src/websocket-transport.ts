@@ -13,6 +13,14 @@ import type { Transport, TransportStatus } from "./transport";
  */
 export interface WebSocketLike {
   readonly readyState: number;
+  /**
+   * Frame delivery mode for binary messages. The mod server (Fleck) sends
+   * stream frames as BINARY WebSocket frames; the DOM default `"blob"` would
+   * deliver them as `Blob`s (async to read, which reorders the stream), so the
+   * transport requests `"arraybuffer"` for synchronous decode. Optional/
+   * writable so injected test sockets that don't model it are unaffected.
+   */
+  binaryType?: string;
   send(data: string): void;
   close(code?: number, reason?: string): void;
   addEventListener(type: "open", listener: () => void): void;
@@ -58,6 +66,25 @@ export interface WebSocketTransportOptions {
   WebSocketImpl?: WebSocketCtor;
   /** Wall-clock source for the retry-timeout budget (default `Date.now`). Injectable for deterministic tests. */
   now?: () => number;
+}
+
+/** Shared UTF-8 decoder for binary stream frames (module scope — stateless, reused per frame). */
+const FRAME_TEXT_DECODER = new TextDecoder();
+
+/**
+ * Normalise a WebSocket message payload to its JSON text. Handles the string
+ * frames the test harnesses (MSW/stub) send AND the binary (`ArrayBuffer` /
+ * typed-array) frames the real mod server sends. Returns `null` for anything
+ * else (e.g. a `Blob`, only reachable if an injected socket ignores
+ * `binaryType`) so the caller drops it rather than reading it asynchronously.
+ */
+function decodeFrame(data: unknown): string | null {
+  if (typeof data === "string") return data;
+  if (data instanceof ArrayBuffer) return FRAME_TEXT_DECODER.decode(data);
+  if (ArrayBuffer.isView(data)) {
+    return FRAME_TEXT_DECODER.decode(data as ArrayBufferView);
+  }
+  return null;
 }
 
 const DEFAULT_PORT = 8090;
@@ -202,6 +229,14 @@ export class WebSocketTransport implements Transport {
     }
     this.ws = ws;
 
+    // The mod server sends stream frames as BINARY WebSocket frames. Request
+    // ArrayBuffer delivery so `handleMessage` can decode them synchronously —
+    // the browser default is `"blob"`, whose async `.text()` read would both
+    // drop frames on the floor here (the old `typeof data !== "string"` guard)
+    // and reorder the stream. Guarded because injected/test sockets need not
+    // model `binaryType`.
+    if ("binaryType" in ws) ws.binaryType = "arraybuffer";
+
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
       // Reset the give-up window: it measures the CURRENT outage, not the whole
@@ -283,10 +318,15 @@ export class WebSocketTransport implements Transport {
   }
 
   private handleMessage(data: unknown): void {
-    if (typeof data !== "string") return;
+    // The server frames JSON as either text or (in production, via Fleck)
+    // BINARY. Decode both to a string before parsing; a `Blob` (only reachable
+    // if an injected socket ignores `binaryType`) is dropped rather than read
+    // async, which would reorder the stream.
+    const text = decodeFrame(data);
+    if (text === null) return;
     let message: ServerMessage;
     try {
-      message = parseServerMessage(data);
+      message = parseServerMessage(text);
     } catch {
       // Malformed / unknown envelope — drop it, same posture as the
       // Telemachus data source's own JSON guard.
@@ -295,7 +335,7 @@ export class WebSocketTransport implements Transport {
 
     if (message.type === "stream-data") {
       this.carried.add(message.topic);
-      this.onStreamFrame?.({ topic: message.topic, byteLength: data.length });
+      this.onStreamFrame?.({ topic: message.topic, byteLength: text.length });
     }
 
     for (const listener of this.messageListeners) {

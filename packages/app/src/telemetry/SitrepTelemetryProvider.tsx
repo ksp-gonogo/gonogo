@@ -6,7 +6,7 @@ import {
   type Transport,
   WebSocketTransport,
 } from "@gonogo/sitrep-client";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 /**
  * Soft cap on `stream-data` frames delivered off the live Sitrep WebSocket
@@ -125,45 +125,49 @@ export function SitrepTelemetryProvider({
   const resolvedPort =
     port ?? (Number(import.meta.env.VITE_SITREP_PORT) || 8090);
 
-  const mounted = useMemo(() => {
-    if (!enabled) return null;
-    const transport =
-      injectedTransport ??
-      new WebSocketTransport({
-        host: resolvedHost,
-        port: resolvedPort,
-        onStreamFrame: () => SITREP_STREAM_BUDGET.record(),
-      });
+  // The transport opens its WebSocket in its constructor — a side effect — and
+  // the client/transport are disposable resources. Building them in `useEffect`
+  // (not `useMemo`) ties their lifecycle to the effect: StrictMode's
+  // mount→unmount→remount disposes the first socket in the cleanup and builds a
+  // FRESH one on re-setup, instead of leaving the memo pinned to a disposed
+  // transport (which silently strands the whole live stream — the socket never
+  // reconnects and no frame ever arrives).
+  const [client, setClient] = useState<TelemetryClient | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      setClient(null);
+      return;
+    }
+    // An injected transport is the caller's to dispose (tests own its lifecycle);
+    // a WebSocketTransport we build here is ours.
+    const ownsTransport = injectedTransport === undefined;
+    const ownedTransport = ownsTransport
+      ? new WebSocketTransport({
+          host: resolvedHost,
+          port: resolvedPort,
+          onStreamFrame: () => SITREP_STREAM_BUDGET.record(),
+        })
+      : undefined;
+    const transport = injectedTransport ?? ownedTransport;
+    const telemetryClient = new TelemetryClient(transport as Transport);
     logger.tag("sitrep").info("live stream transport mounted", {
       host: resolvedHost,
       port: resolvedPort,
       injected: injectedTransport !== undefined,
     });
-    // Own the WebSocketTransport's lifecycle; an injected transport is the
-    // caller's to dispose.
-    const ownsTransport = injectedTransport === undefined;
-    return {
-      client: new TelemetryClient(transport),
-      transport: transport as WebSocketTransport,
-      ownsTransport,
+    setClient(telemetryClient);
+    return () => {
+      telemetryClient.dispose();
+      ownedTransport?.dispose();
+      setClient(null);
     };
   }, [enabled, resolvedHost, resolvedPort, injectedTransport]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    return () => {
-      mounted.client.dispose();
-      if (mounted.ownsTransport) mounted.transport.dispose();
-    };
-  }, [mounted]);
-
-  if (!mounted) return <>{children}</>;
+  if (!client) return <>{children}</>;
 
   return (
-    <TelemetryProvider
-      client={mounted.client}
-      carriedChannels={carriedChannels}
-    >
+    <TelemetryProvider client={client} carriedChannels={carriedChannels}>
       {children}
     </TelemetryProvider>
   );

@@ -191,6 +191,48 @@ describe("WebSocketTransport", () => {
     transport.dispose();
   });
 
+  it("decodes BINARY stream frames (the real mod server frames JSON as binary, not text)", async () => {
+    // Regression for the live-render bug: the mod server (Fleck) sends stream
+    // frames as BINARY WebSocket frames. The transport previously dropped every
+    // non-string payload, so nothing rendered in a real browser — invisible to
+    // the text-only MSW/stub harnesses. This test sends the frame as bytes.
+    let serverClient: {
+      send: (data: string | ArrayBuffer | ArrayBufferView) => void;
+    } | null = null;
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        serverClient = client as unknown as typeof serverClient;
+      }),
+    );
+
+    const frames: ServerMessage[] = [];
+    const streamFrames: string[] = [];
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      onStreamFrame: (info) => streamFrames.push(info.topic),
+    });
+    transport.onMessage((message) => frames.push(message));
+    await waitForStatus(transport, "connected");
+
+    // Encode the exact same envelope as bytes and send it as a binary frame.
+    const bytes = new TextEncoder().encode(
+      streamFrame("vessel.flight", { altitudeAsl: 249999 }),
+    );
+    serverClient?.send(bytes);
+
+    await vi.waitFor(() => expect(frames).toHaveLength(1), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
+    expect(frames[0]).toMatchObject({
+      type: "stream-data",
+      topic: "vessel.flight",
+      payload: { altitudeAsl: 249999 },
+    });
+    expect(transport.carriedChannels).toContain("vessel.flight");
+    expect(streamFrames).toEqual(["vessel.flight"]);
+    transport.dispose();
+  });
+
   it("reconnects after the server drops the connection and re-subscribes active topics", async () => {
     const receivedByConnection: string[][] = [];
     let closeFirst: (() => void) | null = null;
