@@ -1700,6 +1700,205 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The confirmed live-bug regression: EVERY command that takes a typed
+        /// args record was dead over the real WebSocket because
+        /// <c>EnvelopeCodec</c> deserializes a command's args to a GENERIC shape
+        /// (<c>Dictionary&lt;string, object?&gt;</c> / <c>double</c> / <c>bool</c>
+        /// / <c>string</c>) and the old <c>(TArgs)args!</c> cast threw
+        /// <c>InvalidCastException</c> ("Specified cast is not valid"), which
+        /// <see cref="ChannelEngine.InvokeCommandHandler"/> fail-softed to a null
+        /// command-response — so <c>setSas {enabled:true}</c> etc. silently did
+        /// nothing. This drives the FULL production path (raw wire
+        /// <c>CommandRequest</c> → <c>OnMessageReceived</c> → <c>EnvelopeCodec</c>
+        /// → dispatch → <see cref="ChannelEngine.BindCommandArgs"/> → typed
+        /// handler) for one representative arg shape of every kind and asserts
+        /// the handler received the CORRECTLY-TYPED args with correct values and
+        /// returned a real (non-null) result. Pre-fix each of these returned a
+        /// null result and the handler never ran.
+        /// </summary>
+        [Fact]
+        public async Task WireCommandRequestsBindGenericArgsToTypedRecordsAndReachHandlers()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var probe = new WireArgProbeUplink();
+            engine.RegisterUplink(probe);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                // bool arg
+                Assert.NotNull(await SendCommandAsync(client, "r-bool", WireArgProbeUplink.BoolCommand,
+                    new Dictionary<string, object?> { ["enabled"] = true }));
+                Assert.True(probe.LastEnabled);
+
+                // double arg
+                Assert.NotNull(await SendCommandAsync(client, "r-double", WireArgProbeUplink.DoubleCommand,
+                    new Dictionary<string, object?> { ["value"] = 0.5 }));
+                Assert.Equal(0.5, probe.LastThrottle);
+
+                // enum arg from NUMERIC ordinal (1 == SasMode.Prograde) — a
+                // silent default-to-0 would fail here.
+                Assert.NotNull(await SendCommandAsync(client, "r-enum", WireArgProbeUplink.EnumCommand,
+                    new Dictionary<string, object?> { ["mode"] = 1.0 }));
+                Assert.Equal(SasMode.Prograde, probe.LastMode);
+
+                // int + bool arg (wire int arrives as double, must narrow)
+                Assert.NotNull(await SendCommandAsync(client, "r-ag", WireArgProbeUplink.ActionGroupCommand,
+                    new Dictionary<string, object?> { ["group"] = 4.0, ["state"] = true }));
+                Assert.Equal(4, probe.LastGroup);
+                Assert.True(probe.LastGroupState);
+
+                // multi-double arg, unscrambled
+                Assert.NotNull(await SendCommandAsync(client, "r-mnv", WireArgProbeUplink.ManeuverCommand,
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["prograde"] = 100.0,
+                        ["normal"] = 20.0,
+                        ["radialOut"] = 3.0,
+                    }));
+                Assert.Equal(12345.0, probe.LastUt);
+                Assert.Equal(100.0, probe.LastPrograde);
+                Assert.Equal(20.0, probe.LastNormal);
+                Assert.Equal(3.0, probe.LastRadialOut);
+
+                // nullable discriminated-union: Body kind, absent vesselId stays null
+                Assert.NotNull(await SendCommandAsync(client, "r-tgt-body", WireArgProbeUplink.TargetCommand,
+                    new Dictionary<string, object?> { ["kind"] = 1.0, ["bodyIndex"] = 2.0 }));
+                Assert.Equal(TargetKind.Body, probe.LastTargetKind);
+                Assert.Equal(2, probe.LastBodyIndex);
+                Assert.Null(probe.LastVesselId);
+
+                // nullable discriminated-union: Vessel kind, absent bodyIndex stays null
+                Assert.NotNull(await SendCommandAsync(client, "r-tgt-vessel", WireArgProbeUplink.TargetCommand,
+                    new Dictionary<string, object?> { ["kind"] = "Vessel", ["vesselId"] = "guid-1" }));
+                Assert.Equal(TargetKind.Vessel, probe.LastTargetKind);
+                Assert.Equal("guid-1", probe.LastVesselId);
+                Assert.Null(probe.LastBodyIndex);
+
+                // null arg bag (object? handler)
+                probe.NullArgHandlerRan = false;
+                Assert.NotNull(await SendCommandAsync(client, "r-null", WireArgProbeUplink.NullArgCommand, null));
+                Assert.True(probe.NullArgHandlerRan);
+
+                Assert.True(engine.AvailabilityOf(WireArgProbeUplink.UplinkId).IsAvailable,
+                    "no command should have fail-softed the uplink — every arg bound cleanly");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static async Task<object?> SendCommandAsync(
+            TestClient client, string requestId, string command, object? args)
+        {
+            await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+            {
+                Type = "command-request",
+                RequestId = requestId,
+                Command = command,
+                Args = args,
+                SentAt = 0.0,
+            }));
+            var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+            Assert.Equal(requestId, response.RequestId);
+            return response.Result;
+        }
+
+        /// <summary>
+        /// A probe uplink registering one delayed:false command per arg SHAPE
+        /// (bool / double / enum / int+bool / multi-double / nullable union /
+        /// null) against the REAL <c>Sitrep.Contract</c> arg record types, each
+        /// handler recording the typed values it received — the fixture for
+        /// <see cref="WireCommandRequestsBindGenericArgsToTypedRecordsAndReachHandlers"/>.
+        /// </summary>
+        private sealed class WireArgProbeUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-wire-arg-probe";
+            public const string BoolCommand = "probe.bool";
+            public const string DoubleCommand = "probe.double";
+            public const string EnumCommand = "probe.enum";
+            public const string ActionGroupCommand = "probe.actiongroup";
+            public const string ManeuverCommand = "probe.maneuver";
+            public const string TargetCommand = "probe.target";
+            public const string NullArgCommand = "probe.null";
+
+            public bool LastEnabled;
+            public double LastThrottle;
+            public SasMode LastMode;
+            public int LastGroup;
+            public bool LastGroupState;
+            public double LastUt, LastPrograde, LastNormal, LastRadialOut;
+            public TargetKind LastTargetKind;
+            public string? LastVesselId;
+            public int? LastBodyIndex;
+            public bool NullArgHandlerRan;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = BoolCommand, Delayed = false },
+                    new CommandDeclaration { Command = DoubleCommand, Delayed = false },
+                    new CommandDeclaration { Command = EnumCommand, Delayed = false },
+                    new CommandDeclaration { Command = ActionGroupCommand, Delayed = false },
+                    new CommandDeclaration { Command = ManeuverCommand, Delayed = false },
+                    new CommandDeclaration { Command = TargetCommand, Delayed = false },
+                    new CommandDeclaration { Command = NullArgCommand, Delayed = false },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddCommandHandler<SetEnabledArgs, CommandResult>(BoolCommand, a =>
+                {
+                    LastEnabled = a.Enabled;
+                    return CommandResult.Ok();
+                });
+                host.AddCommandHandler<SetThrottleArgs, CommandResult>(DoubleCommand, a =>
+                {
+                    LastThrottle = a.Value;
+                    return CommandResult.Ok();
+                });
+                host.AddCommandHandler<SetSasModeArgs, CommandResult>(EnumCommand, a =>
+                {
+                    LastMode = a.Mode;
+                    return CommandResult.Ok();
+                });
+                host.AddCommandHandler<SetActionGroupArgs, CommandResult>(ActionGroupCommand, a =>
+                {
+                    LastGroup = a.Group;
+                    LastGroupState = a.State;
+                    return CommandResult.Ok();
+                });
+                host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(ManeuverCommand, a =>
+                {
+                    LastUt = a.Ut;
+                    LastPrograde = a.Prograde;
+                    LastNormal = a.Normal;
+                    LastRadialOut = a.RadialOut;
+                    return CommandResult<string>.Ok("node-1");
+                });
+                host.AddCommandHandler<SetTargetArgs, CommandResult>(TargetCommand, a =>
+                {
+                    LastTargetKind = a.Kind;
+                    LastVesselId = a.VesselId;
+                    LastBodyIndex = a.BodyIndex;
+                    return CommandResult.Ok();
+                });
+                host.AddCommandHandler<object?, CommandResult>(NullArgCommand, _ =>
+                {
+                    NullArgHandlerRan = true;
+                    return CommandResult.Ok();
+                });
+            }
+        }
+
         private sealed class ThrowsAfterRegisteringTwoChannelsUplink : ISitrepUplink
         {
             public const string UplinkId = "test-throws-after-registering";

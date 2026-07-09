@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using Sitrep.Contract;
@@ -719,17 +721,179 @@ namespace Sitrep.Host
                     $"AddCommandHandler(\"{command}\") has no matching CommandDeclaration — " +
                     "declare it in the registering uplink's Manifest.Commands first.");
             }
-            // The raw (TArgs)args! cast below throws InvalidCastException for
-            // any wire-shaped arg that doesn't match TArgs (EnvelopeCodec
-            // deserializes command args to a generic double/string/bool/
-            // Dictionary shape, not a typed TArgs — see EnvelopeCodec's doc
-            // comment). That throw is deliberately left as-is here (a full
-            // declared-payload-type conversion is a bigger feature, not
-            // needed to close this out); it's caught one layer up, in
-            // InvokeCommandHandler, which is the SOLE call site for every
-            // registered command handler and fail-softs just this command's
+            // EnvelopeCodec deserializes wire command args to a GENERIC shape
+            // (Dictionary<string, object?> for objects, double for numbers,
+            // bool, string, List<object?> for arrays — never a typed TArgs;
+            // see EnvelopeCodec's doc comment). A raw (TArgs)args! cast on
+            // that generic shape throws InvalidCastException for every command
+            // that takes a typed args record — which is exactly why the whole
+            // command/write path was dead over the real socket. BindCommandArgs
+            // converts the generic shape into the declared TArgs by reflection
+            // (case-insensitive property match + primitive/enum conversion),
+            // and passes already-typed args (in-process callers/tests) straight
+            // through. A genuinely unconvertible value still throws — caught one
+            // layer up in InvokeCommandHandler (the SOLE call site for every
+            // registered command handler), which fail-softs just this command's
             // owning uplink instead of crashing the Courier thread.
-            _commandHandlers[command] = args => handler((TArgs)args!);
+            _commandHandlers[command] = args => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!);
+        }
+
+        /// <summary>
+        /// Converts a command's generic wire-deserialized args (the
+        /// double/bool/string/<c>Dictionary&lt;string, object?&gt;</c>/
+        /// <c>List&lt;object?&gt;</c> shape <see cref="EnvelopeCodec.ParseCommandRequest"/>
+        /// produces) into the declared <paramref name="targetType"/> so a typed
+        /// handler receives a real <c>TArgs</c> instead of throwing
+        /// <c>InvalidCastException</c> on a raw cast. GENERIC by design: it
+        /// reflects over the target type's writable properties rather than
+        /// switching per command, so a new command's arg record binds with no
+        /// per-type code (the same "no per-type switch" lesson the outbound
+        /// <c>JsonWriter</c> learned the hard way).
+        ///
+        /// <para>Rules: an <c>args</c> already assignable to the target
+        /// (in-process callers/tests, or a scalar that already matches) passes
+        /// straight through; <c>null</c> args return <c>null</c> (commands like
+        /// <c>vessel.control.stage</c> take <c>object?</c>/null); a missing
+        /// object key leaves that property at its default (so an absent nullable
+        /// discriminated-union field like <see cref="Sitrep.Contract.SetTargetArgs.BodyIndex"/>
+        /// stays null, never defaulted to 0); an enum binds from a NUMERIC
+        /// ordinal (the wire form) as well as a string name; a genuinely
+        /// incompatible value (e.g. a number against a <c>string</c> property,
+        /// or an object bag against a scalar) throws, and the throw is
+        /// fail-softed by <see cref="InvokeCommandHandler"/>.</para>
+        /// </summary>
+        internal static object? BindCommandArgs(object? value, Type targetType)
+        {
+            if (value is null)
+            {
+                // Reference type / Nullable<T> / object? => null is a legal
+                // value. A non-nullable value type can't hold null; let the
+                // downstream cast surface that (fail-softed one layer up) —
+                // no real command declares a non-nullable-value TArgs.
+                return null;
+            }
+
+            // Already the declared type: typed in-process args, a scalar wire
+            // value that matches (double->double, string->string, bool->bool),
+            // or an object? passthrough. No reflection needed.
+            if (targetType.IsInstanceOfType(value))
+            {
+                return value;
+            }
+
+            var underlying = Nullable.GetUnderlyingType(targetType);
+            if (underlying != null)
+            {
+                return BindCommandArgs(value, underlying);
+            }
+
+            if (targetType.IsEnum)
+            {
+                if (value is string enumName)
+                {
+                    return Enum.Parse(targetType, enumName, ignoreCase: true);
+                }
+                // Wire form is the numeric ordinal.
+                return Enum.ToObject(targetType, Convert.ToInt64(value, CultureInfo.InvariantCulture));
+            }
+
+            if (targetType == typeof(string))
+            {
+                // A string property only accepts a string — never a coerced
+                // number/bool (that would mask a genuine client/type mismatch).
+                if (value is string s)
+                {
+                    return s;
+                }
+                throw new InvalidCastException(
+                    $"Cannot bind wire value of type {value.GetType().Name} to string.");
+            }
+
+            if (targetType == typeof(bool))
+            {
+                if (value is bool b)
+                {
+                    return b;
+                }
+                throw new InvalidCastException(
+                    $"Cannot bind wire value of type {value.GetType().Name} to bool.");
+            }
+
+            if (IsConvertibleNumeric(targetType))
+            {
+                // Numbers arrive as double off the wire; widen/narrow to the
+                // declared numeric type. A bool/string/object bag is NOT a
+                // number — reject it (Convert.ChangeType would either coerce
+                // surprisingly or throw; be explicit for the object-bag case).
+                if (value is bool || value is string || value is IDictionary<string, object?> || value is System.Collections.IEnumerable)
+                {
+                    throw new InvalidCastException(
+                        $"Cannot bind wire value of type {value.GetType().Name} to numeric {targetType.Name}.");
+                }
+                return Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
+            }
+
+            if (value is IDictionary<string, object?> dict)
+            {
+                return BindObject(dict, targetType);
+            }
+
+            throw new InvalidCastException(
+                $"Cannot bind wire value of type {value.GetType().Name} to {targetType.Name}.");
+        }
+
+        private static bool IsConvertibleNumeric(Type t) =>
+            t == typeof(double) || t == typeof(float) || t == typeof(decimal) ||
+            t == typeof(int) || t == typeof(long) || t == typeof(short) ||
+            t == typeof(byte) || t == typeof(sbyte) || t == typeof(uint) ||
+            t == typeof(ulong) || t == typeof(ushort);
+
+        /// <summary>
+        /// Reflects over <paramref name="targetType"/>'s writable public
+        /// properties and binds each from the matching (case-insensitive) key
+        /// in <paramref name="dict"/>. A missing key leaves the property at its
+        /// default — so absent optional/nullable fields stay null rather than
+        /// being forced to a value. Recurses through <see cref="BindCommandArgs"/>
+        /// so nested records/enums convert the same way.
+        /// </summary>
+        private static object BindObject(IDictionary<string, object?> dict, Type targetType)
+        {
+            var instance = Activator.CreateInstance(targetType);
+            if (instance == null)
+            {
+                throw new InvalidCastException($"Cannot construct {targetType.Name} for command-arg binding.");
+            }
+
+            foreach (var prop in targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!prop.CanWrite || prop.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                object? raw = null;
+                var found = false;
+                foreach (var kv in dict)
+                {
+                    if (string.Equals(kv.Key, prop.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        raw = kv.Value;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Leave at default (null for reference/Nullable, 0/false for
+                    // value types) — an absent key is not an error.
+                    continue;
+                }
+
+                prop.SetValue(instance, BindCommandArgs(raw, prop.PropertyType));
+            }
+
+            return instance;
         }
 
         public Kernel Kernel => _kernel;
