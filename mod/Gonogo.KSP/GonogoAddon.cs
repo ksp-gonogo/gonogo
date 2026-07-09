@@ -117,6 +117,13 @@ namespace Gonogo.KSP
                 // and BEFORE Start(), so the shared comms.* channel closures that
                 // Query the elected backend at Tick time see a resolved kernel.
                 _engine.ResolveCapabilities();
+                // TEMP diag — remove after live pin (BUG 2: comms.delay
+                // inconsistent live emit). Routes ChannelEngine's server-side
+                // signal-delay diagnostics into KSP.log via Debug.Log. Null in
+                // tests (see ChannelEngine.TempDiagLog), so it never perturbs the
+                // timing-sensitive integration suite.
+                Sitrep.Host.ChannelEngine.TempDiagLog = s => Debug.Log(s);
+
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,

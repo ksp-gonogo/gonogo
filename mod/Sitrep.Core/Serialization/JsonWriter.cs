@@ -221,6 +221,50 @@ namespace Sitrep.Core.Serialization
                     // got zero stream-data while an empty one silently "worked").
                     AppendKosProcessorInfo(sb, processor);
                     break;
+                case Sitrep.Contract.CommsConnectivity connectivity:
+                    // Same "producer owns the flatten" boundary as CommsDelay /
+                    // KosProcessorInfo above: the comms.connectivity channel
+                    // publishes a CommsConnectivity POCO (see
+                    // Gonogo.KSP.CommsCoreUplink.HandleOnCourier). Without a case
+                    // here a populated payload threw NotSupportedException at the
+                    // wire boundary and fail-softed to nothing — the client
+                    // subscribed but got zero stream-data.
+                    AppendCommsConnectivity(sb, connectivity);
+                    break;
+                case Sitrep.Contract.CommsSignalStrength signalStrength:
+                    AppendCommsSignalStrength(sb, signalStrength);
+                    break;
+                case Sitrep.Contract.CommsControlState controlState:
+                    AppendCommsControlState(sb, controlState);
+                    break;
+                case Sitrep.Contract.CommsPath path:
+                    AppendCommsPath(sb, path);
+                    break;
+                case Sitrep.Contract.CommsHop hop:
+                    // Reached element-by-element when a CommsPath's Hops list is
+                    // walked (AppendCommsPath -> AppendHop directly), but also
+                    // handled here so a bare hop routed through AppendValue (e.g.
+                    // a hand-built list) flattens rather than throwing.
+                    AppendCommsHop(sb, hop);
+                    break;
+                case Sitrep.Contract.CommsNetwork network:
+                    AppendCommsNetwork(sb, network);
+                    break;
+                case Sitrep.Contract.CommsNetworkNode node:
+                    AppendCommsNetworkNode(sb, node);
+                    break;
+                case Sitrep.Contract.CommsNetworkEdge edge:
+                    AppendCommsNetworkEdge(sb, edge);
+                    break;
+                case Sitrep.Contract.CommsLinkQuality linkQuality:
+                    AppendCommsLinkQuality(sb, linkQuality);
+                    break;
+                case Sitrep.Contract.CommsDataRate dataRate:
+                    AppendCommsDataRate(sb, dataRate);
+                    break;
+                case Sitrep.Contract.CommsLinkMargin linkMargin:
+                    AppendCommsLinkMargin(sb, linkMargin);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -356,6 +400,277 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendString(sb, p.ProcessorMode ?? "");
 
+            sb.Append('}');
+        }
+
+        // ================================================================
+        // comms.* payload flatteners (U2 wire-boundary fix). Each mirrors
+        // AppendCommsDelay / AppendKosProcessorInfo: camelCase keys, enum
+        // ordinals as integers, PayloadMeta as { source, quality }, and
+        // nullable fields written as JSON null (R7 typed-absence) rather than
+        // a sentinel. Without these, a POPULATED comms.* payload threw
+        // NotSupportedException in AppendValue at the wire boundary and the
+        // frame was dropped — a subscribed client received only "subscribed"
+        // and zero stream-data, exactly the kos.processors / comms.delay bug.
+        // ================================================================
+
+        /// <summary>Writes a <see cref="Sitrep.Contract.PayloadMeta"/> as <c>{ source, quality }</c> (quality as its integer ordinal). Null meta collapses to the defaults, matching <see cref="AppendCommsDelay"/>.</summary>
+        private static void AppendPayloadMeta(StringBuilder sb, Sitrep.Contract.PayloadMeta? meta)
+        {
+            sb.Append('{');
+            AppendString(sb, "source");
+            sb.Append(':');
+            AppendString(sb, meta?.Source ?? "");
+            sb.Append(',');
+            AppendString(sb, "quality");
+            sb.Append(':');
+            AppendInteger(sb, (long)(meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
+            sb.Append('}');
+        }
+
+        private static void AppendCommsConnectivity(StringBuilder sb, Sitrep.Contract.CommsConnectivity c)
+        {
+            sb.Append('{');
+            AppendString(sb, "connected");
+            sb.Append(':');
+            AppendBool(sb, c.Connected);
+            sb.Append(',');
+            AppendString(sb, "controlSource");
+            sb.Append(':');
+            AppendInteger(sb, (long)c.ControlSource);
+            sb.Append(',');
+            AppendString(sb, "hasLocalControl");
+            sb.Append(':');
+            AppendBool(sb, c.HasLocalControl);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, c.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsSignalStrength(StringBuilder sb, Sitrep.Contract.CommsSignalStrength s)
+        {
+            sb.Append('{');
+            AppendString(sb, "value");
+            sb.Append(':');
+            AppendNumber(sb, s.Value);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, s.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsControlState(StringBuilder sb, Sitrep.Contract.CommsControlState c)
+        {
+            sb.Append('{');
+            AppendString(sb, "state");
+            sb.Append(':');
+            AppendInteger(sb, (long)c.State);
+            sb.Append(',');
+            AppendString(sb, "reason");
+            sb.Append(':');
+            if (c.Reason == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendString(sb, c.Reason);
+            }
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, c.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsHop(StringBuilder sb, Sitrep.Contract.CommsHop h)
+        {
+            sb.Append('{');
+            AppendString(sb, "from");
+            sb.Append(':');
+            AppendString(sb, h.From ?? "");
+            sb.Append(',');
+            AppendString(sb, "to");
+            sb.Append(':');
+            AppendString(sb, h.To ?? "");
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (long)h.Kind);
+            sb.Append(',');
+            AppendString(sb, "distanceMeters");
+            sb.Append(':');
+            if (h.DistanceMeters.HasValue)
+            {
+                AppendNumber(sb, h.DistanceMeters.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "bandRateBitsPerSec");
+            sb.Append(':');
+            if (h.BandRateBitsPerSec.HasValue)
+            {
+                AppendNumber(sb, h.BandRateBitsPerSec.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append('}');
+        }
+
+        private static void AppendCommsPath(StringBuilder sb, Sitrep.Contract.CommsPath p)
+        {
+            sb.Append('{');
+            AppendString(sb, "hops");
+            sb.Append(':');
+            sb.Append('[');
+            if (p.Hops != null)
+            {
+                var first = true;
+                foreach (var hop in p.Hops)
+                {
+                    if (!first)
+                    {
+                        sb.Append(',');
+                    }
+                    first = false;
+                    AppendCommsHop(sb, hop);
+                }
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, p.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsNetworkNode(StringBuilder sb, Sitrep.Contract.CommsNetworkNode n)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, n.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (long)n.Kind);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsNetworkEdge(StringBuilder sb, Sitrep.Contract.CommsNetworkEdge e)
+        {
+            sb.Append('{');
+            AppendString(sb, "a");
+            sb.Append(':');
+            AppendString(sb, e.A ?? "");
+            sb.Append(',');
+            AppendString(sb, "b");
+            sb.Append(':');
+            AppendString(sb, e.B ?? "");
+            sb.Append(',');
+            AppendString(sb, "active");
+            sb.Append(':');
+            AppendBool(sb, e.Active);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsNetwork(StringBuilder sb, Sitrep.Contract.CommsNetwork n)
+        {
+            sb.Append('{');
+            AppendString(sb, "nodes");
+            sb.Append(':');
+            sb.Append('[');
+            if (n.Nodes != null)
+            {
+                var first = true;
+                foreach (var node in n.Nodes)
+                {
+                    if (!first)
+                    {
+                        sb.Append(',');
+                    }
+                    first = false;
+                    AppendCommsNetworkNode(sb, node);
+                }
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "edges");
+            sb.Append(':');
+            sb.Append('[');
+            if (n.Edges != null)
+            {
+                var first = true;
+                foreach (var edge in n.Edges)
+                {
+                    if (!first)
+                    {
+                        sb.Append(',');
+                    }
+                    first = false;
+                    AppendCommsNetworkEdge(sb, edge);
+                }
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, n.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsLinkQuality(StringBuilder sb, Sitrep.Contract.CommsLinkQuality q)
+        {
+            sb.Append('{');
+            AppendString(sb, "value");
+            sb.Append(':');
+            AppendNumber(sb, q.Value);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, q.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsDataRate(StringBuilder sb, Sitrep.Contract.CommsDataRate r)
+        {
+            sb.Append('{');
+            AppendString(sb, "upBitsPerSec");
+            sb.Append(':');
+            AppendNumber(sb, r.UpBitsPerSec);
+            sb.Append(',');
+            AppendString(sb, "downBitsPerSec");
+            sb.Append(':');
+            AppendNumber(sb, r.DownBitsPerSec);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, r.Meta);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsLinkMargin(StringBuilder sb, Sitrep.Contract.CommsLinkMargin m)
+        {
+            sb.Append('{');
+            AppendString(sb, "decibelMargin");
+            sb.Append(':');
+            AppendNumber(sb, m.DecibelMargin);
+            sb.Append(',');
+            AppendString(sb, "closesLink");
+            sb.Append(':');
+            AppendBool(sb, m.ClosesLink);
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, m.Meta);
             sb.Append('}');
         }
 

@@ -537,5 +537,127 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        /// <summary>
+        /// REGRESSION (live-KSP session-killer): the server-side signal-delay
+        /// source threw ONCE on a transient scene-settle tick, and the old
+        /// fail-soft PERMANENTLY disabled it + marked the comms uplink
+        /// Unavailable — so comms.delay stopped flowing and delay enforcement
+        /// stayed dead for the rest of the session. The fix makes the delay-source
+        /// fail-soft RECOVERABLE: a throwing tick yields no update, but the source
+        /// is retried the next tick and the uplink stays Available. This FAILS on
+        /// the old permanent-disable behaviour (uplink Unavailable, comms.delay
+        /// inert after the throw) and passes after.
+        /// </summary>
+        [Fact]
+        public async Task DelaySourceThrowIsRecoverableAndDelayResumes()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new RecoverableSourceTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
+
+                // Tick 0 — establish the delay authority (comms.delay = 4s).
+                engine.TickAndWait(0.0, RecoverableSourceTestUplink.Snapshot(0.0, delay: 4.0), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                // Tick 1 — the delay source THROWS (transient scene-settle NRE).
+                engine.TickAndWait(1.0, RecoverableSourceTestUplink.Snapshot(1.0, delay: 4.0, throwDelay: true), Timeout);
+
+                // The throw must NOT permanently disable comms: the uplink stays
+                // Available (old behaviour marked it Unavailable here).
+                Assert.True(
+                    engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable,
+                    "comms uplink must stay Available after a transient delay-source throw");
+
+                // Tick 2 — the source RECOVERS and reports a CHANGED delay (5s).
+                // comms.delay must reach the wire again — proving the channel/
+                // source resumed (old behaviour left it inert forever).
+                engine.TickAndWait(2.0, RecoverableSourceTestUplink.Snapshot(2.0, delay: 5.0), Timeout);
+                var afterRecovery = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(afterRecovery, f => f.Topic == ChannelEngine.CommsDelayTopic);
+                Assert.True(engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Twin of the delay-source recovery: the CONNECTIVITY source throwing on
+        /// a transient tick must fail-soft to CONNECTED and be RETRIED, never
+        /// permanently disable the comms uplink (which would leave every comms.*
+        /// channel inert for the session). FAILS on the old permanent-disable
+        /// behaviour.
+        /// </summary>
+        [Fact]
+        public async Task ConnectivitySourceThrowIsRecoverableAndChannelsStayLive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new RecoverableSourceTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, RecoverableSourceTestUplink.DelayedTopic, Timeout);
+
+                // Tick 0 — connected, delay 0 (reveal live).
+                engine.TickAndWait(0.0, RecoverableSourceTestUplink.Snapshot(0.0, connected: true, delay: 0.0), Timeout);
+                // Tick 1 — connectivity source THROWS; must fail-soft to CONNECTED.
+                engine.TickAndWait(1.0, RecoverableSourceTestUplink.Snapshot(1.0, delay: 0.0, delayed: 10.0, throwConn: true), Timeout);
+                Assert.True(
+                    engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable,
+                    "comms uplink must stay Available after a transient connectivity-source throw");
+
+                // Tick 2 — recovers; a delayed sample at delay 0 must be delivered
+                // live (channel is not inert, gate is not frozen).
+                engine.TickAndWait(2.0, RecoverableSourceTestUplink.Snapshot(2.0, connected: true, delay: 0.0, delayed: 11.0), Timeout);
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(frames, f => f.Topic == RecoverableSourceTestUplink.DelayedTopic);
+                Assert.True(engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A delay/connectivity source that returns NULL (graceful "no authority /
+        /// no path" — the real-world meaning of an unloaded/no-control-path
+        /// vessel) must leave the last-known state untouched and reveal live,
+        /// never disable the uplink. No throw, no permanent disable.
+        /// </summary>
+        [Fact]
+        public async Task NullDelayAndConnectivityRevealLiveWithoutDisable()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new RecoverableSourceTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, RecoverableSourceTestUplink.DelayedTopic, Timeout);
+
+                // No "delay" / "connected" keys ⇒ both sources return null every
+                // tick (graceful no-authority). delayed=10 at UT 1 must reveal
+                // live (no delay authority ⇒ delay 0; connectivity default
+                // CONNECTED), and the uplink must never go Unavailable.
+                engine.TickAndWait(0.0, RecoverableSourceTestUplink.Snapshot(0.0), Timeout);
+                engine.TickAndWait(1.0, RecoverableSourceTestUplink.Snapshot(1.0, delayed: 10.0), Timeout);
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.Contains(frames, f => f.Topic == RecoverableSourceTestUplink.DelayedTopic);
+                Assert.True(engine.AvailabilityOf(RecoverableSourceTestUplink.Id).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

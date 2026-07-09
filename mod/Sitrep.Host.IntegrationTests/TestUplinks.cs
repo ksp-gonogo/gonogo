@@ -1021,4 +1021,146 @@ namespace Sitrep.Host.IntegrationTests
 
         private void Handle(object? captured) => _publisher!.Publish(captured, Convert.ToDouble(captured));
     }
+
+    /// <summary>
+    /// Recoverable-fail-soft reveal-gate test uplink — the headless proxy for
+    /// the live-KSP regression where the server-side signal-delay /
+    /// connectivity source (<c>Gonogo.KSP.CommsCoreUplink.ComputeDelayOnMain</c>
+    /// / <c>ComputeConnectedOnMain</c>) THREW ONCE during scene settle (a
+    /// transiently-unloaded vessel with no CommNet control path) and the old
+    /// fail-soft PERMANENTLY disabled the source + marked the whole comms uplink
+    /// Unavailable — killing ALL comms.* channels + delay enforcement for the
+    /// rest of the session. Mirrors <see cref="FreezeGateTestUplink"/>'s
+    /// production-shape seams, but the delay/connectivity closures THROW on any
+    /// tick whose snapshot carries <c>throwDelay</c> / <c>throwConn</c>, so a
+    /// test can assert the source is RETRIED (uplink stays Available, delay
+    /// enforcement resumes) on the next non-throwing tick.
+    /// </summary>
+    internal sealed class RecoverableSourceTestUplink : ISitrepUplink
+    {
+        public const string Id = "recoverable-source-test";
+        public const string DelayedTopic = "rec.delayed";
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = Id,
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = DelayedTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+            host.AddChannelSource(DelayedTopic, snapshot => Read(snapshot, "delayed"));
+            host.SetSignalDelaySource(ComputeDelay);
+            host.SetConnectivitySource(ComputeConnected);
+        }
+
+        private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
+        {
+            if (snapshot != null && snapshot.Values.ContainsKey("throwDelay"))
+            {
+                throw new InvalidOperationException("transient delay-source throw (simulated scene-settle NRE)");
+            }
+            var raw = Read(snapshot, "delay");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        // The comms.delay CHANNEL source never throws — in production comms.delay
+        // is published from the main-thread sampled capture, not an
+        // AddChannelSource, and the transient throw under test is in the SEPARATE
+        // server-side delay/connectivity SOURCE closures. Reading "delay" plainly
+        // here keeps this test isolating the delay-source fail-soft path.
+        private static object? MapDelay(KspSnapshot? snapshot)
+        {
+            var raw = Read(snapshot, "delay");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        private static bool? ComputeConnected(KspSnapshot? snapshot)
+        {
+            if (snapshot != null && snapshot.Values.ContainsKey("throwConn"))
+            {
+                throw new InvalidOperationException("transient connectivity-source throw (simulated scene-settle NRE)");
+            }
+            if (snapshot == null || !snapshot.Values.TryGetValue("connected", out var value) || value == null)
+            {
+                return null;
+            }
+            return Convert.ToBoolean(value);
+        }
+
+        private static object? Read(KspSnapshot? snapshot, string key)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            return value;
+        }
+
+        public static KspSnapshot Snapshot(
+            double ut,
+            double? delay = null,
+            double? delayed = null,
+            bool? connected = null,
+            bool throwDelay = false,
+            bool throwConn = false)
+        {
+            var values = new Dictionary<string, object?>();
+            if (delay.HasValue)
+            {
+                values["delay"] = delay.Value;
+            }
+            if (delayed.HasValue)
+            {
+                values["delayed"] = delayed.Value;
+            }
+            if (connected.HasValue)
+            {
+                values["connected"] = connected.Value;
+            }
+            if (throwDelay)
+            {
+                values["throwDelay"] = true;
+            }
+            if (throwConn)
+            {
+                values["throwConn"] = true;
+            }
+            return new KspSnapshot { Ut = ut, Values = values };
+        }
+    }
 }
