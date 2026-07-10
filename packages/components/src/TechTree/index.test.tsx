@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { clearAugments, registerAugment } from "@gonogo/core";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -7,7 +8,11 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { parseTechNodes, TechTreeComponent } from "./index";
+import {
+  parseTechNodes,
+  type TechNodeBadgeContext,
+  TechTreeComponent,
+} from "./index";
 
 const KEYS: DataKey[] = [
   { key: "tech.nodes" },
@@ -74,6 +79,7 @@ describe("TechTreeComponent", () => {
 
   afterEach(() => {
     teardownMockDataSource(fixture);
+    clearAugments();
   });
 
   it("shows awaiting placeholder before any telemetry", () => {
@@ -176,6 +182,53 @@ describe("TechTreeComponent", () => {
     await user.click(screen.getByText("Basic Rocketry"));
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect((unlock as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("exposes the per-node badges slot with no bound augment (empty is fine)", () => {
+    // No augment registered → the slot composes nothing and the list renders
+    // exactly as before, one row per node.
+    render(<TechTreeComponent config={{}} id="tt" />);
+    act(() => {
+      source.emit("tech.nodes", SAMPLE_NODES);
+      source.emit("career.science", 100);
+      source.emit("kc.scene", "SpaceCenter");
+    });
+    expect(screen.getByText("Start")).toBeInTheDocument();
+    expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
+    expect(screen.queryByTestId("tech-badge")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound augment once per node row, carrying each node's identity", () => {
+    // A test Uplink binds `tech-tree.badges` and echoes the slot props back.
+    // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
+    // the per-node props carry the right node so the badge lands on the right
+    // row. `requires` is omitted so no Domain presence gate applies.
+    registerAugment<"tech-tree.badges">({
+      id: "test-tech-badge",
+      augments: "tech-tree.badges",
+      component: ({ node }: TechNodeBadgeContext) => (
+        <span data-testid="tech-badge" data-node={node.id}>
+          {node.id} ✓
+        </span>
+      ),
+    });
+
+    render(<TechTreeComponent config={{}} id="tt" />);
+    act(() => {
+      source.emit("tech.nodes", SAMPLE_NODES);
+      source.emit("career.science", 100);
+      source.emit("kc.scene", "SpaceCenter");
+    });
+
+    // One badge per node in the (default) list view.
+    const badges = screen.getAllByTestId("tech-badge");
+    expect(badges).toHaveLength(SAMPLE_NODES.length);
+    // The badge sits inside its own node's row (props identity is correct).
+    const basicRow = screen.getByText("Basic Rocketry").closest("li");
+    expect(basicRow).not.toBeNull();
+    expect(
+      within(basicRow as HTMLElement).getByTestId("tech-badge"),
+    ).toHaveTextContent("basicRocketry ✓");
   });
 });
 

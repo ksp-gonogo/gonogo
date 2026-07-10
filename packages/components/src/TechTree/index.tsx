@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
@@ -37,6 +38,32 @@ export interface TechNode {
   state: TechNodeState;
   parents: string[];
   parts: TechPart[];
+}
+
+// ── Augment slot ──────────────────────────────────────────────────────────
+//
+// `tech-tree.badges` is a per-node inline badge slot: an Uplink can drop a
+// small indicator next to a node (the canonical use is a "which mod added this
+// node" tag once third-party parts flow through `tech.nodes`). Every node
+// surface — list rows, graph cards, and the detail panel — exposes the slot and
+// passes that node's identity as slot props, so the augment badges the right
+// node wherever it's rendered.
+
+/** Props passed to every `tech-tree.badges` augment — one per tech node. */
+export interface TechNodeBadgeContext {
+  /** The node this badge belongs to — its full identity for the augment. */
+  node: TechNode;
+}
+
+// Co-located declaration-merge of this widget's slot id → its props (spec §4.6).
+// Kept next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam. Makes `registerAugment({
+// augments: "tech-tree.badges" })` and `<AugmentSlot name="tech-tree.badges"
+// props={…} />` type-check precisely against `TechNodeBadgeContext`.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "tech-tree.badges": TechNodeBadgeContext;
+  }
 }
 
 /**
@@ -749,6 +776,9 @@ function DetailPanel({
         <DetailTitle>
           {node.title}
           <NodeId>({node.id})</NodeId>
+          {/* Same per-node badges slot as the list rows — an augment bound to
+              `tech-tree.badges` renders here too, carrying the selected node. */}
+          <AugmentSlot name="tech-tree.badges" props={{ node }} />
         </DetailTitle>
         <CloseBtn type="button" onClick={onClose} aria-label="Close details">
           ✕
@@ -880,6 +910,10 @@ function NodeRow({
             <Cost $insufficient={unaffordable}>{node.scienceCost} sci</Cost>
           )}
           <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
+          {/* Per-node inline badges slot. Renders nothing until an Uplink binds
+              (e.g. a "which mod added this node" tag); the props carry this
+              node's identity so the badge lands on the right one. */}
+          <AugmentSlot name="tech-tree.badges" props={{ node }} />
         </NodeMeta>
       </NodeHeader>
       {expanded && (
@@ -1578,6 +1612,7 @@ registerComponent<TechTreeConfig>({
   dataRequirements: ["tech.nodes", "career.science", "kc.scene"],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["tech-tree.badges"],
   pushable: true,
   requires: ["career"],
 });
