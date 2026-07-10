@@ -19,6 +19,13 @@ import { RoboticsConsoleComponent } from "./index";
  * `currentAngle`/`targetAngle`/`servoMotorIsEngaged`/`servoIsLocked`/
  * `servoMotorLimit` are chosen to match `servos.json`'s "Arm Hinge" entry
  * exactly, proving the merge is a genuine no-op parity case.
+ *
+ * P4a shared-map batch: `robotics.available` (-> `robotics.available.
+ * available`) is migrated too. The legacy leg (`snapshotWidgetMode`) never
+ * mounts a `TelemetryProvider`, so it still reads it off the plain
+ * `DataSource` there; the stream leg now feeds it through the fixture's
+ * `robotics.available` topic instead of the legacy AUX, while
+ * `robotics.servos` (still-gapped identity list) keeps the AUX.
  */
 afterEach(() => {
   cleanup();
@@ -36,13 +43,13 @@ describe("RoboticsConsole — behavior-preservation golden dual-run (delay=0)", 
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: Object.keys(servos)
-        .filter((k) => k !== "_meta")
+        .filter((k) => k !== "_meta" && k !== "robotics.available")
         .map((key) => ({ key })),
       connectSource: true,
     });
@@ -57,9 +64,12 @@ describe("RoboticsConsole — behavior-preservation golden dual-run (delay=0)", 
 
     act(() => {
       for (const [key, value] of Object.entries(servos)) {
-        if (key === "_meta") continue;
+        if (key === "_meta" || key === "robotics.available") continue;
         legacyAux.source.emit(key, value);
       }
+      streamFixture.emit("robotics.available", {
+        available: servos["robotics.available"],
+      });
       streamFixture.emit("parts.robotics", [
         {
           partName: "Arm Hinge",

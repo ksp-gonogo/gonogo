@@ -18,6 +18,12 @@ import { RoboticsConsoleComponent } from "./index";
  * carries that, same MIXED-source shape DistanceToTarget/TargetPicker's own
  * M3 batches established. `parts.robotics` merges live numeric fields onto
  * the selected legacy servo by name.
+ *
+ * P4a shared-map batch: `robotics.available` (-> `robotics.available.
+ * available`) is migrated too — it streams through the fixture's
+ * `robotics.available` topic instead of the legacy AUX now; only
+ * `robotics.servos` (the still-gapped identity list) needs the AUX
+ * `DataSource` below.
  */
 afterEach(() => {
   cleanup();
@@ -27,12 +33,12 @@ afterEach(() => {
 describe("RoboticsConsole — genuinely runs off the stream (M3 science/parts batch)", () => {
   it("merges parts.robotics' live hinge fields onto the selected legacy servo by name", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "robotics.servos" }, { key: "robotics.available" }],
+      keys: [{ key: "robotics.servos" }],
       connectSource: true,
     });
 
@@ -45,7 +51,7 @@ describe("RoboticsConsole — genuinely runs off the stream (M3 science/parts ba
     );
 
     act(() => {
-      legacyAux.source.emit("robotics.available", true);
+      fixture.emit("robotics.available", { available: true });
       legacyAux.source.emit("robotics.servos", [
         {
           partId: 11,
@@ -107,12 +113,12 @@ describe("RoboticsConsole — genuinely runs off the stream (M3 science/parts ba
     // so a first-match `.find` would report partId:1's decoy (11) for
     // whichever row gets selected. Must refuse the ambiguous merge.
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "robotics.servos" }, { key: "robotics.available" }],
+      keys: [{ key: "robotics.servos" }],
       connectSource: true,
     });
 
@@ -126,7 +132,7 @@ describe("RoboticsConsole — genuinely runs off the stream (M3 science/parts ba
 
     const hingeName = "Symmetric Hinge";
     act(() => {
-      legacyAux.source.emit("robotics.available", true);
+      fixture.emit("robotics.available", { available: true });
       legacyAux.source.emit(
         "robotics.servos",
         [1, 2, 3, 4].map((partId, i) => ({

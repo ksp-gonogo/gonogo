@@ -26,6 +26,15 @@ import styled from "styled-components";
  * Reads `robotics.servos` + `robotics.available`; degrades to a muted empty
  * state without Breaking Ground or when no servo is present.
  *
+ * P4a shared-map batch: `robotics.available` is UN-GAPPED (map-topic.ts routes
+ * it to the dedicated `robotics.available.available` capability topic) — the
+ * `useDataValue` call site below is unchanged, it just starts resolving off
+ * the stream once a `TelemetryProvider` carries `robotics.available`.
+ * `robotics.servos` (the identity list feeding partId-keyed selection and
+ * every `robotics.*` command) stays GAPPED and fully hybrid — no stable id on
+ * the wire, coupled to the still-blocked command setters (see the M3 doc
+ * comment below).
+ *
  * M3 science/parts batch: the identity list (partId-keyed selection +
  * commands) stays entirely on `robotics.servos` — `parts.robotics`
  * (map-topic.ts) carries the same live hinge readouts. `mergeServo` below
@@ -210,6 +219,8 @@ function RoboticsConsoleComponent(
   _: Readonly<ComponentProps<RoboticsConsoleConfig>>,
 ) {
   const servosRaw = useDataValue("data", "robotics.servos");
+  // UN-GAPPED (P4a) -> robotics.available.available; resolves off the
+  // stream automatically once carried, same call site either way.
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
   const streamServos = useDataValue<StreamServoEntry[]>(

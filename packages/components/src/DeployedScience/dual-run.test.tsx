@@ -1,10 +1,6 @@
 import { DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import munCluster from "./__fixtures__/mun-cluster-two-experiments.json";
@@ -28,8 +24,12 @@ import { DeployedScienceComponent } from "./index";
  * which are actually rendered to DOM text either way (the widget's DOM only
  * ever shows `body`/power label/EC numbers/experiment name/progress %/
  * collecting dot), so this dual-run is a genuine same-state comparison, not
- * a coincidence. `deployed.available` stays legacy on both legs (no
- * new-wire equivalent — see index.tsx's doc comment).
+ * a coincidence. `deployed.available` (-> `game.dlc.breakingGround`) is
+ * migrated too (P4a shared-map batch) — the legacy leg still reads it off
+ * the plain `DataSource` (that leg never mounts a `TelemetryProvider`, so
+ * the shim's carried-channels gate keeps it on the legacy path there); the
+ * stream leg now feeds it through the fixture's `game.dlc` topic instead of
+ * a legacy AUX `DataSource`.
  */
 afterEach(() => {
   cleanup();
@@ -47,13 +47,8 @@ describe("DeployedScience — behavior-preservation golden dual-run (delay=0)", 
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["science.deployed"],
+      carriedChannels: ["science.deployed", "game.dlc"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "deployed.available" }],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -65,10 +60,9 @@ describe("DeployedScience — behavior-preservation golden dual-run (delay=0)", 
     );
 
     act(() => {
-      legacyAux.source.emit(
-        "deployed.available",
-        munCluster["deployed.available"],
-      );
+      streamFixture.emit("game.dlc", {
+        breakingGround: munCluster["deployed.available"],
+      });
       streamFixture.emit("science.deployed", [
         {
           vesselName: "Mun Surface Science Base",
@@ -113,7 +107,6 @@ describe("DeployedScience — behavior-preservation golden dual-run (delay=0)", 
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);
   });

@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
 
@@ -16,9 +12,10 @@ import { DeployedScienceComponent } from "./index";
  * FLAT array read wholesale and grouped client-side by `vesselName`
  * (`groupFlatDeployedEntries`, index.tsx), same "one widget key, either wire
  * shape" pattern `science.experiments`/`sci.experiments` established for
- * ScienceBench. `deployed.available` stays legacy-only (still-gapped) — a
- * `setupMockDataSource` AUX carries it, the same MIXED-source shape
- * ScienceBench/ScienceOfficer's own M3 batches established.
+ * ScienceBench. `deployed.available` (-> `game.dlc.breakingGround`) is
+ * migrated too (P4a shared-map batch) — no legacy `DataSource` AUX needed
+ * for this widget any more, it streams through the fixture's `game.dlc`
+ * topic.
  */
 afterEach(() => {
   cleanup();
@@ -28,13 +25,8 @@ afterEach(() => {
 describe("DeployedScience — genuinely runs off the stream (M3 science-domain finale)", () => {
   it("renders a deployed cluster grouped by vessel from science.deployed's flat shape", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["science.deployed"],
+      carriedChannels: ["science.deployed", "game.dlc"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "deployed.available" }],
-      connectSource: true,
     });
 
     render(
@@ -48,7 +40,7 @@ describe("DeployedScience — genuinely runs off the stream (M3 science-domain f
     expect(fixture.transport.isSubscribed("science.deployed")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("deployed.available", true);
+      fixture.emit("game.dlc", { breakingGround: true });
       fixture.emit("science.deployed", [
         {
           vesselName: "Minmus Flats Outpost",
@@ -72,7 +64,5 @@ describe("DeployedScience — genuinely runs off the stream (M3 science-domain f
     expect(screen.getByText("Barometer")).toBeTruthy();
     expect(screen.getByText(/Unpowered/i)).toBeTruthy();
     expect(screen.getByText("15%")).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 });
