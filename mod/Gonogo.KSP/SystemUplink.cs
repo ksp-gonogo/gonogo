@@ -69,16 +69,18 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                // game.dlc -- which KSP expansions are installed. A ground-side,
-                // scene-independent game fact (the Meta.Dlc path): known
-                // independent of any vessel's comms link, so TrueNow -- same
-                // class as system.bodies/career.status. It effectively never
-                // changes mid-session (an expansion isn't installed/uninstalled
-                // while KSP runs), so a fresh Dictionary every call reads as
-                // "changed" and the 30s keyframe floor covers the steady state.
+                // ksp.revertAvailability -- whether the two stock in-flight
+                // "revert" actions are available right now, for LaunchDirector's
+                // revert-availability gating. A flight-scene game-state fact
+                // (read from FlightDriver's static flags, the same ones KSP's
+                // pause menu gates its revert buttons on), known independent of
+                // any vessel's comms link, so TrueNow -- same class as
+                // system.bodies. Two bools that only flip on launch/revert; a
+                // fresh Dictionary every call reads as "changed" and the 30s
+                // keyframe floor covers the steady state.
                 new ChannelDeclaration
                 {
-                    Topic = SystemViewProvider.DlcTopic,
+                    Topic = SystemViewProvider.RevertTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
@@ -90,7 +92,7 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
             host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);
-            host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
+            host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
         }
     }
 }

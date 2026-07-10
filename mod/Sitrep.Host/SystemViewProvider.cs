@@ -92,13 +92,14 @@ namespace Sitrep.Host
         public const string VesselsTopic = "system.vessels";
 
         /// <summary>
-        /// The <c>game.dlc</c> capability channel — which KSP expansions are
-        /// installed (Breaking Ground / Making History). A ground-side,
-        /// scene-independent game fact (the <c>Meta.Dlc</c> path), so a widget
-        /// can tell "no DLC" apart from "DLC present, nothing deployed yet."
-        /// See <see cref="BuildGameDlc"/>.
+        /// The R6 revert-availability capture-add — whether the two stock
+        /// in-flight "revert" actions are currently available, split out
+        /// cheaply here (rather than waiting on the LARGE space-center
+        /// provider) so LaunchDirector can gate its revert controls. Feeds the
+        /// <c>ksp.revertAvailability</c> Topic; see
+        /// <see cref="BuildRevertAvailability"/>.
         /// </summary>
-        public const string DlcTopic = "game.dlc";
+        public const string RevertTopic = "ksp.revertAvailability";
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"bodies"</c> value (see
@@ -240,38 +241,38 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Maps <paramref name="snapshot"/>'s raw <c>"dlc"</c> value
-        /// (<c>Gonogo.KSP.KspHost.BuildDlc</c>'s shape — two bools,
-        /// <c>breakingGround</c>/<c>makingHistory</c>, from
-        /// <c>ExpansionsLoader.IsExpansionInstalled</c>) to the
-        /// <c>game.dlc</c> payload: <c>{ "breakingGround": bool,
-        /// "makingHistory": bool }</c>. Follows <see cref="BuildSystemBodies"/>'s
-        /// own untyped-dict convention (no vessel-scoped provenance — this is a
-        /// <c>game</c>-domain capability snapshot, not the <c>vessel.*</c>
-        /// family). Returns <c>null</c> — not an all-false payload — when the
-        /// snapshot doesn't carry a <c>"dlc"</c> group at all (no sample has
-        /// landed yet), so a caller distinguishes "no data yet" from "the DLC
-        /// is genuinely absent" (both bools false). A present-but-partial group
-        /// defaults each missing bool to <c>false</c> (an expansion the raw
-        /// group didn't mention is treated as not installed), never null — the
-        /// wire shape is two plain bools.
+        /// Maps <paramref name="snapshot"/>'s raw <c>"revert"</c> group
+        /// (<c>Gonogo.KSP.KspHost.BuildRevertAvailability</c>'s shape — two
+        /// bools, <c>canRevertToEditor</c>/<c>canRevertToLaunch</c>, from the
+        /// static <c>FlightDriver.CanRevertToPrelaunch</c>/
+        /// <c>CanRevertToPostInit</c> flags KSP's own pause menu gates its
+        /// revert buttons on) to the <c>ksp.revertAvailability</c> payload:
+        /// <c>{ "canRevertToEditor": bool, "canRevertToLaunch": bool }</c>.
+        /// Follows <see cref="BuildSystemBodies"/>'s untyped-dict convention (a
+        /// scene-side game fact, not vessel-scoped provenance). Returns
+        /// <c>null</c> — not an all-false payload — when the snapshot doesn't
+        /// carry a <c>"revert"</c> group at all (not in the flight scene, so
+        /// neither action exists), letting a caller tell "not in flight" apart
+        /// from "in flight, revert genuinely unavailable" (both bools false). A
+        /// present-but-partial group defaults each missing bool to
+        /// <c>false</c> — never offer a revert we can't confirm is available.
         /// </summary>
-        public static object? BuildGameDlc(KspSnapshot? snapshot)
+        public static object? BuildRevertAvailability(KspSnapshot? snapshot)
         {
             if (snapshot?.Values == null)
             {
                 return null;
             }
 
-            if (!snapshot.Values.TryGetValue("dlc", out var rawDlc) || !(rawDlc is IDictionary<string, object?> raw))
+            if (!snapshot.Values.TryGetValue("revert", out var rawRevert) || !(rawRevert is IDictionary<string, object?> raw))
             {
                 return null;
             }
 
             return new Dictionary<string, object?>
             {
-                ["breakingGround"] = SnapshotDict.GetBool(raw, "breakingGround") ?? false,
-                ["makingHistory"] = SnapshotDict.GetBool(raw, "makingHistory") ?? false,
+                ["canRevertToEditor"] = SnapshotDict.GetBool(raw, "canRevertToEditor") ?? false,
+                ["canRevertToLaunch"] = SnapshotDict.GetBool(raw, "canRevertToLaunch") ?? false,
             };
         }
 
