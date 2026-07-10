@@ -3,7 +3,7 @@ import {
   formatDistance,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@gonogo/core";
 import { useDataSeries } from "@gonogo/data";
 import {
@@ -25,19 +25,25 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  const sma = useDataValue<number>("data", "o.sma");
-  const referenceBody = useDataValue<string>("data", "o.referenceBody");
-  // `useDataSeries` (sparkline history) now carries its own M3 stream shim
-  // (`@gonogo/data`, mirroring `useDataValue`'s) — `o.sma` is MAPPED to the
-  // raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit` is carried
-  // this sparkline reads its window straight off the `TimelineStore`'s
-  // buffered history, same as the headline `sma` value above. See
-  // `stream.test.tsx` for the end-to-end proof.
+  // R6 Wave 1 — both reads are now clean-home stream Topics (no gaps left),
+  // so this widget rides the Uplink stream end-to-end. Read via `useTelemetry`
+  // (the canonical read hook — `useDataValue` is a deprecated alias): the
+  // two-arg form resolves each key through `mapTopic` to its stream home —
+  // `o.sma` -> the raw `vessel.orbit.sma` field-subtopic, `o.referenceBody` ->
+  // the derived `vessel.state.referenceBodyName` display-map (the SDK resolves
+  // `vessel.orbit.referenceBodyIndex` against `system.bodies`). Neither key is
+  // gapped anymore; the Telemachus read-fallback is exercised nowhere in this
+  // widget's own tests (see `stream.test.tsx` / `dual-run.test.tsx`).
+  const sma = useTelemetry<number>("data", "o.sma");
+  const referenceBody = useTelemetry<string>("data", "o.referenceBody");
+  // `useDataSeries` (sparkline history) carries the same stream shim — `o.sma`
+  // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
+  // is carried this sparkline reads its window straight off the
+  // `TimelineStore`'s buffered history, same as the headline `sma` value
+  // above. See `stream.test.tsx` for the end-to-end proof.
   const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
-  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
-  // `o.sma` is this widget's one MAPPED key (-> `vessel.orbit.sma`);
-  // `o.referenceBody` is GAPPED (map-topic.ts) and stays legacy.
+  // Connectivity indicator keyed off the headline `o.sma` -> `vessel.orbit.sma`.
   const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const cols = w ?? 4;

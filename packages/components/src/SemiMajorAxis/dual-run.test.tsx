@@ -1,98 +1,73 @@
 import { DashboardItemContext } from "@gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import lkoKerbin from "./__fixtures__/lko-kerbin.json";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * SemiMajorAxis's M3 batch-2 behavior-preservation golden dual-run (mirrors
- * `WarpControl/dual-run.test.tsx`, the pilot — this widget is all-mapped
- * for its one headline key, like WarpControl): the SAME sma state, rendered
- * once off the legacy `DataSource` and once off the stream, must produce
- * byte-identical DOM at `delay=0`.
+ * R6 Wave 1 — SemiMajorAxis renders entirely off the Uplink stream.
  *
- * `lko-kerbin` also carries `_series` (a sparkline backfill) — this test
- * doesn't seed it (`snapshotWidgetMode` only ever emits top-level,
- * non-`_`-prefixed fixture keys), so neither leg's sparkline renders a
- * `<path>` here, but for two DIFFERENT reasons post the `useDataSeries`
- * stream shim (`stream.test.tsx` is where the shim is actually exercised
- * with real multi-point history):
- * - **Legacy leg**: `lko-kerbin` has no `v.name`/`v.missionTime`, so
- *   `BufferedDataSource`'s `FlightDetector` never establishes a flight —
- *   `subscribeSamples` fans out nothing at all (see `BufferedDataSource
- *   .appendSample`'s flight gate), leaving the sparkline permanently empty.
- * - **Stream leg**: `o.sma` IS mapped + carried here, so the sparkline DOES
- *   stream — but this test only emits ONE `vessel.orbit` point, and
- *   `@gonogo/ui`'s `Sparkline` draws nothing for fewer than 2 finite
- *   values, same as the legacy leg's zero.
- *
- * Both legs land on the same empty-sparkline markup, just via different
- * routes — a byte-identical dual-run at delay=0, not a coincidence of the
- * shim being absent. `o.referenceBody` is GAPPED and reads off the legacy
- * AUX source in the stream leg.
+ * This file used to be a fork↔stream behavior-preservation dual-run (the
+ * WarpControl pilot pattern): the SAME state rendered once off the legacy
+ * `DataSource` and once off the stream, asserted byte-identical. That legacy
+ * `"data"` `MockDataSource` leg is moot now that both of this widget's reads
+ * are clean-home stream Topics and the fork is on its way out, so it's dropped
+ * — what remains is the stream leg on its own, proving the widget renders the
+ * full readout (headline `sma` + the derived reference-body subtitle) with NO
+ * legacy source registered anywhere in this file.
  */
 afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = ["o.referenceBody"] as const;
-
-describe("SemiMajorAxis — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same sma state", async () => {
-    const mode = { name: "default-5x6", w: 5, h: 6 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: SemiMajorAxisComponent,
-      fixture: lkoKerbin,
-      mode,
-      connectSource: true,
-    });
-
-    const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
+describe("SemiMajorAxis — renders off the stream alone (R6 Wave 1)", () => {
+  it("renders sma and the derived reference-body subtitle purely off the stream", async () => {
+    const fixture = setupStreamFixture({
+      // `o.referenceBody` -> `vessel.state.referenceBodyName` is "carried" only
+      // once ALL EIGHT `vessel.state` inputs are (see `vessel-state.ts`).
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: GAPPED_KEYS.map((key) => ({ key })),
-      connectSource: true,
-    });
 
-    const { container } = render(
-      <streamFixture.Provider>
+    render(
+      <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "sma-dual" }}>
-          <SemiMajorAxisComponent id="sma-dual" w={mode.w} h={mode.h} />
+          <SemiMajorAxisComponent id="sma-dual" w={5} h={6} />
         </DashboardItemContext.Provider>
-      </streamFixture.Provider>,
+      </fixture.Provider>,
     );
 
     act(() => {
-      for (const key of GAPPED_KEYS) {
-        legacyAux.source.emit(key, lkoKerbin[key as keyof typeof lkoKerbin]);
-      }
-      streamFixture.emit("vessel.orbit", { sma: lkoKerbin["o.sma"] });
+      fixture.emit("vessel.orbit", {
+        sma: lkoKerbin["o.sma"],
+        referenceBodyIndex: 1,
+      });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: lkoKerbin["o.referenceBody"],
+            index: 1,
+            parentIndex: 0,
+            radius: 600000,
+            orbit: null,
+          },
+        ],
+      });
     });
 
-    // "Kerbin" alone isn't sufficient — that text comes from the legacy AUX
-    // source's o.referenceBody, which can land before the STREAM leg's
-    // mapped vessel.orbit emission has actually propagated through the
-    // store. Wait on a value the stream leg alone produces (the sma
-    // readout) so the race can't produce a false green.
-    await waitFor(() => {
-      if (!container.textContent?.includes("680.0 km")) {
-        throw new Error("stream leg has not rendered sma yet");
-      }
-    });
-
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
+    await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Semi-major axis · Kerbin")).toBeTruthy(),
+    );
   });
 });

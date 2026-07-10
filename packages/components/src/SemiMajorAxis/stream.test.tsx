@@ -11,11 +11,13 @@ import { SemiMajorAxisComponent } from "./index";
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * SemiMajorAxis's keys split MAPPED / GAPPED (`map-topic.ts`):
- * - MAPPED: `o.sma` -> `vessel.orbit.sma` (the widget's only headline
- *   value — an all-mapped widget, like the WarpControl pilot).
- * - GAPPED: `o.referenceBody` (needs a display-map subtopic; the subtitle
- *   stays legacy-only and simply doesn't render in this stream-only test).
+ * SemiMajorAxis's keys are both clean-home stream Topics now (R6 Wave 1 —
+ * no gaps left, `map-topic.ts`):
+ * - `o.sma` -> the raw `vessel.orbit.sma` field-subtopic (the headline value).
+ * - `o.referenceBody` -> the derived `vessel.state.referenceBodyName`
+ *   display-map (the SDK resolves `vessel.orbit.referenceBodyIndex` against
+ *   `system.bodies`). The subtitle body suffix therefore streams too, so this
+ *   fixture carries all EIGHT `vessel.state` inputs and emits `system.bodies`.
  *
  * `useDataSeries` (sparkline history, `@gonogo/data`) now carries its own M3
  * stream shim (the `useDataSeries` shim task) mirroring `useDataValue`'s —
@@ -30,9 +32,22 @@ afterEach(() => {
 });
 
 describe("SemiMajorAxis — genuinely runs off the stream (M3 batch 2)", () => {
-  it("reads sma off the real stream pipeline, not legacy", async () => {
+  it("reads sma AND the derived reference-body name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
+      // `vessel.state.referenceBodyName` is "carried" only once ALL EIGHT of
+      // `vessel.state`'s declared inputs are (see `vessel-state.ts`'s
+      // `vesselStateChannel` doc comment); the raw `vessel.orbit.sma` needs
+      // only `vessel.orbit`.
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
       pinnedUt: 10,
     });
 
@@ -52,13 +67,28 @@ describe("SemiMajorAxis — genuinely runs off the stream (M3 batch 2)", () => {
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
-      fixture.emit("vessel.orbit", { sma: 680000 });
+      // referenceBodyIndex 1 -> resolved to "Kerbin" against system.bodies by
+      // deriveVesselState — the same client-side display map the widget reads.
+      fixture.emit("vessel.orbit", { sma: 680000, referenceBodyIndex: 1 });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: 600000,
+            orbit: null,
+          },
+        ],
+      });
     });
 
     await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
-    // o.referenceBody is a declared gap — with no legacy source here it
-    // never arrives, so the subtitle renders without a body suffix.
-    expect(screen.getByText("Semi-major axis")).toBeTruthy();
+    // Both reads are clean homes now: the subtitle body suffix streams off the
+    // derived `vessel.state.referenceBodyName`, with NO legacy source present.
+    await waitFor(() =>
+      expect(screen.getByText("Semi-major axis · Kerbin")).toBeTruthy(),
+    );
   });
 
   it("the plotted sparkline itself streams off the ClientTimeline — RED before the useDataSeries shim, GREEN after", async () => {
