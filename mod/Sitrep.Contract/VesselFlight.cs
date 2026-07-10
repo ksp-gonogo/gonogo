@@ -46,5 +46,11 @@ public class VesselFlight
 
     public double AtmDensity { get; set; }
 
+    /// <summary>Skin/ambient external temperature the vessel is exposed to, Kelvin (Vessel.externalTemperature).</summary>
+    public double ExternalTemperature { get; set; }
+
+    /// <summary>Ambient atmospheric temperature at the vessel's position, Kelvin (Vessel.atmosphericTemperature).</summary>
+    public double AtmosphericTemperature { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }

@@ -125,6 +125,8 @@ namespace Sitrep.Host.IntegrationTests
                             ["dynamicPressure"] = 0.0,
                             ["mach"] = 0.0,
                             ["atmDensity"] = 0.0,
+                            ["externalTemperature"] = 288.0,
+                            ["atmosphericTemperature"] = 250.0,
                         },
                     },
                 },

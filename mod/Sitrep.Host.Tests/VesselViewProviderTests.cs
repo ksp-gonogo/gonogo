@@ -485,6 +485,8 @@ namespace Sitrep.Host.Tests
                     ["dynamicPressure"] = 3.4,
                     ["mach"] = 6.2,
                     ["atmDensity"] = 0.02,
+                    ["externalTemperature"] = 289.4,
+                    ["atmosphericTemperature"] = 250.1,
                     ["missionTime"] = 400.0,
                 });
 
@@ -494,7 +496,33 @@ namespace Sitrep.Host.Tests
             Assert.Equal(-0.05, flight!.Latitude);
             Assert.Equal(179.9, flight.Longitude);
             Assert.Equal(3.4, flight.DynamicPressureKPa);
+            Assert.Equal(289.4, flight.ExternalTemperature);
+            Assert.Equal(250.1, flight.AtmosphericTemperature);
             Assert.Equal("vessel:" + VesselGuid, flight.Meta.Source);
+        }
+
+        [Fact]
+        public void BuildFlightReturnsNullWhenAtmosphericTemperaturesAreMissing()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                flight: new Dictionary<string, object?>
+                {
+                    ["latitude"] = -0.05,
+                    ["longitude"] = 179.9,
+                    ["altitudeAsl"] = 71000.0,
+                    ["altitudeTerrain"] = 70500.0,
+                    ["verticalSpeed"] = 12.5,
+                    ["surfaceSpeed"] = 2200.0,
+                    ["orbitalSpeed"] = 2300.0,
+                    ["gForce"] = 1.1,
+                    ["dynamicPressure"] = 3.4,
+                    ["mach"] = 6.2,
+                    ["atmDensity"] = 0.02,
+                    // externalTemperature / atmosphericTemperature deliberately missing
+                });
+
+            Assert.Null(VesselViewProvider.BuildFlight(snapshot));
         }
 
         [Fact]

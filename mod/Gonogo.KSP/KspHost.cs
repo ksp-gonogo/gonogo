@@ -444,6 +444,11 @@ namespace Gonogo.KSP
                 ["dynamicPressure"] = vessel.dynamicPressurekPa,
                 ["mach"] = vessel.mach,
                 ["atmDensity"] = vessel.atmDensity,
+                // externalTemperature / atmosphericTemperature (G-11): plain
+                // public double fields on Vessel (Kelvin) - read directly, not
+                // derivable from anything else this class captures.
+                ["externalTemperature"] = vessel.externalTemperature,
+                ["atmosphericTemperature"] = vessel.atmosphericTemperature,
                 // missionTime (G-3): confirmed via decompile as a plain
                 // Vessel field. The snapshot's own game-UT (KspSnapshot.Ut)
                 // already comes from Planetarium.GetUniversalTime() via

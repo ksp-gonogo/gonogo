@@ -306,11 +306,14 @@ namespace Sitrep.Host
             var dynamicPressure = GetDouble(flight, "dynamicPressure");
             var mach = GetDouble(flight, "mach");
             var atmDensity = GetDouble(flight, "atmDensity");
+            var externalTemperature = GetDouble(flight, "externalTemperature");
+            var atmosphericTemperature = GetDouble(flight, "atmosphericTemperature");
 
             if (!latitude.HasValue || !longitude.HasValue || !altitudeAsl.HasValue ||
                 !altitudeTerrain.HasValue || !verticalSpeed.HasValue || !surfaceSpeed.HasValue ||
                 !orbitalSpeed.HasValue || !gForce.HasValue || !dynamicPressure.HasValue ||
-                !mach.HasValue || !atmDensity.HasValue)
+                !mach.HasValue || !atmDensity.HasValue || !externalTemperature.HasValue ||
+                !atmosphericTemperature.HasValue)
             {
                 return null;
             }
@@ -328,6 +331,8 @@ namespace Sitrep.Host
                 DynamicPressureKPa = dynamicPressure.Value,
                 Mach = mach.Value,
                 AtmDensity = atmDensity.Value,
+                ExternalTemperature = externalTemperature.Value,
+                AtmosphericTemperature = atmosphericTemperature.Value,
                 Meta = BuildMeta(vesselId),
             };
         }
