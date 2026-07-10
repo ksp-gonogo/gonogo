@@ -118,6 +118,11 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.dynamicPressure": "vessel.flight.dynamicPressureKPa",
   "v.mach": "vessel.flight.mach",
   "v.atmosphericDensity": "vessel.flight.atmDensity",
+  // v.atmosphericTemperature / v.externalTemperature UN-GAPPED (P4a
+  // shared-map batch, G-11): plain raw fields on VesselFlight, not captured
+  // by the original M1 walk.
+  "v.atmosphericTemperature": "vessel.flight.atmosphericTemperature",
+  "v.externalTemperature": "vessel.flight.externalTemperature",
 
   // --- vessel.attitude (raw; *2 CoM-frame quartet dropped, see gaps) ---
   "n.heading": "vessel.attitude.heading",
@@ -275,10 +280,21 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // v.abortValue (P4a command batch): VesselControl.Abort now ships on the
   // wire — see TELEMACHUS_KNOWN_GAPS's matching (removed) entry.
   "v.abortValue": "vessel.control.abort",
+  // v.precisionControlValue / f.precisionControl UN-GAPPED (P4a shared-map
+  // batch): VesselControl now carries a plain `precisionControl` field
+  // alongside `abort` — same raw-field walk as the other vessel.control
+  // booleans above. ActionGroup's toggle read AND Navball's precision-mode
+  // read both land on the same field.
+  "v.precisionControlValue": "vessel.control.precisionControl",
+  "f.precisionControl": "vessel.control.precisionControl",
 
   // --- vessel.structure / vessel.crew ---
   "v.currentStage": "vessel.structure.currentStage",
   "v.crewCount": "vessel.crew.count",
+  // v.crew / v.crewCapacity UN-GAPPED (P4a shared-map batch, G-13): the full
+  // roster + capacity now ship alongside the plain count above.
+  "v.crew": "vessel.crew.crew",
+  "v.crewCapacity": "vessel.crew.capacity",
 
   // --- vessel.thermal ---
   "therm.hottestPartTemp": "vessel.thermal.hottestPart.skinTemp",
@@ -456,6 +472,61 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // array by `type` client-side (WIRE_SENSOR_TYPE in ScienceBench/index.tsx)
   // rather than the mod re-shaping it into four fixed fields.
   "science.sensors": "science.sensors",
+
+  // --- P4a shared-map batch: remaining trivial raw-field walks + whole-topic
+  // reads, now that each topic actually ships on the wire. Each of the
+  // 2-segment raw topics below (game.dlc / robotics.available /
+  // ksp.revertAvailability / spaceCenter.scene / dv.stages / dv.summary /
+  // science.instruments) is also newly added to
+  // DEFAULT_SITREP_CARRIED_TOPICS (SitrepTelemetryProvider.tsx) — career.status
+  // was already carried by the M3b career-detail batch. ---
+
+  // deployed.available: the state map's old "no DLC-presence boolean"
+  // rationale was stale — GameDlc.breakingGround IS that boolean
+  // (CareerViewProvider / a plain DLC-presence check), independent of
+  // whether any science.deployed cluster exists. DeployedScience reads it
+  // as a plain capability flag.
+  "deployed.available": "game.dlc.breakingGround",
+
+  // robotics.available: RoboticsConsole/RotorTachometer's own
+  // "any deployable part present" capability flag — separate from the
+  // identity-list gap (robotics.rotors/robotics.servos stay gapped, no
+  // stable id on the wire).
+  "robotics.available": "robotics.available.available",
+
+  // ksp.canRevertToEditor / ksp.canRevertToLaunch: LaunchDirector's revert
+  // affordance flags — a dedicated RevertAvailability topic now ships them.
+  "ksp.canRevertToEditor": "ksp.revertAvailability.canRevertToEditor",
+  "ksp.canRevertToLaunch": "ksp.revertAvailability.canRevertToLaunch",
+
+  // kc.scene: SpaceCenterStatus's current-scene read — its own 2-segment
+  // raw topic (SpaceCenterScene.scene), a plain enum-name string on the
+  // wire already, no display-map derivation needed.
+  "kc.scene": "spaceCenter.scene.scene",
+
+  // contracts.completedRecent: the state map's old "no wire equivalent"
+  // rationale was stale — CareerContracts now carries a completedRecent
+  // list alongside active/offered.
+  "contracts.completedRecent": "career.status.contracts.completedRecent",
+
+  // sci.instruments: ScienceOfficer's per-instrument list (crew report/
+  // mystery goo/barometer etc, keyed by partId) now has a real wire home —
+  // a DIFFERENT array to science.lab (the Mobile Processing Lab), whole-topic
+  // identity read same as parts.power/parts.robotics/science.lab above.
+  "sci.instruments": "science.instruments",
+
+  // dv.stages: FuelStatus/stage-sim's per-stage delta-v breakdown, whole
+  // array read straight off the new StageDeltaVEntry[] topic.
+  "dv.stages": "dv.stages",
+
+  // dv.stageCount/totalDVVac/totalDVASL/totalDVActual/totalBurnTime: the
+  // vessel-level aggregate scalars, all on the sibling StageDeltaVSummary
+  // topic (dv.summary), each a raw-field walk.
+  "dv.stageCount": "dv.summary.stageCount",
+  "dv.totalDVVac": "dv.summary.totalDvVac",
+  "dv.totalDVASL": "dv.summary.totalDvAsl",
+  "dv.totalDVActual": "dv.summary.totalDvActual",
+  "dv.totalBurnTime": "dv.summary.totalBurnTime",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -615,10 +686,9 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid only
   // on precision — `v.precisionControlValue` below.)
 
-  // v.precisionControlValue: no field on VesselControl yet (matches
-  // f.precisionControl's existing gap below).
-  // gap: no field on the vessel.control contract yet; migrate in M3
-  "v.precisionControlValue",
+  // v.precisionControlValue UN-GAPPED (P4a shared-map batch): VesselControl
+  // now carries a `precisionControl` field — see TELEMACHUS_CLEAN_HOMES
+  // above (shared with f.precisionControl).
 
   // --- land.* — no channel; terrain-touching fields need a terrain asset ---
   "land.timeToImpact",
@@ -632,9 +702,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- full patched-conic chain not captured, only next-patch (encounter) ---
   "o.orbitPatches",
 
-  // --- not captured (G-11) ---
-  "v.atmosphericTemperature",
-  "v.externalTemperature",
+  // v.atmosphericTemperature / v.externalTemperature UN-GAPPED (P4a
+  // shared-map batch) — see TELEMACHUS_CLEAN_HOMES above.
 
   // --- thermal detail beyond headline ratios (G-12) ---
   "therm.hottestPartName",
@@ -645,25 +714,22 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "therm.heatShieldFlux",
   "therm.anyEnginesOverheating",
 
-  // --- roster/capacity (G-13); count-only lands in vessel.crew.count ---
-  "v.crew",
-  "v.crewCapacity",
+  // v.crew / v.crewCapacity UN-GAPPED (P4a shared-map batch, G-13) — see
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // v.biome / v.landedAt UN-GAPPED (R6 prep): vessel.surface now ships
   // Biome + LandedAt — see TELEMACHUS_CLEAN_HOMES above.
 
-  // --- stage-sim (G-14); vessel-level burn estimate is the interim ---
-  "dv.stageCount",
-  "dv.stages",
-  "dv.totalDVVac",
-  "dv.totalDVASL",
-  "dv.totalDVActual",
-  "dv.totalBurnTime",
+  // dv.stageCount/dv.stages/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
+  // dv.totalBurnTime UN-GAPPED (P4a shared-map batch, G-14) — see
+  // TELEMACHUS_CLEAN_HOMES above (dv.stages whole-topic + dv.summary.*
+  // raw-field walks).
 
   // --- parts surface — own ASSET-class design, out of M1 ---
   "v.topology",
   "v.topologySeq",
-  "robotics.available",
+  // robotics.available UN-GAPPED (P4a shared-map batch): a dedicated
+  // capability topic now ships — see TELEMACHUS_CLEAN_HOMES above.
   // robotics.rotors/robotics.servos: RotorTachometer/RoboticsConsole read
   // `{partId, name, ...}[]` lists keyed on a numeric `partId` that both
   // commands (robotics.rotor.setRpmLimit[id,...] etc.) and React list
@@ -686,9 +752,9 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
 
   // v.isControllable UN-GAPPED (R6 shared-derivations batch): derived from
   // vessel.comms.controlState's control LEVEL on vessel.state.isControllable
-  // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl stays gapped
-  // (BUILD — no field on VesselControl yet).
-  "f.precisionControl",
+  // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl UN-GAPPED (P4a
+  // shared-map batch) alongside v.precisionControlValue — see
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // --- derived quantities with no named field on any M1/M2 channel yet ---
   // A-tranche migration UN-GAPPED the cleanly-derivable members of this
@@ -759,7 +825,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "kc.padVesselTitle",
   "kc.partsAvailable",
   "kc.savedShips",
-  "kc.scene",
+  // kc.scene UN-GAPPED (P4a shared-map batch): SpaceCenterScene now ships
+  // its own raw topic — see TELEMACHUS_CLEAN_HOMES above.
 
   // --- M3b career-detail batch: facilities/contracts/strategies/tech
   // un-gapped. The 3069438 capture-extend session (career-capture-extend-
@@ -774,9 +841,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // parser (ContractManager's `parseContracts`, Strategies's
   // `parseStrategies`, TechTree's `parseTechNodes`, SpaceCenterStatus's
   // `parseFacilityLevels`) for how each now accepts BOTH the legacy shape
-  // and this new one. `contracts.completedRecent` stays gapped below — no
-  // wire equivalent exists (CareerViewProvider only carries active/
-  // offered). `strategies.all`'s `effectiveCostReputation` also stays
+  // and this new one. `contracts.completedRecent` is UN-GAPPED as of the P4a
+  // shared-map batch — CareerContracts now carries a completedRecent list
+  // too, see TELEMACHUS_CLEAN_HOMES above. `strategies.all`'s
+  // `effectiveCostReputation` also stays
   // client-side-only — deliberately not added to the wire (no cheap
   // decompiled source for KSP's nonlinear rep curve, career-capture-
   // extend-report.md) — `parseStrategies` already falls back to
@@ -786,10 +854,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // (KNOWN_COMMAND_GAPS in map-command.ts) and fall back to the legacy
   // DataSource automatically — this batch migrates READS only.
 
-  // contracts.completedRecent: no wire equivalent — CareerViewProvider only
-  // ever emits `active`/`offered` (BuildContracts, CareerViewProvider.cs).
-  // gap: no aggregate "recently completed" list on the new wire; migrate in M3
-  "contracts.completedRecent",
+  // contracts.completedRecent UN-GAPPED (P4a shared-map batch): see
+  // TELEMACHUS_CLEAN_HOMES above.
 
   // sci.count/sci.dataAmount: ScienceBench reads two separate scalar
   // aggregates. `science.experiments` (now CLEAN_HOMES above) carries the
@@ -806,12 +872,9 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // science channel at all.
   // gap: GonogoTelemetry-only enrichment, no new-wire equivalent; migrate in M3
   "sci.experimentBreakdown",
-  // sci.instruments: ScienceOfficer's per-instrument list (crew report/
-  // mystery goo/barometer, etc, keyed by partId) — no equivalent exists on
-  // the new wire; science.lab (now CLEAN_HOMES above) is a DIFFERENT part
-  // entirely (the Mobile Processing Lab), not a richer form of this list.
-  // gap: no per-instrument array on the new wire; migrate in a future batch
-  "sci.instruments",
+  // sci.instruments UN-GAPPED (P4a shared-map batch): a per-instrument list
+  // now ships as its own topic — see TELEMACHUS_CLEAN_HOMES above. It is a
+  // DIFFERENT array from science.lab (the Mobile Processing Lab).
   "s.sensor.temp",
   "s.sensor.pres",
   "s.sensor.grav",
@@ -819,16 +882,11 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // deployed.bases un-gapped M3 science-domain finale — see CLEAN_HOMES
   // above (science.deployed, DeployedScience's parseBases now reads BOTH
   // the legacy grouped-base shape and the new flat-per-experiment shape).
-  // deployed.available stays gapped: the new wire can't distinguish "no
-  // Breaking Ground installed" from "Breaking Ground installed but nothing
-  // deployed yet" — both collapse to an absent/empty science.deployed list
-  // (Gonogo.KSP.KspHost.BuildDeployedScience's doc comment: "absent DLC ->
-  // the type never appears -> empty walk -> group returns null", same
-  // shape as "installed, zero clusters in physics range"). No boolean
-  // capability flag exists on the new wire to disambiguate the two, so this
-  // key stays on the legacy DataSource path.
-  // gap: no DLC-presence boolean on the new wire; migrate in M3
-  "deployed.available",
+  // deployed.available UN-GAPPED (P4a shared-map batch): the old "can't
+  // disambiguate no-DLC from empty-deployed" rationale was stale —
+  // GameDlc.breakingGround is its own independent capability boolean, not
+  // derived from science.deployed's emptiness. See TELEMACHUS_CLEAN_HOMES
+  // above.
   "mh.score",
   "mh.objectives",
   "mh.available",
@@ -838,8 +896,9 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "mh.phase",
   "scansat.available",
   "scansat.scanningVessels",
-  "ksp.canRevertToEditor",
-  "ksp.canRevertToLaunch",
+  // ksp.canRevertToEditor / ksp.canRevertToLaunch UN-GAPPED (P4a shared-map
+  // batch): a dedicated RevertAvailability topic now ships both flags — see
+  // TELEMACHUS_CLEAN_HOMES above.
 ]);
 
 /**

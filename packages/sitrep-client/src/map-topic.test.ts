@@ -273,14 +273,11 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     // reputation/science were un-gapped in the M3 career batch, and
     // strategies.all/tech.nodes/contracts.active/contracts.offered/
     // kc.facilityLevels were un-gapped in the M3b career-detail batch — see
-    // the career.status mapping tests below.)
+    // the career.status mapping tests below. contracts.completedRecent was
+    // un-gapped in the P4a shared-map batch — see the dedicated test below.)
     expect(mapTopic("data", "land.speedAtImpact")).toBeUndefined();
     expect(mapTopic("data", "land.timeToImpact")).toBeUndefined();
-    expect(mapTopic("data", "contracts.completedRecent")).toBeUndefined();
     expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(true);
-    expect(isKnownTelemachusGap("data", "contracts.completedRecent")).toBe(
-      true,
-    );
   });
 
   it("maps the M3 career batch's economy scalars onto career.status", () => {
@@ -330,11 +327,13 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "contracts.offered")).toBe(false);
     expect(isKnownTelemachusGap("data", "strategies.all")).toBe(false);
     expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(false);
-    // contracts.completedRecent stays gapped — no wire equivalent
-    // (CareerViewProvider only ever emits active/offered).
-    expect(mapTopic("data", "contracts.completedRecent")).toBeUndefined();
+    // contracts.completedRecent UN-GAPPED (P4a shared-map batch): a
+    // completedRecent list now ships alongside active/offered.
+    expect(mapTopic("data", "contracts.completedRecent")).toBe(
+      "career.status.contracts.completedRecent",
+    );
     expect(isKnownTelemachusGap("data", "contracts.completedRecent")).toBe(
-      true,
+      false,
     );
   });
 
@@ -461,11 +460,103 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
       expect(isKnownTelemachusGap("data", "v.abortValue")).toBe(false);
     });
 
-    it("gaps v.precisionControlValue — no individual field on VesselControl yet", () => {
-      expect(mapTopic("data", "v.precisionControlValue")).toBeUndefined();
-      expect(isKnownTelemachusGap("data", "v.precisionControlValue")).toBe(
-        true,
+    it("maps v.precisionControlValue onto vessel.control.precisionControl (P4a shared-map batch)", () => {
+      expect(mapTopic("data", "v.precisionControlValue")).toBe(
+        "vessel.control.precisionControl",
       );
+      expect(isKnownTelemachusGap("data", "v.precisionControlValue")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("P4a shared-map batch — remaining trivial raw-field walks + whole-topic reads", () => {
+    it("maps f.precisionControl onto the same vessel.control field as v.precisionControlValue", () => {
+      expect(mapTopic("data", "f.precisionControl")).toBe(
+        "vessel.control.precisionControl",
+      );
+      expect(isKnownTelemachusGap("data", "f.precisionControl")).toBe(false);
+    });
+
+    it("maps the not-captured VesselFlight temperatures (G-11)", () => {
+      expect(mapTopic("data", "v.atmosphericTemperature")).toBe(
+        "vessel.flight.atmosphericTemperature",
+      );
+      expect(mapTopic("data", "v.externalTemperature")).toBe(
+        "vessel.flight.externalTemperature",
+      );
+      for (const key of ["v.atmosphericTemperature", "v.externalTemperature"]) {
+        expect(isKnownTelemachusGap("data", key)).toBe(false);
+      }
+    });
+
+    it("maps the crew roster + capacity (G-13)", () => {
+      expect(mapTopic("data", "v.crew")).toBe("vessel.crew.crew");
+      expect(mapTopic("data", "v.crewCapacity")).toBe("vessel.crew.capacity");
+      expect(isKnownTelemachusGap("data", "v.crew")).toBe(false);
+      expect(isKnownTelemachusGap("data", "v.crewCapacity")).toBe(false);
+    });
+
+    it("maps deployed.available onto the DLC-presence boolean (state-map correction: it IS derivable)", () => {
+      expect(mapTopic("data", "deployed.available")).toBe(
+        "game.dlc.breakingGround",
+      );
+      expect(isKnownTelemachusGap("data", "deployed.available")).toBe(false);
+    });
+
+    it("maps robotics.available onto its own capability topic", () => {
+      expect(mapTopic("data", "robotics.available")).toBe(
+        "robotics.available.available",
+      );
+      expect(isKnownTelemachusGap("data", "robotics.available")).toBe(false);
+      // The identity lists stay gapped — no stable id on the wire.
+      expect(mapTopic("data", "robotics.rotors")).toBeUndefined();
+      expect(mapTopic("data", "robotics.servos")).toBeUndefined();
+    });
+
+    it("maps ksp.canRevertToEditor/canRevertToLaunch onto the RevertAvailability topic", () => {
+      expect(mapTopic("data", "ksp.canRevertToEditor")).toBe(
+        "ksp.revertAvailability.canRevertToEditor",
+      );
+      expect(mapTopic("data", "ksp.canRevertToLaunch")).toBe(
+        "ksp.revertAvailability.canRevertToLaunch",
+      );
+      for (const key of ["ksp.canRevertToEditor", "ksp.canRevertToLaunch"]) {
+        expect(isKnownTelemachusGap("data", key)).toBe(false);
+      }
+    });
+
+    it("maps kc.scene onto its own scene topic", () => {
+      expect(mapTopic("data", "kc.scene")).toBe("spaceCenter.scene.scene");
+      expect(isKnownTelemachusGap("data", "kc.scene")).toBe(false);
+    });
+
+    it("maps sci.instruments onto its own per-instrument list topic (distinct from science.lab)", () => {
+      expect(mapTopic("data", "sci.instruments")).toBe("science.instruments");
+      expect(isKnownTelemachusGap("data", "sci.instruments")).toBe(false);
+    });
+
+    it("maps dv.stages as a whole-topic read and the summary scalars onto dv.summary", () => {
+      expect(mapTopic("data", "dv.stages")).toBe("dv.stages");
+      expect(mapTopic("data", "dv.stageCount")).toBe("dv.summary.stageCount");
+      expect(mapTopic("data", "dv.totalDVVac")).toBe("dv.summary.totalDvVac");
+      expect(mapTopic("data", "dv.totalDVASL")).toBe("dv.summary.totalDvAsl");
+      expect(mapTopic("data", "dv.totalDVActual")).toBe(
+        "dv.summary.totalDvActual",
+      );
+      expect(mapTopic("data", "dv.totalBurnTime")).toBe(
+        "dv.summary.totalBurnTime",
+      );
+      for (const key of [
+        "dv.stages",
+        "dv.stageCount",
+        "dv.totalDVVac",
+        "dv.totalDVASL",
+        "dv.totalDVActual",
+        "dv.totalBurnTime",
+      ]) {
+        expect(isKnownTelemachusGap("data", key)).toBe(false);
+      }
     });
   });
 });

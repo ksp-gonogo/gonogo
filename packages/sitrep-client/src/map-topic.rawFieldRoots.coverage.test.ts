@@ -63,6 +63,17 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   // Comms uplink channels (CommsCoreUplink / RealAntennasUplink). comms.delay
   // is the TrueNow signal-delay channel behind comm.signalDelay.
   "comms.delay",
+  // P4a shared-map batch: remaining raw-field-walk roots.
+  // SystemViewProvider.cs's DlcTopic (deployed.available).
+  "game.dlc",
+  // PartsViewProvider.cs's RoboticsAvailableTopic (robotics.available).
+  "robotics.available",
+  // SystemViewProvider.cs's RevertTopic (ksp.canRevertToEditor/Launch).
+  "ksp.revertAvailability",
+  // SpaceCenterViewProvider.cs's SceneTopic (kc.scene).
+  "spaceCenter.scene",
+  // StageDeltaVViewProvider.cs's summary topic (dv.stageCount/totalDV*).
+  "dv.summary",
 ]);
 
 /**

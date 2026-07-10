@@ -24,11 +24,10 @@ import styled from "styled-components";
  * `FlightGlobals.Vessels` walk — a Breaking Ground cluster is its own
  * vessel, never the active one). `parseBases` below now accepts BOTH wire
  * shapes; see its own doc comment for the field-by-field mapping.
- * `deployed.available` has no new-wire equivalent (the new wire can't
- * distinguish "no Breaking Ground" from "Breaking Ground but nothing
- * deployed yet" — both collapse to an absent/empty `science.deployed`, see
- * `KspHost.BuildDeployedScience`'s doc comment) and stays on the legacy
- * `DataSource` path.
+ * `deployed.available` is migrated too (P4a shared-map batch) — the earlier
+ * "no new-wire equivalent" read was stale: `game.dlc.breakingGround` is its
+ * own independent capability boolean, not derived from `science.deployed`'s
+ * emptiness (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`).
  *
  * Real-recording validation is deferred to the user's next Space Center
  * capture with a deployed Breaking Ground cluster in physics range — this

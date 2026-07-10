@@ -88,6 +88,21 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // sensor-by-type filter).
   "career.mode",
   "science.sensors",
+  // P4a shared-map batch: remaining trivial raw-field-walk + whole-topic
+  // reads (map-topic.ts's TELEMACHUS_CLEAN_HOMES). career.status is also
+  // newly required here — the M3b career-detail batch mapped
+  // kc.facilityLevels/contracts.*/strategies.all/tech.nodes onto it but
+  // never added it to this carried list, so those reads have been silently
+  // falling back to legacy the whole time; contracts.completedRecent (this
+  // batch) needs the same topic.
+  "game.dlc",
+  "robotics.available",
+  "ksp.revertAvailability",
+  "spaceCenter.scene",
+  "career.status",
+  "science.instruments",
+  "dv.stages",
+  "dv.summary",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */
