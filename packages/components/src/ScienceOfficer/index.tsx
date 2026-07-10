@@ -21,7 +21,7 @@ import styled from "styled-components";
 type ScienceOfficerConfig = Record<string, never>;
 
 export interface Instrument {
-  partId: number;
+  partId: string;
   partTitle: string;
   expId: string;
   deployed: boolean;
@@ -73,8 +73,24 @@ declare module "@gonogo/core" {
 }
 
 /**
- * Defensive parser for `sci.instruments` from the GonogoTelemetry
- * plugin. Drops malformed entries and coerces flightID to number.
+ * Parses `sci.instruments`. Two wire shapes land here:
+ *
+ * - Legacy Telemachus/GonogoTelemetry: `{ partId: number, partTitle, expId,
+ *   deployed, hasData, rerunnable, inoperable }`.
+ * - New SDK `science.instruments` (P4a shared-map batch, mapped onto this
+ *   same widget-facing key via `map-topic.ts`):
+ *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s `InstrumentEntry` — `{
+ *   partId: string (part.flightID.ToString()), partName, experimentId,
+ *   title, deployed, inoperable, rerunnable, resettable, dataIsCollectable
+ *   }`. `partName`/`experimentId`/`dataIsCollectable` are the new wire's
+ *   renames of `partTitle`/`expId`/`hasData`
+ *   (`Gonogo.KSP.KspHost.BuildScienceInstruments`'s doc comment confirms
+ *   `dataIsCollectable` is the "instrument currently holds collectable
+ *   data" flag `hasData` always meant); `title` (the experiment's own
+ *   title, distinct from the part's) has no legacy analogue this widget
+ *   reads. `partId` normalizes to a string either way — every consumer
+ *   below only ever interpolates it into a key or an action-command
+ *   string, never does numeric comparison on it.
  */
 export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;
@@ -83,14 +99,35 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    const partId = typeof e.partId === "number" ? e.partId : null;
+    const partId =
+      typeof e.partId === "string"
+        ? e.partId
+        : typeof e.partId === "number"
+          ? String(e.partId)
+          : null;
     if (partId === null) continue;
+    const partTitle =
+      typeof e.partName === "string"
+        ? e.partName
+        : typeof e.partTitle === "string"
+          ? e.partTitle
+          : "Unknown part";
+    const expId =
+      typeof e.experimentId === "string"
+        ? e.experimentId
+        : typeof e.expId === "string"
+          ? e.expId
+          : "";
+    const hasData =
+      typeof e.dataIsCollectable === "boolean"
+        ? e.dataIsCollectable
+        : e.hasData === true;
     out.push({
       partId,
-      partTitle: typeof e.partTitle === "string" ? e.partTitle : "Unknown part",
-      expId: typeof e.expId === "string" ? e.expId : "",
+      partTitle,
+      expId,
       deployed: e.deployed === true,
-      hasData: e.hasData === true,
+      hasData,
       rerunnable: e.rerunnable === true,
       inoperable: e.inoperable === true,
     });
@@ -170,6 +207,13 @@ function ScienceOfficerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
+  // P4a shared-map batch: sci.instruments -> science.instruments is mapped
+  // now (map-topic.ts) — this existing useDataValue("data", "sci.instruments")
+  // call rides the stream via the mapTopic shim with zero code change here;
+  // parseInstruments above is what actually changed (accepts both wire
+  // shapes). sci.deploy[...]/sci.transmit[...] (the spend commands) still
+  // have no command home (KNOWN_COMMAND_GAPS) and fall back to the legacy
+  // DataSource automatically — this batch migrates the read only.
   const instrumentsRaw = useDataValue("data", "sci.instruments");
   // D3 (P4a): sci.dataAmount stays gapped on the wire (no pre-aggregated
   // field) — derive the vessel-wide total client-side from the same

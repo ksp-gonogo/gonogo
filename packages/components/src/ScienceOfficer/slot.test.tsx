@@ -34,7 +34,7 @@ const KEYS: DataKey[] = [
 ];
 
 const INSTRUMENT: Instrument = {
-  partId: 1,
+  partId: "1",
   partTitle: "Mystery Goo",
   expId: "mysteryGoo",
   deployed: false,
