@@ -1,7 +1,10 @@
 import type { DataKey } from "@gonogo/core";
 import {
+  clearAugments,
   clearRegistry,
+  getComponent,
   MockDataSource,
+  registerAugment,
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
@@ -9,6 +12,10 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverPlannerComponent } from "./index";
+
+// Captured at import — before any `clearRegistry` in a beforeEach wipes the
+// module-load `registerComponent`, so the augment-slot metadata is intact.
+const maneuverPlannerDef = getComponent("maneuver-planner");
 
 /**
  * ManeuverPlanner component test.
@@ -493,5 +500,68 @@ describe("ManeuverPlannerComponent", () => {
     expect(Number(radial)).toBe(0);
     expect(Number(normal)).toBe(0);
     expect(Number(prograde)).toBeGreaterThan(0);
+  });
+});
+
+describe("ManeuverPlanner — augment slots (Uplink §4)", () => {
+  let source: MockDataSource;
+  let buffered: BufferedDataSource;
+
+  beforeEach(async () => {
+    clearRegistry();
+    source = new MockDataSource({ keys: KEYS, affectedBySignalLoss: true });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+  });
+
+  afterEach(() => {
+    cleanup();
+    // The widget module registers no augments of its own, but a test may have
+    // bound one into a slot — reset so it never leaks into a later test.
+    clearAugments();
+    buffered.disconnect();
+  });
+
+  it("declares both whole-widget append slots on its component definition", () => {
+    expect(maneuverPlannerDef?.augmentSlots).toEqual([
+      "maneuver-planner.sections",
+      "maneuver-planner.badges",
+    ]);
+  });
+
+  it("renders with both slots empty when no augment is registered", () => {
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+    // The frame still renders normally — an unfilled slot contributes no DOM.
+    expect(screen.getByText("MANEUVER PLANNER")).toBeInTheDocument();
+    expect(screen.queryByText(/from-sections-augment/i)).toBeNull();
+    expect(screen.queryByText(/from-badges-augment/i)).toBeNull();
+  });
+
+  it("renders an augment registered into the body sections slot", () => {
+    registerAugment({
+      id: "test-transfer-strategy",
+      augments: "maneuver-planner.sections",
+      component: () => <div>from-sections-augment</div>,
+    });
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    act(() => {
+      emitFullOrbit(source);
+    });
+    expect(screen.getByText("from-sections-augment")).toBeInTheDocument();
+  });
+
+  it("renders an augment registered into the header badges slot", () => {
+    registerAugment({
+      id: "test-header-badge",
+      augments: "maneuver-planner.badges",
+      component: () => <span>from-badges-augment</span>,
+    });
+    render(<ManeuverPlannerComponent id="mnv" config={{}} />);
+    // Badges ride the title row, present regardless of telemetry readiness.
+    expect(screen.getByText("from-badges-augment")).toBeInTheDocument();
   });
 });

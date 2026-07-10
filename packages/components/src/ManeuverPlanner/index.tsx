@@ -1,5 +1,6 @@
 import {
   type ActionDefinition,
+  AugmentSlot,
   type ComponentProps,
   type CurrentOrbit,
   getBody,
@@ -48,6 +49,34 @@ import { usePlannerInputs } from "./usePlannerInputs";
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture §4 — locked in augment-slot-map.md)
+//
+// Two whole-widget append slots, both broad escape hatches: neither carries a
+// per-item datum, so their props are empty. `maneuver-planner.sections` sits
+// below the live preview + feasibility check for alternate transfer-strategy
+// comparisons (e.g. a porkchop / optimal-transfer Uplink); `maneuver-planner
+// .badges` rides in the header next to the title. Typed here via co-located
+// declaration-merging into core's `SlotRegistry` so `<AugmentSlot>` and
+// `registerAugment` see the precise (empty) prop shape rather than the loose
+// `Record<string, unknown>` fallback an unmerged slot id gets.
+// ---------------------------------------------------------------------------
+
+/** No slot props — whole-widget append escape hatch (no per-item datum). */
+export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
+/** No slot props — header badge escape hatch (no per-item datum). */
+export type ManeuverPlannerBadgesSlotProps = Record<string, never>;
+
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
+    "maneuver-planner.badges": ManeuverPlannerBadgesSlotProps;
+  }
+}
+
+// Stable empty reference so slot re-renders don't churn mounted augments.
+const EMPTY_SLOT_PROPS: Record<string, never> = {};
 
 /** One entry of `vessel.maneuver.nodes` — the M3 R3 shape (id + burn
  * vector components only, no post-burn orbit preview). Only `id` is read
@@ -485,7 +514,13 @@ function ManeuverPlannerComponent({
   return (
     <Panel>
       <TitleRow>
-        <PanelTitle>MANEUVER PLANNER</PanelTitle>
+        <TitleGroup>
+          <PanelTitle>MANEUVER PLANNER</PanelTitle>
+          <AugmentSlot
+            name="maneuver-planner.badges"
+            props={EMPTY_SLOT_PROPS}
+          />
+        </TitleGroup>
         <StreamStatusBadge status={nodeIdStreamStatus} />
       </TitleRow>
       {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
@@ -535,6 +570,13 @@ function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         )}
+        {/* Whole-widget append below the preview + feasibility check — an
+            alternate-transfer-strategy Uplink (porkchop / optimal transfer)
+            binds here. Renders nothing until an augment registers. */}
+        <AugmentSlot
+          name="maneuver-planner.sections"
+          props={EMPTY_SLOT_PROPS}
+        />
       </ScrollBody>
     </Panel>
   );
@@ -553,6 +595,10 @@ registerComponent<ManeuverPlannerConfig>({
   defaultSize: { w: 10, h: 18 },
   minSize: { w: 6, h: 9 },
   component: ManeuverPlannerComponent,
+  // Two whole-widget append slots (broad escape hatches): a body `sections`
+  // slot for alternate-transfer-strategy comparisons and a header `badges`
+  // slot. Empty until an augment binds (Uplink §4 / augment-slot-map.md).
+  augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
   dataRequirements: [
     "o.sma",
     "o.eccentricity",
@@ -598,6 +644,13 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
   gap: 8px;
   min-width: 0;
 `;
