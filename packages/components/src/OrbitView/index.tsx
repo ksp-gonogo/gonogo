@@ -1,5 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getBody,
   registerComponent,
   useActionInput,
@@ -105,6 +106,65 @@ function useStreamStatusOptional(topic: string): StreamStatusValue {
 interface OrbitViewConfig {
   /** Show Ap/Pe markers. Default: true. */
   showMarkers?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4). OrbitView is a HOST that exposes
+// two slots; no first-party augment fills them here (that is a later phase), so
+// each renders nothing until an Uplink registers an augment into it.
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for `orbit-view.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * layer absolutely positioned over the orbit-ellipse diagram. The diagram draws
+ * body-centric in SVG user-units that match these orbital elements: the body
+ * sits at `center` (the SVG origin), +x runs along the apsis line before
+ * `argPe` rotation, +y is up in the orbital frame, and the visible half-extent
+ * is ~`scale` units (apoapsis-driven, matching the diagram's own scale
+ * reference). An overlay augment — e.g. a future N-body / SOI-transition Uplink
+ * — builds a matching viewBox / transform from these to draw markers in the
+ * diagram's coordinate space.
+ */
+export interface OrbitOverlayContext {
+  /** Semi-major axis, distance units (metres from body centre). */
+  sma: number;
+  /** Eccentricity. */
+  ecc: number;
+  /** Apoapsis radius from body centre, same units. */
+  apoapsis: number;
+  /** Periapsis radius from body centre, same units. */
+  periapsis: number;
+  /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
+  argPe: number;
+  /** Current vessel true anomaly, degrees. */
+  trueAnomaly: number;
+  /** Parent body physical radius, same units, when known. */
+  bodyRadius?: number;
+  /** The body's position in the diagram's SVG frame (its origin). */
+  center: { x: number; y: number };
+  /** Visible half-extent of the frame, distance units (apoapsis-driven). */
+  scale: number;
+}
+
+/**
+ * Props for `orbit-view.badges` — the widget's BROAD escape-hatch slot (spec
+ * §4.8 composable badges), rendered in the header next to the title. Meant for
+ * small status chips an Uplink wants beside the orbit heading; badge augments
+ * read their own Topics via hooks, so the only context passed down is the
+ * parent body name for labelling.
+ */
+export interface OrbitBadgesContext {
+  bodyName: string | undefined;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// slot work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "orbit-view.overlay": OrbitOverlayContext;
+    "orbit-view.badges": OrbitBadgesContext;
+  }
 }
 
 const orbitViewActions = [
@@ -248,6 +308,44 @@ function OrbitViewComponent({
     />
   ) : null;
 
+  // Slot props (spec §4.4). `badges` carries just the body name for labelling;
+  // `overlay` carries the diagram's body-centric projection so an augment can
+  // draw in the SVG's coordinate space. `overlay` is null until the elements
+  // resolve — the wrapper only mounts the slot once there's a diagram beneath.
+  const badgesContext: OrbitBadgesContext = { bodyName };
+  const overlayContext: OrbitOverlayContext | null =
+    sma !== undefined &&
+    eccentricity !== undefined &&
+    apoapsisR !== undefined &&
+    periapsisR !== undefined
+      ? {
+          sma,
+          ecc: eccentricity,
+          apoapsis: apoapsisR,
+          periapsis: periapsisR,
+          argPe: argPe ?? 0,
+          trueAnomaly: trueAnomaly ?? 0,
+          bodyRadius: body?.radius,
+          center: { x: 0, y: 0 },
+          scale: apoapsisR,
+        }
+      : null;
+
+  // Compose the diagram with its overlay layer. The layer is absolutely
+  // positioned over the diagram and stays out of the diagram's pointer path
+  // (see `OverlayLayer`), so an empty slot is visually and interactively inert.
+  const diagramWithOverlay =
+    diagram && overlayContext ? (
+      <DiagramOverlayWrap>
+        {diagram}
+        <OverlayLayer>
+          <AugmentSlot name="orbit-view.overlay" props={overlayContext} />
+        </OverlayLayer>
+      </DiagramOverlayWrap>
+    ) : (
+      diagram
+    );
+
   if (isLandscape && showDiagram && hasOrbit) {
     // Wide-short slot: chrome on the left, diagram on the right. The
     // diagram lives in a square slot taking the full panel height, which
@@ -260,6 +358,7 @@ function OrbitViewComponent({
           <LandscapeChrome>
             <TitleRow>
               <PanelTitle>ORBIT VIEW</PanelTitle>
+              <AugmentSlot name="orbit-view.badges" props={badgesContext} />
               <StreamStatusBadge status={streamStatus} />
             </TitleRow>
             {bodyName !== undefined && (
@@ -267,7 +366,7 @@ function OrbitViewComponent({
             )}
             <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
           </LandscapeChrome>
-          <LandscapeDiagramSlot>{diagram}</LandscapeDiagramSlot>
+          <LandscapeDiagramSlot>{diagramWithOverlay}</LandscapeDiagramSlot>
         </LandscapeRow>
       </Panel>
     );
@@ -277,6 +376,7 @@ function OrbitViewComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>ORBIT VIEW</PanelTitle>
+        <AugmentSlot name="orbit-view.badges" props={badgesContext} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && bodyName !== undefined && (
@@ -286,7 +386,7 @@ function OrbitViewComponent({
       {!hasOrbit ? (
         <NoData>No orbital data</NoData>
       ) : showDiagram ? (
-        diagram
+        diagramWithOverlay
       ) : (
         <PillFill>
           <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
@@ -305,6 +405,10 @@ registerComponent<OrbitViewConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 3 },
   component: OrbitViewComponent,
+  // Exposes an overlay slot (drawn over the SVG diagram, passed the diagram's
+  // projection) and a broad badges escape-hatch slot in the header. No
+  // first-party augment fills either yet (spec §4).
+  augmentSlots: ["orbit-view.overlay", "orbit-view.badges"],
   // Legacy `dataRequirements` kept during migration (rename/removal is R7);
   // the reads themselves are stream-native (`vessel.orbit` + the `vessel.state`
   // derived channel).
@@ -347,6 +451,22 @@ const PillFill = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const DiagramOverlayWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+`;
+
+const OverlayLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  /* Keep the diagram beneath interactive; an overlay augment re-enables
+     pointer events on its own elements when it needs them. */
+  pointer-events: none;
 `;
 
 const LandscapeRow = styled.div`

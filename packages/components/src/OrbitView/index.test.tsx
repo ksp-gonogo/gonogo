@@ -1,5 +1,7 @@
+import { clearAugments, registerAugment } from "@gonogo/core";
 import { cleanup, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -73,5 +75,78 @@ describe("OrbitViewComponent", () => {
       }
     });
     expect(container.querySelector("svg")).toBeNull();
+  });
+});
+
+/**
+ * Augment-slot exposure (Uplink architecture spec §4). OrbitView exposes an
+ * `orbit-view.overlay` slot over the diagram and an `orbit-view.badges`
+ * escape-hatch in the header. No first-party augment fills them, so these tests
+ * register throwaway augments (cleared each test) to prove the slots compose,
+ * and that the empty slots are inert when nothing is registered.
+ */
+describe("OrbitView augment slots", () => {
+  afterEach(() => {
+    cleanup();
+    clearAugments();
+  });
+
+  it("renders an overlay augment over the diagram, passed the diagram's projection", async () => {
+    registerAugment({
+      id: "test-orbit-overlay",
+      augments: "orbit-view.overlay",
+      component: (ctx: OrbitOverlayContext) => (
+        <div data-testid="overlay-probe">apo={Math.round(ctx.apoapsis)}</div>
+      ),
+    });
+
+    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+
+    await waitFor(() => {
+      if (container.querySelector('[data-testid="overlay-probe"]') === null) {
+        throw new Error("overlay augment has not rendered yet");
+      }
+    });
+    // The diagram still renders beneath the overlay layer.
+    expect(container.querySelector("svg")).not.toBeNull();
+    // The overlay received the body-centric projection (apoapsis, in the
+    // diagram's distance units) as slot props.
+    expect(
+      container.querySelector('[data-testid="overlay-probe"]')?.textContent,
+    ).toMatch(/apo=\d+/);
+  });
+
+  it("renders a badges augment in the header, passed the body name", async () => {
+    registerAugment({
+      id: "test-orbit-badge",
+      augments: "orbit-view.badges",
+      component: (ctx: OrbitBadgesContext) => (
+        <span>badge:{ctx.bodyName ?? "?"}</span>
+      ),
+    });
+
+    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+
+    await waitFor(() => {
+      if (!container.textContent?.includes("badge:Kerbin")) {
+        throw new Error(
+          "badge augment has not rendered with the body name yet",
+        );
+      }
+    });
+    expect(container.textContent).toContain("badge:Kerbin");
+  });
+
+  it("renders the diagram with both slots empty when no augment is registered", async () => {
+    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+
+    await waitFor(() => {
+      if (container.querySelector("svg") === null) {
+        throw new Error("diagram has not rendered yet");
+      }
+    });
+    // No augment registered → nothing composes into either slot.
+    expect(container.querySelector('[data-testid="overlay-probe"]')).toBeNull();
+    expect(container.textContent).not.toContain("badge:");
   });
 });
