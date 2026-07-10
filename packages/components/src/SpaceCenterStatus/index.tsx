@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
@@ -18,6 +19,19 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 type SpaceCenterStatusConfig = Record<string, never>;
+
+// Augment slots (Uplink architecture §4 / augment-slot-map: space-center-status).
+// `.sections` appends extra facility-level rows to the body (e.g. a KSC-expansion
+// Uplink's custom facilities / ground-based life-support depot); `.badges` is the
+// broad header escape-hatch that drops an inline badge next to the title. Both are
+// plain markers with no slot props. Co-located `SlotRegistry` declaration-merge
+// (spec §4.6) so parallel slot work doesn't collide on a shared central file.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "space-center-status.sections": Record<string, never>;
+    "space-center-status.badges": Record<string, never>;
+  }
+}
 
 const FACILITIES: Array<{ key: FacilityKey; label: string }> = [
   { key: "launchPad", label: "Launch Pad" },
@@ -243,6 +257,10 @@ function SpaceCenterStatusComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>SPACE CENTER</PanelTitle>
+        {/* Header escape-hatch slot (augment-slot-map ".badges broad
+            escape-hatch"): any Uplink can drop an inline badge next to the
+            title. Renders nothing until an augment binds it. */}
+        <AugmentSlot name="space-center-status.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && (
@@ -354,6 +372,12 @@ function SpaceCenterStatusComponent({
             );
           })}
         </FacilityGrid>
+
+        {/* Body slot (augment-slot-map: appended to the facility-level list).
+            A KSC-expansion Uplink can render extra facility rows here (custom
+            facilities / ground-based life-support depot). Renders nothing until
+            an augment binds it. */}
+        <AugmentSlot name="space-center-status.sections" props={{}} />
 
         <Footer>
           <FooterCell title="Parts unlocked by current R&D tier">
@@ -745,6 +769,7 @@ registerComponent<SpaceCenterStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["space-center-status.sections", "space-center-status.badges"],
   pushable: true,
 });
 
