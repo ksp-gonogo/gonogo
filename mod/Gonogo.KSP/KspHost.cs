@@ -267,6 +267,44 @@ namespace Gonogo.KSP
                 {
                     Debug.LogWarning("[Gonogo] revert-availability snapshot build failed, omitting: " + ex);
                 }
+
+                // Current scene (spaceCenter.scene) is a global game fact -
+                // resolvable in every scene, not tied to FlightGlobals - so it's
+                // captured unconditionally here. The RAW GameScenes enum name is
+                // passed through (not pre-mapped); SpaceCenterViewProvider.BuildScene
+                // owns the fold to the six output strings, the same capture->provider
+                // split as gameMode->CareerViewProvider. Own try so a HighLogic hiccup
+                // can't take out the groups above.
+                try
+                {
+                    values["scene"] = BuildScene();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] scene snapshot build failed, omitting: " + ex);
+                }
+
+                // Launch sites (spaceCenter.launchSites) are the PSystemSetup
+                // union - stock KSC pad + runway, Making History sites, and any
+                // Kerbal Konstructs sites (KK registers into the same list via
+                // AddLaunchSite, so no reflection/hard-link needed). Ground-side
+                // facts, resolvable at the space center too, so captured
+                // unconditionally (no FlightGlobals gate); BuildSpaceCenter omits
+                // the key by returning null when PSystemSetup.Instance isn't ready
+                // pre-load. Own try so a PSystemSetup hiccup can't take out the
+                // groups above.
+                try
+                {
+                    var spaceCenter = BuildSpaceCenter();
+                    if (spaceCenter != null)
+                    {
+                        values["spaceCenter"] = spaceCenter;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] space-center snapshot build failed, omitting: " + ex);
+                }
             }
             catch (Exception ex)
             {
@@ -1295,6 +1333,100 @@ namespace Gonogo.KSP
             {
                 ["canRevertToEditor"] = FlightDriver.CanRevertToPrelaunch,
                 ["canRevertToLaunch"] = FlightDriver.CanRevertToPostInit,
+            };
+        }
+
+        // ----------------------------------------------------------------
+        // Space-center / launch-site capture (spaceCenter.scene +
+        // spaceCenter.launchSites) - ground-side game facts, DelayRole.TrueNow
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// The RAW <c>GameScenes</c> enum name of the current scene
+        /// (<c>HighLogic.LoadedScene.ToString()</c>) - e.g. <c>"FLIGHT"</c>,
+        /// <c>"SPACECENTER"</c>, <c>"TRACKSTATION"</c>. Passed straight through
+        /// (not pre-mapped), same capture->provider split as
+        /// <see cref="BuildGameMode"/>: <c>SpaceCenterViewProvider.BuildScene</c>
+        /// owns the fold to the six output strings the legacy <c>kc.scene</c>
+        /// key used. Global game state, so captured unconditionally.
+        /// </summary>
+        private static string BuildScene()
+        {
+            return HighLogic.LoadedScene.ToString();
+        }
+
+        /// <summary>
+        /// Primitives-only snapshot of the launch-site roster - the
+        /// <c>PSystemSetup.Instance.LaunchSites</c> UNION: stock KSC pad +
+        /// runway, plus any Making History sites and any Kerbal Konstructs
+        /// sites (KK registers into that same list via the public
+        /// <c>AddLaunchSite</c> API, so iterating the one list already covers
+        /// all three - no reflection, no hard KK link). Returns <c>null</c> -
+        /// the WHOLE group - when <c>PSystemSetup.Instance</c> isn't ready
+        /// (pre-load / main menu), so the provider distinguishes "no data yet"
+        /// from "zero sites."
+        ///
+        /// <para><b>Pad occupancy (§8 FLAG, option a):</b> there is no clean
+        /// stock per-site "is a vessel on this pad" API. Stock KSP has one
+        /// physical pad, so the global "active vessel is in PRELAUNCH"
+        /// derivation is replicated onto the stock VAB launch site (the pad)
+        /// only; the runway and every non-stock site carry <c>null</c>
+        /// occupancy. Per-site true occupancy is a documented follow-up.</para>
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSpaceCenter()
+        {
+            var setup = PSystemSetup.Instance;
+            if (setup == null)
+            {
+                return null;
+            }
+
+            var launchSites = setup.LaunchSites;
+            if (launchSites == null)
+            {
+                return null;
+            }
+
+            // Global "a vessel is sitting on the pad right now" derivation: the
+            // active vessel in the PRELAUNCH situation. Read defensively -
+            // FlightGlobals may not be ready outside flight, in which case there
+            // is no active vessel and nothing is on the pad.
+            var active = FlightGlobals.ready ? FlightGlobals.ActiveVessel : null;
+            var prelaunch = active != null && active.situation == Vessel.Situations.PRELAUNCH;
+            var activeTitle = prelaunch && active != null ? active.vesselName : null;
+
+            var sites = new List<object?>(launchSites.Count);
+            foreach (var site in launchSites)
+            {
+                if (site == null)
+                {
+                    continue;
+                }
+
+                var name = site.name;
+                var isStock = name != null && setup.IsStockLaunchSite(name);
+                // The stock pad is the stock, VAB-launched site (VAB -> pad,
+                // SPH -> runway). Only it gets the global PRELAUNCH-derived
+                // occupancy; every other site carries null.
+                var isStockPad = isStock && site.editorFacility == EditorFacility.VAB;
+
+                var body = site.Body;
+
+                sites.Add(new Dictionary<string, object?>
+                {
+                    ["name"] = name,
+                    ["displayName"] = (name != null ? setup.GetLaunchSiteDisplayName(name) : null) ?? site.launchSiteName,
+                    ["editorFacility"] = site.editorFacility.ToString(),
+                    ["body"] = body != null ? body.bodyName : null,
+                    ["isStock"] = isStock,
+                    ["padOccupied"] = isStockPad ? (object?)prelaunch : null,
+                    ["padVesselTitle"] = isStockPad && prelaunch ? activeTitle : null,
+                });
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["launchSites"] = sites,
             };
         }
 
