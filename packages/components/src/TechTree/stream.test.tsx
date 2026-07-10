@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
 
@@ -12,11 +8,10 @@ import { TechTreeComponent } from "./index";
  * The M3/M3b career batch's stream test-adapter proof for TechTree:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `career.science`
- * (-> `career.status.economy.science`) AND `tech.nodes` (->
- * `career.status.tech.nodes`, M3b career-detail batch) both stream now.
- * `kc.scene` stays gapped (no career.status equivalent) — carried by a
- * `setupMockDataSource` AUX, same mixed-source pattern the vessel-gap batch
- * established.
+ * (-> `career.status.economy.science`), `tech.nodes` (->
+ * `career.status.tech.nodes`, M3b career-detail batch), AND `kc.scene`
+ * (-> `spaceCenter.scene.scene`, P4a shared-map batch) all stream now — no
+ * legacy `DataSource` aux needed for this widget any more.
  */
 afterEach(() => {
   cleanup();
@@ -26,13 +21,8 @@ afterEach(() => {
 describe("TechTree — genuinely runs off the stream (M3/M3b career batch)", () => {
   it("renders the science readout derived from career.status.economy.science", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "kc.scene" }],
-      connectSource: true,
     });
 
     render(
@@ -46,7 +36,7 @@ describe("TechTree — genuinely runs off the stream (M3/M3b career batch)", () 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       // tech.nodes now streams via career.status.tech.nodes — the wire
       // shape carries `unlocked: boolean`, not the legacy `state` string
       // (CareerViewProvider.BuildTechNodes; parseTechNodes derives
@@ -81,7 +71,5 @@ describe("TechTree — genuinely runs off the stream (M3/M3b career batch)", () 
 
     await waitFor(() => expect(screen.getByText("· 4854 sci")).toBeTruthy());
     expect(screen.getByText("General Rocketry")).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 });

@@ -320,10 +320,14 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // id/title/scienceCost/unlocked/parents (career-capture-extend-report.md);
   // parseTechNodes derives the Available/Unavailable state from `unlocked`
   // client-side (no server-computed Researchable 3rd state — this widget's
-  // own computeResearchable already does that derivation). kc.scene stays
-  // legacy (no career.status equivalent). tech.unlock[...] (the spend
-  // command) still has no command home (KNOWN_COMMAND_GAPS) and falls back
-  // to legacy automatically — this batch migrates the read only.
+  // own computeResearchable already does that derivation). P4a shared-map
+  // batch: kc.scene -> spaceCenter.scene.scene is mapped too — a plain
+  // 2-segment raw-field walk (SpaceCenterScene.scene, already an enum-name
+  // string on the wire) — so this same useDataValue("data", "kc.scene")
+  // call now rides the stream via the mapTopic shim, zero code change here.
+  // tech.unlock[...] (the spend command) still has no command home
+  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically — this
+  // batch migrates reads only.
   const nodesRaw = useDataValue("data", "tech.nodes");
   const scene = useDataValue<string>("data", "kc.scene");
   const careerScience = useDataValue<number>("data", "career.science");

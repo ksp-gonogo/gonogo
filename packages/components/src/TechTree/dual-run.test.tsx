@@ -1,10 +1,6 @@
 import { DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
@@ -22,7 +18,12 @@ import { TechTreeComponent } from "./index";
  * tech.nodes` (CareerViewProvider.BuildTechNodes) has no description/parts
  * field at all, so a byte-identical comparison needs a legacy fixture that
  * already omits them (see that fixture's own `_meta.notes`). `kc.scene`
- * stays legacy on both legs.
+ * (-> `spaceCenter.scene.scene`) is migrated too as of the P4a shared-map
+ * batch — the legacy leg still reads it off the plain `DataSource` (that
+ * leg never mounts a `TelemetryProvider`, so the shim's carried-channels
+ * gate keeps it on the legacy path there); the stream leg now feeds it
+ * through the fixture's `spaceCenter.scene` topic instead of a legacy AUX
+ * `DataSource`.
  */
 afterEach(() => {
   cleanup();
@@ -40,13 +41,8 @@ describe("TechTree — behavior-preservation golden dual-run (delay=0)", () => {
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "kc.scene" }],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -58,7 +54,9 @@ describe("TechTree — behavior-preservation golden dual-run (delay=0)", () => {
     );
 
     act(() => {
-      legacyAux.source.emit("kc.scene", smallCareerDetail["kc.scene"]);
+      streamFixture.emit("spaceCenter.scene", {
+        scene: smallCareerDetail["kc.scene"],
+      });
       streamFixture.emit("career.status", {
         economy: {
           funds: 0,
@@ -89,7 +87,6 @@ describe("TechTree — behavior-preservation golden dual-run (delay=0)", () => {
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);
   });
