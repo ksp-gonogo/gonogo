@@ -26,9 +26,12 @@ import type {
 } from "@gonogo/core";
 import {
   clearActionHandlers,
+  clearAugments,
   clearRegistry,
   DashboardItemContext,
   dispatchAction,
+  getAugmentsForSlot,
+  registerAugment,
   registerDataSource,
 } from "@gonogo/core";
 import type { CameraLifecycle, Layer } from "@jonpepler/kerbcast";
@@ -44,7 +47,12 @@ import {
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
-import { CameraFeed, type CameraFeedConfig } from "./CameraFeed";
+import {
+  type CameraBadgesContext,
+  CameraFeed,
+  type CameraFeedConfig,
+  type CameraOverlayContext,
+} from "./CameraFeed";
 import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 // ---------------------------------------------------------------------------
@@ -233,6 +241,7 @@ afterEach(() => {
   createdSources.length = 0;
   clearActionHandlers(); // tests share one instanceId — handlers would leak
   clearRegistry(); // resets all registries — tests register their own instance
+  clearAugments(); // wipe any test augment so it never leaks into other suites
   vi.restoreAllMocks();
 });
 
@@ -1051,5 +1060,75 @@ describe("CameraFeed — station (brokered) mode", () => {
       expect(sidecar.slotMidFor(42)).toBeDefined();
     });
     expect(sidecar.lastCommand("subscribe", 42)).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4). CameraFeed exposes an OVERLAY
+// slot (`camera-feed.overlay`, over the video) and a BADGES slot
+// (`camera-feed.badges`, feed header). No first-party augment fills either
+// (P3/P6): an empty slot renders cleanly, and a test augment registered into it
+// appears, receiving the displayed camera's flightID as typed slot props (§4.4).
+// ---------------------------------------------------------------------------
+
+describe("CameraFeed — augment slots (spec §4)", () => {
+  it("exposes both slots (empty until an augment registers)", () => {
+    // No augment bound → the registry lists none for either slot.
+    expect(getAugmentsForSlot("camera-feed.overlay")).toEqual([]);
+    expect(getAugmentsForSlot("camera-feed.badges")).toEqual([]);
+  });
+
+  it("renders the feed with no augments bound (empty slots are inert)", async () => {
+    await buildConnectedSource();
+    renderFeed({ flightId: 42 });
+
+    // The stock feed renders; empty slots add nothing over the video.
+    await screen.findByRole("button", { name: /starboard cam/i });
+    expect(screen.queryByTestId("cam-overlay-augment")).toBeNull();
+    expect(screen.queryByTestId("cam-badge-augment")).toBeNull();
+  });
+
+  it("renders a test augment bound to the overlay slot, passing the displayed camera as slot props", async () => {
+    function OverlayAugment({ flightId, width, height }: CameraOverlayContext) {
+      return (
+        <div data-testid="cam-overlay-augment">
+          HUD:{flightId ?? "none"}:{width}x{height}
+        </div>
+      );
+    }
+    await buildConnectedSource();
+    renderFeed({ flightId: 42 });
+
+    act(() => {
+      registerAugment({
+        id: "test-cam-overlay",
+        augments: "camera-feed.overlay",
+        component: OverlayAugment,
+      });
+    });
+
+    const augment = await screen.findByTestId("cam-overlay-augment");
+    // The slot passed the displayed camera's flightID down (spec §4.4). The
+    // measured size is 0×0 under jsdom's no-op ResizeObserver stub.
+    await waitFor(() => expect(augment.textContent).toBe("HUD:42:0x0"));
+  });
+
+  it("renders a test augment bound to the badges slot in the header", async () => {
+    function BadgeAugment({ flightId }: CameraBadgesContext) {
+      return <span data-testid="cam-badge-augment">CAM {flightId}</span>;
+    }
+    await buildConnectedSource();
+    renderFeed({ flightId: 42 });
+
+    act(() => {
+      registerAugment({
+        id: "test-cam-badge",
+        augments: "camera-feed.badges",
+        component: BadgeAugment,
+      });
+    });
+
+    const badge = await screen.findByTestId("cam-badge-augment");
+    await waitFor(() => expect(badge.textContent).toBe("CAM 42"));
   });
 });

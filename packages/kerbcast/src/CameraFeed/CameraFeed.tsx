@@ -1,12 +1,24 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
-import { getDataSource, useActionInput, useDataValue } from "@gonogo/core";
+import {
+  AugmentSlot,
+  getDataSource,
+  useActionInput,
+  useDataValue,
+} from "@gonogo/core";
 import {
   type CameraFeedHandle,
   KerbcastProvider,
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@jonpepler/kerbcast-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 import { useDelayedKerbcastStream } from "./useDelayedKerbcastStream";
 
@@ -26,6 +38,56 @@ export interface CameraFeedConfig extends Record<string, unknown> {
    * default chrome stays uncluttered; toggled from the camera menu.
    */
   showDebugInfo: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4). CameraFeed is PRIMARILY an
+// augment itself (it fills `distance-to-target.camera`) and secondarily a HOST
+// widget that exposes two slots. No first-party augment fills either here — the
+// package move + Kerbalism/RA fillers are a later phase — so each renders
+// nothing until an Uplink registers into it.
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for `camera-feed.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * layer absolutely positioned OVER the video element. Data-over-video augments
+ * (a telemetry HUD painted on the feed at key moments) draw here in the feed's
+ * pixel space, so the slot passes the rendered video-container dimensions and
+ * the flightID of the camera currently on screen. `width`/`height` are CSS px
+ * (0 before the first measure); `flightId` reflects what the SDK actually shows
+ * — auto-picks included — via `onDisplayedCameraChange`, not the requested id.
+ *
+ * NOTE: richer projection (the SDK's internal pan/zoom transform) isn't
+ * readable from this wrapper; exposing it waits on the widget's move into
+ * `@gonogo/kerbcast` (P3), where it can read the SDK feed handle directly.
+ */
+export interface CameraOverlayContext {
+  /** flightID of the displayed camera (auto-picks included); null before one resolves. */
+  flightId: number | null;
+  /** Rendered width of the video container, CSS px (0 before first measure). */
+  width: number;
+  /** Rendered height of the video container, CSS px. */
+  height: number;
+}
+
+/**
+ * Props for `camera-feed.badges` — the widget's BROAD escape-hatch slot (spec
+ * §4.8 composable badges), rendered as a small chip strip in the feed header.
+ * Badge augments read their own Topics via hooks, so the only context passed
+ * down is the displayed camera's flightID for labelling.
+ */
+export interface CameraBadgesContext {
+  flightId: number | null;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not a central registry file) so parallel slot
+// work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "camera-feed.overlay": CameraOverlayContext;
+    "camera-feed.badges": CameraBadgesContext;
+  }
 }
 
 /** Component actions exposed to the serial-input platform. */
@@ -105,6 +167,27 @@ export function CameraFeed({
   // actions). Nothing outside this component holds a ref to CameraFeed.
   const feedRef = useRef<CameraFeedHandle>(null);
 
+  // ---- Overlay-slot geometry ----
+  // The `camera-feed.overlay` slot passes the rendered video-container size so
+  // an overlay augment can lay out in the feed's pixel space. Measured off the
+  // positioned wrapper via a callback ref + ResizeObserver, so it re-attaches
+  // cleanly across the `!client` early-return (the wrapper only mounts once the
+  // stream is ready). ResizeObserver is stubbed in tests (installDomStubs).
+  const [feedSize, setFeedSize] = useState({ width: 0, height: 0 });
+  const overlayObserverRef = useRef<ResizeObserver | null>(null);
+  const attachOverlayWrap = useCallback((el: HTMLDivElement | null) => {
+    overlayObserverRef.current?.disconnect();
+    overlayObserverRef.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () =>
+      setFeedSize({ width: el.clientWidth, height: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    overlayObserverRef.current = ro;
+  }, []);
+  useEffect(() => () => overlayObserverRef.current?.disconnect(), []);
+
   // ---- Serial-input actions ----
   // stepCamera, setZoomRate and setPanAxis are guarded internally by the
   // shared component (showZoom / showPan / supportsPitch checks), so the
@@ -177,27 +260,82 @@ export function CameraFeed({
 
   if (!client || !subscriptions) return null;
 
+  // Slot props (spec §4.4). Both carry the displayed camera's flightID; the
+  // overlay additionally carries the measured video-container size so an
+  // overlay augment can draw in the feed's pixel space.
+  const overlayContext: CameraOverlayContext = {
+    flightId: effectiveFlightId,
+    width: feedSize.width,
+    height: feedSize.height,
+  };
+  const badgesContext: CameraBadgesContext = { flightId: effectiveFlightId };
+
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
   // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
   // hook, satisfying the seam's rules-of-hooks contract. Its signature matches
   // the SDK's `CameraStreamHook` type, so the prop is passed plainly.
+  //
+  // The feed is wrapped in a positioned box that hosts the augment slots: an
+  // OVERLAY layer painted over the video (pointer-events off so the SDK's own
+  // controls stay reachable; an augment re-enables pointer events on its own
+  // interactive elements) and a top-of-feed BADGES strip. Both are empty until
+  // an Uplink registers, adding nothing to the stock feed.
   return (
     <KerbcastProvider client={client} subscriptions={subscriptions}>
-      <SharedCameraFeed
-        ref={feedRef}
-        useStream={useDelayedKerbcastStream}
-        flightId={requested}
-        onSelectCamera={(nextFlightId) =>
-          onConfigChange?.({
-            flightId: nextFlightId,
-            showDebugInfo: config?.showDebugInfo ?? false,
-          })
-        }
-        onDisplayedCameraChange={setEffectiveFlightId}
-        showDebugInfo={showDebugInfo}
-        enableFullscreen
-        enablePictureInPicture
-      />
+      <div ref={attachOverlayWrap} style={FEED_WRAP_STYLE}>
+        <SharedCameraFeed
+          ref={feedRef}
+          useStream={useDelayedKerbcastStream}
+          flightId={requested}
+          onSelectCamera={(nextFlightId) =>
+            onConfigChange?.({
+              flightId: nextFlightId,
+              showDebugInfo: config?.showDebugInfo ?? false,
+            })
+          }
+          onDisplayedCameraChange={setEffectiveFlightId}
+          showDebugInfo={showDebugInfo}
+          enableFullscreen
+          enablePictureInPicture
+        />
+        <div style={FEED_OVERLAY_STYLE}>
+          <AugmentSlot name="camera-feed.overlay" props={overlayContext} />
+        </div>
+        <div style={FEED_BADGES_STYLE}>
+          <AugmentSlot name="camera-feed.badges" props={badgesContext} />
+        </div>
+      </div>
     </KerbcastProvider>
   );
 }
+
+// Positioned wrapper that lets the augment slots layer over the SDK feed. The
+// feed's own root (`Stage`) fills this box, so absolutely-positioned children
+// cover the video exactly.
+const FEED_WRAP_STYLE: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  display: "flex",
+};
+
+// Full-area overlay layer; pointer-events off so it never steals clicks from
+// the feed's controls beneath. Augments opt back in on their own elements.
+const FEED_OVERLAY_STYLE: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+};
+
+// Header badge strip, top-of-feed. Positioned to the right of the SDK's own
+// (hover-gated) title so chips stay clear of it. Container is click-through;
+// individual badges re-enable pointer events as needed.
+const FEED_BADGES_STYLE: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  display: "flex",
+  gap: 4,
+  padding: 4,
+  pointerEvents: "none",
+};
