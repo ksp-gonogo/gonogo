@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
@@ -27,6 +28,48 @@ export interface Instrument {
   hasData: boolean;
   rerunnable: boolean;
   inoperable: boolean;
+}
+
+/**
+ * Slot context for `science-officer.sections` — the per-instrument-row slot
+ * (Uplink architecture spec §4, augment-slot-map). The row slot passes down the
+ * `Instrument` it sits beside so an augment (e.g. an on-vessel-lab Kerbalism
+ * experiment table, the locked alternate to `deployed-science`) can render a
+ * per-instrument extension scoped to exactly that instrument (spec §4.4:
+ * slot-parameterised augments).
+ */
+export interface ScienceOfficerInstrumentSlotContext {
+  /** The instrument the augmented row is rendering. */
+  instrument: Instrument;
+}
+
+/**
+ * Slot context for `science-officer.badges` — the header escape-hatch slot next
+ * to the title. Deliberately broad (augment-slot-map "badges-as-broad-escape-
+ * hatch"): it carries the whole instrument list (`null` while awaiting
+ * telemetry, `[]` for a vessel with no instruments) plus the total stored
+ * science so a header augment can summarise vessel-wide science state without
+ * re-reading the topics itself.
+ */
+export interface ScienceOfficerSlotContext {
+  /** Parsed instrument list, or `null` before telemetry arrives. */
+  instruments: Instrument[] | null;
+  /** Total stored science data across all instruments, in mits. */
+  dataAmount: number;
+}
+
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
+// §4.6 hybrid). Co-located here so parallel slot work on other widgets never
+// collides on a shared central file. This is what types
+// `registerAugment({ augments: "science-officer.sections", … })` and
+// `<AugmentSlot name="science-officer.sections" props={…} />` against the
+// widget's own context types rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would receive.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "science-officer.sections": ScienceOfficerInstrumentSlotContext;
+    "science-officer.badges": ScienceOfficerSlotContext;
+  }
 }
 
 /**
@@ -170,6 +213,13 @@ function ScienceOfficerComponent({
       <TitleRow>
         <PanelTitle>SCIENCE LAB</PanelTitle>
         <StreamStatusBadge status={labStreamStatus} />
+        {/* Header escape-hatch slot (spec §4) — a broad badge/summary augment
+            composes next to the title. Empty (renders nothing) until an Uplink
+            registers into it. */}
+        <AugmentSlot
+          name="science-officer.badges"
+          props={{ instruments, dataAmount: totalDataMits }}
+        />
       </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
@@ -200,6 +250,13 @@ function ScienceOfficerComponent({
                     {inst.inoperable && <Badge $kind="inop">INOPERABLE</Badge>}
                   </Badges>
                   <InstrumentActions instrument={inst} execute={execute} />
+                  {/* Per-instrument section slot (spec §4.4) — passes this
+                      instrument down so an on-vessel-lab augment can extend the
+                      row. Empty until an Uplink registers into it. */}
+                  <AugmentSlot
+                    name="science-officer.sections"
+                    props={{ instrument: inst }}
+                  />
                 </Row>
               ))}
             </InstrumentList>
@@ -597,6 +654,7 @@ registerComponent<ScienceOfficerConfig>({
   dataRequirements: ["sci.instruments", "sci.dataAmount", "science.lab"],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["science-officer.sections", "science-officer.badges"],
   pushable: true,
   requires: ["flight"],
 });
