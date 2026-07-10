@@ -1236,6 +1236,135 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildCrew(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
         }
 
+        [Fact]
+        public void BuildCrewMapsCapacityAndRoster()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 2 },
+                crew: new Dictionary<string, object?>
+                {
+                    ["capacity"] = 4,
+                    ["members"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Jebediah Kerman",
+                            ["trait"] = "Pilot",
+                            ["experienceLevel"] = 5,
+                            ["type"] = "Crew",
+                            ["rosterStatus"] = "Assigned",
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Bob Kerman",
+                            ["trait"] = "Scientist",
+                            ["experienceLevel"] = 3,
+                            ["type"] = "Crew",
+                            ["rosterStatus"] = "Assigned",
+                        },
+                    },
+                });
+
+            var crew = VesselViewProvider.BuildCrew(snapshot);
+
+            Assert.NotNull(crew);
+            Assert.Equal(2, crew!.Count);
+            Assert.Equal(4, crew.Capacity);
+            Assert.Equal(2, crew.Crew.Count);
+
+            var jeb = crew.Crew[0];
+            Assert.Equal("Jebediah Kerman", jeb.Name);
+            Assert.Equal("Pilot", jeb.Trait);
+            Assert.Equal(5, jeb.ExperienceLevel);
+            Assert.Equal("Crew", jeb.Type);
+            Assert.Equal("Assigned", jeb.RosterStatus);
+
+            Assert.Equal("Bob Kerman", crew.Crew[1].Name);
+            Assert.Equal("Scientist", crew.Crew[1].Trait);
+        }
+
+        [Fact]
+        public void BuildCrewKeepsCountOnlyShapeWhenRosterGroupAbsent()
+        {
+            // Older recorded sessions carry misc.crewCount but no dedicated
+            // crew group -- the additive roster/capacity must degrade to an
+            // empty roster and zero capacity, never throw or drop the record.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 3 });
+
+            var crew = VesselViewProvider.BuildCrew(snapshot);
+
+            Assert.NotNull(crew);
+            Assert.Equal(3, crew!.Count);
+            Assert.Equal(0, crew.Capacity);
+            Assert.Empty(crew.Crew);
+        }
+
+        [Fact]
+        public void BuildCrewMembersLeaveFieldsIndividuallyNullRatherThanDroppingTheEntry()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 1 },
+                crew: new Dictionary<string, object?>
+                {
+                    ["capacity"] = 1,
+                    ["members"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Valentina Kerman" },
+                    },
+                });
+
+            var crew = VesselViewProvider.BuildCrew(snapshot);
+
+            Assert.NotNull(crew);
+            var member = Assert.Single(crew!.Crew);
+            Assert.Equal("Valentina Kerman", member.Name);
+            Assert.Null(member.Trait);
+            Assert.Null(member.ExperienceLevel);
+            Assert.Null(member.Type);
+            Assert.Null(member.RosterStatus);
+        }
+
+        [Fact]
+        public void BuildCrewWireCarriesCapacityAndRoster()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 1 },
+                crew: new Dictionary<string, object?>
+                {
+                    ["capacity"] = 3,
+                    ["members"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Jebediah Kerman",
+                            ["trait"] = "Pilot",
+                            ["experienceLevel"] = 5,
+                            ["type"] = "Crew",
+                            ["rosterStatus"] = "Assigned",
+                        },
+                    },
+                });
+
+            var wire = VesselViewProvider.BuildCrewWire(snapshot);
+            var wireDict = Assert.IsType<Dictionary<string, object?>>(wire);
+
+            Assert.Equal(1, wireDict["count"]);
+            Assert.Equal(3, wireDict["capacity"]);
+
+            var roster = Assert.IsAssignableFrom<IEnumerable<object?>>(wireDict["crew"]);
+            var member = Assert.IsType<Dictionary<string, object?>>(System.Linq.Enumerable.Single(roster));
+            Assert.Equal("Jebediah Kerman", member["name"]);
+            Assert.Equal("Pilot", member["trait"]);
+            Assert.Equal(5, member["experienceLevel"]);
+            Assert.Equal("Crew", member["type"]);
+            Assert.Equal("Assigned", member["rosterStatus"]);
+        }
+
         // ---- vessel.structure ----
 
         [Fact]
@@ -1557,7 +1686,21 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            yield return new object[] { new VesselCrew { Count = 3, Meta = meta } };
+            yield return new object[]
+            {
+                new VesselCrew
+                {
+                    Count = 3,
+                    Capacity = 4,
+                    Crew = new List<CrewMember>
+                    {
+                        new CrewMember { Name = "Jebediah Kerman", Trait = "Pilot", ExperienceLevel = 5, Type = "Crew", RosterStatus = "Assigned" },
+                    },
+                    Meta = meta,
+                },
+            };
+
+            yield return new object[] { new CrewMember { Name = "Bill Kerman", Trait = "Engineer", ExperienceLevel = 3, Type = "Crew", RosterStatus = "Assigned" } };
 
             yield return new object[]
             {
@@ -1707,7 +1850,8 @@ namespace Sitrep.Host.Tests
             bool maneuverNodesKeyPresent = false,
             Dictionary<string, object?>? time = null,
             Dictionary<string, object?>? dock = null,
-            Dictionary<string, object?>? surface = null)
+            Dictionary<string, object?>? surface = null,
+            Dictionary<string, object?>? crew = null)
         {
             var vessel = new Dictionary<string, object?>();
             if (identity != null)
@@ -1765,6 +1909,10 @@ namespace Sitrep.Host.Tests
             if (surface != null)
             {
                 vessel["surface"] = surface;
+            }
+            if (crew != null)
+            {
+                vessel["crew"] = crew;
             }
 
             var values = new Dictionary<string, object?> { ["vessel"] = vessel };

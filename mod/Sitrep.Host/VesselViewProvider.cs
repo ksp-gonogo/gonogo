@@ -784,12 +784,42 @@ namespace Sitrep.Host
                 return null;
             }
 
-            return new VesselCrew
+            var result = new VesselCrew
             {
                 Count = count.Value,
                 Meta = BuildMeta(vesselId),
             };
+
+            // Roster + capacity (G-13 additive growth). Optional group: absent
+            // on older recorded sessions, so read defensively and leave the
+            // count-only shape intact when it isn't present.
+            if (TryGetGroup(vessel, "crew", out var crew))
+            {
+                result.Capacity = GetInt(crew, "capacity") ?? 0;
+                if (crew.TryGetValue("members", out var rawMembers)
+                    && rawMembers is IEnumerable<object?> members)
+                {
+                    foreach (var rawMember in members)
+                    {
+                        if (rawMember is IDictionary<string, object?> member)
+                        {
+                            result.Crew.Add(BuildCrewMember(member));
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
+
+        private static CrewMember BuildCrewMember(IDictionary<string, object?> raw) => new CrewMember
+        {
+            Name = GetString(raw, "name"),
+            Trait = GetString(raw, "trait"),
+            ExperienceLevel = GetInt(raw, "experienceLevel"),
+            Type = GetString(raw, "type"),
+            RosterStatus = GetString(raw, "rosterStatus"),
+        };
 
         public static VesselStructure? BuildStructure(KspSnapshot? snapshot)
         {
@@ -1105,7 +1135,18 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(VesselCrew crew) => new Dictionary<string, object?>
         {
             ["count"] = crew.Count,
+            ["capacity"] = crew.Capacity,
+            ["crew"] = crew.Crew.Select(ToWire).ToList<object?>(),
             ["meta"] = ToWire(crew.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(CrewMember member) => new Dictionary<string, object?>
+        {
+            ["name"] = member.Name,
+            ["trait"] = member.Trait,
+            ["experienceLevel"] = member.ExperienceLevel,
+            ["type"] = member.Type,
+            ["rosterStatus"] = member.RosterStatus,
         };
 
         private static Dictionary<string, object?> ToWire(VesselStructure structure) => new Dictionary<string, object?>
