@@ -100,6 +100,20 @@ function ActionGroupComponent({
   const group = ACTION_GROUPS.find((g) => g.name === config?.actionGroupId);
   const currentLabel = config?.label ?? group?.name ?? "";
 
+  // `group.value`/`group.toggle` are resolved dynamically off the ACTION_GROUPS
+  // registry (`@gonogo/core/actionGroups.ts`), not literal `useDataValue`
+  // string calls — see `mapTopic.coverage.test.ts`'s doc comment for why that
+  // makes this widget the scan's own blind spot. P4a un-gapped the last two
+  // holdouts (Abort/Precision Control's `.value` keys): `v.abortValue` ->
+  // `vessel.control.abort` and `v.precisionControlValue` ->
+  // `vessel.control.precisionControl` (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`)
+  // — every other group's `.value` was already mapped. The `.toggle` side is
+  // `useExecuteAction`, a different dispatch path this comment doesn't cover;
+  // `f.abort` -> `vessel.control.setAbort` rides the same toggle -> absolute
+  // bridge as `f.sas`/`f.rcs`/etc (`map-command.ts`). Together this closes the
+  // widget's last gapped pair with zero code change here — both keys already
+  // ride the stream via the mapTopic/mapCommand shim once `vessel.control` is
+  // carried; only test coverage needed adding.
   const value = useDataValue("data", group?.value ?? "v.sasValue");
   const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const commConnected = useDataValue<boolean>("data", "comm.connected");

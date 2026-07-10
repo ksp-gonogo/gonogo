@@ -163,3 +163,168 @@ describe("ActionGroup (SAS) — the toggle -> absolute command bridge (M3)", () 
     clearRegistry();
   });
 });
+
+describe("ActionGroup (Abort) — P4a un-gap: v.abortValue read + f.abort command", () => {
+  it("shows the live Abort state and dispatches vessel.control.setAbort when the topic is carried", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control", "vessel.control.setAbort"],
+      pinnedUt: 0,
+    });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-abort" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Abort" }}
+            id="ag-abort"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.control", {
+        sas: false,
+        sasMode: 0,
+        rcs: false,
+        gear: false,
+        brakes: false,
+        lights: false,
+        abort: false,
+        precisionControl: false,
+        throttle: 0,
+        actionGroups: Array(10).fill(false),
+      });
+    });
+
+    await screen.findByText("OFF");
+
+    const button = screen.getByRole("button", { name: "Toggle Abort" });
+    act(() => {
+      button.click();
+    });
+
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setAbort", {
+        enabled: true,
+      }),
+    );
+  });
+
+  it("falls back to legacy execute() when vessel.control.setAbort isn't carried", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control"],
+      pinnedUt: 0,
+    });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+
+    clearRegistry();
+    const executed: string[] = [];
+    const legacySource = new MockDataSource({
+      keys: [
+        { key: "v.abortValue" },
+        { key: "t.isPaused" },
+        { key: "comm.connected" },
+      ],
+      onExecute: (action) => {
+        executed.push(action);
+      },
+    });
+    const buffered = new BufferedDataSource({
+      source: legacySource,
+      store: new MemoryStore(),
+    });
+    registerDataSource(buffered);
+    await buffered.connect();
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: "ag-abort-legacy" }}
+        >
+          <ActionGroupComponent
+            config={{ actionGroupId: "Abort" }}
+            id="ag-abort-legacy"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.control", {
+        sas: false,
+        sasMode: 0,
+        rcs: false,
+        gear: false,
+        brakes: false,
+        lights: false,
+        abort: false,
+        precisionControl: false,
+        throttle: 0,
+        actionGroups: Array(10).fill(false),
+      });
+    });
+
+    await screen.findByText("OFF");
+
+    const button = screen.getByRole("button", { name: "Toggle Abort" });
+    act(() => {
+      button.click();
+    });
+
+    expect(commandHandler).not.toHaveBeenCalled();
+    expect(executed).toEqual(["f.abort"]);
+
+    buffered.disconnect();
+    clearRegistry();
+  });
+});
+
+describe("ActionGroup (Precision Control) — P4a un-gap: v.precisionControlValue read", () => {
+  it("shows the live Precision Control state off the stream (no toggle key, read-only)", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control"],
+      pinnedUt: 0,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-precision" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Precision Control" }}
+            id="ag-precision"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.control", {
+        sas: false,
+        sasMode: 0,
+        rcs: false,
+        gear: false,
+        brakes: false,
+        lights: false,
+        abort: false,
+        precisionControl: true,
+        throttle: 0,
+        actionGroups: Array(10).fill(false),
+      });
+    });
+
+    await screen.findByText("ON");
+    expect(
+      screen.getByRole("button", { name: "Toggle Precision Control" }),
+    ).toBeDisabled();
+  });
+});

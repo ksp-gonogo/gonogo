@@ -159,6 +159,56 @@ function fmtFixed(value: unknown, digits: number): string {
   return value.toFixed(digits);
 }
 
+/**
+ * `dv.stages` can now arrive off either transport under the identical key
+ * (P4a shared-map batch, map-topic.ts's whole-topic identity read): the
+ * legacy Telemachus `DataSource` still ships the historical `StageInfo`
+ * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/…), while the new mod
+ * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
+ * same `dv.stages` topic — `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
+ * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
+ * Normalize every entry to the `StageInfo` shape the renderer already reads
+ * so `pickDeltaV`/`pickTWR` don't need to know which wire produced the row.
+ * Mirrors ScienceOfficer's `parseInstruments` shape-reconciliation pattern.
+ */
+export function parseStages(raw: unknown): StageInfo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: StageInfo[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    const num = (...keys: string[]): number => {
+      for (const k of keys) {
+        const v = e[k];
+        if (typeof v === "number" && Number.isFinite(v)) return v;
+      }
+      return Number.NaN;
+    };
+    out.push({
+      stage: num("stage"),
+      stageMass: num("stageMass"),
+      dryMass: num("dryMass"),
+      fuelMass: num("fuelMass"),
+      startMass: num("startMass"),
+      endMass: num("endMass"),
+      burnTime: num("burnTime"),
+      deltaVVac: num("deltaVVac", "dvVac"),
+      deltaVASL: num("deltaVASL", "dvAsl"),
+      deltaVActual: num("deltaVActual", "dvActual"),
+      TWRVac: num("TWRVac", "twrVac"),
+      TWRASL: num("TWRASL", "twrAsl"),
+      TWRActual: num("TWRActual", "twrActual"),
+      ispVac: num("ispVac"),
+      ispASL: num("ispASL"),
+      ispActual: num("ispActual"),
+      thrustVac: num("thrustVac"),
+      thrustASL: num("thrustASL", "thrustAsl"),
+      thrustActual: num("thrustActual"),
+    });
+  }
+  return out;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function FuelStatusComponent({
@@ -170,12 +220,16 @@ function FuelStatusComponent({
   const currentStage = useDataValue("data", "v.currentStage");
   // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot).
   // `v.currentStage` is this widget's one representative MAPPED key
-  // (-> `vessel.structure.currentStage`) — the ΔV totals/stage-stack read
-  // GAPPED `dv.*` keys (map-topic.ts's TELEMACHUS_KNOWN_GAPS "stage-sim"
-  // family, G-14) and the LiquidFuel/Oxidizer resource bars read the
-  // GAPPED stage-scoped `r.resourceCurrent(Max)[X]` keys, so neither can
-  // drive this badge without conflating "stream carried" with "legacy
-  // connected".
+  // (-> `vessel.structure.currentStage`). The ΔV totals/stage-stack `dv.*`
+  // keys were UN-GAPPED in the P4a shared-map batch (`dv.stages` ->
+  // whole-topic `dv.stages`; `dv.stageCount`/`totalDV*`/`totalBurnTime` ->
+  // raw-field walks on the sibling `dv.summary` topic, map-topic.ts's
+  // `TELEMACHUS_CLEAN_HOMES`) and now route through the stream too — but
+  // the LiquidFuel/Oxidizer resource bars still read the GAPPED
+  // stage-scoped `r.resourceCurrent(Max)[X]` keys (no wire home, stays
+  // legacy), so this badge still can't be driven off "everything the
+  // widget shows is carried" without conflating "stream carried" with
+  // "legacy connected".
   const streamStatus = useDataStreamStatus("data", "v.currentStage");
   const stageCount = useDataValue("data", "dv.stageCount");
   const totalDVVac = useDataValue("data", "dv.totalDVVac");
@@ -200,10 +254,13 @@ function FuelStatusComponent({
   ];
 
   // `dv.stages` is the whole-vessel stage array. One subscription, all the
-  // per-stage data Telemachus knows about — length matches the real stage
-  // count, no hardcoded cap, no hook-per-stage. Entries arrive high → low
-  // (stage 3 first, stage 0 last) matching the stack-top-down render order.
-  const stages = useDataValue("data", "dv.stages") ?? [];
+  // per-stage data Telemachus (or the mod's StageDeltaVEntry[] topic, same
+  // key) knows about — length matches the real stage count, no hardcoded
+  // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
+  // stage 0 last) matching the stack-top-down render order. `parseStages`
+  // reconciles either wire's field names into the `StageInfo` shape below.
+  const stagesRaw = useDataValue("data", "dv.stages");
+  const stages = parseStages(stagesRaw);
   // Filter to finite values before Math.max — a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of
   // invisible bars.
@@ -655,6 +712,13 @@ registerComponent<FuelStatusConfig>({
   minSize: { w: 3, h: 3 },
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
+  // dv.stageCount/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
+  // dv.totalBurnTime/dv.stages all UN-GAPPED in the P4a shared-map batch —
+  // same declared keys, now routed through the stream by `mapTopic`
+  // (map-topic.ts's TELEMACHUS_CLEAN_HOMES) with a zero call-site rename;
+  // `dv.stages`'s wire shape changed underneath it though, see
+  // `parseStages` above. The r.resourceCurrent(Max)[X] stage-scoped splits
+  // stay GAPPED (no wire home) and remain legacy-only.
   dataRequirements: [
     "v.currentStage",
     "dv.stageCount",
