@@ -85,7 +85,7 @@ public class CareerFacility
     public double? UpgradeCost { get; set; }
 }
 
-/// <summary>Contracts sub-group of <see cref="CareerStatus"/>. Both lists are always present (empty, never null).</summary>
+/// <summary>Contracts sub-group of <see cref="CareerStatus"/>. All three lists are always present (empty, never null).</summary>
 [SitrepContract]
 #if NETSTANDARD2_0
 [TsInterface]
@@ -95,6 +95,18 @@ public class CareerContracts
     public List<CareerContract> Active { get; set; } = new();
 
     public List<CareerContract> Offered { get; set; } = new();
+
+    /// <summary>
+    /// BOUNDED recently-completed list — the last N (currently 10)
+    /// <c>State.Completed</c> contracts from
+    /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first
+    /// by <c>Contract.DateFinished</c> (see
+    /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same
+    /// <see cref="CareerContract"/> element shape as <see cref="Active"/> /
+    /// <see cref="Offered"/> — no extra fields; <c>State</c> is always
+    /// <c>"Completed"</c> here. Rides <c>career.status</c> (TrueNow).
+    /// </summary>
+    public List<CareerContract> CompletedRecent { get; set; } = new();
 }
 
 /// <summary>One contract in <see cref="CareerContracts.Active"/> / <see cref="CareerContracts.Offered"/>.</summary>

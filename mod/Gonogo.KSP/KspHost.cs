@@ -699,7 +699,6 @@ namespace Gonogo.KSP
                 ["brakes"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Brakes] : null,
                 ["lights"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Light] : null,
                 ["abort"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Abort] : null,
-                ["abort"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Abort] : null,
                 // Precision (fine-control) mode is a global flight-input singleton,
                 // not a per-vessel field. Null when there's no active flight scene.
                 ["precisionControl"] = FlightInputHandler.fetch != null ? (bool?)FlightInputHandler.fetch.precisionMode : null,

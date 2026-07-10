@@ -282,6 +282,7 @@ namespace Sitrep.Host.Tests
                     {
                         ["active"] = new List<object?> { ContractDict("123456789012345", "Active") },
                         ["offered"] = new List<object?> { ContractDict("987654321098765", "Offered") },
+                        ["completedRecent"] = new List<object?> { ContractDict("555555555555555", "Completed") },
                     },
                     ["strategies"] = new Dictionary<string, object?>
                     {
