@@ -107,6 +107,13 @@ namespace Gonogo.KSP
                 // as every other structured vessel.* channel above.
                 Channel(VesselViewProvider.DockTopic),
                 Channel(VesselViewProvider.SurfaceTopic),
+                // vessel.parts (P1b slice 2) — the full part-tree topology
+                // (VesselPartsViewProvider), sibling of vessel.structure. Same
+                // structured-vessel.* cadence/DelayRole.Delayed posture; per-
+                // part temps ride here (thermal folds in). Its raw list can be
+                // large but only changes on a staging/dock event, so the 30s
+                // keyframe + change-gate posture fits.
+                Channel(VesselPartsViewProvider.PartsTopic),
             },
             // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
             // truth — the ONE table to edit) ====================================
@@ -183,6 +190,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
             host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
             host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
+            host.AddChannelSource(VesselPartsViewProvider.PartsTopic, VesselPartsViewProvider.BuildPartsWire);
 
             host.AddSampler(new VesselEpochSampler(host));
 

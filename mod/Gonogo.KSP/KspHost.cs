@@ -328,6 +328,11 @@ namespace Gonogo.KSP
             // ---- M3 R3 capture-adds ----
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
             TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
+            // ---- P1b slice 2 topology capture-add — the full part tree the
+            // vessel.parts channel (VesselPartsViewProvider) maps. Same
+            // try/omit discipline; per-part reads are individually guarded in
+            // BuildTopology so one bad part can't blank the list.
+            TryBuildGroup(entry, "topology", () => BuildTopology(vessel));
             return entry;
         }
 
@@ -2925,6 +2930,198 @@ namespace Gonogo.KSP
                 ["currentExtension"] = currentExtension.HasValue ? (double?)currentExtension.Value : null,
                 ["targetExtension"] = targetExtension.HasValue ? (double?)targetExtension.Value : null,
             };
+        }
+
+        // ----------------------------------------------------------------
+        // Part-tree topology capture (vessel.parts — P1b slice 2)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// One pass over <c>vessel.parts</c> producing the raw part-tree the
+        /// <c>vessel.parts</c> channel maps (VesselPartsViewProvider). Each
+        /// part carries its stable flightID join key (same string form as the
+        /// parts.power/robotics captures), parent link, name/title/category,
+        /// vessel-local position + up axis + bounds, dry mass, staging, the
+        /// four per-part temperatures thermal folds in on, its PartModule class
+        /// names (what ShipMap's classifier matches), and the robotics /
+        /// power-related / fuel-line-target flags. Null when the vessel has no
+        /// parts at all. Every part's read is individually try/caught so one
+        /// bad part can't blank the whole list, matching the part-walk
+        /// discipline in <see cref="BuildPartsPower"/>/<see cref="BuildPartsRobotics"/>.
+        /// </summary>
+        private static List<object?>? BuildTopology(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            var list = new List<object?>();
+            foreach (var part in parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    list.Add(BuildTopologyPart(part));
+                }
+                catch (Exception ex)
+                {
+                    var name = part.partInfo != null ? part.partInfo.name : part.name;
+                    Debug.LogWarning("[Gonogo] vessel.parts topology read failed on \"" + name + "\", skipping: " + ex);
+                }
+            }
+
+            return list;
+        }
+
+        private static Dictionary<string, object?> BuildTopologyPart(Part part)
+        {
+            // Same flightID string join key the power/robotics captures use —
+            // see BuildPartsPower's comment. 0 is the uninitialized sentinel.
+            var id = part.flightID != 0 ? part.flightID.ToString() : null;
+            var parentId = part.parent != null && part.parent.flightID != 0
+                ? part.parent.flightID.ToString()
+                : null;
+
+            var modules = new List<object?>();
+            if (part.Modules != null)
+            {
+                foreach (var module in part.Modules)
+                {
+                    if (module != null)
+                    {
+                        // GetType().Name is the CLR class name (e.g.
+                        // "ModuleEngines", "CModuleFuelLine") — exactly what
+                        // ShipMap's classifyPart matches on, and guaranteed the
+                        // class-name form (unlike PartModule.moduleName).
+                        modules.Add(module.GetType().Name);
+                    }
+                }
+            }
+
+            var up = part.orgRot * Vector3.up;
+
+            return new Dictionary<string, object?>
+            {
+                ["id"] = id,
+                ["parentId"] = parentId,
+                ["name"] = part.partInfo != null ? part.partInfo.name : part.name,
+                ["title"] = part.partInfo != null ? part.partInfo.title : null,
+                ["position"] = Vec3Array(part.orgPos),
+                ["up"] = Vec3Array(up),
+                ["bounds"] = new Dictionary<string, object?>
+                {
+                    // prefabSize is the per-part-constant proxy for renderer
+                    // bounds (design §6) — cheap to read every keyframe.
+                    ["size"] = Vec3Array(part.prefabSize),
+                    ["center"] = Vec3Array(part.boundsCentroidOffset),
+                },
+                ["dryMass"] = (double)part.mass,
+                ["inverseStage"] = part.inverseStage,
+                ["maxTemp"] = part.maxTemp,
+                // -1 is the "no skin-thermal model" / "not yet simulated"
+                // sentinel for both skinMaxTemp and temperature — carry it as
+                // null, never a fabricated sub-zero-Kelvin reading.
+                ["skinMaxTemp"] = part.skinMaxTemp > 0 ? part.skinMaxTemp : (double?)null,
+                ["currentTemp"] = part.temperature >= 0 ? part.temperature : (double?)null,
+                ["skinTemp"] = part.skinTemperature,
+                ["category"] = part.partInfo != null ? part.partInfo.category.ToString() : null,
+                ["modules"] = modules,
+                ["isRobotics"] = part.isRobotic(),
+                ["isPowerRelated"] = IsPowerRelated(part),
+                ["fuelLineTargetId"] = FuelLineTargetId(part),
+            };
+        }
+
+        private static double[] Vec3Array(Vector3 v) => new double[] { v.x, v.y, v.z };
+
+        /// <summary>
+        /// True when the part carries a solar panel, an engine alternator, an
+        /// EC-producing resource converter, or its own ElectricCharge storage —
+        /// the same producers <see cref="BuildPartsPower"/> enumerates, folded
+        /// into a single per-part flag so the topology channel can flag power
+        /// nodes without a cross-channel join.
+        /// </summary>
+        private static bool IsPowerRelated(Part part)
+        {
+            if (part.Modules != null)
+            {
+                var panels = part.Modules.GetModules<ModuleDeployableSolarPanel>();
+                if (panels != null && panels.Count > 0)
+                {
+                    return true;
+                }
+
+                var alts = part.Modules.GetModules<ModuleAlternator>();
+                if (alts != null && alts.Count > 0)
+                {
+                    return true;
+                }
+
+                var converters = part.Modules.GetModules<ModuleResourceConverter>();
+                if (converters != null)
+                {
+                    foreach (var converter in converters)
+                    {
+                        var outputs = converter != null ? converter.outputList : null;
+                        if (outputs != null)
+                        {
+                            foreach (var output in outputs)
+                            {
+                                if (output.ResourceName == "ElectricCharge")
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            var resources = part.Resources;
+            if (resources != null && resources.Contains("ElectricCharge"))
+            {
+                var ec = resources["ElectricCharge"];
+                if (ec != null && ec.maxAmount > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The stringified flightID of the part a fuel line feeds, or null when
+        /// this isn't a fuel-line part. A fuel line is a <see cref="CompoundPart"/>
+        /// (its <c>target</c> is the fed part) carrying a
+        /// <c>CModuleFuelLine</c> module — gate on the module so struts (also
+        /// CompoundParts) don't report a fuel-flow target.
+        /// </summary>
+        private static string? FuelLineTargetId(Part part)
+        {
+            if (!(part is CompoundPart compound) || compound.target == null)
+            {
+                return null;
+            }
+
+            if (part.Modules == null)
+            {
+                return null;
+            }
+
+            var fuelLines = part.Modules.GetModules<CompoundParts.CModuleFuelLine>();
+            if (fuelLines == null || fuelLines.Count == 0)
+            {
+                return null;
+            }
+
+            return compound.target.flightID != 0 ? compound.target.flightID.ToString() : null;
         }
 
         // ----------------------------------------------------------------

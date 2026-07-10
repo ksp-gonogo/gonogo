@@ -52,6 +52,10 @@ namespace Sitrep.Core.Tests
             "VesselPropulsion", "VesselStructure", "VesselSurface", "VesselTarget",
             "VesselThermal", "ThermalHottestPart", "ManeuverNode", "Vec3",
             "DockAlignment", "WarpState", "CrewMember", "VesselPhysicsMode",
+            // vessel.parts — VesselPartsViewProvider.ToWire flattens VesselParts/
+            // VesselPart/PartBounds to Dictionary<string, object?> before Publish;
+            // TS-shape-only, never handed to AppendValue raw.
+            "VesselParts", "VesselPart", "PartBounds",
             // kOS status — flattened by its provider before publish.
             "KosComputeStatus",
             // career.status / career.mode — CareerViewProvider builds every one of
