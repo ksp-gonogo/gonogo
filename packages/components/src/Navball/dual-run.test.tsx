@@ -23,12 +23,13 @@ import { NavballComponent } from "./index";
  * `north-level` is chosen because every key it sets is either MAPPED
  * (`n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`; `f.sasEnabled` ->
  * `vessel.control.sas`; `v.rcsValue` -> `vessel.control.rcs`; `f.throttle`
- * -> `vessel.control.throttle`) or a declared GAP this widget always reads
- * regardless of config (`f.precisionControl`, `v.isControllable`, and — as
+ * -> `vessel.control.throttle`; `f.precisionControl` ->
+ * `vessel.control.precisionControl`, P4a un-gap) or a declared GAP this
+ * widget always reads regardless of config (`v.isControllable`, and — as
  * of the M3 batch-2 fixture audit — `f.sasMode`, a shape-mismatch gap:
  * `vessel.control.sasMode` is a numeric `SasMode` enum on the real wire,
  * not the string the widget renders/compares against, see `map-topic.ts`)
- * — so the stream leg needs a legacy AUX source for exactly those three
+ * — so the stream leg needs a legacy AUX source for exactly those two
  * gapped keys, registered alongside the `TelemetryProvider`, proving the
  * shim's MIXED-source coexistence (some keys stream, others legacy, same
  * render) exactly like the pilot.
@@ -66,11 +67,7 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [
-        { key: "f.precisionControl" },
-        { key: "v.isControllable" },
-        { key: "f.sasMode" },
-      ],
+      keys: [{ key: "v.isControllable" }, { key: "f.sasMode" }],
       connectSource: true,
     });
 
@@ -83,10 +80,6 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
     );
 
     act(() => {
-      legacyAux.source.emit(
-        "f.precisionControl",
-        northLevel["f.precisionControl"],
-      );
       legacyAux.source.emit("v.isControllable", northLevel["v.isControllable"]);
       legacyAux.source.emit("f.sasMode", northLevel["f.sasMode"]);
       streamFixture.emit("vessel.attitude", {
@@ -103,6 +96,9 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
         // Included so the stream payload matches the real contract shape.
         sasMode: 0,
         rcs: northLevel["v.rcsValue"],
+        // f.precisionControl -> vessel.control.precisionControl (P4a
+        // un-gap): now lands off the stream, not the legacyAux.
+        precisionControl: northLevel["f.precisionControl"],
         throttle: northLevel["f.throttle"],
       });
     });

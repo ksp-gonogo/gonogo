@@ -906,20 +906,23 @@ registerComponent<NavballConfig>({
   minSize: { w: 3, h: 4 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
+  // n.heading2/n.pitch2/n.roll2 (CoM-frame quartet) and v.angleToPrograde are
+  // dropped from this declared list (P4a brief): they're permanent gaps on
+  // the new mod wire with no planned replacement (map-topic.ts's
+  // TELEMACHUS_KNOWN_GAPS, V-9). The CoM-frame toggle keeps reading
+  // n.heading2/pitch2/roll2 at runtime below — that's a legit legacy-only
+  // Telemachus feature, just no longer advertised as a migratable
+  // requirement. v.angleToPrograde was never actually read by this widget.
   dataRequirements: [
     "n.heading",
     "n.pitch",
     "n.roll",
-    "n.heading2",
-    "n.pitch2",
-    "n.roll2",
     "f.sasMode",
     "f.sasEnabled",
     "f.precisionControl",
     "v.rcsValue",
     "f.throttle",
     "v.isControllable",
-    "v.angleToPrograde",
   ],
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,

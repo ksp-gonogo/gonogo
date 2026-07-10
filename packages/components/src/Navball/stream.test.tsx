@@ -17,12 +17,14 @@ import { NavballComponent } from "./index";
  * `TELEMACHUS_CLEAN_HOMES`/`TELEMACHUS_KNOWN_GAPS`):
  * - MAPPED: `n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`;
  *   `f.sasEnabled` -> `vessel.control.sas`; `v.rcsValue` ->
- *   `vessel.control.rcs`; `f.throttle` -> `vessel.control.throttle`.
+ *   `vessel.control.rcs`; `f.throttle` -> `vessel.control.throttle`;
+ *   `f.precisionControl` -> `vessel.control.precisionControl` (P4a un-gap,
+ *   shared with ActionGroup's precision-control read).
  * - GAPPED (stay legacy forever until a gap lands — not exercised here
  *   since no legacy source exists in this file): `n.heading2`/`n.pitch2`/
- *   `n.roll2` (the CoM-frame quartet, V-9), `f.precisionControl`,
- *   `v.isControllable`, `v.angleToPrograde`, and — as of the M3 batch-2
- *   fixture audit — `f.sasMode` (shape mismatch: the real
+ *   `n.roll2` (the CoM-frame quartet, V-9, dropped from `dataRequirements`
+ *   entirely — no planned replacement), `v.isControllable`, and — as of the
+ *   M3 batch-2 fixture audit — `f.sasMode` (shape mismatch: the real
  *   `vessel.control.sasMode` is a numeric enum, not the string this widget
  *   renders/compares against; see `map-topic.ts`). The `vessel.control`
  *   payload below carries a realistic numeric `sasMode` to match the real
@@ -73,6 +75,7 @@ describe("Navball — genuinely runs off the stream (M3 batch 1)", () => {
         // contract shape.
         sasMode: 1,
         rcs: false,
+        precisionControl: true,
         throttle: 0.6,
       });
     });
@@ -84,5 +87,9 @@ describe("Navball — genuinely runs off the stream (M3 batch 1)", () => {
     // gapped (no legacy source in this stream-only file), so the mode
     // caption stays absent — "SAS" alone, not "SAS: Prograde".
     expect(screen.getByText("SAS")).toBeTruthy();
+    // f.precisionControl -> vessel.control.precisionControl (P4a un-gap):
+    // the PRECISION badge lights up off the stream alone, no legacy source
+    // registered in this file.
+    expect(screen.getByText("PRECISION")).toBeTruthy();
   });
 });
