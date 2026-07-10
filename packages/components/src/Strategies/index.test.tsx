@@ -1,4 +1,4 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
+import { DashboardItemContext } from "@gonogo/core";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -7,19 +7,38 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   parseEffectLines,
   parseStrategies,
   StrategiesComponent,
 } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "strategies.all" },
-  { key: "career.funds" },
-  { key: "career.reputation" },
-  { key: "career.science" },
-  { key: "kc.scene" },
-];
+/**
+ * R6 de-Telemachus: the widget reads its whole career snapshot off the
+ * canonical `career.status` Topic (no legacy read fallback), so these
+ * interactive tests feed reads through a real stream pipeline
+ * (`setupStreamFixture`). Commands are still COMMAND-blocked
+ * (`strategies.activate`/`deactivate` are `KNOWN_COMMAND_GAPS`), so
+ * `useExecuteAction("data")` still falls back to the legacy `DataSource` —
+ * the `setupMockDataSource` leg stays purely to capture those fired actions.
+ */
+function emitCareer(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  all: unknown[],
+  economy: { funds: number; reputation: number; science: number },
+) {
+  const active = all.filter(
+    (s) => (s as { isActive?: boolean }).isActive === true,
+  );
+  fixture.emit("career.status", {
+    economy,
+    facilities: null,
+    contracts: null,
+    strategies: { active, all, activeCount: active.length },
+    tech: null,
+  });
+}
 
 const SAMPLE_ACTIVE = {
   id: "AgressiveNegotiations",
@@ -134,37 +153,55 @@ describe("parseStrategies", () => {
 });
 
 describe("StrategiesComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+  // Command-capture leg only (reads come off the stream) — see emitCareer's
+  // doc comment. The registered "data" source is what `useExecuteAction`
+  // falls back to for the still-gapped activate/deactivate commands.
+  let cmdFixture: MockDataSourceFixture;
+  let stream: ReturnType<typeof setupStreamFixture>;
   let actions: string[];
 
   beforeEach(async () => {
     actions = [];
-    fixture = await setupMockDataSource({
-      keys: KEYS,
+    cmdFixture = await setupMockDataSource({
+      keys: [],
       onExecute: (a) => {
         actions.push(a);
       },
     });
-    source = fixture.source;
+    stream = setupStreamFixture({
+      carriedChannels: ["career.status"],
+      pinnedUt: 10,
+    });
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
+    teardownMockDataSource(cmdFixture);
   });
+
+  function renderWidget() {
+    return render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "s" }}>
+          <StrategiesComponent config={{}} id="s" />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+  }
 
   it("shows the active strategy with a deactivate confirmation flow", async () => {
     const user = userEvent.setup();
-    render(<StrategiesComponent config={{}} id="s" />);
+    renderWidget();
     act(() => {
-      source.emit("strategies.all", [SAMPLE_ACTIVE, SAMPLE_BLOCKED]);
-      source.emit("career.funds", 289848);
-      source.emit("career.reputation", 976);
-      source.emit("career.science", 0);
-      source.emit("kc.scene", "SPACECENTER");
+      emitCareer(stream, [SAMPLE_ACTIVE, SAMPLE_BLOCKED], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
     });
 
-    expect(screen.getByText("Aggressive Negotiations")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Aggressive Negotiations"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/-1\.5% Funds Off on Launch Costs/i),
     ).toBeInTheDocument();
@@ -182,32 +219,32 @@ describe("StrategiesComponent", () => {
     ).toBe(true);
   });
 
-  it("groups soft-blocked strategies under Available with a hint", () => {
-    render(<StrategiesComponent config={{}} id="s" />);
+  it("groups soft-blocked strategies under Available with a hint", async () => {
+    renderWidget();
     act(() => {
-      source.emit("strategies.all", [SAMPLE_ACTIVE, SAMPLE_BLOCKED]);
-      source.emit("career.funds", 289848);
-      source.emit("career.reputation", 976);
-      source.emit("career.science", 0);
-      source.emit("kc.scene", "SPACECENTER");
+      emitCareer(stream, [SAMPLE_ACTIVE, SAMPLE_BLOCKED], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
     });
 
     expect(
-      screen.getByText(/Deactivate the running strategy first/i),
+      await screen.findByText(/Deactivate the running strategy first/i),
     ).toBeInTheDocument();
   });
 
-  it("lists requirement-locked strategies in the Locked section", () => {
-    render(<StrategiesComponent config={{}} id="s" />);
+  it("lists requirement-locked strategies in the Locked section", async () => {
+    renderWidget();
     act(() => {
-      source.emit("strategies.all", [SAMPLE_ACTIVE, SAMPLE_LOCKED]);
-      source.emit("career.funds", 289848);
-      source.emit("career.reputation", 100);
-      source.emit("career.science", 0);
-      source.emit("kc.scene", "SPACECENTER");
+      emitCareer(stream, [SAMPLE_ACTIVE, SAMPLE_LOCKED], {
+        funds: 289848,
+        reputation: 100,
+        science: 0,
+      });
     });
 
-    const locked = screen.getByRole("region", { name: "Locked" });
+    const locked = await screen.findByRole("region", { name: "Locked" });
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
       within(locked).getByText(/Requires more reputation/i),
@@ -217,16 +254,18 @@ describe("StrategiesComponent", () => {
   it("fires strategies.activate with the chosen factor", async () => {
     const user = userEvent.setup();
     const inactive = { ...SAMPLE_BLOCKED, canActivate: true };
-    render(<StrategiesComponent config={{}} id="s" />);
+    renderWidget();
     act(() => {
-      source.emit("strategies.all", [inactive]);
-      source.emit("career.funds", 289848);
-      source.emit("career.reputation", 976);
-      source.emit("career.science", 0);
-      source.emit("kc.scene", "SPACECENTER");
+      emitCareer(stream, [inactive], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
     });
 
-    await user.click(screen.getByRole("button", { name: /^Activate$/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /^Activate$/i }),
+    );
     await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
 
     // Factor defaults to factorSliderDefault (0.05) for this fixture.

@@ -3,8 +3,8 @@ import {
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@gonogo/core";
 import {
   Button,
@@ -146,18 +146,22 @@ function StrategiesComponent({
   w,
   h,
 }: Readonly<ComponentProps<StrategiesConfig>>) {
-  // M3 career batch: career.funds/reputation/science -> career.status.
-  // economy.{funds,reputation,science}. M3b career-detail batch:
-  // strategies.all -> career.status.strategies.all now MAPPED too — the
-  // wire's career.status.strategies.all carries the full `id`/costs/
-  // canActivate/canDeactivate/effect-text shape this widget's parser needs
-  // (career-capture-extend-report.md). The activate/deactivate COMMANDS
-  // still have no command home (KNOWN_COMMAND_GAPS) and fall back to legacy
-  // automatically — this batch migrates the read only.
-  const stratsRaw = useDataValue("data", "strategies.all");
-  const funds = useDataValue<number>("data", "career.funds");
-  const reputation = useDataValue<number>("data", "career.reputation");
-  const science = useDataValue<number>("data", "career.science");
+  // R6 de-Telemachus (read-migrate): the whole career snapshot rides ONE
+  // canonical Topic, `career.status` (CareerStatus). economy.{funds,
+  // reputation,science} and strategies.all are the fields this widget reads —
+  // the wire's `career.status.strategies.all` carries the full `id`/costs/
+  // canActivate/canDeactivate/effect-text shape `parseStrategies` needs
+  // (career-capture-extend-report.md; note `department`, not the legacy
+  // `departmentName`, which parseStrategies normalizes). No legacy read
+  // fallback — the canonical Topic read has none. The activate/deactivate
+  // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
+  // the legacy DataSource via `useExecuteAction` automatically — a later
+  // phase migrates the write path.
+  const career = useTelemetry("career.status");
+  const stratsRaw = career?.strategies?.all;
+  const funds = career?.economy?.funds;
+  const reputation = career?.economy?.reputation;
+  const science = career?.economy?.science;
   const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
