@@ -68,6 +68,14 @@ declare module "@gonogo/core" {
  * Kerbalism because of the known kOS sensor incompatibility, so we
  * treat the value as a plain string array.
  *
+ * P4a shared-map batch (G-13): `v.crew` is UN-GAPPED — `map-topic.ts` now
+ * points it at `vessel.crew.crew`, a `CrewMember[]` (`contract.ts`'s
+ * `{name?, trait?, ...}`), so this same `useDataValue("data", "v.crew")`
+ * call rides the stream via the `mapTopic` shim with zero code change
+ * here. The object-shape branch below (already required for the
+ * Kerbalism case) is exactly what parses `CrewMember` entries too — no
+ * shape fix needed.
+ *
  * Guard against unknown shapes (e.g. the server returning null before
  * the first sample or a mod replacing the payload) — extract strings
  * and drop anything else.
@@ -95,12 +103,11 @@ function CrewManifestComponent({
   const isEVA = useDataValue("data", "v.isEVA");
 
   // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot):
-  // `v.crewCount` is this widget's one MAPPED key (-> `vessel.crew.count`)
-  // — `v.crew`/`v.crewCapacity`/`v.isEVA` are all declared GAPS
-  // (map-topic.ts's "roster/capacity (G-13); count-only lands in
-  // vessel.crew.count") and stay legacy regardless, so their status can't
-  // drive this badge without conflating "stream carried" with "legacy
-  // connected".
+  // `v.crewCount`, `v.crew`, and `v.crewCapacity` are all MAPPED now (P4a
+  // shared-map batch, G-13) — all three land on the same `vessel.crew`
+  // wire channel, so `v.crewCount`'s stream status is representative of
+  // the whole roster/capacity/count trio. `v.isEVA` remains a declared GAP
+  // (no field on any channel yet) and stays legacy regardless.
   const streamStatus = useDataStreamStatus("data", "v.crewCount");
 
   const names = toCrewNames(crewRaw);

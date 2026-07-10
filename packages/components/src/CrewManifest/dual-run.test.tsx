@@ -18,15 +18,17 @@ import { CrewManifestComponent } from "./index";
  *
  * `valentina-solo-orbit` populates every field the widget reads (`v.crew`,
  * `v.crewCount`, `v.crewCapacity`, `v.isEVA`) so the full roster renders on
- * both legs. Only `v.crewCount` is MAPPED (-> `vessel.crew.count`); the
- * other three (all GAPPED — see `stream.test.tsx`'s doc comment) read off a
- * legacy AUX source in the stream leg.
+ * both legs. P4a shared-map batch (G-13) un-gapped `v.crew` and
+ * `v.crewCapacity` alongside the already-mapped `v.crewCount` — all three
+ * now land on the single `vessel.crew` wire channel, so the stream leg
+ * emits them together. Only `v.isEVA` (see `stream.test.tsx`'s doc comment)
+ * still reads off a legacy AUX source in the stream leg.
  */
 afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = ["v.crew", "v.crewCapacity", "v.isEVA"] as const;
+const GAPPED_KEYS = ["v.isEVA"] as const;
 
 describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same crew state", async () => {
@@ -66,14 +68,14 @@ describe("CrewManifest — behavior-preservation golden dual-run (delay=0)", () 
       }
       streamFixture.emit("vessel.crew", {
         count: valentinaSoloOrbit["v.crewCount"],
+        capacity: valentinaSoloOrbit["v.crewCapacity"],
+        crew: valentinaSoloOrbit["v.crew"].map((name) => ({ name })),
       });
     });
 
-    // "Valentina Kerman" alone isn't sufficient — that text comes from the
-    // legacy AUX source's v.crew, which can land before the STREAM leg's
-    // mapped vessel.crew emission has actually propagated through the
-    // store. Wait on the subtitle text the stream leg alone produces (crew
-    // count vs. capacity) so the race can't produce a false green.
+    // Wait on the subtitle text the stream leg's mapped vessel.crew
+    // emission produces (crew count vs. capacity) so we don't race ahead
+    // of the store propagating it.
     await waitFor(() => {
       if (!container.textContent?.includes("1 / 1 aboard")) {
         throw new Error("stream leg has not rendered crew count yet");
