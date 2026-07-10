@@ -103,6 +103,15 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.instruments",
   "dv.stages",
   "dv.summary",
+  // Mod-served topics mapped in TELEMACHUS_CLEAN_HOMES: they must be promoted
+  // here or `isTopicCarried` routes their reads to the legacy source instead of
+  // the stream. parts.robotics, parts.power and science.lab have no legacy
+  // equivalent, so the stream is their only source of data.
+  "parts.power",
+  "parts.robotics",
+  "science.experiments",
+  "science.lab",
+  "science.deployed",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */
