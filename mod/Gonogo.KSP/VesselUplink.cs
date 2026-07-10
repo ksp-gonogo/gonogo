@@ -88,6 +88,11 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.ResourcesTopic),
                 Channel(VesselViewProvider.ThermalTopic),
                 Channel(VesselViewProvider.ControlTopic),
+                // vessel.physics.mode -- discrete on-rails/packed/unpacked enum
+                // (§0.0: its own Topic Value, not a Meta.Quality stand-in);
+                // same cadence/DelayRole.Delayed posture as every vessel.*
+                // channel (it's vessel-derived, not a ground-side fact).
+                Channel(VesselViewProvider.PhysicsModeTopic),
                 Channel(VesselViewProvider.CommsTopic),
                 Channel(VesselViewProvider.PropulsionTopic),
                 Channel(VesselViewProvider.ManeuverTopic),
@@ -168,6 +173,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.ResourcesTopic, VesselViewProvider.BuildResourcesWire);
             host.AddChannelSource(VesselViewProvider.ThermalTopic, VesselViewProvider.BuildThermalWire);
             host.AddChannelSource(VesselViewProvider.ControlTopic, VesselViewProvider.BuildControlWire);
+            host.AddChannelSource(VesselViewProvider.PhysicsModeTopic, VesselViewProvider.BuildPhysicsModeWire);
             host.AddChannelSource(VesselViewProvider.CommsTopic, VesselViewProvider.BuildCommsWire);
             host.AddChannelSource(VesselViewProvider.PropulsionTopic, VesselViewProvider.BuildPropulsionWire);
             host.AddChannelSource(VesselViewProvider.ManeuverTopic, VesselViewProvider.BuildManeuverWire);
