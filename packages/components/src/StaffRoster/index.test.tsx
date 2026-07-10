@@ -1,12 +1,17 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { registerAugment } from "@gonogo/core";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { parseStaff, StaffRosterComponent } from "./index";
+import {
+  parseStaff,
+  type StaffBadgeContext,
+  StaffRosterComponent,
+} from "./index";
 
 const KEYS: DataKey[] = [{ key: "kc.crewRoster" }];
 
@@ -87,6 +92,83 @@ describe("StaffRosterComponent", () => {
       ]);
     });
     expect(screen.getByText(/Assigned/)).toBeInTheDocument();
+  });
+
+  it("renders the per-kerbal badges slot with no bound augment (empty is fine)", () => {
+    // No augment registered → the slot composes nothing and the roster renders
+    // exactly as before, one row per kerbal.
+    render(<StaffRosterComponent config={{}} id="sr" />);
+    act(() => {
+      source.emit("kc.crewRoster", [
+        {
+          name: "Jeb Kerman",
+          trait: "Pilot",
+          experienceLevel: 5,
+          available: true,
+          unavailableReason: "",
+        },
+        {
+          name: "Bob Kerman",
+          trait: "Scientist",
+          experienceLevel: 3,
+          available: true,
+          unavailableReason: "",
+        },
+      ]);
+    });
+    expect(screen.getByText("Jeb Kerman")).toBeInTheDocument();
+    expect(screen.getByText("Bob Kerman")).toBeInTheDocument();
+    expect(screen.queryByTestId("staff-badge")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound augment once per roster row, carrying each kerbal's identity", () => {
+    // A test Uplink binds `staff-roster.badges` and echoes the slot props back.
+    // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
+    // the per-row props carry the right kerbal so the badge lands on the right
+    // one. `requires` is omitted so no Domain presence gate applies.
+    registerAugment<"staff-roster.badges">({
+      id: "test-staff-badge",
+      augments: "staff-roster.badges",
+      component: ({ staffName, staffIndex }: StaffBadgeContext) => (
+        <span data-testid="staff-badge" data-index={staffIndex}>
+          {staffName} ✓
+        </span>
+      ),
+    });
+
+    render(<StaffRosterComponent config={{}} id="sr" />);
+    act(() => {
+      source.emit("kc.crewRoster", [
+        {
+          name: "Jeb Kerman",
+          trait: "Pilot",
+          experienceLevel: 5,
+          available: true,
+          unavailableReason: "",
+        },
+        {
+          name: "Bob Kerman",
+          trait: "Scientist",
+          experienceLevel: 3,
+          available: true,
+          unavailableReason: "",
+        },
+      ]);
+    });
+
+    // Sorted order: Jeb (Pilot) then Bob (Scientist) — one badge per row.
+    const badges = screen.getAllByTestId("staff-badge");
+    expect(badges).toHaveLength(2);
+    expect(badges.map((b) => b.textContent)).toEqual([
+      "Jeb Kerman ✓",
+      "Bob Kerman ✓",
+    ]);
+    // Each badge sits inside its own kerbal's row (props identity is correct).
+    const jebRow = screen.getByText("Jeb Kerman").closest("li");
+    expect(jebRow).not.toBeNull();
+    expect(
+      within(jebRow as HTMLElement).getByTestId("staff-badge"),
+    ).toHaveTextContent("Jeb Kerman ✓");
   });
 });
 

@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getSizeBucket,
   getWidgetShape,
   registerComponent,
@@ -15,6 +16,37 @@ import {
 import styled from "styled-components";
 
 type StaffRosterConfig = Record<string, never>;
+
+// ---------------------------------------------------------------------------
+// The `staff-roster.badges` slot contract (spec §4.4 / augment-slot-map)
+//
+// Whole-program roster analogue of `crew-manifest.badges`: a per-kerbal inline
+// badges slot so a future Kerbalism `Habitat`/`Radiation` Uplink can badge each
+// staff row with comfort/radiation-dose without leaving this widget. Because the
+// slot renders once PER ROW, its props MUST carry the kerbal's identity so the
+// augment badges the right one — `staffName` is that identity (kerbal names are
+// the only per-kerbal handle Sitrep exposes here) and `staffIndex` disambiguates
+// the (legal) case of two kerbals sharing a name.
+// ---------------------------------------------------------------------------
+
+/** Props passed to every `staff-roster.badges` augment — one per roster row. */
+export interface StaffBadgeContext {
+  /** The kerbal this badge row belongs to — its identity for the augment. */
+  staffName: string;
+  /** Position in the sorted roster; disambiguates duplicate names. */
+  staffIndex: number;
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// other widgets can't collide. Makes `registerAugment({ augments:
+// "staff-roster.badges" })` and `<AugmentSlot name="staff-roster.badges"
+// props={…} />` type-check precisely against `StaffBadgeContext`.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "staff-roster.badges": StaffBadgeContext;
+  }
+}
 
 export interface StaffMember {
   name: string;
@@ -258,6 +290,14 @@ function StaffRosterComponent({
                     {kerbal.unavailableReason || "Unavailable"}
                   </Badge>
                 )}
+                {/* Per-kerbal inline badges slot. Renders nothing until an Uplink
+                    (e.g. Kerbalism Habitat/Radiation) binds — the props carry
+                    this row's kerbal identity so the augment badges the right
+                    one. */}
+                <AugmentSlot
+                  name="staff-roster.badges"
+                  props={{ staffName: kerbal.name, staffIndex: i }}
+                />
               </Meta>
             </Row>
           ))}
@@ -388,6 +428,9 @@ registerComponent<StaffRosterConfig>({
   defaultSize: { w: 5, h: 7 },
   minSize: { w: 2, h: 2 },
   component: StaffRosterComponent,
+  // Per-kerbal inline badges slot (augment-slot-map: staff-roster.badges).
+  // Unfilled until a Kerbalism-style Uplink binds — the roster renders as before.
+  augmentSlots: ["staff-roster.badges"],
   dataRequirements: ["kc.crewRoster"],
   defaultConfig: {},
   actions: [],
