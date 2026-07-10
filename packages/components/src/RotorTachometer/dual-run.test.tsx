@@ -20,6 +20,11 @@ import { RotorTachometerComponent } from "./index";
  * `servoMotorIsEngaged`/`servoIsLocked`/`servoMotorLimit` are chosen to
  * match `rotors.json`'s "Main Rotor" entry exactly, proving the merge is a
  * genuine no-op parity case.
+ *
+ * P4a shared-map batch: `robotics.available` (-> `robotics.available.
+ * available`) is carried by the stream fixture too now — only
+ * `robotics.rotors` (still-gapped, no stable id on the wire) rides the
+ * legacy `DataSource` AUX on the stream leg.
  */
 afterEach(() => {
   cleanup();
@@ -37,13 +42,13 @@ describe("RotorTachometer — behavior-preservation golden dual-run (delay=0)", 
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: Object.keys(rotors)
-        .filter((k) => k !== "_meta")
+        .filter((k) => k !== "_meta" && k !== "robotics.available")
         .map((key) => ({ key })),
       connectSource: true,
     });
@@ -58,9 +63,12 @@ describe("RotorTachometer — behavior-preservation golden dual-run (delay=0)", 
 
     act(() => {
       for (const [key, value] of Object.entries(rotors)) {
-        if (key === "_meta") continue;
+        if (key === "_meta" || key === "robotics.available") continue;
         legacyAux.source.emit(key, value);
       }
+      streamFixture.emit("robotics.available", {
+        available: rotors["robotics.available"],
+      });
       streamFixture.emit("parts.robotics", [
         {
           partName: "Main Rotor",

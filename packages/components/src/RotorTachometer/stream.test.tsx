@@ -20,6 +20,11 @@ import { RotorTachometerComponent } from "./index";
  * established. `parts.robotics` merges live `currentRPM`/`rpmLimit`/
  * `normalizedOutput`/`brakePercentage` onto the selected legacy rotor by
  * name.
+ *
+ * P4a shared-map batch: `robotics.available` (-> `robotics.available.
+ * available`) now streams too — the fixture carries it directly, no legacy
+ * AUX needed for that key any more. Only `robotics.rotors` still rides the
+ * `setupMockDataSource` AUX.
  */
 afterEach(() => {
   cleanup();
@@ -29,12 +34,12 @@ afterEach(() => {
 describe("RotorTachometer — genuinely runs off the stream (M3 science/parts batch)", () => {
   it("merges parts.robotics' live rotor fields onto the selected legacy rotor by name", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "robotics.rotors" }, { key: "robotics.available" }],
+      keys: [{ key: "robotics.rotors" }],
       connectSource: true,
     });
 
@@ -47,7 +52,7 @@ describe("RotorTachometer — genuinely runs off the stream (M3 science/parts ba
     );
 
     act(() => {
-      legacyAux.source.emit("robotics.available", true);
+      fixture.emit("robotics.available", { available: true });
       legacyAux.source.emit("robotics.rotors", [
         {
           partId: 101,
@@ -113,12 +118,12 @@ describe("RotorTachometer — genuinely runs off the stream (M3 science/parts ba
     // fix must refuse the ambiguous name-join and keep the correct legacy
     // 300, never rendering another rotor's value.
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "robotics.rotors" }, { key: "robotics.available" }],
+      keys: [{ key: "robotics.rotors" }],
       connectSource: true,
     });
 
@@ -132,7 +137,7 @@ describe("RotorTachometer — genuinely runs off the stream (M3 science/parts ba
 
     const rotorName = "EM-16S Light Rotor";
     act(() => {
-      legacyAux.source.emit("robotics.available", true);
+      fixture.emit("robotics.available", { available: true });
       legacyAux.source.emit(
         "robotics.rotors",
         [1, 2, 3, 4].map((partId, i) => ({
@@ -206,12 +211,12 @@ describe("RotorTachometer — genuinely runs off the stream (M3 science/parts ba
 
   it("M3 review #1: prefers a stable partId join over name when the wire carries partId, even amid duplicate names", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.robotics"],
+      carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "robotics.rotors" }, { key: "robotics.available" }],
+      keys: [{ key: "robotics.rotors" }],
       connectSource: true,
     });
 
@@ -225,7 +230,7 @@ describe("RotorTachometer — genuinely runs off the stream (M3 science/parts ba
 
     const rotorName = "EM-16S Light Rotor";
     act(() => {
-      legacyAux.source.emit("robotics.available", true);
+      fixture.emit("robotics.available", { available: true });
       legacyAux.source.emit(
         "robotics.rotors",
         [1, 2, 3, 4].map((partId, i) => ({

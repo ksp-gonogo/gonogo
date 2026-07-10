@@ -43,6 +43,15 @@ import styled from "styled-components";
  * ONLY when the name is unique among the streamed rotors; an ambiguous name
  * refuses to merge at all (staying on the correct legacy value beats a
  * confidently-wrong stream value).
+ *
+ * P4a shared-map batch: `robotics.available` -> `robotics.available.available`
+ * is now mapped (map-topic.ts) — a dedicated capability-flag topic separate
+ * from the identity-list gap below. The existing
+ * `useDataValue("data", "robotics.available")` call rides that shim onto the
+ * stream with zero code change here. `robotics.rotors`/`robotics.servos`
+ * (the partId-keyed identity lists) stay fully gapped — no stable id on the
+ * wire — as do every `robotics.*` command setter (no mod command handler
+ * yet); both keep their legacy fallback intact.
  */
 
 type RotorTachometerConfig = Record<string, never>;
@@ -229,6 +238,9 @@ function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
   const rotorsRaw = useDataValue("data", "robotics.rotors");
+  // P4a shared-map batch: robotics.available -> robotics.available.available
+  // is mapped now, so this rides the stream via the mapTopic shim; the
+  // identity list below (robotics.rotors) stays fully gapped.
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
   const streamRotors = useDataValue<StreamRotorEntry[]>(
