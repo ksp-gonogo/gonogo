@@ -1,14 +1,13 @@
+import { useBiomeCanvas, useFogDisplayCanvas } from "@gonogo/components";
 import {
   type BodyDefinition,
   type SCANScanningVessel,
   useDataValue,
 } from "@gonogo/core";
 import { useScanAnomalies, useScanningVessels } from "@gonogo/data";
+import { useElementSize } from "@gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
-import { useFogDisplayCanvas } from "../MapView/useFogMask";
-import { useBiomeCanvas } from "../MapView/useScanLayerCanvas";
-import { useElementSize } from "../shared/useElementSize";
 
 /**
  * Live "camera view" of the active vessel's sub-point. Composites the

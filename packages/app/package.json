@@ -19,6 +19,7 @@
     "@gonogo/data": "workspace:*",
     "@gonogo/kerbcast": "workspace:*",
     "@gonogo/logger": "workspace:*",
+    "@gonogo/scansat": "workspace:*",
     "@gonogo/serial": "workspace:*",
     "@gonogo/sitrep-client": "workspace:*",
     "@gonogo/ui": "workspace:*",

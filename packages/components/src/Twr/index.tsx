@@ -9,10 +9,10 @@ import {
   PanelSubtitle,
   PanelTitle,
   Sparkline,
+  useElementSize,
 } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { useElementSize } from "../shared/useElementSize";
 
 type TwrConfig = Record<string, never>;
 

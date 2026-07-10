@@ -13,10 +13,10 @@ import {
   PanelTitle,
   StreamStatusBadge,
   ToggleButton,
+  useElementSize,
 } from "@gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
-import { useElementSize } from "../shared/useElementSize";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic

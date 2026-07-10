@@ -9,11 +9,11 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
+  useElementSize,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
-import { useElementSize } from "../shared/useElementSize";
 import { ProfileStrip } from "./ProfileStrip";
 import {
   rateSmoothness,

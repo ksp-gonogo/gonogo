@@ -31,5 +31,6 @@ export * from "./Tabs";
 export * from "./Tag";
 export * from "./ToggleButton";
 export * from "./themes/defaultDark";
+export * from "./useElementSize";
 export * from "./VersionMismatchBanner";
 export * from "./WidgetHeader";

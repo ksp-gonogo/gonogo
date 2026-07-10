@@ -23,12 +23,12 @@ import {
   PanelSubtitle,
   PanelTitle,
   Select,
+  useElementSize,
   useModalSaveBar,
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
-import { useElementSize } from "../shared/useElementSize";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram } from "./SystemDiagram";
 import {

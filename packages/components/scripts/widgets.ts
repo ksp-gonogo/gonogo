@@ -1019,23 +1019,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // SCANsat. Fixture is SYNTHETIC (no live capture) — structured so the
-    // biome minimap + fog swath + anomaly markers + coverage bars all render.
-    widgetId: "scanning",
-    fixturesPath: "Scanning/__fixtures__",
-    outPath: "renders/scanning-widget",
-    modes: [
-      // minSize 3×4 — coverage bars only (minimap needs more room).
-      { name: "min-3x4", w: 3, h: 4 },
-      // defaultSize 6×10 — minimap + coverage + scanner list.
-      { name: "default-6x10", w: 6, h: 10 },
-      // tall — full minimap + every section.
-      { name: "tall-6x16", w: 6, h: 16 },
-      // wide — minimap has room alongside the readouts.
-      { name: "wide-12x10", w: 12, h: 10 },
-    ],
-  },
-  {
     // kOS Processors. Fixture is SYNTHETIC (no live LIST PROCESSORS capture)
     // — three CPUs (tagged 'system', tagged boot, untagged idle) so the row
     // chrome, mode dots, and pills all render. Reads the `"kos"` source +
