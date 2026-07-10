@@ -304,3 +304,57 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
     teardownMockDataSource(legacyAux);
   });
 });
+
+/**
+ * P4a shared-map batch proof, separate from the M3 node-id round-trip
+ * above: `dv.stages` is UN-GAPPED (map-topic.ts's TELEMACHUS_CLEAN_HOMES,
+ * whole-topic identity read) and now rides the stream once carried, with
+ * zero change to the `useVesselDeltaV()` call site in index.tsx. The two
+ * transports disagree on field names though — legacy `StageInfo`
+ * (`deltaVVac`/`deltaVASL`) vs. the new mod's `StageDeltaVEntry`
+ * (`dvVac`/`dvAsl`) — so this proves `useVesselDeltaV`'s `normalizeStage`
+ * reconciliation actually feeds the widget's rendered "Available" ΔV
+ * figure, not just the legacy shape `index.test.tsx` already covers.
+ * `a.physicsMode` has no stream equivalent (STAYS HYBRID per the P4a
+ * brief), so the legacy `DataSource` still supplies every OTHER telemetry
+ * key here.
+ */
+describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map batch)", () => {
+  it("sums the ΔV available total off dv.stages using the new mod StageDeltaVEntry field names", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["dv.stages"],
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: Object.keys(READY_TELEMETRY).map((key) => ({ key })),
+      connectSource: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "mnv-dv-stream" }}>
+          <ManeuverPlannerComponent id="mnv-dv-stream" config={{}} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
+
+    act(() => {
+      emitReadyTelemetry(legacyAux.source);
+      // The mod's real StageDeltaVEntry field names (contract.ts:491) —
+      // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`.
+      fixture.emit("dv.stages", [
+        { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
+        { stage: 0, dvVac: 600, dvAsl: 500, dvActual: 550 },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("1800 m/s")).toBeInTheDocument();
+    });
+
+    teardownMockDataSource(legacyAux);
+  });
+});

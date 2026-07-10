@@ -127,6 +127,14 @@ function ManeuverPlannerComponent({
   const currentUT = useDataValue("data", "t.universalTime");
   const orbitalSpeed = useDataValue("data", "o.orbitalSpeed");
   const radius = useDataValue("data", "o.radius");
+  // a.physicsMode (Principia n-body detector) STAYS HYBRID (P4a brief §
+  // ManeuverPlanner) — no wire equivalent exists on the new mod contract,
+  // so this read has no stream home and keeps its legacy-only fallback
+  // indefinitely. It's the one blocker keeping this whole widget hybrid;
+  // every other read below either already rides the stream transparently
+  // (mapTopic shim, same `useDataValue("data", key)` call site either way)
+  // or is a still-declared gap of its own (`o.maneuverNodes`, see the
+  // `StreamManeuverNode`/`resolveNodeId` doc comment above).
   const physicsMode = useDataValue("data", "a.physicsMode");
   const refBody = useDataValue("data", "o.referenceBody");
   const bodyName = useDataValue("data", "v.body");
@@ -144,6 +152,14 @@ function ManeuverPlannerComponent({
   const period = useDataValue("data", "o.period");
 
   const nodes = useManeuverNodes();
+  // dv.stages is UN-GAPPED (P4a shared-map batch, map-topic.ts's
+  // TELEMACHUS_CLEAN_HOMES — whole-topic identity read, same "dv.stages"
+  // key off either transport) and now rides the stream once carried, with
+  // zero call-site change here: `useVesselDeltaV` reads it via the same
+  // `useDataValue("data", "dv.stages")` regardless of which transport
+  // ultimately answers. The wire shapes disagree on field names though
+  // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`) — see
+  // useVesselDeltaV.ts's `normalizeStage` reconciliation.
   const vesselDeltaV = useVesselDeltaV();
   const execute = useExecuteAction("data");
   const schema = useDataSchema("data");
@@ -599,6 +615,14 @@ registerComponent<ManeuverPlannerConfig>({
   // slot for alternate-transfer-strategy comparisons and a header `badges`
   // slot. Empty until an augment binds (Uplink §4 / augment-slot-map.md).
   augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
+  // P4a brief (ManeuverPlanner row): `dv.stages` is UN-GAPPED and rides the
+  // stream transparently (see the `useVesselDeltaV` call site above) — no
+  // change needed to this list, it already carries the resolved key name.
+  // `a.physicsMode` STAYS HYBRID (no wire equivalent, see the `physicsMode`
+  // read above); `o.maneuverNodes` stays its own declared gap (shape
+  // mismatch — see `StreamManeuverNode` above). The `o.maneuverNodes` ->
+  // `previewManeuver` post-burn preview derivation (P4a brief §D5) is
+  // explicitly optional/lower-priority and deferred, not attempted here.
   dataRequirements: [
     "o.sma",
     "o.eccentricity",
