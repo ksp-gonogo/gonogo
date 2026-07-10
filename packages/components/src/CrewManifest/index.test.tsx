@@ -1,12 +1,13 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { registerAugment } from "@gonogo/core";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { CrewManifestComponent } from "./index";
+import { type CrewBadgeContext, CrewManifestComponent } from "./index";
 
 const KEYS: DataKey[] = [
   { key: "v.name" },
@@ -112,5 +113,58 @@ describe("CrewManifestComponent", () => {
       source.emit("v.isEVA", true);
     });
     expect(screen.getByText(/EVA/)).toBeInTheDocument();
+  });
+
+  it("renders the per-crew badges slot with no bound augment (empty is fine)", () => {
+    // No augment registered → the slot composes nothing and the roster renders
+    // exactly as before, one row per kerbal.
+    render(<CrewManifestComponent config={{}} id="crew" />);
+    act(() => {
+      prime();
+      source.emit("v.crew", ["Jebediah Kerman", "Bill Kerman"]);
+      source.emit("v.crewCount", 2);
+      source.emit("v.crewCapacity", 2);
+    });
+    expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
+    expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
+    expect(screen.queryByTestId("crew-badge")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound augment once per crew row, carrying each kerbal's identity", () => {
+    // A test Uplink binds `crew-manifest.badges` and echoes the slot props back.
+    // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
+    // the per-row props carry the right kerbal so the badge lands on the right
+    // one. `requires` is omitted so no Domain presence gate applies.
+    registerAugment<"crew-manifest.badges">({
+      id: "test-crew-badge",
+      augments: "crew-manifest.badges",
+      component: ({ crewName, crewIndex }: CrewBadgeContext) => (
+        <span data-testid="crew-badge" data-index={crewIndex}>
+          {crewName} ✓
+        </span>
+      ),
+    });
+
+    render(<CrewManifestComponent config={{}} id="crew" />);
+    act(() => {
+      prime();
+      source.emit("v.crew", ["Jebediah Kerman", "Bill Kerman", "Bob Kerman"]);
+      source.emit("v.crewCount", 3);
+      source.emit("v.crewCapacity", 3);
+    });
+
+    const badges = screen.getAllByTestId("crew-badge");
+    expect(badges).toHaveLength(3);
+    expect(badges.map((b) => b.textContent)).toEqual([
+      "Jebediah Kerman ✓",
+      "Bill Kerman ✓",
+      "Bob Kerman ✓",
+    ]);
+    // Each badge sits inside its own kerbal's row (props identity is correct).
+    const jebRow = screen.getByText("Jebediah Kerman").closest("li");
+    expect(jebRow).not.toBeNull();
+    expect(
+      within(jebRow as HTMLElement).getByTestId("crew-badge"),
+    ).toHaveTextContent("Jebediah Kerman ✓");
   });
 });

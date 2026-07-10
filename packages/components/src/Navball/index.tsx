@@ -4,6 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useActionInput,
   useDataStreamStatus,
@@ -46,6 +47,22 @@ interface NavballConfig {
   useCoMFrame?: boolean;
   /** When true, render the control surface; otherwise show display-only. */
   controlMode?: boolean;
+}
+
+// `navball.badges` is a header badge slot (augment-slot-map.md): a broad
+// escape-hatch for small inline indicators alongside the SAS-mode / RCS
+// badges. The proposed filler is a future autopilot Uplink (MechJeb-alike)
+// surfacing its active mode next to SAS/RCS — a badge that reads its OWN
+// Domain's Topics, not the navball's attitude reads, so the slot passes no
+// props. Declaration-merge the slot id → props type into core's `SlotRegistry`
+// (spec §4.6) so `registerAugment` and `<AugmentSlot name="navball.badges" …>`
+// type-check against an empty-props contract rather than the loose
+// `Record<string, unknown>` fallback. Kept co-located here (not in a shared
+// central file) so parallel per-widget slot work never collides.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "navball.badges": Record<string, never>;
+  }
 }
 
 // Action surface — kept verbose so each axis / mode is independently
@@ -353,6 +370,10 @@ function NavballComponent({
             </ModeBadge>
             <ModeBadge $on={rcsOn}>RCS</ModeBadge>
             {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
+            {/* Header badge slot (augment-slot-map.md): an autopilot Uplink can
+                surface its active mode here, alongside SAS/RCS. Renders nothing
+                until an augment binds `navball.badges`. */}
+            <AugmentSlot name="navball.badges" props={{}} />
           </ModeBadgeRow>
         )}
       </Header>
@@ -902,6 +923,10 @@ registerComponent<NavballConfig>({
   ],
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
+  // Header badge slot for an autopilot (MechJeb-alike) active-mode indicator
+  // alongside the SAS/RCS badges. Unfilled until an Uplink registers an augment
+  // — see the `SlotRegistry` merge above and augment-slot-map.md.
+  augmentSlots: ["navball.badges"],
   pushable: true,
   requires: ["flight"],
 });

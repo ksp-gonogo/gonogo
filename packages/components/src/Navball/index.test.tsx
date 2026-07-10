@@ -1,8 +1,10 @@
 import type { DataKey } from "@gonogo/core";
 import {
+  clearAugments,
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
+  registerAugment,
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
@@ -157,5 +159,56 @@ describe("NavballComponent", () => {
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("f.setThrottle[0.750]");
     });
+  });
+});
+
+describe("Navball — navball.badges augment slot (spec §4)", () => {
+  let source: MockDataSource;
+  let buffered: BufferedDataSource;
+
+  beforeEach(async () => {
+    clearRegistry();
+    clearAugments();
+    source = new MockDataSource({ keys: KEYS });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+  });
+
+  afterEach(() => {
+    cleanup();
+    clearAugments();
+    buffered.disconnect();
+  });
+
+  it("renders the header badge row without an augment (empty slot is fine)", () => {
+    // No augment bound → the slot composes to nothing; the stock SAS/RCS
+    // badges still render and the widget doesn't crash.
+    renderNavball();
+    act(() => {
+      source.emit("f.sasEnabled", true);
+      source.emit("f.sasMode", "Prograde");
+    });
+    expect(screen.getByText("SAS: Prograde")).toBeInTheDocument();
+    expect(screen.getByText("RCS")).toBeInTheDocument();
+    expect(screen.queryByTestId("autopilot-badge")).toBeNull();
+  });
+
+  it("renders an augment bound to navball.badges alongside the SAS/RCS badges", () => {
+    registerAugment({
+      id: "test-autopilot-badge",
+      augments: "navball.badges",
+      component: () => <span data-testid="autopilot-badge">AP: ASCENT</span>,
+    });
+    renderNavball();
+    act(() => {
+      source.emit("f.sasEnabled", true);
+      source.emit("f.sasMode", "Prograde");
+    });
+    // The augment composed into the header alongside the stock badges.
+    expect(screen.getByTestId("autopilot-badge")).toHaveTextContent(
+      "AP: ASCENT",
+    );
+    expect(screen.getByText("SAS: Prograde")).toBeInTheDocument();
   });
 });
