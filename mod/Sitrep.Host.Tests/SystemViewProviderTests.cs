@@ -364,6 +364,101 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
+        // game.dlc -- installed-DLC capability capture-add (Meta.Dlc path)
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildGameDlcMapsRawDlcGroupToTwoBoolsAndSerializesCleanly()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["dlc"] = new Dictionary<string, object?>
+                    {
+                        ["breakingGround"] = true,
+                        ["makingHistory"] = false,
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildGameDlc(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            Assert.Equal(true, root["breakingGround"]);
+            Assert.Equal(false, root["makingHistory"]);
+
+            // Serializes through the REAL production path, same as the other
+            // system.* payloads above.
+            var streamData = new StreamData<object?>
+            {
+                Topic = SystemViewProvider.DlcTopic,
+                Payload = payload,
+                Meta = new Meta { Source = "system", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+            var json = EnvelopeCodec.WriteStreamData(streamData);
+            var parsed = EnvelopeCodec.ParseStreamData(json);
+            Assert.Equal(SystemViewProvider.DlcTopic, parsed.Topic);
+            var parsedRoot = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            Assert.Equal(true, parsedRoot["breakingGround"]);
+            Assert.Equal(false, parsedRoot["makingHistory"]);
+        }
+
+        [Fact]
+        public void BuildGameDlcDefaultsAMissingExpansionBoolToFalseNotNull()
+        {
+            // A present-but-partial "dlc" group (only breakingGround supplied)
+            // still emits two plain bools -- the unmentioned expansion is
+            // treated as not installed, never a null on the wire.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["dlc"] = new Dictionary<string, object?> { ["breakingGround"] = true },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildGameDlc(snapshot));
+            Assert.Equal(true, root["breakingGround"]);
+            Assert.Equal(false, root["makingHistory"]);
+        }
+
+        [Fact]
+        public void BuildGameDlcReturnsNullWhenSnapshotHasNoDlcGroupAtAll()
+        {
+            // "No sample yet" (no "dlc" key) is null -- distinct from "DLC
+            // genuinely absent" (key present, both bools false).
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+
+            Assert.Null(SystemViewProvider.BuildGameDlc(snapshot));
+        }
+
+        [Fact]
+        public void GameDlcContractTypeMirrorsTheProviderWireShapeExactly()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["dlc"] = new Dictionary<string, object?>
+                    {
+                        ["breakingGround"] = true,
+                        ["makingHistory"] = true,
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildGameDlc(snapshot));
+
+            // Exactly { breakingGround, makingHistory } -- no `meta` on a
+            // game.* payload (it rides the envelope).
+            Assert.Equal(WireFieldNamesOf(typeof(GameDlc)), root.Keys.ToHashSet());
+        }
+
+        // ----------------------------------------------------------------
         // Contract-shape mirror (P0.5): the named Sitrep.Contract payload
         // types (SystemBodies/BodyEntry/OrbitEntry, SystemVessels/
         // VesselRosterEntry) exist so a widget resolves a real payload type
