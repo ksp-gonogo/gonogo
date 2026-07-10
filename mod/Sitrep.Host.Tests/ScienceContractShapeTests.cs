@@ -52,6 +52,25 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void InstrumentEntryTypeMirrorsProviderWireShape()
+        {
+            var snapshot = SnapshotWith("instruments", new Dictionary<string, object?>
+            {
+                ["partId"] = "12345",
+                ["partName"] = "Mystery Goo Containment Pod",
+                ["experimentId"] = "mysteryGoo",
+                ["title"] = "Mystery Goo Observation",
+                ["deployed"] = true,
+                ["inoperable"] = false,
+                ["rerunnable"] = false,
+                ["resettable"] = true,
+                ["dataIsCollectable"] = true,
+            });
+
+            AssertTypeMirrorsEntry(typeof(InstrumentEntry), ScienceViewProvider.BuildInstruments(snapshot));
+        }
+
+        [Fact]
         public void LabEntryTypeMirrorsProviderWireShape()
         {
             var snapshot = SnapshotWith("lab", new Dictionary<string, object?>
@@ -91,6 +110,21 @@ namespace Sitrep.Host.Tests
             });
 
             AssertTypeMirrorsEntry(typeof(DeployedEntry), ScienceViewProvider.BuildDeployed(snapshot));
+        }
+
+        [Fact]
+        public void SensorEntryTypeMirrorsProviderWireShape()
+        {
+            var snapshot = SnapshotWith("sensors", new Dictionary<string, object?>
+            {
+                ["partId"] = "101",
+                ["partName"] = "PresMat Barometer",
+                ["type"] = "PRES",
+                ["readout"] = "0.998atm",
+                ["active"] = true,
+            });
+
+            AssertTypeMirrorsEntry(typeof(SensorEntry), ScienceViewProvider.BuildSensors(snapshot));
         }
 
         // NOTE: the [SitrepTopic("science.*", isArray: true)] tag on each entry

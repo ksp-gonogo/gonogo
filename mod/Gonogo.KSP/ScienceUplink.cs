@@ -18,7 +18,7 @@ namespace Gonogo.KSP
     /// "there's an active vessel" — see <c>KspHost.BuildScience</c>'s doc
     /// comment).
     ///
-    /// <para>Three channels, one per sub-group, rather than one combined
+    /// <para>One channel per science sub-group, rather than one combined
     /// topic — experiments/lab/deployed genuinely change at different
     /// cadences (an experiment's data changes on run/collect; a lab
     /// processes continuously; deployed science is placed once and then
@@ -50,6 +50,14 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Topic = ScienceViewProvider.InstrumentsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — active-vessel instrument inventory, rides the delay clock.
+                    Delay = DelayRole.Delayed,
+                },
+                new ChannelDeclaration
+                {
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -64,14 +72,25 @@ namespace Gonogo.KSP
                     // Explicit retrofit — same as ExperimentsTopic above.
                     Delay = DelayRole.Delayed,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = ScienceViewProvider.SensorsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Explicit retrofit — active-vessel environmental-sensor
+                    // readouts, rides the delay clock like the rest of science.*.
+                    Delay = DelayRole.Delayed,
+                },
             },
         };
 
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
+            host.AddChannelSource(ScienceViewProvider.InstrumentsTopic, ScienceViewProvider.BuildInstruments);
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
             host.AddChannelSource(ScienceViewProvider.DeployedTopic, ScienceViewProvider.BuildDeployed);
+            host.AddChannelSource(ScienceViewProvider.SensorsTopic, ScienceViewProvider.BuildSensors);
         }
     }
 }

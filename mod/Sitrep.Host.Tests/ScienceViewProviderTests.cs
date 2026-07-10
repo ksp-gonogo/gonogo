@@ -102,6 +102,75 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildInstrumentsMapsExperimentModuleInventoryKeyedByPartId()
+        {
+            // science.instruments is an INVENTORY of ModuleScienceExperiment
+            // modules (one row per module, regardless of stored data), keyed
+            // by partId - distinct from science.experiments which rows per
+            // STORED ScienceData result. Two modules on two parts here; both
+            // map with their operability flags.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 100.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["instruments"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "12345",
+                                ["partName"] = "Mystery Goo Containment Pod",
+                                ["experimentId"] = "mysteryGoo",
+                                ["title"] = "Mystery Goo Observation",
+                                ["deployed"] = true,
+                                ["inoperable"] = false,
+                                ["rerunnable"] = false,
+                                ["resettable"] = true,
+                                ["dataIsCollectable"] = true,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "67890",
+                                ["partName"] = "PresMat Barometer",
+                                ["experimentId"] = "barometerScan",
+                                ["title"] = null,
+                                ["deployed"] = null,
+                                ["inoperable"] = null,
+                                ["rerunnable"] = true,
+                                ["resettable"] = false,
+                                ["dataIsCollectable"] = false,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var payload = ScienceViewProvider.BuildInstruments(snapshot);
+            var list = Assert.IsType<List<object?>>(payload);
+            Assert.Equal(2, list.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("12345", first["partId"]);
+            Assert.Equal("Mystery Goo Containment Pod", first["partName"]);
+            Assert.Equal("mysteryGoo", first["experimentId"]);
+            Assert.Equal("Mystery Goo Observation", first["title"]);
+            Assert.Equal(true, first["deployed"]);
+            Assert.Equal(false, first["inoperable"]);
+            Assert.Equal(false, first["rerunnable"]);
+            Assert.Equal(true, first["resettable"]);
+            Assert.Equal(true, first["dataIsCollectable"]);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal("67890", second["partId"]);
+            Assert.Null(second["title"]);
+            Assert.Null(second["deployed"]);
+            Assert.Equal(true, second["rerunnable"]);
+            Assert.Equal(false, second["dataIsCollectable"]);
+        }
+
+        [Fact]
         public void BuildLabMapsScienceLabEntry()
         {
             var snapshot = new KspSnapshot
@@ -243,5 +312,87 @@ namespace Sitrep.Host.Tests
             Assert.Null(ScienceViewProvider.BuildLab(snapshot));
             Assert.Null(ScienceViewProvider.BuildDeployed(snapshot));
         }
+
+        [Fact]
+        public void BuildSensorsMapsEnviroSensorEntries()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        // A GENERAL sensor group: one entry per ModuleEnviroSensor,
+                        // "type" carrying the raw SensorType enum name as a string
+                        // (NOT four fixed temp/pres/grav/acc keys). Two sensors of
+                        // the same type on different parts both appear, kept apart
+                        // by "partId".
+                        ["sensors"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "101",
+                                ["partName"] = "PresMat Barometer",
+                                ["type"] = "PRES",
+                                ["readout"] = "0.998atm",
+                                ["active"] = true,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "102",
+                                ["partName"] = "2HOT Thermometer",
+                                ["type"] = "TEMP",
+                                ["readout"] = "Off",
+                                ["active"] = false,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var payload = ScienceViewProvider.BuildSensors(snapshot);
+            var list = Assert.IsType<List<object?>>(payload);
+            Assert.Equal(2, list.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("101", first["partId"]);
+            Assert.Equal("PresMat Barometer", first["partName"]);
+            Assert.Equal("PRES", first["type"]);
+            Assert.Equal("0.998atm", first["readout"]);
+            Assert.Equal(true, first["active"]);
+            // Exactly the five general-sensor fields, no more.
+            Assert.Equal(5, first.Count);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal("102", second["partId"]);
+            Assert.Equal("TEMP", second["type"]);
+            Assert.Equal("Off", second["readout"]);
+            Assert.Equal(false, second["active"]);
+        }
+
+        [Fact]
+        public void BuildSensorsReturnsNullWhenSubGroupAbsentOrSnapshotEmpty()
+        {
+            Assert.Null(ScienceViewProvider.BuildSensors(null));
+            Assert.Null(ScienceViewProvider.BuildSensors(
+                new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+
+            // "science" present but no "sensors" sub-group (e.g. a vessel with
+            // no environmental sensor) -> null, never an empty list.
+            var partialScience = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["experiments"] = new List<object?>(),
+                    },
+                },
+            };
+            Assert.Null(ScienceViewProvider.BuildSensors(partialScience));
+        }
+
     }
 }

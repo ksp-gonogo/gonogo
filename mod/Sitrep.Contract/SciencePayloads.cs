@@ -59,6 +59,49 @@ public class ExperimentEntry
 }
 
 /// <summary>
+/// One entry in the <c>science.instruments</c> channel payload — a single
+/// <c>ModuleScienceExperiment</c> on the ACTIVE vessel, captured as an
+/// INVENTORY / status row keyed by <see cref="PartId"/> (the part's KSP
+/// <c>flightID</c>). This is distinct from <see cref="ExperimentEntry"/>:
+/// <c>science.experiments</c> walks the same modules but yields one row per
+/// STORED <c>ScienceData</c> result (a module with no data produces no row),
+/// whereas <c>science.instruments</c> yields one row per module regardless of
+/// whether it currently holds data — the operability picture (deployed /
+/// inoperable / rerunnable / resettable / collectable) an operator needs to
+/// decide what to run next. The channel payload is a BARE ARRAY
+/// (<c>InstrumentEntry[]</c>) or <c>null</c>. Typing-only mirror of
+/// <c>Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry</c> — see
+/// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
+/// rationale.
+/// </summary>
+[SitrepContract]
+[SitrepTopic("science.instruments", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class InstrumentEntry
+{
+    /// <summary>The part's KSP <c>flightID</c> (stringified) — the stable join key for this instrument.</summary>
+    public string? PartId { get; set; }
+
+    public string? PartName { get; set; }
+
+    public string? ExperimentId { get; set; }
+
+    public string? Title { get; set; }
+
+    public bool? Deployed { get; set; }
+
+    public bool? Inoperable { get; set; }
+
+    public bool? Rerunnable { get; set; }
+
+    public bool? Resettable { get; set; }
+
+    public bool? DataIsCollectable { get; set; }
+}
+
+/// <summary>
 /// One entry in the <c>science.lab</c> channel payload — a Mobile Processing
 /// Lab on the active vessel. The channel payload is a BARE ARRAY
 /// (<c>LabEntry[]</c>) or <c>null</c>. Typing-only mirror of
@@ -135,4 +178,44 @@ public class DeployedEntry
     public string? ConnectionState { get; set; }
 
     public bool? DeployedOnGround { get; set; }
+}
+
+/// <summary>
+/// One entry in the <c>science.sensors</c> channel payload — a single
+/// environmental-sensor module (<c>ModuleEnviroSensor</c>: thermometer,
+/// barometer, gravioli detector, accelerometer, and any modded sensor
+/// sharing the module) on the ACTIVE vessel. The channel payload is a BARE
+/// ARRAY (<c>SensorEntry[]</c>) or <c>null</c>.
+///
+/// <para>Deliberately a GENERAL sensor group — one entry per sensor module,
+/// with <see cref="Type"/> carrying the raw <c>SensorType</c> enum name
+/// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) as a string — rather than
+/// four fixed <c>temp/pres/grav/acc</c> Values. Modded sensor types and
+/// multiple instances of the same type both fall out naturally; the consumer
+/// (ScienceBench) groups/labels by <see cref="Type"/>.</para>
+///
+/// <para>Typing-only mirror of
+/// <c>Sitrep.Host.ScienceViewProvider.BuildSensorEntry</c> — see
+/// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
+/// rationale.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("science.sensors", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SensorEntry
+{
+    /// <summary>Flight-scoped <c>part.flightID</c> as a string (null when the sentinel 0), the join key that disambiguates symmetric same-named sensor parts.</summary>
+    public string? PartId { get; set; }
+
+    public string? PartName { get; set; }
+
+    /// <summary>The raw <c>SensorType</c> enum name — <c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/… — passed through as a string so modded types survive.</summary>
+    public string? Type { get; set; }
+
+    /// <summary>The sensor's current human-readable readout string (KSP's <c>readoutInfo</c>, e.g. "293.1K" or "Off").</summary>
+    public string? Readout { get; set; }
+
+    public bool? Active { get; set; }
 }

@@ -24,6 +24,9 @@ namespace Sitrep.Host
     ///     "experimentId", "subjectId", "title", "dataAmount",
     ///     "scienceValueRatio", "baseTransmitValue", "transmitBonus",
     ///     "labValue", "deployed", "inoperable", "situation" }, ... ] | null
+    ///   "instruments": [ { "partId", "partName", "experimentId", "title",
+    ///     "deployed", "inoperable", "rerunnable", "resettable",
+    ///     "dataIsCollectable" }, ... ] | null
     ///   "lab": [ { "partName", "dataStored", "dataStorage", "storedScience",
     ///     "processingData", "statusText", "scientistCount", "scienceRate",
     ///     "isOperational" }, ... ] | null
@@ -44,17 +47,25 @@ namespace Sitrep.Host
     public static class ScienceViewProvider
     {
         public const string ExperimentsTopic = "science.experiments";
+        public const string InstrumentsTopic = "science.instruments";
         public const string LabTopic = "science.lab";
         public const string DeployedTopic = "science.deployed";
+        public const string SensorsTopic = "science.sensors";
 
         public static object? BuildExperiments(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experiments", BuildExperimentEntry);
+
+        public static object? BuildInstruments(KspSnapshot? snapshot) =>
+            BuildList(snapshot, "instruments", BuildInstrumentEntry);
 
         public static object? BuildLab(KspSnapshot? snapshot) =>
             BuildList(snapshot, "lab", BuildLabEntry);
 
         public static object? BuildDeployed(KspSnapshot? snapshot) =>
             BuildList(snapshot, "deployed", BuildDeployedEntry);
+
+        public static object? BuildSensors(KspSnapshot? snapshot) =>
+            BuildList(snapshot, "sensors", BuildSensorEntry);
 
         /// <summary>
         /// Shared "pull a list out of Values['science'][key]" walk. Returns
@@ -109,6 +120,19 @@ namespace Sitrep.Host
             ["situation"] = SnapshotDict.GetString(raw, "situation"),
         };
 
+        private static Dictionary<string, object?> BuildInstrumentEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        {
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
+            ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
+            ["title"] = SnapshotDict.GetString(raw, "title"),
+            ["deployed"] = SnapshotDict.GetBool(raw, "deployed"),
+            ["inoperable"] = SnapshotDict.GetBool(raw, "inoperable"),
+            ["rerunnable"] = SnapshotDict.GetBool(raw, "rerunnable"),
+            ["resettable"] = SnapshotDict.GetBool(raw, "resettable"),
+            ["dataIsCollectable"] = SnapshotDict.GetBool(raw, "dataIsCollectable"),
+        };
+
         private static Dictionary<string, object?> BuildLabEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
@@ -137,6 +161,15 @@ namespace Sitrep.Host
             ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
             ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
+        };
+
+        private static Dictionary<string, object?> BuildSensorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        {
+            ["partId"] = SnapshotDict.GetString(raw, "partId"),
+            ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["type"] = SnapshotDict.GetString(raw, "type"),
+            ["readout"] = SnapshotDict.GetString(raw, "readout"),
+            ["active"] = SnapshotDict.GetBool(raw, "active"),
         };
     }
 }
