@@ -1,46 +1,59 @@
 import { DashboardItemContext } from "@gonogo/core";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * The M3 batch-3 stream test-adapter proof for OrbitalAscent — same
- * degenerate shape as `KeplerPeriod` (see its `stream.test.tsx` doc
- * comment for the full explanation): ZERO keys the read shim can migrate.
+ * The R6 stream test-adapter proof for OrbitalAscent: the widget's own read
+ * (`v.body`) genuinely runs off the real `TelemetryProvider`/`TelemetryClient`/
+ * `TimelineStore` pipeline via `StubTransport` — no legacy `DataSource` is
+ * registered anywhere in this file, so a value only reaches the widget if it
+ * actually streamed.
  *
- * - Its only `useDataValue` call, `v.body`, is a declared GAP in
- *   `map-topic.ts`.
- * - `v.horizontalVelocity` (GAPPED anyway — "derived quantities with no
- *   named field on any M1/M2 channel yet") and `v.altitude` (itself MAPPED
- *   -> `vessel.state.altitudeAsl`) are both read only via `GraphView` ->
- *   `GraphSeries` -> `useDataSeries`.
+ * `v.body` is mapped (R6 / Step-2 migration) to the DERIVED
+ * `vessel.state.parentBodyName` field — the index→name display map
+ * `deriveVesselState` resolves from `vessel.identity.parentBodyIndex` against
+ * `system.bodies` (`vessel-state.ts`). Emitting `vessel.orbit` (which gates the
+ * whole `vessel.state` record; default `StubTransport` meta quality is
+ * `OnRails`, so the propagated branch runs) plus `vessel.identity` +
+ * `system.bodies` makes the derived body name resolve. Streaming an UNKNOWN
+ * body name (one `getBody` doesn't know) is what proves the value came off the
+ * stream: the widget renders its "Unknown body" notice, which it could not do
+ * from a legacy fallback that isn't wired here.
  *
- * **Re-verified in the M3 mechanical-tail batch**, after `useDataSeries`
- * grew its own stream shim: the conclusion is UNCHANGED, and now DOUBLY so.
- * `v.altitude` maps to the DERIVED `vessel.state.altitudeAsl` subtopic —
- * `TimelineStore.isDerivedTopic` gates `sampleRange` to return `undefined`
- * for any derived channel (a derived value is computed fresh per frame,
- * never buffered as its own history), so `useDataSeries` can NEVER serve a
- * `vessel.state.*` series regardless of carried-channel status. Even
- * setting that aside, `v.horizontalVelocity` (the graph's `key`, y-axis) is
- * a hard gap with no mapped home at all, which alone would force the same
- * `alignXY` unit-mismatch problem `KeplerPeriod`'s comment describes if only
- * `xKey` migrated. Either blocker alone is fatal; both apply here.
+ * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs — the
+ * carried-channels gate is parent-channel-scoped, not per-field (see
+ * `vessel-state.ts`'s `vesselStateChannel` doc comment), so even a field that
+ * only consults `vessel.identity`/`system.bodies` needs the whole set carried
+ * to route.
  *
- * No `useDataStreamStatus`/`StreamStatusBadge` were added to `index.tsx` —
- * there is no representative mapped key. This test locks in that the
- * widget still renders its normal no-data state under a real
- * `TelemetryProvider` with no legacy source, proving the harness doesn't
- * disturb a widget it leaves untouched.
+ * The two plotted series (`v.altitude`/`v.horizontalVelocity`) are NOT asserted
+ * here: both map to DERIVED `vessel.state.*` channels, and `useDataSeries`
+ * structurally cannot serve a derived channel's windowed history off the stream
+ * (`TimelineStore.sampleRange` returns `undefined` for a derived topic), so the
+ * GraphView series stay on the legacy path — absent here, hence an empty graph.
+ * The widget still renders its chrome, which the assertions below confirm.
  */
 afterEach(() => {
   cleanup();
 });
 
-describe("OrbitalAscent — zero migratable keys, stream-safe no-op (M3 batch 3)", () => {
-  it("renders its normal no-data state under a TelemetryProvider with no legacy source, nothing streams", () => {
-    const fixture = setupStreamFixture({ carriedChannels: [] });
+describe("OrbitalAscent — v.body genuinely runs off the stream (R6)", () => {
+  it("resolves the streamed parent-body name off the real pipeline, not legacy", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
+      pinnedUt: 10,
+    });
 
     const { container } = render(
       <fixture.Provider>
@@ -50,8 +63,46 @@ describe("OrbitalAscent — zero migratable keys, stream-safe no-op (M3 batch 3)
       </fixture.Provider>,
     );
 
+    // Chrome renders immediately; nothing has streamed yet so no body notice.
     expect(container.textContent).toContain("ORBITAL ASCENT");
     expect(container.textContent).not.toContain("Unknown body");
-    expect(container.textContent).not.toContain("No reference data");
+
+    // A real subscription must have happened for StubTransport (which is
+    // subscription-gated) to deliver at all.
+    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+
+    act(() => {
+      fixture.emit("vessel.orbit", {
+        referenceBodyIndex: 1,
+        sma: 682500,
+        ecc: 0.00367,
+        inc: 0.3,
+        argPe: 12.5,
+        mu: 3.5316e12,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+      });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Gargantua",
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+          },
+        ],
+      });
+      fixture.emit("vessel.identity", { parentBodyIndex: 1, launchUt: 0 });
+    });
+
+    // The derived vessel.state.parentBodyName streams through as "Gargantua",
+    // which getBody() doesn't recognise -> the "Unknown body" notice appears.
+    await waitFor(() => {
+      if (!container.textContent?.includes("Unknown body")) {
+        throw new Error("streamed body name has not resolved yet");
+      }
+    });
+    expect(container.textContent).toContain("Gargantua");
   });
 });
