@@ -1,5 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useDataValue,
   useExecuteAction,
@@ -104,6 +105,41 @@ function streamStatusToKosStatus(
     parseError: null,
     lastGoodAt: null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// The `kos-processors.badges` slot contract (spec §4.4 / augment-slot-map)
+//
+// A per-processor-row inline badges slot. Once this widget migrates to its own
+// `@gonogo/kos` Uplink package (uplink-architecture.md §5 item 2), a third-party
+// kOS-tooling Uplink could badge each CPU with a "script health" indicator
+// without leaving this widget. Because the slot renders once PER ROW, its props
+// MUST carry the processor's identity so the augment badges the right CPU —
+// `partUid` (the kOS core id) is that join key, `tag` its human handle, `mode`
+// its current run state, and `index` disambiguates untagged CPUs.
+// ---------------------------------------------------------------------------
+
+/** Props passed to every `kos-processors.badges` augment — one per processor row. */
+export interface KosProcessorBadgeContext {
+  /** Stable kOS core id / part UID for this processor — the augment's join key. */
+  partUid: string;
+  /** The processor's kOS tag; empty string for an untagged CPU. */
+  tag: string;
+  /** Current run mode (READY / STARVED / OFF / …). */
+  mode: string;
+  /** Position in the listing; disambiguates untagged CPUs. */
+  index: number;
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// other widgets can't collide. Makes `registerAugment({ augments:
+// "kos-processors.badges" })` and `<AugmentSlot name="kos-processors.badges"
+// props={…} />` type-check precisely against `KosProcessorBadgeContext`.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "kos-processors.badges": KosProcessorBadgeContext;
+  }
 }
 
 // Config is intentionally empty post-migration — the per-widget CPU /
@@ -220,6 +256,20 @@ function KosProcessorsComponent({
                   <RowTitle>
                     {p.tag ? label : <Untagged>{label}</Untagged>}
                     <RowMode $mode={p.mode}>{p.mode}</RowMode>
+                    {/* Per-processor inline badges slot. Renders nothing until a
+                        kOS-tooling Uplink binds — props carry this CPU's
+                        identity so a script-health badge lands on the right one. */}
+                    <Badges>
+                      <AugmentSlot
+                        name="kos-processors.badges"
+                        props={{
+                          partUid: p.partUid,
+                          tag: p.tag,
+                          mode: p.mode,
+                          index: i,
+                        }}
+                      />
+                    </Badges>
                   </RowTitle>
                 </RowMain>
               </Row>
@@ -246,6 +296,18 @@ function KosProcessorsComponent({
                 <RowTitle>
                   {p.tag ? label : <Untagged>{label}</Untagged>}
                   <RowMode $mode={p.mode}>{p.mode}</RowMode>
+                  {/* Per-processor inline badges slot (see the compact branch). */}
+                  <Badges>
+                    <AugmentSlot
+                      name="kos-processors.badges"
+                      props={{
+                        partUid: p.partUid,
+                        tag: p.tag,
+                        mode: p.mode,
+                        index: i,
+                      }}
+                    />
+                  </Badges>
                 </RowTitle>
                 {p.partTitle && <RowSub>{p.partTitle}</RowSub>}
                 <RowMeta>
@@ -410,6 +472,13 @@ const RowMode = styled.span<{ $mode: string }>`
   color: ${(p) => modeColor(p.$mode)};
 `;
 
+const Badges = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+`;
+
 const RowSub = styled.div`
   font-size: 11px;
   color: var(--color-text-muted);
@@ -485,6 +554,7 @@ registerComponent<KosProcessorsConfig>({
   configComponent: KosProcessorsConfigComponent,
   openConfigOnAdd: false,
   dataRequirements: [PROCESSORS_KEY, MOD_PROCESSORS_KEY],
+  augmentSlots: ["kos-processors.badges"],
   defaultConfig: {},
   actions: [],
   pushable: true,

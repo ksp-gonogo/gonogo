@@ -1,7 +1,12 @@
-import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  clearAugments,
+  clearRegistry,
+  registerAugment,
+  registerDataSource,
+} from "@gonogo/core";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { KosProcessorsComponent } from "./index";
+import { type KosProcessorBadgeContext, KosProcessorsComponent } from "./index";
 import "./processorsScript"; // self-registers the kOS script
 import { KOS_PROCESSORS_TOPIC_ID } from "./processorsScript";
 
@@ -79,6 +84,7 @@ describe("KosProcessorsComponent", () => {
   afterEach(() => {
     cleanup();
     clearRegistry();
+    clearAugments();
   });
 
   it("shows the run-prompt placeholder before any payload arrives", () => {
@@ -176,5 +182,81 @@ describe("KosProcessorsComponent", () => {
     // which would have shown 3).
     expect(screen.queryByText(/RUN/)).not.toBeInTheDocument();
     expect(screen.queryByText(/3 READY/)).not.toBeInTheDocument();
+  });
+
+  it("renders the per-processor badges slot with no bound augment (empty is fine)", async () => {
+    // No augment registered → the slot composes nothing and each processor row
+    // renders exactly as before.
+    const fake = registerFakeKos();
+    render(<KosProcessorsComponent config={{}} />);
+
+    act(() => {
+      fake.push([
+        {
+          tag: "MainCPU",
+          mode: "READY",
+          volume: "boot",
+          bootFile: "boot/main.ks",
+          partTitle: "KAL9000",
+          partUid: "uid-1",
+        },
+      ]);
+    });
+
+    expect(await screen.findByText("MainCPU")).toBeInTheDocument();
+    expect(screen.queryByTestId("cpu-badge")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound augment once per processor row, carrying each CPU's identity", async () => {
+    // A test kOS-tooling Uplink binds `kos-processors.badges` and echoes the
+    // slot props back. Proves (a) the slot is exposed, (b) an augment composes
+    // into it, and (c) the per-row props carry the right CPU so the badge lands
+    // on the right one. `requires` is omitted so no Domain presence gate applies.
+    registerAugment<"kos-processors.badges">({
+      id: "test-cpu-badge",
+      augments: "kos-processors.badges",
+      component: ({ tag, partUid, mode, index }: KosProcessorBadgeContext) => (
+        <span data-testid="cpu-badge" data-uid={partUid} data-index={index}>
+          {tag || "untagged"} · {mode} ✓
+        </span>
+      ),
+    });
+
+    const fake = registerFakeKos();
+    render(<KosProcessorsComponent config={{}} />);
+
+    act(() => {
+      fake.push([
+        {
+          tag: "MainCPU",
+          mode: "READY",
+          volume: "boot",
+          bootFile: "boot/main.ks",
+          partTitle: "KAL9000",
+          partUid: "uid-1",
+        },
+        {
+          tag: "",
+          mode: "OFF",
+          volume: "",
+          bootFile: "",
+          partTitle: "kOS CPU",
+          partUid: "uid-2",
+        },
+      ]);
+    });
+
+    const badges = await screen.findAllByTestId("cpu-badge");
+    expect(badges).toHaveLength(2);
+    expect(badges.map((b) => b.textContent)).toEqual([
+      "MainCPU · READY ✓",
+      "untagged · OFF ✓",
+    ]);
+    // The badge sits inside its own CPU's row (props identity is correct).
+    const mainRow = screen.getByText("MainCPU").closest("li");
+    expect(mainRow).not.toBeNull();
+    const mainBadge = within(mainRow as HTMLElement).getByTestId("cpu-badge");
+    expect(mainBadge).toHaveTextContent("MainCPU · READY ✓");
+    expect(mainBadge).toHaveAttribute("data-uid", "uid-1");
   });
 });
