@@ -1,5 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
   resolveTargetName,
@@ -49,6 +50,85 @@ interface DistanceToTargetConfig {
    * available. Meaningful only when `hudMode === "hud-with-camera"`.
    */
   cameraFlightId?: number | null;
+}
+
+// ── Augment slots (Uplink architecture spec §4) ───────────────────────────────
+//
+// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row +
+// Feedback round 1). Two are OVERLAY slots on the docking HUD and so PASS
+// slot-props (spec §4.4 — an overlay augment must draw in the HUD's own reticle
+// space, so it receives the parent's coordinate frame):
+//
+//   • `distance-to-target.camera`  — a video backdrop behind the reticle/HUD.
+//     Feedback round 1: the close-range docking camera is meant to become a
+//     kerbcast AUGMENT here (not a standalone CameraFeed instance). This P2 pass
+//     only EXPOSES the slot; the built-in `HudCamera` backdrop stays untouched
+//     and the kerbcast filler + CameraFeed-out-migration are P3/P6.
+//   • `distance-to-target.overlay` — alignment markers layered on top of the
+//     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
+//     into the reticle box using the passed context. Composable by priority
+//     (spec §4.8) so several rangefinder/marker augments coexist.
+//
+// The third is the broad `.badges` escape hatch (Feedback round 1) — an inline
+// header indicator (e.g. an autopilot Uplink's active docking-mode chip).
+
+/**
+ * Coordinate/context the docking-HUD overlay slots pass down (spec §4.4) so an
+ * augment can render in the HUD's own reticle space. Shared by both the camera
+ * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
+ * (`distance-to-target.overlay`).
+ */
+export interface DistanceToTargetHudContext {
+  /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
+  maxDeg: number;
+  /**
+   * Reticle-centre offset from HUD centre, each component in −1..1 (clamped
+   * alignment angle ÷ `maxDeg`; `y` already flipped for screen coords so
+   * positive is downward).
+   */
+  reticleOffset: { x: number; y: number };
+  /**
+   * Percent of the half-box the reticle travels per unit of `reticleOffset`
+   * (the `40` in the reticle's `left: 50 + dx·40 %` positioning) — an overlay
+   * places a marker at `50 + offset·reticleTravelPct` % to sit in the same space.
+   */
+  reticleTravelPct: number;
+  /** True while the two ports are within docking-alignment tolerance. */
+  aligned: boolean;
+  /** Raw docking alignment angles in degrees; undefined outside a docking scenario. */
+  ax: number | undefined;
+  ay: number | undefined;
+  /** Range to the target in metres; undefined until the stream reports position. */
+  distance: number | undefined;
+  /** kerbcast camera flightId configured for the backdrop (unset → first available). */
+  cameraFlightId: number | null | undefined;
+}
+
+/**
+ * Context the `distance-to-target.badges` header slot passes to inline-indicator
+ * augments so a badge can describe the current target without its own reads.
+ */
+export interface DistanceToTargetBadgeContext {
+  /** Current target name, or undefined when no target is set. */
+  targetName: string | undefined;
+  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, …). */
+  targetType: string | undefined;
+  /** Range to the target in metres; undefined until the stream reports position. */
+  distance: number | undefined;
+}
+
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
+// §4.6 hybrid, declaration-merging base). Co-located here per-widget — no shared
+// central registry file — so parallel slot work in other widgets never collides.
+// This is what makes `registerAugment` / `<AugmentSlot props={…}>` type-check the
+// contexts above precisely, rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would get.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "distance-to-target.camera": DistanceToTargetHudContext;
+    "distance-to-target.overlay": DistanceToTargetHudContext;
+    "distance-to-target.badges": DistanceToTargetBadgeContext;
+  }
 }
 
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
@@ -122,6 +202,16 @@ function DistanceToTargetComponent({
   const dockingRelVel = derivedDockRelVel ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
 
+  // Header `.badges` slot context — a fresh object each render so the indicator
+  // tracks live target data (spec §4.4 slot-props). Rendered next to the widget
+  // title (its canonical header, `TitleRow`); the specialised approach/docking
+  // modes keep their own bespoke headers.
+  const badgeContext: DistanceToTargetBadgeContext = {
+    targetName: tarName,
+    targetType: typeof tarType === "string" ? tarType : undefined,
+    distance: tarDistance,
+  };
+
   // Mode hysteresis — sticky so we don't strobe near a threshold, and the
   // upgrade direction is asymmetric (smaller window to enter than to exit).
   const [mode, setMode] = useState<ViewMode>("tracking");
@@ -153,6 +243,7 @@ function DistanceToTargetComponent({
       <Panel>
         <TitleRow>
           <PanelTitle>TARGET</PanelTitle>
+          <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
           <StreamStatusBadge status={streamStatus} />
         </TitleRow>
         <NoTarget>No target set in KSP</NoTarget>
@@ -211,6 +302,7 @@ function DistanceToTargetComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>TARGET</PanelTitle>
+        <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       <TrackingBody>
@@ -437,6 +529,21 @@ function DockingHud(props: DockingHudProps) {
   // Closing if relVel is negative (standard KSP convention: positive = opening).
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
 
+  // Overlay/camera slot context — the reticle coordinate frame an augment needs
+  // to draw in the HUD's own space (spec §4.4). `reticleTravelPct` (40) is the
+  // `50 + dx·40 %` factor the built-in reticle uses, so an augment marker at
+  // `50 + offset·reticleTravelPct` % lands in the same space.
+  const hudContext: DistanceToTargetHudContext = {
+    maxDeg: MAX_DEG,
+    reticleOffset: { x: dx, y: dy },
+    reticleTravelPct: 40,
+    aligned,
+    ax,
+    ay,
+    distance,
+    cameraFlightId,
+  };
+
   return (
     <HudPanel
       role="region"
@@ -444,6 +551,12 @@ function DockingHud(props: DockingHudProps) {
       $row={wideShort}
     >
       {showCamera && showViewport && <HudCamera flightId={cameraFlightId} />}
+      {/* Camera-backdrop slot: an augment (e.g. kerbcast) draws a video layer
+          behind the reticle, in the HUD's space (spec §4.4). Separate from the
+          built-in `HudCamera` above, which this P2 pass leaves in place. */}
+      {showViewport && (
+        <AugmentSlot name="distance-to-target.camera" props={hudContext} />
+      )}
       {showViewport && (
         <Viewport>
           {/* Fixed centre crosshair */}
@@ -465,6 +578,9 @@ function DockingHud(props: DockingHudProps) {
           <VertTick style={{ top: "30%" }} />
           <VertTick style={{ top: "70%" }} />
           <VertTick style={{ top: "90%" }} />
+          {/* Alignment-marker overlay slot: composable augments (spec §4.8) draw
+              on top of the reticle in the same coordinate frame via `hudContext`. */}
+          <AugmentSlot name="distance-to-target.overlay" props={hudContext} />
         </Viewport>
       )}
 
@@ -638,6 +754,11 @@ registerComponent<DistanceToTargetConfig>({
     "dock.forwardDot",
   ],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
+  augmentSlots: [
+    "distance-to-target.camera",
+    "distance-to-target.overlay",
+    "distance-to-target.badges",
+  ],
   pushable: true,
   requires: ["flight"],
 });
