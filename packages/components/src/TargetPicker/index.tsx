@@ -4,6 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
   resolveTargetName,
@@ -35,6 +36,27 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 // retired in favour of the native `system.vessels` roster.
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
+
+// ── Augment slots (Uplink architecture spec §4) ─────────────────────────────
+// Two host-owned slots any Uplink may compose into. Neither carries slot props
+// (spec §4.4): they are not overlay or typed-contract slots — a bound augment
+// reads its OWN Topics via hooks and fires its own actions, so both pass `{}`.
+//
+//  - `target-picker.sections`: a body slot for a fleet-management Uplink (mission
+//    tagging / constellation grouping) to add a filter/grouping view alongside
+//    the stock Bodies / Vessels / Current tabs. No confirmed filler yet (P3+).
+//  - `target-picker.badges`: the broad inline-indicator escape hatch (slot-map
+//    "Feedback round 1"), sitting in the header next to the title.
+//
+// Typed here via co-located `SlotRegistry` declaration-merging (spec §4.6) so
+// the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
+// falling back to the loose `Record<string, unknown>`.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "target-picker.sections": Record<string, never>;
+    "target-picker.badges": Record<string, never>;
+  }
+}
 
 /** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
  * ordinal -> display-label bridge for the new roster shape. */
@@ -406,6 +428,7 @@ function TargetPickerComponent({
       <Panel>
         <CompactTitleRow>
           <PanelTitle>TARGET</PanelTitle>
+          <AugmentSlot name="target-picker.badges" props={{}} />
           <StreamStatusBadge status={streamStatus} />
         </CompactTitleRow>
         <CompactCurrent>
@@ -432,6 +455,7 @@ function TargetPickerComponent({
       <PickerHeader>
         <PickerHeaderTitle>
           <PanelTitle>TARGET PICKER</PanelTitle>
+          <AugmentSlot name="target-picker.badges" props={{}} />
           <StreamStatusBadge status={streamStatus} />
         </PickerHeaderTitle>
         {tarName && (
@@ -460,6 +484,13 @@ function TargetPickerComponent({
           onChange={(id) => setTab(id as TabId)}
         />
       </TabsScope>
+      {/* Host slot for a fleet-management Uplink's filter/grouping section,
+          rendered below the stock tabs. Empty (renders no DOM) until an augment
+          binds `target-picker.sections`; the wrapper collapses to zero height so
+          the widget's own layout is untouched when unfilled. */}
+      <AugmentSectionsRow>
+        <AugmentSlot name="target-picker.sections" props={{}} />
+      </AugmentSectionsRow>
     </Panel>
   );
 }
@@ -560,6 +591,18 @@ const CompactTitleRow = styled.div`
 const OrbitalEventChipsRow = styled.div`
   display: flex;
   margin-top: 4px;
+  &:empty {
+    display: none;
+  }
+`;
+
+/** Wraps the `target-picker.sections` augment slot. Collapses to zero height
+ *  when no augment is bound (the slot renders no DOM), keeping the stock layout
+ *  identical to before the slot existed. */
+const AugmentSectionsRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
   &:empty {
     display: none;
   }
@@ -837,6 +880,10 @@ registerComponent<TargetPickerConfig>({
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
+  // Two host-owned augment slots (spec §4): a body `.sections` slot for a
+  // fleet-management Uplink's filter/grouping view, and the broad `.badges`
+  // escape hatch in the header. Unfilled until an Uplink binds them (P3+).
+  augmentSlots: ["target-picker.sections", "target-picker.badges"],
   dataRequirements: [
     "b.number",
     "tar.name",

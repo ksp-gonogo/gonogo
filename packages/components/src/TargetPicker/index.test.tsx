@@ -1,5 +1,11 @@
 import type { DataKey } from "@gonogo/core";
-import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
+import {
+  clearAugments,
+  DashboardItemContext,
+  getAugmentsForSlot,
+  type MockDataSource,
+  registerAugment,
+} from "@gonogo/core";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -156,5 +162,54 @@ describe("TargetPickerComponent", () => {
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
     });
+  });
+});
+
+describe("TargetPicker — augment slots (Uplink architecture spec §4)", () => {
+  let fixture: MockDataSourceFixture;
+
+  beforeEach(async () => {
+    fixture = await setupMockDataSource({ keys: KEYS });
+  });
+
+  afterEach(() => {
+    teardownMockDataSource(fixture);
+    clearAugments();
+  });
+
+  it("exposes the two host slots empty by default (no augment DOM)", () => {
+    renderPicker();
+    // Neither slot has a bound augment, so nothing extra renders — the frame is
+    // unchanged from before the slots existed. Registry-side, both are exposable.
+    expect(getAugmentsForSlot("target-picker.sections")).toHaveLength(0);
+    expect(getAugmentsForSlot("target-picker.badges")).toHaveLength(0);
+    expect(screen.queryByText("FLEET FILTER")).toBeNull();
+    expect(screen.queryByText("LINK")).toBeNull();
+  });
+
+  it("renders an augment bound to the body sections slot", () => {
+    registerAugment({
+      id: "test-fleet-filter",
+      augments: "target-picker.sections",
+      component: () => <div>FLEET FILTER</div>,
+    });
+    renderPicker();
+    expect(
+      getAugmentsForSlot("target-picker.sections").map((a) => a.id),
+    ).toEqual(["test-fleet-filter"]);
+    expect(screen.getByText("FLEET FILTER")).toBeInTheDocument();
+  });
+
+  it("renders an augment bound to the header badges slot", () => {
+    registerAugment({
+      id: "test-badge",
+      augments: "target-picker.badges",
+      component: () => <span>LINK</span>,
+    });
+    renderPicker();
+    expect(getAugmentsForSlot("target-picker.badges").map((a) => a.id)).toEqual(
+      ["test-badge"],
+    );
+    expect(screen.getByText("LINK")).toBeInTheDocument();
   });
 });
