@@ -7,8 +7,8 @@ import {
   compareVersions,
   registerComponent,
   useActionInput,
-  useDataValue,
   useScreen,
+  useTelemetry,
 } from "@gonogo/core";
 import { Field, FieldLabel, Input, Switch, useModalSaveBar } from "@gonogo/ui";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -67,7 +67,12 @@ function GoNoGoComponent({
 
 function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
-  const missionTime = useDataValue("data", "v.missionTime");
+  // Clean home (R6 §1): `v.missionTime` streams from the SDK-derived
+  // `vessel.state.met` field (launch clock reconstructed from
+  // `vessel.identity`'s `launchUt`, see `vessel-state.ts`). `useTelemetry`'s
+  // legacy two-arg form routes through `mapTopic` onto that derived topic and
+  // rides the stream when carried, falling back to nothing off-pipeline.
+  const missionTime = useTelemetry("data", "v.missionTime");
   const launched = typeof missionTime === "number" && missionTime > 0;
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);
