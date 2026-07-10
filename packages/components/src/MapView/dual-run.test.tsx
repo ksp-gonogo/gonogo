@@ -65,6 +65,7 @@ describe("MapView — behavior-preservation golden dual-run (delay=0)", () => {
         "vessel.control",
         "vessel.target",
         "vessel.comms",
+        "vessel.propulsion",
       ],
       pinnedUt: 10,
     });

@@ -50,6 +50,7 @@ describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)",
         "vessel.control",
         "vessel.target",
         "vessel.comms",
+        "vessel.propulsion",
       ],
       pinnedUt: 10,
     });

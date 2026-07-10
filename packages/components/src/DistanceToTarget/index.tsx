@@ -25,57 +25,12 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-
-/**
- * `{x,y,z}` — the wire shape of every `vessel.target`/`vessel.dock` Vec3
- * field (`mod/Sitrep.Contract/Vec3.cs`), as opposed to the tuple arrays
- * Telemachus used elsewhere (e.g. `AvailableVesselEntry.position`).
- */
-interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-function vecMagnitude(v: Vec3): number {
-  return Math.hypot(v.x, v.y, v.z);
-}
-
-/**
- * Signed range-rate along the line of sight — d|relativePosition|/dt =
- * dot(relativePosition, relativeVelocity) / |relativePosition|. Matches the
- * legacy `tar.o.relativeVelocity` sign convention (positive = opening,
- * negative = closing): if the position vector points from us to the target
- * and the target is receding, the dot product is positive. `undefined` when
- * the position is exactly zero (can't form a unit vector) — never divides
- * by zero.
- */
-function radialSpeed(position: Vec3, velocity: Vec3): number | undefined {
-  const distance = vecMagnitude(position);
-  if (distance === 0) return undefined;
-  const dot =
-    position.x * velocity.x + position.y * velocity.y + position.z * velocity.z;
-  return dot / distance;
-}
-
-/**
- * Derives docking alignment angles (degrees off boresight, matching the
- * legacy `dock.ax`/`dock.ay` convention the reticle math below already
- * expects) from `vessel.dock.relativePosition` — a genuinely NEW client-side
- * derivation (M3 vessel-gap batch), not a reproduction of a legacy
- * Telemachus formula (the fork never published the raw vector these were
- * computed from). Assumes the docking-port-local frame's `z` is the
- * approach/boresight axis and `x`/`y` are the lateral offsets, mirroring
- * `KspVesselActuator`'s use of the SAME axis convention for `x`/`y` (used
- * verbatim below as the drop-in replacement for `dock.x`/`dock.y`). No `az`
- * (roll) equivalent exists on the wire — `vessel.dock` carries no roll
- * data at all, so that readout stays legacy-only.
- */
-function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
-  const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;
-  const ay = (Math.atan2(position.y, Math.abs(position.z)) * 180) / Math.PI;
-  return { ax, ay };
-}
+import {
+  deriveDockAngles,
+  radialSpeed,
+  type Vec3,
+  vecMagnitude,
+} from "../shared/dockAngles";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 

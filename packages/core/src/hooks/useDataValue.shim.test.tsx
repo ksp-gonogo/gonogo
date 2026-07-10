@@ -135,6 +135,7 @@ describe("useDataValue shim — mapped key routes to useStream when a TelemetryP
             "vessel.control",
             "vessel.target",
             "vessel.comms",
+            "vessel.propulsion",
           ]}
         >
           <Alt />
@@ -456,6 +457,7 @@ describe("useDataValue gate — M3 Wave 0 carried-channels allowlist (the big-ba
             "vessel.control",
             "vessel.target",
             "vessel.comms",
+            "vessel.propulsion",
           ]}
         >
           <Alt />

@@ -218,14 +218,41 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     }
   });
 
-  it("leaves the genuinely-underivable A-tranche keys gapped (angleToPrograde, closest-approach UT, docking-orientation angles)", () => {
+  it("leaves the genuinely-underivable v.angleToPrograde gapped (needs a facing vector + defined prograde frame, neither on the wire)", () => {
+    expect(mapTopic("data", "v.angleToPrograde")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "v.angleToPrograde")).toBe(true);
+  });
+
+  it("maps the R6 shared-derivations batch (twr, controllable/EVA/splashed flags, action groups, closest approach) onto vessel.state.*", () => {
+    expect(mapTopic("data", "dv.currentTWR")).toBe("vessel.state.twr");
+    expect(mapTopic("data", "v.isControllable")).toBe(
+      "vessel.state.isControllable",
+    );
+    expect(mapTopic("data", "v.isEVA")).toBe("vessel.state.isEVA");
+    expect(mapTopic("data", "v.splashed")).toBe("vessel.state.isSplashed");
+    expect(mapTopic("data", "v.ag1Value")).toBe("vessel.state.actionGroup1");
+    expect(mapTopic("data", "v.ag10Value")).toBe("vessel.state.actionGroup10");
+    expect(mapTopic("data", "o.closestTgtApprUT")).toBe(
+      "vessel.state.closestApproachUt",
+    );
     for (const key of [
-      "v.angleToPrograde",
+      "dv.currentTWR",
+      "v.isControllable",
+      "v.isEVA",
+      "v.splashed",
+      "v.ag1Value",
+      "v.ag10Value",
       "o.closestTgtApprUT",
-      "dock.ax",
-      "dock.ay",
-      "dock.az",
     ]) {
+      expect(isKnownTelemachusGap("data", key)).toBe(false);
+    }
+  });
+
+  it("leaves the true docking-orientation axes (dock.ax/ay/az) gapped until the DistanceToTarget migrate-widget task drops them (HUD proxy is the shared prerequisite)", () => {
+    // Not on the wire; the shared deriveDockAngles HUD proxy replaces them, but
+    // the widget still reads them legacy-only until its migration reworks the
+    // fixtures/snapshots — so they stay tracked gaps for now.
+    for (const key of ["dock.ax", "dock.ay", "dock.az"]) {
       expect(mapTopic("data", key)).toBeUndefined();
       expect(isKnownTelemachusGap("data", key)).toBe(true);
     }
@@ -398,7 +425,8 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // situationName / sasModeName / targetKind), they map cleanly — see the
         // dedicated enum-ordinal→name test above.
         "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
-        "dv.currentTWR", // no twr field on vessel.propulsion at all
+        // dv.currentTWR moved to CLEAN_HOMES (R6): derived on vessel.state.twr
+        // off vessel.propulsion — see the R6 shared-derivations test above.
         // comm.signalDelay moved to CLEAN_HOMES (Step-3): comms.delay is live
         // on the wire — see the dedicated comm.signalDelay test above.
       ];
@@ -420,20 +448,11 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     });
 
     it("gaps the action-group keys with no individual field on VesselControl", () => {
-      const noIndividualField = [
-        "v.abortValue",
-        "v.precisionControlValue",
-        "v.ag1Value",
-        "v.ag2Value",
-        "v.ag3Value",
-        "v.ag4Value",
-        "v.ag5Value",
-        "v.ag6Value",
-        "v.ag7Value",
-        "v.ag8Value",
-        "v.ag9Value",
-        "v.ag10Value",
-      ];
+      // v.ag1Value..v.ag10Value moved to CLEAN_HOMES (R6 shared-derivations):
+      // derived per-index off vessel.control.actionGroups[] as
+      // vessel.state.actionGroup{n} — see the R6 test above. abort/precision
+      // stay gapped (BUILD — no field on VesselControl yet).
+      const noIndividualField = ["v.abortValue", "v.precisionControlValue"];
       for (const key of noIndividualField) {
         expect(mapTopic("data", key)).toBeUndefined();
         expect(isKnownTelemachusGap("data", key)).toBe(true);

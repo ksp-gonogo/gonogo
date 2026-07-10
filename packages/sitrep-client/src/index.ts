@@ -15,6 +15,7 @@ export {
   useTelemetryStoreOptional,
   useViewClock,
   useViewClockOptional,
+  useViewUt,
   type ViewClockView,
 } from "./context";
 export {
@@ -51,6 +52,25 @@ export {
   TELEMACHUS_CLEAN_HOMES,
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
+export type {
+  BuildPatchesInput,
+  BuildPatchesOptions,
+  ClosestApproach,
+  ClosestApproachOptions,
+  ManeuverBurn,
+  ManeuverPreview,
+  OrbitPatch,
+  OsculatingElements,
+  PatchEncounter,
+} from "./propagation";
+export {
+  buildOrbitPatches,
+  closestApproach,
+  orbitalPeriod,
+  previewManeuver,
+  rvToElements,
+  STANDARD_GRAVITY,
+} from "./propagation";
 export type { ReplayFixture, ReplayTransportOptions } from "./replay-transport";
 export { ReplayTransport } from "./replay-transport";
 export type { StreamStatusValue } from "./stream-status";
@@ -76,6 +96,7 @@ export { useTimelineStream } from "./use-timeline-stream";
 export type {
   VesselFlightPayload,
   VesselOrbitPayload,
+  VesselPropulsionPayload,
   VesselState,
 } from "./vessel-state";
 export {

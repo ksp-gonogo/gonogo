@@ -369,6 +369,39 @@ export function useViewClockOptional(): ViewClockView | undefined {
 }
 
 /**
+ * The current view time (UT seconds) as a reactive value — the ergonomic
+ * "read view-UT directly" surface widgets need after the R6 `t.universalTime`
+ * DROP (it was never a stream; it IS the SDK view time the propagation already
+ * evaluates at). Subscribes to the shared `ViewClock`'s per-frame `onFrame`
+ * tick and returns the frozen `viewUt` for the current frame (respecting
+ * scrub/predicted mode). `undefined` when no `TelemetryProvider` is mounted or
+ * before the first confirmed sample (the view time isn't finite yet) — the
+ * natural "no stream / not synced" signal a widget can `??`-fall-back on.
+ *
+ * Per-frame reactive by design (the same rAF cadence the media buffer runs
+ * on): a widget that reads view-UT for a live countdown re-renders each frame,
+ * which is exactly what a live countdown requires. Callers that only need the
+ * clock object (not a reactive value) should use `useViewClock` instead.
+ */
+export function useViewUt(): number | undefined {
+  const clock = useViewClockOptional();
+  const [viewUt, setViewUt] = useState<number | undefined>(() => {
+    const seed = clock?.confirmedEdgeUt();
+    return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
+  });
+  useEffect(() => {
+    if (!clock) {
+      setViewUt(undefined);
+      return;
+    }
+    return clock.onFrame((ut) =>
+      setViewUt(Number.isFinite(ut) ? ut : undefined),
+    );
+  }, [clock]);
+  return viewUt;
+}
+
+/**
  * Reads the carried-channels allowlist supplied by the nearest
  * `TelemetryProvider` (M3 Wave 0, `./carried-channels.ts`) — throws if no
  * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary

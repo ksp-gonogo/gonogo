@@ -7,6 +7,7 @@ import {
   useTelemetryStore,
   useViewClock,
   useViewClockOptional,
+  useViewUt,
   type ViewClockView,
 } from "./context";
 import { COMMS_DELAY_TOPIC } from "./delay-authority";
@@ -358,6 +359,53 @@ describe("TelemetryProvider wires comms.delay into the auto-built ViewClock (spe
       });
     });
     expect(store?.clock.delaySeconds()).toBe(30);
+
+    client.dispose();
+  });
+});
+
+describe("useViewUt — reactive view-UT surface (R6 t.universalTime DROP → view-UT)", () => {
+  let raf: ReturnType<typeof installFakeRaf>;
+
+  beforeEach(() => {
+    raf = installFakeRaf();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns undefined when no TelemetryProvider is mounted", () => {
+    let value: number | undefined = 999;
+    function Probe() {
+      value = useViewUt();
+      return null;
+    }
+    render(<Probe />);
+    expect(value).toBeUndefined();
+  });
+
+  it("returns the frozen view UT after a frame tick", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const clock = new ViewClock();
+    clock.scrubTo(12_345); // pin viewUt() regardless of samples
+    const store = new TimelineStore(clock);
+
+    let value: number | undefined;
+    function Probe() {
+      value = useViewUt();
+      return null;
+    }
+    render(
+      <TelemetryProvider client={client} store={store}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+    // Before any frame tick the seed is the (non-finite) confirmed edge.
+    expect(value).toBeUndefined();
+    act(() => raf.flush());
+    expect(value).toBe(12_345);
 
     client.dispose();
   });

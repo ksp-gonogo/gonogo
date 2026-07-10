@@ -57,6 +57,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.identity",
   "vessel.control",
   "vessel.comms",
+  // R6 shared-derivations: source of the client-derived `vessel.state.twr`
+  // (old `dv.currentTWR`) — a declared input of `vesselStateChannel`, so it
+  // must be carried for ANY `vessel.state.*` field to resolve (the gate is
+  // parent-channel-scoped).
+  "vessel.propulsion",
   "vessel.attitude",
   "vessel.thermal",
   "vessel.structure",

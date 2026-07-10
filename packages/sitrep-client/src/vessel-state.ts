@@ -1,6 +1,7 @@
 import { Quality } from "@gonogo/sitrep-sdk";
 import type { OrbitElements, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
+import { closestApproach, STANDARD_GRAVITY } from "./propagation";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
@@ -118,6 +119,31 @@ export interface VesselIdentityPayload {
  */
 export interface VesselControlPayload {
   sasMode: number | null;
+  /**
+   * `[ag1..ag10]` in that fixed order (Action Groups Extended appends
+   * further groups) — `mod/Sitrep.Contract/VesselControl.cs`'s
+   * `ActionGroups: bool[]?`. `null`/absent when action-group data wasn't
+   * available this tick (never a partial/short array). The source of the
+   * derived `vessel.state.actionGroups` keyed map + per-index
+   * `vessel.state.actionGroup{n}` booleans (old Telemachus `v.ag{n}Value`).
+   */
+  actionGroups?: boolean[] | null;
+}
+
+/**
+ * The `vessel.propulsion` channel payload — hand-mirrored subset relevant to
+ * the client-side TWR derivation (mirrors `mod/Sitrep.Contract/
+ * VesselPropulsion.cs`). `totalMass`/`dryMass` in TONNES; `currentThrust`/
+ * `availableThrust` in kN — dimensionally consistent for TWR
+ * (`currentThrust / (totalMass · g)` = kN/(t·m/s²), dimensionless). The
+ * contract's own doc comment already anticipates this as an SDK-side
+ * derivation ("*Derived, SDK-side, NOT streamed here:* TWR").
+ */
+export interface VesselPropulsionPayload {
+  totalMass: number;
+  dryMass: number;
+  currentThrust: number;
+  availableThrust: number;
 }
 
 /**
@@ -483,6 +509,81 @@ export interface VesselState {
    * confirmed tombstone.
    */
   commsControlStateOrdinal: number | null | undefined;
+  /**
+   * Thrust-to-weight ratio (dimensionless) — `currentThrust / (totalMass·g)`
+   * off `vessel.propulsion` (old Telemachus `dv.currentTWR`, the Twr widget),
+   * with `g` = standard gravity (9.80665 m/s²), the same constant KSP's own
+   * TWR readout uses. Populated in BOTH bases (self-relative, no orbital
+   * propagation). `undefined` while `vessel.propulsion` hasn't arrived or
+   * `totalMass` is ≤ 0 (no meaningful weight to divide by); `null` on a
+   * confirmed `vessel.propulsion` tombstone or a non-finite result.
+   */
+  twr: number | null | undefined;
+  /**
+   * Whether the vessel currently has command control — derived from
+   * `vessel.comms.controlState` (old Telemachus `v.isControllable`, Navball):
+   * `true` when the control state maps to a non-zero control LEVEL (any
+   * Partial/Full/Probe/Kerbal control), `false` for the *None family
+   * (`None`/`ProbeNone`/`KerbalNone`). Populated in BOTH bases. `undefined`
+   * while `vessel.comms` hasn't arrived or the state is `Unknown` (no level);
+   * `null` on a confirmed tombstone.
+   */
+  isControllable: boolean | null | undefined;
+  /**
+   * Whether the active vessel is a kerbal on EVA — `vessel.identity.vesselType
+   * === EVA` (old Telemachus `v.isEVA`, CrewManifest). Populated in BOTH
+   * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
+   * confirmed tombstone.
+   */
+  isEVA: boolean | null | undefined;
+  /**
+   * Whether the vessel is splashed down — `vessel.identity.situation ===
+   * Splashed` (old Telemachus `v.splashed`, GroundSurvey). Populated in BOTH
+   * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
+   * confirmed tombstone.
+   */
+  isSplashed: boolean | null | undefined;
+  /**
+   * Dynamic action-group state as a keyed map `{ "1": bool, … }` (group id →
+   * engaged) off `vessel.control.actionGroups` — supports Action Groups
+   * Extended's variable count (old Telemachus `v.ag{n}Value` family). Keys are
+   * 1-based group ids as strings. Populated in BOTH bases. `undefined` while
+   * `vessel.control` hasn't arrived or the array is absent this tick; `null`
+   * on a confirmed tombstone.
+   */
+  actionGroups: Record<string, boolean> | null | undefined;
+  /** Action group 1 engaged — `vessel.control.actionGroups[0]` (old `v.ag1Value`). Same discipline as `actionGroups`. */
+  actionGroup1: boolean | null | undefined;
+  /** Action group 2 engaged (old `v.ag2Value`). */
+  actionGroup2: boolean | null | undefined;
+  /** Action group 3 engaged (old `v.ag3Value`). */
+  actionGroup3: boolean | null | undefined;
+  /** Action group 4 engaged (old `v.ag4Value`). */
+  actionGroup4: boolean | null | undefined;
+  /** Action group 5 engaged (old `v.ag5Value`). */
+  actionGroup5: boolean | null | undefined;
+  /** Action group 6 engaged (old `v.ag6Value`). */
+  actionGroup6: boolean | null | undefined;
+  /** Action group 7 engaged (old `v.ag7Value`). */
+  actionGroup7: boolean | null | undefined;
+  /** Action group 8 engaged (old `v.ag8Value`). */
+  actionGroup8: boolean | null | undefined;
+  /** Action group 9 engaged (old `v.ag9Value`). */
+  actionGroup9: boolean | null | undefined;
+  /** Action group 10 engaged (old `v.ag10Value`). */
+  actionGroup10: boolean | null | undefined;
+  /**
+   * UT (seconds) of closest approach to the current target — the SDK-side
+   * two-body closest-approach solve over `vessel.orbit` + `vessel.target.orbit`
+   * (old Telemachus `o.closestTgtApprUT`, DistanceToTarget). Requires both
+   * orbits to share a reference body (a cross-SOI approach isn't a single
+   * two-body problem). OnRails basis only (needs the self orbit's elements as
+   * a propagated conic). `undefined` while `vessel.target` hasn't arrived, the
+   * target has no orbit, the two orbits are around different bodies, or in the
+   * measured basis; `null` on a confirmed `vessel.target` tombstone or a
+   * degenerate solve.
+   */
+  closestApproachUt: number | null | undefined;
   /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
   basis: "propagated" | "measured";
   /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
@@ -1003,6 +1104,168 @@ function deriveEnumDisplayMaps(get: DerivedGet): {
   };
 }
 
+/** `Sitrep.Contract.VesselType.EVA` ordinal (VesselEnums.cs declaration order). */
+const VESSEL_TYPE_EVA = 7;
+/** `Sitrep.Contract.Situation.Splashed` ordinal (VesselEnums.cs declaration order). */
+const SITUATION_SPLASHED = 1;
+
+/**
+ * Thrust-to-weight ratio off `vessel.propulsion` (`vessel.state.twr`, old
+ * `dv.currentTWR`): `currentThrust / (totalMass · g)`, with `g` the same
+ * standard gravity KSP's own TWR readout uses. `undefined` when
+ * `vessel.propulsion` hasn't arrived or `totalMass` is ≤ 0 (no weight to
+ * divide by); `null` on a confirmed tombstone or a non-finite result. Same
+ * channel-presence discipline as `resolveEnumName`.
+ */
+function deriveTwr(get: DerivedGet): number | null | undefined {
+  const point = get<VesselPropulsionPayload>("vessel.propulsion");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const { currentThrust, totalMass } = point.payload;
+  if (!(totalMass > 0)) return undefined;
+  const twr = currentThrust / (totalMass * STANDARD_GRAVITY);
+  return Number.isFinite(twr) ? twr : null;
+}
+
+/**
+ * Whether the vessel has command control (`vessel.state.isControllable`, old
+ * `v.isControllable`) — derived from `vessel.comms.controlState` via the same
+ * `CONTROL_STATE_LEVEL` collapse `commsControlStateOrdinal` uses: a non-zero
+ * control level (any Partial/Full/Probe/Kerbal control) is controllable; the
+ * *None family collapses to level 0 → not controllable. `undefined` when
+ * `vessel.comms` hasn't arrived or the state is `Unknown` (no level); `null`
+ * on a confirmed tombstone. Fixes the naive "ControlState != None" reading,
+ * which would wrongly call a `ProbeNone`/`KerbalNone` vessel controllable.
+ */
+function deriveIsControllable(get: DerivedGet): boolean | null | undefined {
+  const point = get<VesselCommsPayload>("vessel.comms");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const level = CONTROL_STATE_LEVEL[point.payload.controlState];
+  return level === undefined ? undefined : level > 0;
+}
+
+/**
+ * The two `vessel.identity`-derived boolean flags (`vessel.state.isEVA`/
+ * `isSplashed`, old `v.isEVA`/`v.splashed`) — EVA from the `vesselType`
+ * ordinal, splashed from the `situation` ordinal. Bundled so both quality
+ * branches populate them identically off the one channel. `undefined` (both)
+ * while `vessel.identity` hasn't arrived; `null` (both) on a confirmed
+ * tombstone.
+ */
+function deriveIdentityFlags(get: DerivedGet): {
+  isEVA: boolean | null | undefined;
+  isSplashed: boolean | null | undefined;
+} {
+  const point = get<VesselIdentityPayload>("vessel.identity");
+  if (!point) return { isEVA: undefined, isSplashed: undefined };
+  if (point.payload === null) return { isEVA: null, isSplashed: null };
+  return {
+    isEVA: point.payload.vesselType === VESSEL_TYPE_EVA,
+    isSplashed: point.payload.situation === SITUATION_SPLASHED,
+  };
+}
+
+/**
+ * The dynamic action-group derivation (R6 §0.0 REDESIGN) off
+ * `vessel.control.actionGroups` (a fixed-order `[ag1..ag10]` bool array,
+ * Action Groups Extended appends more): a keyed `{ [groupId]: bool }` map
+ * (`vessel.state.actionGroups`, supports the variable count) PLUS the ten
+ * fixed per-index `actionGroup{n}` booleans each existing ActionGroup widget
+ * instance reads as its own bool (`vessel.state.actionGroup{n}`, old
+ * `v.ag{n}Value`). All keys are ALWAYS present on the returned object (values
+ * `undefined`/`null` when unavailable) so the phantom-field guard
+ * (`vessel-state-mapping.coverage.test.ts`) sees every mapped field produced.
+ * `undefined` (all) while `vessel.control` hasn't arrived or the array is
+ * absent this tick; `null` (all) on a confirmed tombstone.
+ */
+function deriveActionGroups(get: DerivedGet): {
+  actionGroups: Record<string, boolean> | null | undefined;
+  actionGroup1: boolean | null | undefined;
+  actionGroup2: boolean | null | undefined;
+  actionGroup3: boolean | null | undefined;
+  actionGroup4: boolean | null | undefined;
+  actionGroup5: boolean | null | undefined;
+  actionGroup6: boolean | null | undefined;
+  actionGroup7: boolean | null | undefined;
+  actionGroup8: boolean | null | undefined;
+  actionGroup9: boolean | null | undefined;
+  actionGroup10: boolean | null | undefined;
+} {
+  const fill = (
+    v: boolean | null | undefined,
+    map: Record<string, boolean> | null | undefined,
+  ) => ({
+    actionGroups: map,
+    actionGroup1: v,
+    actionGroup2: v,
+    actionGroup3: v,
+    actionGroup4: v,
+    actionGroup5: v,
+    actionGroup6: v,
+    actionGroup7: v,
+    actionGroup8: v,
+    actionGroup9: v,
+    actionGroup10: v,
+  });
+
+  const point = get<VesselControlPayload>("vessel.control");
+  if (!point) return fill(undefined, undefined);
+  if (point.payload === null) return fill(null, null);
+  const arr = point.payload.actionGroups;
+  if (arr == null) return fill(undefined, undefined);
+
+  const map: Record<string, boolean> = {};
+  for (let i = 0; i < arr.length; i++) map[String(i + 1)] = !!arr[i];
+  const at = (n: number): boolean | undefined =>
+    n <= arr.length ? !!arr[n - 1] : undefined;
+  return {
+    actionGroups: map,
+    actionGroup1: at(1),
+    actionGroup2: at(2),
+    actionGroup3: at(3),
+    actionGroup4: at(4),
+    actionGroup5: at(5),
+    actionGroup6: at(6),
+    actionGroup7: at(7),
+    actionGroup8: at(8),
+    actionGroup9: at(9),
+    actionGroup10: at(10),
+  };
+}
+
+/**
+ * Closest-approach UT to the current target (`vessel.state.closestApproachUt`,
+ * old `o.closestTgtApprUT`) — the SDK-side two-body solve (`propagation.ts`'s
+ * `closestApproach`) over the self orbit + `vessel.target.orbit`. `self` is
+ * the already-built self-vessel elements (OnRails branch only — the measured
+ * basis has no propagated conic to solve against). Requires both orbits to
+ * share a reference body. `undefined` when `vessel.target` hasn't arrived, the
+ * target has no orbit, the two orbits are around different bodies, or the
+ * solve is degenerate; `null` on a confirmed `vessel.target` tombstone. Never
+ * throws.
+ */
+function deriveClosestApproachUt(
+  get: DerivedGet,
+  self: VesselOrbitPayload,
+  selfElements: OrbitElements,
+  viewUt: number,
+): number | null | undefined {
+  const point = get<VesselTargetPayload>("vessel.target");
+  if (!point) return undefined;
+  if (point.payload === null) return null;
+  const targetOrbit = point.payload.orbit;
+  if (targetOrbit == null) return undefined;
+  if (targetOrbit.referenceBodyIndex !== self.referenceBodyIndex)
+    return undefined;
+  const result = closestApproach(
+    selfElements,
+    buildElements(targetOrbit),
+    viewUt,
+  );
+  return result === null ? undefined : (finiteOrNull(result.ut) ?? undefined);
+}
+
 /**
  * The `vessel.state` derivation (M2 design §2.4/§9.1). Reads `vessel.orbit`
  * + `vessel.flight` at the SAME frozen `viewUt` (the `get` closure enforces
@@ -1133,6 +1396,12 @@ export function deriveVesselState(
       targetDistance: deriveTargetDistance(get),
       ...deriveTargetOrbit(get, viewUt),
       ...deriveEnumDisplayMaps(get),
+      twr: deriveTwr(get),
+      isControllable: deriveIsControllable(get),
+      ...deriveIdentityFlags(get),
+      ...deriveActionGroups(get),
+      // Closest approach needs a propagated self conic — OnRails only.
+      closestApproachUt: deriveClosestApproachUt(get, orbit, elements, viewUt),
       basis: "propagated",
       subjectId,
     };
@@ -1197,6 +1466,14 @@ export function deriveVesselState(
     targetDistance: deriveTargetDistance(get),
     ...deriveTargetOrbit(get, viewUt),
     ...deriveEnumDisplayMaps(get),
+    // Self-relative flags/derivations — independent of the kinematic basis.
+    twr: deriveTwr(get),
+    isControllable: deriveIsControllable(get),
+    ...deriveIdentityFlags(get),
+    ...deriveActionGroups(get),
+    // Closest approach needs a propagated self conic (osculating garbage in
+    // the measured basis) — OnRails only, null here.
+    closestApproachUt: undefined,
     basis: "measured",
     subjectId,
   };
@@ -1280,6 +1557,16 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   // one nulls just that ONE field (never the whole record) and never drags
   // `deriveVesselStateStatus` (still orbit/flight-only — those three are not
   // status-bearing kinematic inputs).
+  // Grew to EIGHT with the R6 shared-derivations task: `vessel.propulsion`
+  // is the source of the client-derived `vessel.state.twr` (old
+  // `dv.currentTWR`). Per this array's contract (above), adding it makes
+  // EVERY `vessel.state.*` field "carried" only once `vessel.propulsion` is
+  // too — so `DEFAULT_SITREP_CARRIED_TOPICS` and every test `carriedChannels`
+  // allowlist that reads any `vessel.state.*` field was extended to list it.
+  // The other R6 flag/derivation additions (`isControllable`/`isEVA`/
+  // `isSplashed`/`actionGroup*`/`closestApproachUt`) read only channels
+  // ALREADY declared here (`vessel.comms`/`vessel.identity`/`vessel.control`/
+  // `vessel.target`), so they added no new input.
   inputs: [
     "vessel.orbit",
     "vessel.flight",
@@ -1288,6 +1575,7 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
     "vessel.control",
     "vessel.target",
     "vessel.comms",
+    "vessel.propulsion",
   ],
   derive: deriveVesselState,
   deriveStatus: deriveVesselStateStatus,

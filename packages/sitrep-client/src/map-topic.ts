@@ -212,6 +212,35 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "tar.o.period": "vessel.state.targetPeriod",
   "tar.o.trueAnomaly": "vessel.state.targetTrueAnomaly",
 
+  // --- R6 shared-derivations batch: client-side derivations off channels
+  // already on the wire, unblocking Wave-2 widget migrations (Twr, Navball,
+  // CrewManifest, GroundSurvey, ActionGroup ag1..10, DistanceToTarget). Each
+  // is a `vessel.state.*` field `deriveVesselState` now produces (see
+  // vessel-state.ts), same display-map pattern as the batches above:
+  //  - twr (dv.currentTWR) = currentThrust/(totalMass·g) off vessel.propulsion.
+  //  - isControllable (v.isControllable) from vessel.comms.controlState LEVEL.
+  //  - isEVA/isSplashed (v.isEVA/v.splashed) from vessel.identity.
+  //  - actionGroup1..10 (v.ag{n}Value) from vessel.control.actionGroups[]
+  //    (dynamic keyed map `vessel.state.actionGroups` also produced for AGX).
+  //  - closestApproachUt (o.closestTgtApprUT) = two-body closest-approach
+  //    solve over vessel.orbit + vessel.target.orbit (propagation.ts).
+  // ---
+  "dv.currentTWR": "vessel.state.twr",
+  "v.isControllable": "vessel.state.isControllable",
+  "v.isEVA": "vessel.state.isEVA",
+  "v.splashed": "vessel.state.isSplashed",
+  "v.ag1Value": "vessel.state.actionGroup1",
+  "v.ag2Value": "vessel.state.actionGroup2",
+  "v.ag3Value": "vessel.state.actionGroup3",
+  "v.ag4Value": "vessel.state.actionGroup4",
+  "v.ag5Value": "vessel.state.actionGroup5",
+  "v.ag6Value": "vessel.state.actionGroup6",
+  "v.ag7Value": "vessel.state.actionGroup7",
+  "v.ag8Value": "vessel.state.actionGroup8",
+  "v.ag9Value": "vessel.state.actionGroup9",
+  "v.ag10Value": "vessel.state.actionGroup10",
+  "o.closestTgtApprUT": "vessel.state.closestApproachUt",
+
   // --- system.state (derived) — b.number is a plain COUNT; system.bodies is
   // the raw body ARRAY. `systemStateChannel` (system-state.ts) derives
   // `bodyCount = bodies.length` on its own SYSTEM-scoped derived channel
@@ -534,12 +563,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gap: needs a derived display-map/field subtopic; migrate in M3
   "o.maneuverNodes",
 
-  // dv.currentTWR: Twr widget reads a plain `number` (`.toFixed(2)`
-  // directly). `VesselPropulsion` has no Twr field at all — the contract's
-  // own doc comment says it's retiring `dv.currentTWR` until a stage sim
-  // exists; there is no `vessel.propulsion.twr` field on the wire to read.
-  // gap: needs a derived display-map/field subtopic; migrate in M3
-  "dv.currentTWR",
+  // dv.currentTWR UN-GAPPED (R6 shared-derivations batch): `VesselPropulsion`
+  // ships CurrentThrust + TotalMass, so TWR = currentThrust/(totalMass·g) is
+  // derived client-side on `vessel.state.twr` (vessel-state.ts, standard
+  // gravity 9.80665). See TELEMACHUS_CLEAN_HOMES above.
 
   // comm.signalDelay UN-GAPPED (Step-3 live batch): the old rationale
   // ("aspirational, no implementation") is STALE — comms.delay is live on the
@@ -558,23 +585,13 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gap: no Abort field on the vessel.control contract yet; migrate in M3
   "v.abortValue",
 
-  // v.ag1Value..v.ag10Value: VesselControl only carries a single
-  // fixed-order `ActionGroups: bool[]` array (`[ag1..ag10]`) — there is no
-  // per-index subtopic a single ActionGroup widget instance could read as
-  // its own boolean; mapping any one of these to the whole array would
-  // hand a boolean-expecting widget an array (the same class of shape bug
-  // as the CRITICAL findings above).
-  // gap: only a fixed-order ActionGroups bool[] array on the wire, no per-index subtopic yet; migrate in M3
-  "v.ag1Value",
-  "v.ag2Value",
-  "v.ag3Value",
-  "v.ag4Value",
-  "v.ag5Value",
-  "v.ag6Value",
-  "v.ag7Value",
-  "v.ag8Value",
-  "v.ag9Value",
-  "v.ag10Value",
+  // v.ag1Value..v.ag10Value UN-GAPPED (R6 shared-derivations batch): the
+  // fixed-order `VesselControl.actionGroups` bool[] is now split into ten
+  // per-index `vessel.state.actionGroup{n}` booleans each ActionGroup widget
+  // instance reads as its own bool (plus a dynamic `vessel.state.actionGroups`
+  // keyed map for Action Groups Extended's variable count). See
+  // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid on
+  // abort/precision — `v.abortValue`/`v.precisionControlValue` below.)
 
   // v.precisionControlValue: no field on VesselControl yet (matches
   // f.precisionControl's existing gap below).
@@ -645,8 +662,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "crash.hasRecent",
   "crash.lastCrash",
 
-  // --- partial via vessel.comms.controlState; the rest is a capture one-liner ---
-  "v.isControllable",
+  // v.isControllable UN-GAPPED (R6 shared-derivations batch): derived from
+  // vessel.comms.controlState's control LEVEL on vessel.state.isControllable
+  // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl stays gapped
+  // (BUILD — no field on VesselControl yet).
   "f.precisionControl",
 
   // --- derived quantities with no named field on any M1/M2 channel yet ---
@@ -657,12 +676,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // TELEMACHUS_CLEAN_HOMES above). The keys BELOW are what genuinely can't be
   // honestly derived from the current wire:
 
-  // v.isEVA / v.splashed: no boolean on any channel (situation is an enum
-  // ordinal on vessel.identity — "Splashed" IS a Situation value, but there's
-  // no dedicated isEVA/splashed field the widgets read as a plain bool).
-  // gap: no dedicated boolean field on the wire; migrate in M3
-  "v.isEVA",
-  "v.splashed",
+  // v.isEVA / v.splashed UN-GAPPED (R6 shared-derivations batch): derived
+  // client-side as plain booleans on `vessel.state.isEVA` (vessel.identity
+  // vesselType === EVA) / `vessel.state.isSplashed` (vessel.identity situation
+  // === Splashed). See TELEMACHUS_CLEAN_HOMES above.
 
   // v.angleToPrograde: the angle between vessel facing and the prograde
   // velocity direction. `vessel.attitude` carries only Euler heading/pitch/
@@ -675,25 +692,19 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // gap: needs a facing vector + a defined prograde frame, neither on the wire; migrate in M3
   "v.angleToPrograde",
 
-  // o.closestTgtApprUT: the UT of closest approach to the target — a two-body
-  // closest-approach solve over the two orbits, not a field on any channel.
-  // The consuming widget (DistanceToTarget) reads it legacy-only with no
-  // client-side derived replacement. Not cheaply/honestly derivable from the
-  // streamed elements.
-  // gap: needs a closest-approach solve, no wire field; migrate in M3
-  "o.closestTgtApprUT",
+  // o.closestTgtApprUT UN-GAPPED (R6 shared-derivations batch): the two-body
+  // closest-approach solve over vessel.orbit + vessel.target.orbit now runs
+  // client-side (propagation.ts's `closestApproach`), exposed on
+  // `vessel.state.closestApproachUt`. See TELEMACHUS_CLEAN_HOMES above.
 
-  // dock.ax/dock.ay/dock.az: the docking-port ORIENTATION misalignment angles
-  // (yaw/pitch/roll between the two ports' frames). `vessel.dock`
-  // (DockAlignment) carries only RelativePosition/RelativeVelocity/Distance +
-  // a single scalar ForwardDot (the dot of the two forward axes) — ForwardDot
-  // gives the TOTAL forward-axis angle but not its yaw/pitch decomposition,
-  // and there's no roll (az) data at all. The true angles aren't recoverable.
-  // (DistanceToTarget's own deriveDockAngles computes LINE-OF-SIGHT offset
-  // angles off dock.relativePosition — a different quantity used as a HUD
-  // proxy, already wired via the raw Vec3 read — and still falls back to these
-  // legacy keys, so they stay gapped.)
-  // gap: only ForwardDot on the wire, no ax/ay/az decomposition or roll; migrate in M3
+  // dock.ax/dock.ay/dock.az: the true docking-port ORIENTATION misalignment
+  // axes aren't on the wire (vessel.dock carries only RelativePosition/
+  // RelativeVelocity/Distance + a scalar ForwardDot). R6 §0.0 USER DECISION is
+  // to DROP them in favour of the LINE-OF-SIGHT HUD proxy — the shared
+  // `deriveDockAngles` helper (packages/components/src/shared/dockAngles.ts,
+  // R6 prep) computes ax/ay off dock.relativePosition. They stay gapped here
+  // until the DistanceToTarget migrate-widget task removes the legacy reads +
+  // reworks the fixtures/snapshots/visual baselines.
   "dock.ax",
   "dock.ay",
   "dock.az",

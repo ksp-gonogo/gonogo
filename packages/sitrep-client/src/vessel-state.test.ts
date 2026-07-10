@@ -14,6 +14,7 @@ import {
   type VesselFlightPayload,
   type VesselIdentityPayload,
   type VesselOrbitPayload,
+  type VesselPropulsionPayload,
   type VesselTargetPayload,
 } from "./vessel-state";
 
@@ -1411,5 +1412,275 @@ describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", ()
 
       expect(deriveVesselStateStatus(getStatus, get, 0)).toBe("absent");
     });
+  });
+});
+
+// ── R6 shared-derivations batch ──────────────────────────────────────────────
+
+/** Generic point wrapper for the R6 derivations (arbitrary topics). */
+function pt<T>(payload: T | null, quality = Quality.OnRails): TimelinePoint<T> {
+  return {
+    validAt: 0,
+    payload,
+    meta: makeMeta({ validAt: 0, quality, source: "vessel:abc-123" }),
+    epoch: 0,
+  };
+}
+
+/** A `DerivedGet` over an arbitrary topic → point map (R6 derivations read new inputs). */
+function getFrom(points: Record<string, TimelinePoint<unknown> | undefined>) {
+  return (<T>(topic: string) =>
+    points[topic] as TimelinePoint<T> | undefined) as DerivedGet;
+}
+
+const ONRAILS = { quality: Quality.OnRails };
+
+describe("R6 twr — vessel.state.twr off vessel.propulsion (dv.currentTWR)", () => {
+  const PROP: VesselPropulsionPayload = {
+    totalMass: 10,
+    dryMass: 4,
+    currentThrust: 200,
+    availableThrust: 400,
+  };
+
+  it("derives currentThrust/(totalMass·g)", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.propulsion": pt(PROP),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.twr).toBeCloseTo(200 / (10 * 9.80665), 6);
+  });
+
+  it("undefined when vessel.propulsion hasn't arrived; null on tombstone", () => {
+    expect(
+      deriveVesselState(
+        getFrom({ "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS) }),
+        0,
+      )?.twr,
+    ).toBeUndefined();
+    expect(
+      deriveVesselState(
+        getFrom({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+          "vessel.propulsion": pt<VesselPropulsionPayload>(null),
+        }),
+        0,
+      )?.twr,
+    ).toBeNull();
+  });
+
+  it("undefined when totalMass is not positive (no weight to divide by)", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.propulsion": pt({ ...PROP, totalMass: 0 }),
+    });
+    expect(deriveVesselState(get, 0)?.twr).toBeUndefined();
+  });
+});
+
+describe("R6 isControllable — vessel.state.isControllable off vessel.comms.controlState (v.isControllable)", () => {
+  const cases: Array<[number, boolean | undefined]> = [
+    [0, false], // None
+    [4, true], // Full
+    [3, true], // Partial (level 1)
+    [1, true], // Probe (level 2)
+    [5, false], // ProbeNone (level 0)
+    [8, false], // KerbalNone (level 0)
+    [11, undefined], // Unknown (no level)
+  ];
+  for (const [controlState, expected] of cases) {
+    it(`controlState ${controlState} -> ${expected}`, () => {
+      const get = getFrom({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+        "vessel.comms": pt({ controlState }),
+      });
+      expect(deriveVesselState(get, 0)?.isControllable).toBe(expected);
+    });
+  }
+
+  it("null on a vessel.comms tombstone", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.comms": pt<VesselCommsPayload>(null),
+    });
+    expect(deriveVesselState(get, 0)?.isControllable).toBeNull();
+  });
+});
+
+describe("R6 identity flags — isEVA / isSplashed off vessel.identity (v.isEVA / v.splashed)", () => {
+  function identity(
+    over: Partial<VesselIdentityPayload>,
+  ): VesselIdentityPayload {
+    return {
+      vesselId: "v",
+      name: "V",
+      vesselType: 0,
+      situation: 0,
+      parentBodyIndex: 1,
+      launchUt: 0,
+      ...over,
+    };
+  }
+
+  it("isEVA true only for vesselType EVA (7)", () => {
+    const eva = deriveVesselState(
+      getFrom({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+        "vessel.identity": pt(identity({ vesselType: 7 })),
+      }),
+      0,
+    );
+    expect(eva?.isEVA).toBe(true);
+    const ship = deriveVesselState(
+      getFrom({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+        "vessel.identity": pt(identity({ vesselType: 0 })),
+      }),
+      0,
+    );
+    expect(ship?.isEVA).toBe(false);
+  });
+
+  it("isSplashed true only for situation Splashed (1)", () => {
+    const splashed = deriveVesselState(
+      getFrom({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+        "vessel.identity": pt(identity({ situation: 1 })),
+      }),
+      0,
+    );
+    expect(splashed?.isSplashed).toBe(true);
+    const landed = deriveVesselState(
+      getFrom({
+        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+        "vessel.identity": pt(identity({ situation: 0 })),
+      }),
+      0,
+    );
+    expect(landed?.isSplashed).toBe(false);
+  });
+
+  it("both undefined when vessel.identity hasn't arrived", () => {
+    const state = deriveVesselState(
+      getFrom({ "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS) }),
+      0,
+    );
+    expect(state?.isEVA).toBeUndefined();
+    expect(state?.isSplashed).toBeUndefined();
+  });
+});
+
+describe("R6 action groups — vessel.state.actionGroups map + actionGroup{n} (v.ag{n}Value)", () => {
+  it("splits the bool[] into a keyed map + per-index booleans", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.control": pt<VesselControlPayload>({
+        sasMode: 0,
+        actionGroups: [
+          true,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+        ],
+      }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.actionGroup1).toBe(true);
+    expect(state?.actionGroup2).toBe(false);
+    expect(state?.actionGroup3).toBe(true);
+    expect(state?.actionGroup10).toBe(true);
+    expect(state?.actionGroups).toEqual({
+      "1": true,
+      "2": false,
+      "3": true,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false,
+      "10": true,
+    });
+  });
+
+  it("supports Action Groups Extended (more than ten groups) in the map", () => {
+    const arr = new Array(12).fill(false);
+    arr[11] = true;
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.control": pt<VesselControlPayload>({
+        sasMode: 0,
+        actionGroups: arr,
+      }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.actionGroups?.["12"]).toBe(true);
+  });
+
+  it("undefined (all) when the array is absent; keys still present", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.control": pt<VesselControlPayload>({ sasMode: 0 }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.actionGroups).toBeUndefined();
+    expect(state?.actionGroup1).toBeUndefined();
+    expect(Object.hasOwn(state ?? {}, "actionGroup1")).toBe(true);
+  });
+});
+
+describe("R6 closestApproachUt — vessel.state.closestApproachUt (o.closestTgtApprUT)", () => {
+  it("solves closest approach when both orbits share a reference body", () => {
+    const target: VesselTargetPayload = {
+      kind: 0,
+      orbit: { ...CIRCULAR_ORBIT, sma: 900_000 },
+    };
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.target": pt(target),
+    });
+    const ut = deriveVesselState(get, 0)?.closestApproachUt;
+    expect(typeof ut).toBe("number");
+    expect(ut as number).toBeGreaterThanOrEqual(0);
+  });
+
+  it("undefined when the target orbits a different body", () => {
+    const target: VesselTargetPayload = {
+      kind: 0,
+      orbit: { ...CIRCULAR_ORBIT, referenceBodyIndex: 5, sma: 900_000 },
+    };
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.target": pt(target),
+    });
+    expect(deriveVesselState(get, 0)?.closestApproachUt).toBeUndefined();
+  });
+
+  it("undefined in the measured basis (no propagated self conic)", () => {
+    const target: VesselTargetPayload = {
+      kind: 0,
+      orbit: { ...CIRCULAR_ORBIT, sma: 900_000 },
+    };
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
+      "vessel.flight": flightPoint(MEASURED_FLIGHT),
+      "vessel.target": pt(target),
+    });
+    expect(deriveVesselState(get, 0, get)?.closestApproachUt).toBeUndefined();
+  });
+
+  it("null on a vessel.target tombstone", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.target": pt<VesselTargetPayload>(null),
+    });
+    expect(deriveVesselState(get, 0)?.closestApproachUt).toBeNull();
   });
 });

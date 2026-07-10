@@ -29,10 +29,11 @@ import { CurrentOrbitComponent } from "./index";
  * is itself the assertion that a partially-mapped widget degrades
  * gracefully.
  *
- * `carriedChannels` lists all SEVEN of `vessel.state`'s declared inputs
+ * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs
  * (`vessel.orbit`/`vessel.flight`/`vessel.identity`/`system.bodies` plus the
- * enum-display-map sources `vessel.control`/`vessel.target`/`vessel.comms`)
- * even though most of the fields this widget reads only actually consult
+ * enum-display-map sources `vessel.control`/`vessel.target`/`vessel.comms` and
+ * the R6 TWR source `vessel.propulsion`) even though most of the fields this
+ * widget reads only actually consult
  * `vessel.orbit` — the carried-channels gate is parent-channel-scoped, not
  * per-field (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
  */
@@ -51,6 +52,7 @@ describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
         "vessel.control",
         "vessel.target",
         "vessel.comms",
+        "vessel.propulsion",
       ],
       pinnedUt: 10,
     });
