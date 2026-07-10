@@ -18,14 +18,36 @@ namespace Gonogo.KSP
     /// <c>"career"</c> snapshot key unconditionally (guarded to career mode
     /// only — see <c>KspHost.BuildCareer</c>'s doc comment).
     ///
-    /// <para>Read-only capture for this session — no commands. Career
-    /// actuation (accept/decline contract, upgrade facility, unlock tech,
-    /// activate/deactivate strategy) is a follow-up, scoped in the master
-    /// plan's Career/KSC section.</para>
+    /// <para>Alongside the read capture this uplink also carries the
+    /// career-write COMMANDS (accept/decline/cancel contract, upgrade facility,
+    /// unlock tech, activate/deactivate strategy) — <see cref="CareerCommandProvider"/>'s
+    /// KSP-free <c>Handle*</c> glue against the <see cref="ICareerActuator"/>
+    /// this uplink is constructed with (<see cref="KspCareerActuator"/> in
+    /// production, <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All
+    /// seven are ground-side KSC bookkeeping, not an uplink to a craft, so each
+    /// is declared <c>delayed: false</c> (see the command list below).</para>
     /// </summary>
     [SitrepUplink("career")]
     public sealed class CareerUplink : ISitrepUplink
     {
+        private readonly ICareerActuator _actuator;
+
+        public CareerUplink(ICareerActuator actuator)
+        {
+            _actuator = actuator;
+        }
+
+        /// <summary>
+        /// The discovery-required parameterless constructor (see
+        /// <c>Sitrep.Host.UplinkDiscovery</c>: a discoverable Uplink resolves any
+        /// real dependency itself). Builds its own <see cref="KspCareerActuator"/>,
+        /// which needs no external state — every entity it touches is resolved
+        /// live off the KSC singletons at command time.
+        /// </summary>
+        public CareerUplink() : this(new KspCareerActuator())
+        {
+        }
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "career",
@@ -67,12 +89,42 @@ namespace Gonogo.KSP
                     Delay = DelayRole.TrueNow,
                 },
             },
+            // Every career-write command is ground-side KSC bookkeeping, not a
+            // signal to a craft, so all seven are delayed: false — they take
+            // effect immediately, never at UT + uplink light-time (the F2 rule:
+            // a game-level/meta action is not an uplink; see VesselUplink's
+            // command-classification table, which names facility/contracts/tech/
+            // strategies as the delayed: false bucket).
+            Commands = new List<CommandDeclaration>
+            {
+                Command(CareerCommandProvider.ActivateStrategyCommand, delayed: false),
+                Command(CareerCommandProvider.DeactivateStrategyCommand, delayed: false),
+                Command(CareerCommandProvider.UnlockTechCommand, delayed: false),
+                Command(CareerCommandProvider.AcceptContractCommand, delayed: false),
+                Command(CareerCommandProvider.DeclineContractCommand, delayed: false),
+                Command(CareerCommandProvider.CancelContractCommand, delayed: false),
+                Command(CareerCommandProvider.UpgradeFacilityCommand, delayed: false),
+            },
         };
 
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
+
+            host.AddCommandHandler<ActivateStrategyArgs, CommandResult>(CareerCommandProvider.ActivateStrategyCommand, args => CareerCommandProvider.HandleActivateStrategy(_actuator, args));
+            host.AddCommandHandler<DeactivateStrategyArgs, CommandResult>(CareerCommandProvider.DeactivateStrategyCommand, args => CareerCommandProvider.HandleDeactivateStrategy(_actuator, args));
+            host.AddCommandHandler<UnlockTechArgs, CommandResult>(CareerCommandProvider.UnlockTechCommand, args => CareerCommandProvider.HandleUnlockTech(_actuator, args));
+            host.AddCommandHandler<ContractActionArgs, CommandResult>(CareerCommandProvider.AcceptContractCommand, args => CareerCommandProvider.HandleAcceptContract(_actuator, args));
+            host.AddCommandHandler<ContractActionArgs, CommandResult>(CareerCommandProvider.DeclineContractCommand, args => CareerCommandProvider.HandleDeclineContract(_actuator, args));
+            host.AddCommandHandler<ContractActionArgs, CommandResult>(CareerCommandProvider.CancelContractCommand, args => CareerCommandProvider.HandleCancelContract(_actuator, args));
+            host.AddCommandHandler<UpgradeFacilityArgs, CommandResult>(CareerCommandProvider.UpgradeFacilityCommand, args => CareerCommandProvider.HandleUpgradeFacility(_actuator, args));
         }
+
+        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        {
+            Command = command,
+            Delayed = delayed,
+        };
     }
 }
