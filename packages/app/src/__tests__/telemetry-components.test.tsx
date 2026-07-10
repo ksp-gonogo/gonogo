@@ -20,10 +20,19 @@ import {
   registerStockBodies,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  createFakeWallClock,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+  vesselStateChannel,
+} from "@gonogo/sitrep-client";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   afterAll,
   afterEach,
@@ -94,6 +103,45 @@ function setupTelemetry(snapshot: Record<string, unknown>) {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: mount a real TelemetryProvider (TelemetryClient + TimelineStore
+// over a StubTransport) for widgets that read via the canonical `useTelemetry`
+// stream path post-P1 de-Telemachus migration. Mirrors
+// `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
+// DistanceToTarget's and OrbitView's own dedicated stream tests) — duplicated
+// here in miniature rather than imported, since `@gonogo/components`'s test
+// helpers aren't part of its published surface.
+// ---------------------------------------------------------------------------
+function setupTelemetryStream(carriedChannels: Iterable<string>) {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(vesselStateChannel);
+
+  function Provider({ children }: { children: ReactNode }) {
+    return (
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={carriedChannels}
+      >
+        {children}
+      </TelemetryProvider>
+    );
+  }
+
+  return {
+    emit: (topic: string, payload: unknown) => transport.emit(topic, payload),
+    Provider,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // CurrentOrbit
 // ---------------------------------------------------------------------------
 describe("CurrentOrbitComponent", () => {
@@ -140,9 +188,29 @@ describe("DistanceToTargetComponent", () => {
   });
 
   it("shows target name and distance when telemetry arrives", async () => {
-    setupTelemetry({ "tar.name": "Mun", "tar.distance": 12_000_000 });
-    await telemachusSource.connect();
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
+    // P1 de-Telemachus: the widget no longer reads a legacy `tar.distance`
+    // scalar — it derives distance client-side from the `vessel.target` Vec3
+    // `relativePosition` (see DistanceToTarget's own `stream.test.tsx`).
+    // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
+    // same carried record, so it rides the stream too — no legacy "data"
+    // WS emission needed for this case.
+    const stream = setupTelemetryStream(["vessel.target"]);
+    render(
+      <stream.Provider>
+        <DistanceToTargetComponent config={{}} id="tar" />
+      </stream.Provider>,
+    );
+    act(() => {
+      // Magnitude of (12_000_000, 0, 0) = 12_000_000 m.
+      stream.emit("vessel.target", {
+        name: "Mun",
+        kind: 1,
+        vesselId: null,
+        bodyIndex: 2,
+        relativePosition: { x: 12_000_000, y: 0, z: 0 },
+        relativeVelocity: { x: 0, y: 0, z: 0 },
+      });
+    });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     // formatDistance(12_000_000) = '12.00 Mm'
     await waitFor(() =>
@@ -174,16 +242,24 @@ describe("OrbitViewComponent", () => {
   });
 
   it("renders SVG diagram when orbital data arrives", async () => {
-    setupTelemetry({
-      "o.sma": 700_000,
-      "o.eccentricity": 0.1,
-      "o.ApR": 770_000,
-      "o.PeR": 630_000,
-      "o.trueAnomaly": 0,
-      "o.argumentOfPeriapsis": 0,
+    // P1 de-Telemachus: OrbitView reads exclusively off the canonical
+    // `useTelemetry("vessel.orbit")` stream overload now — no legacy
+    // DataSource fallback (see OrbitView's own `stream.test.tsx`). Apoapsis/
+    // periapsis radii are derived in-widget from `sma`/`ecc`, so emitting
+    // just those two (plus `argPe`) is enough to satisfy `hasOrbit`.
+    const stream = setupTelemetryStream(["vessel.orbit"]);
+    renderWidget(
+      <stream.Provider>
+        <OrbitViewComponent id="t" />
+      </stream.Provider>,
+    );
+    act(() => {
+      stream.emit("vessel.orbit", {
+        sma: 700_000,
+        ecc: 0.1,
+        argPe: 0,
+      });
     });
-    await telemachusSource.connect();
-    renderWidget(<OrbitViewComponent id="t" />);
     await waitFor(() =>
       expect(
         screen.getByRole("img", { name: /orbital diagram/i }),
