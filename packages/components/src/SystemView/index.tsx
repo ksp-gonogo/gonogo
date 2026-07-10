@@ -184,6 +184,17 @@ function SystemViewComponent({
     if (!orbit || universalTime == null || !Number.isFinite(universalTime)) {
       return null;
     }
+    // `solveAnomalies` throws a RangeError for parabolic/hyperbolic orbits
+    // (ecc outside `[0, 1)` — escape/flyby trajectories, a routine state for a
+    // system-wide diagram during interplanetary transfers). Degrade the
+    // orbital scalars to null rather than crashing the whole widget mid-render
+    // (there's no error boundary inside it, and the old Telemachus path read
+    // trueAnomaly/period/apsis as plain wire scalars that never threw). Guard
+    // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
+    // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
+    if (!(orbit.ecc >= 0 && orbit.ecc < 1)) {
+      return null;
+    }
     const elements = buildElements(orbit);
     const anomalies = solveAnomalies(elements, universalTime);
     const trueAnomaly = finiteOrNull(

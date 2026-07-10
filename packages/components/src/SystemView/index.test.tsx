@@ -235,6 +235,38 @@ describe("SystemViewComponent", () => {
     );
   });
 
+  it("renders without crashing on a hyperbolic (escape) orbit", async () => {
+    // ecc >= 1 makes the client-side Kepler solver (`solveAnomalies`) throw a
+    // RangeError — a routine state for a system-wide diagram during an
+    // interplanetary escape/flyby. The derivation must degrade the orbital
+    // scalars to null instead of crashing the widget mid-render (no error
+    // boundary inside it).
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
+    primeBodies();
+    primeStream({
+      referenceBodyIndex: 0,
+      sma: -8_000_000, // negative sma — a hyperbolic conic
+      ecc: 1.3,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 100,
+      mu: KERBIN_MU,
+      encounter: { transitionType: 3, transitionUt: 600, bodyIndex: 1 },
+    });
+    // Frame label still lands (widget rendered, didn't throw). The escape is
+    // surfaced from the raw `vessel.orbit.encounter` scalar, not the thrown
+    // derivation.
+    await waitFor(() =>
+      expect(screen.getByText(/next escape:\s*Mun/i)).toBeInTheDocument(),
+    );
+  });
+
   it("surfaces the next encounter body in the subtitle from vessel.orbit.encounter", async () => {
     render(
       <fixture.Provider>
