@@ -84,6 +84,14 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // Ambient skin temperature — drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top.
+  // `v.externalTemperature` was UN-GAPPED in the P4a shared-map batch
+  // (map-topic.ts's TELEMACHUS_CLEAN_HOMES routes it to the raw field
+  // `vessel.flight.externalTemperature`, the same channel AtmosphereProfile's
+  // skin-temp read now rides) and streams with zero call-site change here
+  // too. `v.topology`/`v.topologySeq` (and the `therm.*` per-part detail
+  // joined in below) stay GAPPED — they need the asset-class parts/thermal
+  // reconstruction (telemetry-mod brief 2 §Deferred), out of the safe P4a
+  // subset — so this widget stays hybrid on everything except this one read.
   const externalTemperature = useDataValue("data", "v.externalTemperature");
   // Current throttle — gates the engine-flame overlay so a staged-but-
   // idle engine doesn't render thrust. Forwarded through ShipDiagram
@@ -375,6 +383,10 @@ registerComponent<ShipMapConfig>({
   augmentSlots: ["ship-map.overlay", "ship-map.badges"],
   // useTopology internally subscribes to v.topologySeq + briefly to
   // v.topology on bump; per-part live data joins via usePartsLive.
+  // v.externalTemperature UN-GAPPED in the P4a shared-map batch — same
+  // declared key, now routed through the stream by mapTopic with a zero
+  // call-site change (see the read above). The rest stay GAPPED (need the
+  // asset-class parts/thermal reconstruction) and remain legacy-only.
   dataRequirements: [
     "v.topologySeq",
     "v.topology",
