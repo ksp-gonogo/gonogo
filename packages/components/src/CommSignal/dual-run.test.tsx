@@ -1,93 +1,95 @@
 import { DashboardItemContext } from "@gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
-import strongDirectKsc from "./__fixtures__/strong-direct-ksc.json";
 import { CommSignalComponent } from "./index";
 
 /**
- * CommSignal's M3 batch-2 behavior-preservation golden dual-run (mirrors
- * `ThermalStatus/dual-run.test.tsx`, batch 1): the SAME signal state,
- * rendered once off the legacy `DataSource` and once off the stream, must
- * produce byte-identical DOM at `delay=0`.
- *
- * `strong-direct-ksc` is chosen because every one of its 5 fields is
- * present: `comm.connected`/`comm.signalStrength` stream (MAPPED ->
- * `vessel.comms.*`), `comm.controlState`/`comm.controlStateName`/`comm.
- * signalDelay` read off a legacy AUX source (GAPPED — shape-mismatch/no
- * home, see `map-topic.ts`) registered alongside the `TelemetryProvider`.
+ * CommSignal's R6 Wave-1 behavior test. This was a fork↔stream parity
+ * dual-run back when `comm.controlState`/`comm.controlStateName`/
+ * `comm.signalDelay` were GAPPED — the stream leg had to feed those three
+ * through a legacy `"data"` `MockDataSource` because nothing streamed them.
+ * The SharedLib phase un-gapped all three onto clean homes (control state →
+ * the SDK-derived `vessel.state.commsControlState*` display maps off
+ * `vessel.comms.controlState`; delay → `comms.delay.oneWaySeconds`), so the
+ * legacy MockDataSource leg is dropped: every field now feeds off the real
+ * stream pipeline (`TelemetryProvider` + `StubTransport`), and this test
+ * proves the full readout — strength headline, bars, control label, and the
+ * formatted delay — all resolve off the stream for the same signal state the
+ * `strong-direct-ksc` fixture depicts.
  */
 afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = [
-  "comm.controlState",
-  "comm.controlStateName",
-  "comm.signalDelay",
-] as const;
+// Every input `vesselStateChannel` declares (vessel-state.ts) — all must be in
+// the allowlist for the derived `vessel.state.commsControlState*` fields to be
+// treated as carried; `comms.delay` backs `comm.signalDelay`.
+const CARRIED = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+  "comms.delay",
+];
 
-describe("CommSignal — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same signal state", async () => {
-    const mode = { name: "default-6x5", w: 6, h: 5 };
-
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: CommSignalComponent,
-      fixture: strongDirectKsc,
-      mode,
-      connectSource: true,
-    });
-
-    const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms"],
+describe("CommSignal — full readout off the stream (R6 Wave 1)", () => {
+  it("resolves strength, bars, control label, and delay off the stream for a strong direct link", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: GAPPED_KEYS.map((key) => ({ key })),
-      connectSource: true,
     });
 
     const { container } = render(
-      <streamFixture.Provider>
+      <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "comm-dual" }}>
-          <CommSignalComponent id="comm-dual" w={mode.w} h={mode.h} />
+          <CommSignalComponent id="comm-dual" w={6} h={5} />
         </DashboardItemContext.Provider>
-      </streamFixture.Provider>,
+      </fixture.Provider>,
     );
 
     act(() => {
-      for (const key of GAPPED_KEYS) {
-        legacyAux.source.emit(
-          key,
-          strongDirectKsc[key as keyof typeof strongDirectKsc],
-        );
-      }
-      streamFixture.emit("vessel.comms", {
-        connected: strongDirectKsc["comm.connected"],
-        signalStrength: strongDirectKsc["comm.signalStrength"],
+      // The derived `vessel.state.commsControlState*` fields (control label +
+      // level) require `vessel.orbit` present — `deriveVesselState` returns the
+      // whole record only once the vessel has an orbit (vessel-state.ts).
+      fixture.emit("vessel.orbit", {
+        sma: 680000,
+        ecc: 0.0,
+        inc: 0.0,
+        argPe: 0.0,
+        mu: 3.5316e12,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        referenceBodyIndex: 1,
       });
+      // `controlState` on the wire is the rich `ControlState` enum ordinal
+      // (Full = 4); the SDK collapses it to the widget's level (2) and resolves
+      // the "Full" name string.
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.87,
+        controlState: 4,
+      });
+      fixture.emit("comms.delay", { oneWaySeconds: 0.0004 });
     });
 
-    // "Full" alone isn't sufficient — that text comes from the legacy AUX
-    // source's comm.controlStateName, which can land before the STREAM
-    // leg's mapped vessel.comms emission has actually propagated through
-    // the store. Wait on a value the stream leg alone produces (the
-    // signal-strength headline) so the race can't produce a false green.
-    await waitFor(() => {
-      if (!container.textContent?.includes("87%")) {
-        throw new Error("stream leg has not rendered signal strength yet");
-      }
-    });
+    // A real subscription must have happened for StubTransport (subscription-
+    // gated) to deliver at all.
+    expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
+    expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
 
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
+    // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
+    await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
+    expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
+    // Control label + formatted delay both come off the stream now.
+    expect(screen.getByText("Full")).toBeTruthy();
+    expect(screen.getByText("0 ms")).toBeTruthy();
+    expect(screen.getByText("Signal to KSC")).toBeTruthy();
+    // No stray "—" placeholder — every field resolved.
+    expect(container.textContent).not.toContain("—");
   });
 });

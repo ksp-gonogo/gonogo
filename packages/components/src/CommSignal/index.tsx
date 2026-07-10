@@ -3,7 +3,7 @@ import {
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@gonogo/core";
 import {
   EmptyState,
@@ -59,17 +59,23 @@ function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  const connected = useDataValue("data", "comm.connected");
-  const strength = useDataValue("data", "comm.signalStrength");
-  const controlState = useDataValue("data", "comm.controlState");
-  const controlStateName = useDataValue("data", "comm.controlStateName");
-  const delay = useDataValue("data", "comm.signalDelay");
-  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
-  // `comm.connected` is this widget's representative MAPPED key
-  // (-> `vessel.comms.connected`; `comm.signalStrength` is also mapped to
-  // `vessel.comms.signalStrength`) — `comm.controlState`/
-  // `comm.controlStateName`/`comm.signalDelay` are all GAPPED
-  // (map-topic.ts's shape-mismatch / no-home gaps) and stay legacy.
+  // R6 Wave-1 de-Telemachus: every read is a clean home now (R6 §3), so all
+  // five route off the legacy Telemachus `DataSource` and onto the stream via
+  // `useTelemetry`'s two-arg `mapTopic` shim:
+  //  - `comm.connected`     -> `vessel.comms.connected`
+  //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
+  //  - `comm.controlState`  -> `vessel.state.commsControlStateOrdinal` (the
+  //    SDK-derived collapse of `vessel.comms.controlState`'s rich `ControlState`
+  //    enum onto this widget's 0/1/2 level scheme — see `vessel-state.ts`)
+  //  - `comm.controlStateName` -> `vessel.state.commsControlStateName` (that
+  //    same ordinal resolved to its enum NAME string)
+  //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
+  //    SignalDelay authority, live via CommsCoreUplink)
+  const connected = useTelemetry("data", "comm.connected");
+  const strength = useTelemetry("data", "comm.signalStrength");
+  const controlState = useTelemetry("data", "comm.controlState");
+  const controlStateName = useTelemetry("data", "comm.controlStateName");
+  const delay = useTelemetry("data", "comm.signalDelay");
   const streamStatus = useDataStreamStatus("data", "comm.connected");
 
   const hasData =
