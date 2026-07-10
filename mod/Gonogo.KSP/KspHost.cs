@@ -636,6 +636,9 @@ namespace Gonogo.KSP
                 ["gear"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Gear] : null,
                 ["brakes"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Brakes] : null,
                 ["lights"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Light] : null,
+                // Precision (fine-control) mode is a global flight-input singleton,
+                // not a per-vessel field. Null when there's no active flight scene.
+                ["precisionControl"] = FlightInputHandler.fetch != null ? (bool?)FlightInputHandler.fetch.precisionMode : null,
                 ["throttle"] = ctrlState != null ? (double?)ctrlState.mainThrottle : null,
             };
 

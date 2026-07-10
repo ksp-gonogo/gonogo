@@ -700,6 +700,7 @@ namespace Sitrep.Host.Tests
                 ["gear"] = true,
                 ["brakes"] = false,
                 ["lights"] = true,
+                ["precisionControl"] = true,
                 ["throttle"] = 2.0, // V-3: deliberately unclamped -- not silently "fixed"
             };
             for (var i = 1; i <= 10; i++)
@@ -715,6 +716,7 @@ namespace Sitrep.Host.Tests
             Assert.True(vesselControl!.Sas);
             Assert.Equal(SasMode.Prograde, vesselControl.SasMode);
             Assert.False(vesselControl.Rcs);
+            Assert.True(vesselControl.PrecisionControl);
             Assert.Equal(2.0, vesselControl.Throttle); // NOT clamped to 1.0
             Assert.NotNull(vesselControl.ActionGroups);
             Assert.Equal(10, vesselControl.ActionGroups!.Length);
@@ -734,6 +736,7 @@ namespace Sitrep.Host.Tests
             Assert.NotNull(control); // vessel present -> record present
             Assert.Null(control!.Sas);
             Assert.Null(control.SasMode);
+            Assert.Null(control.PrecisionControl);
             Assert.Null(control.Throttle);
             Assert.Null(control.ActionGroups);
         }

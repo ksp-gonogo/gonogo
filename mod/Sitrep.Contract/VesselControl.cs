@@ -68,6 +68,14 @@ public class VesselControl
 
     public bool? Lights { get; set; }
 
+    /// <summary>
+    /// Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
+    /// <c>FlightInputHandler.fetch.precisionMode</c>. Null when there's no
+    /// active flight scene (<c>FlightInputHandler.fetch</c> is null), never a
+    /// sentinel default (R1(a)).
+    /// </summary>
+    public bool? PrecisionControl { get; set; }
+
     /// <summary>0..1 nominal range — NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
     public double? Throttle { get; set; }
 
