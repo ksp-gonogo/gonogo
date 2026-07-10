@@ -6,8 +6,13 @@ import type {
 import {
   registerComponent,
   resolveTargetName,
-  useDataValue,
+  useTelemetry,
 } from "@gonogo/core";
+import {
+  type OrbitElements,
+  solveAnomalies,
+  useViewUt,
+} from "@gonogo/sitrep-client";
 import {
   ConfigForm,
   Field,
@@ -24,7 +29,6 @@ import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { useElementSize } from "../shared/useElementSize";
 import { AlmanacPanel } from "./AlmanacPanel";
-import { scanEncounters } from "./predictedTrajectory";
 import { SystemDiagram } from "./SystemDiagram";
 import {
   angleDelta,
@@ -46,6 +50,96 @@ interface SystemViewConfig {
   frame?: "auto" | "root" | string;
 }
 
+// ── Client-side orbit derivations ───────────────────────────────────────────────
+// Mirror `@gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
+// widget reconstructs the scalars it used to read off Telemachus's `o.*` keys
+// (trueAnomaly / next-apsis / encounter) directly from the streamed
+// `vessel.orbit` elements + the SDK view-UT — the R6 §0.0/§1b client-side
+// REDESIGN. `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
+// `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
+// normalised (meanAnomalyAtEpoch is already radians — the documented KSP quirk).
+
+/** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces. */
+const TRANSITION_TYPE_ENCOUNTER = 2;
+const TRANSITION_TYPE_ESCAPE = 3;
+
+function degToRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function radToDeg(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+function wrapDegrees360(deg: number): number {
+  const wrapped = deg % 360;
+  return wrapped < 0 ? wrapped + 360 : wrapped;
+}
+
+function finiteOrNull(x: number): number | null {
+  return Number.isFinite(x) ? x : null;
+}
+
+interface WireOrbit {
+  sma: number;
+  ecc: number;
+  inc: number;
+  lan?: number;
+  argPe?: number;
+  meanAnomalyAtEpoch: number;
+  epoch: number;
+  mu: number;
+}
+
+function buildElements(o: WireOrbit): OrbitElements {
+  return {
+    sma: o.sma,
+    ecc: o.ecc,
+    inc: degToRad(o.inc),
+    lan: o.lan == null ? 0 : degToRad(o.lan),
+    argPe: o.argPe == null ? 0 : degToRad(o.argPe),
+    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch,
+    epoch: o.epoch,
+    mu: o.mu,
+  };
+}
+
+/**
+ * Seconds from `meanAnomaly` (rad) until it next reaches `target` (rad), wrapped
+ * forward to `[0, period)`. `null` for a non-positive/non-finite mean motion.
+ */
+function timeToMeanAnomaly(
+  meanAnomaly: number,
+  target: number,
+  meanMotion: number,
+): number | null {
+  if (
+    !Number.isFinite(meanAnomaly) ||
+    !Number.isFinite(meanMotion) ||
+    meanMotion <= 0
+  ) {
+    return null;
+  }
+  const twoPi = 2 * Math.PI;
+  let delta = (target - meanAnomaly) % twoPi;
+  if (delta < 0) delta += twoPi;
+  return delta / meanMotion;
+}
+
+/** Whichever of `timeToAp`/`timeToPe` is the smaller non-null countdown. */
+function nextApsisOf(
+  timeToAp: number | null,
+  timeToPe: number | null,
+): { nextApsisType: number | null; timeToNextApsis: number | null } {
+  if (timeToAp != null && (timeToPe == null || timeToAp <= timeToPe)) {
+    return { nextApsisType: 1, timeToNextApsis: timeToAp };
+  }
+  if (timeToPe != null) {
+    return { nextApsisType: -1, timeToNextApsis: timeToPe };
+  }
+  return { nextApsisType: null, timeToNextApsis: null };
+}
+
 function SystemViewComponent({
   config,
   w,
@@ -53,66 +147,167 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
-  const vesselBody = useDataValue("data", "v.body");
-  const targetName = resolveTargetName(useDataValue("data", "tar.name"));
-  // Vessel orbit — feeds the dot drawn on its own orbit when the
-  // chosen frame matches its parent body.
-  const vSma = useDataValue("data", "o.sma");
-  const vEcc = useDataValue("data", "o.eccentricity");
-  const vLan = useDataValue("data", "o.lan");
-  const vArgPe = useDataValue("data", "o.argumentOfPeriapsis");
-  const vInc = useDataValue("data", "o.inclination");
-  const vTrueAnomaly = useDataValue("data", "o.trueAnomaly");
-  // Vessel-wide orbital event reads — surfaced in the AlmanacPanel when the
-  // panel's body matches the encounter destination (or is the vessel's parent
-  // for the next-apsis row).
-  const encounterExists = useDataValue("data", "o.encounterExists");
-  const encounterBody = useDataValue("data", "o.encounterBody");
-  const encounterTime = useDataValue("data", "o.encounterTime");
-  const nextApsisTypeRaw = useDataValue("data", "o.nextApsisType");
-  const timeToNextApsis = useDataValue("data", "o.timeToNextApsis");
-  // Multi-SOI predicted trajectory — reuses the same patched-conic data that
-  // MapView consumes (o.orbitPatches), projected onto the top-down diagram.
-  const orbitPatches = useDataValue<OrbitPatch[]>("data", "o.orbitPatches");
-  const universalTime = useDataValue("data", "t.universalTime");
+  // Streamed Topics (R6 de-Telemachus): raw `vessel.*` records read straight
+  // off the Uplink store via the canonical `useTelemetry(TopicId)` hook — no
+  // legacy `DataSource` fallback. The scalars the widget used to read off
+  // Telemachus's derived `o.*` keys (trueAnomaly / next-apsis / encounter) are
+  // reconstructed client-side below from `vessel.orbit`'s elements + the SDK
+  // view-UT (§0.0/§1b REDESIGN).
+  const orbit = useTelemetry("vessel.orbit");
+  const identity = useTelemetry("vessel.identity");
+  const systemBodies = useTelemetry("system.bodies");
+  const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
+  // View-UT — the SDK view time the propagation already evaluates at (the R6
+  // `t.universalTime` DROP: it was never a stream, it IS `sdk.view.ut()`).
+  const universalTime = useViewUt();
+
+  // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
+  // array position) — the display-map behind `v.body` / `o.encounterBody`.
+  const nameByIndex = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const b of systemBodies?.bodies ?? []) {
+      if (b.name != null) m.set(b.index, b.name);
+    }
+    return m;
+  }, [systemBodies]);
+
+  // Vessel's current body NAME (old Telemachus `v.body`) — parentBodyIndex
+  // resolved against `system.bodies`.
+  const vesselBody =
+    identity?.parentBodyIndex != null
+      ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
+      : null;
+
+  // Client-derived orbital scalars at view-UT (mirrors deriveVesselState:
+  // trueAnomaly for the vessel dot, period, and the next-apsis countdown).
+  const derived = useMemo(() => {
+    if (!orbit || universalTime == null || !Number.isFinite(universalTime)) {
+      return null;
+    }
+    const elements = buildElements(orbit);
+    const anomalies = solveAnomalies(elements, universalTime);
+    const trueAnomaly = finiteOrNull(
+      wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
+    );
+    const period = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
+    const timeToAp = timeToMeanAnomaly(
+      anomalies.meanAnomaly,
+      Math.PI,
+      anomalies.meanMotion,
+    );
+    const timeToPe = timeToMeanAnomaly(
+      anomalies.meanAnomaly,
+      0,
+      anomalies.meanMotion,
+    );
+    return { trueAnomaly, period, ...nextApsisOf(timeToAp, timeToPe) };
+  }, [orbit, universalTime]);
+
+  // Next SOI transition (old Telemachus `o.encounter*`) from the streamed
+  // `vessel.orbit.encounter` record.
+  const encounter = orbit?.encounter ?? null;
+  const encounterExists =
+    encounter?.transitionType === TRANSITION_TYPE_ENCOUNTER
+      ? 1
+      : encounter?.transitionType === TRANSITION_TYPE_ESCAPE
+        ? -1
+        : 0;
+  const encounterBody =
+    encounter?.bodyIndex != null
+      ? (nameByIndex.get(encounter.bodyIndex) ?? null)
+      : null;
+  const encounterTimeUt =
+    encounter && Number.isFinite(encounter.transitionUt)
+      ? encounter.transitionUt
+      : null;
+
+  // Vessel orbit — feeds the dot drawn on its own orbit when the chosen frame
+  // matches its parent body.
+  const vSma = orbit?.sma;
   const vesselOrbit =
-    typeof vesselBody === "string" &&
-    typeof vSma === "number" &&
-    typeof vEcc === "number"
+    vesselBody != null && orbit && typeof orbit.sma === "number"
       ? {
           parentName: vesselBody,
-          sma: vSma,
-          ecc: vEcc,
-          lan: typeof vLan === "number" ? vLan : 0,
-          argPe: typeof vArgPe === "number" ? vArgPe : 0,
-          inclination: typeof vInc === "number" ? vInc : 0,
-          trueAnomaly: typeof vTrueAnomaly === "number" ? vTrueAnomaly : 0,
+          sma: orbit.sma,
+          ecc: orbit.ecc,
+          lan: orbit.lan ?? 0,
+          argPe: orbit.argPe ?? 0,
+          inclination: orbit.inc,
+          trueAnomaly: derived?.trueAnomaly ?? 0,
         }
       : null;
 
-  const parentName = resolveFrame(bodies, frameSetting, vesselBody ?? null);
+  const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
   // Predicted trajectory input for the diagram. Throttle `ut` into 1s buckets
   // (same as MapView) so the patch projection only re-runs ~1/sec, not on
-  // every Telemachus tick — the orbit shape doesn't change between ticks.
+  // every stream frame — the orbit shape doesn't change between ticks.
   const utBucket = quantiseUt(
     typeof universalTime === "number" ? universalTime : undefined,
     1,
   );
+  // Client-propagated predicted trajectory (R6 §0.0 REDESIGN): with only the
+  // current elements + the next transition on the wire, the honestly-drawable
+  // chain is a single conic — the current orbit sampled from the view-UT to the
+  // encounter (an arc terminated at the SOI boundary) or, with no encounter,
+  // over one full period (a closed ellipse). Built as the core `OrbitPatch`
+  // shape so `SystemDiagram`'s existing Keplerian projection samples it
+  // unchanged. The post-encounter conic's elements aren't on the wire, so the
+  // chain never fabricates a second patch; the encounter is surfaced separately
+  // from the derived `encounter*` scalars above (subtitle + almanac).
+  const orbitPatches = useMemo<OrbitPatch[]>(() => {
+    if (!orbit || vesselBody == null || utBucket == null) return [];
+    const period = derived?.period;
+    if (period == null || period <= 0) return [];
+    if (!(orbit.ecc < 1)) return []; // hyperbolic — elliptical solver only
+    const hasEncounter =
+      encounterExists !== 0 &&
+      encounterTimeUt != null &&
+      encounterTimeUt > utBucket;
+    const endUT = hasEncounter
+      ? (encounterTimeUt as number)
+      : utBucket + period;
+    return [
+      {
+        startUT: utBucket,
+        endUT,
+        patchStartTransition: "INITIAL",
+        patchEndTransition: hasEncounter
+          ? encounterExists === -1
+            ? "ESCAPE"
+            : "ENCOUNTER"
+          : "FINAL",
+        PeA: 0,
+        ApA: 0,
+        inclination: orbit.inc,
+        eccentricity: orbit.ecc,
+        epoch: orbit.epoch,
+        period,
+        argumentOfPeriapsis: orbit.argPe ?? 0,
+        sma: orbit.sma,
+        lan: orbit.lan ?? 0,
+        maae: orbit.meanAnomalyAtEpoch,
+        referenceBody: vesselBody,
+        semiLatusRectum: 0,
+        semiMinorAxis: 0,
+        closestEncounterBody: encounterBody,
+      },
+    ];
+  }, [
+    orbit,
+    vesselBody,
+    utBucket,
+    derived,
+    encounterExists,
+    encounterTimeUt,
+    encounterBody,
+  ]);
   const predicted = useMemo(
     () =>
-      Array.isArray(orbitPatches) && orbitPatches.length > 0
+      orbitPatches.length > 0 && utBucket != null
         ? { orbitPatches, ut: utBucket }
         : null,
     [orbitPatches, utBucket],
-  );
-  // Every future SOI crossing from the patch data — the multi-SOI source of
-  // truth for the almanac text. Richer than the single-event o.encounter* keys
-  // because the patch list covers the whole patched-conic chain.
-  const patchEncounters = useMemo(
-    () =>
-      predicted ? scanEncounters(predicted.orbitPatches, predicted.ut) : [],
-    [predicted],
   );
 
   // Children of the chosen frame — the only bodies actually drawn. Phase
@@ -159,19 +354,7 @@ function SystemViewComponent({
     [bodies, vesselBody],
   );
   const panelBody = focusedBody ?? vesselBodyRecord;
-  // Patch-derived encounter for the panel body, if the predicted trajectory
-  // crosses into (or out of) its SOI. Preferred over the single o.encounter*
-  // keys because it surfaces *any* future encounter with the focused body, not
-  // just the vessel's immediate next one.
   const nowUt = typeof universalTime === "number" ? universalTime : null;
-  const panelPatchEncounter = useMemo(() => {
-    if (panelBody?.name == null) return null;
-    const target = panelBody.name.trim().toLowerCase();
-    return (
-      patchEncounters.find((e) => e.body.trim().toLowerCase() === target) ??
-      null
-    );
-  }, [patchEncounters, panelBody]);
   const panelPhaseAngle =
     panelBody && phaseAngles.has(panelBody.index)
       ? (phaseAngles.get(panelBody.index) ?? null)
@@ -239,13 +422,13 @@ function SystemViewComponent({
       <PanelTitle>SYSTEM</PanelTitle>
       <PanelSubtitle>
         {bodies.length === 0
-          ? "Waiting for Telemachus body data…"
+          ? "Waiting for body data…"
           : parentName === null
             ? "Pick a frame in the widget config."
-            : patchEncounters.length > 0
+            : encounterExists !== 0 && encounterBody != null
               ? `Frame: ${parentName} · next ${
-                  patchEncounters[0].kind === "escape" ? "escape" : "encounter"
-                }: ${patchEncounters[0].body}`
+                  encounterExists === -1 ? "escape" : "encounter"
+                }: ${encounterBody}`
               : `Frame: ${parentName}`}
       </PanelSubtitle>
       {showDiagram ? (
@@ -281,35 +464,33 @@ function SystemViewComponent({
               hohmannIdealDeg={panelHohmann?.ideal ?? null}
               hohmannDeltaDeg={panelHohmann?.delta ?? null}
               encounterDirection={
-                // Prefer the patch-derived encounter (multi-SOI: any future
-                // crossing with the focused body); fall back to the single
-                // o.encounter* keys for the vessel's immediate next event.
-                panelPatchEncounter !== null
-                  ? panelPatchEncounter.kind
-                  : typeof encounterExists === "number" &&
-                      encounterExists !== 0 &&
-                      typeof encounterBody === "string" &&
-                      panelBody !== null &&
-                      panelBody.name === encounterBody
-                    ? encounterExists === -1
-                      ? "escape"
-                      : "encounter"
-                    : null
+                // The vessel's next SOI transition (client-derived from
+                // `vessel.orbit.encounter`), shown on the panel body it targets.
+                encounterExists !== 0 &&
+                encounterBody != null &&
+                panelBody !== null &&
+                panelBody.name === encounterBody
+                  ? encounterExists === -1
+                    ? "escape"
+                    : "encounter"
+                  : null
               }
               encounterTimeSec={
-                panelPatchEncounter !== null && nowUt !== null
-                  ? panelPatchEncounter.ut - nowUt
-                  : typeof encounterTime === "number"
-                    ? encounterTime
-                    : null
+                // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel
+                // wants seconds-to-event, so subtract the view-UT.
+                encounterTimeUt != null && nowUt !== null
+                  ? encounterTimeUt - nowUt
+                  : null
               }
               nextApsisType={
-                nextApsisTypeRaw === -1 || nextApsisTypeRaw === 1
-                  ? nextApsisTypeRaw
+                derived?.nextApsisType === -1 || derived?.nextApsisType === 1
+                  ? derived.nextApsisType
                   : null
               }
               nextApsisTimeSec={
-                typeof timeToNextApsis === "number" ? timeToNextApsis : null
+                typeof derived?.timeToNextApsis === "number"
+                  ? derived.timeToNextApsis
+                  : null
               }
             />
           )}
@@ -474,23 +655,21 @@ registerComponent<SystemViewConfig>({
   id: "system-view",
   name: "System View",
   description:
-    "Solar-system diagram driven by Telemachus's b.* bucket. Renders every body orbiting a chosen parent, highlights the vessel's current body and any selected target.",
+    "Solar-system diagram of every body orbiting a chosen parent, highlighting the vessel's current body and any selected target.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
   minSize: { w: 3, h: 4 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
-  dataRequirements: [
-    "b.number",
-    "v.body",
-    "tar.name",
-    "o.encounterExists",
-    "o.encounterBody",
-    "o.encounterTime",
-    "o.nextApsisType",
-    "o.timeToNextApsis",
-    "o.orbitPatches",
-    "t.universalTime",
+  // The body table + phase angles still fan out over the shared `b.*` hooks
+  // (`useCelestialBodies`/`usePhaseAngles`) — a separate, shared-hook migration.
+  // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
+  dataRequirements: ["b.number"],
+  optionalChannels: [
+    "vessel.orbit",
+    "vessel.identity",
+    "vessel.target",
+    "system.bodies",
   ],
   defaultConfig: { frame: "auto" },
   actions: [],

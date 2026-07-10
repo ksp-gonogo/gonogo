@@ -5,15 +5,32 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 
-const KEYS: DataKey[] = [
+/**
+ * SystemView post-R6 de-Telemachus. The widget's orbit / target / encounter /
+ * apsis reads + view-UT now come off the streamed `vessel.*` / `system.bodies`
+ * Topics via the canonical `useTelemetry(TopicId)` hook + `useViewUt`, with the
+ * derived scalars (trueAnomaly / next-apsis / encounter) reconstructed
+ * client-side from `vessel.orbit`'s elements — genuinely running off a real
+ * `TelemetryProvider` + `TimelineStore` (`setupStreamFixture`), no legacy
+ * `DataSource` leg for any of them.
+ *
+ * The one thing still on the legacy `MockDataSource("data")` is the shared body
+ * fan-out (`useCelestialBodies`/`usePhaseAngles`, also used by TargetPicker /
+ * OrbitView) — those hooks subscribe via `getDataSource("data")` directly, not
+ * through the shim, so they're their own separate migration. This test feeds the
+ * body table + phase angles through that legacy source and everything else
+ * through the stream.
+ */
+const BODY_KEYS: DataKey[] = [
   { key: "b.number" },
-  { key: "v.body" },
-  { key: "tar.name" },
-  // Keys per body — Kerbin (0), Mun (1), Minmus (2)
   { key: "b.name[0]" },
   { key: "b.name[1]" },
   { key: "b.name[2]" },
@@ -23,14 +40,9 @@ const KEYS: DataKey[] = [
   { key: "b.radius[0]" },
   { key: "b.radius[1]" },
   { key: "b.radius[2]" },
-  { key: "b.mass[0]" },
   { key: "b.mass[1]" },
-  { key: "b.mass[2]" },
-  { key: "b.geeASL[0]" },
   { key: "b.geeASL[1]" },
-  { key: "b.geeASL[2]" },
   { key: "b.rotationPeriod[1]" },
-  { key: "b.atmosphere[0]" },
   { key: "b.atmosphere[1]" },
   { key: "b.o.sma[1]" },
   { key: "b.o.sma[2]" },
@@ -38,74 +50,49 @@ const KEYS: DataKey[] = [
   { key: "b.o.eccentricity[2]" },
   { key: "b.o.phaseAngle[1]" },
   { key: "b.o.phaseAngle[2]" },
-  { key: "b.o.inclination[1]" },
-  { key: "b.o.inclination[2]" },
-  { key: "b.o.lan[1]" },
-  { key: "b.o.lan[2]" },
-  { key: "b.o.argumentOfPeriapsis[1]" },
-  { key: "b.o.argumentOfPeriapsis[2]" },
-  { key: "b.o.trueAnomaly[1]" },
-  { key: "b.o.trueAnomaly[2]" },
-  { key: "o.orbitPatches" },
-  { key: "t.universalTime" },
 ];
 
-// A two-patch trajectory: a Kerbin parking orbit that encounters the Mun.
-function encounterPatches() {
-  return [
-    {
-      startUT: 0,
-      endUT: 600,
-      patchStartTransition: "INITIAL",
-      patchEndTransition: "ENCOUNTER",
-      PeA: 100_000,
-      ApA: 11_000_000,
-      inclination: 0,
-      eccentricity: 0.4,
-      epoch: 0,
-      period: 1200,
-      argumentOfPeriapsis: 0,
-      sma: 8_000_000,
-      lan: 0,
-      maae: 0,
-      referenceBody: "Kerbin",
-      semiLatusRectum: 6_720_000,
-      semiMinorAxis: 7_332_000,
-      closestEncounterBody: "Mun",
-    },
-    {
-      startUT: 600,
-      endUT: 1200,
-      patchStartTransition: "ENCOUNTER",
-      patchEndTransition: "ESCAPE",
-      PeA: 50_000,
-      ApA: 300_000,
-      inclination: 0,
-      eccentricity: 0.1,
-      epoch: 600,
-      period: 400,
-      argumentOfPeriapsis: 0,
-      sma: 250_000,
-      lan: 0,
-      maae: 0,
-      referenceBody: "Mun",
-      semiLatusRectum: 247_500,
-      semiMinorAxis: 248_700,
-      closestEncounterBody: null,
-    },
-  ];
+// Kerbin's GM — makes the client-side period / true-anomaly derivation land on
+// real numbers so the predicted arc actually renders.
+const KERBIN_MU = 3.5316e12;
+
+// A Kerbin parking orbit that encounters the Mun (stable body index 1). `epoch`
+// == the pinned view-UT so the derivation reads a clean mean-anomaly-at-epoch.
+function encounterOrbit() {
+  return {
+    referenceBodyIndex: 0,
+    sma: 8_000_000,
+    ecc: 0.4,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: 100,
+    mu: KERBIN_MU,
+    encounter: { transitionType: 2, transitionUt: 600, bodyIndex: 1 },
+  };
 }
 
 describe("SystemViewComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
+  let fixture: StreamFixture;
 
   beforeEach(async () => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
+    source = new MockDataSource({ keys: BODY_KEYS });
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
+    fixture = setupStreamFixture({
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.identity",
+        "vessel.target",
+        "system.bodies",
+      ],
+      pinnedUt: 100,
+    });
   });
 
   afterEach(() => {
@@ -113,6 +100,7 @@ describe("SystemViewComponent", () => {
     buffered.disconnect();
   });
 
+  // Body table + phase angles over the legacy source (shared hooks).
   function primeBodies() {
     act(() => {
       source.emit("b.number", 3);
@@ -132,75 +120,131 @@ describe("SystemViewComponent", () => {
       source.emit("b.o.sma[2]", 47_000_000);
       source.emit("b.o.eccentricity[1]", 0);
       source.emit("b.o.eccentricity[2]", 0);
-      source.emit("v.body", "Kerbin");
+    });
+  }
+
+  // Vessel identity + the stable-index → name table over the stream (drives
+  // `v.body` = Kerbin and the encounter-body name resolution).
+  function primeStream(orbit?: unknown) {
+    act(() => {
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            index: 0,
+            name: "Kerbin",
+            parentIndex: null,
+            radius: 600_000,
+            orbit: null,
+          },
+          {
+            index: 1,
+            name: "Mun",
+            parentIndex: 0,
+            radius: 200_000,
+            orbit: null,
+          },
+          {
+            index: 2,
+            name: "Minmus",
+            parentIndex: 0,
+            radius: 60_000,
+            orbit: null,
+          },
+        ],
+      });
+      fixture.emit("vessel.identity", {
+        vesselId: "v",
+        name: "Tester",
+        vesselType: 0,
+        situation: 3,
+        parentBodyIndex: 0,
+      });
+      if (orbit !== undefined) fixture.emit("vessel.orbit", orbit);
     });
   }
 
   it("waits for body data before rendering anything", () => {
-    render(<SystemViewComponent config={{}} id="sv" />);
-    expect(screen.getByText(/Waiting for Telemachus/i)).toBeInTheDocument();
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{}} id="sv" />
+      </fixture.Provider>,
+    );
+    expect(screen.getByText(/Waiting for body data/i)).toBeInTheDocument();
   });
 
-  it("renders the almanac panel for the vessel's body when nothing is hovered", () => {
-    render(<SystemViewComponent config={{}} id="sv" />);
+  it("renders the almanac panel for the vessel's body when nothing is hovered", async () => {
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{}} id="sv" />
+      </fixture.Provider>,
+    );
     primeBodies();
-    // "Kerbin" appears in both the SVG parent label and the almanac
-    // title — both confirm the panel landed on the vessel's body.
-    const matches = screen.getAllByText("Kerbin");
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+    primeStream();
+    // "Kerbin" appears in both the SVG parent label and the almanac title —
+    // both confirm the panel landed on the vessel's body (v.body, resolved off
+    // vessel.identity.parentBodyIndex + system.bodies).
+    await waitFor(() =>
+      expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(2),
+    );
   });
 
-  it("renders almanac fields when they're available", () => {
-    render(<SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />);
+  it("renders almanac fields when they're available", async () => {
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
     primeBodies();
-    // Mun has fielded almanac data — expect the labels to surface in the
-    // panel for the focused/default body. Default focus picks the vessel's
-    // body (Kerbin), so we manually pin the frame to Kerbin and expect to
-    // see its surface gravity if we add it. Easier: assert the panel
-    // exists with one of the Kerbin labels we did emit ("Radius", "Atm").
-    expect(screen.getByText("Radius")).toBeInTheDocument();
+    primeStream();
+    await waitFor(() => expect(screen.getByText("Radius")).toBeInTheDocument());
   });
 
-  it("subscribes to phase angle keys for child bodies of the frame", () => {
-    render(<SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />);
+  it("subscribes to phase angle keys for child bodies of the frame", async () => {
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
     primeBodies();
+    primeStream();
     act(() => {
       source.emit("b.o.phaseAngle[1]", 47.2);
       source.emit("b.o.phaseAngle[2]", 12);
     });
     // The numeric phase-angle labels render inside SystemDiagram. They're
-    // signed-normalised, so 47.2° survives unchanged. Assert via a
-    // matching SVG <text> entry.
-    const labels = screen.getAllByText(/47°/);
-    expect(labels.length).toBeGreaterThan(0);
+    // signed-normalised, so 47.2° survives unchanged.
+    await waitFor(() =>
+      expect(screen.getAllByText(/47°/).length).toBeGreaterThan(0),
+    );
   });
 
-  it("renders predicted patch arcs and an encounter marker from o.orbitPatches", () => {
+  it("client-propagates the current orbit into a predicted arc from vessel.orbit + view-UT", async () => {
     const { container } = render(
-      <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />,
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
     );
     primeBodies();
-    act(() => {
-      source.emit("t.universalTime", 100);
-      source.emit("o.orbitPatches", encounterPatches());
-    });
-    // Two patches → at least two predicted <path> arcs in the SVG.
-    const paths = container.querySelectorAll("path");
-    expect(paths.length).toBeGreaterThanOrEqual(2);
-    // The Mun encounter surfaces as a labelled marker in the diagram.
-    const marker = screen
-      .getAllByText(/Mun/)
-      .some((el) => /↳/.test(el.textContent ?? ""));
-    expect(marker).toBe(true);
+    primeStream(encounterOrbit());
+    // The single client-reconstructed conic renders as a predicted <path> arc
+    // (the post-encounter conic isn't on the wire, so there is exactly one).
+    await waitFor(() =>
+      expect(container.querySelectorAll("path").length).toBeGreaterThanOrEqual(
+        1,
+      ),
+    );
   });
 
-  it("surfaces the next encounter body in the subtitle", () => {
-    render(<SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />);
+  it("surfaces the next encounter body in the subtitle from vessel.orbit.encounter", async () => {
+    render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
     primeBodies();
-    act(() => {
-      source.emit("t.universalTime", 100);
-      source.emit("o.orbitPatches", encounterPatches());
-    });
-    expect(screen.getByText(/next encounter:\s*Mun/i)).toBeInTheDocument();
+    primeStream(encounterOrbit());
+    await waitFor(() =>
+      expect(screen.getByText(/next encounter:\s*Mun/i)).toBeInTheDocument(),
+    );
   });
 });
