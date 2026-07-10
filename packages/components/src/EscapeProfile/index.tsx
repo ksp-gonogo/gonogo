@@ -3,7 +3,7 @@ import {
   escapeVelocity,
   getBody,
   registerComponent,
-  useDataValue,
+  useTelemetry,
 } from "@gonogo/core";
 import { useMemo } from "react";
 import styled from "styled-components";
@@ -60,7 +60,12 @@ function EscapeProfileComponent({
   config,
   w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
-  const bodyName = useDataValue<string>("data", "v.body");
+  // `v.body` is a clean home (`map-topic.ts`) — the derived
+  // `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`
+  // resolved against `system.bodies`). Read via the canonical telemetry hook;
+  // with a `TelemetryProvider` carrying `vessel.state`'s inputs this rides the
+  // stream, and there is no Telemachus read-fallback for this widget.
+  const bodyName = useTelemetry<string>("data", "v.body");
   const body = bodyName ? getBody(bodyName) : undefined;
 
   const windowSec = config?.windowSec ?? 600;
