@@ -43,6 +43,7 @@ namespace Gonogo.DevTools
             }
 
             string? saveName = null;
+            var restoreFlight = false;
             try
             {
                 var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -60,13 +61,29 @@ namespace Gonogo.DevTools
                     return;
                 }
 
+                // Line 1 (first non-empty) = save name. An optional later
+                // non-empty line of "flight" asks us to resume into the FLIGHT
+                // scene focusing the save's active vessel (via
+                // FlightDriver.StartAndFocusVessel) instead of the default
+                // Space Center — Game.Start() alone always lands at the Space
+                // Center even for a save whose active vessel is flyable, so
+                // flight-scene Topics (vessel.parts, dv.*, thermal, …) can't be
+                // validated without this. Absent → Space Center, unchanged.
                 foreach (var line in File.ReadAllLines(configPath))
                 {
                     var trimmed = line.Trim();
-                    if (trimmed.Length > 0)
+                    if (trimmed.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (saveName == null)
                     {
                         saveName = trimmed;
-                        break;
+                    }
+                    else if (string.Equals(trimmed, "flight", StringComparison.OrdinalIgnoreCase))
+                    {
+                        restoreFlight = true;
                     }
                 }
 
@@ -96,7 +113,7 @@ namespace Gonogo.DevTools
             // from a scene Start() throws an NRE inside Game.Start() because the
             // menu isn't fully initialised yet. A coroutine yielding one frame
             // lets the menu finish before we drive the load machinery.
-            StartCoroutine(LoadSaveNextFrame(saveName!));
+            StartCoroutine(LoadSaveNextFrame(saveName!, restoreFlight));
         }
 
         /// <summary>
@@ -116,11 +133,11 @@ namespace Gonogo.DevTools
         /// called - <c>Game.Start()</c> dereferences it internally, which is
         /// why the previous direct <c>game.Start()</c> threw a NullReference.
         /// </summary>
-        private IEnumerator LoadSaveNextFrame(string saveName)
+        private IEnumerator LoadSaveNextFrame(string saveName, bool restoreFlight)
         {
             // Let the main menu finish this frame before driving the load.
             yield return null;
-            LoadSave(saveName);
+            LoadSave(saveName, restoreFlight);
         }
 
         /// <summary>
@@ -129,11 +146,12 @@ namespace Gonogo.DevTools
         /// <c>yield</c>): any exception is logged and swallowed so nothing ever
         /// throws out of the addon.
         /// </summary>
-        private static void LoadSave(string saveName)
+        private static void LoadSave(string saveName, bool restoreFlight)
         {
             try
             {
-                Debug.Log("[Gonogo] dev-autoload: loading save '" + saveName + "'");
+                Debug.Log("[Gonogo] dev-autoload: loading save '" + saveName + "'"
+                    + (restoreFlight ? " (restore flight)" : ""));
 
                 var node = GamePersistence.LoadSFSFile("persistent", saveName);
                 if (node == null)
@@ -160,9 +178,30 @@ namespace Gonogo.DevTools
                 GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", saveName, SaveMode.OVERWRITE);
                 GameEvents.onGameStatePostLoad.Fire(node);
                 HighLogic.SaveFolder = saveName;
-                HighLogic.CurrentGame.Start();
 
-                Debug.Log("[Gonogo] dev-autoload: entered game from save '" + saveName + "'");
+                var flightState = HighLogic.CurrentGame.flightState;
+                var vesselCount = flightState?.protoVessels?.Count ?? 0;
+                if (restoreFlight && vesselCount > 0)
+                {
+                    // KSP's real "resume into flight" entry point (what
+                    // MainMenu uses for a save last left in flight). Focuses the
+                    // save's active vessel and loads the FLIGHT scene, running
+                    // the full stock restore sequence internally.
+                    var focusIdx = flightState!.activeVesselIdx;
+                    if (focusIdx < 0 || focusIdx >= vesselCount)
+                    {
+                        focusIdx = 0;
+                    }
+
+                    FlightDriver.StartAndFocusVessel(HighLogic.CurrentGame, focusIdx);
+                    Debug.Log("[Gonogo] dev-autoload: entered FLIGHT from save '" + saveName
+                        + "' focusing vessel #" + focusIdx);
+                }
+                else
+                {
+                    HighLogic.CurrentGame.Start();
+                    Debug.Log("[Gonogo] dev-autoload: entered game from save '" + saveName + "'");
+                }
             }
             catch (Exception ex)
             {
