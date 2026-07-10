@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useDataStreamStatus,
   useDataValue,
@@ -288,6 +289,11 @@ function DeployedScienceComponent(
       <Panel>
         <TitleRow>
           <PanelTitle>DEPLOYED SCIENCE</PanelTitle>
+          {/* Header escape-hatch badges slot (augment-slot-map: broad
+              escape-hatch). Any Uplink can drop an inline badge next to the
+              title. Renders nothing until an augment binds
+              `deployed-science.badges`. */}
+          <AugmentSlot name="deployed-science.badges" props={{}} />
           <StreamStatusBadge status={basesStreamStatus} />
         </TitleRow>
         <EmptyState role="status">
@@ -303,6 +309,11 @@ function DeployedScienceComponent(
     <Panel>
       <TitleRow>
         <PanelTitle>DEPLOYED SCIENCE</PanelTitle>
+        {/* Header escape-hatch badges slot (augment-slot-map: broad
+            escape-hatch). Any Uplink can drop an inline badge next to the
+            title. Renders nothing until an augment binds
+            `deployed-science.badges`. */}
+        <AugmentSlot name="deployed-science.badges" props={{}} />
         <StreamStatusBadge status={basesStreamStatus} />
       </TitleRow>
       <Body>
@@ -339,6 +350,17 @@ function DeployedScienceComponent(
                   <Bar>
                     <BarFill style={{ width: `${exp.progress * 100}%` }} />
                   </Bar>
+                  {/* Per-experiment-card body slot (augment-slot-map:
+                      deployed-science.sections). A Kerbalism Uplink appends a
+                      background-transmission progress bar here; because the
+                      slot renders once PER experiment card, its props carry
+                      THIS card's experiment datum (and its body) so the
+                      augment targets the right experiment. Renders nothing
+                      until an augment binds. */}
+                  <AugmentSlot
+                    name="deployed-science.sections"
+                    props={{ experiment: exp, body: base.body }}
+                  />
                 </Experiment>
               ))}
             </BaseCard>
@@ -457,6 +479,36 @@ const BarFill = styled.div`
   background: var(--color-status-go-bg);
 `;
 
+// ── Augment slots ─────────────────────────────────────────────────────────────
+
+/**
+ * Props passed to every `deployed-science.sections` augment. The slot renders
+ * once PER experiment card, so its props MUST carry that card's experiment
+ * datum — a Kerbalism-style Uplink appends a background-transmission progress
+ * bar and needs THIS experiment's identity/progress to target the right one.
+ * `body` is the parent base's body, for context.
+ */
+export interface DeployedExperimentContext {
+  /** The deployed experiment this card renders — the augment's datum. */
+  experiment: DeployedExperiment;
+  /** The body the parent base sits on, for context. */
+  body: string;
+}
+
+// Declaration-merge this widget's slot ids → their props types into core's
+// `SlotRegistry` (Uplink architecture §4.6). Kept co-located here, not in a
+// shared central registry file, so parallel per-widget slot work never
+// collides. `.sections` is a typed-contract per-card slot (carries the
+// experiment); `.badges` is a plain header escape-hatch (no props).
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "deployed-science.sections": DeployedExperimentContext;
+    "deployed-science.badges": Record<string, never>;
+  }
+}
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
 registerComponent<DeployedScienceConfig>({
   id: "deployed-science",
   name: "Deployed Science",
@@ -469,6 +521,7 @@ registerComponent<DeployedScienceConfig>({
   dataRequirements: ["deployed.bases", "deployed.available"],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["deployed-science.sections", "deployed-science.badges"],
   pushable: true,
 });
 
