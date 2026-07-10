@@ -3,9 +3,9 @@ import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
   useGameContext,
+  useTelemetry,
 } from "@gonogo/core";
 import {
   DimmedOverlay,
@@ -87,17 +87,16 @@ function WarpControlComponent({
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
-  const rate = useDataValue<number>("data", "t.currentRate");
-  const indexRaw = useDataValue<number>("data", "t.timeWarp");
-  // Stream path: `t.warpMode` maps to `time.warp.warpMode`, the new
-  // contract's `Sitrep.Contract.WarpMode` NUMERIC enum (0=High, 1=Low,
-  // 2=Unknown — mod/Sitrep.Contract/WarpState.cs). Legacy path: the
-  // Telemachus fork's `t.warpMode` is a STRING ("High"/"Physics").
-  // `useDataValue`'s shim can return either shape depending on which path is
-  // live, so both must be handled here — `normalizeWarpMode` below.
-  const modeRaw = useDataValue<string | number>("data", "t.warpMode");
-  const mode = normalizeWarpMode(modeRaw);
-  const isPaused = useDataValue<boolean>("data", "t.isPaused");
+  // De-Telemachus'd (R6): the whole warp state rides one native Topic,
+  // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
+  // stream — no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
+  // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
+  // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
+  const warp = useTelemetry("time.warp");
+  const rate = warp?.warpRate;
+  const indexRaw = warp?.warpRateIndex;
+  const mode = normalizeWarpMode(warp?.warpMode);
+  const isPaused = warp?.paused;
   const execute = useExecuteAction("data");
   const streamStatus = useDataStreamStatus("data", "t.timeWarp");
 
@@ -298,28 +297,17 @@ function WarpControlComponent({
 }
 
 /**
- * Normalizes `t.warpMode` across the legacy/stream shape split (M3 pilot).
- *
- * - **Legacy** (Telemachus fork): a STRING, `"High"` or `"Physics"` —
- *   returned as-is.
- * - **Stream** (`time.warp.warpMode`, `Sitrep.Contract.WarpMode`): a NUMERIC
- *   enum — `0=High`, `1=Low`, `2=Unknown`
- *   (`mod/Sitrep.Contract/WarpState.cs`: "only HIGH/LOW exist... no third
- *   mode"; confirmed via decompile). The new contract renamed the physics-
- *   warp state from the legacy fork's "Physics" to "Low" — translated back
- *   to the legacy vocabulary here so this widget's caption text and
- *   physics-tone detection render IDENTICALLY regardless of which path fed
- *   the value (verified by `dual-run.test.tsx`'s behavior-preservation
- *   golden). `2` (`Unknown`) and anything else -> `null`, same as an empty/
- *   absent legacy string: no caption, defaults to the "high" tone.
+ * Maps the `time.warp` Topic's `warpMode` (`Sitrep.Contract.WarpMode`, a
+ * NUMERIC enum — `0=High`, `1=Low`, `2=Unknown`; `mod/Sitrep.Contract/
+ * WarpState.cs`: "only HIGH/LOW exist... no third mode") to the caption text
+ * this widget renders. The contract's "Low" is surfaced as "Physics" — the
+ * vocabulary the caption + physics-tone detection (`rateTone` below) speak.
+ * `2` (`Unknown`) and anything absent -> `null`: no caption, defaults to the
+ * "high" tone.
  */
-function normalizeWarpMode(raw: string | number | undefined): string | null {
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "number") {
-    if (raw === 0) return "High";
-    if (raw === 1) return "Physics";
-    return null;
-  }
+function normalizeWarpMode(raw: number | undefined): string | null {
+  if (raw === 0) return "High";
+  if (raw === 1) return "Physics";
   return null;
 }
 

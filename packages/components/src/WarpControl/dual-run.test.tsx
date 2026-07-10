@@ -17,51 +17,36 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import rails from "./__fixtures__/rails-warp-1000x.json";
 import { WarpControlComponent } from "./index";
 
 /**
- * The M3 pilot's behavior-preservation golden dual-run
- * (`m3-migration-plan.md` §4-behavior): the SAME warp state, rendered once
- * off the legacy `DataSource` (today's proven-working path) and once off
- * the stream (`TelemetryProvider` + a real `TelemetryClient`/`TimelineStore`
- * pipeline), must produce byte-identical DOM at `delay=0` — this is the
- * "no drift" gate a widget's own unit assertions can miss (§5.4:
- * `getByText("1234")` passes off either path; only a full-markup diff
- * catches a subtly different rounding/units/layout).
+ * WarpControl's stream render golden. This began life as the M3 pilot's
+ * fork↔stream byte-identical dual-run; with WarpControl de-Telemachus'd (R6)
+ * the widget no longer has a legacy read path to compare against, so the
+ * legacy leg is gone (`docs/superpowers/plans/2026-07-09-r6-telemachus-
+ * removal.md` §4F: "drop the id='data' MockDataSource legacy comparison").
+ * What remains proves the widget renders the full warp state correctly off
+ * the real stream pipeline (`TelemetryProvider` + `TelemetryClient`/
+ * `TimelineStore`).
  *
- * `rails-warp-1000x` is chosen because it's the one WarpControl fixture that
- * exercises EVERY branch this dual-run needs to prove parity on: an active
+ * `rails-warp-1000x` exercises every branch worth covering: an active
  * on-rails warp rate (formatRate's `k×` branch), the highlighted ladder
- * button, AND the Flight-scene pause toggle (kc.scene stays a legacy-only
- * read either way — `useGameContext` is not part of this widget's own
- * migration scope — so the stream leg ALSO registers a legacy source for
- * just the non-warp keys, proving the shim's designed MIXED-source
- * coexistence: some keys stream, others legacy, on the very same render).
+ * button, AND the Flight-scene pause toggle. `kc.scene`/`kc.padOccupied`/
+ * `career.mode` (still legacy — `useGameContext` is out of this widget's
+ * migration scope) come from a legacy DataSource registered alongside the
+ * TelemetryProvider, exercising the shim's MIXED-source coexistence: warp
+ * state streams, scene stays legacy, on the very same render.
  */
 afterEach(() => {
   cleanup();
   clearActionHandlers();
 });
 
-describe("WarpControl — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same warp state", async () => {
+describe("WarpControl — stream render golden (delay=0)", () => {
+  it("renders the full warp state off the stream pipeline (mixed with a legacy scene read)", async () => {
     const mode = { name: "default-6x5", w: 6, h: 5 };
 
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: WarpControlComponent,
-      fixture: rails,
-      mode,
-      connectSource: true,
-    });
-
-    // Stream leg: time.warp (t.currentRate/t.timeWarp/t.warpMode/t.isPaused)
-    // routed through the real stream pipeline; kc.scene/kc.padOccupied/
-    // career.mode (unmapped — useGameContext is out of this widget's M3
-    // scope) still via a legacy DataSource, registered alongside the
-    // TelemetryProvider — exactly the MIXED-source shape a real transition
-    // period looks like.
     const streamFixture = setupStreamFixture({
       carriedChannels: ["time.warp"],
       pinnedUt: 10,
@@ -88,10 +73,8 @@ describe("WarpControl — behavior-preservation golden dual-run (delay=0)", () =
       legacyAux.source.emit("kc.scene", rails["kc.scene"]);
       legacyAux.source.emit("kc.padOccupied", rails["kc.padOccupied"]);
       legacyAux.source.emit("career.mode", rails["career.mode"]);
-      // The SAME warp state as the legacy fixture, on the new wire: one
-      // "time.warp" record. warpMode 0 = High (legacy fixture's "High"
-      // string) — see normalizeWarpMode's doc comment in index.tsx for the
-      // enum mapping this proves round-trips to identical rendered text.
+      // The full warp state on the new wire: one "time.warp" record.
+      // warpMode 0 = High — see normalizeWarpMode's doc comment in index.tsx.
       streamFixture.emit("time.warp", {
         warpRate: rails["t.currentRate"],
         warpRateIndex: rails["t.timeWarp"],
@@ -106,10 +89,21 @@ describe("WarpControl — behavior-preservation golden dual-run (delay=0)", () =
       }
     });
 
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
+    const scope = within(container);
+    // Rate readout formats the on-rails k× branch.
+    expect(
+      scope.getByRole("img", { name: "Time warp rate 1.0k×" }),
+    ).toBeTruthy();
+    // warpMode 0 -> "High" caption.
+    expect(scope.getByText("High")).toBeTruthy();
+    // warpRateIndex 5 -> the "1k×" ladder button is the highlighted one.
+    expect(
+      scope.getByRole("button", { name: "1k×" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    // Flight scene (legacy read) -> the pause toggle renders.
+    expect(scope.getByRole("button", { name: "Pause game" })).toBeTruthy();
 
-    expect(streamHtml).toBe(legacyHtml);
+    teardownMockDataSource(legacyAux);
   });
 });
 
@@ -128,14 +122,14 @@ const realFixturePath = path.join(
 const realFixtureExists = existsSync(realFixturePath);
 
 describe.skipIf(!realFixtureExists)(
-  "WarpControl — behavior-preservation golden against the REAL captured recording",
+  "WarpControl — stream render golden against the REAL captured recording",
   () => {
     if (!realFixtureExists) {
       it("SKIPPED: reference-wire-fixture.json not found (gitignored, local-only)", () => {});
       return;
     }
 
-    it("renders the SAME rate/mode readout off the real recording's wire as off an equivalent legacy fixture", async () => {
+    it("renders the recorded rate/mode readout off the real recording's wire", async () => {
       const realFixture = JSON.parse(readFileSync(realFixturePath, "utf-8"));
 
       // The recording carries 3 rewinds (epochsSeen [0,1,2,3] —
@@ -183,17 +177,6 @@ describe.skipIf(!realFixtureExists)(
       };
 
       const mode = { name: "default-6x5", w: 6, h: 5 };
-      const legacyHtml = await snapshotWidgetMode({
-        Widget: WarpControlComponent,
-        fixture: {
-          "t.currentRate": 1,
-          "t.timeWarp": 1,
-          "t.warpMode": "High",
-          "t.isPaused": false,
-        },
-        mode,
-        connectSource: true,
-      });
 
       // A "schedule" clock that QUEUES deliveries instead of firing them —
       // ReplayTransport's constructor arms every frame's delivery
@@ -255,17 +238,15 @@ describe.skipIf(!realFixtureExists)(
       // Specifically the rate READOUT, not just any "1×" text — the static
       // ladder always renders a "1×" button regardless of whether data has
       // arrived, which would otherwise satisfy a looser text check before
-      // the real state has actually settled (a race the strict `toBe` below
-      // would then catch as a flaky failure instead of this wait doing its
-      // job).
+      // the real state has actually settled.
       await waitFor(() =>
         within(container).getByRole("img", {
           name: "Time warp rate 1×",
         }),
       );
 
-      const streamHtml = stripVolatile(container.innerHTML);
-      expect(streamHtml).toBe(legacyHtml);
+      // warpMode 0 -> "High" caption, from the recorded frame asserted above.
+      expect(within(container).getByText("High")).toBeTruthy();
     });
   },
 );
