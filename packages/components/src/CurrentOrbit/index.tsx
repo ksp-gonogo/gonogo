@@ -6,8 +6,8 @@ import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useOrbitElements,
+  useTelemetry,
 } from "@gonogo/core";
 import {
   Panel,
@@ -61,20 +61,26 @@ function CurrentOrbitComponent({
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  const sma = useDataValue("data", "o.sma");
-  const eccentricity = useDataValue("data", "o.eccentricity");
-  const trueAnomaly = useDataValue("data", "o.trueAnomaly");
-  const argPe = useDataValue("data", "o.argumentOfPeriapsis");
-  const inclination = useDataValue("data", "o.inclination");
-  const period = useDataValue("data", "o.period");
-  const refBody = useDataValue("data", "o.referenceBody");
-  const bodyName = useDataValue("data", "v.body");
-  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
-  // `o.sma` is this widget's representative MAPPED key (-> `vessel.orbit.
-  // sma`; `o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are also
-  // mapped to `vessel.orbit.*`) — Ap/Pe (via `useOrbitElements`),
-  // trueAnomaly/period/timeToAp/timeToPe, and referenceBody/v.body are all
-  // GAPPED (map-topic.ts) and stay legacy regardless.
+  const sma = useTelemetry("data", "o.sma");
+  const eccentricity = useTelemetry("data", "o.eccentricity");
+  const trueAnomaly = useTelemetry("data", "o.trueAnomaly");
+  const argPe = useTelemetry("data", "o.argumentOfPeriapsis");
+  const inclination = useTelemetry("data", "o.inclination");
+  const period = useTelemetry("data", "o.period");
+  const refBody = useTelemetry("data", "o.referenceBody");
+  const bodyName = useTelemetry("data", "v.body");
+  // R6 Wave-1 de-Telemachus: every read this widget makes is a
+  // `TELEMACHUS_CLEAN_HOMES` mapping (map-topic.ts), so all of them resolve
+  // straight off the mod stream — there are no `TELEMACHUS_KNOWN_GAPS` left
+  // for CurrentOrbit and nothing falls back to the legacy Telemachus source.
+  //   - sma/eccentricity/inclination/argumentOfPeriapsis -> raw `vessel.orbit.*`
+  //   - trueAnomaly/period + Ap/Pe/ApR/PeR/timeToAp/timeToPe (via
+  //     `useOrbitElements`) -> derived `vessel.state.*` (deriveVesselState,
+  //     landed in the SharedLib phase)
+  //   - referenceBody/v.body -> derived `vessel.state.referenceBodyName` /
+  //     `parentBodyName` (index -> name resolution against `system.bodies`)
+  // Connectivity indicator: `o.sma` is the representative topic (its resolved
+  // `vessel.orbit.sma` stream drives the badge).
   const streamStatus = useDataStreamStatus("data", "o.sma");
 
   const body =

@@ -5,29 +5,28 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * The M3 batch-2 stream test-adapter proof for CurrentOrbit (mirrors
- * `ThermalStatus/stream.test.tsx`, batch 1): genuinely running off the real
+ * The stream test-adapter proof for CurrentOrbit (mirrors
+ * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
- * file.
+ * file. R6 Wave-1: CurrentOrbit reads no `TELEMACHUS_KNOWN_GAPS` key, so
+ * every field it shows is `TELEMACHUS_CLEAN_HOMES` and resolves off the
+ * stream — what stays "—" here does so only because its INPUT topic isn't
+ * emitted in this file, never because it's gapped.
  *
- * `o.sma`/`o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are MAPPED
- * raw fields on `vessel.orbit`; `o.period`/`o.trueAnomaly`/`o.timeToAp`/
- * `o.timeToPe` are MAPPED derived fields on `vessel.state` (M3
- * vessel-state-extend — un-gapped now that `deriveVesselState` actually
- * produces them). `o.timeToAp`/`o.timeToPe` (read via the shared
- * `useOrbitElements` hook) resolve to REAL values here because they only
- * need `vessel.orbit`'s elements, already emitted below — no `system.bodies`
- * dependency, unlike their apsis-altitude siblings. `o.ApA`/`o.PeA` (also via
- * `useOrbitElements`) ARE mapped too, but stay `undefined` in this file:
- * they need `system.bodies` for the reference body's radius
- * (`vessel-state.ts`'s `deriveApsides`), and nothing here emits it — genuine
- * "still resyncing," not a gap. `o.ApR`/`o.PeR`/`o.referenceBody`/`v.body`
- * are the still-declared GAPS (`map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`) and
- * stay legacy. With no legacy source registered in this file, every
- * gapped/unresolved field renders its normal "no data" fallback ("—"), which
- * is itself the assertion that a partially-mapped widget degrades
- * gracefully.
+ * `o.sma`/`o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are raw
+ * fields on `vessel.orbit`; `o.period`/`o.trueAnomaly`/`o.timeToAp`/
+ * `o.timeToPe`/`o.ApR`/`o.PeR` are derived fields on `vessel.state`
+ * (`deriveVesselState`) that only need `vessel.orbit`'s elements — all
+ * emitted below, so all resolve to REAL values (ApR/PeR = sma·(1±ecc), so
+ * the mini diagram's `hasOrbit` gate is satisfied and it renders). `o.ApA`/
+ * `o.PeA` are derived too but stay `undefined` here: they need
+ * `system.bodies` for the reference body's radius (`vessel-state.ts`'s
+ * `deriveApsides`), and nothing here emits it — genuine "still resyncing."
+ * `o.referenceBody`/`v.body` likewise resolve to their `vessel.state`
+ * index→name derivations only once `system.bodies`/`vessel.identity` are
+ * carried AND emitted; unemitted here, they render nothing (no subtitle),
+ * exactly the graceful-degradation this test asserts.
  *
  * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs
  * (`vessel.orbit`/`vessel.flight`/`vessel.identity`/`system.bodies` plus the
@@ -107,9 +106,10 @@ describe("CurrentOrbit — genuinely runs off the stream (M3 batch 2)", () => {
     // timeToPe is 0 and timeToAp is exactly half the period.
     expect(screen.getByText("0s")).toBeTruthy();
     expect(screen.getByText("15m 42s")).toBeTruthy();
-    // Ap/Pe are MAPPED but still unresolved here (system.bodies isn't
-    // emitted in this file); ApR/PeR/referenceBody/v.body are still declared
-    // GAPS. Either way they stay "—" rather than a fabricated value.
+    // Only Ap/Pe stay "—": their apsis-ALTITUDE derivation needs
+    // system.bodies (unemitted here). ApR/PeR resolved (sma·(1±ecc)), so the
+    // diagram renders; referenceBody/v.body render nothing (no subtitle)
+    // rather than a "—". Two dashes total, never a fabricated value.
     expect(screen.getAllByText("—").length).toBe(2);
   });
 });
