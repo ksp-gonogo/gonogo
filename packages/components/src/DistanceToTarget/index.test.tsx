@@ -8,22 +8,34 @@ import {
 } from "../test/setupMockDataSource";
 import { DistanceToTargetComponent } from "./index";
 
+/**
+ * Mode-transition + docking-gate behavior, exercised through the legacy
+ * `DataSource` fallback path (no `TelemetryProvider` mounted). Post-R6 the
+ * widget derives distance / closing rate / docking angles client-side from
+ * `vessel.target`/`vessel.dock`'s Vec3 fields, so these tests feed those Vec3
+ * reads directly — the widget's `tarDistance` (which drives every mode switch)
+ * is `|tar.relativePosition|`. The live TCA readout, which needs the SDK
+ * view-UT (`useViewUt`, provider-only), is covered in `stream.test.tsx`.
+ */
 const KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
   { key: "comm.connected" },
   { key: "tar.name" },
   { key: "tar.type" },
-  { key: "tar.distance" },
-  { key: "tar.o.relativeVelocity" },
+  { key: "tar.relativePosition" },
+  { key: "tar.relativeVelocityVec" },
+  { key: "dock.relativePosition" },
+  { key: "dock.relativeVelocityVec" },
+  { key: "dock.distanceScalar" },
+  { key: "dock.forwardDot" },
   { key: "o.closestTgtApprUT" },
-  { key: "t.universalTime" },
-  { key: "dock.ax" },
-  { key: "dock.ay" },
-  { key: "dock.az" },
-  { key: "dock.x" },
-  { key: "dock.y" },
 ];
+
+/** Vec3 purely along z, so `|relativePosition|` (the mode driver) === `d`. */
+function atRange(d: number) {
+  return { x: 0, y: 0, z: d };
+}
 
 function prime(source: MockDataSource): void {
   source.emit("comm.connected", true);
@@ -62,7 +74,7 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Minmus");
       source.emit("tar.type", "CelestialBody");
-      source.emit("tar.distance", 47_000_000);
+      source.emit("tar.relativePosition", atRange(47_000_000));
     });
     expect(container.textContent).toContain("Minmus");
     expect(container.textContent).toMatch(/\d[\d.]*\s*(k?m|Mm)/);
@@ -74,10 +86,8 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 90);
-      source.emit("dock.ax", 1.2);
-      source.emit("dock.ay", -0.5);
-      source.emit("tar.o.relativeVelocity", -0.8);
+      source.emit("tar.relativePosition", atRange(90));
+      source.emit("tar.relativeVelocityVec", atRange(-0.8));
     });
     expect(
       screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
@@ -90,7 +100,7 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Mun");
       source.emit("tar.type", "CelestialBody");
-      source.emit("tar.distance", 50);
+      source.emit("tar.relativePosition", atRange(50));
     });
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
     expect(screen.getByText("Mun")).toBeInTheDocument();
@@ -104,7 +114,7 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 50);
+      source.emit("tar.relativePosition", atRange(50));
     });
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
@@ -115,21 +125,21 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 80);
+      source.emit("tar.relativePosition", atRange(80));
     });
     expect(
       screen.getByRole("region", { name: /Docking HUD/ }),
     ).toBeInTheDocument();
 
     act(() => {
-      source.emit("tar.distance", 130);
+      source.emit("tar.relativePosition", atRange(130));
     });
     expect(
       screen.getByRole("region", { name: /Docking HUD/ }),
     ).toBeInTheDocument();
 
     act(() => {
-      source.emit("tar.distance", 200);
+      source.emit("tar.relativePosition", atRange(200));
     });
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
@@ -140,27 +150,14 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 1_500);
-      source.emit("tar.o.relativeVelocity", -3.4);
+      source.emit("tar.relativePosition", atRange(1_500));
+      source.emit("tar.relativeVelocityVec", atRange(-3.4));
     });
     expect(screen.getByText("APPROACH")).toBeInTheDocument();
     expect(screen.getByText("Test Station")).toBeInTheDocument();
     expect(screen.getByText("Closing rate")).toBeInTheDocument();
-    // Closing → negative relVel → minus-sign + magnitude
+    // Closing → negative radial rate → minus-sign + magnitude
     expect(screen.getByText(/−3\.4 m\/s/)).toBeInTheDocument();
-  });
-
-  it("renders TCA when closestTgtApprUT and universalTime are both available", () => {
-    render(<DistanceToTargetComponent config={{}} id="tar" />);
-    act(() => {
-      prime(source);
-      source.emit("tar.name", "Test Station");
-      source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 2_000);
-      source.emit("t.universalTime", 1_000);
-      source.emit("o.closestTgtApprUT", 1_125); // 125 s in future = T−02:05
-    });
-    expect(screen.getByText(/T−02:05/)).toBeInTheDocument();
   });
 
   it("never enters approach mode for CelestialBody targets even at close range", () => {
@@ -169,7 +166,7 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Mun");
       source.emit("tar.type", "CelestialBody");
-      source.emit("tar.distance", 1_500);
+      source.emit("tar.relativePosition", atRange(1_500));
     });
     expect(screen.queryByText("APPROACH")).toBeNull();
     expect(screen.getByText("Mun")).toBeInTheDocument();
@@ -181,17 +178,17 @@ describe("DistanceToTargetComponent", () => {
       prime(source);
       source.emit("tar.name", "Test Station");
       source.emit("tar.type", "Vessel");
-      source.emit("tar.distance", 50_000);
+      source.emit("tar.relativePosition", atRange(50_000));
     });
     expect(screen.getByText("TARGET")).toBeInTheDocument();
 
     act(() => {
-      source.emit("tar.distance", 2_000);
+      source.emit("tar.relativePosition", atRange(2_000));
     });
     expect(screen.getByText("APPROACH")).toBeInTheDocument();
 
     act(() => {
-      source.emit("tar.distance", 80);
+      source.emit("tar.relativePosition", atRange(80));
     });
     expect(
       screen.getByRole("region", { name: /Docking HUD/ }),

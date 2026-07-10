@@ -1,32 +1,33 @@
 import { DashboardItemContext } from "@gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import farApproach from "./__fixtures__/far-approach-vessel.json";
 import { DistanceToTargetComponent } from "./index";
 
 /**
- * DistanceToTarget's M3 vessel-gap batch behavior-preservation golden
- * dual-run (mirrors `CurrentOrbit/dual-run.test.tsx`, M3 batch-2): the SAME
- * tracking-mode target state, rendered once off the legacy `DataSource` and
- * once off the stream, must produce byte-identical DOM at `delay=0`.
+ * DistanceToTarget's R6 de-Telemachus behavior-preservation golden dual-run:
+ * the SAME tracking-mode target state, rendered once off the legacy
+ * `DataSource` and once off the stream, must produce byte-identical DOM at
+ * `delay=0`.
  *
- * `far-approach-vessel` is a clean tracking-mode-only fixture (48 Mm range,
- * well past the docking/approach thresholds — the fixture's own `_meta`
- * note) — no dock.* readout is on-screen in this mode, so the dual-run only
- * needs to prove parity for the headline distance + Δv sub-readout, both now
- * DERIVED from `vessel.target`'s Vec3 fields
- * (`tar.relativePosition`/`tar.relativeVelocityVec`) rather than read
- * directly. `TAR_POS`/`TAR_VEL` are chosen purely along the z axis so the
- * derived distance/closing-rate land on EXACTLY the fixture's own
- * `tar.distance` (48,000,000) / `tar.o.relativeVelocity` (312.5) — no
- * legacy-leg override needed, unlike CurrentOrbit's own dual-run (whose
- * derived fields needed a body radius to match against).
+ * Both legs now DERIVE the headline distance + Δv sub-readout from
+ * `vessel.target`'s Vec3 fields (`tar.relativePosition` /
+ * `tar.relativeVelocityVec`) — the legacy `tar.distance` /
+ * `tar.o.relativeVelocity` scalar reads and their Telemachus fallbacks are
+ * dropped. `far-approach-vessel` is a clean tracking-mode-only fixture (48 Mm
+ * range, well past the docking/approach thresholds), so no dock.* readout is
+ * on-screen. The STREAM leg has **no legacy `"data"` MockDataSource leg at
+ * all** — the R6 read-fallback drop for this widget: `tar.name` rides
+ * `vessel.target.name` and `tar.type` (mapped to the uncarried
+ * `vessel.state.targetKind`) simply resolves to `undefined`, which — at 48 Mm,
+ * far past every threshold — leaves the widget in tracking mode exactly as the
+ * legacy leg's `Vessel` type does, so the rendered DOM matches.
+ *
+ * `TAR_POS`/`TAR_VEL` are chosen purely along the z axis so the derived
+ * distance/closing-rate land on EXACTLY the fixture's own Vec3 values (48 Mm /
+ * +312.5 m/s opening) — the legacy leg reads those same Vec3s off the fixture.
  */
 afterEach(() => {
   cleanup();
@@ -50,11 +51,6 @@ describe("DistanceToTarget — behavior-preservation golden dual-run (delay=0)",
       carriedChannels: ["vessel.target"],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
-    });
 
     const { container } = render(
       <streamFixture.Provider>
@@ -65,8 +61,6 @@ describe("DistanceToTarget — behavior-preservation golden dual-run (delay=0)",
     );
 
     act(() => {
-      legacyAux.source.emit("tar.name", farApproach["tar.name"]);
-      legacyAux.source.emit("tar.type", farApproach["tar.type"]);
       streamFixture.emit("vessel.target", {
         name: farApproach["tar.name"],
         kind: 0,
@@ -84,7 +78,6 @@ describe("DistanceToTarget — behavior-preservation golden dual-run (delay=0)",
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);
   });

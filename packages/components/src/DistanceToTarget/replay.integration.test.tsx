@@ -12,11 +12,15 @@ import { DistanceToTargetComponent } from "./index";
 
 /**
  * Demo: drive DistanceToTarget through a full docking-approach sequence.
- * The widget has three modes (tracking / approach / docking-hud) gated by
- * `tar.distance` with hysteresis at 100m / 150m / 5000m / 5500m. A
- * synthesized fixture is the natural way to exercise every transition —
- * including a tricky one (the small post-HUD distance bump) — without
- * scripting per-emit timing by hand.
+ * The widget has three modes (tracking / approach / docking-hud) gated by the
+ * derived target distance (`|tar.relativePosition|`) with hysteresis at 100m /
+ * 150m / 5000m / 5500m. A synthesized fixture is the natural way to exercise
+ * every transition — including a tricky one (the small post-HUD distance
+ * bump) — without scripting per-emit timing by hand.
+ *
+ * Post-R6 the widget reads the `vessel.target`/`vessel.dock` Vec3 fields, not
+ * the legacy scalar keys. Ranges/rates are laid out purely along z so
+ * `|relativePosition| = z` and the derived radial rate === the z-velocity.
  */
 
 const APPROACH = synthesizeFlight({
@@ -34,47 +38,32 @@ const APPROACH = synthesizeFlight({
     ],
     "tar.name": [[0, "Hubble Mk II"]],
     "tar.type": [[0, "Vessel"]],
-    "tar.distance": [
-      [0, 5_000], // approach-mode boundary
-      [10_000, 1_500], // mid-approach
-      [30_000, 200], // still in approach (>150 hysteresis floor)
-      [45_000, 80], // crosses the 100m HUD-enter threshold → HUD
-      [50_000, 130], // drifts back — between exit (150m) and enter (100m).
-      //              // Hysteresis must keep mode in HUD.
-      [60_000, 30], // settled deep in HUD
+    "tar.relativePosition": [
+      [0, { x: 0, y: 0, z: 5_000 }], // approach-mode boundary
+      [10_000, { x: 0, y: 0, z: 1_500 }], // mid-approach
+      [30_000, { x: 0, y: 0, z: 200 }], // still in approach (>150 hysteresis floor)
+      [45_000, { x: 0, y: 0, z: 80 }], // crosses the 100m HUD-enter threshold → HUD
+      [50_000, { x: 0, y: 0, z: 130 }], // drifts back — between exit (150m) and enter (100m).
+      //                                // Hysteresis must keep mode in HUD.
+      [60_000, { x: 0, y: 0, z: 30 }], // settled deep in HUD
     ],
-    "tar.o.relativeVelocity": [
-      [0, -25],
-      [10_000, -5],
-      [30_000, -1.5],
-      [45_000, -0.8],
-      [50_000, +0.3], // briefly opening
-      [60_000, -0.2],
+    "tar.relativeVelocityVec": [
+      [0, { x: 0, y: 0, z: -25 }],
+      [10_000, { x: 0, y: 0, z: -5 }],
+      [30_000, { x: 0, y: 0, z: -1.5 }],
+      [45_000, { x: 0, y: 0, z: -0.8 }],
+      [50_000, { x: 0, y: 0, z: 0.3 }], // briefly opening
+      [60_000, { x: 0, y: 0, z: -0.2 }],
     ],
-    "dock.x": [
-      [45_000, 0.4],
-      [50_000, 0.5],
-      [60_000, 0.05],
+    "dock.relativePosition": [
+      [45_000, { x: 0.4, y: -0.3, z: 80 }],
+      [50_000, { x: 0.5, y: -0.4, z: 130 }],
+      [60_000, { x: 0.05, y: -0.02, z: 30 }],
     ],
-    "dock.y": [
-      [45_000, -0.3],
-      [50_000, -0.4],
-      [60_000, -0.02],
-    ],
-    "dock.ax": [
-      [45_000, 5],
-      [50_000, 6],
-      [60_000, 0.5],
-    ],
-    "dock.ay": [
-      [45_000, 3],
-      [50_000, 4],
-      [60_000, 0.2],
-    ],
-    "dock.az": [
-      [45_000, 0],
-      [50_000, 0],
-      [60_000, 0],
+    "dock.distanceScalar": [
+      [45_000, 80],
+      [50_000, 130],
+      [60_000, 30],
     ],
   },
 });

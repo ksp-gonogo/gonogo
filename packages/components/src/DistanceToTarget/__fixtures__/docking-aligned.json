@@ -1,17 +1,15 @@
 {
   "_meta": {
     "scenario": "docking-aligned",
-    "notes": "Vessel target at 62m in docking-HUD range (<100m). ax/ay both < 1° so reticle renders green (aligned). Negative relVel = closing slowly. Reticle near centre of Viewport. HUD mode forced to 'hud' (no camera) to avoid ocisly dependency."
+    "notes": "Vessel target at 62m in docking-HUD range (<100m). vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. Negative radial rate = closing slowly. HUD mode forced to 'hud' (no camera) to avoid the kerbcast dependency."
   },
   "tar.name": "Docking Port Mk2",
   "tar.type": "Vessel",
-  "tar.distance": 62,
-  "tar.o.relativeVelocity": -0.4,
-  "o.closestTgtApprUT": 0,
-  "t.universalTime": 87654,
-  "dock.ax": 0.3,
-  "dock.ay": -0.2,
-  "dock.az": 0.8,
-  "dock.x": 0.12,
-  "dock.y": -0.07
+  "tar.relativePosition": { "x": 0, "y": 0, "z": 62 },
+  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": -0.4 },
+  "dock.relativePosition": { "x": 0.12, "y": -0.07, "z": 62 },
+  "dock.relativeVelocityVec": { "x": 0, "y": 0, "z": -0.4 },
+  "dock.distanceScalar": 62,
+  "dock.forwardDot": 0.9999,
+  "o.closestTgtApprUT": 0
 }

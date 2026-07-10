@@ -4,13 +4,14 @@ import {
   registerComponent,
   resolveTargetName,
   useDataStreamStatus,
-  useDataValue,
+  useTelemetry,
 } from "@gonogo/core";
 import {
   buildCameraLabeler,
   useKerbcastCameras,
   useKerbcastStream,
 } from "@gonogo/kerbcast";
+import { useViewUt } from "@gonogo/sitrep-client";
 import {
   ConfigForm,
   Field,
@@ -66,52 +67,52 @@ function DistanceToTargetComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  const legacyTarDistance = useDataValue("data", "tar.distance");
-  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
-  const tarType = useDataValue("data", "tar.type");
-  const legacyRelVel = useDataValue("data", "tar.o.relativeVelocity");
-  const closestApproachUT = useDataValue("data", "o.closestTgtApprUT");
-  const universalTime = useDataValue("data", "t.universalTime");
-  const legacyDockAx = useDataValue("data", "dock.ax");
-  const legacyDockAy = useDataValue("data", "dock.ay");
-  const dockAz = useDataValue("data", "dock.az");
-  const legacyDockX = useDataValue("data", "dock.x");
-  const legacyDockY = useDataValue("data", "dock.y");
+  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
+  const tarType = useTelemetry("data", "tar.type");
+  // o.closestTgtApprUT is a clean home (map-topic.ts) — the SDK's two-body
+  // closest-approach solve exposed on `vessel.state.closestApproachUt`
+  // (propagation.ts). `t.universalTime` is dropped as a data key (R6 §1a):
+  // the "current time" it carried IS the SDK view-UT the propagation is
+  // evaluated at, so read that directly via `useViewUt` instead.
+  const closestApproachUT = useTelemetry("data", "o.closestTgtApprUT");
+  const universalTime = useViewUt();
 
-  // M3 vessel-gap batch: the NEW `vessel.target`/`vessel.dock` Vec3 reads.
+  // The `vessel.target`/`vessel.dock` Vec3 reads — the widget derives every
+  // scalar/angle it needs client-side. R6 de-Telemachus: the legacy
   // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
-  // `dock.ay` themselves stay legacy-only (map-topic.ts's
-  // TELEMACHUS_KNOWN_GAPS — different shape); these coexist and, when
-  // carried, win via the `??` merges below — the same MIXED-source pattern
-  // CurrentOrbit's M3 batch-2 migration established.
-  const tarRelPos = useDataValue<Vec3>("data", "tar.relativePosition");
-  const tarRelVelVec = useDataValue<Vec3>("data", "tar.relativeVelocityVec");
+  // `dock.ay` scalar reads and their `?? legacy` fallbacks are all dropped
+  // (each is cleanly derivable off these Vec3s — see shared/dockAngles.ts),
+  // and the true docking roll/az axis is dropped outright (no wire source).
+  const tarRelPos = useTelemetry<Vec3>("data", "tar.relativePosition");
+  const tarRelVelVec = useTelemetry<Vec3>("data", "tar.relativeVelocityVec");
   // vessel.dock is null unless the target is a docking port with a free
   // port on the active vessel — undefined here legitimately means "not a
   // docking scenario right now", not "still loading".
-  const dockRelPos = useDataValue<Vec3>("data", "dock.relativePosition");
-  const dockRelVelVec = useDataValue<Vec3>("data", "dock.relativeVelocityVec");
-  const dockDistanceStream = useDataValue<number>(
+  const dockRelPos = useTelemetry<Vec3>("data", "dock.relativePosition");
+  const dockRelVelVec = useTelemetry<Vec3>("data", "dock.relativeVelocityVec");
+  const dockDistanceStream = useTelemetry<number>(
     "data",
     "dock.distanceScalar",
   );
-  const dockForwardDot = useDataValue<number>("data", "dock.forwardDot");
+  const dockForwardDot = useTelemetry<number>("data", "dock.forwardDot");
   const streamStatus = useDataStreamStatus("data", "tar.relativePosition");
 
-  const derivedTarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
-  const tarDistance = derivedTarDistance ?? legacyTarDistance;
-  const derivedRelVel =
+  const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
+  const relVel =
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  const relVel = derivedRelVel ?? legacyRelVel;
   const derivedDockAngles = dockRelPos
     ? deriveDockAngles(dockRelPos)
     : undefined;
-  const dockAx = derivedDockAngles?.ax ?? legacyDockAx;
-  const dockAy = derivedDockAngles?.ay ?? legacyDockAy;
-  const dockX = dockRelPos?.x ?? legacyDockX;
-  const dockY = dockRelPos?.y ?? legacyDockY;
+  const dockAx = derivedDockAngles?.ax;
+  const dockAy = derivedDockAngles?.ay;
+  // Docking-port roll (az) misalignment isn't on the wire at all — vessel.dock
+  // carries only RelativePosition/RelativeVelocity/Distance + a scalar
+  // ForwardDot. The true third axis is dropped per R6 §0.0 and renders "—".
+  const dockAz: number | undefined = undefined;
+  const dockX = dockRelPos?.x;
+  const dockY = dockRelPos?.y;
   const derivedDockRelVel =
     dockRelPos && dockRelVelVec
       ? radialSpeed(dockRelPos, dockRelVelVec)
@@ -626,17 +627,9 @@ registerComponent<DistanceToTargetConfig>({
   component: DistanceToTargetComponent,
   configComponent: DistanceToTargetConfigComponent,
   dataRequirements: [
-    "tar.distance",
     "tar.name",
     "tar.type",
-    "tar.o.relativeVelocity",
     "o.closestTgtApprUT",
-    "t.universalTime",
-    "dock.ax",
-    "dock.ay",
-    "dock.az",
-    "dock.x",
-    "dock.y",
     "tar.relativePosition",
     "tar.relativeVelocityVec",
     "dock.relativePosition",

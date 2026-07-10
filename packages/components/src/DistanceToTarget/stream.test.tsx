@@ -9,19 +9,21 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DistanceToTargetComponent } from "./index";
 
 /**
- * The M3 vessel-gap batch's stream test-adapter proof for DistanceToTarget:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`. `tar.distance`/
- * `tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/`dock.ay` themselves
- * stay GAPPED (map-topic.ts) — what's actually mapped is the raw
- * `vessel.target`/`vessel.dock` Vec3 fields (`tar.relativePosition`/
- * `tar.relativeVelocityVec`/`dock.relativePosition`/
- * `dock.relativeVelocityVec`/`dock.distanceScalar`/`dock.forwardDot`), which
- * the widget derives the legacy-shaped scalars/angles from client-side
- * (`vecMagnitude`/`radialSpeed`/`deriveDockAngles` in index.tsx). `tar.name`/
- * `tar.type` stay legacy-only (still-gapped) throughout — a small
- * `setupMockDataSource` AUX carries just those two, the same MIXED-source
- * shape CurrentOrbit's own M3 batch-2 migration established.
+ * DistanceToTarget's stream test-adapter proof: genuinely running off the real
+ * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
+ * `StubTransport`. Post-R6 the widget derives EVERY scalar/angle it renders
+ * client-side from the `vessel.target`/`vessel.dock` Vec3 fields
+ * (`tar.relativePosition`/`tar.relativeVelocityVec`/`dock.relativePosition`/
+ * `dock.relativeVelocityVec`/`dock.distanceScalar`/`dock.forwardDot`) —
+ * `vecMagnitude`/`radialSpeed`/`deriveDockAngles` in index.tsx — with no
+ * legacy `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
+ * `dock.ay` scalar reads at all, and the docking roll/az axis dropped
+ * outright (renders "—"). `tar.name` rides `vessel.target.name`; `tar.type`
+ * maps to the DERIVED `vessel.state.targetKind`, which isn't carried here, so
+ * a small `setupMockDataSource` AUX still supplies the target kind (its
+ * `vessel.state` inputs would otherwise all have to be carried + emitted).
+ * The TCA test additionally reads the SDK view-UT via `useViewUt` — the
+ * replacement for the dropped `t.universalTime` data key.
  */
 afterEach(() => {
   cleanup();
@@ -187,6 +189,55 @@ describe("DistanceToTarget — genuinely runs off the stream (M3 vessel-gap batc
     // instead of "confirmed absence", or the stale legacy value winning).
     expect(screen.queryByText("10.0 km")).toBeNull();
     expect(screen.queryByText("Rendezvous Target")).toBeNull();
+
+    teardownMockDataSource(legacyAux);
+  });
+
+  it("renders approach-mode TCA from o.closestTgtApprUT and the SDK view-UT", async () => {
+    // pinnedUt fixes the view clock at UT 1000 — the value `useViewUt`
+    // returns in place of the dropped `t.universalTime` data key.
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target"],
+      pinnedUt: 1000,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [
+        { key: "tar.name" },
+        { key: "tar.type" },
+        { key: "o.closestTgtApprUT" },
+      ],
+      connectSource: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "dtt-tca" }}>
+          <DistanceToTargetComponent id="dtt-tca" w={6} h={9} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      legacyAux.source.emit("tar.name", "Rendezvous Target");
+      legacyAux.source.emit("tar.type", "Vessel");
+      // closest approach at UT 1125 → 125 s from the pinned view-UT (1000) →
+      // T−02:05.
+      legacyAux.source.emit("o.closestTgtApprUT", 1125);
+      // 2000 m puts the widget in approach mode (100 m – 5 km); z-only Vec3
+      // so |relPos| = 2000 and the radial rate is −5 (closing).
+      fixture.emit("vessel.target", {
+        name: "Rendezvous Target",
+        kind: 0,
+        vesselId: "target-vessel",
+        bodyIndex: null,
+        relativePosition: { x: 0, y: 0, z: 2000 },
+        relativeVelocity: { x: 0, y: 0, z: -5 },
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
+    expect(screen.getByText(/T−02:05/)).toBeTruthy();
 
     teardownMockDataSource(legacyAux);
   });
