@@ -29,7 +29,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
-import { KosScriptFrame } from "../kos/KosScriptFrame";
+import { KosScriptFrame } from "../shared/KosScriptFrame";
 import {
   KOS_PROCESSORS_SCRIPT,
   KOS_PROCESSORS_TOPIC_ID,

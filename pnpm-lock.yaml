@@ -77,6 +77,82 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
 
+  mod/Gonogo.Kos/client:
+    dependencies:
+      '@gonogo/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@gonogo/data':
+        specifier: workspace:*
+        version: link:../../../packages/data
+      '@gonogo/logger':
+        specifier: workspace:*
+        version: link:../../../packages/logger
+      '@gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../../../packages/sitrep-client
+      '@gonogo/ui':
+        specifier: workspace:*
+        version: link:../../../packages/ui
+      '@xterm/addon-fit':
+        specifier: ^0.11.0
+        version: 0.11.0
+      '@xterm/xterm':
+        specifier: ^6.0.0
+        version: 6.0.0
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../sitrep-sdk
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@testing-library/user-event':
+        specifier: ^14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/jest-axe':
+        specifier: ^3.5.9
+        version: 3.5.9
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@vitest/coverage-v8':
+        specifier: ^4.1.4
+        version: 4.1.4(vitest@4.1.4)
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
+      jest-axe:
+        specifier: ^10.0.0
+        version: 10.0.0
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
+      msw:
+        specifier: ^2.13.2
+        version: 2.13.2(@types/node@22.19.17)(typescript@5.9.3)
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
+      tsx:
+        specifier: ^4.0.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
   mod/GonogoScansatUplink/client:
     dependencies:
       '@gonogo/components':
@@ -174,6 +250,9 @@ importers:
       '@gonogo/kerbcast':
         specifier: workspace:*
         version: link:../kerbcast
+      '@gonogo/kos':
+        specifier: workspace:*
+        version: link:../../mod/Gonogo.Kos/client
       '@gonogo/logger':
         specifier: workspace:*
         version: link:../logger
@@ -286,12 +365,6 @@ importers:
       '@gonogo/ui':
         specifier: workspace:*
         version: link:../ui
-      '@xterm/addon-fit':
-        specifier: ^0.11.0
-        version: 0.11.0
-      '@xterm/xterm':
-        specifier: ^6.0.0
-        version: 6.0.0
       react:
         specifier: ^18.0.0
         version: 18.3.1

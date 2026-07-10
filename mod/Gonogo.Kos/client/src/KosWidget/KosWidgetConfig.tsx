@@ -14,7 +14,7 @@ import {
 } from "@gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
+import { KosCpuPicker } from "../shared/KosCpuPicker";
 import type { KosWidgetConfig } from "./types";
 
 type ArgType = KosWidgetArg["type"];

@@ -15,6 +15,7 @@ import { ThemeProvider } from "styled-components";
 // extensions: themes (from @gonogo/ui), components (from @gonogo/components),
 // and data sources (from ./dataSources).
 import "@gonogo/components"; // triggers all component self-registration
+import "@gonogo/kos"; // kOS Uplink client — registers the kOS widgets + processors feed
 import "@gonogo/scansat"; // SCANsat Uplink client — registers the Scanning widget
 import "./dataSources"; // triggers all data source self-registration
 import "./goNoGo/GoNoGoComponent"; // app-level component — registers on import

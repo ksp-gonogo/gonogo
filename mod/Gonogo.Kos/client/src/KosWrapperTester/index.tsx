@@ -19,7 +19,7 @@ import {
 } from "@gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
+import { KosCpuPicker } from "../shared/KosCpuPicker";
 
 interface KosWrapperTesterConfig {
   /** kOS CPU tagname. Required — widget stays in an empty state until set. */

@@ -22,8 +22,8 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
-import { KosScriptFrame } from "../kos/KosScriptFrame";
+import { KosCpuPicker } from "../shared/KosCpuPicker";
+import { KosScriptFrame } from "../shared/KosScriptFrame";
 import {
   KOS_FILES_SCRIPT,
   KOS_FILES_SCRIPT_NAME,

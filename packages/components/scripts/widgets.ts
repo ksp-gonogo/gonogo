@@ -1019,28 +1019,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // kOS Processors. Fixture is SYNTHETIC (no live LIST PROCESSORS capture)
-    // — three CPUs (tagged 'system', tagged boot, untagged idle) so the row
-    // chrome, mode dots, and pills all render. Reads the `"kos"` source +
-    // `useKosScriptStatus`; the probe registers an unbuffered ProbeKosDataSource
-    // under id "kos" with a static healthy topic status.
-    widgetId: "kos-processors",
-    fixturesPath: "KosProcessors/__fixtures__",
-    outPath: "renders/kos-processors-widget",
-    modes: [
-      // minSize 3×3 — neither full nor compact rows; compact summary count.
-      { name: "tiny-3x3", w: 3, h: 3 },
-      // rows>=4, cols<5 — compact rows (tag + mode only, no pills).
-      { name: "compact-4x5", w: 4, h: 5 },
-      // rows>=6, cols>=5 — full rows: tag, mode, part title, vol/boot pills.
-      { name: "default-6x8", w: 6, h: 8 },
-      // tall — full rows with generous scroll room.
-      { name: "tall-6x14", w: 6, h: 14 },
-      // wide — full rows, horizontal breathing room.
-      { name: "wide-10x8", w: 10, h: 8 },
-    ],
-  },
-  {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
     // `"data"` source (tar.* / b.* / o.* keys) — no probe kos wiring needed.
     // Defaults to the Bodies tab, so the base modes show the body tree +

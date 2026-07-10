@@ -19,8 +19,8 @@ import {
 } from "@gonogo/ui";
 import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
-import { KosCpuPicker } from "../kos/KosCpuPicker";
-import { KosScriptFrame } from "../kos/KosScriptFrame";
+import { KosCpuPicker } from "../shared/KosCpuPicker";
+import { KosScriptFrame } from "../shared/KosScriptFrame";
 
 /**
  * kOS Script Runner — helper layer 2 over the raw kOS terminal (P3 spec

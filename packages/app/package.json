@@ -18,6 +18,7 @@
     "@gonogo/core": "workspace:*",
     "@gonogo/data": "workspace:*",
     "@gonogo/kerbcast": "workspace:*",
+    "@gonogo/kos": "workspace:*",
     "@gonogo/logger": "workspace:*",
     "@gonogo/scansat": "workspace:*",
     "@gonogo/serial": "workspace:*",
