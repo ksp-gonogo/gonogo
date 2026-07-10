@@ -163,6 +163,16 @@ public static class RtConfig
                 typeof(ScanningVesselEntry),
                 typeof(ScanSensorEntry),
                 typeof(ScanTrackColor),
+                // vessel.parts channel payload + nested value shapes (P1b)
+                typeof(VesselParts),
+                typeof(VesselPart),
+                typeof(PartBounds),
+                // spaceCenter.launchSites / spaceCenter.scene (P1b)
+                typeof(LaunchSiteEntry),
+                typeof(SpaceCenterScene),
+                // dv.stages / dv.summary (P1b)
+                typeof(StageDeltaVEntry),
+                typeof(StageDeltaVSummary),
             },
             c => c.AutoI(false).WithPublicProperties());
 

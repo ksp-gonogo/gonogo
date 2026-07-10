@@ -474,6 +474,46 @@ export interface SensorEntry
 	readout?: string;
 	active?: boolean;
 }
+export interface LaunchSiteEntry
+{
+	name?: string;
+	displayName?: string;
+	editorFacility?: string;
+	bodyIndex?: number;
+	isStock?: boolean;
+	padOccupied?: boolean;
+	padVesselTitle?: string;
+}
+export interface SpaceCenterScene
+{
+	scene?: string;
+}
+export interface StageDeltaVEntry
+{
+	stage?: number;
+	dvVac?: number;
+	dvAsl?: number;
+	dvActual?: number;
+	burnTime?: number;
+	twrVac?: number;
+	twrAsl?: number;
+	twrActual?: number;
+	thrustVac?: number;
+	thrustAsl?: number;
+	thrustActual?: number;
+	startMass?: number;
+	endMass?: number;
+	dryMass?: number;
+	fuelMass?: number;
+}
+export interface StageDeltaVSummary
+{
+	stageCount?: number;
+	totalDvVac?: number;
+	totalDvAsl?: number;
+	totalDvActual?: number;
+	totalBurnTime?: number;
+}
 export interface SystemBodies
 {
 	bodies: BodyEntry[];
@@ -746,6 +786,37 @@ export interface VesselOrbitTruth
 	velocity: Vec3;
 	frameRotating: boolean;
 	meta: PayloadMeta;
+}
+export interface VesselParts
+{
+	parts: VesselPart[];
+	meta: PayloadMeta;
+}
+export interface VesselPart
+{
+	id: string;
+	parentId?: string;
+	name: string;
+	title: string;
+	position: Vec3;
+	up?: Vec3;
+	bounds: PartBounds;
+	dryMass: number;
+	inverseStage: number;
+	maxTemp: number;
+	skinMaxTemp?: number;
+	currentTemp?: number;
+	skinTemp?: number;
+	category: string;
+	modules: string[];
+	isRobotics: boolean;
+	isPowerRelated: boolean;
+	fuelLineTargetId?: string;
+}
+export interface PartBounds
+{
+	size: Vec3;
+	center?: Vec3;
 }
 export enum PhysicsMode {
 	OnRails = 0,

@@ -28,12 +28,16 @@ import type {
   InstrumentEntry,
   KosProcessorInfo,
   LabEntry,
+  LaunchSiteEntry,
   PartsPower,
   RevertAvailability,
   RoboticsAvailability,
   ScanningVesselEntry,
   SensorEntry,
   ServoEntry,
+  SpaceCenterScene,
+  StageDeltaVEntry,
+  StageDeltaVSummary,
   SystemBodies,
   SystemVessels,
   VesselAttitude,
@@ -45,6 +49,7 @@ import type {
   VesselManeuver,
   VesselOrbit,
   VesselOrbitTruth,
+  VesselParts,
   VesselPhysicsMode,
   VesselPropulsion,
   VesselResources,
@@ -67,6 +72,8 @@ export interface GeneratedTopicPayloadMap {
   "comms.network": CommsNetwork;
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
+  "dv.stages": StageDeltaVEntry[];
+  "dv.summary": StageDeltaVSummary;
   "game.dlc": GameDlc;
   "kos.processors": KosProcessorInfo[];
   "ksp.revertAvailability": RevertAvailability;
@@ -79,6 +86,8 @@ export interface GeneratedTopicPayloadMap {
   "science.instruments": InstrumentEntry[];
   "science.lab": LabEntry[];
   "science.sensors": SensorEntry[];
+  "spaceCenter.launchSites": LaunchSiteEntry[];
+  "spaceCenter.scene": SpaceCenterScene;
   "system.bodies": SystemBodies;
   "system.vessels": SystemVessels;
   "time.warp": WarpState;
@@ -92,6 +101,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.maneuver": VesselManeuver;
   "vessel.orbit": VesselOrbit;
   "vessel.orbit.truth": VesselOrbitTruth;
+  "vessel.parts": VesselParts;
   "vessel.physics.mode": VesselPhysicsMode;
   "vessel.propulsion": VesselPropulsion;
   "vessel.resources": VesselResources;
@@ -113,6 +123,8 @@ export const GENERATED_TOPIC_IDS = [
   "comms.network",
   "comms.path",
   "comms.signalStrength",
+  "dv.stages",
+  "dv.summary",
   "game.dlc",
   "kos.processors",
   "ksp.revertAvailability",
@@ -125,6 +137,8 @@ export const GENERATED_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "spaceCenter.launchSites",
+  "spaceCenter.scene",
   "system.bodies",
   "system.vessels",
   "time.warp",
@@ -138,6 +152,7 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.maneuver",
   "vessel.orbit",
   "vessel.orbit.truth",
+  "vessel.parts",
   "vessel.physics.mode",
   "vessel.propulsion",
   "vessel.resources",
