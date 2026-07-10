@@ -148,6 +148,21 @@ public static class RtConfig
                 typeof(OrbitEntry),
                 typeof(SystemVessels),
                 typeof(VesselRosterEntry),
+                // career.mode / game.dlc / ksp.revertAvailability / robotics.available
+                typeof(CareerMode),
+                typeof(GameDlc),
+                typeof(RevertAvailability),
+                typeof(RoboticsAvailability),
+                // vessel.physics.mode + vessel.crew nested roster entry
+                typeof(VesselPhysicsMode),
+                typeof(CrewMember),
+                // science.instruments / science.sensors entries
+                typeof(InstrumentEntry),
+                typeof(SensorEntry),
+                // scansat.scanningVessels payload + nested value shapes
+                typeof(ScanningVesselEntry),
+                typeof(ScanSensorEntry),
+                typeof(ScanTrackColor),
             },
             c => c.AutoI(false).WithPublicProperties());
 
@@ -169,6 +184,8 @@ public static class RtConfig
                 typeof(TransitionType),
                 typeof(VesselType),
                 typeof(WarpMode),
+                typeof(GameMode),
+                typeof(PhysicsMode),
             });
 
         // --- Topic -> payload map (single source of truth for the SDK registry) ---

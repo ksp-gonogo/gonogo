@@ -10,6 +10,7 @@
 // bare JSON array of the element type.
 
 import type {
+  CareerMode,
   CareerStatus,
   CommsConnectivity,
   CommsControlState,
@@ -23,9 +24,15 @@ import type {
   DeployedEntry,
   DockAlignment,
   ExperimentEntry,
+  GameDlc,
+  InstrumentEntry,
   KosProcessorInfo,
   LabEntry,
   PartsPower,
+  RevertAvailability,
+  RoboticsAvailability,
+  ScanningVesselEntry,
+  SensorEntry,
   ServoEntry,
   SystemBodies,
   SystemVessels,
@@ -38,6 +45,7 @@ import type {
   VesselManeuver,
   VesselOrbit,
   VesselOrbitTruth,
+  VesselPhysicsMode,
   VesselPropulsion,
   VesselResources,
   VesselStructure,
@@ -48,6 +56,7 @@ import type {
 } from "./contract";
 
 export interface GeneratedTopicPayloadMap {
+  "career.mode": CareerMode;
   "career.status": CareerStatus;
   "comms.connectivity": CommsConnectivity;
   "comms.controlState": CommsControlState;
@@ -58,12 +67,18 @@ export interface GeneratedTopicPayloadMap {
   "comms.network": CommsNetwork;
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
+  "game.dlc": GameDlc;
   "kos.processors": KosProcessorInfo[];
+  "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
   "parts.robotics": ServoEntry[];
+  "robotics.available": RoboticsAvailability;
+  "scansat.scanningVessels": ScanningVesselEntry[];
   "science.deployed": DeployedEntry[];
   "science.experiments": ExperimentEntry[];
+  "science.instruments": InstrumentEntry[];
   "science.lab": LabEntry[];
+  "science.sensors": SensorEntry[];
   "system.bodies": SystemBodies;
   "system.vessels": SystemVessels;
   "time.warp": WarpState;
@@ -77,6 +92,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.maneuver": VesselManeuver;
   "vessel.orbit": VesselOrbit;
   "vessel.orbit.truth": VesselOrbitTruth;
+  "vessel.physics.mode": VesselPhysicsMode;
   "vessel.propulsion": VesselPropulsion;
   "vessel.resources": VesselResources;
   "vessel.structure": VesselStructure;
@@ -86,6 +102,7 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "career.mode",
   "career.status",
   "comms.connectivity",
   "comms.controlState",
@@ -96,12 +113,18 @@ export const GENERATED_TOPIC_IDS = [
   "comms.network",
   "comms.path",
   "comms.signalStrength",
+  "game.dlc",
   "kos.processors",
+  "ksp.revertAvailability",
   "parts.power",
   "parts.robotics",
+  "robotics.available",
+  "scansat.scanningVessels",
   "science.deployed",
   "science.experiments",
+  "science.instruments",
   "science.lab",
+  "science.sensors",
   "system.bodies",
   "system.vessels",
   "time.warp",
@@ -115,6 +138,7 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.maneuver",
   "vessel.orbit",
   "vessel.orbit.truth",
+  "vessel.physics.mode",
   "vessel.propulsion",
   "vessel.resources",
   "vessel.structure",

@@ -18,32 +18,28 @@
 // stays in exact sync.
 //
 // ── The scansat tail (NOT codegen-derived) ──────────────────────────────────────────
-// Two Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are declared by
-// hand below rather than generated — deliberately, because a fabricated contract type
-// would misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
+// One Topic has no `Sitrep.Contract` payload TYPE to reflect, so it is declared by hand
+// below rather than generated — deliberately, because a fabricated contract type would
+// misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
 //   • `scansat.available` is a bare JSON boolean (the uplink publishes `true`/`false`
 //     directly — see GonogoScansatUplink/ScansatUplink.cs), not an object, so there is
 //     no named payload type; it resolves to `boolean`.
-//   • `scansat.scanningVessels` is a bare JSON array whose ELEMENT shape is explicitly
-//     deferred to P2 ("the wire-typed SCANvessel mapping … is P2 scope, not implemented
-//     here" — ScansatUplink.BuildScanningVessels), so it faithfully resolves to
-//     `unknown[]` (an array, element type not yet contractually defined) rather than an
-//     invented interface.
-// Neither resolves to `unknown` — the registry has no `unknown` Topics (proven at
+// (`scansat.scanningVessels` was previously in this tail as `unknown[]` while its element
+// shape was deferred; it now carries the wire-typed `ScanningVesselEntry` contract and is
+// codegen-derived like every other array Topic.)
+// It does not resolve to `unknown` — the registry has no `unknown` Topics (proven at
 // compile time by `_AssertNoTopicResolvesToUnknown` below).
 
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 
 /**
- * The two SCANsat Topics whose payload is a JSON primitive / element-untyped array, so
- * they carry no named `Sitrep.Contract` type and are not part of the generated map (see
- * the "scansat tail" note above). Merged into `TopicPayloadMap` alongside the generated
- * entries.
+ * The one SCANsat Topic whose payload is a bare JSON primitive, so it carries no named
+ * `Sitrep.Contract` type and is not part of the generated map (see the "scansat tail"
+ * note above). Merged into `TopicPayloadMap` alongside the generated entries.
  */
 export interface ScansatTopicPayloadMap {
   "scansat.available": boolean;
-  "scansat.scanningVessels": unknown[];
 }
 
 /**
@@ -72,7 +68,6 @@ export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
 export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "scansat.available",
-  "scansat.scanningVessels",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);

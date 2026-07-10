@@ -7,10 +7,10 @@ import { isTopicId, TOPIC_IDS, type TopicPayloadMap } from "./topics";
 
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
- * contract type) — a JSON boolean and an element-deferred array. See the topics.ts
- * header. Everything else in the registry MUST come from the generated map.
+ * contract type) — a bare JSON boolean. See the topics.ts header. Everything else in
+ * the registry MUST come from the generated map.
  */
-const HAND_DECLARED_TOPICS = ["scansat.available", "scansat.scanningVessels"];
+const HAND_DECLARED_TOPICS = ["scansat.available"];
 
 // mod/sitrep-sdk/src -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");

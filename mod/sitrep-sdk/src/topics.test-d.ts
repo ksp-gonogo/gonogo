@@ -19,6 +19,7 @@ import type {
   KosProcessorInfo,
   LabEntry,
   PartsPower,
+  ScanningVesselEntry,
   ServoEntry,
   SystemBodies,
   SystemVessels,
@@ -78,13 +79,14 @@ export type _ResolvesSystemVessels = Expect<
   Equal<TopicPayload<"system.vessels">, SystemVessels>
 >;
 
-// ── scansat: a JSON primitive / element-deferred array, NOT `unknown` (see topics.ts
-//    header for why these carry no named contract type) ──────────────────────────────
+// ── scansat: `scansat.available` is a bare JSON boolean with no named contract type
+//    (see topics.ts header); `scansat.scanningVessels` now carries the wire-typed
+//    `ScanningVesselEntry[]` element contract ──────────────────────────────────────
 export type _ResolvesScansatAvailable = Expect<
   Equal<TopicPayload<"scansat.available">, boolean>
 >;
 export type _ResolvesScansatScanningVessels = Expect<
-  Equal<TopicPayload<"scansat.scanningVessels">, unknown[]>
+  Equal<TopicPayload<"scansat.scanningVessels">, ScanningVesselEntry[]>
 >;
 
 // ── No Topic resolves to `unknown` (the whole point of P0.5) ────────────────────────

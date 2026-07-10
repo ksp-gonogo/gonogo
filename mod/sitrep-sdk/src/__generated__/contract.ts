@@ -2,6 +2,16 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+export enum GameMode {
+	Sandbox = 0,
+	Career = 1,
+	Science = 2,
+	Unknown = 3
+}
+export interface CareerMode
+{
+	mode: GameMode;
+}
 export interface CareerStatus
 {
 	economy?: CareerEconomy;
@@ -26,6 +36,7 @@ export interface CareerContracts
 {
 	active: CareerContract[];
 	offered: CareerContract[];
+	completedRecent: CareerContract[];
 }
 export interface CareerContract
 {
@@ -246,6 +257,11 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+export interface GameDlc
+{
+	breakingGround: boolean;
+	makingHistory: boolean;
+}
 export interface KosProcessorInfo
 {
 	coreId: number;
@@ -355,6 +371,45 @@ export interface ServoEntry
 	currentExtension?: number;
 	targetExtension?: number;
 }
+export interface RoboticsAvailability
+{
+	available?: boolean;
+}
+export interface RevertAvailability
+{
+	canRevertToEditor: boolean;
+	canRevertToLaunch: boolean;
+}
+export interface ScanSensorEntry
+{
+	type?: number;
+	fov?: number;
+	minAlt?: number;
+	maxAlt?: number;
+	bestAlt?: number;
+	inRange?: boolean;
+	bestRange?: boolean;
+}
+export interface ScanTrackColor
+{
+	r?: number;
+	g?: number;
+	b?: number;
+	a?: number;
+}
+export interface ScanningVesselEntry
+{
+	vesselId?: string;
+	vesselName?: string;
+	body?: string;
+	subLatitude?: number;
+	subLongitude?: number;
+	altitude?: number;
+	sensors?: ScanSensorEntry[];
+	groundTrackWidthDeg?: number;
+	groundTrackLonHalfDeg?: number;
+	trackColor?: ScanTrackColor;
+}
 export interface ExperimentEntry
 {
 	partName?: string;
@@ -370,6 +425,18 @@ export interface ExperimentEntry
 	deployed?: boolean;
 	inoperable?: boolean;
 	situation?: string;
+}
+export interface InstrumentEntry
+{
+	partId?: string;
+	partName?: string;
+	experimentId?: string;
+	title?: string;
+	deployed?: boolean;
+	inoperable?: boolean;
+	rerunnable?: boolean;
+	resettable?: boolean;
+	dataIsCollectable?: boolean;
 }
 export interface LabEntry
 {
@@ -398,6 +465,14 @@ export interface DeployedEntry
 	powerState?: string;
 	connectionState?: string;
 	deployedOnGround?: boolean;
+}
+export interface SensorEntry
+{
+	partId?: string;
+	partName?: string;
+	type?: string;
+	readout?: string;
+	active?: boolean;
 }
 export interface SystemBodies
 {
@@ -538,13 +613,25 @@ export interface VesselControl
 	gear?: boolean;
 	brakes?: boolean;
 	lights?: boolean;
+	abort?: boolean;
+	precisionControl?: boolean;
 	throttle?: number;
 	actionGroups?: boolean[];
 	meta: PayloadMeta;
 }
+export interface CrewMember
+{
+	name?: string;
+	trait?: string;
+	experienceLevel?: number;
+	type?: string;
+	rosterStatus?: string;
+}
 export interface VesselCrew
 {
 	count: number;
+	capacity: number;
+	crew: CrewMember[];
 	meta: PayloadMeta;
 }
 export interface DockAlignment
@@ -605,6 +692,8 @@ export interface VesselFlight
 	dynamicPressureKPa: number;
 	mach: number;
 	atmDensity: number;
+	externalTemperature: number;
+	atmosphericTemperature: number;
 	meta: PayloadMeta;
 }
 export interface VesselIdentity
@@ -656,6 +745,17 @@ export interface VesselOrbitTruth
 	position: Vec3;
 	velocity: Vec3;
 	frameRotating: boolean;
+	meta: PayloadMeta;
+}
+export enum PhysicsMode {
+	OnRails = 0,
+	Packed = 1,
+	Unpacked = 2,
+	Unknown = 3
+}
+export interface VesselPhysicsMode
+{
+	mode: PhysicsMode;
 	meta: PayloadMeta;
 }
 export interface VesselPropulsion
