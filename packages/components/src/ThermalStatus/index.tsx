@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   clampSafe,
   kelvinToCelsius,
   registerComponent,
@@ -19,6 +20,18 @@ import styled from "styled-components";
 
 // Empty config — room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
+
+// The `thermal-status.badges` slot (augment-slot-map "thermal-status" row):
+// whole-widget context, no slot props — a header quick-glance badge (e.g. a
+// future Kerbalism Reliability "N parts at risk" indicator) sits alongside the
+// stream-status badge. Declaration-merge the slot id → props type into core's
+// `SlotRegistry` (spec §4.6) co-located here so parallel slot work doesn't
+// collide on a shared central file. No props ⇒ empty object contract.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "thermal-status.badges": Record<string, never>;
+  }
+}
 
 // Telemachus emits readings near absolute zero (~−271°C / ~2 K) when no
 // real value is available — typically when the corresponding part isn't
@@ -195,6 +208,11 @@ function ThermalStatusComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>THERMAL</PanelTitle>
+        {/* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
+            into the header next to the stream-status badge. AugmentSlot renders
+            a fragment — nothing in the DOM — until an augment registers, so the
+            unfilled slot leaves the header's existing output untouched. */}
+        <AugmentSlot name="thermal-status.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {noData ? (
@@ -478,6 +496,7 @@ registerComponent<ThermalStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["thermal-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

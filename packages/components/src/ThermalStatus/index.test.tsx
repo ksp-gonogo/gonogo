@@ -1,7 +1,9 @@
 import type { DataKey } from "@gonogo/core";
 import {
+  clearAugments,
   clearRegistry,
   MockDataSource,
+  registerAugment,
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
@@ -44,6 +46,7 @@ describe("ThermalStatusComponent", () => {
   afterEach(() => {
     cleanup();
     buffered.disconnect();
+    clearAugments();
   });
 
   it("shows the no-data placeholder until telemetry arrives", () => {
@@ -144,5 +147,43 @@ describe("ThermalStatusComponent", () => {
 
     expect(screen.getByText("Hottest engine")).toBeInTheDocument();
     expect(screen.queryByText("Heat shield")).toBeNull();
+  });
+
+  describe("thermal-status.badges augment slot", () => {
+    it("renders with the slot empty when no augment is registered", () => {
+      render(<ThermalStatusComponent config={{}} id="therm" />);
+      act(() => {
+        primeFlight(source);
+        source.emit("therm.hottestPartName", "LV-T30 'Reliant'");
+        source.emit("therm.hottestPartTemp", 640);
+        source.emit("therm.hottestPartMaxTemp", 2273);
+        source.emit("therm.hottestPartTempRatio", 0.33);
+      });
+
+      // Header renders; no augment badge present.
+      expect(screen.getByText("THERMAL")).toBeInTheDocument();
+      expect(screen.queryByTestId("reliability-badge")).toBeNull();
+    });
+
+    it("renders an augment registered into thermal-status.badges", () => {
+      registerAugment({
+        id: "test-reliability-badge",
+        augments: "thermal-status.badges",
+        component: () => <span data-testid="reliability-badge">3 at risk</span>,
+      });
+
+      render(<ThermalStatusComponent config={{}} id="therm" />);
+      act(() => {
+        primeFlight(source);
+        source.emit("therm.hottestPartName", "LV-T30 'Reliant'");
+        source.emit("therm.hottestPartTemp", 640);
+        source.emit("therm.hottestPartMaxTemp", 2273);
+        source.emit("therm.hottestPartTempRatio", 0.33);
+      });
+
+      expect(screen.getByTestId("reliability-badge")).toHaveTextContent(
+        "3 at risk",
+      );
+    });
   });
 });
