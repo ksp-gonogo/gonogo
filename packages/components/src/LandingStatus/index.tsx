@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getBody,
   getWidgetShape,
   kelvinToCelsius,
@@ -21,6 +22,29 @@ import { formatDensity } from "../shared/formatDensity";
 // Empty config — kept for forward-compat. Follow-ups: hide suicide-burn row
 // on atmospheric landings; override body-atmosphere detection for mods.
 type LandingStatusConfig = Record<string, never>;
+
+/**
+ * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot
+ * (spec §4.8 composable badges), rendered in the header row next to the title.
+ * A cheap integration seam for small inline status chips an Uplink wants beside
+ * the "LANDING" title (e.g. a landing-guidance quality chip). Badge augments
+ * read their own Topics via hooks, so only labelling context is passed down.
+ */
+export interface LandingStatusBadgesContext {
+  /** Body being landed on (`v.body`), when known. */
+  bodyName: string | null;
+  /** Whether that body has an atmosphere (drives the vacuum/atmospheric split). */
+  atmospheric: boolean;
+}
+
+// Co-located declaration-merge of this widget's slot id → its props (spec §4.6).
+// Kept next to the widget (not in a central registry file) so parallel slot
+// work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "landing-status.badges": LandingStatusBadgesContext;
+  }
+}
 
 /**
  * Telemachus Reborn returns (0, 0) for `land.predictedLat/Lon` when the
@@ -156,10 +180,18 @@ function LandingStatusComponent({
   // 4, 6, 8, 9; 28px is the intended size at the default/wide sizes.
   const suicideFontPx = cols >= 8 ? 28 : cols >= 6 ? 24 : 20;
 
+  // Slot props (spec §4.4) for the header badges escape-hatch. Labelling
+  // context only — badge augments read their own Topics via hooks.
+  const badgesContext: LandingStatusBadgesContext = {
+    bodyName: bodyName ?? null,
+    atmospheric,
+  };
+
   return (
     <Panel>
       <TitleRow>
         <PanelTitle>LANDING</PanelTitle>
+        <AugmentSlot name="landing-status.badges" props={badgesContext} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && bodyName !== undefined && (
@@ -426,6 +458,10 @@ registerComponent<LandingStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  // Broad header escape-hatch slot (spec §4.8): a badge augment can drop an
+  // inline chip beside the title. No filler ships here — that's an Uplink
+  // augment (P3/P6); the slot renders nothing until one binds.
+  augmentSlots: ["landing-status.badges"],
   pushable: true,
   requires: ["flight"],
 });
