@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Contracts;
 using Expansions;
 using Expansions.Serenity;
+using KSP.UI.Screens;
 using Sitrep.Host;
 using Strategies;
 using UnityEngine;
@@ -305,6 +307,17 @@ namespace Gonogo.KSP
                 {
                     Debug.LogWarning("[Gonogo] space-center snapshot build failed, omitting: " + ex);
                 }
+
+                // Crew roster, saved ships and the buildable-part count share the
+                // "spaceCenter" group but each has its own scene/career gating
+                // (crew needs HighLogic.CurrentGame, saved ships + part count are
+                // career-gated), so each is built and attached independently -
+                // a null or failure in one never drops the others or launchSites.
+                // The saved-ships disk walk is throttled to the keyframe cadence
+                // inside its builder; the rest are in-memory reads.
+                AttachSpaceCenterGroup(values, "crewRoster", BuildCrewRoster);
+                AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut));
+                AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
             }
             catch (Exception ex)
             {
@@ -1436,6 +1449,238 @@ namespace Gonogo.KSP
             {
                 ["launchSites"] = sites,
             };
+        }
+
+        /// <summary>
+        /// Attaches <paramref name="build"/>'s result under
+        /// <c>values["spaceCenter"][<paramref name="key"/>]</c>, creating the
+        /// <c>spaceCenter</c> group if <see cref="BuildSpaceCenter"/> didn't (its
+        /// gating differs from these sub-groups'). A <c>null</c> result attaches
+        /// nothing - the "no data yet" signal the providers read as a null
+        /// payload - and each attach has its own try so one sub-group's failure
+        /// never drops another or the launch-site roster.
+        /// </summary>
+        private static void AttachSpaceCenterGroup(Dictionary<string, object?> values, string key, Func<object?> build)
+        {
+            try
+            {
+                var built = build();
+                if (built == null)
+                {
+                    return;
+                }
+
+                if (!(values.TryGetValue("spaceCenter", out var existing) && existing is Dictionary<string, object?> group))
+                {
+                    group = new Dictionary<string, object?>();
+                    values["spaceCenter"] = group;
+                }
+
+                group[key] = built;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] space-center " + key + " snapshot build failed, omitting: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// Primitives-only snapshot of the hired-crew roster -
+        /// <c>HighLogic.CurrentGame.CrewRoster.Crew</c> (owned crew that is
+        /// available or assigned; tourists/applicants excluded). Each kerbal's
+        /// <c>rosterStatus</c> is passed through as its RAW enum name;
+        /// <c>SpaceCenterViewProvider.BuildCrewRoster</c> folds it to the
+        /// available/reason the widgets read, the same capture->provider split
+        /// as <see cref="BuildScene"/>. Returns <c>null</c> - the whole list -
+        /// when no game is loaded (main menu) so the provider distinguishes "no
+        /// data yet" from "zero crew."
+        /// </summary>
+        private static List<object?>? BuildCrewRoster()
+        {
+            var game = HighLogic.CurrentGame;
+            var roster = game?.CrewRoster;
+            if (roster == null)
+            {
+                return null;
+            }
+
+            var crew = new List<object?>();
+            foreach (var pcm in roster.Crew)
+            {
+                if (pcm == null)
+                {
+                    continue;
+                }
+
+                crew.Add(new Dictionary<string, object?>
+                {
+                    ["name"] = pcm.name,
+                    ["trait"] = pcm.trait,
+                    ["experienceLevel"] = pcm.experienceLevel,
+                    ["rosterStatus"] = pcm.rosterStatus.ToString(),
+                });
+            }
+
+            return crew;
+        }
+
+        /// <summary>
+        /// The UT interval between saved-ship disk re-walks. <see cref="Sample"/>
+        /// runs on a ~1 UT cadence, but enumerating the craft folders + parsing
+        /// each <c>.craft</c> file is disk I/O, so it's rate-limited here to the
+        /// same 30 UT floor the uplink's keyframe uses rather than run every tick.
+        /// </summary>
+        private const double SavedShipsRescanIntervalUt = 30.0;
+
+        private static double _lastSavedShipsScanUt = double.NegativeInfinity;
+        private static List<object?>? _cachedSavedShips;
+
+        /// <summary>
+        /// Primitives-only snapshot of the save's saved craft - a disk walk of
+        /// the VAB and SPH craft folders
+        /// (<c>ShipConstruction.GetShipsPathFor</c>), each <c>.craft</c> file's
+        /// metadata read via the stock <c>CraftProfileInfo</c> loader. Career-
+        /// gated (the saved-ships widgets are career-facing; a sandbox has no
+        /// funds affordance to spend on unlocking parts) and rate-limited to
+        /// <see cref="SavedShipsRescanIntervalUt"/> - between scans the cached
+        /// list is returned so the disk isn't touched every tick. Returns
+        /// <c>null</c> - the whole list - outside career or before a save folder
+        /// exists, so the provider reads "no data yet."
+        /// </summary>
+        private static List<object?>? BuildSavedShips(double ut)
+        {
+            var game = HighLogic.CurrentGame;
+            if (game == null || game.Mode != Game.Modes.CAREER)
+            {
+                _cachedSavedShips = null;
+                _lastSavedShipsScanUt = double.NegativeInfinity;
+                return null;
+            }
+
+            // Serve the cache unless the scan interval has elapsed; a UT that
+            // moved backward (revert/load) also forces a fresh scan.
+            if (_cachedSavedShips != null
+                && ut >= _lastSavedShipsScanUt
+                && ut - _lastSavedShipsScanUt < SavedShipsRescanIntervalUt)
+            {
+                return _cachedSavedShips;
+            }
+
+            var gameName = HighLogic.SaveFolder;
+            if (string.IsNullOrEmpty(gameName))
+            {
+                return null;
+            }
+
+            var ships = new List<object?>();
+            foreach (var facility in new[] { EditorFacility.VAB, EditorFacility.SPH })
+            {
+                string path;
+                try
+                {
+                    path = ShipConstruction.GetShipsPathFor(gameName, facility);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] saved-ships path lookup failed for " + facility + ", skipping: " + ex);
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                {
+                    continue;
+                }
+
+                foreach (var file in Directory.GetFiles(path, "*.craft"))
+                {
+                    try
+                    {
+                        var root = ConfigNode.Load(file);
+                        if (root == null)
+                        {
+                            continue;
+                        }
+
+                        var info = new CraftProfileInfo();
+                        info.LoadDetailsFromCraftFile(root, file);
+
+                        var missing = new List<object?>();
+                        if (info.UnavailableShipParts != null)
+                        {
+                            foreach (var part in info.UnavailableShipParts)
+                            {
+                                missing.Add(part);
+                            }
+                        }
+
+                        ships.Add(new Dictionary<string, object?>
+                        {
+                            ["name"] = info.shipName,
+                            ["partCount"] = info.partCount,
+                            ["totalMass"] = info.totalMass,
+                            ["facility"] = info.shipFacility.ToString(),
+                            ["requiresFunds"] = info.totalCost,
+                            ["missingParts"] = missing,
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning("[Gonogo] saved-ship parse failed for " + file + ", skipping: " + ex);
+                    }
+                }
+            }
+
+            _cachedSavedShips = ships;
+            _lastSavedShipsScanUt = ut;
+            return ships;
+        }
+
+        /// <summary>
+        /// The count of parts the player can place right now. In career this is
+        /// tech-unlocked AND purchased (<c>ResearchAndDevelopment.
+        /// PartTechAvailable</c> + <c>PartModelPurchased</c>, the same
+        /// <c>PartLoader.parts</c> walk <see cref="BuildCareerTech"/> already
+        /// does); outside career everything in the catalogue is placeable, so
+        /// the full <c>PartLoader.parts.Count</c> is emitted. Returns <c>null</c>
+        /// when <c>PartLoader</c> isn't ready (pre-load), or in career when
+        /// <c>ResearchAndDevelopment.Instance</c> isn't ready, so the provider
+        /// reads "no data yet."
+        /// </summary>
+        private static int? BuildPartsAvailable()
+        {
+            var loader = PartLoader.Instance;
+            if (loader == null || loader.parts == null)
+            {
+                return null;
+            }
+
+            var game = HighLogic.CurrentGame;
+            var career = game != null && game.Mode == Game.Modes.CAREER;
+            if (!career)
+            {
+                return loader.parts.Count;
+            }
+
+            if (ResearchAndDevelopment.Instance == null)
+            {
+                return null;
+            }
+
+            var count = 0;
+            foreach (var part in loader.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+
+                if (ResearchAndDevelopment.PartTechAvailable(part) && ResearchAndDevelopment.PartModelPurchased(part))
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         // ----------------------------------------------------------------

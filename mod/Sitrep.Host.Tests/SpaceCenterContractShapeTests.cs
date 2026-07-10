@@ -84,10 +84,91 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void CrewRosterEntryTypeMirrorsProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Jebediah Kerman",
+                                ["trait"] = "Pilot",
+                                ["experienceLevel"] = 3,
+                                ["rosterStatus"] = "Available",
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(snapshot));
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
+            AssertEntryMirrors(typeof(CrewRosterEntry), entry);
+        }
+
+        [Fact]
+        public void SavedShipEntryTypeMirrorsProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["savedShips"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Kerbal X",
+                                ["partCount"] = 42,
+                                ["totalMass"] = 18.5,
+                                ["facility"] = "VAB",
+                                ["requiresFunds"] = 12345.0,
+                                ["missingParts"] = new List<object?> { "someMissingPart" },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildSavedShips(snapshot));
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
+            AssertEntryMirrors(typeof(SavedShipEntry), entry);
+        }
+
+        [Fact]
+        public void PartsAvailableTypeMirrorsProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?> { ["partsAvailable"] = 137 },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildPartsAvailable(snapshot));
+
+            AssertKeysMatchType(typeof(SpaceCenterPartsAvailable), root);
+            Assert.IsType<int>(root["count"]);
+        }
+
+        [Fact]
         public void PayloadTypesAreTaggedWithTheirTopics()
         {
             AssertTopicTag(typeof(LaunchSiteEntry), "spaceCenter.launchSites", expectArray: true);
             AssertTopicTag(typeof(SpaceCenterScene), "spaceCenter.scene", expectArray: false);
+            AssertTopicTag(typeof(CrewRosterEntry), "spaceCenter.crewRoster", expectArray: true);
+            AssertTopicTag(typeof(SavedShipEntry), "spaceCenter.savedShips", expectArray: true);
+            AssertTopicTag(typeof(SpaceCenterPartsAvailable), "spaceCenter.partsAvailable", expectArray: false);
         }
 
         // ----------------------------------------------------------------
@@ -197,6 +278,18 @@ namespace Sitrep.Host.Tests
 
                 if (value is not null)
                 {
+                    // A collection-typed POCO field (e.g. string[] MissingParts)
+                    // mirrors a List<object?> the provider hand-builds — the
+                    // element type is object? on the wire, so assert the shape is
+                    // enumerable rather than an exact generic-type match.
+                    if (expected.IsArray || (expected.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(expected) && expected != typeof(string)))
+                    {
+                        Assert.True(
+                            value is System.Collections.IEnumerable,
+                            $"{entryType.Name}.{prop.Name} is a collection but the provider emitted a non-enumerable {value.GetType().Name} for \"{key}\".");
+                        continue;
+                    }
+
                     Assert.True(
                         expected.IsInstanceOfType(value),
                         $"{entryType.Name}.{prop.Name} is {expected.Name} but the provider emitted {value.GetType().Name} for \"{key}\".");

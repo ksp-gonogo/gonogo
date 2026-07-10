@@ -120,6 +120,19 @@ public static class RtConfig
                 typeof(SetTargetArgs),
                 typeof(SetThrottleArgs),
                 typeof(SetWarpIndexArgs),
+                // career-write / flight-ops / robotics / science command args
+                typeof(ActivateStrategyArgs),
+                typeof(DeactivateStrategyArgs),
+                typeof(UnlockTechArgs),
+                typeof(ContractActionArgs),
+                typeof(UpgradeFacilityArgs),
+                typeof(RevertToEditorArgs),
+                typeof(SwitchVesselArgs),
+                typeof(ServoSetTargetArgs),
+                typeof(ServoSetEnabledArgs),
+                typeof(RotorSetValueArgs),
+                typeof(RotorReverseArgs),
+                typeof(ExperimentActionArgs),
                 // career.status channel payload + sub-groups (P0.5)
                 typeof(CareerStatus),
                 typeof(CareerEconomy),
@@ -170,6 +183,10 @@ public static class RtConfig
                 // spaceCenter.launchSites / spaceCenter.scene (P1b)
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),
+                // spaceCenter.crewRoster / spaceCenter.savedShips / spaceCenter.partsAvailable
+                typeof(CrewRosterEntry),
+                typeof(SavedShipEntry),
+                typeof(SpaceCenterPartsAvailable),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

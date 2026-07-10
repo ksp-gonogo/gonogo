@@ -2,6 +2,27 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+export interface ActivateStrategyArgs
+{
+	strategyId: string;
+	factor: number;
+}
+export interface DeactivateStrategyArgs
+{
+	strategyId: string;
+}
+export interface UnlockTechArgs
+{
+	techId: string;
+}
+export interface ContractActionArgs
+{
+	contractId: string;
+}
+export interface UpgradeFacilityArgs
+{
+	facilityId: string;
+}
 export enum GameMode {
 	Sandbox = 0,
 	Career = 1,
@@ -257,6 +278,14 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+export interface RevertToEditorArgs
+{
+	editor: string;
+}
+export interface SwitchVesselArgs
+{
+	vesselId: string;
+}
 export interface GameDlc
 {
 	breakingGround: boolean;
@@ -380,6 +409,25 @@ export interface RevertAvailability
 	canRevertToEditor: boolean;
 	canRevertToLaunch: boolean;
 }
+export interface ServoSetTargetArgs
+{
+	partId: string;
+	value: number;
+}
+export interface ServoSetEnabledArgs
+{
+	partId: string;
+	enabled: boolean;
+}
+export interface RotorSetValueArgs
+{
+	partId: string;
+	value: number;
+}
+export interface RotorReverseArgs
+{
+	partId: string;
+}
 export interface ScanSensorEntry
 {
 	type?: number;
@@ -409,6 +457,10 @@ export interface ScanningVesselEntry
 	groundTrackWidthDeg?: number;
 	groundTrackLonHalfDeg?: number;
 	trackColor?: ScanTrackColor;
+}
+export interface ExperimentActionArgs
+{
+	partId: string;
 }
 export interface ExperimentEntry
 {
@@ -487,6 +539,27 @@ export interface LaunchSiteEntry
 export interface SpaceCenterScene
 {
 	scene?: string;
+}
+export interface CrewRosterEntry
+{
+	name?: string;
+	trait?: string;
+	experienceLevel?: number;
+	available?: boolean;
+	unavailableReason?: string;
+}
+export interface SavedShipEntry
+{
+	name?: string;
+	partCount?: number;
+	totalMass?: number;
+	facility?: string;
+	requiresFunds?: number;
+	missingParts?: string[];
+}
+export interface SpaceCenterPartsAvailable
+{
+	count?: number;
 }
 export interface StageDeltaVEntry
 {

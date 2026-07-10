@@ -21,6 +21,7 @@ import type {
   CommsNetwork,
   CommsPath,
   CommsSignalStrength,
+  CrewRosterEntry,
   DeployedEntry,
   DockAlignment,
   ExperimentEntry,
@@ -32,9 +33,11 @@ import type {
   PartsPower,
   RevertAvailability,
   RoboticsAvailability,
+  SavedShipEntry,
   ScanningVesselEntry,
   SensorEntry,
   ServoEntry,
+  SpaceCenterPartsAvailable,
   SpaceCenterScene,
   StageDeltaVEntry,
   StageDeltaVSummary,
@@ -86,7 +89,10 @@ export interface GeneratedTopicPayloadMap {
   "science.instruments": InstrumentEntry[];
   "science.lab": LabEntry[];
   "science.sensors": SensorEntry[];
+  "spaceCenter.crewRoster": CrewRosterEntry[];
   "spaceCenter.launchSites": LaunchSiteEntry[];
+  "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
+  "spaceCenter.savedShips": SavedShipEntry[];
   "spaceCenter.scene": SpaceCenterScene;
   "system.bodies": SystemBodies;
   "system.vessels": SystemVessels;
@@ -137,7 +143,10 @@ export const GENERATED_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "spaceCenter.crewRoster",
   "spaceCenter.launchSites",
+  "spaceCenter.partsAvailable",
+  "spaceCenter.savedShips",
   "spaceCenter.scene",
   "system.bodies",
   "system.vessels",

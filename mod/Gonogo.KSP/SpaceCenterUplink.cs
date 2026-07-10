@@ -6,25 +6,29 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>spaceCenter.*</c> uplink — declares the two launch-site / scene
-    /// channels (<c>spaceCenter.launchSites</c>, <c>spaceCenter.scene</c>) and
-    /// wires <see cref="SpaceCenterViewProvider"/>'s builders as their channel
+    /// The <c>spaceCenter.*</c> uplink — declares the launch-site / scene /
+    /// crew-roster / saved-ships / parts-available channels
+    /// (<c>spaceCenter.launchSites</c>, <c>spaceCenter.scene</c>,
+    /// <c>spaceCenter.crewRoster</c>, <c>spaceCenter.savedShips</c>,
+    /// <c>spaceCenter.partsAvailable</c>) and wires
+    /// <see cref="SpaceCenterViewProvider"/>'s builders as their channel
     /// sources. A NEW file rather than an addition to <see cref="SystemUplink"/>,
     /// so it doesn't thrash any existing uplink's ChannelDeclaration list.
     ///
     /// No <see cref="ISnapshotSampler"/> is registered: <c>KspHost.Sample</c>
     /// already populates the raw <c>"scene"</c> and <c>"spaceCenter"</c> snapshot
-    /// keys unconditionally (see its own doc comments), so the providers have
-    /// their data — <see cref="IUplinkHost.AddSampler"/> is for a future uplink
-    /// whose data ISN'T already on the snapshot.
+    /// keys (see its own doc comments), so the providers have their data —
+    /// <see cref="IUplinkHost.AddSampler"/> is for a future uplink whose data
+    /// ISN'T already on the snapshot.
     ///
-    /// <para>Both channels are <see cref="DelayRole.TrueNow"/>: launch-site
-    /// roster and current scene are ground-side game facts, known independent of
-    /// any vessel's comms link — the same class as <c>system.bodies</c> /
-    /// <c>game.dlc</c> / <c>ksp.revertAvailability</c>. Both hand back a fresh
-    /// list/dict every call, so ChannelEmitter's change-gate reads every
-    /// considered sample as "changed"; a 30s keyframe floor covers the steady
-    /// state (sites and scene rarely change tick-to-tick).</para>
+    /// <para>All channels are <see cref="DelayRole.TrueNow"/>: launch-site
+    /// roster, current scene, crew roster, saved craft and part count are
+    /// ground-side game facts, known independent of any vessel's comms link —
+    /// the same class as <c>system.bodies</c> / <c>game.dlc</c> /
+    /// <c>ksp.revertAvailability</c>. Each hands back a fresh list/dict every
+    /// call, so ChannelEmitter's change-gate reads every considered sample as
+    /// "changed"; a 30s keyframe floor covers the steady state (these rarely
+    /// change tick-to-tick).</para>
     /// </summary>
     [SitrepUplink("spaceCenter")]
     public sealed class SpaceCenterUplink : ISitrepUplink
@@ -49,6 +53,27 @@ namespace Gonogo.KSP
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = SpaceCenterViewProvider.CrewRosterTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = SpaceCenterViewProvider.SavedShipsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                new ChannelDeclaration
+                {
+                    Topic = SpaceCenterViewProvider.PartsAvailableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
             },
         };
 
@@ -56,6 +81,9 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(SpaceCenterViewProvider.LaunchSitesTopic, SpaceCenterViewProvider.BuildLaunchSites);
             host.AddChannelSource(SpaceCenterViewProvider.SceneTopic, SpaceCenterViewProvider.BuildScene);
+            host.AddChannelSource(SpaceCenterViewProvider.CrewRosterTopic, SpaceCenterViewProvider.BuildCrewRoster);
+            host.AddChannelSource(SpaceCenterViewProvider.SavedShipsTopic, SpaceCenterViewProvider.BuildSavedShips);
+            host.AddChannelSource(SpaceCenterViewProvider.PartsAvailableTopic, SpaceCenterViewProvider.BuildPartsAvailable);
         }
     }
 }

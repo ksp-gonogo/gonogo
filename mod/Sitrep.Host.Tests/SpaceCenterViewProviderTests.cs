@@ -269,5 +269,304 @@ namespace Sitrep.Host.Tests
             var parsedRoot = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
             Assert.Equal("SpaceCenter", parsedRoot["scene"]);
         }
+
+        // ----------------------------------------------------------------
+        // spaceCenter.crewRoster
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildCrewRosterMapsEveryKerbalAndFoldsRosterStatus()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Jebediah Kerman",
+                                ["trait"] = "Pilot",
+                                ["experienceLevel"] = 5,
+                                ["rosterStatus"] = "Available",
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Bill Kerman",
+                                ["trait"] = "Engineer",
+                                ["experienceLevel"] = 3,
+                                ["rosterStatus"] = "Assigned",
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Bob Kerman",
+                                ["trait"] = "Scientist",
+                                ["experienceLevel"] = 2,
+                                ["rosterStatus"] = "Missing",
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(snapshot));
+            Assert.Equal(3, list.Count);
+
+            var jeb = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("Jebediah Kerman", jeb["name"]);
+            Assert.Equal("Pilot", jeb["trait"]);
+            Assert.Equal(5, jeb["experienceLevel"]);
+            Assert.Equal(true, jeb["available"]);
+            Assert.Equal("", jeb["unavailableReason"]);
+
+            var bill = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal(false, bill["available"]);
+            Assert.Equal("On mission", bill["unavailableReason"]);
+
+            var bob = Assert.IsType<Dictionary<string, object?>>(list[2]);
+            Assert.Equal(false, bob["available"]);
+            Assert.Equal("Missing", bob["unavailableReason"]);
+        }
+
+        [Fact]
+        public void BuildCrewRosterReturnsNullWhenNoCrewRosterKeyButEmptyListWhenPresentAndEmpty()
+        {
+            Assert.Null(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+            Assert.Null(SpaceCenterViewProvider.BuildCrewRoster(null));
+            Assert.Null(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["spaceCenter"] = new Dictionary<string, object?>() },
+            }));
+
+            var empty = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["spaceCenter"] = new Dictionary<string, object?> { ["crewRoster"] = new List<object?>() } },
+            }));
+            Assert.Empty(empty);
+        }
+
+        [Fact]
+        public void BuildCrewRosterSerializesCleanlyThroughTheRealWirePath()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Valentina Kerman",
+                                ["trait"] = "Pilot",
+                                ["experienceLevel"] = 4,
+                                ["rosterStatus"] = "Available",
+                            },
+                        },
+                    },
+                },
+            };
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SpaceCenterViewProvider.CrewRosterTopic,
+                Payload = SpaceCenterViewProvider.BuildCrewRoster(snapshot),
+                Meta = new Meta { Source = "spaceCenter", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+
+            var parsed = EnvelopeCodec.ParseStreamData(EnvelopeCodec.WriteStreamData(streamData));
+            var parsedList = Assert.IsType<List<object?>>(parsed.Payload);
+            var val = Assert.IsType<Dictionary<string, object?>>(Assert.Single(parsedList));
+            Assert.Equal("Valentina Kerman", val["name"]);
+            Assert.Equal(true, val["available"]);
+        }
+
+        // ----------------------------------------------------------------
+        // spaceCenter.savedShips
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildSavedShipsMapsEveryCraftFieldForField()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["savedShips"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Kerbal X",
+                                ["partCount"] = 42,
+                                ["totalMass"] = 18.5,
+                                ["facility"] = "VAB",
+                                ["requiresFunds"] = 12345.0,
+                                ["missingParts"] = new List<object?> { "partA", "partB" },
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Spaceplane",
+                                ["partCount"] = 30,
+                                ["totalMass"] = 12.0,
+                                ["facility"] = "SPH",
+                                ["requiresFunds"] = 6000.0,
+                                ["missingParts"] = new List<object?>(),
+                            },
+                        },
+                    },
+                },
+            };
+
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildSavedShips(snapshot));
+            Assert.Equal(2, list.Count);
+
+            var kx = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("Kerbal X", kx["name"]);
+            Assert.Equal(42, kx["partCount"]);
+            Assert.Equal(18.5, kx["totalMass"]);
+            Assert.Equal("VAB", kx["facility"]);
+            Assert.Equal(12345.0, kx["requiresFunds"]);
+            var missing = Assert.IsType<List<object?>>(kx["missingParts"]);
+            Assert.Equal(new object?[] { "partA", "partB" }, missing);
+
+            var plane = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal("SPH", plane["facility"]);
+            Assert.Empty(Assert.IsType<List<object?>>(plane["missingParts"]));
+        }
+
+        [Fact]
+        public void BuildSavedShipsReturnsNullWhenNoSavedShipsKey()
+        {
+            Assert.Null(SpaceCenterViewProvider.BuildSavedShips(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+            Assert.Null(SpaceCenterViewProvider.BuildSavedShips(null));
+            Assert.Null(SpaceCenterViewProvider.BuildSavedShips(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["spaceCenter"] = new Dictionary<string, object?>() },
+            }));
+        }
+
+        [Fact]
+        public void BuildSavedShipsSerializesCleanlyThroughTheRealWirePath()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["savedShips"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Kerbal X",
+                                ["partCount"] = 42,
+                                ["totalMass"] = 18.5,
+                                ["facility"] = "VAB",
+                                ["requiresFunds"] = 12345.0,
+                                ["missingParts"] = new List<object?> { "partA" },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SpaceCenterViewProvider.SavedShipsTopic,
+                Payload = SpaceCenterViewProvider.BuildSavedShips(snapshot),
+                Meta = new Meta { Source = "spaceCenter", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+
+            var parsed = EnvelopeCodec.ParseStreamData(EnvelopeCodec.WriteStreamData(streamData));
+            var parsedList = Assert.IsType<List<object?>>(parsed.Payload);
+            var craft = Assert.IsType<Dictionary<string, object?>>(Assert.Single(parsedList));
+            Assert.Equal("Kerbal X", craft["name"]);
+            Assert.Equal(42, System.Convert.ToInt32(craft["partCount"]));
+            Assert.Equal(new object?[] { "partA" }, Assert.IsType<List<object?>>(craft["missingParts"]));
+        }
+
+        // ----------------------------------------------------------------
+        // spaceCenter.partsAvailable
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildPartsAvailableWrapsTheRawCount()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?> { ["partsAvailable"] = 137 },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildPartsAvailable(snapshot));
+            Assert.Equal(137, root["count"]);
+        }
+
+        [Fact]
+        public void BuildPartsAvailableTreatsZeroAsAValueNotAbsence()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?> { ["partsAvailable"] = 0 },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildPartsAvailable(snapshot));
+            Assert.Equal(0, root["count"]);
+        }
+
+        [Fact]
+        public void BuildPartsAvailableReturnsNullWhenNoPartsAvailableKey()
+        {
+            Assert.Null(SpaceCenterViewProvider.BuildPartsAvailable(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+            Assert.Null(SpaceCenterViewProvider.BuildPartsAvailable(null));
+            Assert.Null(SpaceCenterViewProvider.BuildPartsAvailable(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["spaceCenter"] = new Dictionary<string, object?>() },
+            }));
+        }
+
+        [Fact]
+        public void BuildPartsAvailableSerializesCleanlyThroughTheRealWirePath()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?> { ["partsAvailable"] = 88 },
+                },
+            };
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SpaceCenterViewProvider.PartsAvailableTopic,
+                Payload = SpaceCenterViewProvider.BuildPartsAvailable(snapshot),
+                Meta = new Meta { Source = "spaceCenter", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+
+            var parsed = EnvelopeCodec.ParseStreamData(EnvelopeCodec.WriteStreamData(streamData));
+            var parsedRoot = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            Assert.Equal(88, System.Convert.ToInt32(parsedRoot["count"]));
+        }
     }
 }

@@ -85,3 +85,107 @@ public class SpaceCenterScene
     /// <summary>The current scene, one of <c>"Flight"</c>/<c>"SpaceCenter"</c>/<c>"Editor"</c>/<c>"TrackingStation"</c>/<c>"MainMenu"</c>/<c>"Other"</c>.</summary>
     public string? Scene { get; set; }
 }
+
+/// <summary>
+/// One kerbal in the <c>spaceCenter.crewRoster</c> channel — the hired-crew
+/// roster (KSP's <c>KerbalRoster.Crew</c>: owned crew that is either available
+/// or currently assigned to a mission, tourists/applicants excluded). Produced
+/// by <c>Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster</c>.
+///
+/// <para>The channel is a BARE ARRAY of these entries (tagged
+/// <c>isArray: true</c>, like <see cref="LaunchSiteEntry"/>), one per crew
+/// member keyed by <see cref="Name"/>. The whole payload is <c>null</c> (not an
+/// empty array) when no sample has landed yet — the provider's "no data yet" vs.
+/// "zero crew" distinction.</para>
+///
+/// <para>One wire shape serves both consumers: StaffRoster reads
+/// <see cref="Name"/>/<see cref="Trait"/>/<see cref="ExperienceLevel"/>, and
+/// LaunchDirector additionally reads <see cref="Available"/>/
+/// <see cref="UnavailableReason"/> (both derived from the kerbal's roster
+/// status). A TS-shape-only typing/codegen marker: the provider hand-builds the
+/// dict and <c>JsonWriter</c> walks that live tree, these POCOs never serialize.
+/// Classified <c>DelayRole.TrueNow</c> — a ground-side career fact, same class
+/// as <see cref="LaunchSiteEntry"/>.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("spaceCenter.crewRoster", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class CrewRosterEntry
+{
+    /// <summary>Kerbal name (<c>ProtoCrewMember.name</c>).</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Specialisation (<c>ProtoCrewMember.trait</c>) — <c>"Pilot"</c>/<c>"Engineer"</c>/<c>"Scientist"</c>/<c>"Tourist"</c>.</summary>
+    public string? Trait { get; set; }
+
+    /// <summary>Experience level (<c>ProtoCrewMember.experienceLevel</c>), 0–5.</summary>
+    public int? ExperienceLevel { get; set; }
+
+    /// <summary>Whether the kerbal is free to fly — <c>true</c> when the roster status is <c>Available</c>, <c>false</c> otherwise.</summary>
+    public bool? Available { get; set; }
+
+    /// <summary>Why the kerbal can't fly, derived from the roster status (<c>Assigned</c>→"On mission", <c>Dead</c>/<c>Missing</c>→the status name); empty string when <see cref="Available"/> is true.</summary>
+    public string? UnavailableReason { get; set; }
+}
+
+/// <summary>
+/// One craft file in the <c>spaceCenter.savedShips</c> channel — a saved VAB or
+/// SPH design the player can launch, read from the save's craft folders via the
+/// stock <c>CraftProfileInfo</c> metadata loader. Produced by
+/// <c>Sitrep.Host.SpaceCenterViewProvider.BuildSavedShips</c>.
+///
+/// <para>The channel is a BARE ARRAY of these entries (tagged
+/// <c>isArray: true</c>), one per <c>.craft</c> file keyed by <see cref="Name"/>.
+/// The whole payload is <c>null</c> (not an empty array) when no sample has
+/// landed yet. A TS-shape-only typing/codegen marker (the provider hand-builds
+/// the dict, these POCOs never serialize). Classified <c>DelayRole.TrueNow</c>.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("spaceCenter.savedShips", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SavedShipEntry
+{
+    /// <summary>Craft name (<c>CraftProfileInfo.shipName</c>).</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Part count (<c>CraftProfileInfo.partCount</c>).</summary>
+    public int? PartCount { get; set; }
+
+    /// <summary>Total mass in tonnes (<c>CraftProfileInfo.totalMass</c>).</summary>
+    public double? TotalMass { get; set; }
+
+    /// <summary>Which editor built it — the <c>EditorFacility</c> enum name, <c>"VAB"</c> or <c>"SPH"</c> (<c>CraftProfileInfo.shipFacility</c>).</summary>
+    public string? Facility { get; set; }
+
+    /// <summary>Funds needed before this can launch — the full craft cost (<c>CraftProfileInfo.totalCost</c>).</summary>
+    public double? RequiresFunds { get; set; }
+
+    /// <summary>Parts referenced by the craft that are not yet unlocked/purchased (<c>CraftProfileInfo.UnavailableShipParts</c>); an empty array when the craft is buildable as-is.</summary>
+    public string[]? MissingParts { get; set; }
+}
+
+/// <summary>
+/// The <c>spaceCenter.partsAvailable</c> channel payload — a wrapper carrying
+/// the count of parts the player can place right now (tech-unlocked AND
+/// purchased in career; the full <c>PartLoader</c> catalogue in sandbox).
+/// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildPartsAvailable</c>.
+///
+/// <para>A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
+/// widget reads <c>spaceCenter.partsAvailable.count</c>. The whole payload is
+/// <c>null</c> when no sample has landed yet. A TS-shape-only typing/codegen
+/// marker that never serializes. Classified <c>DelayRole.TrueNow</c>.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("spaceCenter.partsAvailable")]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SpaceCenterPartsAvailable
+{
+    /// <summary>Count of buildable parts.</summary>
+    public int? Count { get; set; }
+}

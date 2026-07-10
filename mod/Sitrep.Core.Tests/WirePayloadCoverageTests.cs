@@ -75,9 +75,11 @@ namespace Sitrep.Core.Tests
             // dv.* — StageDeltaVViewProvider.BuildStages/BuildSummary hand-build
             // Dictionary/List trees; these POCOs are TS-shape-only.
             "StageDeltaVEntry", "StageDeltaVSummary",
-            // spaceCenter.* — SpaceCenterViewProvider.BuildLaunchSites/BuildScene
-            // hand-build Dictionary/List trees; these POCOs are TS-shape-only.
+            // spaceCenter.* — SpaceCenterViewProvider.BuildLaunchSites/BuildScene/
+            // BuildCrewRoster/BuildSavedShips/BuildPartsAvailable hand-build
+            // Dictionary/List trees; these POCOs are TS-shape-only.
             "LaunchSiteEntry", "SpaceCenterScene",
+            "CrewRosterEntry", "SavedShipEntry", "SpaceCenterPartsAvailable",
             // parts.power / parts.robotics / robotics.available —
             // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
             // hand-build Dictionary<string, object?> trees; these POCOs are
