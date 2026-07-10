@@ -68,6 +68,8 @@ public class VesselControl
 
     public bool? Lights { get; set; }
 
+    public bool? Abort { get; set; }
+
     /// <summary>
     /// Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
     /// <c>FlightInputHandler.fetch.precisionMode</c>. Null when there's no

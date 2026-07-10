@@ -509,6 +509,7 @@ namespace Sitrep.Host
                 Gear = GetBool(control, "gear"),
                 Brakes = GetBool(control, "brakes"),
                 Lights = GetBool(control, "lights"),
+                Abort = GetBool(control, "abort"),
                 PrecisionControl = GetBool(control, "precisionControl"),
                 // V-3: deliberately NOT clamped to [0,1] -- see VesselControl.Throttle's doc comment.
                 Throttle = GetDouble(control, "throttle"),
@@ -1032,6 +1033,7 @@ namespace Sitrep.Host
             ["gear"] = control.Gear,
             ["brakes"] = control.Brakes,
             ["lights"] = control.Lights,
+            ["abort"] = control.Abort,
             ["precisionControl"] = control.PrecisionControl,
             ["throttle"] = control.Throttle,
             ["actionGroups"] = control.ActionGroups?.Select(b => (object?)b).ToList(),
