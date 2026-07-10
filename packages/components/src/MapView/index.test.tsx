@@ -1,17 +1,27 @@
 import type { DataKey, OrbitPatch } from "@gonogo/core";
 import {
+  clearAugments,
   clearBodies,
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
+  registerAugment,
   registerDataSource,
   registerStockBodies,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
+import type { MapBadgesContext, MapOverlayContext } from "./index";
 import { MapViewComponent } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
@@ -388,5 +398,105 @@ describe("MapViewComponent", () => {
     expect(
       within(select).getByRole("option", { name: "Mun" }),
     ).toBeInTheDocument();
+  });
+
+  // ── Augment slots (Uplink architecture spec §4) ─────────────────────────
+  // MapView exposes an OVERLAY slot over the map canvases (passing the live
+  // equirectangular projection) and a BADGES escape-hatch in the header. No
+  // first-party augment fills them, so these register throwaway augments
+  // (cleared after each) to prove the slots compose and pass their props, and
+  // that the empty slots are inert when nothing is registered.
+  describe("augment slots", () => {
+    afterEach(() => {
+      clearAugments();
+    });
+
+    it("renders an overlay augment over the map, passed the live projection", async () => {
+      registerAugment({
+        id: "test-map-overlay",
+        augments: "map-view.overlay",
+        component: (ctx: MapOverlayContext) => {
+          const p = ctx.project(0, 0);
+          return (
+            <div data-testid="overlay-probe">
+              w={ctx.width} px={Math.round(p.x)} py={Math.round(p.y)}
+            </div>
+          );
+        },
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.lat", 0);
+        source.emit("v.long", 0);
+        source.emit("v.body", "Kerbin");
+      });
+
+      const probe = await waitFor(() => {
+        const el = container.querySelector('[data-testid="overlay-probe"]');
+        if (el === null) throw new Error("overlay augment has not rendered yet");
+        return el;
+      });
+      // The map canvases still render beneath the overlay layer.
+      expect(container.querySelectorAll("canvas").length).toBeGreaterThan(0);
+      // The overlay received a real pixel width and a working `project`
+      // (numeric screen coordinates) as slot props.
+      expect(probe.textContent).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
+    });
+
+    it("renders a badges augment in the header, passed the body name", async () => {
+      registerAugment({
+        id: "test-map-badge",
+        augments: "map-view.badges",
+        component: (ctx: MapBadgesContext) => (
+          <span>badge:{ctx.bodyName ?? "?"}</span>
+        ),
+      });
+
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.body", "Kerbin");
+      });
+
+      await waitFor(() => {
+        if (!container.textContent?.includes("badge:Kerbin")) {
+          throw new Error("badge augment has not rendered with the body name");
+        }
+      });
+      expect(container.textContent).toContain("badge:Kerbin");
+    });
+
+    it("renders the map with both slots empty when no augment is registered", async () => {
+      const { container } = render(
+        <Wrap>
+          <MapViewComponent config={{}} id="map-test" />
+        </Wrap>,
+      );
+      act(() => {
+        primeFlight();
+        source.emit("v.body", "Kerbin");
+      });
+
+      // The map still renders (canvases present) with nothing composed in.
+      await waitFor(() => {
+        if (container.querySelector("canvas") === null) {
+          throw new Error("map has not rendered yet");
+        }
+      });
+      expect(
+        container.querySelector('[data-testid="overlay-probe"]'),
+      ).toBeNull();
+      expect(container.textContent).not.toContain("badge:");
+    });
   });
 });

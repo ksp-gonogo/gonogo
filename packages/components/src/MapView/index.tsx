@@ -7,6 +7,7 @@ import type {
   TrackSample,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   getBody,
   getImagingWindow,
   getWidgetShape,
@@ -63,6 +64,7 @@ import {
   MapBody,
   MapOuter,
   NoSignal,
+  OverlayAugmentLayer,
   OverlayCanvas,
   PersistentDataCanvas,
   PredictionCanvas,
@@ -101,6 +103,73 @@ function canvasColor(
 ): string {
   const v = getComputedStyle(el).getPropertyValue(varName).trim();
   return v || fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4). MapView is a HOST that exposes
+// two slots; no first-party augment fills them here (that is a later phase), so
+// each renders nothing until an Uplink registers an augment into it. This is
+// THE HARD CASE (augment-slot-map "Feedback round 1"): the overlay must draw in
+// the map's own coordinate space, so `map-view.overlay` passes the live
+// equirectangular projection down as slot props (spec §4.4). Composable /
+// layered by priority (spec §4.8) — the SCANsat scan-layer (today hardcoded via
+// useScanLayerCanvas), commlink, and trajectory layers all route HERE rather
+// than to `scanning.sections`.
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for `map-view.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * layer absolutely positioned over the map canvases. The base map draws in
+ * screen pixels via a per-body coordinate offset (equirectangular
+ * `latLonToMap`) followed by the live pan/zoom camera. An overlay augment
+ * receives that full chain as `project`, so it can place markers on the exact
+ * same pixels the base map paints — without re-deriving the offset / camera
+ * maths. The raw pieces (`camera`, `worldW`/`worldH`, body identity) are passed
+ * alongside for augments that need to build their own transform (e.g. a WebGL
+ * layer) rather than call `project` per point.
+ */
+export interface MapOverlayContext {
+  /** Pixel width of the overlay layer (== the map canvas container). */
+  width: number;
+  /** Pixel height of the overlay layer. */
+  height: number;
+  /** Live pan/zoom camera driving the equirectangular projection. */
+  camera: { zoom: number; panX: number; panY: number };
+  /** Equirectangular world-canvas width the camera maps from. */
+  worldW: number;
+  /** Equirectangular world-canvas height the camera maps from. */
+  worldH: number;
+  /** The mapped body (may diverge from the active vessel under a pin). */
+  bodyName: string | undefined;
+  /** Mapped body physical radius, metres, when known. */
+  bodyRadius: number | undefined;
+  /**
+   * Project geographic lat/lon (degrees) to a pixel coordinate in the overlay
+   * layer's own space — the exact chain the base map draws with (per-body
+   * offset + camera), so an overlay augment (commlink, trajectory, custom scan
+   * layer) lands on the same pixels.
+   */
+  project: (lat: number, lon: number) => { x: number; y: number };
+}
+
+/**
+ * Props for `map-view.badges` — the widget's BROAD escape-hatch slot (spec
+ * §4.8 composable badges), rendered in the header next to the title. Badge
+ * augments read their own Topics via hooks, so the only context passed down is
+ * the mapped body name for labelling.
+ */
+export interface MapBadgesContext {
+  bodyName: string | undefined;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// slot work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "map-view.overlay": MapOverlayContext;
+    "map-view.badges": MapBadgesContext;
+  }
 }
 
 const mapViewActions = [
@@ -894,6 +963,33 @@ function MapViewComponent({
   const stackAnomaly =
     showAnomalySide && getWidgetShape(cols, rows).shape !== "landscape";
 
+  // Slot props (spec §4.4). `badges` carries just the mapped body name for
+  // labelling; `overlay` carries the live equirectangular projection so an
+  // augment can draw in the map's own pixel space. `overlay` is null until the
+  // container has measured — the layer only mounts once there's a pixel-sized
+  // map beneath it.
+  const badgesContext: MapBadgesContext = { bodyName: displayName };
+  const overlayContext: MapOverlayContext | null = containerSize
+    ? {
+        width: containerSize.w,
+        height: containerSize.h,
+        camera,
+        worldW: WORLD_W,
+        worldH: WORLD_H,
+        bodyName: targetBodyId,
+        bodyRadius: body?.radius,
+        project: (projLat, projLon) => {
+          const { x: wx, y: wy } = adjustedMap(
+            WORLD_W,
+            WORLD_H,
+            projLat,
+            projLon,
+          );
+          return worldToScreen(wx, wy, camera, containerSize.w, containerSize.h);
+        },
+      }
+    : null;
+
   if (!showMap) {
     return (
       <Panel>
@@ -930,6 +1026,7 @@ function MapViewComponent({
     <Panel>
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
+        <AugmentSlot name="map-view.badges" props={badgesContext} />
         <StreamStatusBadge status={streamStatus} />
         {showBodyLabel && displayName && (
           <BodyLabel>
@@ -982,6 +1079,11 @@ function MapViewComponent({
               <PredictionChip title="Principia's N-body integrator invalidates patched-conic prediction.">
                 Prediction unavailable · N-body
               </PredictionChip>
+            )}
+            {overlayContext && (
+              <OverlayAugmentLayer>
+                <AugmentSlot name="map-view.overlay" props={overlayContext} />
+              </OverlayAugmentLayer>
             )}
           </CanvasContainer>
         </MapOuter>
@@ -1215,6 +1317,7 @@ registerComponent<MapViewConfig>({
     showPrediction: true,
   },
   actions: mapViewActions,
+  augmentSlots: ["map-view.overlay", "map-view.badges"],
   pushable: true,
   requires: ["flight"],
 });

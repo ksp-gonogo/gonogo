@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   formatCompactCurrency,
   getWidgetShape,
   registerComponent,
@@ -78,6 +79,36 @@ export interface ContractEntry {
   /** UT seconds at which the contract expires; zero when no deadline. */
   deadlineUt: number;
   parameters: ContractParameter[];
+}
+
+/**
+ * Props passed to every `contract-manager.badges` augment — one instance per
+ * contract row (active and offered). Carries the contract's identity so a
+ * contract-pack Uplink can render custom per-contract iconography against the
+ * right one. Keyed off `agency`/`title`/`contractId` because that is all a pack
+ * needs to recognise its own contracts; `section` lets an augment style active
+ * vs. offered differently.
+ */
+export interface ContractBadgeContext {
+  /** Contract id as a string (KSP long-safe). Identity for the augment. */
+  contractId: string;
+  /** Contract title, as shown in the card header. */
+  title: string;
+  /** Sponsoring agency — the natural key for contract-pack iconography. */
+  agency: string;
+  /** Which list the row sits in. */
+  section: "active" | "offered";
+}
+
+// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// other widgets can't collide. Makes `registerAugment({ augments:
+// "contract-manager.badges" })` and `<AugmentSlot name="contract-manager.badges"
+// props={…} />` type-check precisely against `ContractBadgeContext`.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "contract-manager.badges": ContractBadgeContext;
+  }
 }
 
 const KNOWN_PARAM_STATES = new Set<ContractParameterState>([
@@ -286,6 +317,19 @@ function ContractManagerComponent({
             <ContractCard key={c.id}>
               <ContractHeader>
                 <ContractTitle>{c.title}</ContractTitle>
+                {/* Per-contract inline badges slot. Renders nothing until a
+                    contract-pack Uplink binds — the props carry this row's
+                    contract identity so custom iconography lands on the right
+                    one. */}
+                <AugmentSlot
+                  name="contract-manager.badges"
+                  props={{
+                    contractId: c.id,
+                    title: c.title,
+                    agency: c.agency,
+                    section: "active",
+                  }}
+                />
                 <ContractDeadline>
                   {formatDeadline(c.deadlineUt, universalTime ?? 0)}
                 </ContractDeadline>
@@ -430,6 +474,18 @@ function ContractManagerComponent({
             <ContractCard key={c.id}>
               <ContractHeader>
                 <ContractTitle>{c.title}</ContractTitle>
+                {/* Per-contract inline badges slot (offered list). Same slot as
+                    the active rows; `section` distinguishes them for augments
+                    that want to style offered contracts differently. */}
+                <AugmentSlot
+                  name="contract-manager.badges"
+                  props={{
+                    contractId: c.id,
+                    title: c.title,
+                    agency: c.agency,
+                    section: "offered",
+                  }}
+                />
                 <ContractDeadline>
                   {formatDeadline(c.deadlineUt, universalTime ?? 0)}
                 </ContractDeadline>
@@ -941,6 +997,7 @@ registerComponent<ContractManagerConfig>({
   ],
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["contract-manager.badges"],
   pushable: true,
   requires: ["career"],
 });
