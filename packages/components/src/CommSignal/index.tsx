@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
@@ -15,6 +16,29 @@ import {
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
+
+// ── Augment slots (Uplink architecture spec §4) ────────────────────────────────
+//
+// CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT
+// this widget ever importing backend-aware code (locked map: comm-signal):
+//
+//  - `comm-signal.sections` (body, below the signal-bars readout) — the primary
+//    HIGH-value seat. A RealAntennas Uplink elected via capability contributes a
+//    per-antenna breakdown table (which antenna carries the link, its SNR) here,
+//    reading only its OWN RA Topics. CommSignal stays RA-agnostic.
+//  - `comm-signal.badges` (header, next to the title) — the broad escape hatch
+//    for small at-a-glance chips a comms Uplink wants beside the COMMNET title.
+//
+// Neither slot passes parent coordinates/projection (they aren't overlay slots),
+// so the props contract is empty — augments render from their own Topics. The
+// declaration-merge below keeps the slot ids co-located here (spec §4.6) rather
+// than in a shared central registry, so parallel widget work never collides.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "comm-signal.sections": Record<string, never>;
+    "comm-signal.badges": Record<string, never>;
+  }
+}
 
 // Telemachus' `comm.controlState` is an enum:
 //   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
@@ -88,6 +112,7 @@ function CommSignalComponent({
       <Panel>
         <TitleRow>
           <PanelTitle>COMMNET</PanelTitle>
+          <AugmentSlot name="comm-signal.badges" props={{}} />
           <StreamStatusBadge status={streamStatus} />
         </TitleRow>
         <EmptyState>No signal data</EmptyState>
@@ -161,6 +186,7 @@ function CommSignalComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>COMMNET</PanelTitle>
+        <AugmentSlot name="comm-signal.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && (
@@ -194,6 +220,11 @@ function CommSignalComponent({
           </Grid>
         )}
       </Body>
+
+      {/* Body sections below the signal-bars readout — a comms Uplink (e.g. a
+          RealAntennas per-antenna breakdown) composes here from its own Topics.
+          Renders nothing until an augment binds this slot. */}
+      <AugmentSlot name="comm-signal.sections" props={{}} />
     </Panel>
   );
 }
@@ -328,6 +359,10 @@ registerComponent<CommSignalConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 3, h: 3 },
   component: CommSignalComponent,
+  // Two seats for a comms Uplink to extend the readout without CommSignal ever
+  // importing backend-aware code (locked map: comm-signal). See the
+  // `SlotRegistry` declaration-merge above for the slot props contracts.
+  augmentSlots: ["comm-signal.sections", "comm-signal.badges"],
   dataRequirements: [
     "comm.connected",
     "comm.signalStrength",

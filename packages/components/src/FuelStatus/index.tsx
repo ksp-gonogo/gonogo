@@ -4,6 +4,7 @@ import type {
   StageInfo,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   clampSafe,
   getWidgetShape,
   registerComponent,
@@ -242,6 +243,10 @@ function FuelStatusComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>FUEL · ΔV</PanelTitle>
+        {/* Header escape-hatch slot (augment-slot-map "Feedback round 1"):
+            any Uplink can drop an inline badge next to the title. Renders
+            nothing until an augment binds `fuel-status.badges`. */}
+        <AugmentSlot name="fuel-status.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && currentStage !== undefined && (
@@ -356,6 +361,12 @@ function FuelStatusComponent({
             })}
           </StageStack>
         )}
+
+        {/* Body slot appended after the per-stage ΔV/TWR stack. An
+            engine-realism Uplink (ignitions-remaining, propellant boil-off)
+            contributes per-stage supplemental rows here. Renders nothing
+            until an augment binds `fuel-status.sections`. */}
+        <AugmentSlot name="fuel-status.sections" props={{}} />
       </Sections>
     </Panel>
   );
@@ -618,6 +629,20 @@ const StageMeta = styled.span`
   font-size: var(--font-size-xs);
 `;
 
+// ── Augment slots ─────────────────────────────────────────────────────────────
+
+// Declaration-merge this widget's slot ids → their props types into core's
+// `SlotRegistry` (Uplink architecture §4.6). Both slots are plain
+// section/badge slots (not overlays), so they pass no coordinate/projection
+// context — an empty props object. Kept co-located here, not in a shared
+// central registry file, so parallel per-widget slot work never collides.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "fuel-status.sections": Record<string, never>;
+    "fuel-status.badges": Record<string, never>;
+  }
+}
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<FuelStatusConfig>({
@@ -661,6 +686,7 @@ registerComponent<FuelStatusConfig>({
   ],
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
+  augmentSlots: ["fuel-status.sections", "fuel-status.badges"],
   pushable: true,
   requires: ["flight"],
 });
