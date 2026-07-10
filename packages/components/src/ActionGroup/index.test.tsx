@@ -1,9 +1,11 @@
 import type { DataKey } from "@gonogo/core";
 import {
   clearActionHandlers,
+  clearAugments,
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
+  registerAugment,
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
@@ -11,7 +13,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { ActionGroupComponent } from "./index";
+import { ActionGroupComponent, type ActionGroupSlotContext } from "./index";
 
 const KEYS: DataKey[] = [
   { key: "v.sasValue" },
@@ -199,5 +201,62 @@ describe("ActionGroupComponent", () => {
       source.emit("v.sasValue", true);
     });
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe("augment slots", () => {
+    beforeEach(() => clearAugments());
+    afterEach(() => clearAugments());
+
+    // Renders the slot props so the test proves the parent's group context
+    // flows through to the augment (spec §4.4), not merely that it mounted.
+    function TestBadge({ groupId, stateLabel }: ActionGroupSlotContext) {
+      return (
+        <span>
+          badge:{groupId}:{stateLabel}
+        </span>
+      );
+    }
+    function TestSection({ groupId }: ActionGroupSlotContext) {
+      return <span>section:{groupId}</span>;
+    }
+
+    it("renders the widget with both slots empty when no augment is bound", () => {
+      renderGroup({ actionGroupId: "SAS" });
+      act(() => {
+        source.emit("v.sasValue", false);
+      });
+      // Widget renders normally; the empty slots contribute nothing.
+      expect(
+        screen.getByRole("button", { name: /toggle sas/i }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^badge:/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^section:/)).not.toBeInTheDocument();
+    });
+
+    it("renders a badge augment inline, passing the live group context", () => {
+      registerAugment<"action-group.badges">({
+        id: "test-ag-badge",
+        augments: "action-group.badges",
+        component: TestBadge,
+      });
+      renderGroup({ actionGroupId: "SAS" });
+      act(() => {
+        source.emit("v.sasValue", true);
+      });
+      expect(screen.getByText("badge:SAS:ON")).toBeInTheDocument();
+    });
+
+    it("renders a sections augment in the body with the group id", () => {
+      registerAugment<"action-group.sections">({
+        id: "test-ag-section",
+        augments: "action-group.sections",
+        component: TestSection,
+      });
+      renderGroup({ actionGroupId: "Gear" });
+      act(() => {
+        source.emit("v.gearValue", false);
+      });
+      expect(screen.getByText("section:Gear")).toBeInTheDocument();
+    });
   });
 });
