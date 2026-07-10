@@ -1,28 +1,38 @@
 {
-  "name": "@ksp-gonogo/ui",
+  "name": "@ksp-gonogo/ui-kit",
   "license": "GPL-3.0-only",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tokens.css": "./dist/tokens.css",
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.js"
+    }
+  },
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp src/tokens.css dist/tokens.css",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@ksp-gonogo/core": "workspace:*",
-    "@ksp-gonogo/sitrep-client": "workspace:*",
-    "@ksp-gonogo/ui-kit": "workspace:*",
-    "lucide-react": "^1.14.0"
-  },
   "devDependencies": {
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
     "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.0.0",
     "jest-axe": "^10.0.0",
