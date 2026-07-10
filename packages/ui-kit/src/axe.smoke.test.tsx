@@ -1,10 +1,13 @@
 import { render } from "@testing-library/react";
+import { ThemeProvider } from "styled-components";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { Badge } from "./Badge";
+import { defaultDarkTheme } from "./defaultDarkTheme";
 import { EmptyState } from "./EmptyState";
 import { Panel, PanelTitle } from "./Panel";
 import { Row, RowName } from "./Row";
+import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { axe } from "./test/axe";
 
 describe("a11y smoke (jest-axe)", () => {
@@ -64,6 +67,50 @@ describe("a11y smoke (jest-axe)", () => {
       <Panel>
         <PanelTitle>Science Lab</PanelTitle>
       </Panel>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("ScienceExperimentRow has no axe violations across instrument states", async () => {
+    const { container } = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <ul>
+          <ScienceExperimentRow
+            instrument={{
+              partId: "1",
+              partTitle: "Mystery Goo",
+              expId: "mysteryGoo",
+              deployed: false,
+              hasData: false,
+              rerunnable: true,
+              inoperable: false,
+            }}
+          />
+          <ScienceExperimentRow
+            instrument={{
+              partId: "2",
+              partTitle: "Thermometer",
+              expId: "temperatureScan",
+              deployed: true,
+              hasData: true,
+              rerunnable: false,
+              inoperable: false,
+            }}
+          />
+          <ScienceExperimentRow
+            instrument={{
+              partId: "3",
+              partTitle: "Burned Sensor",
+              expId: "x",
+              deployed: false,
+              hasData: false,
+              rerunnable: false,
+              inoperable: true,
+            }}
+          />
+        </ul>
+      </ThemeProvider>,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();

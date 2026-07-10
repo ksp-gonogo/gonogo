@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -9,6 +9,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import mobileLabIdle from "./__fixtures__/mobile-lab-idle-one-instrument.json";
 import { ScienceOfficerComponent } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 /**
  * ScienceOfficer's behavior-preservation golden dual-run (mirrors
@@ -61,7 +62,7 @@ describe("ScienceOfficer — behavior-preservation golden dual-run (delay=0)", (
 
     const [legacyInstrument] = mobileLabIdle["sci.instruments"];
 
-    const { container } = render(
+    const { container } = renderWithTheme(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-dual" }}>
           <ScienceOfficerComponent id="so-dual" w={mode.w} h={mode.h} />

@@ -1,5 +1,5 @@
 import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -12,6 +12,7 @@ import {
   ScienceOfficerComponent,
   sumExperimentDataAmount,
 } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 const KEYS: DataKey[] = [{ key: "sci.instruments" }];
 
@@ -29,14 +30,14 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("shows the awaiting placeholder before any telemetry arrives", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     expect(
       screen.getByText(/Awaiting instrument telemetry/i),
     ).toBeInTheDocument();
   });
 
   it("renders 'No instruments' for an empty array", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", []);
     });
@@ -44,7 +45,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("groups instruments by expId and shows badges", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -92,7 +93,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("derives the total data readout from sci.experiments (D3, P4a)", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -120,7 +121,7 @@ describe("ScienceOfficerComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -146,7 +147,7 @@ describe("ScienceOfficerComponent", () => {
     fixture = await setupMockDataSource({ keys: KEYS, onExecute });
     source = fixture.source;
 
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {
@@ -169,7 +170,7 @@ describe("ScienceOfficerComponent", () => {
   });
 
   it("hides controls for an inoperable instrument", () => {
-    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    renderWithTheme(<ScienceOfficerComponent config={{}} id="sci-off" />);
     act(() => {
       source.emit("sci.instruments", [
         {

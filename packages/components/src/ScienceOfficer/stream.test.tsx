@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -7,6 +7,7 @@ import {
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ScienceOfficerComponent } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 /**
  * ScienceOfficer's stream test-adapter proof: genuinely running off the real
@@ -44,7 +45,7 @@ describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab + P4a
       connectSource: true,
     });
 
-    render(
+    renderWithTheme(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-stream" }}>
           <ScienceOfficerComponent id="so-stream" w={6} h={7} />

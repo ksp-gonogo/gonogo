@@ -35,5 +35,10 @@ export { Section, type SectionProps, SectionTitle } from "./Section";
 export { Spinner, type SpinnerProps } from "./Spinner";
 // ── Layout primitives ────────────────────────────────────────────────────────
 export { type SpaceToken, Stack, type StackProps } from "./Stack";
+export {
+  ScienceExperimentRow,
+  type ScienceExperimentRowProps,
+  type ScienceInstrument,
+} from "./science/ScienceExperimentRow";
 export * from "./theme";
 export { Value, type ValueProps, type ValueTone } from "./Value";

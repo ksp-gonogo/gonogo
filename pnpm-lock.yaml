@@ -3,6 +3,7 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
+  injectWorkspacePackages: true
 
 overrides:
   '@types/react': ^18.3.28
@@ -364,6 +365,9 @@ importers:
       '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       react:
         specifier: ^18.0.0
         version: 18.3.1

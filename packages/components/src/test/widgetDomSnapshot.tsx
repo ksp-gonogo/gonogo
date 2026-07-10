@@ -3,8 +3,10 @@ import {
   type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
+import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { act, render, waitFor } from "@testing-library/react";
 import type React from "react";
+import { ThemeProvider } from "styled-components";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -85,14 +87,16 @@ export async function snapshotWidgetMode<
     };
     const instanceId = opts.instanceId ?? "snap";
     const { container } = render(
-      <DashboardItemContext.Provider value={{ instanceId }}>
-        <opts.Widget
-          config={config}
-          id={instanceId}
-          w={opts.mode.w}
-          h={opts.mode.h}
-        />
-      </DashboardItemContext.Provider>,
+      <ThemeProvider theme={defaultDarkTheme}>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <opts.Widget
+            config={config}
+            id={instanceId}
+            w={opts.mode.w}
+            h={opts.mode.h}
+          />
+        </DashboardItemContext.Provider>
+      </ThemeProvider>,
     );
 
     // Seed every fixture key after mount so useDataValue subscriptions
@@ -160,14 +164,16 @@ export async function renderWidgetMode<
   };
   const instanceId = opts.instanceId ?? "snap";
   const { container } = render(
-    <DashboardItemContext.Provider value={{ instanceId }}>
-      <opts.Widget
-        config={config}
-        id={instanceId}
-        w={opts.mode.w}
-        h={opts.mode.h}
-      />
-    </DashboardItemContext.Provider>,
+    <ThemeProvider theme={defaultDarkTheme}>
+      <DashboardItemContext.Provider value={{ instanceId }}>
+        <opts.Widget
+          config={config}
+          id={instanceId}
+          w={opts.mode.w}
+          h={opts.mode.h}
+        />
+      </DashboardItemContext.Provider>
+    </ThemeProvider>,
   );
 
   act(() => {

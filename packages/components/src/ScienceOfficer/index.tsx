@@ -7,15 +7,21 @@ import {
   useDataValue,
   useExecuteAction,
 } from "@ksp-gonogo/core";
+import { StreamStatusBadge } from "@ksp-gonogo/ui";
 import {
+  Badge,
+  Cluster,
+  formatNumber,
   Panel,
   PanelSubtitle,
   PanelTitle,
+  ScienceExperimentRow,
   ScrollArea,
-  Spinner,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { useEffect, useState } from "react";
+  Section,
+  SectionTitle,
+  Value,
+} from "@ksp-gonogo/ui-kit";
+import { Fragment } from "react";
 import styled from "styled-components";
 
 type ScienceOfficerConfig = Record<string, never>;
@@ -244,10 +250,10 @@ function ScienceOfficerComponent({
   if (instruments === null) {
     return (
       <Panel>
-        <TitleRow>
+        <Cluster>
           <PanelTitle>SCIENCE LAB</PanelTitle>
           <StreamStatusBadge status={labStreamStatus} />
-        </TitleRow>
+        </Cluster>
         {showSubtitle && (
           <PanelSubtitle>Awaiting instrument telemetry</PanelSubtitle>
         )}
@@ -259,10 +265,10 @@ function ScienceOfficerComponent({
   if (instruments.length === 0) {
     return (
       <Panel>
-        <TitleRow>
+        <Cluster>
           <PanelTitle>SCIENCE LAB</PanelTitle>
           <StreamStatusBadge status={labStreamStatus} />
-        </TitleRow>
+        </Cluster>
         {showSubtitle && <PanelSubtitle>No instruments aboard</PanelSubtitle>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
@@ -277,7 +283,7 @@ function ScienceOfficerComponent({
 
   return (
     <Panel>
-      <TitleRow>
+      <Cluster>
         <PanelTitle>SCIENCE LAB</PanelTitle>
         <StreamStatusBadge status={labStreamStatus} />
         {/* Header escape-hatch slot (spec §4) — a broad badge/summary augment
@@ -287,143 +293,50 @@ function ScienceOfficerComponent({
           name="science-officer.badges"
           props={{ instruments, dataAmount: totalDataMits }}
         />
-      </TitleRow>
+      </Cluster>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
           {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
           {totalDataMits > 0 && (
-            <DataReadout title="Total stored science data (mits)">
-              · {totalDataMits.toFixed(1)} mits
-            </DataReadout>
+            <Value spaced title="Total stored science data (mits)">
+              · {formatNumber(totalDataMits, { decimals: 1 })} mits
+            </Value>
           )}
         </PanelSubtitle>
       )}
       {showLab && <LabSection labs={labs} />}
       <Body $row={isLandscape}>
         {grouped.map(({ expId, items }) => (
-          <Group key={expId}>
-            <GroupLabel>{expId || "(unknown)"}</GroupLabel>
+          <Section key={expId}>
+            <SectionTitle>{expId || "(unknown)"}</SectionTitle>
             <InstrumentList>
               {items.map((inst) => (
-                <Row key={inst.partId}>
-                  <RowName>{inst.partTitle}</RowName>
-                  <Badges>
-                    {inst.hasData && <Badge $kind="data">DATA</Badge>}
-                    {inst.deployed && <Badge $kind="deployed">DEPLOYED</Badge>}
-                    {!inst.rerunnable && (
-                      <Badge $kind="oneshot">ONE-SHOT</Badge>
-                    )}
-                    {inst.inoperable && <Badge $kind="inop">INOPERABLE</Badge>}
-                  </Badges>
-                  <InstrumentActions instrument={inst} execute={execute} />
+                <Fragment key={inst.partId}>
+                  <ScienceExperimentRow
+                    instrument={inst}
+                    onDeploy={(partId) => void execute(`sci.deploy[${partId}]`)}
+                    onTransmit={(partId) =>
+                      void execute(`sci.transmit[${partId}]`)
+                    }
+                  />
                   {/* Per-instrument section slot (spec §4.4) — passes this
-                      instrument down so an on-vessel-lab augment can extend the
-                      row. Empty until an Uplink registers into it. */}
+                      instrument down so an on-vessel-lab augment can extend
+                      the row. Empty until an Uplink registers into it. Kept
+                      here in the widget rather than inside the kit row: the
+                      slot is a framework concern and the row stays
+                      data/framework-free (§1). */}
                   <AugmentSlot
                     name="science-officer.sections"
                     props={{ instrument: inst }}
                   />
-                </Row>
+                </Fragment>
               ))}
             </InstrumentList>
-          </Group>
+          </Section>
         ))}
       </Body>
     </Panel>
-  );
-}
-
-const ARM_TIMEOUT_MS = 4000;
-
-function InstrumentActions({
-  instrument,
-  execute,
-}: {
-  instrument: Instrument;
-  execute: (action: string) => Promise<void>;
-}) {
-  const [armed, setArmed] = useState(false);
-  const [pending, setPending] = useState<"deploy" | "transmit" | null>(null);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  // Clear the pending state once Telemachus reports the new instrument
-  // state — `deployed`/`hasData` transitions are the success signal. Fall
-  // back to a 5s safety timeout so an action that never lands doesn't
-  // leave the button forever-busy.
-  useEffect(() => {
-    if (pending === null) return;
-    if (pending === "deploy" && (instrument.deployed || instrument.hasData)) {
-      setPending(null);
-      return;
-    }
-    if (pending === "transmit" && !instrument.hasData) {
-      setPending(null);
-      return;
-    }
-    const id = setTimeout(() => setPending(null), 5_000);
-    return () => clearTimeout(id);
-  }, [pending, instrument.deployed, instrument.hasData]);
-
-  // Inoperable instruments can't deploy or transmit. Hide the controls
-  // entirely rather than greying them out — the INOPERABLE badge already
-  // tells the operator why nothing's available.
-  if (instrument.inoperable) return null;
-
-  return (
-    <Actions>
-      {!instrument.deployed && !instrument.hasData && (
-        <ActionButton
-          type="button"
-          disabled={pending === "deploy"}
-          aria-busy={pending === "deploy"}
-          onClick={() => {
-            if (pending !== null) return;
-            setPending("deploy");
-            void execute(`sci.deploy[${instrument.partId}]`);
-          }}
-        >
-          {pending === "deploy" ? (
-            <>
-              <Spinner size={10} /> Deploying…
-            </>
-          ) : (
-            "Deploy"
-          )}
-        </ActionButton>
-      )}
-      {instrument.hasData &&
-        (armed ? (
-          <ConfirmTransmitButton
-            type="button"
-            disabled={pending === "transmit"}
-            aria-busy={pending === "transmit"}
-            onClick={() => {
-              if (pending !== null) return;
-              setArmed(false);
-              setPending("transmit");
-              void execute(`sci.transmit[${instrument.partId}]`);
-            }}
-          >
-            {pending === "transmit" ? (
-              <>
-                <Spinner size={10} /> Transmitting…
-              </>
-            ) : (
-              "Confirm transmit"
-            )}
-          </ConfirmTransmitButton>
-        ) : (
-          <ActionButton type="button" onClick={() => setArmed(true)}>
-            Transmit
-          </ActionButton>
-        ))}
-    </Actions>
   );
 }
 
@@ -446,10 +359,10 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
           <LabHeader>
             <LabName>{lab.partName}</LabName>
             <LabBadges>
-              <Badge $kind={lab.isOperational ? "data" : "inop"}>
+              <Badge tone={lab.isOperational ? "go" : "nogo"}>
                 {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
               </Badge>
-              {lab.processingData && <Badge $kind="deployed">PROCESSING</Badge>}
+              {lab.processingData && <Badge tone="neutral">PROCESSING</Badge>}
             </LabBadges>
           </LabHeader>
           <LabMeta>
@@ -504,14 +417,6 @@ function summarise(instruments: Instrument[]): {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-`;
 
 const LabList = styled.div`
   display: flex;
@@ -579,25 +484,11 @@ const Body = styled(ScrollArea)<{ $row?: boolean }>`
     }`}
 `;
 
-const Group = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
-
-const DataReadout = styled.span`
-  color: var(--color-accent-fg);
-  font-variant-numeric: tabular-nums;
-  margin-left: 2px;
-`;
-
-const GroupLabel = styled.div`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-`;
-
+// `InstrumentList` resets `<ul>` browser chrome (list-style/margin/padding)
+// and stacks the per-instrument rows with the same 2px gap the kit's
+// `Section` uses one level up — the kit has no `<ul>`-reset primitive yet
+// (P0 covers the row, not the list it sits in), so this stays local rather
+// than risk the visual-gate diff of dropping list semantics altogether.
 const InstrumentList = styled.ul`
   list-style: none;
   margin: 0;
@@ -605,106 +496,6 @@ const InstrumentList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 2px;
-`;
-
-const Row = styled.li`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  padding: 2px 0;
-`;
-
-const RowName = styled.span`
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-`;
-
-const Badges = styled.span`
-  display: inline-flex;
-  gap: 4px;
-  flex-shrink: 0;
-`;
-
-const Actions = styled.span`
-  display: inline-flex;
-  gap: 4px;
-  flex-shrink: 0;
-  margin-left: 6px;
-`;
-
-const ActionButton = styled.button`
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 2px;
-  border: 1px solid var(--color-surface-raised);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  &:hover:not(:disabled) {
-    color: var(--color-text-primary);
-    border-color: var(--color-accent-fg);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-`;
-
-const ConfirmTransmitButton = styled(ActionButton)`
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-  border-color: transparent;
-  animation: transmitPulse 1s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes transmitPulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.6;
-      }
-    }
-  }
-`;
-
-const Badge = styled.span<{
-  $kind: "data" | "deployed" | "oneshot" | "inop";
-}>`
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 4px;
-  border-radius: 2px;
-  background: ${(p) =>
-    p.$kind === "data"
-      ? "var(--color-status-go-bg)"
-      : p.$kind === "deployed"
-        ? "var(--color-surface-raised)"
-        : p.$kind === "oneshot"
-          ? "var(--color-surface-raised)"
-          : "var(--color-status-nogo-bg)"};
-  color: ${(p) =>
-    p.$kind === "data"
-      ? "var(--color-status-go-fg)"
-      : p.$kind === "inop"
-        ? "var(--color-status-nogo-fg)"
-        : "var(--color-text-muted)"};
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

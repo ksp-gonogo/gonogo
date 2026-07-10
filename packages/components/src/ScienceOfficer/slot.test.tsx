@@ -5,7 +5,7 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -18,6 +18,7 @@ import {
   type ScienceOfficerInstrumentSlotContext,
   type ScienceOfficerSlotContext,
 } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 /**
  * ScienceOfficer augment-slot exposure (Uplink architecture spec §4,
@@ -47,7 +48,9 @@ const INSTRUMENT: Instrument = {
 // `badges` slot and the per-instrument `sections` slot render.
 async function renderFullList(): Promise<MockDataSourceFixture> {
   const fixture = await setupMockDataSource({ keys: KEYS });
-  render(<ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />);
+  renderWithTheme(
+    <ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />,
+  );
   act(() => {
     fixture.source.emit("sci.instruments", [INSTRUMENT]);
     fixture.source.emit("sci.experiments", [
