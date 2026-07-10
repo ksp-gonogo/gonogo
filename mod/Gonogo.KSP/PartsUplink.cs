@@ -22,13 +22,36 @@ namespace Gonogo.KSP
     /// wrapper the robotics widgets read to distinguish "no robotic parts on
     /// this craft" from "no active vessel / no data".</para>
     ///
-    /// <para>Read-only capture for this session — no commands. Robotics
-    /// actuation (servo/rotor set-target/motor/lock/brake) is a follow-up,
-    /// per the master plan's Parts/engineering section.</para>
+    /// <para>Alongside the read channels, this uplink registers the Breaking
+    /// Ground robotics COMMANDS — the servo/rotor set-target/motor/lock/
+    /// brake/rpm/torque/reverse actuations (<see cref="RoboticsCommandProvider"/>'s
+    /// <c>Handle*</c> glue against the <see cref="IRoboticsActuator"/> this
+    /// uplink is constructed with — <see cref="KspRoboticsActuator"/> in
+    /// production, <c>Sitrep.Host.Tests.FakeRoboticsActuator</c> in tests).
+    /// They ride <c>delayed: true</c> (actuation of parts ON the craft is an
+    /// uplink that rides light-time, the same class as <c>vessel.control.*</c>).</para>
     /// </summary>
     [SitrepUplink("parts")]
     public sealed class PartsUplink : ISitrepUplink
     {
+        private readonly IRoboticsActuator _actuator;
+
+        public PartsUplink(IRoboticsActuator actuator)
+        {
+            _actuator = actuator;
+        }
+
+        /// <summary>
+        /// The discovery-required parameterless constructor (see
+        /// <c>Sitrep.Host.UplinkDiscovery</c>: a discoverable Uplink resolves
+        /// its own dependencies rather than taking them as discovery-time
+        /// arguments). Builds the real <see cref="KspRoboticsActuator"/>,
+        /// mirroring <see cref="VesselUplink"/>'s two-constructor shape.
+        /// </summary>
+        public PartsUplink() : this(new KspRoboticsActuator())
+        {
+        }
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "parts",
@@ -63,6 +86,21 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                 },
             },
+            // Robotics actuation is an uplink to the craft, so every command
+            // rides light-time (delayed: true) — the same F2 classification
+            // vessel.control.* uses (see VesselUplink's command table).
+            Commands = new List<CommandDeclaration>
+            {
+                Command(RoboticsCommandProvider.ServoSetTargetCommand),
+                Command(RoboticsCommandProvider.ServoSetMotorCommand),
+                Command(RoboticsCommandProvider.ServoSetLockCommand),
+                Command(RoboticsCommandProvider.RotorSetRpmLimitCommand),
+                Command(RoboticsCommandProvider.RotorSetTorqueLimitCommand),
+                Command(RoboticsCommandProvider.RotorSetBrakeCommand),
+                Command(RoboticsCommandProvider.RotorSetMotorCommand),
+                Command(RoboticsCommandProvider.RotorSetLockCommand),
+                Command(RoboticsCommandProvider.RotorReverseCommand),
+            },
         };
 
         public void Register(IUplinkHost host)
@@ -70,6 +108,22 @@ namespace Gonogo.KSP
             host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
             host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);
             host.AddChannelSource(PartsViewProvider.RoboticsAvailableTopic, PartsViewProvider.BuildRoboticsAvailable);
+
+            host.AddCommandHandler<ServoSetTargetArgs, CommandResult>(RoboticsCommandProvider.ServoSetTargetCommand, args => RoboticsCommandProvider.HandleServoSetTarget(_actuator, args));
+            host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.ServoSetMotorCommand, args => RoboticsCommandProvider.HandleServoSetMotor(_actuator, args));
+            host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.ServoSetLockCommand, args => RoboticsCommandProvider.HandleServoSetLock(_actuator, args));
+            host.AddCommandHandler<RotorSetValueArgs, CommandResult>(RoboticsCommandProvider.RotorSetRpmLimitCommand, args => RoboticsCommandProvider.HandleRotorSetRpmLimit(_actuator, args));
+            host.AddCommandHandler<RotorSetValueArgs, CommandResult>(RoboticsCommandProvider.RotorSetTorqueLimitCommand, args => RoboticsCommandProvider.HandleRotorSetTorqueLimit(_actuator, args));
+            host.AddCommandHandler<RotorSetValueArgs, CommandResult>(RoboticsCommandProvider.RotorSetBrakeCommand, args => RoboticsCommandProvider.HandleRotorSetBrake(_actuator, args));
+            host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.RotorSetMotorCommand, args => RoboticsCommandProvider.HandleRotorSetMotor(_actuator, args));
+            host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.RotorSetLockCommand, args => RoboticsCommandProvider.HandleRotorSetLock(_actuator, args));
+            host.AddCommandHandler<RotorReverseArgs, CommandResult>(RoboticsCommandProvider.RotorReverseCommand, args => RoboticsCommandProvider.HandleRotorReverse(_actuator, args));
         }
+
+        private static CommandDeclaration Command(string command) => new CommandDeclaration
+        {
+            Command = command,
+            Delayed = true,
+        };
     }
 }
