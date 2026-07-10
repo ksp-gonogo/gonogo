@@ -24,6 +24,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("kos.processors", isArray: true)]
 public class KosProcessorInfo
 {
     /// <summary><c>kOSProcessor.KOSCoreId</c> — stable per game run, the handle every command targets.</summary>

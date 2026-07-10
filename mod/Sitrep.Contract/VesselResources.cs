@@ -66,6 +66,7 @@ public class ResourceAmount
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.resources")]
 public class VesselResources
 {
     public Dictionary<string, ResourceAmount> Resources { get; set; } = new();

@@ -48,6 +48,7 @@ public enum CommsControlSource
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.connectivity")]
 public class CommsConnectivity
 {
     public bool Connected { get; set; }
@@ -65,6 +66,7 @@ public class CommsConnectivity
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.signalStrength")]
 public class CommsSignalStrength
 {
     public double Value { get; set; }
@@ -92,6 +94,7 @@ public enum CommsControlStateKind
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.controlState")]
 public class CommsControlState
 {
     public CommsControlStateKind State { get; set; }
@@ -141,6 +144,7 @@ public class CommsHop
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.path")]
 public class CommsPath
 {
     public IReadOnlyList<CommsHop> Hops { get; set; } = new List<CommsHop>();
@@ -180,6 +184,7 @@ public class CommsNetworkEdge
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.network")]
 public class CommsNetwork
 {
     public IReadOnlyList<CommsNetworkNode> Nodes { get; set; } = new List<CommsNetworkNode>();
@@ -211,6 +216,7 @@ public enum CommsDelaySource
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.delay")]
 public class CommsDelay
 {
     public double OneWaySeconds { get; set; }
@@ -226,6 +232,7 @@ public class CommsDelay
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.linkQuality")]
 public class CommsLinkQuality
 {
     public double Value { get; set; }
@@ -241,6 +248,7 @@ public class CommsLinkQuality
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.dataRate")]
 public class CommsDataRate
 {
     public double UpBitsPerSec { get; set; }
@@ -258,6 +266,7 @@ public class CommsDataRate
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("comms.linkMargin")]
 public class CommsLinkMargin
 {
     public double DecibelMargin { get; set; }

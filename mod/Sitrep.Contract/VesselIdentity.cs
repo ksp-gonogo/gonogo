@@ -18,6 +18,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.identity")]
 public class VesselIdentity
 {
     /// <summary>The stable subject id (KSP's <c>Vessel.id</c> GUID, as a string) — the currency of target/vessel-scoped commands (T-1 groundwork) and of <c>Meta.Source</c>'s "vessel:&lt;guid&gt;" provenance stamp.</summary>

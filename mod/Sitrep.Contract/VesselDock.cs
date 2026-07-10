@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.dock")]
 public class DockAlignment
 {
     /// <summary>Metres, own-port-relative (target port minus own port).</summary>

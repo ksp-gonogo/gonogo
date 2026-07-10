@@ -68,6 +68,7 @@ public class ManeuverNode
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.maneuver")]
 public class VesselManeuver
 {
     public List<ManeuverNode> Nodes { get; set; } = new();

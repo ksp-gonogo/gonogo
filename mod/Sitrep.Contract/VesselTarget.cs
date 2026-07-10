@@ -56,6 +56,7 @@ public enum TargetKind
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.target")]
 public class VesselTarget
 {
     public string Name { get; set; } = "";

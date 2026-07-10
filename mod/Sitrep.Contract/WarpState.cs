@@ -52,6 +52,7 @@ public enum WarpMode
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("time.warp")]
 public class WarpState
 {
     public double WarpRate { get; set; }

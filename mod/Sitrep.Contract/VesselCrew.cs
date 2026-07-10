@@ -16,6 +16,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.crew")]
 public class VesselCrew
 {
     public int Count { get; set; }

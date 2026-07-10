@@ -2,6 +2,95 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+export interface CareerStatus
+{
+	economy?: CareerEconomy;
+	facilities?: { [key:string]: CareerFacility };
+	contracts?: CareerContracts;
+	strategies?: CareerStrategies;
+	tech?: CareerTech;
+}
+export interface CareerEconomy
+{
+	funds?: number;
+	reputation?: number;
+	science?: number;
+}
+export interface CareerFacility
+{
+	currentTier?: number;
+	maxTier?: number;
+	upgradeCost?: number;
+}
+export interface CareerContracts
+{
+	active: CareerContract[];
+	offered: CareerContract[];
+}
+export interface CareerContract
+{
+	id?: string;
+	title?: string;
+	agent?: string;
+	state?: string;
+	fundsAdvance?: number;
+	fundsCompletion?: number;
+	fundsFailure?: number;
+	scienceCompletion?: number;
+	reputationCompletion?: number;
+	reputationFailure?: number;
+	dateAccepted?: number;
+	dateDeadline?: number;
+	dateExpire?: number;
+	parameters: CareerContractParameter[];
+}
+export interface CareerContractParameter
+{
+	title?: string;
+	state?: string;
+}
+export interface CareerStrategies
+{
+	active: CareerStrategy[];
+	all: CareerStrategy[];
+	activeCount: number;
+}
+export interface CareerStrategy
+{
+	id?: string;
+	title?: string;
+	description?: string;
+	department?: string;
+	isActive?: boolean;
+	factor?: number;
+	dateActivated?: number;
+	requiredReputation?: number;
+	initialCostFunds?: number;
+	initialCostScience?: number;
+	initialCostReputation?: number;
+	hasFactorSlider?: boolean;
+	factorSliderDefault?: number;
+	factorSliderSteps?: number;
+	canActivate?: boolean;
+	activateBlockedReason?: string;
+	canDeactivate?: boolean;
+	deactivateBlockedReason?: string;
+	effect?: string;
+}
+export interface CareerTech
+{
+	unlockedCount: number;
+	unlockedIds: string[];
+	nodes: CareerTechNode[];
+}
+export interface CareerTechNode
+{
+	id?: string;
+	title?: string;
+	scienceCost?: number;
+	unlocked?: boolean;
+	parents: string[];
+}
 export enum CommandErrorCode {
 	None = 0,
 	Unknown = 1,
@@ -208,6 +297,141 @@ export interface PayloadMeta
 {
 	source: string;
 	quality: Quality;
+}
+export interface SolarPanelEntry
+{
+	partName?: string;
+	partId?: string;
+	deployState?: string;
+	flowRate?: number;
+	chargeRate?: number;
+	sunAOA?: number;
+}
+export interface BatteryEntry
+{
+	partName?: string;
+	partId?: string;
+	current?: number;
+	max?: number;
+}
+export interface FuelCellEntry
+{
+	partName?: string;
+	partId?: string;
+	active?: boolean;
+	status?: string;
+}
+export interface AlternatorEntry
+{
+	partName?: string;
+	partId?: string;
+	outputRate?: number;
+}
+export interface PartsPower
+{
+	solarPanels?: SolarPanelEntry[];
+	batteries?: BatteryEntry[];
+	fuelCells?: FuelCellEntry[];
+	alternators?: AlternatorEntry[];
+	totalProductionEc?: number;
+}
+export interface ServoEntry
+{
+	partName?: string;
+	partId?: string;
+	type?: string;
+	servoIsLocked?: boolean;
+	servoIsMotorized?: boolean;
+	servoMotorIsEngaged?: boolean;
+	servoMotorLimit?: number;
+	motorState?: string;
+	currentAngle?: number;
+	targetAngle?: number;
+	traverseVelocity?: number;
+	currentRPM?: number;
+	rpmLimit?: number;
+	normalizedOutput?: number;
+	brakePercentage?: number;
+	currentExtension?: number;
+	targetExtension?: number;
+}
+export interface ExperimentEntry
+{
+	partName?: string;
+	location?: string;
+	experimentId?: string;
+	subjectId?: string;
+	title?: string;
+	dataAmount?: number;
+	scienceValueRatio?: number;
+	baseTransmitValue?: number;
+	transmitBonus?: number;
+	labValue?: number;
+	deployed?: boolean;
+	inoperable?: boolean;
+	situation?: string;
+}
+export interface LabEntry
+{
+	partName?: string;
+	dataStored?: number;
+	dataStorage?: number;
+	storedScience?: number;
+	processingData?: boolean;
+	statusText?: string;
+	scientistCount?: number;
+	scienceRate?: number;
+	isOperational?: boolean;
+}
+export interface DeployedEntry
+{
+	vesselName?: string;
+	partName?: string;
+	body?: string;
+	situation?: string;
+	biome?: string;
+	experimentId?: string;
+	scienceCompletedPercentage?: number;
+	scienceTransmittedPercentage?: number;
+	scienceValue?: number;
+	scienceLimit?: number;
+	powerState?: string;
+	connectionState?: string;
+	deployedOnGround?: boolean;
+}
+export interface SystemBodies
+{
+	bodies: BodyEntry[];
+}
+export interface BodyEntry
+{
+	name?: string;
+	index: number;
+	parentIndex?: number;
+	radius?: number;
+	orbit?: OrbitEntry;
+}
+export interface OrbitEntry
+{
+	sma?: number;
+	ecc?: number;
+	inc?: number;
+	lan?: number;
+	argPe?: number;
+	meanAnomalyAtEpoch?: number;
+	epoch?: number;
+}
+export interface SystemVessels
+{
+	vessels: VesselRosterEntry[];
+}
+export interface VesselRosterEntry
+{
+	vesselId: string;
+	name: string;
+	vesselType: VesselType;
+	situation: Situation;
+	bodyIndex?: number;
 }
 export interface Vec3
 {

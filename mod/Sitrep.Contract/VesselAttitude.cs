@@ -19,6 +19,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.attitude")]
 public class VesselAttitude
 {
     /// <summary>Degrees, -90..90 (nose down/up).</summary>

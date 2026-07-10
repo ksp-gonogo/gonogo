@@ -51,6 +51,7 @@ public enum ControlState
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.comms")]
 public class VesselComms
 {
     public bool Connected { get; set; }

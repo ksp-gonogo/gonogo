@@ -22,6 +22,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.propulsion")]
 public class VesselPropulsion
 {
     public double TotalMass { get; set; }

@@ -11,9 +11,17 @@
 // Topic strings turns an `@ts-expect-error` into an unused-directive error.
 
 import type {
+  CareerStatus,
   CommsDelay,
+  DeployedEntry,
   DockAlignment,
+  ExperimentEntry,
   KosProcessorInfo,
+  LabEntry,
+  PartsPower,
+  ServoEntry,
+  SystemBodies,
+  SystemVessels,
   VesselOrbit,
   VesselResources,
 } from "./__generated__/contract";
@@ -25,7 +33,7 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── A known Topic resolves to its precise contract payload interface ────────────────
+// ── vessel.* / comms.* / kos.* known Topics resolve to their precise interface ──────
 export type _ResolvesOrbit = Expect<
   Equal<TopicPayload<"vessel.orbit">, VesselOrbit>
 >;
@@ -42,9 +50,51 @@ export type _ResolvesKosProcessors = Expect<
   Equal<TopicPayload<"kos.processors">, KosProcessorInfo[]>
 >;
 
-// ── A Topic whose payload is not yet in the contract resolves to `unknown` ──────────
-export type _ResolvesScansatUnknown = Expect<
-  Equal<TopicPayload<"scansat.available">, unknown>
+// ── career.* / parts.* / system.* / science.* now resolve to their REAL contract
+//    payload type (formerly `unknown` — P0.5 typed them, codegen wired them in) ──────
+export type _ResolvesCareer = Expect<
+  Equal<TopicPayload<"career.status">, CareerStatus>
+>;
+export type _ResolvesPartsPower = Expect<
+  Equal<TopicPayload<"parts.power">, PartsPower>
+>;
+// The bare-array channels resolve to `Element[]`, not a wrapper object.
+export type _ResolvesPartsRobotics = Expect<
+  Equal<TopicPayload<"parts.robotics">, ServoEntry[]>
+>;
+export type _ResolvesScienceExperiments = Expect<
+  Equal<TopicPayload<"science.experiments">, ExperimentEntry[]>
+>;
+export type _ResolvesScienceLab = Expect<
+  Equal<TopicPayload<"science.lab">, LabEntry[]>
+>;
+export type _ResolvesScienceDeployed = Expect<
+  Equal<TopicPayload<"science.deployed">, DeployedEntry[]>
+>;
+export type _ResolvesSystemBodies = Expect<
+  Equal<TopicPayload<"system.bodies">, SystemBodies>
+>;
+export type _ResolvesSystemVessels = Expect<
+  Equal<TopicPayload<"system.vessels">, SystemVessels>
+>;
+
+// ── scansat: a JSON primitive / element-deferred array, NOT `unknown` (see topics.ts
+//    header for why these carry no named contract type) ──────────────────────────────
+export type _ResolvesScansatAvailable = Expect<
+  Equal<TopicPayload<"scansat.available">, boolean>
+>;
+export type _ResolvesScansatScanningVessels = Expect<
+  Equal<TopicPayload<"scansat.scanningVessels">, unknown[]>
+>;
+
+// ── No Topic resolves to `unknown` (the whole point of P0.5) ────────────────────────
+// Same construction as topics.ts's `_AssertNoTopicResolvesToUnknown`, asserted here too
+// so a regression is caught even if the compile-time assert in topics.ts is refactored.
+type IsAny<T> = 0 extends 1 & T ? true : false;
+type IsUnknown<T> =
+  IsAny<T> extends true ? false : unknown extends T ? true : false;
+export type _NoTopicIsUnknown = Expect<
+  Equal<{ [K in TopicId]: IsUnknown<TopicPayload<K>> }[TopicId], false>
 >;
 
 // ── An unknown Topic string is a compile error ──────────────────────────────────────

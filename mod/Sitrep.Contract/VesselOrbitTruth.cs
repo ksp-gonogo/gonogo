@@ -25,6 +25,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.orbit.truth")]
 public class VesselOrbitTruth
 {
     public Vec3 Position { get; set; } = new();

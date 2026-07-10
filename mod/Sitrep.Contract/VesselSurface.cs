@@ -27,6 +27,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.surface")]
 public class VesselSurface
 {
     /// <summary>KSP's biome name at the vessel's current lat/long (e.g. "Highlands", "Shores"). Null when the body has no biome map (e.g. gas giants) or the lookup failed this tick.</summary>

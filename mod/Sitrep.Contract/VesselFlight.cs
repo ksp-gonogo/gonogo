@@ -19,6 +19,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.flight")]
 public class VesselFlight
 {
     /// <summary>Degrees. PRESENT means valid — no (0,0) no-data sentinel (V-10); absence is the whole channel being unavailable.</summary>

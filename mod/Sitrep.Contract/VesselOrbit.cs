@@ -27,6 +27,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.orbit")]
 public class VesselOrbit
 {
     public int ReferenceBodyIndex { get; set; }

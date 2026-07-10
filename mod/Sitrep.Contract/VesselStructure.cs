@@ -20,6 +20,7 @@ namespace Sitrep.Contract;
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.structure")]
 public class VesselStructure
 {
     /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule/high stages have LOW numbers) — see the class doc comment.</summary>

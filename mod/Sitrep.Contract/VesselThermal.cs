@@ -43,6 +43,7 @@ public class ThermalHottestPart
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.thermal")]
 public class VesselThermal
 {
     /// <summary>Null = no part this tick had a valid (&gt; 0) <c>skinMaxTemp</c> — typed, never 0.0.</summary>

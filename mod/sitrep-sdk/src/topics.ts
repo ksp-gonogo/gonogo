@@ -7,112 +7,54 @@
 // `useTelemetry` read hook — is constrained to this union and shares the same token,
 // so there are no open string keys and no drift.
 //
-// ── Single source of truth ────────────────────────────────────────────────────────
-// The Topic *strings* are authored C#-side in each Uplink/provider's
-// `ChannelDeclaration.Topic` (see `mod/Sitrep.Host/*ViewProvider.cs`,
-// `mod/Gonogo.KSP`, `mod/Gonogo.Kos`, `mod/GonogoScansatUplink`,
-// `mod/GonogoRealAntennasUplink`). This registry is DERIVED from those declarations
-// and `topics.test.ts` reads the C# sources and asserts `TOPIC_IDS` stays in exact
-// sync — so a Topic added or removed in C# fails the SDK build until this file is
-// updated.
+// ── Single source of truth (CODEGEN) ────────────────────────────────────────────────
+// The bulk of this registry — `GeneratedTopicPayloadMap` and `GENERATED_TOPIC_IDS` in
+// `./__generated__/topic-map.ts` — is GENERATED from `Sitrep.Contract`: every wire
+// payload type is tagged `[SitrepTopic("<topic>")]`, and `mod/codegen.sh` (via
+// `RtConfig.EmitTopicMap`) reflects over those tags to emit both the payload interfaces
+// (`contract.ts`) and the Topic→payload map (`topic-map.ts`). A Topic added or removed
+// in C# therefore flows through codegen into this file with no hand edit; `topics.test.ts`
+// additionally re-reads the C# `const string …Topic` declarations and asserts `TOPIC_IDS`
+// stays in exact sync.
 //
-// FOLLOW-UP (T0.1 → full codegen): the payload *types* are only centralised in
-// `Sitrep.Contract` for the vessel.*, comms.*, time.warp and kOS-processor Topics —
-// those resolve to a precise generated interface below. The career.*, parts.*,
-// system.*, science.* and scansat.* payloads are not yet in the contract, so they
-// resolve to `unknown` here (honest: the SDK does not yet know their shape). The
-// clean end-state is to move those payload records into `Sitrep.Contract`, tag each
-// payload type with its Topic (e.g. a `[SitrepTopic("vessel.orbit")]` attribute), and
-// have `codegen.sh`/`RtConfig` emit BOTH the payload interfaces and this
-// `TopicId`/`TopicPayloadMap` pair — replacing the hand-authored map while keeping the
-// exact same exported surface. Tracked separately; not in scope for T0.1.
+// ── The scansat tail (NOT codegen-derived) ──────────────────────────────────────────
+// Two Topics have no `Sitrep.Contract` payload TYPE to reflect, so they are declared by
+// hand below rather than generated — deliberately, because a fabricated contract type
+// would misrepresent the wire (the CRITICAL "mirror the exact serialized shape" rule):
+//   • `scansat.available` is a bare JSON boolean (the uplink publishes `true`/`false`
+//     directly — see GonogoScansatUplink/ScansatUplink.cs), not an object, so there is
+//     no named payload type; it resolves to `boolean`.
+//   • `scansat.scanningVessels` is a bare JSON array whose ELEMENT shape is explicitly
+//     deferred to P2 ("the wire-typed SCANvessel mapping … is P2 scope, not implemented
+//     here" — ScansatUplink.BuildScanningVessels), so it faithfully resolves to
+//     `unknown[]` (an array, element type not yet contractually defined) rather than an
+//     invented interface.
+// Neither resolves to `unknown` — the registry has no `unknown` Topics (proven at
+// compile time by `_AssertNoTopicResolvesToUnknown` below).
 
-import type {
-  CommsConnectivity,
-  CommsControlState,
-  CommsDataRate,
-  CommsDelay,
-  CommsLinkMargin,
-  CommsLinkQuality,
-  CommsNetwork,
-  CommsPath,
-  CommsSignalStrength,
-  DockAlignment,
-  KosProcessorInfo,
-  VesselAttitude,
-  VesselComms,
-  VesselControl,
-  VesselCrew,
-  VesselFlight,
-  VesselIdentity,
-  VesselManeuver,
-  VesselOrbit,
-  VesselOrbitTruth,
-  VesselPropulsion,
-  VesselResources,
-  VesselStructure,
-  VesselSurface,
-  VesselTarget,
-  VesselThermal,
-  WarpState,
-} from "./__generated__/contract";
+import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
+import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 
 /**
- * The Topic → payload-type map. Keys are the wire Topic strings; values are the
- * payload interface a `stream-data` message on that Topic carries. `TopicId` and
- * `TopicPayload` are both derived from this one declaration.
- *
- * Entries typed `unknown` are Topics whose payload record is not yet in
- * `Sitrep.Contract` (see the FOLLOW-UP note at the top of this file).
+ * The two SCANsat Topics whose payload is a JSON primitive / element-untyped array, so
+ * they carry no named `Sitrep.Contract` type and are not part of the generated map (see
+ * the "scansat tail" note above). Merged into `TopicPayloadMap` alongside the generated
+ * entries.
  */
-export interface TopicPayloadMap {
-  // ── vessel.* (Sitrep.Host/VesselViewProvider.cs) ──
-  "vessel.attitude": VesselAttitude;
-  "vessel.comms": VesselComms;
-  "vessel.control": VesselControl;
-  "vessel.crew": VesselCrew;
-  "vessel.dock": DockAlignment;
-  "vessel.flight": VesselFlight;
-  "vessel.identity": VesselIdentity;
-  "vessel.maneuver": VesselManeuver;
-  "vessel.orbit": VesselOrbit;
-  "vessel.orbit.truth": VesselOrbitTruth;
-  "vessel.propulsion": VesselPropulsion;
-  "vessel.resources": VesselResources;
-  "vessel.structure": VesselStructure;
-  "vessel.surface": VesselSurface;
-  "vessel.target": VesselTarget;
-  "vessel.thermal": VesselThermal;
-
-  // ── time.* (Sitrep.Host/VesselViewProvider.cs) ──
-  "time.warp": WarpState;
-
-  // ── comms.* (Gonogo.KSP/CommsCoreUplink.cs + GonogoRealAntennasUplink) ──
-  "comms.connectivity": CommsConnectivity;
-  "comms.signalStrength": CommsSignalStrength;
-  "comms.controlState": CommsControlState;
-  "comms.path": CommsPath;
-  "comms.network": CommsNetwork;
-  "comms.delay": CommsDelay;
-  "comms.linkQuality": CommsLinkQuality;
-  "comms.dataRate": CommsDataRate;
-  "comms.linkMargin": CommsLinkMargin;
-
-  // ── kos.* (Gonogo.Kos/KosChannels.cs) ──
-  "kos.processors": KosProcessorInfo[];
-
-  // ── payloads NOT YET in Sitrep.Contract → `unknown` (see FOLLOW-UP) ──
-  "career.status": unknown; // Sitrep.Host/CareerViewProvider.cs
-  "parts.power": unknown; // Sitrep.Host/PartsViewProvider.cs
-  "parts.robotics": unknown; // Sitrep.Host/PartsViewProvider.cs
-  "system.bodies": unknown; // Sitrep.Host/SystemViewProvider.cs
-  "system.vessels": unknown; // Sitrep.Host/SystemViewProvider.cs
-  "science.experiments": unknown; // Sitrep.Host/ScienceViewProvider.cs
-  "science.lab": unknown; // Sitrep.Host/ScienceViewProvider.cs
-  "science.deployed": unknown; // Sitrep.Host/ScienceViewProvider.cs
-  "scansat.available": unknown; // GonogoScansatUplink/ScansatUplink.cs
-  "scansat.scanningVessels": unknown; // GonogoScansatUplink/ScansatUplink.cs
+export interface ScansatTopicPayloadMap {
+  "scansat.available": boolean;
+  "scansat.scanningVessels": unknown[];
 }
+
+/**
+ * The Topic → payload-type map. Keys are the wire Topic strings; values are the payload
+ * a `stream-data` message on that Topic carries. The generated entries come from
+ * `Sitrep.Contract`'s `[SitrepTopic]` tags; the two scansat entries are hand-declared
+ * (see the file header). `TopicId` and `TopicPayload` are both derived from this map.
+ */
+export interface TopicPayloadMap
+  extends GeneratedTopicPayloadMap,
+    ScansatTopicPayloadMap {}
 
 /** Every Topic the mod declares, as a string-literal union. */
 export type TopicId = keyof TopicPayloadMap;
@@ -121,47 +63,14 @@ export type TopicId = keyof TopicPayloadMap;
 export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
 
 /**
- * Runtime list of every `TopicId`. Kept in lock-step with `TopicPayloadMap` by the
- * compile-time assertions below, and with the C# declarations by `topics.test.ts`.
- * Dynamic namespaces (e.g. the per-CPU `kos.compute.*` prefix) are intentionally NOT
+ * Runtime list of every `TopicId` — the generated ids plus the hand-declared scansat
+ * tail. Kept in lock-step with `TopicPayloadMap` by the compile-time assertions below,
+ * and with the C# declarations by `topics.test.ts`. Dynamic namespaces (e.g. the
+ * per-CPU `kos.compute.*` prefix or `scansat.coverage.*`) are intentionally NOT
  * enumerated here — a runtime-computed sub-topic has no fixed member in the union.
  */
 export const TOPIC_IDS = [
-  "vessel.attitude",
-  "vessel.comms",
-  "vessel.control",
-  "vessel.crew",
-  "vessel.dock",
-  "vessel.flight",
-  "vessel.identity",
-  "vessel.maneuver",
-  "vessel.orbit",
-  "vessel.orbit.truth",
-  "vessel.propulsion",
-  "vessel.resources",
-  "vessel.structure",
-  "vessel.surface",
-  "vessel.target",
-  "vessel.thermal",
-  "time.warp",
-  "comms.connectivity",
-  "comms.signalStrength",
-  "comms.controlState",
-  "comms.path",
-  "comms.network",
-  "comms.delay",
-  "comms.linkQuality",
-  "comms.dataRate",
-  "comms.linkMargin",
-  "kos.processors",
-  "career.status",
-  "parts.power",
-  "parts.robotics",
-  "system.bodies",
-  "system.vessels",
-  "science.experiments",
-  "science.lab",
-  "science.deployed",
+  ...GENERATED_TOPIC_IDS,
   "scansat.available",
   "scansat.scanningVessels",
 ] as const satisfies readonly TopicId[];
@@ -175,8 +84,9 @@ export function isTopicId(value: string): value is TopicId {
 
 // ── Compile-time invariants (checked by `pnpm typecheck`) ───────────────────────────
 // These bind the runtime `TOPIC_IDS` array to the `TopicPayloadMap` type in both
-// directions, and prove payload resolution — so a drift between the array and the map,
-// or a regression in `TopicPayload`, is a build error, not a silent runtime bug.
+// directions and prove that no Topic resolves to `unknown` — so a drift between the
+// array and the map, or a Topic slipping back to `unknown`, is a build error rather
+// than a silent runtime bug.
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -191,10 +101,16 @@ type _ExtraInRuntime = Exclude<(typeof TOPIC_IDS)[number], TopicId>;
 export type _AssertNoMissingTopics = AssertNever<_MissingFromRuntime>;
 export type _AssertNoExtraTopics = AssertNever<_ExtraInRuntime>;
 
-// A known Topic resolves its precise contract payload.
-export type _AssertOrbitResolves = AssertTrue<
-  Equal<TopicPayload<"vessel.orbit">, VesselOrbit>
->;
-export type _AssertKosProcessorsResolves = AssertTrue<
-  Equal<TopicPayload<"kos.processors">, KosProcessorInfo[]>
+// No Topic resolves to `unknown`. `IsUnknown<T>` is true ONLY for exactly `unknown`
+// (excluding `any`, for which `unknown extends T` is also true); mapping it over every
+// Topic and collapsing to a union yields `false` iff every payload is a real type — a
+// single `unknown` payload would widen the union to `boolean` and fail the assert.
+type IsAny<T> = 0 extends 1 & T ? true : false;
+type IsUnknown<T> =
+  IsAny<T> extends true ? false : unknown extends T ? true : false;
+type _AnyTopicResolvesToUnknown = {
+  [K in TopicId]: IsUnknown<TopicPayload<K>>;
+}[TopicId];
+export type _AssertNoTopicResolvesToUnknown = AssertTrue<
+  Equal<_AnyTopicResolvesToUnknown, false>
 >;

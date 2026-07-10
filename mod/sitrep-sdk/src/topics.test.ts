@@ -2,7 +2,15 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 import { isTopicId, TOPIC_IDS, type TopicPayloadMap } from "./topics";
+
+/**
+ * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
+ * contract type) — a JSON boolean and an element-deferred array. See the topics.ts
+ * header. Everything else in the registry MUST come from the generated map.
+ */
+const HAND_DECLARED_TOPICS = ["scansat.available", "scansat.scanningVessels"];
 
 // mod/sitrep-sdk/src -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -69,6 +77,22 @@ describe("typed Topic registry", () => {
 
   it("has no duplicate TopicIds", () => {
     expect(new Set(TOPIC_IDS).size).toBe(TOPIC_IDS.length);
+  });
+
+  it("is driven by the generated (codegen) map, not a hand-authored one", () => {
+    // The registry must be exactly the generated ids plus the documented hand tail —
+    // proving the map really comes from codegen (a stale/hand-maintained map would
+    // drift from GENERATED_TOPIC_IDS). Paired with the compile-time
+    // `_AssertNoTopicResolvesToUnknown` in topics.ts + the `_NoTopicIsUnknown` proof
+    // in topics.test-d.ts, this is the runtime half of "no Topic resolves to unknown".
+    expect(GENERATED_TOPIC_IDS.length).toBeGreaterThan(0);
+    for (const id of GENERATED_TOPIC_IDS) {
+      expect(TOPIC_IDS).toContain(id);
+    }
+    const nonGenerated = TOPIC_IDS.filter(
+      (t) => !(GENERATED_TOPIC_IDS as readonly string[]).includes(t),
+    ).sort();
+    expect(nonGenerated).toEqual([...HAND_DECLARED_TOPICS].sort());
   });
 
   it("TopicPayloadMap and TOPIC_IDS enumerate the same Topics", () => {

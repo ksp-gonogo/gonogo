@@ -53,6 +53,7 @@ public enum SasMode
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
+[SitrepTopic("vessel.control")]
 public class VesselControl
 {
     public bool? Sas { get; set; }
