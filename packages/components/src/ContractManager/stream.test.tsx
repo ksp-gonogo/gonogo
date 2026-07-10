@@ -12,11 +12,14 @@ import { ContractManagerComponent } from "./index";
  * The M3b career-detail batch's stream test-adapter proof for
  * ContractManager: genuinely running off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
- * `contracts.active`/`contracts.offered` (-> `career.status.contracts.
- * active`/`.offered`) are the two mapped reads. `contracts.
- * completedRecent`/`t.universalTime`/`v.altitude` are all still-gapped or
- * unrelated-to-career keys — carried by a `setupMockDataSource` AUX, same
- * mixed-source pattern the vessel-gap batch established.
+ * `contracts.active`/`contracts.offered`/`contracts.completedRecent` (->
+ * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
+ * mapped reads as of the P4a shared-map batch — `completedRecent` was
+ * un-gapped once `CareerContracts` started carrying it alongside
+ * active/offered (map-topic.ts's `TELEMACHUS_CLEAN_HOMES`). `t.universalTime`/
+ * `v.altitude` are unrelated-to-career keys — carried by a
+ * `setupMockDataSource` AUX, same mixed-source pattern the vessel-gap batch
+ * established.
  */
 afterEach(() => {
   cleanup();
@@ -31,11 +34,7 @@ describe("ContractManager — genuinely runs off the stream (M3b career-detail b
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [
-        { key: "contracts.completedRecent" },
-        { key: "t.universalTime" },
-        { key: "v.altitude" },
-      ],
+      keys: [{ key: "t.universalTime" }, { key: "v.altitude" }],
       connectSource: true,
     });
 
@@ -50,7 +49,6 @@ describe("ContractManager — genuinely runs off the stream (M3b career-detail b
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("contracts.completedRecent", []);
       legacyAux.source.emit("t.universalTime", 1500500);
       legacyAux.source.emit("v.altitude", 85000);
       fixture.emit("career.status", {
@@ -88,6 +86,20 @@ describe("ContractManager — genuinely runs off the stream (M3b career-detail b
               parameters: [],
             },
           ],
+          completedRecent: [
+            {
+              id: "5566778899001122",
+              title: "Test the Communotron 16 in orbit of Kerbin",
+              agent: "Kerbin Space Program",
+              state: "Completed",
+              fundsAdvance: 0,
+              fundsCompletion: 4000,
+              scienceCompletion: 2,
+              reputationCompletion: 1,
+              dateDeadline: 0,
+              parameters: [],
+            },
+          ],
         },
         strategies: null,
         tech: null,
@@ -103,6 +115,11 @@ describe("ContractManager — genuinely runs off the stream (M3b career-detail b
     expect(
       screen.getByText("Test RT-10 solid fuel booster in flight"),
     ).toBeTruthy();
+    // Proves `contracts.completedRecent` genuinely routed off the stream
+    // too (not just active/offered) — reflected in the subtitle's recent
+    // count, same "count changes" proof `index.test.tsx`'s legacy
+    // equivalent test uses.
+    expect(screen.getByText(/1 active · 1 offered · 1 recent/i)).toBeTruthy();
 
     teardownMockDataSource(legacyAux);
   });

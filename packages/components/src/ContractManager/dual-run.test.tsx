@@ -15,17 +15,20 @@ import { ContractManagerComponent } from "./index";
  * (mirrors `Strategies/dual-run.test.tsx`): the SAME contract state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`. `contracts.active`/
- * `contracts.offered` (-> `career.status.contracts.active`/`.offered`) are
- * the two migrated reads — `parseContracts` normalizes `agent` ->
- * `agency`/`reputationCompletion` -> `repCompletion`/`dateDeadline` ->
- * `deadlineUt`. `contracts.completedRecent` (no wire equivalent) and
- * `t.universalTime`/`v.altitude` (unrelated to career) stay legacy on both
- * legs. The fixture is `small-career-detail.json`, not any of the other
- * ContractManager fixtures: `career.status.contracts` entries never carry
- * `optional`/`parameterType` on their parameters (career-capture-extend-
- * report.md), and every OTHER fixture sets at least one parameter's
- * `optional: true` or `parameterType`, which the new wire can never
- * reproduce (see that fixture's own `_meta.notes`).
+ * `contracts.offered`/`contracts.completedRecent` (->
+ * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
+ * three migrated reads as of the P4a shared-map batch — `parseContracts`
+ * normalizes `agent` -> `agency`/`reputationCompletion` ->
+ * `repCompletion`/`dateDeadline` -> `deadlineUt`. `t.universalTime`/
+ * `v.altitude` (unrelated to career) stay legacy on both legs. The fixture's
+ * `contracts.completedRecent` is empty, so the migration is exercised (both
+ * legs genuinely read from their respective sources) without changing the
+ * rendered DOM either leg produces. The fixture is `small-career-detail.json`,
+ * not any of the other ContractManager fixtures: `career.status.contracts`
+ * entries never carry `optional`/`parameterType` on their parameters
+ * (career-capture-extend-report.md), and every OTHER fixture sets at least
+ * one parameter's `optional: true` or `parameterType`, which the new wire
+ * can never reproduce (see that fixture's own `_meta.notes`).
  */
 afterEach(() => {
   cleanup();
@@ -49,11 +52,7 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [
-        { key: "contracts.completedRecent" },
-        { key: "t.universalTime" },
-        { key: "v.altitude" },
-      ],
+      keys: [{ key: "t.universalTime" }, { key: "v.altitude" }],
       connectSource: true,
     });
 
@@ -66,10 +65,6 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
     );
 
     act(() => {
-      legacyAux.source.emit(
-        "contracts.completedRecent",
-        smallCareerDetail["contracts.completedRecent"],
-      );
       legacyAux.source.emit(
         "t.universalTime",
         smallCareerDetail["t.universalTime"],
@@ -94,10 +89,25 @@ describe("ContractManager — behavior-preservation golden dual-run (delay=0)", 
           dateDeadline: deadlineUt,
         };
       });
+      const wireCompletedRecent = smallCareerDetail[
+        "contracts.completedRecent"
+      ].map((c) => {
+        const { agency, repCompletion, deadlineUt, ...rest } = c;
+        return {
+          ...rest,
+          agent: agency,
+          reputationCompletion: repCompletion,
+          dateDeadline: deadlineUt,
+        };
+      });
       streamFixture.emit("career.status", {
         economy: null,
         facilities: null,
-        contracts: { active: wireActive, offered: wireOffered },
+        contracts: {
+          active: wireActive,
+          offered: wireOffered,
+          completedRecent: wireCompletedRecent,
+        },
         strategies: null,
         tech: null,
       });
