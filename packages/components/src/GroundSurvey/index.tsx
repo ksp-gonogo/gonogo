@@ -1,5 +1,5 @@
 import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import { AugmentSlot, registerComponent } from "@gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -26,6 +26,29 @@ interface GroundSurveyConfig {
   freezeBelowM?: number;
   /** Above this hft (m) the strip stays idle. Default 10 000. */
   surveyCeilingM?: number;
+}
+
+/**
+ * Props for `ground-survey.badges` — the widget's BROAD escape-hatch slot
+ * (spec §4.8 composable badges), rendered in the header beside the smoothness
+ * badge. Meant for small inline status chips an Uplink wants next to the
+ * verdict; badge augments read their own Topics via hooks, so only labelling
+ * context is passed down.
+ */
+export interface GroundSurveyBadgesContext {
+  /** Body currently being surveyed (`v.body`), when known. */
+  body: string | null;
+  /** Survey phase driving the strip. */
+  surveyState: "idle" | "active" | "frozen" | "above-ceiling";
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// slot work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "ground-survey.badges": GroundSurveyBadgesContext;
+  }
 }
 
 function GroundSurveyComponent({
@@ -66,6 +89,13 @@ function GroundSurveyComponent({
   const showPrediction =
     rows >= 4 && survey.predictedLat !== null && survey.predictedLon !== null;
 
+  // Slot props (spec §4.4). `badges` carries only labelling context — badge
+  // augments read their own Topics via hooks.
+  const badgesContext: GroundSurveyBadgesContext = {
+    body: survey.body,
+    surveyState: survey.surveyState,
+  };
+
   return (
     <Panel>
       <Header>
@@ -86,6 +116,7 @@ function GroundSurveyComponent({
         <BadgeArea>
           <SmoothnessBadge verdict={verdict} />
           {showSpeed && <SpeedReadout speed={survey.surfaceSpeed} />}
+          <AugmentSlot name="ground-survey.badges" props={badgesContext} />
         </BadgeArea>
       </Header>
       {showStrip && (
@@ -351,6 +382,9 @@ registerComponent<GroundSurveyConfig>({
   ],
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
+  // Broad badges escape-hatch slot in the header meta row (spec §4.8). No
+  // filler ships here — that's an Uplink augment (P3/P6).
+  augmentSlots: ["ground-survey.badges"],
   pushable: true,
   requires: ["flight"],
 });
