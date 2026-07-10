@@ -3,10 +3,14 @@ import {
   getBody,
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
-  useDataValue,
-  useOrbitElements,
+  useTelemetry,
 } from "@gonogo/core";
+import {
+  type StreamStatusValue,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+  type VesselState,
+} from "@gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
@@ -15,10 +19,88 @@ import {
   StatusPill,
   StreamStatusBadge,
 } from "@gonogo/ui";
+import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+
+/**
+ * Provider-optional read of a raw OR derived stream Topic — mirrors
+ * `@gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
+ * `TelemetryProvider` is mounted instead of throwing. OrbitView reads its
+ * derived `vessel.state.*` fields (which are not wire `TopicId`s, so the
+ * canonical `useTelemetry` overload can't type them) through this and stays
+ * crash-safe in a provider-less render (the widget gallery / probe harness) by
+ * degrading to its "No orbital data" empty state.
+ */
+function useStreamOptional<T>(topic: string): T | undefined {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
+  );
+  const getSnapshot = useCallback((): T | undefined => {
+    if (!store) return undefined;
+    // A derived channel's `derive` runs inside `sample` and can throw — e.g.
+    // `deriveVesselState`'s OnRails branch calls the elliptical-only Kepler
+    // solver, which throws for a hyperbolic orbit (ecc≥1, an escape
+    // trajectory). Degrade to `undefined` rather than crashing the widget;
+    // the fields read through this hook (trueAnomaly / parentBodyName) are
+    // non-essential and their consumers already tolerate `undefined`.
+    try {
+      const point = store.sample<T>(topic, store.currentFrame());
+      return point ? (point.payload as T | undefined) : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [store, topic]);
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/**
+ * Provider-optional staleness/absence surface for a raw stream Topic — the
+ * `useStreamOptional` sibling for status. `"disconnected"` when no
+ * `TelemetryProvider` is mounted, matching the empty-state posture the value
+ * read degrades to.
+ */
+function useStreamStatusOptional(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const inputTopics = store.resolveSubscriptionTopics(topic);
+      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+        client.subscribe(inputTopic, () => {}),
+      );
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+      };
+    },
+    [client, store, topic],
+  );
+  const getSnapshot = useCallback(
+    (): StreamStatusValue =>
+      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
+    [store, topic],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
 
 interface OrbitViewConfig {
   /** Show Ap/Pe markers. Default: true. */
@@ -53,24 +135,40 @@ function OrbitViewComponent({
     },
   });
 
-  const sma = useDataValue("data", "o.sma");
-  const eccentricity = useDataValue("data", "o.eccentricity");
-  const trueAnomaly = useDataValue("data", "o.trueAnomaly");
-  const { apoapsisRadius: apoapsisR, periapsisRadius: periapsisR } =
-    useOrbitElements();
-  const argPe = useDataValue("data", "o.argumentOfPeriapsis");
-  const bodyName = useDataValue("data", "v.body");
-  // Connectivity indicator (M3 mechanical-tail batch). `o.sma` is this
-  // widget's representative MAPPED key (-> raw `vessel.orbit.sma`) —
-  // `o.eccentricity`/`o.argumentOfPeriapsis` are mapped the same way
-  // (`vessel.orbit.ecc`/`vessel.orbit.argPe`) and ride the same
-  // `vessel.orbit` carried-channel gate, so one badge speaks for all three.
-  // `o.trueAnomaly`/`v.body` and `useOrbitElements`'s six keys (o.ApR/o.PeR/
-  // o.ApA/o.PeA/o.timeToAp/o.timeToPe) are all GAPPED (map-topic.ts) and stay
-  // legacy. `useBodyRotation` (below) is fed by `useCelestialBodies`, which
-  // calls `getDataSource()` directly — a custom-hook bypass the shim never
-  // touches — so the rotation marker stays legacy regardless of mapping.
-  const streamStatus = useDataStreamStatus("data", "o.sma");
+  // R6 de-Telemachus: every read rides the SDK stream directly, no legacy
+  // `useDataValue("data", …)` fallback.
+  //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
+  //  - `vessel.state` (client-side derived channel, SharedLib §1b) carries
+  //    `trueAnomaly` (propagated at view-UT) and `parentBodyName` (identity
+  //    index → `system.bodies` name). It isn't a wire `TopicId`, so it reads
+  //    through the provider-optional `useStreamOptional`.
+  //  - The apsis RADII are the raw elements themselves (`sma·(1±ecc)`) — a
+  //    trivial, conic-agnostic formula computed here rather than read from
+  //    `vessel.state.apoapsisRadius`/`periapsisRadius`, because
+  //    `deriveVesselState`'s OnRails branch throws for hyperbolic orbits
+  //    (ecc≥1, escape trajectories) before it ever computes those fields.
+  //  - `useBodyRotation` derives the pole marker client-side from the body's
+  //    `rotationPeriod` + view-UT (SharedLib §1b); `useIsOrbiting` stays a
+  //    shared hook.
+  const orbit = useTelemetry("vessel.orbit");
+  const vesselState = useStreamOptional<VesselState>("vessel.state");
+  const sma = orbit?.sma;
+  const eccentricity = orbit?.ecc;
+  const argPe = orbit?.argPe ?? undefined;
+  const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
+  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const apoapsisR =
+    sma !== undefined && eccentricity !== undefined
+      ? sma * (1 + eccentricity)
+      : undefined;
+  const periapsisR =
+    sma !== undefined && eccentricity !== undefined
+      ? sma * (1 - eccentricity)
+      : undefined;
+  // Connectivity indicator — `vessel.orbit` is this widget's representative
+  // read Topic (it gates the diagram's elements), so one badge speaks for the
+  // whole widget.
+  const streamStatus = useStreamStatusOptional("vessel.orbit");
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
@@ -207,6 +305,9 @@ registerComponent<OrbitViewConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 3 },
   component: OrbitViewComponent,
+  // Legacy `dataRequirements` kept during migration (rename/removal is R7);
+  // the reads themselves are stream-native (`vessel.orbit` + the `vessel.state`
+  // derived channel).
   dataRequirements: [
     "o.sma",
     "o.eccentricity",

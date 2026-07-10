@@ -1,6 +1,5 @@
 import type {
   ActionDefinition,
-  AvailableVesselEntry,
   ComponentProps,
   ConfigComponentProps,
 } from "@gonogo/core";
@@ -10,9 +9,10 @@ import {
   resolveTargetName,
   useActionInput,
   useDataStreamStatus,
-  useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@gonogo/core";
+import type { VesselRosterEntry } from "@gonogo/sitrep-sdk";
 import {
   Button,
   ConfigForm,
@@ -32,28 +32,9 @@ import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 
 // Config is empty post-migration — the kOS-driven vessel feed has been
-// retired in favour of native `tar.availableVessels`.
+// retired in favour of the native `system.vessels` roster.
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
-
-/**
- * `system.vessels`' roster shape (`SystemViewProvider.BuildSystemVessels`) —
- * the M3 vessel-gap batch's replacement for the legacy `tar.availableVessels`
- * array. NO position/distance field (the new channel is a static snapshot
- * list, not per-vessel kinematics) — `normalizeRoster` below always reports
- * `Number.POSITIVE_INFINITY` distance for these entries, which
- * `formatDistance` already renders as "—".
- */
-interface RosterVesselEntry {
-  vesselId: string;
-  name: string;
-  vesselType: number;
-  situation: number;
-  bodyIndex: number | null;
-}
-interface RosterPayload {
-  vessels: RosterVesselEntry[];
-}
 
 /** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
  * ordinal -> display-label bridge for the new roster shape. */
@@ -75,14 +56,13 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
   "Unknown",
 ];
 
-/** Common display shape both the legacy `AvailableVesselEntry[]` and the
- * new `system.vessels` roster normalize into — the widget renders/sorts
- * off this alone, never branching on the source shape past this point. */
+/** Display shape the `system.vessels` roster normalizes into — the widget
+ * renders/sorts off this alone. */
 interface DisplayVesselEntry {
   /** React list key + `pendingTarget` disambiguator. */
   key: string;
-  /** Exact bracket arg for `tar.setTargetVessel[...]` — a legacy positional
-   * index (`String(index)`) or the roster's stable `vesselId` guid. */
+  /** Exact bracket arg for `tar.setTargetVessel[...]` — the roster's stable
+   * `vesselId` guid. */
   targetArg: string;
   name: string;
   type: string;
@@ -90,37 +70,25 @@ interface DisplayVesselEntry {
   distance: number;
 }
 
-function isRosterPayload(
-  raw: AvailableVesselEntry[] | RosterPayload,
-): raw is RosterPayload {
-  return !Array.isArray(raw);
-}
-
+/** `system.vessels`' roster (`SystemViewProvider.BuildSystemVessels`) carries
+ * NO position/distance field — a static snapshot list, not per-vessel
+ * kinematics — so every entry reports `Number.POSITIVE_INFINITY` distance,
+ * which `formatDistance` already renders as "—". */
 function normalizeRoster(
-  raw: AvailableVesselEntry[] | RosterPayload | undefined,
+  vessels: readonly VesselRosterEntry[] | undefined,
   bodies: ReturnType<typeof useCelestialBodies>,
 ): DisplayVesselEntry[] {
-  if (raw === undefined) return [];
-  if (!isRosterPayload(raw)) {
-    return raw.map((entry) => ({
-      key: `legacy:${entry.index}`,
-      targetArg: String(entry.index),
-      name: entry.name,
-      type: entry.type,
-      body: entry.body || null,
-      distance: vectorMagnitude(entry.position),
-    }));
-  }
-  return raw.vessels.map((entry) => ({
+  if (vessels === undefined) return [];
+  return vessels.map((entry) => ({
     key: `roster:${entry.vesselId}`,
     targetArg: entry.vesselId,
     name: entry.name,
     type: VESSEL_TYPE_LABELS[entry.vesselType] ?? "Unknown",
     body:
-      entry.bodyIndex === null
+      entry.bodyIndex == null
         ? null
         : (bodies.find((b) => b.index === entry.bodyIndex)?.name ?? null),
-    // No position on the new roster shape — formatDistance(Infinity) -> "—".
+    // No position on the roster shape — formatDistance(Infinity) -> "—".
     distance: Number.POSITIVE_INFINITY,
   }));
 }
@@ -140,10 +108,17 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const bodies = useCelestialBodies();
-  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
-  const tarType = useDataValue("data", "tar.type") as string | undefined;
-  const tarDistance = useDataValue("data", "tar.distance");
-  const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");
+  // Target-detail reads are Wave-1 clean homes (R6 §1) routed through
+  // `useTelemetry`'s legacy two-arg form onto their SDK-derived homes:
+  // `tar.name` -> `vessel.target.name`, `tar.type` -> `vessel.state.targetKind`
+  // (enum-ordinal → display name), `tar.distance` -> `vessel.state.targetDistance`
+  // (|relativePosition|) and `tar.o.relativeVelocity` ->
+  // `vessel.state.targetRelativeSpeed` (signed range-rate). Each shape matches
+  // the legacy scalar exactly, so the shim's fallback is a safe pass-through.
+  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
+  const tarType = useTelemetry("data", "tar.type") as string | undefined;
+  const tarDistance = useTelemetry("data", "tar.distance");
+  const tarRelVel = useTelemetry("data", "tar.o.relativeVelocity");
   const execute = useExecuteAction("data");
   const streamStatus = useDataStreamStatus("data", "tar.availableVessels");
 
@@ -161,8 +136,8 @@ function TargetPickerComponent({
   // Pending state — which row is awaiting the `tar.name` readback after a
   // click. We render a spinner on that row until the readback confirms
   // (or a 5 s safety net clears it). Body rows use the integer index;
-  // vessel rows use the vessel's `index` from `tar.availableVessels`
-  // (same disambiguator as the React key).
+  // vessel rows use the roster entry's `key` (same disambiguator as the
+  // React key).
   const [pendingTarget, setPendingTarget] = useState<{
     kind: "body" | "vessel";
     id: string;
@@ -193,22 +168,16 @@ function TargetPickerComponent({
     void execute("tar.clearTarget");
   };
 
-  // ── Vessel listing via tar.availableVessels ──────────────────────────────
-  // Native Telemachus path now — used to be a kOS managed script; replaced
-  // 2026-05-14. One subscription, server filters Flag/EVA/Debris/Unknown
-  // and the active vessel itself, position vector is local-frame so the
-  // client derives distance from `magnitude`. M3 vessel-gap batch: mapped
-  // onto `system.vessels` (map-topic.ts) when a TelemetryProvider carries
-  // it — a structurally different roster shape (no position/distance field),
-  // normalized into `DisplayVesselEntry` above so the rest of this
-  // component never branches on which shape fed it.
-  const availableVessels = useDataValue<AvailableVesselEntry[] | RosterPayload>(
-    "data",
-    "tar.availableVessels",
-  );
+  // ── Vessel listing via the `system.vessels` roster ───────────────────────
+  // Read canonically off the stream (R6): the roster is a structurally
+  // different shape from the legacy `tar.availableVessels` array (no position/
+  // distance field), so there is no shape-compatible legacy fallback to keep —
+  // the canonical Topic read drops the Telemachus path outright and only ever
+  // sees `{ vessels: [...] }`, normalized into `DisplayVesselEntry` above.
+  const roster = useTelemetry("system.vessels");
   const displayVessels = useMemo(
-    () => normalizeRoster(availableVessels, bodies),
-    [availableVessels, bodies],
+    () => normalizeRoster(roster?.vessels, bodies),
+    [roster, bodies],
   );
 
   const targetVessel = (entry: DisplayVesselEntry) => {
@@ -349,7 +318,7 @@ function TargetPickerComponent({
             </SpaceObjectToggle>
           )}
         </VesselsHeader>
-        {availableVessels === undefined ? (
+        {roster === undefined ? (
           <Hint>Waiting for vessel list…</Hint>
         ) : sorted.length === 0 ? (
           <Hint>No targets in range.</Hint>
@@ -495,11 +464,6 @@ function TargetPickerComponent({
   );
 }
 
-function vectorMagnitude(v: [number, number, number] | undefined): number {
-  if (!v) return Number.POSITIVE_INFINITY;
-  return Math.hypot(v[0], v[1], v[2]);
-}
-
 interface BodyTreeNodeProps {
   body: ReturnType<typeof useCelestialBodies>[number];
   childrenOf: Map<string, ReturnType<typeof useCelestialBodies>>;
@@ -557,9 +521,9 @@ function TargetPickerConfigComponent(
       <Field>
         <FieldLabel>Target Picker</FieldLabel>
         <FieldHint>
-          No config — bodies come from Telemachus's <code>b.*</code> bucket,
-          vessels from <code>tar.availableVessels</code>. Click a row to set the
-          KSP target; click Clear in the Current tab to drop it.
+          No config — bodies come from the <code>system.bodies</code> roster,
+          vessels from <code>system.vessels</code>. Click a row to set the KSP
+          target; click Clear in the Current tab to drop it.
         </FieldHint>
       </Field>
     </ConfigForm>
@@ -867,7 +831,7 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab streams `tar.availableVessels` (mapped onto `system.vessels`'s roster once live) and click-to-target by index or stable vessel id. Current tab shows the active target's name / type / distance / Δv with a clear button.",
+    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body in the system grouped by reference-body. Vessels tab streams the `system.vessels` roster and click-to-targets by stable vessel id. Current tab shows the active target's name / type / distance / Δv with a clear button.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },

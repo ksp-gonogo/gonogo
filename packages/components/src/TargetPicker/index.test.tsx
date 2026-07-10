@@ -24,7 +24,6 @@ const KEYS: DataKey[] = [
   { key: "tar.type" },
   { key: "tar.distance" },
   { key: "tar.o.relativeVelocity" },
-  { key: "tar.availableVessels" },
 ];
 
 function renderPicker(
@@ -134,68 +133,11 @@ describe("TargetPickerComponent", () => {
     expect(screen.getByRole("button", { name: /Mun/ })).toBeInTheDocument();
   });
 
-  it("renders vessels from tar.availableVessels sorted by distance", async () => {
-    const user = userEvent.setup();
-    renderPicker();
-    await user.click(screen.getByRole("tab", { name: "Vessels" }));
-    act(() => {
-      source.emit("tar.availableVessels", [
-        {
-          index: 5,
-          name: "Far Probe",
-          type: "Probe",
-          situation: "ORBITING",
-          body: "Kerbin",
-          // 12 km vector
-          position: [12_000, 0, 0],
-        },
-        {
-          index: 9,
-          name: "Close Sat",
-          type: "Satellite",
-          situation: "ORBITING",
-          body: "Kerbin",
-          // ~80 m vector
-          position: [80, 0, 0],
-        },
-      ]);
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Close Sat")).toBeInTheDocument();
-      expect(screen.getByText("Far Probe")).toBeInTheDocument();
-    });
-    const rows = screen.getAllByRole("button", {
-      name: /Close Sat|Far Probe/,
-    });
-    expect(rows[0]).toHaveTextContent("Close Sat");
-    expect(rows[1]).toHaveTextContent("Far Probe");
-  });
-
-  it("clicking a vessel row fires tar.setTargetVessel with its server index", async () => {
-    const user = userEvent.setup();
-    renderPicker();
-    await user.click(screen.getByRole("tab", { name: "Vessels" }));
-    act(() => {
-      source.emit("tar.availableVessels", [
-        {
-          index: 12,
-          name: "Hubble Mk II",
-          type: "Probe",
-          situation: "ORBITING",
-          body: "Kerbin",
-          position: [200, 0, 0],
-        },
-      ]);
-    });
-    await waitFor(() =>
-      expect(screen.getByText("Hubble Mk II")).toBeInTheDocument(),
-    );
-
-    await user.click(screen.getByRole("button", { name: /Hubble/ }));
-    await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("tar.setTargetVessel[12]");
-    });
-  });
+  // The Vessels tab now reads the `system.vessels` roster canonically off the
+  // stream (no legacy `tar.availableVessels` array shape), so roster rendering
+  // and click-to-target are covered by `stream.test.tsx`, which drives the real
+  // TelemetryProvider pipeline. This file keeps the legacy-fallback coverage
+  // for the shape-compatible scalar reads (bodies, current-target details).
 
   it("renders current target details and clears via tar.clearTarget", async () => {
     const user = userEvent.setup();
