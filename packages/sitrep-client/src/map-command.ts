@@ -156,10 +156,10 @@ function toggleHome(command: string, readTopic: string): CommandHome {
  * shim safely falls back to legacy — exactly the documented "if unknowable,
  * prefer the safest mapping" contract, never a guessed toggle.
  *
- * `f.abort` gets no equivalent: `VesselControl` has no `Abort` field on the
- * wire AT ALL, not even inside the array (`map-topic.ts`: "`v.abortValue`:
- * `VesselControl` has no Abort field at all") — there's nothing to index, so
- * it stays a plain `KNOWN_COMMAND_GAPS` entry instead.
+ * `f.abort` UN-GAPPED (P4a command batch): `VesselControl` now carries a
+ * plain `Abort` field (`vessel.control.abort` — see `map-topic.ts`'s
+ * `TELEMACHUS_CLEAN_HOMES`), so it gets the same clean `toggleHome` bridge
+ * as sas/rcs/gear/brake/light below rather than this array-indexing one.
  */
 function actionGroupHome(groupNumber: number): CommandHome {
   const readTopic = `vessel.control.actionGroups.${groupNumber - 1}`;
@@ -270,6 +270,8 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
   "f.gear": toggleHome("vessel.control.setGear", "vessel.control.gear"),
   "f.brake": toggleHome("vessel.control.setBrakes", "vessel.control.brakes"),
   "f.light": toggleHome("vessel.control.setLights", "vessel.control.lights"),
+  // VesselCommandProvider.SetAbortCommand (P4a command batch un-gap).
+  "f.abort": toggleHome("vessel.control.setAbort", "vessel.control.abort"),
   "f.ag1": actionGroupHome(1),
   "f.ag2": actionGroupHome(2),
   "f.ag3": actionGroupHome(3),
@@ -412,10 +414,8 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
  * without a silent third case.
  */
 export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
-  // --- toggle with no read-side home to invert (bridge 1's honest limit) ---
-  // f.abort: VesselControl has no Abort field anywhere on the wire (not even
-  // in the ActionGroups array) — see actionGroupHome's own doc comment.
-  "f.abort",
+  // f.abort UN-GAPPED (P4a command batch) — see toggleHome's
+  // TELEMACHUS_COMMAND_HOMES entry above.
 
   // --- no discrete command exists for a continuous raw control axis ---
   // v.setPitch/setYaw/setRoll/setTranslation: the M1 vessel.control.*

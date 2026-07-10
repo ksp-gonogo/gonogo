@@ -28,7 +28,10 @@ import {
  * the widget's focus as typed slot props (§4.4).
  */
 
-const KEYS: DataKey[] = [{ key: "sci.instruments" }, { key: "sci.dataAmount" }];
+const KEYS: DataKey[] = [
+  { key: "sci.instruments" },
+  { key: "sci.experiments" },
+];
 
 const INSTRUMENT: Instrument = {
   partId: 1,
@@ -47,7 +50,9 @@ async function renderFullList(): Promise<MockDataSourceFixture> {
   render(<ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />);
   act(() => {
     fixture.source.emit("sci.instruments", [INSTRUMENT]);
-    fixture.source.emit("sci.dataAmount", 12.5);
+    fixture.source.emit("sci.experiments", [
+      { subjectId: "mysteryGoo@test", dataAmount: 12.5 },
+    ]);
   });
   await waitFor(() => expect(screen.getByText("Mystery Goo")).toBeTruthy());
   return fixture;

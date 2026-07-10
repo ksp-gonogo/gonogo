@@ -23,8 +23,7 @@ const KEYS: DataKey[] = [
   { key: "s.sensor.pres" },
   { key: "s.sensor.grav" },
   { key: "s.sensor.acc" },
-  { key: "sci.count" },
-  { key: "sci.dataAmount" },
+  { key: "science.sensors" },
   { key: "sci.experiments" },
   { key: "sci.experimentBreakdown" },
   { key: "career.mode" },
@@ -111,6 +110,44 @@ describe("ScienceBenchComponent", () => {
     expect(screen.getByText(/290\.00 K/)).toBeInTheDocument();
   });
 
+  it("prefers science.sensors (whole-topic, D2 P4a) over the legacy per-type reads once it resolves", () => {
+    render(<ScienceBenchComponent config={{}} id="sci" />);
+    act(() => {
+      // Legacy per-type reads still arrive (still-carried on the old
+      // DataSource) — should be shadowed once science.sensors resolves.
+      source.emit("s.sensor.temp", [["legacyPart"], [111.1]]);
+      source.emit("science.sensors", [
+        {
+          partId: "1",
+          partName: "2HOT Thermometer",
+          type: "TEMP",
+          readout: "293.1K",
+          active: true,
+        },
+        {
+          partId: "2",
+          partName: "PresMat Barometer",
+          type: "PRES",
+          readout: "101.3kPa",
+          active: true,
+        },
+        {
+          partId: "3",
+          partName: "Disabled Thermometer",
+          type: "TEMP",
+          readout: "Off",
+          active: false,
+        },
+      ]);
+    });
+    expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument();
+    expect(screen.getByText(/293\.10 K/)).toBeInTheDocument();
+    expect(screen.getByText("PresMat Barometer")).toBeInTheDocument();
+    expect(screen.getByText(/101\.30 kPa/)).toBeInTheDocument();
+    expect(screen.queryByText("legacyPart")).not.toBeInTheDocument();
+    expect(screen.queryByText("Disabled Thermometer")).not.toBeInTheDocument();
+  });
+
   it("shows experiment title and data amount from sci.experiments", () => {
     render(<ScienceBenchComponent config={{}} id="sci" />);
     act(() => {
@@ -125,18 +162,26 @@ describe("ScienceBenchComponent", () => {
           subjectId: "mysteryGoo@KerbinFlyingLowGrasslands",
         },
       ]);
-      source.emit("sci.count", 1);
-      source.emit("sci.dataAmount", 5.5);
     });
     expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument();
     expect(screen.getByText("5.5 mits")).toBeInTheDocument();
   });
 
+  it("derives the Aboard record count/total mits from sci.experiments (D3, P4a)", () => {
+    render(<ScienceBenchComponent config={{}} id="sci" />);
+    act(() => {
+      source.emit("sci.experiments", [
+        { title: "Crew Report", dataAmount: 5, subjectId: "a" },
+        { title: "Temperature Scan", dataAmount: 8, subjectId: "b" },
+      ]);
+    });
+    expect(screen.getByText(/2 records/i)).toBeInTheDocument();
+    expect(screen.getByText(/13\.0 mits/i)).toBeInTheDocument();
+  });
+
   it("renders the breakdown view when sci.experimentBreakdown is present", () => {
     render(<ScienceBenchComponent config={{}} id="sci" />);
     act(() => {
-      source.emit("sci.count", 2);
-      source.emit("sci.dataAmount", 8);
       source.emit("sci.experimentBreakdown", [
         {
           subjectId: "crewReport@KerbinSrfLandedKSC",
@@ -217,6 +262,28 @@ describe("parseSensorReadings", () => {
     expect(
       parseSensorReadings([["No Sensors of the Appropriate Type"], [0]]),
     ).toBe("no sensors");
+  });
+
+  it("parses the leading numeric value out of science.sensors' readout string (D2, P4a)", () => {
+    expect(
+      parseSensorReadings([
+        { partId: "1", partName: "2HOT Thermometer", readout: "293.1K" },
+      ]),
+    ).toEqual([{ partName: "2HOT Thermometer", value: 293.1 }]);
+  });
+
+  it("drops a non-numeric readout (disabled sensor) instead of throwing", () => {
+    expect(
+      parseSensorReadings([
+        { partId: "1", partName: "2HOT Thermometer", readout: "Off" },
+      ]),
+    ).toBe("no sensors");
+  });
+
+  it("prefers a numeric value field over readout when both are present", () => {
+    expect(
+      parseSensorReadings([{ partName: "A", value: 42, readout: "999K" }]),
+    ).toEqual([{ partName: "A", value: 42 }]);
   });
 });
 

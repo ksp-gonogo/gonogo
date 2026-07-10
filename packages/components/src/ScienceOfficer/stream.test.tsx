@@ -13,10 +13,12 @@ import { ScienceOfficerComponent } from "./index";
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport` for `science.lab` — a NEW
  * capability, no legacy Telemachus/GonogoTelemetry analogue (`sci.
- * instruments`/`sci.dataAmount` stay legacy-only regardless of whether a
- * `TelemetryProvider` is mounted; a `setupMockDataSource` AUX carries those,
- * the same MIXED-source shape ScienceBench/PowerSystems' own M3 batches
- * established). Uses the exact idle-lab payload captured in
+ * instruments` stays legacy-only regardless of whether a `TelemetryProvider`
+ * is mounted; `sci.experiments` IS mapped (map-topic.ts) but isn't in THIS
+ * fixture's `carriedChannels`, so it too resolves off the legacy path here —
+ * a `setupMockDataSource` AUX carries both, the same MIXED-source shape
+ * ScienceBench/PowerSystems' own M3 batches established). Uses the exact
+ * idle-lab payload captured in
  * `local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json` (an
  * OPERATIONAL, 2-scientist, but IDLE Mobile Processing Lab — no data
  * loaded, `scienceRate` 0) — a valid steady state, not a placeholder.
@@ -34,7 +36,7 @@ describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab batch
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
-      keys: [{ key: "sci.instruments" }, { key: "sci.dataAmount" }],
+      keys: [{ key: "sci.instruments" }, { key: "sci.experiments" }],
       connectSource: true,
     });
 
@@ -48,7 +50,7 @@ describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab batch
 
     act(() => {
       legacyAux.source.emit("sci.instruments", []);
-      legacyAux.source.emit("sci.dataAmount", 0);
+      legacyAux.source.emit("sci.experiments", []);
       fixture.emit("science.lab", [
         {
           partName: "Mobile Processing Lab MPL-LG-2",

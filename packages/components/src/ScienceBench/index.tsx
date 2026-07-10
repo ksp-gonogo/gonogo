@@ -35,6 +35,33 @@ const SENSOR_UNITS: Record<SensorType, string> = {
   acc: "m/s²",
 };
 
+/** The mod's `SensorEntry.type` string (`Sitrep.Contract.SensorType` enum name, `TEMP`/`PRES`/`GRAV`/`ACC`) for each widget-facing sensor type. */
+const WIRE_SENSOR_TYPE: Record<SensorType, string> = {
+  temp: "TEMP",
+  pres: "PRES",
+  grav: "GRAV",
+  acc: "ACC",
+};
+
+/**
+ * Parses the `science.sensors` whole-topic read (D2, P4a) — a bare
+ * `SensorEntry[]` or `null`/`undefined` while not yet loaded — into a plain
+ * object array `readingFromObject`/`parseSensorReadings` can filter by
+ * `type` and parse per sensor row. Returns `null` (not "no sensors") when
+ * the topic hasn't resolved at all, so callers can fall back to the legacy
+ * per-type `s.sensor.<type>` read instead of showing a false "no sensors"
+ * for every type.
+ */
+function parseSensorEntryList(
+  raw: unknown,
+): Array<Record<string, unknown>> | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.filter(
+    (e): e is Record<string, unknown> =>
+      !!e && typeof e === "object" && !Array.isArray(e),
+  );
+}
+
 /**
  * Telemachus's `s.sensor.<type>` is documented loosely ("Sensor data by
  * type"). Defensive parser: accepts arrays of `{ partName, value }`-shaped
@@ -110,7 +137,7 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
 function readingFromObject(entry: unknown): SensorReading | null {
   if (!entry || typeof entry !== "object") return null;
   const e = entry as Record<string, unknown>;
-  const value =
+  let value =
     typeof e.value === "number"
       ? e.value
       : typeof e.reading === "number"
@@ -118,6 +145,16 @@ function readingFromObject(entry: unknown): SensorReading | null {
         : typeof e.v === "number"
           ? e.v
           : null;
+  if (value === null && typeof e.readout === "string") {
+    // science.sensors' `readout` (D2, P4a) is KSP's own human-readable
+    // sensor string (`ModuleEnviroSensor.readoutInfo`, e.g. "293.1K",
+    // "Off") rather than a raw number — pull the leading numeric value out
+    // of it. A non-numeric readout (an inactive/disabled sensor) has no
+    // match and the entry is dropped, same as Telemachus's old
+    // disabled-sensor `0` handling elsewhere in this file.
+    const match = e.readout.match(/-?\d+(?:\.\d+)?/);
+    value = match ? Number(match[0]) : null;
+  }
   if (value === null || !Number.isFinite(value)) return null;
   const partName =
     typeof e.partName === "string"
@@ -257,9 +294,15 @@ function ScienceBenchComponent({
   const presRaw = useDataValue("data", "s.sensor.pres");
   const gravRaw = useDataValue("data", "s.sensor.grav");
   const accRaw = useDataValue("data", "s.sensor.acc");
+  // D2 (P4a): `s.sensor.<type>` itself stays a known gap (no per-type
+  // fields on the new wire — see map-topic.ts) but the WHOLE sensor list
+  // (`science.sensors`, SensorEntry[]) is a clean new capability. Read it
+  // once and, when it's resolved, prefer a client-side filter-by-type over
+  // the four legacy per-type reads above (same mixed-source
+  // preferred-when-carried pattern PowerSystems/DistanceToTarget use).
+  const sensorEntriesRaw = useDataValue("data", "science.sensors");
+  const sensorEntries = parseSensorEntryList(sensorEntriesRaw);
 
-  const sciCount = useDataValue("data", "sci.count");
-  const sciDataAmount = useDataValue("data", "sci.dataAmount");
   const sciExperimentsRaw = useDataValue("data", "sci.experiments");
   const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
   // M3 science/parts batch: sci.experiments is mapped onto science.experiments
@@ -306,15 +349,32 @@ function ScienceBenchComponent({
   }, [highlightUntil]);
   const showNew = highlightUntil > Date.now();
 
-  const sensors: Array<[SensorType, unknown]> = [
-    ["temp", tempRaw],
-    ["pres", presRaw],
-    ["grav", gravRaw],
-    ["acc", accRaw],
-  ];
+  const legacySensorRaw: Record<SensorType, unknown> = {
+    temp: tempRaw,
+    pres: presRaw,
+    grav: gravRaw,
+    acc: accRaw,
+  };
+  const sensors: Array<[SensorType, unknown]> = SENSOR_TYPES.map((type) => [
+    type,
+    sensorEntries
+      ? sensorEntries.filter(
+          (e) =>
+            typeof e.type === "string" &&
+            e.type.toUpperCase() === WIRE_SENSOR_TYPE[type],
+        )
+      : legacySensorRaw[type],
+  ]);
 
   const experiments = parseExperiments(sciExperimentsRaw);
   const breakdown = parseExperimentBreakdown(sciBreakdownRaw);
+  // D3 (P4a): sci.count/sci.dataAmount stay gapped on the wire (no
+  // pre-aggregated field) — derive both client-side from the same
+  // already-migrated experiments array instead of a separate read.
+  const sciCount = experiments ? experiments.length : undefined;
+  const sciDataAmount = experiments
+    ? experiments.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
+    : undefined;
   const showCareer =
     typeof careerMode === "string" && careerMode.toUpperCase() !== "SANDBOX";
 
@@ -750,8 +810,7 @@ registerComponent<ScienceBenchConfig>({
     "s.sensor.pres",
     "s.sensor.grav",
     "s.sensor.acc",
-    "sci.count",
-    "sci.dataAmount",
+    "science.sensors",
     "sci.experiments",
     "sci.experimentBreakdown",
     "career.mode",

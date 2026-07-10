@@ -83,6 +83,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // those strings aren't known up front and need a prefix/glob extension to
   // the carried gate (deferred to the compute-feed slice).
   "kos.processors",
+  // P4a client-derivations batch: career.mode (D1, useGameContext's career
+  // mode display map) and science.sensors (D2, ScienceBench's whole-topic
+  // sensor-by-type filter).
+  "career.mode",
+  "science.sensors",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */

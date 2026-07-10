@@ -7,7 +7,11 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import { parseInstruments, ScienceOfficerComponent } from "./index";
+import {
+  parseInstruments,
+  ScienceOfficerComponent,
+  sumExperimentDataAmount,
+} from "./index";
 
 const KEYS: DataKey[] = [{ key: "sci.instruments" }];
 
@@ -85,6 +89,28 @@ describe("ScienceOfficerComponent", () => {
     expect(
       screen.getByText(/1\/3 with data · 1 deployed · 1 inoperable/i),
     ).toBeInTheDocument();
+  });
+
+  it("derives the total data readout from sci.experiments (D3, P4a)", () => {
+    render(<ScienceOfficerComponent config={{}} id="sci-off" />);
+    act(() => {
+      source.emit("sci.instruments", [
+        {
+          partId: 1,
+          partTitle: "Mystery Goo",
+          expId: "mysteryGoo",
+          deployed: true,
+          hasData: true,
+          rerunnable: false,
+          inoperable: false,
+        },
+      ]);
+      source.emit("sci.experiments", [
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b", dataAmount: 7.5 },
+      ]);
+    });
+    expect(screen.getByText(/12\.5 mits/i)).toBeInTheDocument();
   });
 
   it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
@@ -194,5 +220,32 @@ describe("parseInstruments", () => {
     ]);
     expect(parsed).toHaveLength(2);
     expect(parsed?.[1].partTitle).toBe("Unknown part");
+  });
+});
+
+describe("sumExperimentDataAmount", () => {
+  it("returns 0 for non-array input", () => {
+    expect(sumExperimentDataAmount(null)).toBe(0);
+    expect(sumExperimentDataAmount(undefined)).toBe(0);
+    expect(sumExperimentDataAmount({})).toBe(0);
+  });
+
+  it("sums dataAmount across every entry", () => {
+    expect(
+      sumExperimentDataAmount([
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b", dataAmount: 8 },
+      ]),
+    ).toBe(13);
+  });
+
+  it("skips entries with a missing/non-numeric dataAmount", () => {
+    expect(
+      sumExperimentDataAmount([
+        { subjectId: "a", dataAmount: 5 },
+        { subjectId: "b" },
+        { subjectId: "c", dataAmount: "not a number" },
+      ]),
+    ).toBe(5);
   });
 });

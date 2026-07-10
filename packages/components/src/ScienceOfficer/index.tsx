@@ -98,6 +98,26 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   return out;
 }
 
+/**
+ * Sums `dataAmount` across every entry of `sci.experiments`/
+ * `science.experiments` (D3, P4a client-derivations batch) — the same
+ * vessel-wide aggregate the old `sci.dataAmount` Telemachus key carried,
+ * derived instead of read as a separate pre-aggregated field (no such field
+ * exists on the new wire).
+ */
+export function sumExperimentDataAmount(raw: unknown): number {
+  if (!Array.isArray(raw)) return 0;
+  let total = 0;
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const dataAmount = (entry as Record<string, unknown>).dataAmount;
+    if (typeof dataAmount === "number" && Number.isFinite(dataAmount)) {
+      total += dataAmount;
+    }
+  }
+  return total;
+}
+
 export interface LabStatus {
   partName: string;
   dataStored: number | null;
@@ -151,13 +171,15 @@ function ScienceOfficerComponent({
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
   const instrumentsRaw = useDataValue("data", "sci.instruments");
-  const dataAmountRaw = useDataValue<number>("data", "sci.dataAmount");
+  // D3 (P4a): sci.dataAmount stays gapped on the wire (no pre-aggregated
+  // field) — derive the vessel-wide total client-side from the same
+  // already-migrated sci.experiments read ScienceBench uses (sci.experiments
+  // -> science.experiments, map-topic.ts), same aggregate semantics as the
+  // old Telemachus key ("Total science data (mits)", telemachusMeta.ts).
+  const experimentsRaw = useDataValue("data", "sci.experiments");
   const instruments = parseInstruments(instrumentsRaw);
   const execute = useExecuteAction("data");
-  const totalDataMits =
-    typeof dataAmountRaw === "number" && Number.isFinite(dataAmountRaw)
-      ? dataAmountRaw
-      : 0;
+  const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   // M3 science/parts batch: science.lab is a NEW capability (no legacy
   // sci.instruments equivalent — the Mobile Processing Lab is a different
@@ -651,7 +673,7 @@ registerComponent<ScienceOfficerConfig>({
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ScienceOfficerComponent,
-  dataRequirements: ["sci.instruments", "sci.dataAmount", "science.lab"],
+  dataRequirements: ["sci.instruments", "sci.experiments", "science.lab"],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["science-officer.sections", "science-officer.badges"],

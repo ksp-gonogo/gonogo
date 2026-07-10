@@ -67,12 +67,15 @@ describe("mapCommand", () => {
       ).toEqual({ command: "vessel.control.setSas", args: { enabled: true } });
     });
 
-    it("f.rcs/f.gear/f.brake/f.light each invert their own sibling read topic", () => {
+    it("f.rcs/f.gear/f.brake/f.light/f.abort each invert their own sibling read topic", () => {
       const table: Array<[string, string, string]> = [
         ["f.rcs", "vessel.control.rcs", "vessel.control.setRcs"],
         ["f.gear", "vessel.control.gear", "vessel.control.setGear"],
         ["f.brake", "vessel.control.brakes", "vessel.control.setBrakes"],
         ["f.light", "vessel.control.lights", "vessel.control.setLights"],
+        // f.abort UN-GAPPED (P4a command batch) — VesselControl.Abort now
+        // ships on the wire, same clean toggle bridge as its siblings.
+        ["f.abort", "vessel.control.abort", "vessel.control.setAbort"],
       ];
       for (const [action, readTopic, command] of table) {
         expect(
@@ -138,9 +141,8 @@ describe("mapCommand", () => {
       expect(mapCommand("data", "f.ag1", () => undefined)).toBeUndefined();
     });
 
-    it("f.abort has no read-side home to invert (VesselControl has no Abort field at all) — always a gap", () => {
-      expect(mapCommand("data", "f.abort", () => true)).toBeUndefined();
-      expect(isKnownCommandGap("data", "f.abort")).toBe(true);
+    it("f.abort is no longer a known command gap", () => {
+      expect(isKnownCommandGap("data", "f.abort")).toBe(false);
     });
   });
 

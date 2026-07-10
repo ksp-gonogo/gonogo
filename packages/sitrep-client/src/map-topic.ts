@@ -272,6 +272,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.gearValue": "vessel.control.gear",
   "v.brakeValue": "vessel.control.brakes",
   "v.lightValue": "vessel.control.lights",
+  // v.abortValue (P4a command batch): VesselControl.Abort now ships on the
+  // wire — see TELEMACHUS_KNOWN_GAPS's matching (removed) entry.
+  "v.abortValue": "vessel.control.abort",
 
   // --- vessel.structure / vessel.crew ---
   "v.currentStage": "vessel.structure.currentStage",
@@ -434,6 +437,25 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // career-detail batch's `currentLevelText`/`nextLevelText` established.
   // `deployed.available` stays gapped below — see that entry for why. ---
   "deployed.bases": "science.deployed",
+
+  // --- P4a client-derivations batch: career.mode + science.sensors. ---
+
+  // career.mode (D1): CareerMode is its own 2-segment raw wire topic
+  // ({ mode: GameMode }, CareerViewProvider) — a raw-field walk to the
+  // single `mode` field (the numeric GameMode ordinal: Sandbox 0/Career
+  // 1/Science 2/Unknown 3). useGameContext resolves the ordinal to the
+  // SANDBOX/CAREER/SCIENCE/Unknown string ScienceBench and useGameContext's
+  // own callers already read (see useGameContext.ts's resolveCareerMode).
+  "career.mode": "career.mode.mode",
+
+  // science.sensors (D2): NEW capability, no legacy per-type `s.sensor.
+  // <type>` equivalent (those four stay individually gapped below — no
+  // per-type field exists on the wire, only this general SensorEntry[]
+  // list). Whole-topic identity read, same "key == topic" precedent as
+  // parts.power/parts.robotics/science.lab above — ScienceBench filters the
+  // array by `type` client-side (WIRE_SENSOR_TYPE in ScienceBench/index.tsx)
+  // rather than the mod re-shaping it into four fixed fields.
+  "science.sensors": "science.sensors",
 };
 
 /** `b.<field>[i]` parametric family (name/radius/soi/mass/geeASL/
@@ -581,17 +603,17 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // the rest don't exist as individual fields on VesselControl
   // (mod/Sitrep.Contract/VesselControl.cs) yet ---
 
-  // v.abortValue: VesselControl has no Abort field at all.
-  // gap: no Abort field on the vessel.control contract yet; migrate in M3
-  "v.abortValue",
+  // v.abortValue UN-GAPPED (P4a command batch): VesselControl now carries a
+  // plain `Abort` field (`vessel.control.abort`, camelCase on the wire) —
+  // see TELEMACHUS_CLEAN_HOMES above.
 
   // v.ag1Value..v.ag10Value UN-GAPPED (R6 shared-derivations batch): the
   // fixed-order `VesselControl.actionGroups` bool[] is now split into ten
   // per-index `vessel.state.actionGroup{n}` booleans each ActionGroup widget
   // instance reads as its own bool (plus a dynamic `vessel.state.actionGroups`
   // keyed map for Action Groups Extended's variable count). See
-  // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid on
-  // abort/precision — `v.abortValue`/`v.precisionControlValue` below.)
+  // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid only
+  // on precision — `v.precisionControlValue` below.)
 
   // v.precisionControlValue: no field on VesselControl yet (matches
   // f.precisionControl's existing gap below).
@@ -721,7 +743,11 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "t.universalTime",
 
   // --- out of vessel-provider scope by design — separate provider families ---
-  "career.mode",
+  // career.mode UN-GAPPED (D1, P4a client-derivations batch): CareerMode is
+  // its own raw wire topic ({ mode: GameMode }) — a plain raw-field walk to
+  // career.mode.mode (the numeric GameMode ordinal). useGameContext resolves
+  // the ordinal to the SANDBOX/CAREER/SCIENCE/Unknown string the widgets
+  // read (no vessel.state field needed — see TELEMACHUS_CLEAN_HOMES above).
   "kc.crewRoster",
   // kc.facilityLevels un-gapped M3b career-detail batch — see CLEAN_HOMES
   // above (career.status.facilities, SpaceCenterStatus's parseFacilityLevels

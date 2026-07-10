@@ -58,6 +58,42 @@ const KNOWN_MODES: ReadonlySet<CareerMode> = new Set<CareerMode>([
 ]);
 
 /**
+ * `Sitrep.Contract.GameMode`'s enum declaration order (`contract.ts`:
+ * Sandbox 0 / Career 1 / Science 2 / Unknown 3) — index-matched so the
+ * mapped `career.mode.mode` ordinal resolves via a plain array lookup.
+ */
+const GAME_MODE_ORDINAL: readonly CareerMode[] = [
+  "SANDBOX",
+  "CAREER",
+  "SCIENCE",
+  "Unknown",
+];
+
+/**
+ * `career.mode` (P4a D1) reads through two possible shapes depending on
+ * whether the read routed to the stream or the legacy `DataSource`:
+ *  - **legacy** (GonogoTelemetry's `career.mode` Telemachus key): a plain
+ *    string (`"CAREER"`/`"SCIENCE"`/`"SANDBOX"`, any casing).
+ *  - **stream** (mapped to `career.mode.mode` — see `map-topic.ts`): the
+ *    mod's `GameMode` enum ORDINAL (a number), since `CareerMode.mode` is
+ *    serialized as `(int)mode` on the wire, not the enum name.
+ * Both resolve to the same `CareerMode` display string here so callers never
+ * need to know which source answered.
+ */
+function resolveCareerMode(raw: unknown): CareerMode {
+  if (typeof raw === "number") {
+    return GAME_MODE_ORDINAL[raw] ?? "Unknown";
+  }
+  if (
+    typeof raw === "string" &&
+    KNOWN_MODES.has(raw.toUpperCase() as CareerMode)
+  ) {
+    return raw.toUpperCase() as CareerMode;
+  }
+  return "Unknown";
+}
+
+/**
  * Bundled subscription to KSP context telemetry. Widgets read this
  * single hook to decide whether their own data is "live" — most flight
  * widgets dim themselves outside `Flight`, career-only widgets dim
@@ -76,11 +112,7 @@ export function useGameContext(): GameContext {
       ? (sceneRaw as GameScene)
       : "Unknown";
 
-  const careerMode: CareerMode =
-    typeof careerModeRaw === "string" &&
-    KNOWN_MODES.has(careerModeRaw.toUpperCase() as CareerMode)
-      ? (careerModeRaw.toUpperCase() as CareerMode)
-      : "Unknown";
+  const careerMode: CareerMode = resolveCareerMode(careerModeRaw);
 
   const inFlight = scene === "Flight";
   const padOccupied = padOccupiedRaw === true;

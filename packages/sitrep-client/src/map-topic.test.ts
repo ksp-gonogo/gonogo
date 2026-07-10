@@ -296,10 +296,19 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "career.funds")).toBe(false);
     expect(isKnownTelemachusGap("data", "career.reputation")).toBe(false);
     expect(isKnownTelemachusGap("data", "career.science")).toBe(false);
-    // career.mode stays gapped (ScienceBench/useGameContext, out of this
-    // batch's scope — no economy-group equivalent).
-    expect(mapTopic("data", "career.mode")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "career.mode")).toBe(true);
+  });
+
+  it("maps career.mode onto its own raw wire topic's mode field (P4a D1)", () => {
+    expect(mapTopic("data", "career.mode")).toBe("career.mode.mode");
+    expect(isKnownTelemachusGap("data", "career.mode")).toBe(false);
+  });
+
+  it("maps science.sensors as a whole-topic identity read (P4a D2)", () => {
+    expect(mapTopic("data", "science.sensors")).toBe("science.sensors");
+    expect(isKnownTelemachusGap("data", "science.sensors")).toBe(false);
+    // The four per-type reads stay gapped — no per-type field on the wire.
+    expect(mapTopic("data", "s.sensor.temp")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "s.sensor.temp")).toBe(true);
   });
 
   it("maps the M3b career-detail batch's facilities/contracts/strategies/tech reads onto career.status", () => {
@@ -447,16 +456,16 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
       expect(mapTopic("data", "v.lightValue")).toBe("vessel.control.lights");
     });
 
-    it("gaps the action-group keys with no individual field on VesselControl", () => {
-      // v.ag1Value..v.ag10Value moved to CLEAN_HOMES (R6 shared-derivations):
-      // derived per-index off vessel.control.actionGroups[] as
-      // vessel.state.actionGroup{n} — see the R6 test above. abort/precision
-      // stay gapped (BUILD — no field on VesselControl yet).
-      const noIndividualField = ["v.abortValue", "v.precisionControlValue"];
-      for (const key of noIndividualField) {
-        expect(mapTopic("data", key)).toBeUndefined();
-        expect(isKnownTelemachusGap("data", key)).toBe(true);
-      }
+    it("maps v.abortValue onto vessel.control.abort (P4a command batch)", () => {
+      expect(mapTopic("data", "v.abortValue")).toBe("vessel.control.abort");
+      expect(isKnownTelemachusGap("data", "v.abortValue")).toBe(false);
+    });
+
+    it("gaps v.precisionControlValue — no individual field on VesselControl yet", () => {
+      expect(mapTopic("data", "v.precisionControlValue")).toBeUndefined();
+      expect(isKnownTelemachusGap("data", "v.precisionControlValue")).toBe(
+        true,
+      );
     });
   });
 });
