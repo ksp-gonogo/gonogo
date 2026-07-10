@@ -64,6 +64,63 @@ export interface ShipDiagramSvgProps {
  *  under the radius so axial-stack joints don't get misclassified. */
 const STACK_LAT_TOL = 0.3;
 
+/** Screen-space margin (px) reserved around the fit-scaled diagram. */
+export const SHIP_DIAGRAM_PADDING = 24;
+
+/** Metre-space fit bounds of the projected vessel (see {@link project}). */
+export interface ShipBounds {
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Base (identity-camera) metres→px scale that fits `bounds` into a
+ * `width`×`height` viewport with {@link SHIP_DIAGRAM_PADDING} margin. The
+ * single source of truth shared by the diagram's own render and the
+ * `ship-map.overlay` slot props, so an overlay augment projects into the same
+ * coordinate space the diagram draws in.
+ */
+export function computeShipBaseScale(
+  bounds: { w: number; h: number },
+  width: number,
+  height: number,
+): number {
+  return Math.min(
+    (width - SHIP_DIAGRAM_PADDING * 2) / Math.max(bounds.w, 0.001),
+    (height - SHIP_DIAGRAM_PADDING * 2) / Math.max(bounds.h, 0.001),
+  );
+}
+
+/** The base-frame layout an overlay augment needs to draw in the diagram's space. */
+export interface ShipBaseLayout {
+  bounds: ShipBounds;
+  baseScale: number;
+  padding: number;
+}
+
+/**
+ * Compute the diagram's base-frame layout (fit bounds + metres→px scale) for a
+ * given part set and viewport. Mirrors exactly what `ShipDiagramSvg` computes
+ * internally; exposed so the host widget can hand the same projection to the
+ * `ship-map.overlay` slot (spec §4.4). The base frame is the identity-camera
+ * projection — the diagram's live zoom/pan is layered on top of it at render
+ * time and is not reflected here.
+ */
+export function computeShipLayout(
+  parts: readonly ShipMapPart[],
+  width: number,
+  height: number,
+): ShipBaseLayout {
+  const { bounds } = project(parts);
+  return {
+    bounds,
+    baseScale: computeShipBaseScale(bounds, width, height),
+    padding: SHIP_DIAGRAM_PADDING,
+  };
+}
+
 /**
  * Pure SVG rendering of the ship diagram. Separated from the interactive
  * `ShipDiagram` shell (Wrapper/Reset/Tooltip) so the harness + snapshot
@@ -102,11 +159,7 @@ export function ShipDiagramSvg({
     );
   }
 
-  const padding = 24;
-  const baseScale = Math.min(
-    (width - padding * 2) / Math.max(bounds.w, 0.001),
-    (height - padding * 2) / Math.max(bounds.h, 0.001),
-  );
+  const baseScale = computeShipBaseScale(bounds, width, height);
 
   const toBase = (lat: number, axial: number) => ({
     x: width / 2 + (lat - bounds.cx) * baseScale,

@@ -1,14 +1,73 @@
 import type { ComponentProps, VesselTopology } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import { AugmentSlot, registerComponent, useDataValue } from "@gonogo/core";
 import { usePartsLive, useTopology } from "@gonogo/data";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ShipDiagram } from "./ShipDiagram";
+import { computeShipLayout, type ShipBounds } from "./ShipDiagramSvg";
 import {
   buildShipMapPart,
   pickLateralAxis,
   type ShipMapPart,
 } from "./shipTopology";
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4). ShipMap is a HOST that exposes
+// two slots; no first-party augment fills them here (that is P3/P6), so each
+// renders nothing until an Uplink registers an augment into it.
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for `ship-map.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * layer absolutely positioned over the part-diagram canvas. Carries the
+ * diagram's base-frame projection so an augment — e.g. a future Kerbalism
+ * `Reliability` Uplink badging a malfunctioning/critical part directly on the
+ * diagram — can place marks in the diagram's own coordinate space.
+ *
+ * Project a part at metre-space `(lat, axial)` to overlay px with:
+ *   x = width / 2 + (lat - bounds.cx) * baseScale
+ *   y = height / 2 - (axial - bounds.cy) * baseScale
+ * `parts` carries each part's `lat`/`axial`/geometry to feed that transform.
+ * This is the identity-camera frame; the diagram's live zoom/pan is internal
+ * and not reflected here (matches OrbitView's overlay contract).
+ */
+export interface ShipMapOverlayContext {
+  /** The projected parts (per-part `lat`/`axial`/`flightId`/geometry). */
+  parts: readonly ShipMapPart[];
+  /** Overlay layer width in px (matches the diagram canvas). */
+  width: number;
+  /** Overlay layer height in px (matches the diagram canvas). */
+  height: number;
+  /** Metre-space fit bounds of the projected vessel. */
+  bounds: ShipBounds;
+  /** Base (identity-camera) metres→px scale. */
+  baseScale: number;
+  /** Screen-space margin (px) reserved around the fit-scaled diagram. */
+  padding: number;
+}
+
+/**
+ * Props for `ship-map.badges` — the widget's BROAD escape-hatch slot (spec
+ * §4.8 composable badges), rendered in the header meta row. Meant for small
+ * inline status chips an Uplink wants beside the part count; badge augments
+ * read their own Topics via hooks, so only labelling context is passed down.
+ */
+export interface ShipMapBadgesContext {
+  /** Number of parts currently rendered. */
+  partCount: number;
+  /** Hottest part name (`therm.hottestPartName`), when known. */
+  hottestPartName: string | null;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// slot work on other widgets never collides on this seam.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "ship-map.overlay": ShipMapOverlayContext;
+    "ship-map.badges": ShipMapBadgesContext;
+  }
+}
 
 interface ShipMapConfig {
   /** Reserved. No widget-level options yet; kept for forward
@@ -97,6 +156,31 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [externalTemperature],
   );
 
+  // Slot props (spec §4.4). `badges` carries labelling context; `overlay`
+  // carries the diagram's base-frame projection so an augment can draw in the
+  // diagram's coordinate space. `overlay` is null until parts resolve — the
+  // overlay layer only mounts once there's a diagram beneath it.
+  const badgesContext: ShipMapBadgesContext = {
+    partCount: parts.length,
+    hottestPartName: highlight,
+  };
+  const overlayContext: ShipMapOverlayContext | null = useMemo(() => {
+    if (parts.length === 0) return null;
+    const { bounds, baseScale, padding } = computeShipLayout(
+      parts,
+      size.w,
+      size.h,
+    );
+    return {
+      parts,
+      width: size.w,
+      height: size.h,
+      bounds,
+      baseScale,
+      padding,
+    };
+  }, [parts, size]);
+
   return (
     <Panel>
       {renderBody(
@@ -107,6 +191,8 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         setWrapEl,
         ambientTint,
         throttle,
+        badgesContext,
+        overlayContext,
       )}
     </Panel>
   );
@@ -150,6 +236,8 @@ function renderBody(
   setWrapEl: (el: HTMLDivElement | null) => void,
   ambientTint: string | null,
   throttle: number,
+  badgesContext: ShipMapBadgesContext,
+  overlayContext: ShipMapOverlayContext | null,
 ) {
   if (!topology) {
     return (
@@ -168,6 +256,7 @@ function renderBody(
         {parts.length} part{parts.length === 1 ? "" : "s"}
         <MetaTag>· seq {topology.topologySeq}</MetaTag>
         {highlight && <MetaTag>· hot: {highlight}</MetaTag>}
+        <AugmentSlot name="ship-map.badges" props={badgesContext} />
       </Meta>
       <DiagramWrap ref={setWrapEl} $tint={ambientTint}>
         <ShipDiagram
@@ -177,6 +266,11 @@ function renderBody(
           height={size.h}
           throttle={throttle}
         />
+        {overlayContext && (
+          <OverlayLayer>
+            <AugmentSlot name="ship-map.overlay" props={overlayContext} />
+          </OverlayLayer>
+        )}
       </DiagramWrap>
     </>
   );
@@ -224,6 +318,18 @@ const MetaTag = styled.span`
   color: var(--color-text-faint);
 `;
 
+// Absolutely-positioned layer over the part diagram for `ship-map.overlay`
+// augments. Sits above the SVG (z-index 1) and the ambient tint (z-index 0),
+// and stays out of the diagram's pointer path so an empty slot is visually and
+// interactively inert — an overlay augment re-enables pointer events on its own
+// elements when it needs them.
+const OverlayLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+`;
+
 const DiagramWrap = styled.div<{ $tint: string | null }>`
   flex: 1;
   min-height: 0;
@@ -263,6 +369,10 @@ registerComponent<ShipMapConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
+  // Exposes an overlay slot (drawn over the part diagram, passed the diagram's
+  // base-frame projection) and a broad badges escape-hatch slot in the header
+  // meta row. No first-party augment fills either yet (spec §4).
+  augmentSlots: ["ship-map.overlay", "ship-map.badges"],
   // useTopology internally subscribes to v.topologySeq + briefly to
   // v.topology on bump; per-part live data joins via usePartsLive.
   dataRequirements: [
