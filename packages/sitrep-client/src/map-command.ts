@@ -389,6 +389,31 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
+  // --- science.experiment.* — delayed:true actuation on the craft, same
+  // partId shape ScienceOfficer already sends as its bracketed arg
+  // (`sci.deploy[${instrument.partId}]`/`sci.transmit[${instrument.partId}]`,
+  // ScienceOfficer/index.tsx). Confirmed against
+  // `mod/Sitrep.Host/ScienceCommandProvider.cs`'s `DeployCommand`/
+  // `TransmitCommand` consts and `mod/Sitrep.Contract/ScienceCommands.cs`'s
+  // `ExperimentActionArgs.PartId` (wire-cased `partId`). An empty partId is
+  // never dispatched — the handler's own fail-fast treats it as
+  // `CommandErrorCode.NotFound`, so there's no reason to let a blank string
+  // through when the shim can catch it client-side first.
+  "sci.deploy": {
+    command: "science.experiment.deploy",
+    buildArgs: (rawArgs) => {
+      const partId = rawArgs[0];
+      return partId ? { partId } : INVALID;
+    },
+  },
+  "sci.transmit": {
+    command: "science.experiment.transmit",
+    buildArgs: (rawArgs) => {
+      const partId = rawArgs[0];
+      return partId ? { partId } : INVALID;
+    },
+  },
+
   // --- M3 vessel-gap batch: bridge 2 un-gap. system.vessels' roster entries
   // now carry a stable vesselId (Vessel.id guid, SystemViewProvider
   // .BuildSystemVessels), closing this file's own "index -> stable-id" gap
@@ -450,10 +475,6 @@ export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   "robotics.rotor.setMotor",
   "robotics.rotor.setLock",
   "robotics.rotor.reverse",
-
-  // --- science domain — matches sci.* read-side gaps ---
-  "sci.deploy",
-  "sci.transmit",
 
   // --- career domain — out of vessel-provider scope by design, matches the
   // career.*/kc.*/contracts.*/strategies.*/tech.* read-side gaps ---

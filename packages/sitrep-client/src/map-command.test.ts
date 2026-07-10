@@ -325,6 +325,32 @@ describe("mapCommand", () => {
     });
   });
 
+  describe("science.experiment.* — partId passthrough", () => {
+    it("sci.deploy carries the part id as arg[0]", () => {
+      expect(mapCommand("data", "sci.deploy[42]")).toEqual({
+        command: "science.experiment.deploy",
+        args: { partId: "42" },
+      });
+      expect(isKnownCommandGap("data", "sci.deploy[42]")).toBe(false);
+    });
+
+    it("sci.transmit carries the part id as arg[0]", () => {
+      expect(mapCommand("data", "sci.transmit[99]")).toEqual({
+        command: "science.experiment.transmit",
+        args: { partId: "99" },
+      });
+      expect(isKnownCommandGap("data", "sci.transmit[99]")).toBe(false);
+    });
+
+    it("an empty sci.deploy part id falls back to legacy", () => {
+      expect(mapCommand("data", "sci.deploy[]")).toBeUndefined();
+    });
+
+    it("an empty sci.transmit part id falls back to legacy", () => {
+      expect(mapCommand("data", "sci.transmit[]")).toBeUndefined();
+    });
+  });
+
   describe("isKnownCommandGap", () => {
     it("is false for a mapped action", () => {
       expect(isKnownCommandGap("data", "f.sas")).toBe(false);

@@ -207,13 +207,14 @@ function ScienceOfficerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
-  // P4a shared-map batch: sci.instruments -> science.instruments is mapped
-  // now (map-topic.ts) — this existing useDataValue("data", "sci.instruments")
-  // call rides the stream via the mapTopic shim with zero code change here;
-  // parseInstruments above is what actually changed (accepts both wire
-  // shapes). sci.deploy[...]/sci.transmit[...] (the spend commands) still
-  // have no command home (KNOWN_COMMAND_GAPS) and fall back to the legacy
-  // DataSource automatically — this batch migrates the read only.
+  // sci.instruments -> science.instruments is mapped (map-topic.ts) — this
+  // existing useDataValue("data", "sci.instruments") call rides the stream
+  // via the mapTopic shim with zero code change here; parseInstruments above
+  // is what actually changed (accepts both wire shapes). sci.deploy[...]/
+  // sci.transmit[...] (the spend commands) now have a command home too
+  // (map-command.ts's science.experiment.deploy/transmit) and route through
+  // the stream the same way — no code change needed here either, since
+  // execute() already goes through the shim regardless of route.
   const instrumentsRaw = useDataValue("data", "sci.instruments");
   // D3 (P4a): sci.dataAmount stays gapped on the wire (no pre-aggregated
   // field) — derive the vessel-wide total client-side from the same
