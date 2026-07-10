@@ -42,7 +42,7 @@ describe("TargetPicker — R6 roster render off the stream (delay=0)", () => {
       connectSource: true,
     });
 
-    const { container } = render(
+    render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tp-dual" }}>
           <TargetPickerComponent id="tp-dual" w={6} h={11} />
