@@ -1,24 +1,34 @@
-import { useDataValue } from "@gonogo/core";
+import { useTelemetry } from "@gonogo/core";
+import { collapseControlStateLevel } from "@gonogo/sitrep-client";
 import { SignalLossBanner, type SignalState } from "@gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Wires `SignalLossBanner` to the live CommNet state from the `"data"` source.
+ * Wires `SignalLossBanner` to the live CommNet state, read canonically off the
+ * `vessel.comms` stream Topic (`Sitrep.Contract.VesselComms`) — no legacy
+ * Telemachus `"data"` read and no read-fallback (R6 de-Telemachus).
  *
  * Signal state is derived from:
- *  - `comm.connected` — is there a link to KSC at all?
- *  - `comm.controlState` — 0 no control, 1 partial, 2 full.
+ *  - `vessel.comms.connected` — is there a link to KSC at all?
+ *  - `vessel.comms.controlState` — the raw `ControlState` enum, collapsed to
+ *    CommSignal's 0/1/2 level via the SharedLib `collapseControlStateLevel`
+ *    (the same collapse behind the derived `vessel.state.commsControlStateOrdinal`
+ *    channel): 0 no control, 1 partial, 2 full.
  *
- * Until Telemachus reports `comm.connected` (warmup, or no vessel active)
- * we stay in the "connected" state so the banner stays hidden — the banner
- * is for genuine blackouts, not absence of data.
+ * Until the stream reports `vessel.comms` (warmup, no vessel active, or no
+ * provider mounted) we stay in the "connected" state so the banner stays
+ * hidden — the banner is for genuine blackouts, not absence of data.
  *
  * Elapsed time is measured from the moment the state last left "connected".
  * A 1s interval ticks a render to keep the timer label fresh.
  */
 export function SignalLossIndicator() {
-  const connected = useDataValue("data", "comm.connected");
-  const controlState = useDataValue("data", "comm.controlState");
+  const comms = useTelemetry("vessel.comms");
+  const connected = comms?.connected;
+  const controlState =
+    comms === undefined
+      ? undefined
+      : collapseControlStateLevel(comms.controlState);
 
   // Mirror `BufferedDataSource`'s gate: only trust a `false` as a blackout
   // AFTER we've observed a confirmed `true`. Cold-start false (no vessel,

@@ -1020,6 +1020,21 @@ const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
 ];
 
 /**
+ * Collapse a raw `Sitrep.Contract.ControlState` enum ordinal
+ * (`vessel.comms.controlState`) to CommSignal's Telemachus 0/1/2 control-LEVEL
+ * scheme via {@link CONTROL_STATE_LEVEL}. `undefined` for an out-of-range /
+ * `Unknown` ordinal (unrecognized). This is the single source of truth for the
+ * collapse — both the derived `vessel.state.commsControlStateOrdinal` channel
+ * (below) and de-Telemachus'd consumers that read `vessel.comms` canonically
+ * (e.g. `SignalLossIndicator`) share it rather than re-tabulating the mapping.
+ */
+export function collapseControlStateLevel(
+  controlState: number,
+): number | undefined {
+  return CONTROL_STATE_LEVEL[controlState] ?? undefined;
+}
+
+/**
  * Generic enum-ordinal → NAME display-map resolver reading a single source
  * channel, mirroring `resolveBodyName`'s `undefined`-vs-`null` discipline:
  * `undefined` when the channel hasn't arrived (no point) or the ordinal is out
@@ -1056,7 +1071,7 @@ function resolveCommsControlStateOrdinal(
   const point = get<VesselCommsPayload>("vessel.comms");
   if (!point) return undefined;
   if (point.payload === null) return null;
-  return CONTROL_STATE_LEVEL[point.payload.controlState] ?? undefined;
+  return collapseControlStateLevel(point.payload.controlState);
 }
 
 /**

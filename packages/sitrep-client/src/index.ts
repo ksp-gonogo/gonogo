@@ -100,6 +100,7 @@ export type {
   VesselState,
 } from "./vessel-state";
 export {
+  collapseControlStateLevel,
   deriveVesselState,
   deriveVesselStateStatus,
   vesselStateChannel,
