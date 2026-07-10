@@ -1,78 +1,121 @@
-import { DashboardItemContext, registerStockBodies } from "@gonogo/core";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
 import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+  clearBodies,
+  DashboardItemContext,
+  registerStockBodies,
+} from "@gonogo/core";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
-import kerbinLko from "./__fixtures__/kerbin-lko.json";
 import { KeplerPeriodComponent } from "./index";
 
 /**
- * KeplerPeriod's M3 batch-3 behavior-preservation golden dual-run — a
- * degenerate case, unlike every prior widget's dual-run: since NOTHING is
- * migratable (see `stream.test.tsx`'s doc comment — both `useDataValue`
- * calls are GAPPED, and `o.period`, the graph series's paired key, is a
- * hard gap that blocks the whole plot regardless of `o.sma`'s own mapped
- * status), all 4 fixture keys stay on a legacy AUX source in the "stream"
- * leg. Re-verified unchanged in the M3 mechanical-tail batch now that
- * `useDataSeries` has its own stream shim. This test still earns its keep:
- * it proves mounting the widget inside a `TelemetryProvider`
- * (harness-present but functionally inert for this widget) produces
- * byte-identical DOM to a bare legacy mount — the migration wave didn't
- * regress a widget it left untouched.
+ * KeplerPeriod's R6 Wave-1 behavior test. This was a fork↔stream parity
+ * dual-run back when both `useDataValue` reads were GAPPED and the widget
+ * stayed 100% legacy — the stream leg had to feed the gapped keys through a
+ * legacy `"data"` `MockDataSource` because nothing streamed. The SharedLib
+ * phase un-gapped `v.body`/`o.referenceBody` onto the SDK-derived
+ * `vessel.state.parentBodyName`/`referenceBodyName` display maps, so the
+ * legacy MockDataSource leg is dropped: the widget now feeds entirely from
+ * the real stream pipeline (`TelemetryProvider` + `StubTransport`), and this
+ * test proves the POSITIVE path — a KNOWN streamed body resolves and the
+ * Kepler reference curve renders (the unknown-body degraded path is covered
+ * in `stream.test.tsx`).
  */
-afterEach(() => {
-  cleanup();
+beforeEach(() => {
+  clearBodies();
+  registerStockBodies();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class FakeResizeObserver {
+      private cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(_el: Element) {
+        this.cb(
+          [{ contentRect: { width: 400, height: 300 } } as ResizeObserverEntry],
+          this as unknown as ResizeObserver,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    },
+  );
 });
 
-const GAPPED_KEYS = ["v.body", "o.referenceBody", "o.sma", "o.period"] as const;
+afterEach(() => {
+  cleanup();
+  clearBodies();
+  vi.unstubAllGlobals();
+});
 
-describe("KeplerPeriod — behavior-preservation golden dual-run (delay=0)", () => {
-  it("renders IDENTICAL markup wrapped in a TelemetryProvider as bare legacy, for the same orbit state", async () => {
-    const mode = { name: "default-10x8", w: 10, h: 8 };
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+];
 
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: KeplerPeriodComponent,
-      fixture: kerbinLko,
-      mode,
-      connectSource: true,
+describe("KeplerPeriod — renders the reference curve off the stream (R6 Wave 1)", () => {
+  it("draws the Kepler curve once a known reference body streams in", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
     });
-
-    // Nothing is carried — no topic this widget reads has a stream home.
-    const streamFixture = setupStreamFixture({ carriedChannels: [] });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: GAPPED_KEYS.map((key) => ({ key })),
-      connectSource: true,
-    });
-    registerStockBodies();
 
     const { container } = render(
-      <streamFixture.Provider>
+      <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "kepler-dual" }}>
-          <KeplerPeriodComponent id="kepler-dual" w={mode.w} h={mode.h} />
+          <KeplerPeriodComponent id="kepler-dual" w={10} h={8} />
         </DashboardItemContext.Provider>
-      </streamFixture.Provider>,
+      </fixture.Provider>,
     );
 
+    // Kerbin's low orbit (kerbin-lko fixture) expressed as the derived
+    // channel's inputs: `referenceBodyIndex`/`parentBodyIndex` point at
+    // Kerbin (stock index 1), so `resolveBodyName` -> "Kerbin" and the widget
+    // resolves a real BodyDefinition with a `gm` to build the curve from.
     act(() => {
-      for (const key of GAPPED_KEYS) {
-        legacyAux.source.emit(key, kerbinLko[key as keyof typeof kerbinLko]);
-      }
+      fixture.emit("vessel.orbit", {
+        sma: 680000,
+        ecc: 0.0,
+        inc: 0.0,
+        argPe: 0.0,
+        mu: 3.5316e12,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        referenceBodyIndex: 1,
+      });
+      fixture.emit("vessel.identity", { parentBodyIndex: 1, launchUt: 0 });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: 600000,
+            orbit: null,
+          },
+        ],
+      });
     });
 
+    // A real subscription must have happened for StubTransport (subscription-
+    // gated) to deliver.
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
+
+    // The reference curve renders off the streamed, resolved body — no
+    // "Unknown body"/"No reference data" degraded notice.
     await waitFor(() => {
-      if (!container.textContent?.includes("KEPLER PERIOD")) {
-        throw new Error("widget has not rendered yet");
-      }
+      expect(
+        container.querySelectorAll("path[stroke-dasharray]").length,
+      ).toBeGreaterThan(0);
     });
-
-    const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
-
-    expect(streamHtml).toBe(legacyHtml);
+    expect(container.textContent).not.toContain("Unknown body");
+    expect(container.textContent).not.toContain("No reference data");
   });
 });

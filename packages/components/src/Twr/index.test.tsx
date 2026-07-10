@@ -1,72 +1,135 @@
-import type { DataKey } from "@gonogo/core";
-import { DashboardItemContext, type MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { DashboardItemContext } from "@gonogo/core";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
-const TWR_KEYS: DataKey[] = [{ key: "dv.currentTWR", unit: "g" }];
+/**
+ * Twr's R6 Wave-2 stream test: the widget genuinely runs OFF THE STREAM (a
+ * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
+ * `StubTransport`) — no legacy `DataSource` is registered anywhere in this
+ * file, so a rendered TWR value can only have come from the derived
+ * `vessel.state.twr` field.
+ *
+ * `dv.currentTWR` is MAPPED (`map-topic.ts`) to `vessel.state.twr` — TWR =
+ * currentThrust/(totalMass·g), derived client-side off `vessel.propulsion`
+ * (R6 shared-derivations batch, `vessel-state.ts`). `carriedChannels` lists
+ * all EIGHT of `vessel.state`'s declared inputs even though `deriveTwr` only
+ * consults `vessel.propulsion` — the carried-channels gate is
+ * parent-channel-scoped, not per-field (see `vesselStateChannel`'s doc
+ * comment).
+ *
+ * The sparkline history (`useDataSeries`) never renders here: a derived topic
+ * has no buffered range, so its own shim can't serve a series and there's no
+ * legacy source to fall back to — the value read is what's proven de-Telemachus'd.
+ */
+afterEach(() => {
+  cleanup();
+});
 
-describe("TwrComponent", () => {
-  let fixture: MockDataSourceFixture;
-  let source: MockDataSource;
+const STANDARD_GRAVITY = 9.80665;
 
-  beforeEach(async () => {
-    fixture = await setupMockDataSource({ keys: TWR_KEYS });
-    source = fixture.source;
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+];
+
+// `deriveVesselState` produces NO record until `vessel.orbit` is whole
+// (it early-returns `undefined` otherwise), and every derived field — TWR
+// included — hangs off that record. A minimal OnRails orbit is emitted
+// alongside `vessel.propulsion` so the record exists and `deriveTwr` can run.
+const ORBIT = {
+  sma: 682500,
+  ecc: 0.00367,
+  inc: 0.3,
+  argPe: 12.5,
+  mu: 3.5316e12,
+  meanAnomalyAtEpoch: 0,
+  epoch: 10,
+  referenceBodyIndex: 1,
+};
+
+/**
+ * Emit the whole-record orbit input plus a `vessel.propulsion` payload whose
+ * derived TWR (currentThrust / (totalMass · g), totalMass = 1 tonne) is
+ * exactly `twr`.
+ */
+function emitTwr(fixture: ReturnType<typeof setupStreamFixture>, twr: number) {
+  const thrust = twr * STANDARD_GRAVITY;
+  fixture.emit("vessel.orbit", ORBIT);
+  fixture.emit("vessel.propulsion", {
+    totalMass: 1,
+    dryMass: 0,
+    currentThrust: thrust,
+    availableThrust: thrust,
   });
+}
 
-  afterEach(() => {
-    teardownMockDataSource(fixture);
-  });
-
-  function renderTwr() {
-    return render(
+function renderTwr(fixture: ReturnType<typeof setupStreamFixture>) {
+  return render(
+    <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "twr-test" }}>
         <TwrComponent config={{}} id="twr-test" />
-      </DashboardItemContext.Provider>,
-    );
-  }
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+}
 
+describe("TwrComponent — genuinely runs off the stream (R6 Wave 2)", () => {
   it("shows the empty state before any telemetry arrives", async () => {
-    renderTwr();
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+    });
+    renderTwr(fixture);
     expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
+    // A real subscription must have happened for a value to ever arrive —
+    // StubTransport.emit is subscription-gated (see its own doc comment).
+    expect(fixture.transport.isSubscribed("vessel.propulsion")).toBe(true);
   });
 
-  it("renders TWR rounded to two decimals", async () => {
-    renderTwr();
-    act(() => {
-      source.emit("dv.currentTWR", 1.832);
+  it("renders TWR rounded to two decimals off the derived stream field", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
     });
-    // findByText awaits the value appearing — covers both the synchronous
-    // emit propagation and any follow-up state updates from the buffered
-    // series subscription that lives behind the sparkline.
+    renderTwr(fixture);
+    act(() => {
+      emitTwr(fixture, 1.832);
+    });
     expect(await screen.findByText("1.83")).toBeInTheDocument();
   });
 
   it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {
-    renderTwr();
-    act(() => {
-      source.emit("dv.currentTWR", 0.85);
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
     });
-    // The gauge's aria-label embeds the live value — that's the
-    // screen-reader-friendly assertion that doesn't depend on
-    // styled-components colour resolution.
+    renderTwr(fixture);
+    act(() => {
+      emitTwr(fixture, 0.85);
+    });
     expect(await screen.findByLabelText("TWR 0.85")).toBeInTheDocument();
   });
 
   it("draws three coloured zones on the dial (nogo / warning / ok)", async () => {
-    renderTwr();
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+    });
+    renderTwr(fixture);
     act(() => {
-      source.emit("dv.currentTWR", 1.5);
+      emitTwr(fixture, 1.5);
     });
     // Wait for the gauge to render the new value, then count the zone arcs
     // (1 track + 3 zones = 4 paths inside the gauge svg).
     const gauge = await screen.findByLabelText("TWR 1.50");
-    expect(gauge.querySelectorAll("path")).toHaveLength(4);
+    await waitFor(() => expect(gauge.querySelectorAll("path")).toHaveLength(4));
   });
 });

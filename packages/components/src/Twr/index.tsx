@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue } from "@gonogo/core";
+import { registerComponent, useTelemetry } from "@gonogo/core";
 import { useDataSeries } from "@gonogo/data";
 import {
   EmptyState,
@@ -45,7 +45,17 @@ function toneFor(twr: number): Tone {
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  const twr = useDataValue<number>("data", "dv.currentTWR");
+  // `dv.currentTWR` is MAPPED (`map-topic.ts`) to the derived
+  // `vessel.state.twr` field — TWR = currentThrust/(totalMass·g), computed
+  // client-side off `vessel.propulsion` (R6 shared-derivations batch). Once
+  // that channel is carried the headline value reads straight off the stream;
+  // no Telemachus read remains for this widget's live value.
+  const twr = useTelemetry<number>("data", "dv.currentTWR");
+  // The sparkline history stays on `useDataSeries` (its own M3 stream shim).
+  // A DERIVED topic has a live value but no buffered history, so this series
+  // resolves off the legacy path until a raw-input-backed history exists —
+  // see `useDataSeries`'s doc comment; the headline value above is fully
+  // de-Telemachus'd regardless.
   const series = useDataSeries("data", "dv.currentTWR", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
 

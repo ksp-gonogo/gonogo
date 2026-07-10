@@ -1,56 +1,70 @@
-import { DashboardItemContext } from "@gonogo/core";
-import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  clearBodies,
+  DashboardItemContext,
+  registerStockBodies,
+} from "@gonogo/core";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
 /**
- * The M3 batch-3 stream test-adapter proof for KeplerPeriod — but unlike
- * every prior migrated widget (WarpControl through LandingStatus), this one
- * has ZERO keys the read shim can migrate:
+ * KeplerPeriod's R6 Wave-1 stream proof. When this widget was first authored
+ * its two `useDataValue` reads (`v.body`, `o.referenceBody`) were declared
+ * GAPS, so it stayed 100% legacy and this test only asserted a stream-safe
+ * no-op. The SharedLib phase un-gapped both onto SDK-derived display maps —
+ * `v.body` -> `vessel.state.parentBodyName`, `o.referenceBody` ->
+ * `vessel.state.referenceBodyName` (index→name resolution against
+ * `system.bodies`, see `vessel-state.ts`) — so the reads are now migrated to
+ * `useTelemetry` and genuinely ride the stream.
  *
- * - Its only two `useDataValue` calls, `v.body` and `o.referenceBody`, are
- *   both declared GAPS in `map-topic.ts` ("needs a derived display-map/
- *   field subtopic; migrate in M3") — there is no mapped key to stream.
- * - `o.sma` and `o.period` (the graph's `xKey`/series `key`) are never read
- *   via `useDataValue` at all — they flow through `GraphView` ->
- *   `GraphSeries` -> `useDataSeries` (`@gonogo/data`).
+ * This test runs the widget OFF THE REAL PIPELINE (`TelemetryProvider` +
+ * `TelemetryClient`/`TimelineStore` via `StubTransport`, no legacy
+ * `DataSource` registered anywhere) and proves the body-name reads resolve
+ * through the derived channel: emitting a body the stock registry doesn't
+ * know surfaces the widget's "Unknown body" degraded notice, which fires
+ * ONLY when `bodyName` (the streamed `parentBodyName`) is defined but
+ * `getBody` can't resolve it — a positive assertion that the value reached
+ * the widget off the stream.
  *
- * **Re-verified in the M3 mechanical-tail batch**, after `useDataSeries`
- * grew its own stream shim (mirroring `useDataValue`'s — see
- * `SemiMajorAxis/index.tsx`): the conclusion is UNCHANGED, but for a
- * different, now-structural reason. `o.sma` itself IS mapped
- * (-> raw `vessel.orbit.sma`) and is in principle series-eligible, but its
- * paired series key, `o.period`, has no mapped home at all (a hard GAP —
- * `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`). Migrating `xKey` alone while
- * `key` stays on the legacy `BufferedDataSource` would pair a stream-sourced
- * x (UT seconds, `TimelineStore.sampleRange`) against a legacy-sourced y
- * (wall-clock `Date.now()` milliseconds) — `Graph/align.ts`'s `alignXY`
- * nearest-prior-match pairing (1s tolerance) would never pair a single point
- * across that unit mismatch, silently blanking the plot instead of erroring.
- * So the whole graph must stay on one source or the other, and with `o.
- * period` permanently gapped, that source is legacy.
+ * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs even
+ * though only `vessel.orbit`/`vessel.identity`/`system.bodies` are consulted
+ * here — the carried-channels gate is parent-channel-scoped, not per-field
+ * (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
  *
- * So this widget stays 100% legacy — no `useDataStreamStatus`/
- * `StreamStatusBadge` were added to `index.tsx` (there is no representative
- * mapped key whose live status would describe anything this widget actually
- * renders). This test exists to lock in that finding: mounting under a real
- * `TelemetryProvider` with no legacy `DataSource` registered must render
- * IDENTICALLY to a bare/no-data legacy mount — no crash, no different
- * degraded state — proving the harness is safe for a widget that opts out
- * of the shim entirely.
+ * The graph's `o.sma`/`o.period` series flow through `GraphView` ->
+ * `useDataSeries` (its own stream shim), not `useTelemetry`, so they're out
+ * of scope for this read-migration proof.
  */
-afterEach(() => {
-  cleanup();
+beforeEach(() => {
+  clearBodies();
+  registerStockBodies();
 });
 
-describe("KeplerPeriod — zero migratable keys, stream-safe no-op (M3 batch 3)", () => {
-  it("renders its normal no-data state under a TelemetryProvider with no legacy source, nothing streams", () => {
-    // No channel is carried — there's nothing this widget could read off
-    // the stream even if a topic were promoted.
-    const fixture = setupStreamFixture({ carriedChannels: [] });
+afterEach(() => {
+  cleanup();
+  clearBodies();
+});
 
-    const { container } = render(
+const VESSEL_STATE_INPUTS = [
+  "vessel.orbit",
+  "vessel.flight",
+  "vessel.identity",
+  "system.bodies",
+  "vessel.control",
+  "vessel.target",
+  "vessel.comms",
+  "vessel.propulsion",
+];
+
+describe("KeplerPeriod — reads body names off the stream (R6 Wave 1)", () => {
+  it("resolves parentBodyName/referenceBodyName from the derived channel and surfaces the unknown-body notice", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+    });
+
+    render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "kepler-stream" }}>
           <KeplerPeriodComponent id="kepler-stream" w={10} h={8} />
@@ -59,11 +73,51 @@ describe("KeplerPeriod — zero migratable keys, stream-safe no-op (M3 batch 3)"
     );
 
     // GraphView's title always renders regardless of data state.
-    expect(container.textContent).toContain("KEPLER PERIOD");
-    // v.body/o.referenceBody are both undefined (GAPPED, no legacy source
-    // registered) — neither degraded-state notice fires, matching a bare
-    // legacy mount with no DataSource at all.
-    expect(container.textContent).not.toContain("Unknown body");
-    expect(container.textContent).not.toContain("No reference data");
+    expect(screen.getByText("KEPLER PERIOD")).toBeTruthy();
+    // Nothing arrived yet — neither degraded notice fires.
+    expect(screen.queryByText(/Unknown body/)).toBeNull();
+
+    // Emit the derived channel's inputs. `referenceBodyIndex` /
+    // `parentBodyIndex` both point at a body the stock registry has never
+    // heard of, so `getBody` returns undefined and the widget degrades to
+    // its "Unknown body" notice.
+    act(() => {
+      fixture.emit("vessel.orbit", {
+        sma: 682500,
+        ecc: 0.00367,
+        inc: 0.3,
+        argPe: 12.5,
+        mu: 3.5316e12,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        referenceBodyIndex: 42,
+      });
+      fixture.emit("vessel.identity", {
+        parentBodyIndex: 42,
+        launchUt: 0,
+      });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Gallium",
+            index: 42,
+            parentIndex: 0,
+            radius: 100000,
+            orbit: null,
+          },
+        ],
+      });
+    });
+
+    // A real subscription must have happened for StubTransport (which is
+    // subscription-gated) to have delivered at all.
+    expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
+    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+
+    // The streamed body name reached the widget: it can't resolve "Gallium"
+    // in the stock registry, so the unknown-body notice renders with the
+    // exact streamed name.
+    await waitFor(() => expect(screen.getByText(/Unknown body/)).toBeTruthy());
+    expect(screen.getByText(/Gallium/)).toBeTruthy();
   });
 });
