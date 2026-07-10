@@ -20,23 +20,20 @@ import { AtmosphereProfileComponent } from "./index";
  * `kerbin-sea-level` is chosen because it populates every field the widget
  * reads and puts `showLiveChip`'s gate (density finite + body has an
  * atmosphere) in play, so the LIVE CHIP — the one piece of DOM that
- * actually surfaces the two MAPPED values (`v.altitude` -> DERIVED
+ * actually surfaces the MAPPED values (`v.altitude` -> DERIVED
  * `vessel.state.altitudeAsl`, `v.atmosphericDensity` -> raw `vessel.
- * flight.atmDensity`) — renders on both legs. `v.body` (GAPPED — needs a
- * display-map subtopic) and `v.atmosphericTemperature`/`v.
- * externalTemperature` (GAPPED — not captured on the wire, G-11) read off
- * a legacy AUX source in the stream leg; the pressure curve itself is
- * entirely a function of the legacy-fed body, not any mapped key.
+ * flight.atmDensity`, `v.atmosphericTemperature`/`v.externalTemperature`
+ * (UN-GAPPED in P4a) -> raw `vessel.flight.atmosphericTemperature` /
+ * `vessel.flight.externalTemperature`) — renders on both legs. `v.body`
+ * (GAPPED — needs a display-map subtopic) reads off a legacy AUX source in
+ * the stream leg; the pressure curve itself is entirely a function of the
+ * legacy-fed body, not any mapped key.
  */
 afterEach(() => {
   cleanup();
 });
 
-const GAPPED_KEYS = [
-  "v.body",
-  "v.atmosphericTemperature",
-  "v.externalTemperature",
-] as const;
+const GAPPED_KEYS = ["v.body"] as const;
 
 describe("AtmosphereProfile — behavior-preservation golden dual-run (delay=0)", () => {
   it("renders IDENTICAL markup off the stream as off the legacy DataSource for the same atmosphere state", async () => {
@@ -90,14 +87,14 @@ describe("AtmosphereProfile — behavior-preservation golden dual-run (delay=0)"
       streamFixture.emit("vessel.flight", {
         altitudeAsl: kerbinSeaLevel["v.altitude"],
         atmDensity: kerbinSeaLevel["v.atmosphericDensity"],
+        atmosphericTemperature: kerbinSeaLevel["v.atmosphericTemperature"],
+        externalTemperature: kerbinSeaLevel["v.externalTemperature"],
       });
     });
 
-    // "289 °C"-style air-temp text alone isn't sufficient — that comes from
-    // the legacy AUX source's v.atmosphericTemperature, which can land
-    // before the STREAM leg's mapped vessel.flight emission has actually
-    // propagated through the store. Wait on the LiveChip's density value —
-    // a value the stream leg alone produces — so the race can't produce a
+    // Wait on the LiveChip's density value — a value the stream leg alone
+    // produces — so the race between the stream leg's mapped vessel.flight
+    // emission and the legacy AUX leg's v.body emission can't produce a
     // false green.
     await waitFor(() => {
       if (!container.textContent?.includes("1.217 kg/m³")) {

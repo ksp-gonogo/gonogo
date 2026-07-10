@@ -18,9 +18,13 @@ import { AtmosphereProfileComponent } from "./index";
  *   through the derived `vessel.state` channel rather than a raw wire
  *   topic — see `vessel-state.ts`'s `deriveVesselState`). `v.
  *   atmosphericDensity` -> the raw field `vessel.flight.atmDensity`.
+ *   `v.atmosphericTemperature`/`v.externalTemperature` (UN-GAPPED in P4a)
+ *   -> the raw fields `vessel.flight.atmosphericTemperature` /
+ *   `vessel.flight.externalTemperature` — the same already-carried
+ *   `vessel.flight` channel as the density read, so no new
+ *   `carriedChannels` entry is needed for this migration.
  * - GAPPED: `v.body` (needs a display-map subtopic — the widget can't
- *   resolve a `BodyDefinition` without it), `v.atmosphericTemperature`/
- *   `v.externalTemperature` (not captured on the wire at all, G-11).
+ *   resolve a `BodyDefinition` without it).
  *
  * `deriveVesselState`'s `altitudeAsl` is populated ONLY on the "measured"
  * (Loaded) basis — the default `Quality.OnRails` leaves it permanently
@@ -93,10 +97,12 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
       fixture.emit("vessel.flight", {
         altitudeAsl: 80,
         atmDensity: 1.217,
+        atmosphericTemperature: 289,
+        externalTemperature: 291,
       });
     });
 
-    // Sample the SAME two topics useDataValue's stream path reads
+    // Sample the SAME four topics useDataValue's stream path reads
     // (getStreamSnapshot's own store.sample(topic, store.currentFrame()))
     // — proves the mapped reads genuinely resolved off the real
     // TimelineStore, not a hardcoded fixture shortcut.
@@ -114,6 +120,24 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
       );
       if (density?.payload !== 1.217) {
         throw new Error("vessel.flight.atmDensity has not resolved yet");
+      }
+      const airTemp = fixture.store.sample<number>(
+        "vessel.flight.atmosphericTemperature",
+        fixture.store.currentFrame(),
+      );
+      if (airTemp?.payload !== 289) {
+        throw new Error(
+          "vessel.flight.atmosphericTemperature has not resolved yet",
+        );
+      }
+      const skinTemp = fixture.store.sample<number>(
+        "vessel.flight.externalTemperature",
+        fixture.store.currentFrame(),
+      );
+      if (skinTemp?.payload !== 291) {
+        throw new Error(
+          "vessel.flight.externalTemperature has not resolved yet",
+        );
       }
     });
 

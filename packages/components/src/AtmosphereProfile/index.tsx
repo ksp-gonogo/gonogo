@@ -70,9 +70,13 @@ function AtmosphereProfileComponent({
   // to the DERIVED `vessel.state.altitudeAsl` subtopic (map-topic.ts's
   // `TELEMACHUS_CLEAN_HOMES`), the first widget in this migration to route
   // its badge through a derived channel rather than a raw wire topic.
-  // `v.atmosphericDensity` is also mapped (raw `vessel.flight.atmDensity`);
-  // `v.body`/`v.atmosphericTemperature`/`v.externalTemperature` are all
-  // GAPPED and stay legacy regardless.
+  // `v.atmosphericDensity` is also mapped (raw `vessel.flight.atmDensity`).
+  // `v.atmosphericTemperature`/`v.externalTemperature` were UN-GAPPED in
+  // P4a (map-topic.ts now routes them to `vessel.flight.atmosphericTemperature`
+  // / `vessel.flight.externalTemperature`, the same already-carried channel
+  // as the density read) — `useDataValue` picks that up with zero call-site
+  // change. Only `v.body` remains GAPPED (needs a display-map subtopic the
+  // widget can resolve a `BodyDefinition` from) and stays legacy.
   const streamStatus = useDataStreamStatus("data", "v.altitude");
 
   const cols = w ?? 8;
