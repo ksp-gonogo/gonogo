@@ -1,4 +1,4 @@
-import { getBody, getDataSource, safeRandomUuid } from "@gonogo/core";
+import { getBody, getDataSource, safeRandomUuid } from "@ksp-gonogo/core";
 import {
   buildCurrentOrbit,
   computeMu,
@@ -18,7 +18,7 @@ import { compareThreshold } from "./triggerTypes";
  * `<ManeuverTriggerProvider>` (legacy tests, standalone embeds). Reads
  * data via `getDataSource("data")`; fires by calling `source.execute(...)`
  * directly. No persistence, no peer broadcast — see the host/client
- * services in @gonogo/app for the cross-station-aware version.
+ * services in @ksp-gonogo/app for the cross-station-aware version.
  */
 export class LocalManeuverTriggerService implements ManeuverTriggerService {
   private triggers: ArmedTrigger[] = [];

@@ -3,7 +3,7 @@ import {
   type PartResources,
   type PartState,
   type PartThermal,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { useEffect, useState } from "react";
 
 /**

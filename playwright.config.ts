@@ -84,7 +84,7 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm --filter @gonogo/relay exec tsx src/index.ts",
+      command: "pnpm --filter @ksp-gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -110,7 +110,7 @@ export default defineConfig({
       // `pnpm exec vite` (instead of `pnpm dev -- …`) skips pnpm's
       // arg-forwarding rules — the latter delivered `--` to vite as a
       // literal positional, which made vite treat --port as a no-op.
-      command: `pnpm --filter @gonogo/app exec vite --port ${APP_PORT} --strictPort`,
+      command: `pnpm --filter @ksp-gonogo/app exec vite --port ${APP_PORT} --strictPort`,
       port: APP_PORT,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",

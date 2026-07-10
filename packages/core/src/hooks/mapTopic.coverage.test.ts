@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isKnownTelemachusGap, mapTopic } from "@gonogo/sitrep-client";
+import { isKnownTelemachusGap, mapTopic } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import { ACTION_GROUPS } from "../actionGroups";
 
@@ -118,7 +118,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * "<key>")` string, so the regex scan above can never see them — a coverage
  * blind spot in its own right. `ActionGroup` (`packages/components/src/
  * ActionGroup/index.tsx`) is the motivating case: it resolves
- * `useDataValue("data", group?.value ?? "v.sasValue")` from `@gonogo/core`'s
+ * `useDataValue("data", group?.value ?? "v.sasValue")` from `@ksp-gonogo/core`'s
  * `ACTION_GROUPS` registry with an empty `dataRequirements: []`, so
  * `v.sasValue`/`v.rcsValue`/`v.gearValue`/`v.brakeValue`/`v.lightValue`/
  * `v.abortValue`/`v.precisionControlValue`/`v.ag1Value`…`v.ag10Value` were

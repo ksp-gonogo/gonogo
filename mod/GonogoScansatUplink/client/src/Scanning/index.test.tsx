@@ -1,11 +1,11 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

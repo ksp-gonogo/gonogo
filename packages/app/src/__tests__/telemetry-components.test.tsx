@@ -11,15 +11,15 @@ import {
   DistanceToTargetComponent,
   MapViewComponent,
   OrbitViewComponent,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import {
   clearBodies,
   clearRegistry,
   DashboardItemContext,
   registerDataSource,
   registerStockBodies,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   createFakeWallClock,
   StubTransport,
@@ -28,7 +28,7 @@ import {
   TimelineStore,
   ViewClock,
   vesselStateChannel,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -108,7 +108,7 @@ function setupTelemetry(snapshot: Record<string, unknown>) {
 // stream path post-P1 de-Telemachus migration. Mirrors
 // `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
 // DistanceToTarget's and OrbitView's own dedicated stream tests) — duplicated
-// here in miniature rather than imported, since `@gonogo/components`'s test
+// here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
 // ---------------------------------------------------------------------------
 function setupTelemetryStream(carriedChannels: Iterable<string>) {

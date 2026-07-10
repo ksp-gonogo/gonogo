@@ -3,7 +3,7 @@ import {
   CourierTransport,
   ManualClock,
   StubNetwork,
-} from "@gonogo/sitrep-server";
+} from "@ksp-gonogo/sitrep-server";
 import {
   act,
   fireEvent,
@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 // This is the M3 milestone's end-to-end proof: the SAME hooks/client/provider
 // from M2 (`integration.test.tsx`), now wired to the REAL delay-modelling
 // server stack instead of `StubTransport` — `ManualClock` + `StubNetwork` +
-// `Courier` + `CourierTransport`, imported from the `@gonogo/sitrep-server`
+// `Courier` + `CourierTransport`, imported from the `@ksp-gonogo/sitrep-server`
 // package. The dependency graph is the natural DAG
 // `sitrep-sdk <- sitrep-server <- sitrep-client`: sitrep-client has a
 // test-only devDependency on sitrep-server (see package.json), which drives

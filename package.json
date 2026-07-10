@@ -7,7 +7,7 @@
     "dev:rebuild": "BUILD=1 sh scripts/dev.sh",
     "dev:logs": "ENABLE_AXIOM=1 sh scripts/dev.sh",
     "play": "sh scripts/play.sh",
-    "replay": "pnpm --filter @gonogo/replay-server start",
+    "replay": "pnpm --filter @ksp-gonogo/replay-server start",
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "turbo build",
     "codegen": "bash mod/codegen.sh",

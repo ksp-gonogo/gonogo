@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import type { AlarmStateMachine, TelemetryReader } from "./AlarmStateMachine";
 import type { Alarm, AlarmWarpState } from "./types";
 

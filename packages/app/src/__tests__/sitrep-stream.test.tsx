@@ -1,6 +1,10 @@
-import type { DataSource, DataSourceStatus } from "@gonogo/core";
-import { clearRegistry, registerDataSource, useDataValue } from "@gonogo/core";
-import { StubTransport } from "@gonogo/sitrep-client";
+import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  registerDataSource,
+  useDataValue,
+} from "@ksp-gonogo/core";
+import { StubTransport } from "@ksp-gonogo/sitrep-client";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";

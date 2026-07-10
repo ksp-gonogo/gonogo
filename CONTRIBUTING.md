@@ -28,7 +28,7 @@ To run it, you have two choices:
 ```bash
 # App only: just the Vite dev server. No containers needed.
 # Enough for the core telemetry dashboard.
-pnpm --filter @gonogo/app dev
+pnpm --filter @ksp-gonogo/app dev
 
 # Full stack: also brings up the telnet-proxy and relay containers via
 # `podman compose`, then runs Vite. Needed for kOS and cross-network stations.
@@ -69,6 +69,6 @@ There's no required PR template; just give reviewers the context they need.
 - **Tests mock as little as possible.** Prefer [Mock Service Worker](https://mswjs.io/) at the network boundary over mocking internal modules or hooks. The real data source, real hook, and real component should run, with only the network intercepted.
 - **New widgets** declare both `dataRequirements` and `actions`, and ship a `jest-axe` accessibility smoke test. Interactive elements are real `<button>`/`<a>`/`<input>`; icon-only buttons get an `aria-label`.
 - **New data sources** must register a `PerfBudget` (sample-rate or dispatch-rate). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#performance-budgets).
-- **Reusable UI primitives** go in `@gonogo/ui`, not co-located with the first widget that needs them.
+- **Reusable UI primitives** go in `@ksp-gonogo/ui`, not co-located with the first widget that needs them.
 
 For the package map and the extension API, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

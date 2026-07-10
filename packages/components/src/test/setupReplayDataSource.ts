@@ -2,13 +2,13 @@ import {
   clearActionHandlers,
   clearRegistry,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BufferedDataSource,
   type FlightFixture,
   FlightReplayDataSource,
   MemoryStore,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import { act, cleanup } from "@testing-library/react";
 
 export interface SetupReplayOptions {

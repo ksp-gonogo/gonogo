@@ -1,4 +1,4 @@
-import type { FrozenPlanInputs } from "@gonogo/components";
+import type { FrozenPlanInputs } from "@ksp-gonogo/components";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
 

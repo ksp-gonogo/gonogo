@@ -79,19 +79,19 @@ importers:
 
   mod/Gonogo.Kos/client:
     dependencies:
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../../../packages/core
-      '@gonogo/data':
+      '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../../../packages/data
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../../../packages/logger
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
       '@xterm/addon-fit':
@@ -107,7 +107,7 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@gonogo/sitrep-sdk':
+      '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
       '@testing-library/jest-dom':
@@ -155,16 +155,16 @@ importers:
 
   mod/GonogoScansatUplink/client:
     dependencies:
-      '@gonogo/components':
+      '@ksp-gonogo/components':
         specifier: workspace:*
         version: link:../../../packages/components
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../../../packages/core
-      '@gonogo/data':
+      '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../../../packages/data
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
       react:
@@ -213,7 +213,7 @@ importers:
 
   mod/sitrep-kernel:
     dependencies:
-      '@gonogo/sitrep-server':
+      '@ksp-gonogo/sitrep-server':
         specifier: workspace:*
         version: link:../sitrep-server
     devDependencies:
@@ -225,7 +225,7 @@ importers:
 
   mod/sitrep-server:
     dependencies:
-      '@gonogo/sitrep-sdk':
+      '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../sitrep-sdk
     devDependencies:
@@ -238,34 +238,34 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
-      '@gonogo/components':
+      '@ksp-gonogo/components':
         specifier: workspace:*
         version: link:../components
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../core
-      '@gonogo/data':
+      '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../data
-      '@gonogo/kerbcast':
+      '@ksp-gonogo/kerbcast':
         specifier: workspace:*
         version: link:../kerbcast
-      '@gonogo/kos':
+      '@ksp-gonogo/kos':
         specifier: workspace:*
         version: link:../../mod/Gonogo.Kos/client
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@gonogo/scansat':
+      '@ksp-gonogo/scansat':
         specifier: workspace:*
         version: link:../../mod/GonogoScansatUplink/client
-      '@gonogo/serial':
+      '@ksp-gonogo/serial':
         specifier: workspace:*
         version: link:../serial
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
       '@tanstack/react-query':
@@ -347,22 +347,22 @@ importers:
 
   packages/components:
     dependencies:
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../core
-      '@gonogo/data':
+      '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../data
-      '@gonogo/kerbcast':
+      '@ksp-gonogo/kerbcast':
         specifier: workspace:*
         version: link:../kerbcast
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
       react:
@@ -375,7 +375,7 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
-      '@gonogo/sitrep-sdk':
+      '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
       '@testing-library/jest-dom':
@@ -429,17 +429,17 @@ importers:
 
   packages/core:
     dependencies:
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
       react:
         specifier: ^18.0.0
         version: 18.3.1
     devDependencies:
-      '@gonogo/sitrep-sdk':
+      '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
       '@testing-library/react':
@@ -466,16 +466,16 @@ importers:
 
   packages/data:
     dependencies:
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../core
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
       react:
@@ -509,24 +509,24 @@ importers:
 
   packages/kerbcast:
     dependencies:
-      '@gonogo/core':
-        specifier: workspace:*
-        version: link:../core
-      '@gonogo/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../sitrep-client
-      '@gonogo/ui':
-        specifier: workspace:*
-        version: link:../ui
       '@jonpepler/kerbcast':
         specifier: ^1.4.0
         version: 1.4.0
       '@jonpepler/kerbcast-react':
         specifier: ^1.4.0
         version: 1.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@ksp-gonogo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@ksp-gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
+      '@ksp-gonogo/ui':
+        specifier: workspace:*
+        version: link:../ui
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -580,7 +580,7 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
       fastify:
@@ -605,7 +605,7 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
-      '@gonogo/data':
+      '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../data
       fastify:
@@ -633,13 +633,13 @@ importers:
 
   packages/serial:
     dependencies:
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../core
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
-      '@gonogo/ui':
+      '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../ui
       react:
@@ -670,11 +670,11 @@ importers:
 
   packages/sitrep-client:
     dependencies:
-      '@gonogo/sitrep-sdk':
+      '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
     devDependencies:
-      '@gonogo/sitrep-server':
+      '@ksp-gonogo/sitrep-server':
         specifier: workspace:*
         version: link:../../mod/sitrep-server
       '@testing-library/dom':
@@ -704,7 +704,7 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
-      '@gonogo/logger':
+      '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../logger
       fastify:
@@ -729,10 +729,10 @@ importers:
 
   packages/ui:
     dependencies:
-      '@gonogo/core':
+      '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../core
-      '@gonogo/sitrep-client':
+      '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
       lucide-react:

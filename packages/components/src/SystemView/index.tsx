@@ -2,18 +2,18 @@ import type {
   ComponentProps,
   ConfigComponentProps,
   OrbitPatch,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
   resolveTargetName,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   type OrbitElements,
   solveAnomalies,
   useViewUt,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import {
   ConfigForm,
   Field,
@@ -25,7 +25,7 @@ import {
   Select,
   useElementSize,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
@@ -99,7 +99,7 @@ export interface SystemBadgesContext {
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam. `.actions` takes no
 // props (`Record<string, never>`) — an actions augment reads its own state.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
@@ -119,7 +119,7 @@ function frameNameMatches(a: string, b: string): boolean {
 }
 
 // ── Client-side orbit derivations ───────────────────────────────────────────────
-// Mirror `@gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
+// Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
 // widget reconstructs the scalars it used to read off Telemachus's `o.*` keys
 // (trueAnomaly / next-apsis / encounter) directly from the streamed
 // `vessel.orbit` elements + the SDK view-UT — the R6 §0.0/§1b client-side

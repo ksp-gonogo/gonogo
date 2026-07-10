@@ -3,14 +3,14 @@ import type {
   DataKey,
   DataSource,
   DataSourceStatus,
-} from "@gonogo/core";
-import { PerfBudget, registerDataSource } from "@gonogo/core";
-import { LocalStorageStore } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+} from "@ksp-gonogo/core";
+import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 
-// TelemaachusSchema lives in @gonogo/core and is pre-registered in DataSourceRegistry.
+// TelemaachusSchema lives in @ksp-gonogo/core and is pre-registered in DataSourceRegistry.
 // Re-export it here so callers that import from this module path keep working.
-export type { TelemaachusSchema } from "@gonogo/core";
+export type { TelemaachusSchema } from "@ksp-gonogo/core";
 
 // All static (non-indexed) keys from TelemaachusSchema, used to populate
 // schema() so PeerBroadcastingDataSource can subscribe to everything upfront.

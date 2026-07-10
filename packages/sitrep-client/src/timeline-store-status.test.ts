@@ -1,4 +1,4 @@
-import { Quality, Staleness } from "@gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";

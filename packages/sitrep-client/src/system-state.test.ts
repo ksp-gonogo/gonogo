@@ -1,4 +1,4 @@
-import { Quality } from "@gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import { deriveSystemState } from "./system-state";

@@ -11,9 +11,9 @@ import {
   type ManeuverTriggerService,
   type ThresholdOp,
   type TriggerSnapshot,
-} from "@gonogo/components";
-import { getBody, safeRandomUuid } from "@gonogo/core";
-import { LocalStorageStore } from "@gonogo/data";
+} from "@ksp-gonogo/components";
+import { getBody, safeRandomUuid } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**

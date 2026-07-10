@@ -5,8 +5,8 @@ import {
   MockDataSource,
   PerfBudget,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { JSX, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

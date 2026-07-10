@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Meta, ServerMessage } from "@gonogo/sitrep-sdk";
-import { Quality } from "@gonogo/sitrep-sdk";
+import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { type OrbitElements, solve } from "./kepler";

@@ -2,7 +2,7 @@ import {
   clearRegistry,
   registerDataSource,
   ScreenProvider,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsProvider } from "./SettingsContext";
@@ -14,12 +14,12 @@ import { SettingsService } from "./SettingsService";
  * tab-gating tests don't exercise.
  */
 
-vi.mock("@gonogo/serial", () => ({
+vi.mock("@ksp-gonogo/serial", () => ({
   SerialDevicesMenu: () => null,
   useSerialAggregateStatus: () => "ok",
 }));
 
-vi.mock("@gonogo/components", () => ({
+vi.mock("@ksp-gonogo/components", () => ({
   DataSourceStatusComponent: () => null,
 }));
 
@@ -39,8 +39,8 @@ vi.mock("../logs/LogsManager", () => ({
   LogsManager: () => null,
 }));
 
-vi.mock("@gonogo/kerbcast", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@gonogo/kerbcast")>();
+vi.mock("@ksp-gonogo/kerbcast", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@ksp-gonogo/kerbcast")>();
   return {
     ...actual,
     KerbcastSettings: () => <div>kerbcast-settings-stub</div>,
@@ -94,7 +94,7 @@ function makeKerbcastStub() {
     setThrottleMainScreen: async () => {},
     getClient: () =>
       ({}) as unknown as ReturnType<
-        import("@gonogo/kerbcast").KerbcastDataSource["getClient"]
+        import("@ksp-gonogo/kerbcast").KerbcastDataSource["getClient"]
       >,
   };
 }

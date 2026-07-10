@@ -1,4 +1,4 @@
-import type { VesselTopology } from "@gonogo/core";
+import type { VesselTopology } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";

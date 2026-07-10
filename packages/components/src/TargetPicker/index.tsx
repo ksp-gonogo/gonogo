@@ -2,7 +2,7 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatDistance,
@@ -12,8 +12,8 @@ import {
   useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
-} from "@gonogo/core";
-import type { VesselRosterEntry } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/core";
+import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   ConfigForm,
@@ -26,7 +26,7 @@ import {
   Spinner,
   StreamStatusBadge,
   Tabs,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
@@ -51,7 +51,7 @@ type TabId = "bodies" | "vessels" | "current";
 // Typed here via co-located `SlotRegistry` declaration-merging (spec §4.6) so
 // the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
 // falling back to the loose `Record<string, unknown>`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "target-picker.sections": Record<string, never>;
     "target-picker.badges": Record<string, never>;
@@ -608,7 +608,7 @@ const AugmentSectionsRow = styled.div`
   }
 `;
 
-/** Scoped override of the shared @gonogo/ui Tabs chrome. The three tab
+/** Scoped override of the shared @ksp-gonogo/ui Tabs chrome. The three tab
  *  labels here ("Bodies" / "Vessels" / "Current") are longer than the
  *  shared component's default sizing was tuned for, so at this widget's
  *  common narrower widths the last tab clips under the overflow glow

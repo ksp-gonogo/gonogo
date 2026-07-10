@@ -1,5 +1,5 @@
-import { DashboardItemContext, registerStockBodies } from "@gonogo/core";
-import { Quality } from "@gonogo/sitrep-sdk";
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@testing-library/react";
 import {
   type StreamFixture,

@@ -1,9 +1,9 @@
-import { getDataSource, registerDataSource } from "@gonogo/core";
+import { getDataSource, registerDataSource } from "@ksp-gonogo/core";
 import {
   BufferedDataSource,
   IndexedDbStore,
   registerBuiltinDerivedKeys,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import type { KosDataSource } from "./kos";
 import { telemachusSource } from "./telemachus";
 

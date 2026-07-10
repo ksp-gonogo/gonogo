@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { clearKosScripts } from "./kos/scriptRegistry";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 

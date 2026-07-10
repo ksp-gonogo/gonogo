@@ -13,7 +13,7 @@ namespace Sitrep.Core.Tests
     /// <c>mod/golden-fixtures/stub-network.json</c>. The fixture is generated
     /// by running the REAL TS <c>StubNetwork</c> in
     /// <c>mod/sitrep-server/src/stub-network.ts</c> over a set of scripted
-    /// scenarios (`pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`)
+    /// scenarios (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`)
     /// — this test never hand-authors expected values, it only replays each
     /// scenario's ops against the C# port and asserts every query op
     /// reproduces the recorded expected result.

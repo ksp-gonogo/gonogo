@@ -1,10 +1,10 @@
-# @gonogo/sitrep-server
+# @ksp-gonogo/sitrep-server
 
-`@gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
+`@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 This package is the TypeScript **reference implementation** of the mod's
 game-side delay engine — a proving ground for the design before it's ported
-to C#/KSP. It models the one thing `@gonogo/sitrep-client` deliberately
+to C#/KSP. It models the one thing `@ksp-gonogo/sitrep-client` deliberately
 doesn't: point-to-point light-time delay between a Vantage (an observer, e.g.
 `"KSC"`) and a node (e.g. a vessel id), for both telemetry streams and
 command round trips.
@@ -38,7 +38,7 @@ command round trips.
   duplicating the uplink === downlink assumption.
 - **`CourierTransport`** — adapts one `Courier` connection (a single active
   node observed from a single vantage) to the `Transport` interface
-  `@gonogo/sitrep-client`'s `TelemetryClient` consumes. This is what lets the
+  `@ksp-gonogo/sitrep-client`'s `TelemetryClient` consumes. This is what lets the
   unchanged M2 client receive delayed streams and delayed command round trips
   — from the client's point of view it's just a `Transport`, same as
   `StubTransport` in M2 tests. `predictConfirmEta()` hands back
@@ -52,7 +52,7 @@ command round trips.
 pair regardless of base delay. Either way, `Courier`/`CourierTransport`
 degrade to immediate (same-tick-adjacent) delivery — the exact behavior of
 M2's `StubTransport`, just routed through the real courier/archive machinery
-instead of a hand-rolled fake. Nothing in `@gonogo/sitrep-client` needs to
+instead of a hand-rolled fake. Nothing in `@ksp-gonogo/sitrep-client` needs to
 know or care which one it's talking to.
 
 ## What this package is not (yet)
@@ -71,12 +71,12 @@ milestone breakdown.
 ## Testing note: the cross-package integration proof lives in sitrep-client
 
 `courier-transport.test.ts` in this package has a (test-only) devDependency
-on `@gonogo/sitrep-client`, so it can drive a real `TelemetryClient` against
+on `@ksp-gonogo/sitrep-client`, so it can drive a real `TelemetryClient` against
 the courier directly. The reverse integration proof —
 `packages/sitrep-client/src/delayed-integration.test.tsx`, which renders the
 real `useStream`/`useCommand` hooks against this package's `Courier` +
 `CourierTransport` — imports this package's modules by **relative path**
-rather than the `@gonogo/sitrep-server` package specifier. That's
+rather than the `@ksp-gonogo/sitrep-server` package specifier. That's
 deliberate: adding a `sitrep-client -> sitrep-server` package.json edge on
 top of the existing `sitrep-server -> sitrep-client` one closes a cycle that
 `pnpm`/`turbo` can't schedule (`turbo build`/`typecheck` hard-errors with

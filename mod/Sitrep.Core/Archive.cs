@@ -42,7 +42,7 @@ namespace Sitrep.Core
     /// golden fixtures in <c>mod/golden-fixtures/archive.json</c>, not by
     /// re-deriving semantics here. If you touch the read path, regenerate the
     /// fixture from the TS side
-    /// (`pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`) and re-run
+    /// (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`) and re-run
     /// `dotnet test` to confirm the two still agree.
     ///
     /// <see cref="Snapshot"/> / <see cref="Restore"/> are a C#-ONLY addition —

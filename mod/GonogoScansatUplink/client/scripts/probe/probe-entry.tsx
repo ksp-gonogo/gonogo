@@ -8,10 +8,10 @@
  * BufferedDataSource so late re-subscribes keep the seeded value), then
  * synchronously emits every key from the synthetic `kerbin-partial-scan`
  * fixture. Mirrors the shared components probe pattern (the harness the widget
- * used before it moved to `@gonogo/scansat`).
+ * used before it moved to `@ksp-gonogo/scansat`).
  *
  * NOTE: the Playwright driver + `visual-gate` script + CI job that consume this
- * entry still need to be ported from `@gonogo/components` scripts. The baselines
+ * entry still need to be ported from `@ksp-gonogo/components` scripts. The baselines
  * are preserved alongside; regenerate them on Linux via the update-baselines
  * workflow once the driver lands.
  */
@@ -23,8 +23,8 @@ import {
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import "../../src";

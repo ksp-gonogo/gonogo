@@ -2,7 +2,7 @@ import {
   clearBodies,
   DashboardItemContext,
   registerStockBodies,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";

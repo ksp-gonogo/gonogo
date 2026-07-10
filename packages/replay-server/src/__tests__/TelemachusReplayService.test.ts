@@ -1,4 +1,7 @@
-import { FlightReplayDataSource, synthesizeFlight } from "@gonogo/data/replay";
+import {
+  FlightReplayDataSource,
+  synthesizeFlight,
+} from "@ksp-gonogo/data/replay";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parseTelemachusInbound,

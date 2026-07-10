@@ -3,7 +3,7 @@ import type {
   DataKey,
   DataSource,
   DataSourceStatus,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import type { Sample, SeriesRange } from "../types";
 import { type FlightFixture, fixtureDurationMs } from "./FlightFixture";
 

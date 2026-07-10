@@ -1,4 +1,4 @@
-// Components self-register on import. Themes live in @gonogo/ui (design
+// Components self-register on import. Themes live in @ksp-gonogo/ui (design
 // system primitives) — see packages/ui/src/themes/.
 // Add new component imports here as they are built.
 
@@ -25,7 +25,7 @@ export * from "./ManeuverPlanner/triggerService";
 export * from "./ManeuverPlanner/triggerTypes";
 export * from "./MapView";
 // Scan-layer canvas hooks live in MapView (bidirectionally coupled to the core
-// map — see MapView/index.tsx). The `@gonogo/scansat` Uplink's Minimap reuses
+// map — see MapView/index.tsx). The `@ksp-gonogo/scansat` Uplink's Minimap reuses
 // them until the map-view.overlay augment slot lets scansat own its scan layer
 // (arch §4.8). Re-exported here so scansat imports them from the package barrel
 // rather than a deep dist path.

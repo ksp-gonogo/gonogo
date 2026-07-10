@@ -4,7 +4,7 @@ import {
   type FlightFixture,
   type FlightReplayDataSource,
   isFlightFixture,
-} from "@gonogo/data/replay";
+} from "@ksp-gonogo/data/replay";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
   createFixtureReplayHost,

@@ -85,7 +85,7 @@ jobs:
         run: pnpm test
 
       - name: Build production site
-        run: pnpm turbo build --filter=@gonogo/app...
+        run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /gonogo/
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}

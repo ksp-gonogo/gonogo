@@ -1,4 +1,4 @@
-import type { DataKey, TelemaachusSchema } from "@gonogo/core";
+import type { DataKey, TelemaachusSchema } from "@ksp-gonogo/core";
 
 // ---------------------------------------------------------------------------
 // DataSourceRegistry extension — declaration-merged so `useDataValue('data',
@@ -6,7 +6,7 @@ import type { DataKey, TelemaachusSchema } from "@gonogo/core";
 // telemachus schema; as derived keys land (Phase 2), they extend this type.
 // ---------------------------------------------------------------------------
 
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface DataSourceRegistry {
     data: TelemaachusSchema;
   }
@@ -46,7 +46,7 @@ export type Unit =
 
 /**
  * DataKey enriched with human-facing metadata. The `<DataKeyPicker>` in
- * `@gonogo/ui` consumes these and groups alphabetically within `group`.
+ * `@ksp-gonogo/ui` consumes these and groups alphabetically within `group`.
  */
 export interface DataKeyMeta extends DataKey {
   label: string;

@@ -92,7 +92,7 @@ export interface TelemetryProviderProps {
    * "dev-first per-topic opt-in" half of the allowlist, alongside
    * `client.declaredChannels` (the transport's own served-channel
    * declaration). Union of the two is what `useDataValue`'s shim
-   * (`@gonogo/core`) consults before ever routing a MAPPED topic to the
+   * (`@ksp-gonogo/core`) consults before ever routing a MAPPED topic to the
    * stream instead of legacy. Monotonic: a topic named here (or ever
    * declared by the transport) stays carried for the life of this mounted
    * provider even if a later render omits it — see `unionGrow`. Omit
@@ -132,7 +132,7 @@ export interface TelemetryProviderProps {
  *   `useStream`/`useStreamStatus`/`useCertainty`'s `useSyncExternalStore`
  *   subscriptions (keyed off `store.subscribeFrame`) actually re-render.
  *
- * `useStream`/the `@gonogo/core` `useDataValue` shim both read through
+ * `useStream`/the `@ksp-gonogo/core` `useDataValue` shim both read through
  * `store.sample(topic, store.currentFrame())` now (never `client.getValue`
  * directly) so raw AND derived topics resolve through the exact same
  * surface — see `use-stream.ts`.
@@ -290,7 +290,7 @@ export function useTelemetryClient(): TelemetryClient {
  * Non-throwing variant of `useTelemetryClient` — `undefined` when no
  * `TelemetryProvider` is mounted, instead of throwing.
  *
- * Exists for compatibility shims (`@gonogo/core`'s `useDataValue` →
+ * Exists for compatibility shims (`@ksp-gonogo/core`'s `useDataValue` →
  * `useStream` migration, M2 Task 7) that must keep working — falling back to
  * a legacy code path — during the migration window before every screen
  * mounts a `TelemetryProvider`. Ordinary SDK-native call sites should keep
@@ -319,7 +319,7 @@ export function useTelemetryStore(): TimelineStore {
 /**
  * Non-throwing variant of `useTelemetryStore` — `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`: the `@gonogo/core` `useDataValue`
+ * `useTelemetryClientOptional`: the `@ksp-gonogo/core` `useDataValue`
  * compatibility shim needs both the client AND the store, without throwing,
  * to decide whether it can route a call through the new stream pipeline.
  */
@@ -423,7 +423,7 @@ export function useCarriedChannels(): ReadonlySet<string> {
  * Non-throwing variant of `useCarriedChannels` — `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
  * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: the
- * `@gonogo/core` `useDataValue` compatibility shim needs this without
+ * `@ksp-gonogo/core` `useDataValue` compatibility shim needs this without
  * throwing, to decide whether it can route a mapped topic through the
  * stream pipeline at all.
  */

@@ -1,5 +1,5 @@
-import { memoryStorage } from "@gonogo/core/test";
-import { logger } from "@gonogo/logger";
+import { memoryStorage } from "@ksp-gonogo/core/test";
+import { logger } from "@ksp-gonogo/logger";
 import { describe, expect, it, vi } from "vitest";
 import { LocalStorageStore } from "./LocalStorageStore";
 

@@ -12,10 +12,10 @@
  * key prefixed `kos.` to it. It is registered *unbuffered* — buffer-wrapping
  * would hide the topic-status methods so `useKosScriptStatus` would silently
  * fall back to the empty status. Mirrors the shared components probe pattern
- * (the harness the widget used before it moved to `@gonogo/kos`).
+ * (the harness the widget used before it moved to `@ksp-gonogo/kos`).
  *
  * NOTE: the Playwright driver + `visual-gate` script + CI job that consume this
- * entry still need to be ported from `@gonogo/components` scripts. The baselines
+ * entry still need to be ported from `@ksp-gonogo/components` scripts. The baselines
  * are preserved alongside; regenerate them on Linux via the update-baselines
  * workflow once the driver lands.
  */
@@ -26,7 +26,7 @@ import {
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 // Side-effect import: every kOS widget self-registers on module load.

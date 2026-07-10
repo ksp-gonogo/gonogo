@@ -1,5 +1,5 @@
-import type { DataSource, DataSourceStatus } from "@gonogo/core";
-import { PerfBudget } from "@gonogo/core";
+import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import { DataSourceWrapper } from "./DataSourceWrapper";
 import { getDerivedKeys } from "./derive";
 import { getKeepCount } from "./flightAutoDelete";

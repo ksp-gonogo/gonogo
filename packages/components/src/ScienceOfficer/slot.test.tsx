@@ -1,10 +1,10 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
   getAugmentsForSlot,
   registerAugment,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {

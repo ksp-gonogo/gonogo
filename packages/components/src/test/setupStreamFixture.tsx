@@ -7,8 +7,8 @@ import {
   TimelineStore,
   ViewClock,
   vesselStateChannel,
-} from "@gonogo/sitrep-client";
-import type { Meta } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-client";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { JSX, ReactNode } from "react";
 
 /**

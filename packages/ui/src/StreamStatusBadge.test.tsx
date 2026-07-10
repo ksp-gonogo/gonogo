@@ -1,4 +1,4 @@
-import type { StreamStatusValue } from "@gonogo/sitrep-client";
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-client";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";

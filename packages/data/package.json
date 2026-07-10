@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/data",
+  "name": "@ksp-gonogo/data",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -24,10 +24,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*",
-    "@gonogo/logger": "workspace:*",
-    "@gonogo/sitrep-client": "workspace:*",
-    "@gonogo/ui": "workspace:*"
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/ui": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",

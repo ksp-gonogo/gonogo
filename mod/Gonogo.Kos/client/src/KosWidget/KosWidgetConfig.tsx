@@ -1,6 +1,6 @@
-import type { ConfigComponentProps } from "@gonogo/core";
-import type { KosWidgetArg } from "@gonogo/data";
-import { useDataSchema } from "@gonogo/data";
+import type { ConfigComponentProps } from "@ksp-gonogo/core";
+import type { KosWidgetArg } from "@ksp-gonogo/data";
+import { useDataSchema } from "@ksp-gonogo/data";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -11,7 +11,7 @@ import {
   FieldLabel,
   Input,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../shared/KosCpuPicker";

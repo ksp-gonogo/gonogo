@@ -4,7 +4,7 @@ import type {
   PartStateModule,
   PartThermal,
   TopologyPart,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 
 /**
  * Diagram-side categories. Narrower than KSP's `PartCategories` enum

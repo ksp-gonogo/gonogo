@@ -1,5 +1,5 @@
-import { getDataSource } from "@gonogo/core";
-import { TELEMACHUS_META } from "@gonogo/data";
+import { getDataSource } from "@ksp-gonogo/core";
+import { TELEMACHUS_META } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,

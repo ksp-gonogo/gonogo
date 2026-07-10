@@ -27,7 +27,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * the repo (unlike the sibling coverage tests, which derive their truth by
  * calling real production code — `deriveVesselState` for
  * `vessel-state-mapping.coverage.test.ts`, a source scan for
- * `mapTopic.coverage.test.ts` in `@gonogo/core`). The only source of truth
+ * `mapTopic.coverage.test.ts` in `@ksp-gonogo/core`). The only source of truth
  * for "what does the mod actually publish" is C#:
  * `mod/Sitrep.Host/VesselViewProvider.cs`'s `Topics` (15 `vessel.*`/
  * `time.warp` constants) and `mod/Sitrep.Host/SystemViewProvider.cs`'s

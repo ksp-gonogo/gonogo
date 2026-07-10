@@ -1,6 +1,6 @@
-# @gonogo/sitrep-sdk
+# @ksp-gonogo/sitrep-sdk
 
-`@gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
+`@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 TypeScript client SDK for the gonogo-native telemetry mod. The wire contract
 (message envelopes, `Meta`, enums) is defined once in C# and generated into
@@ -69,7 +69,7 @@ without adding its tag to `SERVER_TYPE_TAGS` fails `tsc`.
 ## Usage
 
 ```ts
-import { parseServerMessage, type ServerMessage } from "@gonogo/sitrep-sdk";
+import { parseServerMessage, type ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 
 const msg: ServerMessage = parseServerMessage(rawJson);
 ```

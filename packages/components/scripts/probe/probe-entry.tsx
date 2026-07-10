@@ -27,8 +27,8 @@ import {
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 // Side-effect import: every widget self-registers on module load.
@@ -49,7 +49,7 @@ registerStockBodies();
  * KosScriptFrame chrome renders "last good" recent + not paused + not
  * erroring. The fixture payload itself drives the body (the processors
  * list); the status only governs the frame chrome. Kept probe-local so the
- * shared `@gonogo/core` MockDataSource stays untouched.
+ * shared `@ksp-gonogo/core` MockDataSource stays untouched.
  */
 class ProbeKosDataSource extends MockDataSource {
   // Sticky last-value cache. The base MockDataSource.emit only pushes to

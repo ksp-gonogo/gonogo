@@ -1,4 +1,4 @@
-import type { TopicId, TopicPayload } from "@gonogo/sitrep-sdk";
+import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "./useTelemetry";
 
 /**

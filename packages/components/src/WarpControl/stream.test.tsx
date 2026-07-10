@@ -1,4 +1,4 @@
-import { clearActionHandlers, DashboardItemContext } from "@gonogo/core";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -139,7 +139,7 @@ describe("WarpControl — genuinely runs off the stream (M3 pilot)", () => {
     // directly via the widget's own action instead (still exercises the
     // exact same `useExecuteAction` command-shim path a real serial-input
     // mapping would).
-    const { dispatchAction } = await import("@gonogo/core");
+    const { dispatchAction } = await import("@ksp-gonogo/core");
     await act(async () => {
       await dispatchAction("warp-stream", "togglePause", {
         kind: "button",

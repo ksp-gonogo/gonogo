@@ -2,8 +2,8 @@ import {
   clearBodies,
   DashboardItemContext,
   registerStockBodies,
-} from "@gonogo/core";
-import { synthesizeFlight } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { synthesizeFlight } from "@ksp-gonogo/data";
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

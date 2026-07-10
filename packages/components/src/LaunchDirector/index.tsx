@@ -1,4 +1,4 @@
-import type { AvailableVesselEntry, ComponentProps } from "@gonogo/core";
+import type { AvailableVesselEntry, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatDistance,
@@ -6,7 +6,7 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Panel,
   PanelSubtitle,
@@ -14,7 +14,7 @@ import {
   ScrollArea,
   Spinner,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -46,7 +46,7 @@ export interface LaunchDirectorSlotContext {
 // other widgets can't collide. This makes `registerAugment` and
 // `<AugmentSlot name="launch-director.sections" …>` type-check against
 // `LaunchDirectorSlotContext` rather than the loose fallback.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "launch-director.badges": LaunchDirectorSlotContext;
     "launch-director.sections": LaunchDirectorSlotContext;

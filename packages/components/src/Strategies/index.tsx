@@ -1,11 +1,11 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   getSizeBucket,
   registerComponent,
   useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Button,
   GhostButton,
@@ -15,7 +15,7 @@ import {
   PrimaryButton,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 

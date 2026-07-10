@@ -1,4 +1,4 @@
-import type { SCANType } from "@gonogo/core";
+import type { SCANType } from "@ksp-gonogo/core";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { FogMaskCache } from "./FogMaskCache";

@@ -1,13 +1,13 @@
-import type { ComponentProps, SCANType } from "@gonogo/core";
+import type { ComponentProps, SCANType } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
   registerComponent,
   SCAN_TYPE,
   useDataValue,
-} from "@gonogo/core";
-import { useScanAnomalies, useScanningVessels } from "@gonogo/data";
-import { Panel, PanelTitle, ScrollArea } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { useScanAnomalies, useScanningVessels } from "@ksp-gonogo/data";
+import { Panel, PanelTitle, ScrollArea } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { MinimapForActiveVessel } from "./Minimap";
@@ -17,7 +17,7 @@ import { MinimapForActiveVessel } from "./Minimap";
 //
 // Scanning is a SCANsat-OWNED widget that nonetheless exposes slots OTHER
 // Uplinks fill (arch §4.6, cross-Uplink example) — even before the package
-// itself moves to `@gonogo/scansat` (P3). Two slots:
+// itself moves to `@ksp-gonogo/scansat` (P3). Two slots:
 //
 // `scanning.sections` — a body/section slot appended to the per-scan-type
 // coverage list. The flagship future filler is another scanning mod
@@ -52,7 +52,7 @@ export interface ScanningSlotContext {
 // `registerAugment({ augments: "scanning.sections", … })` and
 // `<AugmentSlot name="scanning.sections" props={…} />` against
 // `ScanningSlotContext` rather than the loose fallback.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "scanning.sections": ScanningSlotContext;
     "scanning.badges": ScanningSlotContext;

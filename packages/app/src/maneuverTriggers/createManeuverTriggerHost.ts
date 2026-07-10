@@ -1,4 +1,4 @@
-import type { BufferedDataSource } from "@gonogo/data";
+import type { BufferedDataSource } from "@ksp-gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 import {
   type ManeuverTriggerHostOptions,

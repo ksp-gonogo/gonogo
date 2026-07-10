@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/scansat",
+  "name": "@ksp-gonogo/scansat",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -20,10 +20,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/components": "workspace:*",
-    "@gonogo/core": "workspace:*",
-    "@gonogo/data": "workspace:*",
-    "@gonogo/ui": "workspace:*",
+    "@ksp-gonogo/components": "workspace:*",
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/data": "workspace:*",
+    "@ksp-gonogo/ui": "workspace:*",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {

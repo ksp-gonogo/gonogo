@@ -1,4 +1,4 @@
-import type { FlightRecord } from "@gonogo/data";
+import type { FlightRecord } from "@ksp-gonogo/data";
 import { describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";

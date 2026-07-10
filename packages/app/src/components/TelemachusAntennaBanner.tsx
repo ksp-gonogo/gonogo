@@ -1,5 +1,5 @@
-import { useDataValue } from "@gonogo/core";
-import { BannerPill } from "@gonogo/ui";
+import { useDataValue } from "@ksp-gonogo/core";
+import { BannerPill } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 
 /**

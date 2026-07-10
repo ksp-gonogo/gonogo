@@ -1,4 +1,4 @@
-import { type CommsDelay, CommsDelaySource } from "@gonogo/sitrep-sdk";
+import { type CommsDelay, CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The `comms.delay` channel topic — the CORE `SignalDelay` capability's

@@ -1,4 +1,4 @@
-import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";

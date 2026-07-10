@@ -1,4 +1,4 @@
-import { clearAugments, registerAugment } from "@gonogo/core";
+import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { cleanup, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";

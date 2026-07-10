@@ -3,7 +3,7 @@ import {
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { useCallback } from "react";
 import { getDataSource } from "../registry";
 
@@ -29,7 +29,7 @@ import { getDataSource } from "../registry";
  *   `DataSource.execute(action)` path.
  *
  * **Why this doesn't literally call the sitrep-client `useCommand` hook.**
- * `useCommand(command: string)` (`@gonogo/sitrep-client`) is bound to ONE
+ * `useCommand(command: string)` (`@ksp-gonogo/sitrep-client`) is bound to ONE
  * fixed command topic for the hook's whole lifetime — the natural shape for a
  * widget that always fires the same command. This hook, by contrast, returns a
  * single callback that receives an arbitrary legacy ACTION STRING at CALL

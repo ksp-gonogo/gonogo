@@ -1,4 +1,4 @@
-import type { CommandResponse } from "@gonogo/sitrep-sdk";
+import type { CommandResponse } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { ManualClock } from "./clock";
 import { Courier } from "./courier";

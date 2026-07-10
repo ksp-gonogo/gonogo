@@ -1,4 +1,4 @@
-import type { Screen } from "@gonogo/core";
+import type { Screen } from "@ksp-gonogo/core";
 
 /**
  * Global registry of user-facing settings. Mirrors the `registerComponent`

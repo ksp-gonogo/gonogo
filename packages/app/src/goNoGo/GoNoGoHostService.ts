@@ -13,9 +13,9 @@
  * the React UI can render via useSyncExternalStore / useState+useEffect.
  */
 
-import type { DataSource } from "@gonogo/core";
-import { getDataSource } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import type { DataSource } from "@ksp-gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 

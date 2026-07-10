@@ -1,5 +1,5 @@
-import { seedKerbcastHost } from "@gonogo/kerbcast";
-import { logger } from "@gonogo/logger";
+import { seedKerbcastHost } from "@ksp-gonogo/kerbcast";
+import { logger } from "@ksp-gonogo/logger";
 import { relayBaseUrl } from "../peer/iceServers";
 import { seedKosHost } from "./kos";
 import { seedTelemachusHost } from "./telemachus";

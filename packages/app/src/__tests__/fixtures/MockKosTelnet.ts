@@ -1,6 +1,6 @@
 /**
  * MockKosTelnet — a fake WebSocket that speaks the same wire contract as the
- * real @gonogo/telnet-proxy `/kos` endpoint, plus enough of a kOS REPL
+ * real @ksp-gonogo/telnet-proxy `/kos` endpoint, plus enough of a kOS REPL
  * simulation to drive integration tests for the kOS compute data source.
  *
  * Usage:

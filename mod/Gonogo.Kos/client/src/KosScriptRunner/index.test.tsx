@@ -3,7 +3,7 @@ import {
   DashboardItemContext,
   type DataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   cleanup,
   render as rtlRender,

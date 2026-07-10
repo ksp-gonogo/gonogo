@@ -1,5 +1,5 @@
-import type { SeriesRange } from "@gonogo/data";
-import { useDataSeries } from "@gonogo/data";
+import type { SeriesRange } from "@ksp-gonogo/data";
+import { useDataSeries } from "@ksp-gonogo/data";
 import { useEffect } from "react";
 
 interface Props {

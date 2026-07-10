@@ -1124,12 +1124,12 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
  * pointer emulation, so the screen's own `@media` rules engage). Driven from
  * the same `render-widget` CLI via `--screen <id>` / `--screens`.
  *
- * Why screens live here and not in `@gonogo/app`: the harness tooling
+ * Why screens live here and not in `@ksp-gonogo/app`: the harness tooling
  * (playwright / esbuild / tsx) and the probe entries all live in
- * `@gonogo/components`, and app→components is the existing dependency edge —
+ * `@ksp-gonogo/components`, and app→components is the existing dependency edge —
  * a screen driver in app would have no harness to call. The screen VIEW
  * (`StationConnectView`) is a pure presentational component exported from
- * `@gonogo/components` and imported back by app's StationScreen, so there is
+ * `@ksp-gonogo/components` and imported back by app's StationScreen, so there is
  * a single source of the markup the harness verifies.
  */
 const SCREENS: ScreenRenderConfig[] = [

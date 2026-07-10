@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";

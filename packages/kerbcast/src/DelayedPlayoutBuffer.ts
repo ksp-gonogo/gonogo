@@ -6,7 +6,7 @@
  * available at the same wall-time, because both read `confirmedEdgeUt()`
  * off one shared clock object. This class never computes
  * `arrival + delaySeconds` itself — see §5.1, "samples confirm, estimate
- * only schedules". It is deliberately decoupled from `@gonogo/sitrep-client`
+ * only schedules". It is deliberately decoupled from `@ksp-gonogo/sitrep-client`
  * (no import of `ViewClock`): the `view` dependency is any object exposing
  * `confirmedEdgeUt()` / `onFrame()`, injected by the caller (the app wires
  * the real `ViewClock` in; kerbcast never imports sitrep-client, avoiding a
@@ -33,7 +33,7 @@ export interface StampedFrame<T = unknown> {
 /**
  * The minimal delay-clock surface the buffer depends on. Structurally
  * matches `Pick<ViewClock, "confirmedEdgeUt" | "onFrame">` from
- * `@gonogo/sitrep-client` without importing that package — the app passes
+ * `@ksp-gonogo/sitrep-client` without importing that package — the app passes
  * the real `ViewClock` instance (or any equivalent) at the call site.
  */
 export interface DelayClockLike {

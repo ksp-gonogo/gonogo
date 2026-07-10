@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { parseCharPosition } from "../parsers/charPosition";
 import { parseJsonState } from "../parsers/jsonState";
 import type { DeviceType } from "../types";

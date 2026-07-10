@@ -23,7 +23,7 @@ SOFTWARE.
 ---
 
 This license applies ONLY to the Sitrep.Contract assembly (and its generated
-TypeScript counterpart, @gonogo/sitrep-sdk in mod/sitrep-sdk). It is a
+TypeScript counterpart, @ksp-gonogo/sitrep-sdk in mod/sitrep-sdk). It is a
 deliberate permissive carve-out from the rest of the gonogo/Sitrep codebase,
 which is licensed GPL-3.0-only (see the repository root LICENSE) because it
 directly links kOS. Sitrep.Contract ships no kOS code and exists specifically

@@ -1,4 +1,4 @@
-import { clearRegistry, useDataValue } from "@gonogo/core";
+import { clearRegistry, useDataValue } from "@ksp-gonogo/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -16,7 +16,7 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
  * WebSocket), so the transport talks to the mocked socket.
  *
  * This is the same network-boundary approach the transport's own unit test uses
- * in `@gonogo/sitrep-client`; here it additionally proves the app-layer wiring
+ * in `@ksp-gonogo/sitrep-client`; here it additionally proves the app-layer wiring
  * (`useMemo` transport build, `TelemetryClient`, `TelemetryProvider`,
  * `useDataValue` shim, carried-channels gate) all connect the wire to the DOM.
  */
@@ -35,7 +35,7 @@ afterAll(() => server.close());
 function streamFrame(topic: string, payload: unknown): string {
   // A valid `stream-data` wire envelope. Built as a plain object (numeric enum
   // literals: Quality.OnRails === 0, Staleness.Fresh === 0) so the app package
-  // needs no dependency on `@gonogo/sitrep-sdk` — `parseServerMessage` on the
+  // needs no dependency on `@ksp-gonogo/sitrep-sdk` — `parseServerMessage` on the
   // receiving end is what actually validates the shape.
   return JSON.stringify({
     type: "stream-data",

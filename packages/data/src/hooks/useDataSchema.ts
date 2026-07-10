@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import type { DataKeyMeta } from "../types";
 

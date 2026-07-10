@@ -1,11 +1,11 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerAugment,
   registerComponent,
   useDataValue,
-} from "@gonogo/core";
-import { BellIcon, EmptyState, Panel, PanelTitle } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { BellIcon, EmptyState, Panel, PanelTitle } from "@ksp-gonogo/ui";
 import type { ComponentType, ReactNode } from "react";
 import styled from "styled-components";
 import {
@@ -29,7 +29,7 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
  * Splitting the two hardcoded sources out into augments is the whole point: it
  * exercises typed slot props, priority ordering (mission before contracts), and
  * settings-merge (§4.7) before the mechanism is applied to other widgets. The
- * sources live here in `@gonogo/components` for the P2 dogfood; re-homing them
+ * sources live here in `@ksp-gonogo/components` for the P2 dogfood; re-homing them
  * into dedicated Uplink packages is a later phase.
  *
  * Degrades to a muted empty state when neither source yields items, which also
@@ -109,7 +109,7 @@ export interface ObjectiveSourceContext {
 // and `<AugmentSlot name="objectives.sections" …>` type-check `Section`-shaped
 // props precisely against `ObjectiveSourceContext`, rather than the loose
 // `Record<string, unknown>` fallback an unmerged slot id would get.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "objectives.sections": ObjectiveSourceContext;
   }

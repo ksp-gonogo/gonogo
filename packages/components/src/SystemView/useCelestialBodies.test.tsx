@@ -1,10 +1,10 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useCelestialBodies } from "./useCelestialBodies";

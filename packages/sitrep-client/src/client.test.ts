@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gonogo/sitrep-sdk";
+import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";

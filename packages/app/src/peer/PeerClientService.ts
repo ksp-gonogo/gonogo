@@ -1,12 +1,12 @@
-import { safeRandomUuid } from "@gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import type {
   FlightRecord,
   KosData,
   KosManagedScript,
   KosScriptArg,
-} from "@gonogo/data";
-import { KosScriptError } from "@gonogo/data";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import { KosScriptError } from "@ksp-gonogo/data";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -219,7 +219,7 @@ type ClientEventMap = {
   gonogoCountdownCancel: [reason: string | undefined];
   alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
   alarmFired: [fire: { id: string; name: string; ut: number }];
-  triggerSnapshot: [snap: import("@gonogo/components").TriggerSnapshot];
+  triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
@@ -635,9 +635,9 @@ export class PeerClientService {
 
   sendTriggerArm(input: {
     dataKey: string;
-    op: import("@gonogo/components").ThresholdOp;
+    op: import("@ksp-gonogo/components").ThresholdOp;
     value: number;
-    inputs: import("@gonogo/components").FrozenPlanInputs;
+    inputs: import("@ksp-gonogo/components").FrozenPlanInputs;
   }) {
     this.conn?.send({ type: "trigger-arm", ...input } satisfies PeerMessage);
   }
@@ -928,7 +928,7 @@ export class PeerClientService {
   }
 
   onTriggerSnapshot(
-    cb: (snap: import("@gonogo/components").TriggerSnapshot) => void,
+    cb: (snap: import("@ksp-gonogo/components").TriggerSnapshot) => void,
   ) {
     return this.events.on("triggerSnapshot", cb);
   }

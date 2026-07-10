@@ -35,8 +35,8 @@ import {
   registerDataSource,
   registerStockBodies,
   SCAN_TYPE,
-} from "@gonogo/core";
-import "@gonogo/components"; // self-register every built-in widget
+} from "@ksp-gonogo/core";
+import "@ksp-gonogo/components"; // self-register every built-in widget
 // We deliberately do NOT import `../dataSources` here. That module's
 // side-effect registers Telemachus + kOS + the production buffered source,
 // which would auto-connect to ws://localhost:8085 / the kOS proxy and emit
@@ -48,8 +48,8 @@ import {
   type FlightFixture,
   FlightReplayDataSource,
   MemoryStore,
-} from "@gonogo/data";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/data";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import {
   act,
   cleanup,
@@ -369,7 +369,7 @@ describe("recorded launch — full mission control flow", () => {
 
   beforeEach(() => {
     // Don't `clearRegistry()` — it wipes registered components/themes too,
-    // and the @gonogo/components self-registration at module load only
+    // and the @ksp-gonogo/components self-registration at module load only
     // runs once. We want the full widget catalogue, so we leave the registry
     // alone and override only the `"data"` source below.
     localStorage.clear();
@@ -653,7 +653,9 @@ describe("recorded launch — full mission control flow", () => {
     "station screen — receives the host's fog snapshot on connect",
     async () => {
       const { peerHostService } = await import("../peer/PeerHostService");
-      const { DEFAULT_PROFILE_ID, FogMaskStore } = await import("@gonogo/data");
+      const { DEFAULT_PROFILE_ID, FogMaskStore } = await import(
+        "@ksp-gonogo/data"
+      );
       const { FogSyncHostService } = await import("../fog/FogSyncHostService");
 
       await peerHostService.start();

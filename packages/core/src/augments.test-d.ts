@@ -21,7 +21,7 @@ type Equal<A, B> =
 type Expect<T extends true> = T;
 
 // ── The in-tree declaration-merge an owning package performs ────────────────────
-// (Real packages augment "@gonogo/core"; augmenting the source module is
+// (Real packages augment "@ksp-gonogo/core"; augmenting the source module is
 // equivalent for an in-tree proof and keeps this file self-contained.)
 declare module "./augments" {
   interface SlotRegistry {

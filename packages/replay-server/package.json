@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/replay-server",
+  "name": "@ksp-gonogo/replay-server",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@fastify/websocket": "^11.2.0",
-    "@gonogo/data": "workspace:*",
+    "@ksp-gonogo/data": "workspace:*",
     "fastify": "^5.8.5",
     "tsx": "^4.0.0"
   },

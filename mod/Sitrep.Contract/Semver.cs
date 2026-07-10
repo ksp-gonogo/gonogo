@@ -6,7 +6,7 @@ namespace Sitrep.Contract
     /// by <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/version.json</c>, not by re-deriving semantics
     /// here. If you touch this file, regenerate the fixture from the TS side
-    /// first (`pnpm --filter @gonogo/sitrep-kernel gen:golden-fixtures`) and
+    /// first (`pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures`) and
     /// re-run `dotnet test` to confirm the two still agree.
     ///
     /// Versions are plain "x.y.z" strings (no external semver dependency).

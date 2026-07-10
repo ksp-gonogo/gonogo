@@ -2,15 +2,21 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   compareVersions,
   registerComponent,
   useActionInput,
   useScreen,
   useTelemetry,
-} from "@gonogo/core";
-import { Field, FieldLabel, Input, Switch, useModalSaveBar } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Switch,
+  useModalSaveBar,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";

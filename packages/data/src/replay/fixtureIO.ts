@@ -1,4 +1,4 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import type { Store } from "../storage/Store";
 import { FLIGHT_FIXTURE_FORMAT, type FlightFixture } from "./FlightFixture";
 

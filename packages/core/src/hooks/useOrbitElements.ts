@@ -25,7 +25,7 @@ export interface OrbitElements {
 /**
  * Read the standard apo/peri/timeToAp/timeToPe orbital elements from a single
  * data source in one call. Defaults to the buffered `"data"` source registered
- * by `@gonogo/data`.
+ * by `@ksp-gonogo/data`.
  */
 export function useOrbitElements(dataSourceId: string = "data"): OrbitElements {
   const apoapsisRadius = useDataValue<number>(dataSourceId, "o.ApR");

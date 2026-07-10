@@ -2,7 +2,7 @@ import {
   type DataSource,
   getDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import type { BufferedDataSource } from "../BufferedDataSource";
 import type { FlightChapterRecord } from "../types";
 import { FLIGHT_FIXTURE_FORMAT, type FlightFixture } from "./FlightFixture";

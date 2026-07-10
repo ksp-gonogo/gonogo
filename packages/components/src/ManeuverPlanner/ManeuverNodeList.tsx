@@ -1,5 +1,5 @@
-import type { ParsedManeuverNode } from "@gonogo/data";
-import { EmptyState, TextButton } from "@gonogo/ui";
+import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import { EmptyState, TextButton } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import type { CompletedEntry } from "./BurnCompletionTracker";

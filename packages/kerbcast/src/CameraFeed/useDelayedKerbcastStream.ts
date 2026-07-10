@@ -1,5 +1,5 @@
-import { useViewClockOptional } from "@gonogo/sitrep-client";
 import { useKerbcastClock } from "@jonpepler/kerbcast-react";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { useCallback, useEffect, useRef } from "react";
 import {
   useDelayedPlayout,

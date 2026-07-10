@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isKosScriptError } from "../kos/KosScriptError";
 import type { KosData, KosScriptArg } from "../kos/kos-data-parser";
@@ -38,7 +38,7 @@ export type KosWidgetArg =
  * Optional bundled-script payload forwarded to executeScript so the kOS
  * data source can keep the on-volume copy of `script` in sync with the
  * bundled body — see packages/app/src/dataSources/kosWrapper.ts. Defined
- * here (rather than in @gonogo/app) so widgets can pass it through the
+ * here (rather than in @ksp-gonogo/app) so widgets can pass it through the
  * hook without an app-package dependency.
  */
 export interface KosManagedScript {

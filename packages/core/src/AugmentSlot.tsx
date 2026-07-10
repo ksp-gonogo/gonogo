@@ -1,4 +1,4 @@
-import type { TopicId } from "@gonogo/sitrep-sdk";
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import { type ReactElement, useSyncExternalStore } from "react";
 import {
   type AnyAugment,

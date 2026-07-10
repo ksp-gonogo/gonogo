@@ -1,6 +1,6 @@
-import { useDataValue } from "@gonogo/core";
-import { useFlight } from "@gonogo/data";
-import { useModal } from "@gonogo/ui";
+import { useDataValue } from "@ksp-gonogo/core";
+import { useFlight } from "@ksp-gonogo/data";
+import { useModal } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

@@ -1,11 +1,11 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { cleanup } from "@testing-library/react";
 
 export interface SetupMockOptions {

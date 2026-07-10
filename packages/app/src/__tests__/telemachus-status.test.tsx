@@ -1,5 +1,5 @@
-import { DataSourceStatusComponent } from "@gonogo/components";
-import { clearRegistry, registerDataSource } from "@gonogo/core";
+import { DataSourceStatusComponent } from "@ksp-gonogo/components";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import {
   act,
   cleanup,

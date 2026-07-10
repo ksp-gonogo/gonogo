@@ -7,7 +7,7 @@
  * home yet. `undefined` is the explicit "fall back to the legacy
  * `DataSource.execute(action)` path" signal — mirrors `mapTopic`'s own
  * "`undefined` is not an identity fallback" contract exactly, for the same
- * reason: a caller (`@gonogo/core`'s `useExecuteAction` shim) needs to know
+ * reason: a caller (`@ksp-gonogo/core`'s `useExecuteAction` shim) needs to know
  * when it CAN'T route, not receive something it has to guess is unrouted.
  *
  * Only `dataSourceId === "data"` is covered, matching `mapTopic` — nothing
@@ -15,7 +15,7 @@
  *
  * **Scope of this table.** The full command table for every `useExecuteAction`
  * action key found in `packages/components/src` (`map-command.coverage.test
- * .ts` in `@gonogo/core` is the coverage gate — every widget action key must
+ * .ts` in `@ksp-gonogo/core` is the coverage gate — every widget action key must
  * resolve here OR be in `KNOWN_COMMAND_GAPS`, no silent miss). Command topics
  * and arg shapes are confirmed against `mod/Sitrep.Host/
  * VesselCommandProvider.cs` (the 17 registered commands) and
@@ -410,7 +410,7 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
 /**
  * Old action keys with NO new command home yet — the M3 command-side
  * analog of `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`. Exported so
- * `@gonogo/core`'s coverage test can assert "mapped OR declared gap"
+ * `@ksp-gonogo/core`'s coverage test can assert "mapped OR declared gap"
  * without a silent third case.
  */
 export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
@@ -507,7 +507,7 @@ export interface MappedCommand {
  * command home yet, the action's args couldn't be safely built (a toggle
  * whose current value isn't known, a malformed/out-of-range positional arg,
  * an unrecognized enum name — see this file's doc comment), or `dataSourceId`
- * isn't `"data"`. The `@gonogo/core` `useExecuteAction` shim falls back to
+ * isn't `"data"`. The `@ksp-gonogo/core` `useExecuteAction` shim falls back to
  * the legacy `execute(action)` path in every `undefined` case.
  *
  * `getCurrentValue` defaults to "nothing known" (`() => undefined`) so every

@@ -1,4 +1,4 @@
-import { useViewClockOptional } from "@gonogo/sitrep-client";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { useCelestialBodies } from "./useCelestialBodies";
 
 /**

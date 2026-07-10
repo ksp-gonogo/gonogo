@@ -1,11 +1,11 @@
-import { useBiomeCanvas, useFogDisplayCanvas } from "@gonogo/components";
+import { useBiomeCanvas, useFogDisplayCanvas } from "@ksp-gonogo/components";
 import {
   type BodyDefinition,
   type SCANScanningVessel,
   useDataValue,
-} from "@gonogo/core";
-import { useScanAnomalies, useScanningVessels } from "@gonogo/data";
-import { useElementSize } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { useScanAnomalies, useScanningVessels } from "@ksp-gonogo/data";
+import { useElementSize } from "@ksp-gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 

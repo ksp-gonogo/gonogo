@@ -1,8 +1,14 @@
-import { DataSourceStatusComponent } from "@gonogo/components";
-import { getDataSource, useDataSources, useScreen } from "@gonogo/core";
-import { type KerbcastDataSource, KerbcastSettings } from "@gonogo/kerbcast";
-import { SerialDevicesMenu, useSerialAggregateStatus } from "@gonogo/serial";
-import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
+import { DataSourceStatusComponent } from "@ksp-gonogo/components";
+import { getDataSource, useDataSources, useScreen } from "@ksp-gonogo/core";
+import {
+  type KerbcastDataSource,
+  KerbcastSettings,
+} from "@ksp-gonogo/kerbcast";
+import {
+  SerialDevicesMenu,
+  useSerialAggregateStatus,
+} from "@ksp-gonogo/serial";
+import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";

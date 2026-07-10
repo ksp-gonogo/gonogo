@@ -12,7 +12,7 @@
  * `vanilla-comms`'s zero-delay implementation as the fallback when no real
  * provider is registered (or survives version gating).
  */
-import type { Clock } from "@gonogo/sitrep-server";
+import type { Clock } from "@ksp-gonogo/sitrep-server";
 import type { CapabilityDescriptor } from "../capability";
 import { createVanillaComms } from "./vanilla-comms";
 

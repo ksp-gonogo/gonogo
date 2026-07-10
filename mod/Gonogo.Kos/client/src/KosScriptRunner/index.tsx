@@ -2,10 +2,14 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
-import { getKosScripts, registerComponent, useActionInput } from "@gonogo/core";
-import { type KosWidgetArg, useKosWidget } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+} from "@ksp-gonogo/core";
+import {
+  getKosScripts,
+  registerComponent,
+  useActionInput,
+} from "@ksp-gonogo/core";
+import { type KosWidgetArg, useKosWidget } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import {
   ConfigForm,
   Field,
@@ -16,7 +20,7 @@ import {
   ScrollArea,
   Textarea,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { KosCpuPicker } from "../shared/KosCpuPicker";

@@ -3,7 +3,7 @@ import type {
   SCANCoverageBitmap,
   SCANHeightGrid,
   SCANType,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 
 /**
  * Decode helpers for the bulk SCANsat keys (scan.maskBitmap,

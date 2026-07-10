@@ -1,4 +1,4 @@
-import type { StreamStatusValue } from "@gonogo/sitrep-client";
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-client";
 import styled from "styled-components";
 
 export interface StreamStatusBadgeProps {

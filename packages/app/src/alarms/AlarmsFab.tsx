@@ -1,4 +1,4 @@
-import { BellIcon, Fab, useModal } from "@gonogo/ui";
+import { BellIcon, Fab, useModal } from "@ksp-gonogo/ui";
 import type { AlarmDraftPrefill } from "./AlarmsModal";
 import type {
   Alarm,

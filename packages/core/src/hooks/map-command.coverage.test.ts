@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { hasCommandHome, isKnownCommandGap } from "@gonogo/sitrep-client";
+import { hasCommandHome, isKnownCommandGap } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import { ACTION_GROUPS } from "../actionGroups";
 
@@ -97,7 +97,7 @@ function collectWidgetCommandActions(): Set<string> {
  * .ts`'s `collectDynamicTelemachusKeys`.
  *
  * - `ActionGroup` (`packages/components/src/ActionGroup/index.tsx`) fires
- *   `execute(group.toggle)`, resolved at runtime from `@gonogo/core`'s
+ *   `execute(group.toggle)`, resolved at runtime from `@ksp-gonogo/core`'s
  *   `ACTION_GROUPS` registry.
  * - `ManeuverPlanner` (`packages/components/src/ManeuverPlanner/index.tsx`)
  *   builds `o.addManeuverNode[...]`/`o.updateManeuverNode[...]` into a local

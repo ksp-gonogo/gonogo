@@ -1,4 +1,4 @@
-import { memoryStorage } from "@gonogo/core/test";
+import { memoryStorage } from "@ksp-gonogo/core/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmHostService } from "./AlarmHostService";
 

@@ -21,9 +21,9 @@
  *   - A value arrives at the subscriber with a different type than was emitted
  */
 
-import type { DataKey } from "@gonogo/core";
-import { MockDataSource } from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+import type { DataKey } from "@ksp-gonogo/core";
+import { MockDataSource } from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";

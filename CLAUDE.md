@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Sister project
 
-**`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds — it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@jonpepler/kerbcast` SDK and the `CameraFeed` widget lives in `@gonogo/kerbcast`. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
+**`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds — it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@jonpepler/kerbcast` SDK and the `CameraFeed` widget lives in `@ksp-gonogo/kerbcast`. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first — and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
 
 ## Telemetry mod — brand "Gonogo", codename "Sitrep"
 
-The new first-party KSP telemetry mod (a from-scratch replacement for the Telemachus fork) is **branded Gonogo** — it ships on CKAN/SpaceDock and in-game as `gonogo-*` (e.g. `gonogo-core`, `gonogo-scansat`), keeping the app + mod + extensions one unified ecosystem. Its **engineering codename is "Sitrep"**, used *only in code* to disambiguate the mod from the app (both were "Gonogo"). So: C# `Sitrep.Contract`; npm `@gonogo/sitrep-sdk` (generated typed contract) + `@gonogo/sitrep-client` (app-side spine + hooks). **Folder rule:** `mod/` = the mod (C# + the generated `sitrep-sdk`, and future bundled extensions); `packages/` = the app (incl. `@gonogo/sitrep-client`, and the app's own `@gonogo/core`, which is untouched — do not confuse it with the mod). Sitrep must **never** appear on end-user surfaces (CKAN/GameData/UI/user docs = Gonogo). Design + milestone plans live in `local_docs/telemetry-mod/` and `docs/superpowers/plans/2026-07-06-telemetry-*` (both gitignored).
+The new first-party KSP telemetry mod (a from-scratch replacement for the Telemachus fork) is **branded Gonogo** — it ships on CKAN/SpaceDock and in-game as `gonogo-*` (e.g. `gonogo-core`, `gonogo-scansat`), keeping the app + mod + extensions one unified ecosystem. Its **engineering codename is "Sitrep"**, used *only in code* to disambiguate the mod from the app (both were "Gonogo"). So: C# `Sitrep.Contract`; npm `@ksp-gonogo/sitrep-sdk` (generated typed contract) + `@ksp-gonogo/sitrep-client` (app-side spine + hooks). **Folder rule:** `mod/` = the mod (C# + the generated `sitrep-sdk`, and future bundled extensions); `packages/` = the app (incl. `@ksp-gonogo/sitrep-client`, and the app's own `@ksp-gonogo/core`, which is untouched — do not confuse it with the mod). Sitrep must **never** appear on end-user surfaces (CKAN/GameData/UI/user docs = Gonogo). Design + milestone plans live in `local_docs/telemetry-mod/` and `docs/superpowers/plans/2026-07-06-telemetry-*` (both gitignored).
 
 ## Project Vision
 
@@ -40,7 +40,7 @@ packages/
                 so the SPA can seed data-source defaults on first run
 ```
 
-**Tooling:** pnpm workspaces + Turborepo. Package names use the `@gonogo/` scope.
+**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope.
 
 ---
 
@@ -62,9 +62,9 @@ pnpm dev              # run app (Vite) and proxy server in parallel
 pnpm build            # build all packages via Turborepo
 pnpm test             # run tests across all packages
 pnpm lint             # lint all packages
-pnpm --filter @gonogo/app dev       # run only the SPA
-pnpm --filter @gonogo/telnet-proxy dev     # run only the telnet proxy server
-pnpm --filter @gonogo/core test     # test a single package
+pnpm --filter @ksp-gonogo/app dev       # run only the SPA
+pnpm --filter @ksp-gonogo/telnet-proxy dev     # run only the telnet proxy server
+pnpm --filter @ksp-gonogo/core test     # test a single package
 ```
 
 **Node version:** run `nvm use` before `pnpm`/`node` if your shell isn't already on the repo's pinned version (`.nvmrc` → 24). Do **not** `source ~/.nvm/nvm.sh` — `nvm` is already on the PATH in this environment, so just invoke it directly.
@@ -94,14 +94,14 @@ Wrap every call with the perl-alarm pattern (`perl -e 'alarm shift; exec @ARGV' 
 
 ```
 KSP (Telemachus Reborn HTTP/WS) ──→ Main screen (direct, React Query)
-KSP (kOS via telnet)            ──→ @gonogo/telnet-proxy (Fastify + node-pty + system telnet)
+KSP (kOS via telnet)            ──→ @ksp-gonogo/telnet-proxy (Fastify + node-pty + system telnet)
                                          └──→ Main screen (WebSocket)
 Main screen ←──→ Station screens (PeerJS data channels, via peerjs.com broker)
 ```
 
 Telemachus Reborn is a standard HTTP/WebSocket API — the browser talks to it directly. The proxy server is **only required for kOS integration**; without it, all other features still work. The app must display proxy connection status prominently in the UI.
 
-### `@gonogo/core`
+### `@ksp-gonogo/core`
 
 The foundation for everything extensible:
 
@@ -128,7 +128,7 @@ The foundation for everything extensible:
   ```
 - **`useDataValue(dataSourceId, key)`** and **`useExecuteAction(dataSourceId)`** are the universal hooks that all components use to read data and fire actions. Components never call `getDataSource()` or any `DataSource` method directly. These hooks are the **PeerJS boundary**: on the main screen they call the DataSource directly; on a station screen (future) they will route through PeerJS instead. The component code doesn't change — only the hook routing does.
 
-### `@gonogo/components`
+### `@ksp-gonogo/components`
 
 The built-in component library. Each component file calls `registerComponent()` on import — there is no central index that manually lists them; the orchestrator just needs to import the package and registration happens automatically.
 
@@ -136,17 +136,17 @@ Components declare their `dataRequirements` (e.g. `['vessel.altitude']`) so the 
 
 Components are styled with **styled-components**. Component names and styled sub-components follow BEM-inspired naming for readability (e.g. `AltitudeGauge`, `AltitudeGauge__Label`, `AltitudeGauge__Value`).
 
-### `@gonogo/app`
+### `@ksp-gonogo/app`
 
 The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator** — a layout engine built on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout) (`ResponsiveGridLayout`) that reads the current layout config and renders registered components by ID. It does not hardcode any component — it only knows about the registry. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised layout format stores a per-breakpoint map (`lg`, `md`, `sm`, etc.) so the grid reflows across screen sizes. Per-instance component config is stored alongside the layout.
 - **Telemachus Reborn client** — direct HTTP/WS integration using React Query. Components that need telemetry data declare requirements; the orchestrator resolves and subscribes to the right endpoint.
-- **kOS WebSocket client** — connects to `@gonogo/telnet-proxy`. The proxy status is shown persistently in the main screen UI. If the proxy is not reachable, affected components degrade gracefully.
+- **kOS WebSocket client** — connects to `@ksp-gonogo/telnet-proxy`. The proxy status is shown persistently in the main screen UI. If the proxy is not reachable, affected components degrade gracefully.
 - **PeerJS integration** — the main screen acts as the peer host. Stations connect as peers. The main screen distributes a serialised snapshot of data to all peers; stations can also send state back (e.g. GO/NO-GO votes).
 - **Station config** — localStorage-first. Stations can request a config from the main screen over PeerJS; the main screen can push saved configs to connecting stations.
 
-### `@gonogo/telnet-proxy`
+### `@ksp-gonogo/telnet-proxy`
 
 A minimal Fastify server. Its only job is bridging kOS telnet sessions to a WebSocket that the browser can consume — by spawning `telnet host port` via `node-pty` so all IAC negotiation is handled by the system telnet binary. It should be runnable with a single command and have clear setup instructions in its own README. The main screen should show an unambiguous status indicator for this connection.
 
@@ -158,7 +158,7 @@ Both components and themes follow the same self-registration pattern:
 
 ```ts
 // An external npm package can do this:
-import { registerComponent } from '@gonogo/core';
+import { registerComponent } from '@ksp-gonogo/core';
 
 registerComponent({
   id: 'my-custom-gauge',
@@ -172,7 +172,7 @@ registerComponent({
 ```
 
 ```ts
-import { registerTheme } from '@gonogo/core';
+import { registerTheme } from '@ksp-gonogo/core';
 
 registerTheme({
   id: 'retro-nasa',
@@ -181,7 +181,7 @@ registerTheme({
 });
 ```
 
-The built-in `@gonogo/components` package models this pattern exactly — it is not treated as special by the orchestrator.
+The built-in `@ksp-gonogo/components` package models this pattern exactly — it is not treated as special by the orchestrator.
 
 ---
 
@@ -189,8 +189,8 @@ The built-in `@gonogo/components` package models this pattern exactly — it is 
 
 Prefer tests that mock as little of the system as possible. Use [Mock Service Worker (MSW)](https://mswjs.io/) to intercept at the network boundary rather than mocking modules.
 
-- **Integration tests** (in `@gonogo/app`) use MSW WebSocket/HTTP handlers to simulate KSP APIs. The real data source, real hook, and real component all run — only the network is intercepted. This is the preferred form for tests involving connection status or data flow.
-- **Unit tests** (in `@gonogo/core`, `@gonogo/components`) use the real registry with simple disconnected fixture data sources. No `vi.mock()` of internal modules. MSW is only needed when a test actually triggers a network call.
+- **Integration tests** (in `@ksp-gonogo/app`) use MSW WebSocket/HTTP handlers to simulate KSP APIs. The real data source, real hook, and real component all run — only the network is intercepted. This is the preferred form for tests involving connection status or data flow.
+- **Unit tests** (in `@ksp-gonogo/core`, `@ksp-gonogo/components`) use the real registry with simple disconnected fixture data sources. No `vi.mock()` of internal modules. MSW is only needed when a test actually triggers a network call.
 - Avoid mocking `useDataSources` or other core hooks in component tests — render the real component with real registry state instead.
 - **`act()` warnings are always our bug** — never dismiss them. Two common fixes:
   1. `connect()` must resolve from *inside* the `open` event handler (after `setStatus`), not before the event fires.
@@ -227,7 +227,7 @@ The topic id (`my-feed`) must match the `id` you register below. JSON values are
 **2. Self-register at module load**, alongside `registerComponent`. Same lifecycle pattern. Put this at the bottom of your `<widget>Script.ts`:
 
 ```ts
-import { registerKosScript } from "@gonogo/core";
+import { registerKosScript } from "@ksp-gonogo/core";
 
 registerKosScript({
   id: "my-feed",                       // must match [KOSDATA:<id>]
@@ -246,8 +246,8 @@ The data source runs the script on `0:/widget_scripts/<id>.ks` via the managed w
 **3. Read from the widget** with the standard hooks:
 
 ```ts
-import { useDataValue, useExecuteAction } from "@gonogo/core";
-import { useKosScriptStatus } from "@gonogo/data";
+import { useDataValue, useExecuteAction } from "@ksp-gonogo/core";
+import { useKosScriptStatus } from "@ksp-gonogo/data";
 
 const parts = useDataValue<MyPart[]>("kos", "kos.compute.my-feed.parts");
 const status = useKosScriptStatus("my-feed");
@@ -294,7 +294,7 @@ The `visual` CI job renders every widget through the probe harness (`packages/co
    That `workflow_dispatch` job renders on the CI runner and commits the new baselines back to the branch. Scope it to one widget with `-f widget=<id>`.
 3. **Unintended change** → it's a real cross-browser regression; fix the widget.
 
-Notes: the gate **soft-passes** (warns, exits 0) when an engine has *no* baselines yet, so first-land and bootstrap stay green. Determinism depends on the harness pinning `Date.now()` and disabling animations — a new time-based or animated widget may need matching handling. Bumping the `playwright` version changes rasterisation and requires a baseline regen. Run locally with `pnpm --filter @gonogo/components visual-gate --engine <e> [--update] [--widget <id>]`.
+Notes: the gate **soft-passes** (warns, exits 0) when an engine has *no* baselines yet, so first-land and bootstrap stay green. Determinism depends on the harness pinning `Date.now()` and disabling animations — a new time-based or animated widget may need matching handling. Bumping the `playwright` version changes rasterisation and requires a baseline regen. Run locally with `pnpm --filter @ksp-gonogo/components visual-gate --engine <e> [--update] [--widget <id>]`.
 
 ---
 
@@ -361,7 +361,7 @@ Top-level fields you can filter on:
 
 ## UI Components
 
-Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in `@gonogo/ui`, not co-located with the feature that first needs them. If a primitive doesn't exist in `@gonogo/ui` yet and you need it, add it there rather than creating a local one-off. Duplication in files you're not actively editing is easy to miss — a consistent home in `@gonogo/ui` prevents that.
+Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in `@ksp-gonogo/ui`, not co-located with the feature that first needs them. If a primitive doesn't exist in `@ksp-gonogo/ui` yet and you need it, add it there rather than creating a local one-off. Duplication in files you're not actively editing is easy to miss — a consistent home in `@ksp-gonogo/ui` prevents that.
 
 ---
 
@@ -391,7 +391,7 @@ Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; 
 
 ## Performance Budgets
 
-`@gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and warns + fails CI when a soft cap is breached. The dashboard widget `Perf Budgets` shows every registered budget live; a global test-gate (`PerfBudget.installTestGate()` wired into each package's `setupFiles`) fails any test that pushes a budget over its threshold. See `local_docs/performance_review.md` for the design and the existing budgets.
+`@ksp-gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and warns + fails CI when a soft cap is breached. The dashboard widget `Perf Budgets` shows every registered budget live; a global test-gate (`PerfBudget.installTestGate()` wired into each package's `setupFiles`) fails any test that pushes a budget over its threshold. See `local_docs/performance_review.md` for the design and the existing budgets.
 
 **Required: any new data source MUST register a sample-rate or dispatch-rate `PerfBudget`.** Data sources are the highest-frequency surface in the app — a misconfigured WebSocket, a runaway poll, or a duplicated subscription will silently degrade the whole dashboard. The budget catches all three.
 
@@ -422,14 +422,14 @@ Add the budget at module scope (it self-registers in the global registry on cons
 
 ## Serial Input Platform
 
-`@gonogo/serial` is the per-screen serial input layer. It lets a user plug a physical (or virtual) device into a screen, declare its button/analog inputs, and map those inputs onto dashboard-component **actions**.
+`@ksp-gonogo/serial` is the per-screen serial input layer. It lets a user plug a physical (or virtual) device into a screen, declare its button/analog inputs, and map those inputs onto dashboard-component **actions**.
 
 - **Device types** are user-defined at runtime via the **Serial Devices** menu (joystick FAB, bottom-right of any screen). A type names its inputs, selects a parser (`char-position` is the only one for now), and optionally picks a render style that pipes values back out to the hardware.
 - **Device instances** are per-screen (localStorage key `gonogo.serial.devices.<screenKey>`) and come in two transports: `web-serial` (real USB via `navigator.serial`) and `virtual` (in-memory, driven from the **Virtual Device** widget or from tests via `VirtualTransport.inject`). A default `Virtual Controller` type + instance is seeded on first run.
 - **Component actions** — every component declares its actions in `registerComponent({ actions: [...] })` and handles them with `useActionInput<typeof actions>({ ... })` inside the component body. Consider actions a core part of any new component, alongside `dataRequirements`.
 - **Input mapping** — the dashboard config modal shows an **Inputs** tab whenever a component has actions. Saved mappings live on `DashboardItem.inputMappings` and are consumed by `InputDispatcher`, which routes `{ deviceId, inputId }` events to `dispatchAction(instanceId, actionId, payload)`. Handler return values feed the device's render style and are written back via `transport.write()` on a debounce.
 - **Render styles** are code-registered via `registerSerialRenderStyle()`; the built-in `text-buffer-168` (21×8 ASCII) self-registers when `SerialDeviceService` loads. Add new styles alongside it under `packages/serial/src/renderStyles/`.
-- **Testing serial flows** — prefer `VirtualTransport` (no Web Serial needed) for most integration tests, and the `MockWebSerial` helper when you specifically need to exercise the `WebSerialTransport` read/write path. Both live in `@gonogo/serial`.
+- **Testing serial flows** — prefer `VirtualTransport` (no Web Serial needed) for most integration tests, and the `MockWebSerial` helper when you specifically need to exercise the `WebSerialTransport` read/write path. Both live in `@ksp-gonogo/serial`.
 
 Serial events stay on the screen where the device is plugged in — they are **not** broadcast over PeerJS. A station that wants physical inputs has its own local devices and mappings.
 

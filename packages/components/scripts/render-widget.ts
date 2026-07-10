@@ -5,7 +5,7 @@
  * configs from `widgets.ts`; new widgets are added by editing that file
  * — no package.json change, no new CLI script.
  *
- * Run via `pnpm --filter @gonogo/components render-widget …`.
+ * Run via `pnpm --filter @ksp-gonogo/components render-widget …`.
  * Pass `--engine chromium|firefox|webkit` to pick the browser (default
  * chromium); non-chromium engines suffix output filenames with
  * `--<engine>` so renders from different browsers don't clobber each other.

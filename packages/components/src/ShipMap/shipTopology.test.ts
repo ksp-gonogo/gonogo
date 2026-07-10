@@ -1,4 +1,4 @@
-import type { TopologyPart } from "@gonogo/core";
+import type { TopologyPart } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import { buildShipMapPart, classifyPart } from "./shipTopology";
 

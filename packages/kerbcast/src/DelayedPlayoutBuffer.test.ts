@@ -8,7 +8,7 @@
  * clock, assert release timing.
  *
  * Scenario 2 (the headline video↔telemetry sync test) drives the real
- * `@gonogo/sitrep-client` `ViewClock` — the actual production delay
+ * `@ksp-gonogo/sitrep-client` `ViewClock` — the actual production delay
  * authority — rather than a fake, to prove the buffer and a simulated
  * telemetry-confirmation read genuinely share one clock object. Every
  * other scenario uses a lightweight manual clock double (mirrors
@@ -17,7 +17,7 @@
  * UT-estimator fit, just direct control over `confirmedEdgeUt()`.
  */
 
-import { ViewClock } from "@gonogo/sitrep-client";
+import { ViewClock } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it, vi } from "vitest";
 import {
   type DelayClockLike,

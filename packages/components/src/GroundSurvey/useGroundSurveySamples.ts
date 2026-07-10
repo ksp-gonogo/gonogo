@@ -1,5 +1,5 @@
-import { getDataSource } from "@gonogo/core";
-import type { Sample } from "@gonogo/data";
+import { getDataSource } from "@ksp-gonogo/core";
+import type { Sample } from "@ksp-gonogo/data";
 import { useEffect, useReducer, useRef } from "react";
 
 export interface SurveySample {

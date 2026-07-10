@@ -1,4 +1,4 @@
-import type { BodyDefinition, ComponentProps } from "@gonogo/core";
+import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   getBody,
   kelvinToCelsius,
@@ -6,8 +6,8 @@ import {
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
-import { formatStreamStatus, StreamStatusBadge } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { formatStreamStatus, StreamStatusBadge } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {

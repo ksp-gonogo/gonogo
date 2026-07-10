@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { clearActionHandlers, DashboardItemContext } from "@gonogo/core";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import {
   ReplayTransport,
   TelemetryClient,
@@ -9,7 +9,7 @@ import {
   TimelineStore,
   ViewClock,
   vesselStateChannel,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { act, cleanup, render, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {

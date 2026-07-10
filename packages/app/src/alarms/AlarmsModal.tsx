@@ -1,5 +1,5 @@
-import { ACTION_GROUPS, useDataValue } from "@gonogo/core";
-import { useDataSchema, useManeuverNodes } from "@gonogo/data";
+import { ACTION_GROUPS, useDataValue } from "@ksp-gonogo/core";
+import { useDataSchema, useManeuverNodes } from "@ksp-gonogo/data";
 import {
   Badge,
   DataKeyPicker,
@@ -9,7 +9,7 @@ import {
   GhostButton,
   Input,
   PrimaryButton,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import type {

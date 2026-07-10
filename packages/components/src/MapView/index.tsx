@@ -5,7 +5,7 @@ import type {
   SCANScanningVessel,
   SCANType,
   TrackSample,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
@@ -19,14 +19,14 @@ import {
   useActionInput,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   useDataSchema,
   useScanAnomalies,
   useScanningVessels,
   useScanSatFogSync,
-} from "@gonogo/data";
-import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@gonogo/ui";
+} from "@ksp-gonogo/data";
+import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -165,7 +165,7 @@ export interface MapBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
     "map-view.badges": MapBadgesContext;

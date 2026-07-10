@@ -1,6 +1,6 @@
-import { safeRandomUuid } from "@gonogo/core";
-import type { BufferedDataSource } from "@gonogo/data";
-import { LocalStorageStore } from "@gonogo/data";
+import { safeRandomUuid } from "@ksp-gonogo/core";
+import type { BufferedDataSource } from "@ksp-gonogo/data";
+import { LocalStorageStore } from "@ksp-gonogo/data";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmStateMachine, type TelemetryReader } from "./AlarmStateMachine";

@@ -1,4 +1,4 @@
-import { getBody, useDataValue } from "@gonogo/core";
+import { getBody, useDataValue } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 
 type OrbitInfo = {

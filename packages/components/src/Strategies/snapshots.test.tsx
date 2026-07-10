@@ -1,4 +1,4 @@
-import { DashboardItemContext } from "@gonogo/core";
+import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";

@@ -1,4 +1,4 @@
-import { synthesizeFlight } from "@gonogo/data";
+import { synthesizeFlight } from "@ksp-gonogo/data";
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {

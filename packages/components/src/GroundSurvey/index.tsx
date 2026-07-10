@@ -1,5 +1,5 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { AugmentSlot, registerComponent } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
+import { AugmentSlot, registerComponent } from "@ksp-gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -11,7 +11,7 @@ import {
   PanelTitle,
   useElementSize,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
@@ -45,7 +45,7 @@ export interface GroundSurveyBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "ground-survey.badges": GroundSurveyBadgesContext;
   }

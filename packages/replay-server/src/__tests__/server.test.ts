@@ -1,4 +1,4 @@
-import { synthesizeFlight } from "@gonogo/data/replay";
+import { synthesizeFlight } from "@ksp-gonogo/data/replay";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createReplayServer, type RunningReplayServer } from "../server";

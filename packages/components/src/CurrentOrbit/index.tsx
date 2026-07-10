@@ -1,4 +1,4 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   formatDistance,
   formatDuration,
@@ -8,13 +8,13 @@ import {
   useDataStreamStatus,
   useOrbitElements,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Panel,
   PanelSubtitle,
   PanelTitle,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";

@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PerfBudget } from "./PerfBudget";
 

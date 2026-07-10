@@ -1,6 +1,6 @@
-# @gonogo/sitrep-kernel
+# @ksp-gonogo/sitrep-kernel
 
-`@gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
+`@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 This package is the mod's **microkernel**: the extensibility substrate the
 rest of Sitrep (and third-party extensions) build on. It is milestone **M4**
@@ -61,7 +61,7 @@ user-choice UI (see below) would render.
 `src/proof/` is the milestone's headline demonstration, not a hidden
 implementation detail: the entire M3 delay engine
 (`Courier`/`StubNetwork`/`ManualClock`, unmodified, imported from
-`@gonogo/sitrep-server`) is wired up as nothing more than one `comms`
+`@ksp-gonogo/sitrep-server`) is wired up as nothing more than one `comms`
 provider (`courier-provider.ts`) behind an exclusive capability, with a
 same-shape zero-delay `vanilla-comms.ts` as the fallback. `proof/comms.test.ts`
 proves the switch is observable through the kernel alone — same capability

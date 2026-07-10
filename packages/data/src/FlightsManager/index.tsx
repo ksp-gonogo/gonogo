@@ -1,5 +1,5 @@
-import { getDataSource, type Screen } from "@gonogo/core";
-import { StarIcon } from "@gonogo/ui";
+import { getDataSource, type Screen } from "@ksp-gonogo/core";
+import { StarIcon } from "@ksp-gonogo/ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";

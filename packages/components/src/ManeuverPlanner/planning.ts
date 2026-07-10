@@ -12,7 +12,7 @@ import {
   matchInclination,
   matchTargetPlane,
   stateAtUT,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { isFiniteNumber, type PresetId } from "./presets";
 
 /**

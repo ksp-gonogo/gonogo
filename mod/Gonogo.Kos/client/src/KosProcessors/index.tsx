@@ -1,18 +1,18 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
-import { type KosScriptStatus, useKosScriptStatus } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+} from "@ksp-gonogo/core";
+import { type KosScriptStatus, useKosScriptStatus } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import {
   type StreamStatusValue,
   type TimelineStore,
   useTelemetryStoreOptional,
-} from "@gonogo/sitrep-client";
-import type { KosProcessorInfo } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-client";
+import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -20,7 +20,7 @@ import {
   FieldLabel,
   GhostButton,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import {
   type ReactNode,
   useCallback,
@@ -42,7 +42,7 @@ const RE_ENABLE_ACTION = `kos.compute.${KOS_PROCESSORS_TOPIC_ID}.reEnable`;
 
 // The mod's native push-telemetry channel (U3). Kept as a named identifier
 // (not an inline string literal in `dataRequirements`) on purpose: the
-// `@gonogo/core` mapTopic.coverage gate scans widget `dataRequirements`
+// `@ksp-gonogo/core` mapTopic.coverage gate scans widget `dataRequirements`
 // arrays for quoted string literals and asserts each is a mapped-or-gapped
 // *Telemachus* key. `kos.processors` is neither, so exposing it as a literal
 // would trip that (Telemachus-scoped) gate — the kos routing is covered by
@@ -111,7 +111,7 @@ function streamStatusToKosStatus(
 // The `kos-processors.badges` slot contract (spec §4.4 / augment-slot-map)
 //
 // A per-processor-row inline badges slot. Once this widget migrates to its own
-// `@gonogo/kos` Uplink package (uplink-architecture.md §5 item 2), a third-party
+// `@ksp-gonogo/kos` Uplink package (uplink-architecture.md §5 item 2), a third-party
 // kOS-tooling Uplink could badge each CPU with a "script health" indicator
 // without leaving this widget. Because the slot renders once PER ROW, its props
 // MUST carry the processor's identity so the augment badges the right CPU —
@@ -136,7 +136,7 @@ export interface KosProcessorBadgeContext {
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "kos-processors.badges" })` and `<AugmentSlot name="kos-processors.badges"
 // props={…} />` type-check precisely against `KosProcessorBadgeContext`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "kos-processors.badges": KosProcessorBadgeContext;
   }

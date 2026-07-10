@@ -20,7 +20,7 @@ import {
   Quality,
   Staleness,
   type StreamData,
-} from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-sdk";
 import { Archive } from "./archive";
 import type { Clock } from "./clock";
 import type { Network } from "./stub-network";

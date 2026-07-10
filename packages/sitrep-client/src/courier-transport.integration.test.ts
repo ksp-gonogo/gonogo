@@ -3,13 +3,13 @@ import {
   CourierTransport,
   ManualClock,
   StubNetwork,
-} from "@gonogo/sitrep-server";
+} from "@ksp-gonogo/sitrep-server";
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 
 // These cases drive a real M2 `TelemetryClient` over the M3 delay-modelling
 // server stack (`Courier` + `CourierTransport` + `StubNetwork`, all from
-// `@gonogo/sitrep-server`). They live here — not in sitrep-server's own
+// `@ksp-gonogo/sitrep-server`). They live here — not in sitrep-server's own
 // `courier-transport.test.ts` — because sitrep-server must not depend on
 // sitrep-client: the natural DAG is `sitrep-sdk <- sitrep-server <-
 // sitrep-client`, and this package already has a test-only devDependency on

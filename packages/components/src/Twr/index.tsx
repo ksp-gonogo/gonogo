@@ -1,6 +1,6 @@
-import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useTelemetry } from "@gonogo/core";
-import { useDataSeries } from "@gonogo/data";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { useDataSeries } from "@ksp-gonogo/data";
 import {
   EmptyState,
   Gauge,
@@ -10,7 +10,7 @@ import {
   PanelTitle,
   Sparkline,
   useElementSize,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 

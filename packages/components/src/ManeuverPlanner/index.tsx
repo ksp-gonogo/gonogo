@@ -10,8 +10,12 @@ import {
   useDataValue,
   useExecuteAction,
   useOrbitElements,
-} from "@gonogo/core";
-import { useDataSchema, useManeuverNodes, useVesselDeltaV } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import {
+  useDataSchema,
+  useManeuverNodes,
+  useVesselDeltaV,
+} from "@ksp-gonogo/data";
 import {
   CheckIcon,
   Panel,
@@ -19,7 +23,7 @@ import {
   PanelTitle,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -68,7 +72,7 @@ export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
 /** No slot props — header badge escape hatch (no per-item datum). */
 export type ManeuverPlannerBadgesSlotProps = Record<string, never>;
 
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
     "maneuver-planner.badges": ManeuverPlannerBadgesSlotProps;
@@ -200,7 +204,7 @@ function ManeuverPlannerComponent({
   const { completedNodes } = useBurnCompletionTracker(nodes, execute);
 
   // Armed conditional triggers come from a service — host service on the
-  // main screen (see @gonogo/app/src/maneuverTriggers), client service on
+  // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
   // station screens. When the widget is rendered without a provider (legacy
   // tests, standalone embeds) we fall back to an in-process LocalService so
   // the feature still works for the local user.

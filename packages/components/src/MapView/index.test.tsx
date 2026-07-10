@@ -1,4 +1,4 @@
-import type { DataKey, OrbitPatch } from "@gonogo/core";
+import type { DataKey, OrbitPatch } from "@ksp-gonogo/core";
 import {
   clearAugments,
   clearBodies,
@@ -8,8 +8,8 @@ import {
   registerAugment,
   registerDataSource,
   registerStockBodies,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   act,
   cleanup,

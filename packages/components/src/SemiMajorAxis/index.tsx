@@ -1,11 +1,11 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   formatDistance,
   registerComponent,
   useDataStreamStatus,
   useTelemetry,
-} from "@gonogo/core";
-import { useDataSeries } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { useDataSeries } from "@ksp-gonogo/data";
 import {
   EmptyState,
   Panel,
@@ -13,7 +13,7 @@ import {
   PanelTitle,
   Sparkline,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 

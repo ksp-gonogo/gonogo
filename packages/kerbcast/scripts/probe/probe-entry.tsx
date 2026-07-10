@@ -15,7 +15,7 @@ import {
   DashboardItemContext,
   registerDataSource,
   unregisterDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { createRoot, type Root } from "react-dom/client";
 import { CameraFeed } from "../../src/CameraFeed/CameraFeed";
 import { KerbcastDataSource } from "../../src/KerbcastDataSource";

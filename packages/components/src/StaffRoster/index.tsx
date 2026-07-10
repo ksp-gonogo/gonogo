@@ -1,18 +1,18 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getSizeBucket,
   getWidgetShape,
   registerComponent,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Badge,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 type StaffRosterConfig = Record<string, never>;
@@ -42,7 +42,7 @@ export interface StaffBadgeContext {
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "staff-roster.badges" })` and `<AugmentSlot name="staff-roster.badges"
 // props={…} />` type-check precisely against `StaffBadgeContext`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "staff-roster.badges": StaffBadgeContext;
   }

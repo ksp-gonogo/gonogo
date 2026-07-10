@@ -7,11 +7,11 @@
 // composition/ordering/settings behaviour is covered in `index.test.tsx`.
 //
 // Importing `ObjectiveSourceContext` from `./index` brings that module — and its
-// `declare module "@gonogo/core"` slot-registry merge — into the program, so
+// `declare module "@ksp-gonogo/core"` slot-registry merge — into the program, so
 // `SlotProps<"objectives.sections">` resolves to the merged contract rather than
 // the loose `Record<string, unknown>` fallback an unmerged slot id would get.
 
-import type { SlotProps } from "@gonogo/core";
+import type { SlotProps } from "@ksp-gonogo/core";
 import type { ComponentType } from "react";
 import type { ObjectiveSourceContext } from "./index";
 

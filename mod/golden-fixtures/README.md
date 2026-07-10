@@ -34,7 +34,7 @@ Generated from `mod/sitrep-kernel/src/version.ts`'s three pure functions —
 `mod/golden-fixtures/gen/version.gen.ts`. Regenerate with:
 
 ```
-pnpm --filter @gonogo/sitrep-kernel gen:golden-fixtures
+pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures
 ```
 
 Each vector is `{ fn, args, expected }`. `fn` selects which function the
@@ -105,7 +105,7 @@ to-the-same-UT still firing a freshly scheduled callback, and a
 multi-level re-entrant drain interleaved with an already-pending callback at
 a tied `atUt`.
 
-Regenerate with `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`.
+Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`.
 The C# side (`mod/Sitrep.Core.Tests/ClockGoldenFixtureTests.cs`) replays each
 scenario's ops against `Sitrep.Core.ManualClock` and asserts the fired order
 and final `Now()` match.
@@ -152,7 +152,7 @@ collapsing every delay to zero, scale never touching `reachable`, the
 constructor's `scale` argument, `setScale` being changeable more than once,
 and negative-scale clamping to 0 from both `setScale` and the constructor.
 
-Regenerate with `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`
+Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 (the same script also regenerates `clock.json`). The C# side
 (`mod/Sitrep.Core.Tests/StubNetworkGoldenFixtureTests.cs`) constructs a
 `Sitrep.Core.StubNetwork` with the scenario's `defaults`/`scale`, replays
@@ -194,7 +194,7 @@ list ascending by `validAt` (and a subsequent read seeing it in the right
 position), and collision-safe cursor keying (`(topic, vantage)` via a nested
 map, not string concatenation).
 
-Regenerate with `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`
+Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 (the same script also regenerates `clock.json` and `stub-network.json`). The
 C# side (`mod/Sitrep.Core.Tests/ArchiveGoldenFixtureTests.cs`) constructs a
 `Sitrep.Core.Archive`, replays each op in order, and asserts every
@@ -260,7 +260,7 @@ reporting its OWN captured fire-UT, not a shared re-read of `clock.now()`
 to an unreachable node dropped with honest silence (no execute, no
 response, ever).
 
-Regenerate with `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`
+Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 (the same script also regenerates `clock.json`, `stub-network.json`, and
 `archive.json`). The C# side
 (`mod/Sitrep.Core.Tests/CourierGoldenFixtureTests.cs`) constructs a

@@ -1,4 +1,4 @@
-import { clearActionHandlers, DashboardItemContext } from "@gonogo/core";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {

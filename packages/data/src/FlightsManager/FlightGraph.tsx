@@ -1,6 +1,6 @@
-import { getDataSource } from "@gonogo/core";
-import type { ChartSeries, KeyOption } from "@gonogo/ui";
-import { DataKeyMultiPicker, LineChart } from "@gonogo/ui";
+import { getDataSource } from "@ksp-gonogo/core";
+import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
+import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { BufferedDataSource } from "../BufferedDataSource";

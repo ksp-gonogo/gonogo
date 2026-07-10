@@ -2,8 +2,8 @@ import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
-} from "@gonogo/sitrep-client";
-import { Quality } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-client";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AugmentSlot } from "./AugmentSlot";

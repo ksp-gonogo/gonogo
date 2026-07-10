@@ -1,11 +1,11 @@
-import type { DataSourceStatus } from "@gonogo/core";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
   KosData,
   KosScriptArg,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
 
 /**
@@ -242,7 +242,7 @@ export type PeerMessage =
        * it, a station that dispatches a script the main screen has never
        * run would hit "file not found" on the kOS volume.
        */
-      managed?: import("@gonogo/data").KosManagedScript;
+      managed?: import("@ksp-gonogo/data").KosManagedScript;
     }
   | {
       type: "kos-execute-response";
@@ -314,14 +314,14 @@ export type PeerMessage =
   // ──────────────────────────────────────────────────────────────────────
   | {
       type: "trigger-snapshot";
-      snapshot: import("@gonogo/components").TriggerSnapshot;
+      snapshot: import("@ksp-gonogo/components").TriggerSnapshot;
     }
   | {
       type: "trigger-arm";
       dataKey: string;
-      op: import("@gonogo/components").ThresholdOp;
+      op: import("@ksp-gonogo/components").ThresholdOp;
       value: number;
-      inputs: import("@gonogo/components").FrozenPlanInputs;
+      inputs: import("@ksp-gonogo/components").FrozenPlanInputs;
     }
   | { type: "trigger-cancel"; id: string }
   // ──────────────────────────────────────────────────────────────────────

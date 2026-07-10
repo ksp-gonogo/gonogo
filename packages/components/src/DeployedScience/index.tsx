@@ -1,11 +1,16 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
-import { EmptyState, Panel, PanelTitle, StreamStatusBadge } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  EmptyState,
+  Panel,
+  PanelTitle,
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -499,7 +504,7 @@ export interface DeployedExperimentContext {
 // shared central registry file, so parallel per-widget slot work never
 // collides. `.sections` is a typed-contract per-card slot (carries the
 // experiment); `.badges` is a plain header escape-hatch (no props).
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "deployed-science.sections": DeployedExperimentContext;
     "deployed-science.badges": Record<string, never>;

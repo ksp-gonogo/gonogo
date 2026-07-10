@@ -1,16 +1,16 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
-import {
-  AugmentSlot,
-  getDataSource,
-  useActionInput,
-  useDataValue,
-} from "@gonogo/core";
 import {
   type CameraFeedHandle,
   KerbcastProvider,
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@jonpepler/kerbcast-react";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  getDataSource,
+  useActionInput,
+  useDataValue,
+} from "@ksp-gonogo/core";
 import {
   type CSSProperties,
   useCallback,
@@ -59,7 +59,7 @@ export interface CameraFeedConfig extends Record<string, unknown> {
  *
  * NOTE: richer projection (the SDK's internal pan/zoom transform) isn't
  * readable from this wrapper; exposing it waits on the widget's move into
- * `@gonogo/kerbcast` (P3), where it can read the SDK feed handle directly.
+ * `@ksp-gonogo/kerbcast` (P3), where it can read the SDK feed handle directly.
  */
 export interface CameraOverlayContext {
   /** flightID of the displayed camera (auto-picks included); null before one resolves. */
@@ -83,7 +83,7 @@ export interface CameraBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not a central registry file) so parallel slot
 // work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "camera-feed.overlay": CameraOverlayContext;
     "camera-feed.badges": CameraBadgesContext;

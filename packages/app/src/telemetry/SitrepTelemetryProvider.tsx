@@ -1,11 +1,11 @@
-import { PerfBudget } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import { PerfBudget } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import {
   TelemetryClient,
   TelemetryProvider,
   type Transport,
   WebSocketTransport,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { type ReactNode, useEffect, useState } from "react";
 
 /**
@@ -145,7 +145,7 @@ export interface SitrepTelemetryProviderProps {
  * exactly as it does today and every widget stays on the legacy Telemachus
  * `DataSource`.
  *
- * When on, the `useDataValue` shim (`@gonogo/core`) automatically routes any
+ * When on, the `useDataValue` shim (`@ksp-gonogo/core`) automatically routes any
  * MAPPED + CARRIED topic through the streaming pipeline with zero widget
  * changes; everything else keeps falling back to legacy. Main-screen only —
  * the station screen gets stream data over PeerJS in a later task and must not

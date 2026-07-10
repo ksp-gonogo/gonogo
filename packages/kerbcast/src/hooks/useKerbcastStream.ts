@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useEffect, useRef, useState } from "react";
 import {
   type DelayClockLike,
@@ -70,7 +70,7 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
  */
 export interface KerbcastStreamDelayOptions {
   /** THE delay clock — pass the SAME instance telemetry reads
-   *  (`ViewClock` from `@gonogo/sitrep-client`, or an equivalent). Kept as
+   *  (`ViewClock` from `@ksp-gonogo/sitrep-client`, or an equivalent). Kept as
    *  a structural type here so this package never imports sitrep-client. */
   view: DelayClockLike;
   /** Capture-UT to stamp the current stream reference with. */

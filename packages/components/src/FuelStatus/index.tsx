@@ -2,7 +2,7 @@ import type {
   ComponentProps,
   ConfigComponentProps,
   StageInfo,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   clampSafe,
@@ -10,7 +10,7 @@ import {
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BigReadout,
   ConfigForm,
@@ -24,7 +24,7 @@ import {
   Select,
   StreamStatusBadge,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -693,7 +693,7 @@ const StageMeta = styled.span`
 // section/badge slots (not overlays), so they pass no coordinate/projection
 // context — an empty props object. Kept co-located here, not in a shared
 // central registry file, so parallel per-widget slot work never collides.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "fuel-status.sections": Record<string, never>;
     "fuel-status.badges": Record<string, never>;

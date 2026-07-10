@@ -5,7 +5,7 @@ import {
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { useCallback, useSyncExternalStore } from "react";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
@@ -42,7 +42,7 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** -> the real `StreamStatusValue` off the `TimelineStore`
- *   (`store.sampleStatus`, mirroring `@gonogo/sitrep-client`'s own
+ *   (`store.sampleStatus`, mirroring `@ksp-gonogo/sitrep-client`'s own
  *   `useStreamStatus` — not called directly for the same "always-wired,
  *   stable hook order across a dynamic `dataSourceId`/`key`" reason
  *   `useDataValue`'s doc comment gives for mirroring `useStream`).
@@ -103,7 +103,7 @@ export function useDataStreamStatus(
         return () => {};
       }
       // Mirrors `useDataValue`'s `subscribeStream` (and, underneath it,
-      // `@gonogo/sitrep-client`'s `useStream`): a status read needs the same
+      // `@ksp-gonogo/sitrep-client`'s `useStream`): a status read needs the same
       // real `client.subscribe` on the topic's resolved raw inputs as a
       // value read — for a `StubTransport`/real transport, nothing is
       // actually delivered on an unsubscribed topic (`StubTransport.emit`'s

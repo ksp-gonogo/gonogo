@@ -122,7 +122,7 @@ namespace Sitrep.Contract
     /// by <c>Sitrep.Core.Tests</c> against the shared golden fixture in
     /// <c>mod/golden-fixtures/kernel.json</c>, not by re-deriving semantics
     /// here. If you touch this file, regenerate the fixture from the TS side
-    /// first (`pnpm --filter @gonogo/sitrep-kernel gen:golden-fixtures`) and
+    /// first (`pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures`) and
     /// re-run `dotnet test` to confirm the two still agree.
     ///
     /// <see cref="Resolve"/> runs in three phases, in order:

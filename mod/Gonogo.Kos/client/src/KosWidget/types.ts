@@ -1,4 +1,4 @@
-import type { KosWidgetArg } from "@gonogo/data";
+import type { KosWidgetArg } from "@ksp-gonogo/data";
 
 export type { KosWidgetArg };
 

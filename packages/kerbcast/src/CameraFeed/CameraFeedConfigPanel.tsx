@@ -1,11 +1,11 @@
-import type { ConfigComponentProps } from "@gonogo/core";
+import type { ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   ConfigForm,
   Field,
   FieldHint,
   PrimaryButton,
   Switch,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import type { CameraFeedConfig } from "./CameraFeed";
 

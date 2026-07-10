@@ -1,10 +1,10 @@
-import type { BodyDefinition, ComponentProps } from "@gonogo/core";
+import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   getBody,
   orbitalPeriod,
   registerComponent,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";

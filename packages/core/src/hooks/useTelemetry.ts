@@ -4,8 +4,8 @@ import {
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-} from "@gonogo/sitrep-client";
-import type { TopicId, TopicPayload } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-client";
+import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useSyncExternalStore } from "react";
 import type { DataSource, DataSourceRegistry } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
@@ -16,7 +16,7 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * `useDataValue`, which now re-exports this as a deprecated alias.
  *
  * **Canonical Topic overload** — the forward-looking shape. Keyed directly by
- * a typed `TopicId` from `@gonogo/sitrep-sdk`, it reads that Topic's payload
+ * a typed `TopicId` from `@ksp-gonogo/sitrep-sdk`, it reads that Topic's payload
  * straight off the mounted `TimelineStore` and returns the Topic's payload
  * type:
  *
@@ -50,7 +50,7 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  *
  * **The M3 `useStream` compatibility shim (M2 Task 7).** For the two-arg legacy
  * overloads this hook routes through `mapTopic(dataSourceId, key)`
- * (`@gonogo/sitrep-client`, seeded from `m1-provider-taxonomy-design.md`
+ * (`@ksp-gonogo/sitrep-client`, seeded from `m1-provider-taxonomy-design.md`
  * §5's old-Telemachus-key → new-stream-topic migration table):
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
@@ -81,7 +81,7 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * was the exact bug this task fixes — a mapped derived key read as
  * permanently-dead `undefined` even with a provider mounted, since nothing
  * fed the `TimelineStore` that would have derived it). Instead the streamed
- * branch mirrors `useStream` (`@gonogo/sitrep-client`'s `use-stream.ts` —
+ * branch mirrors `useStream` (`@ksp-gonogo/sitrep-client`'s `use-stream.ts` —
  * that file is the source of truth if its subscribe/getSnapshot contract
  * ever changes):
  * - `store.resolveSubscriptionTopics(topic)` resolves `topic` down to the
@@ -191,7 +191,7 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   // the resolved topic is actually CARRIED (M3 Wave 0 carried-channels
   // allowlist gate, `m3-migration-plan.md` §5.1 — the safety mechanism
   // against the "big-bang blank-out"). This half deliberately mirrors
-  // `useStream` (`@gonogo/sitrep-client`'s `use-stream.ts`) — that file is the
+  // `useStream` (`@ksp-gonogo/sitrep-client`'s `use-stream.ts`) — that file is the
   // source of truth if its subscribe/getSnapshot contract ever changes.
   //
   // **The carried-channels gate.** Before this gate existed, a mapped topic

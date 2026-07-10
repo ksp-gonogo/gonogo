@@ -1,4 +1,4 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import type { FlightRecord } from "../types";
 
 /**

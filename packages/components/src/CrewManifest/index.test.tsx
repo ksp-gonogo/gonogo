@@ -1,5 +1,5 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
-import { registerAugment } from "@gonogo/core";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {

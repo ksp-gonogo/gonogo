@@ -1,4 +1,4 @@
-import { registerComponent } from "@gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
 import {
   CameraFeed,
   type CameraFeedConfig,

@@ -3,7 +3,7 @@ import type {
   ActionGroupId,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   ACTION_GROUPS,
   AugmentSlot,
@@ -12,7 +12,7 @@ import {
   useActionInput,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BellIcon,
   ConfigForm,
@@ -25,7 +25,7 @@ import {
   Select,
   ToggleButton,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -80,7 +80,7 @@ export interface ActionGroupSlotContext {
 // parallel slot work on other widgets can't collide. This makes
 // `registerAugment` and `<AugmentSlot name="action-group.badges" …>` type-check
 // against `ActionGroupSlotContext` rather than the loose fallback.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "action-group.badges": ActionGroupSlotContext;
     "action-group.sections": ActionGroupSlotContext;
@@ -101,7 +101,7 @@ function ActionGroupComponent({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   // `group.value`/`group.toggle` are resolved dynamically off the ACTION_GROUPS
-  // registry (`@gonogo/core/actionGroups.ts`), not literal `useDataValue`
+  // registry (`@ksp-gonogo/core/actionGroups.ts`), not literal `useDataValue`
   // string calls — see `mapTopic.coverage.test.ts`'s doc comment for why that
   // makes this widget the scan's own blind spot. P4a un-gapped the last two
   // holdouts (Abort/Precision Control's `.value` keys): `v.abortValue` ->

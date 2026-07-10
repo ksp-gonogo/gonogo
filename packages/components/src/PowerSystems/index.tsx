@@ -2,7 +2,7 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getWidgetShape,
@@ -10,8 +10,8 @@ import {
   useActionInput,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
-import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -25,7 +25,7 @@ import {
   Sparkline,
   StreamStatusBadge,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -111,7 +111,7 @@ export interface PowerSystemsSlotContext {
 // `<AugmentSlot name="power-systems.sections" props={…} />` against
 // `PowerSystemsSlotContext` rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would receive.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "power-systems.sections": PowerSystemsSlotContext;
     "power-systems.badges": PowerSystemsSlotContext;

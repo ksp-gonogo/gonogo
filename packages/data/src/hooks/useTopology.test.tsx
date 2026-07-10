@@ -3,7 +3,7 @@ import {
   MockDataSource,
   registerDataSource,
   type VesselTopology,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useTopology } from "./useTopology";

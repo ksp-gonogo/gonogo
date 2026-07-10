@@ -1,4 +1,4 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
@@ -7,7 +7,7 @@ import {
   useExecuteAction,
   useGameContext,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   DimmedOverlay,
   Panel,
@@ -17,7 +17,7 @@ import {
   ReadoutCaption,
   StreamStatusBadge,
   ToggleButton,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -45,7 +45,7 @@ type WarpControlConfig = Record<string, never>;
 // reads its OWN Topics — so each passes empty props (`Record<string, never>`).
 // Co-located here (not in a shared central registry file) so parallel P2 slot
 // work on other widgets never collides on the same module.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     // Footer action row: an Uplink contributes a warp-target action
     // ("Warp to <mod-event>") alongside the widget's own warp buttons.

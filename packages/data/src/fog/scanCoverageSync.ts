@@ -2,8 +2,8 @@ import type {
   BodyDefinition,
   SCANCoverageBitmap,
   SCANType,
-} from "@gonogo/core";
-import { SCAN_TYPE } from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { SCAN_TYPE } from "@ksp-gonogo/core";
 import type { BodyMask } from "./FogMaskCache";
 
 /** Wrap a longitude into the [-180, 180) range. */

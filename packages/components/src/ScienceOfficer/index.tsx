@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getWidgetShape,
@@ -6,7 +6,7 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Panel,
   PanelSubtitle,
@@ -14,7 +14,7 @@ import {
   ScrollArea,
   Spinner,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -65,7 +65,7 @@ export interface ScienceOfficerSlotContext {
 // `<AugmentSlot name="science-officer.sections" props={…} />` against the
 // widget's own context types rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would receive.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "science-officer.sections": ScienceOfficerInstrumentSlotContext;
     "science-officer.badges": ScienceOfficerSlotContext;

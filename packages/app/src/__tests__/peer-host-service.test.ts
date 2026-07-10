@@ -236,7 +236,7 @@ describe("PeerHostService — hello", () => {
   });
 
   it("sends hello as the first message on a new connection, before schema", async () => {
-    const { clearRegistry } = await import("@gonogo/core");
+    const { clearRegistry } = await import("@ksp-gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
 
     clearRegistry();
@@ -281,7 +281,7 @@ describe("PeerHostService — stationKey ghost eviction", () => {
   });
 
   it("closes the previous peerId when a new station-info arrives with the same stationKey", async () => {
-    const { clearRegistry } = await import("@gonogo/core");
+    const { clearRegistry } = await import("@ksp-gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry();
 
@@ -320,7 +320,7 @@ describe("PeerHostService — stationKey ghost eviction", () => {
   });
 
   it("does not evict on station-info from the same peerId (rename case)", async () => {
-    const { clearRegistry } = await import("@gonogo/core");
+    const { clearRegistry } = await import("@ksp-gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry();
 
@@ -357,7 +357,7 @@ describe("PeerHostService — selective subscription", () => {
   // receiving everything. Catches a refactor that loses the per-conn
   // WeakMap mutation in the data-mode / data-subscribe handlers.
   it("filters data broadcasts per-peer based on mode + subs", async () => {
-    const { clearRegistry } = await import("@gonogo/core");
+    const { clearRegistry } = await import("@ksp-gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry();
 
@@ -669,7 +669,9 @@ describe("PeerHostService — schema broadcast", () => {
   // list because they needed label/unit/group. Host must forward the full
   // DataKeyMeta shape.
   it("sends the fully enriched DataKeyMeta[] to a connecting station", async () => {
-    const { registerDataSource, clearRegistry } = await import("@gonogo/core");
+    const { registerDataSource, clearRegistry } = await import(
+      "@ksp-gonogo/core"
+    );
     const { PeerHostService } = await import("../peer/PeerHostService");
 
     clearRegistry();
@@ -1197,7 +1199,9 @@ describe("PeerHostService — kerbcast negotiate broker", () => {
   }
 
   it("relays a station offer to the host kerbcast source and returns its answer", async () => {
-    const { registerDataSource, clearRegistry } = await import("@gonogo/core");
+    const { registerDataSource, clearRegistry } = await import(
+      "@ksp-gonogo/core"
+    );
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry();
 
@@ -1258,7 +1262,7 @@ describe("PeerHostService — kerbcast negotiate broker", () => {
   });
 
   it("responds with an error when the host has no kerbcast source", async () => {
-    const { clearRegistry } = await import("@gonogo/core");
+    const { clearRegistry } = await import("@ksp-gonogo/core");
     const { PeerHostService } = await import("../peer/PeerHostService");
     clearRegistry(); // no kerbcast registered
 

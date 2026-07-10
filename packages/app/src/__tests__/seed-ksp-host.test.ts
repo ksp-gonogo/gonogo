@@ -1,4 +1,4 @@
-import { kerbcastSource } from "@gonogo/kerbcast";
+import { kerbcastSource } from "@ksp-gonogo/kerbcast";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import {

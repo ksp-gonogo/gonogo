@@ -1,4 +1,4 @@
-import { debugPeer, logger } from "@gonogo/logger";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 
 /**
  * Longer retry gap when the broker reports our station peer id is still

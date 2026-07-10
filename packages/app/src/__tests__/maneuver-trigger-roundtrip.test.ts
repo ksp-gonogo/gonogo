@@ -13,7 +13,7 @@ import type {
   ArmTriggerInput,
   FrozenPlanInputs,
   TriggerSnapshot,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import { describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerClientService } from "../maneuverTriggers/ManeuverTriggerClientService";
 import { ManeuverTriggerHostService } from "../maneuverTriggers/ManeuverTriggerHostService";

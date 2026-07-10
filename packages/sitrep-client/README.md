@@ -1,6 +1,6 @@
-# @gonogo/sitrep-client
+# @ksp-gonogo/sitrep-client
 
-`@gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
+`@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 The app-side core spine for the gonogo-native telemetry mod: the React layer
 that sits between a `Transport` (a dumb typed message pipe to a telemetry
@@ -21,7 +21,7 @@ interface Transport {
 }
 ```
 
-`Transport` routes the `@gonogo/sitrep-sdk` wire messages
+`Transport` routes the `@ksp-gonogo/sitrep-sdk` wire messages
 (`subscribe`/`unsubscribe`/`command-request` out, `stream-data`/
 `command-response`/`error` in) and nothing else — topics, subscriptions, and
 command correlation are all handled above this boundary, in
@@ -74,7 +74,7 @@ import {
   StubTransport,
   useStream,
   useCommand,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 
 function MissionPanel() {
   const altitude = useStream<number>("v.alt");
@@ -104,7 +104,7 @@ no real transport.
 ## Delayed comms (M3)
 
 Delayed streams and delayed command round trips now work, with nothing above
-the `Transport` boundary changing. `@gonogo/sitrep-server`'s `Courier` +
+the `Transport` boundary changing. `@ksp-gonogo/sitrep-server`'s `Courier` +
 `CourierTransport` implement the exact same `Transport` interface
 `StubTransport` does — swap the transport passed to `TelemetryClient` and
 every hook behaves identically, just lagged by whatever network delay the
@@ -135,7 +135,7 @@ internals (`Clock`/`Network`/`Archive`/`Courier`/`CourierTransport`).
 ## What's out of scope here (M3b+)
 
 - **Contact-plan routing** (moving relays, CGR, store-and-forward) — M3b,
-  lives entirely in `@gonogo/sitrep-server`'s `Network`/`Courier`; this
+  lives entirely in `@ksp-gonogo/sitrep-server`'s `Network`/`Courier`; this
   package's `Transport` boundary doesn't change either way.
 - **Real transports** — WebSocket and PeerJS implementations of `Transport`,
   replacing `StubTransport`/`CourierTransport` in real usage without any

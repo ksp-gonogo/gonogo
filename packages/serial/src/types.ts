@@ -1,7 +1,7 @@
 // Serial input platform — shared types (core)
 //
 // DeviceTypes and DeviceInstances are user-data (persisted to localStorage
-// via the SerialDeviceService in @gonogo/app). RenderStyles are code-defined
+// via the SerialDeviceService in @ksp-gonogo/app). RenderStyles are code-defined
 // and live in a singleton registry here (see ./registry.ts).
 
 export type DeviceInputKind = "button" | "analog";

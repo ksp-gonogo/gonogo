@@ -1,5 +1,5 @@
-import type { Meta } from "@gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@gonogo/sitrep-sdk";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
@@ -588,7 +588,7 @@ export class TimelineStore {
    * `sample()` alone can't make this distinction: `sampleDerived`'s field
    * lookup collapses "unknown field name" and "not whole yet" onto the same
    * `undefined` return, deliberately (see its own doc comment). This is a
-   * SEPARATE diagnostic read for a caller (the `@gonogo/core` `useDataValue`
+   * SEPARATE diagnostic read for a caller (the `@ksp-gonogo/core` `useDataValue`
    * compatibility shim, M2 bridge task Fix 1 item 4 — belt-and-suspenders
    * fallback safety) that needs to tell "still loading, keep waiting" apart
    * from "this can never resolve, fall back to another source" — never
@@ -666,7 +666,7 @@ export class TimelineStore {
 
   /**
    * Windowed range read for a raw topic (or raw record field-subtopic) —
-   * the read side of `useDataSeries`'s M3 stream shim (`@gonogo/data`).
+   * the read side of `useDataSeries`'s M3 stream shim (`@ksp-gonogo/data`).
    * Mirrors `sample()`'s raw-topic / raw-field-subtopic resolution
    * (`resolveRawFieldSubtopic`, see `timeline-store-raw-fields.test.ts`) but
    * returns every buffered point in `[fromUt, toUt]` instead of one

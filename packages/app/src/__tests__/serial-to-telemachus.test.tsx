@@ -6,22 +6,22 @@
  * dispatchAction, real useActionInput, real useExecuteAction.
  */
 
-import { ActionGroupComponent } from "@gonogo/components";
+import { ActionGroupComponent } from "@ksp-gonogo/components";
 import {
   clearActionHandlers,
   clearRegistry,
   DashboardItemContext,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   type DeviceInstance,
   InputDispatcher,
   MockWebSerial,
   SerialDeviceProvider,
   SerialDeviceService,
-} from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";

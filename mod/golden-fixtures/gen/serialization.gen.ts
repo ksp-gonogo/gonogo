@@ -20,7 +20,7 @@
  * message, sentinel encoding included.
  *
  * NOTE: `safeStringify`'s NaN/Infinity handling is NOT yet part of the
- * shipped SDK (`@gonogo/sitrep-sdk` has no `serialize`/`write` helper at
+ * shipped SDK (`@ksp-gonogo/sitrep-sdk` has no `serialize`/`write` helper at
  * all today — only `parseServerMessage` for reading). This generator
  * defines the policy so the C# side has a real contract to conform to; a
  * later task should fold the same replacer into a real
@@ -28,7 +28,7 @@
  * production TS code and this fixture generator share one implementation
  * instead of the policy living only here.
  *
- * Run with: `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`
+ * Run with: `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
  * (chained after the other fixtures in that package's script).
  */
 

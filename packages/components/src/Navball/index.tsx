@@ -2,7 +2,7 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
@@ -10,7 +10,7 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Button,
   ConfigForm,
@@ -23,7 +23,7 @@ import {
   StreamStatusBadge,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -59,7 +59,7 @@ interface NavballConfig {
 // type-check against an empty-props contract rather than the loose
 // `Record<string, unknown>` fallback. Kept co-located here (not in a shared
 // central file) so parallel per-widget slot work never collides.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "navball.badges": Record<string, never>;
   }

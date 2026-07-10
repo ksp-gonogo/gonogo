@@ -1,7 +1,7 @@
 import {
   type FlightFixture,
   FlightReplayDataSource,
-} from "@gonogo/data/replay";
+} from "@ksp-gonogo/data/replay";
 
 /**
  * Per-connection wire-format adapter for a `FlightReplayDataSource`. One

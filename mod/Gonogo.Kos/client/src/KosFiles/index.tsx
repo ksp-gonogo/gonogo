@@ -1,7 +1,7 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
-import { hashKosScript, useKosWidget } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
+import { hashKosScript, useKosWidget } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import {
   ArrowLeftIcon,
   ArrowUpIcon,
@@ -13,7 +13,7 @@ import {
   Input,
   ScrollArea,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import {
   type ReactNode,
   useCallback,

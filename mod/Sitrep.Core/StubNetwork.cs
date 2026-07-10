@@ -25,7 +25,7 @@ namespace Sitrep.Core
     /// asserted by <c>Sitrep.Core.Tests</c> against the shared golden fixtures
     /// in <c>mod/golden-fixtures/stub-network.json</c>, not by re-deriving
     /// semantics here. If you touch this file, regenerate the fixture from
-    /// the TS side (`pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`)
+    /// the TS side (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`)
     /// and re-run `dotnet test` to confirm the two still agree.
     ///
     /// Scriptable point-to-point network model for tests and the reference

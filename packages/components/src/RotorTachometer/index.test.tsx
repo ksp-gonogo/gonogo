@@ -2,7 +2,7 @@ import {
   DashboardItemContext,
   type DataKey,
   type MockDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -17,7 +17,7 @@
  *
  * Output: `docs/assets/navball-adaptive-scaling.png`
  *
- * Run via `pnpm --filter @gonogo/components render-navball-scaling`.
+ * Run via `pnpm --filter @ksp-gonogo/components render-navball-scaling`.
  * Requires ImageMagick (`convert` / `montage`) on PATH.
  */
 import { execFile } from "node:child_process";

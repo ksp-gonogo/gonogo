@@ -7,7 +7,7 @@ import {
   PrimaryButton,
   Select,
   Textarea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { parseCharPosition } from "../parsers/charPosition";

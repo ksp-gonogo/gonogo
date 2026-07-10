@@ -1,11 +1,11 @@
-import { ManeuverTriggerProvider } from "@gonogo/components";
+import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import {
   getDataSource,
   getDataSources,
   ScreenProvider,
   useGameContext,
-} from "@gonogo/core";
-import type { BufferedDataSource } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import type { BufferedDataSource } from "@ksp-gonogo/data";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
@@ -13,14 +13,14 @@ import {
   FogMaskCacheProvider,
   FogMaskStore,
   ReplayBanner,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
   SerialPortRecoveryWatcher,
-} from "@gonogo/serial";
-import { BannerStack, FabClusterProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -361,7 +361,7 @@ function MainAlarmsLauncherScope({ children }: { children: ReactNode }) {
 
 /**
  * Mounts the shared AlarmsFab backed by the main-screen AlarmHostService.
- * Lives here rather than in @gonogo/app/alarms so the FAB stays agnostic
+ * Lives here rather than in @ksp-gonogo/app/alarms so the FAB stays agnostic
  * between main (host) and station (peer client).
  */
 function MainAlarmsFab() {

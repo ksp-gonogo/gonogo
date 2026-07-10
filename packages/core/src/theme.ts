@@ -104,7 +104,7 @@ declare module "styled-components" {
   // styled-components reads `DefaultTheme` from its own module namespace.
   // Augmenting it here gives every `${({ theme }) => ... }` callback across
   // the workspace typed access to the gonogo theme. The augmentation lives
-  // in this file (exported transitively from `@gonogo/core`'s index) so
+  // in this file (exported transitively from `@ksp-gonogo/core`'s index) so
   // consumer packages pick it up automatically — TypeScript would not load
   // a sibling `.d.ts` from a barrel re-export.
   export interface DefaultTheme extends GonogoTheme {}

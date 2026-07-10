@@ -3,8 +3,8 @@ import {
   TelemetryClient,
   TelemetryProvider,
   type VesselOrbitPayload,
-} from "@gonogo/sitrep-client";
-import { Quality } from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-client";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,

@@ -1,5 +1,5 @@
-import { clearRegistry } from "@gonogo/core";
-import type { KosProcessorInfo } from "@gonogo/sitrep-sdk";
+import { clearRegistry } from "@ksp-gonogo/core";
+import type { KosProcessorInfo } from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { installDomStubs, PerfBudget } from "@gonogo/core";
+import { installDomStubs, PerfBudget } from "@ksp-gonogo/core";
 
 installDomStubs();
 

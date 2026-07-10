@@ -1,4 +1,4 @@
-import { DashboardItemContext } from "@gonogo/core";
+import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -19,7 +19,7 @@ import { SemiMajorAxisComponent } from "./index";
  *   `system.bodies`). The subtitle body suffix therefore streams too, so this
  *   fixture carries all EIGHT `vessel.state` inputs and emits `system.bodies`.
  *
- * `useDataSeries` (sparkline history, `@gonogo/data`) now carries its own M3
+ * `useDataSeries` (sparkline history, `@ksp-gonogo/data`) now carries its own M3
  * stream shim (the `useDataSeries` shim task) mirroring `useDataValue`'s —
  * same `mapTopic`/carried-channels gate, reading its window off
  * `TimelineStore.sampleRange` once `vessel.orbit` is carried. The second
@@ -108,7 +108,7 @@ describe("SemiMajorAxis — genuinely runs off the stream (M3 batch 2)", () => {
     );
 
     // No sparkline can render yet — Sparkline draws nothing for fewer than 2
-    // finite values (@gonogo/ui's Sparkline.test.tsx), and nothing has
+    // finite values (@ksp-gonogo/ui's Sparkline.test.tsx), and nothing has
     // arrived at all.
     expect(
       container.querySelector("svg[aria-label='SMA trend'] path"),
@@ -127,7 +127,7 @@ describe("SemiMajorAxis — genuinely runs off the stream (M3 batch 2)", () => {
     await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
     await waitFor(() => {
       // Sparkline renders TWO <path>s (a gradient-filled area, then the
-      // stroked trend line itself, `fill="none"` — @gonogo/ui's
+      // stroked trend line itself, `fill="none"` — @ksp-gonogo/ui's
       // Sparkline.tsx) — target the stroke path specifically so its
       // point-count isn't padded by the fill path's baseline-closing
       // segments.

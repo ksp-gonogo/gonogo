@@ -1,7 +1,7 @@
 // kerbcast consumer for gonogo.
 //
 // Importing this package's entry point side-effects two registrations
-// into @gonogo/core's global registries:
+// into @ksp-gonogo/core's global registries:
 //
 //   - `KerbcastDataSource` → registerDataSource("kerbcast", ...) so the
 //     sidecar connection appears in the Data Sources widget alongside
@@ -10,7 +10,7 @@
 //     "camera-feed", ... }) so it's placeable from the dashboard
 //     widget picker.
 //
-// To wire it into the app: `import "@gonogo/kerbcast";` somewhere
+// To wire it into the app: `import "@ksp-gonogo/kerbcast";` somewhere
 // during app bootstrap (alongside the existing telemachus / kos
 // data-source imports in app/src/dataSources/index.ts).
 

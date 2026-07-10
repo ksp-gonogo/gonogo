@@ -1,4 +1,4 @@
-import { slopeFit } from "@gonogo/core";
+import { slopeFit } from "@ksp-gonogo/core";
 import type {
   Alarm,
   ContractParameterTrigger,

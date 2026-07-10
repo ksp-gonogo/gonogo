@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   clampSafe,
@@ -6,7 +6,7 @@ import {
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Panel,
@@ -15,7 +15,7 @@ import {
   ScrollArea,
   StatusPill,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 // Empty config — room to add a "hide heat shield" toggle later.
@@ -27,7 +27,7 @@ type ThermalStatusConfig = Record<string, never>;
 // stream-status badge. Declaration-merge the slot id → props type into core's
 // `SlotRegistry` (spec §4.6) co-located here so parallel slot work doesn't
 // collide on a shared central file. No props ⇒ empty object contract.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "thermal-status.badges": Record<string, never>;
   }

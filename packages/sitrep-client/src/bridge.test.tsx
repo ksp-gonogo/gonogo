@@ -1,4 +1,4 @@
-import { Quality } from "@gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
@@ -8,8 +8,8 @@ import { useStream } from "./use-stream";
 import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
 
 /**
- * The M2 bridge task's core proof, at the `@gonogo/sitrep-client` layer
- * (independent of `@gonogo/core`'s `useDataValue` shim, which has its own
+ * The M2 bridge task's core proof, at the `@ksp-gonogo/sitrep-client` layer
+ * (independent of `@ksp-gonogo/core`'s `useDataValue` shim, which has its own
  * end-to-end test): before this task, NOTHING fed a `TimelineStore` in
  * production, so `vessel.state.*` (derived) topics were permanently
  * unreachable through `useStream`/`useDataValue` even with a

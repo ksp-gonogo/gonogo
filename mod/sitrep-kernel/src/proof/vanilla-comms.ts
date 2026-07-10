@@ -3,13 +3,13 @@
  * `CommsCapability` shape as the real courier-backed provider
  * (`courier-provider.ts`), wired for immediate (zero-delay) delivery.
  *
- * Reuses `@gonogo/sitrep-server`'s `Courier`/`StubNetwork`/`ManualClock`
+ * Reuses `@ksp-gonogo/sitrep-server`'s `Courier`/`StubNetwork`/`ManualClock`
  * unchanged — a nonzero base delay collapsed by `StubNetwork`'s `scale: 0`
  * — rather than a hand-rolled bypass, so "vanilla" and "real" differ only
- * in configuration, never in code path. No `@gonogo/sitrep-client`
+ * in configuration, never in code path. No `@ksp-gonogo/sitrep-client`
  * dependency needed.
  */
-import { Courier, ManualClock, StubNetwork } from "@gonogo/sitrep-server";
+import { Courier, ManualClock, StubNetwork } from "@ksp-gonogo/sitrep-server";
 import type { CommsCapability } from "./comms-capability";
 
 /** Base one-way delay before the zero scale collapses it — proves scale, not just a zero default, is what makes delivery immediate. */

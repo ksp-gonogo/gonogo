@@ -1,4 +1,4 @@
-import { CommsDelaySource, Quality } from "@gonogo/sitrep-sdk";
+import { CommsDelaySource, Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";

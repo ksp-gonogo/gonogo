@@ -48,7 +48,7 @@
  * `broker.test.ts`) and the C# port (`Sitrep.Core.Tests/KernelGoldenFixtureTests.cs`)
  * are checked against this same file.
  *
- * Run with: `pnpm --filter @gonogo/sitrep-kernel gen:golden-fixtures`
+ * Run with: `pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures`
  */
 
 import { writeFileSync } from "node:fs";

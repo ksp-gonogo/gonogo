@@ -121,8 +121,8 @@ printf "%s\n" "$RELAY_FP" > "$CACHE_DIR/relay.hash"
 # ──────────────────────────────────────────────────────────────────────
 APP_FP=$(compute_app_fingerprint)
 if [ "${BUILD:-0}" = "1" ] || needs_rebuild app "$APP_FP" || [ ! -d packages/app/dist ]; then
-  echo "[play] building @gonogo/app for production"
-  pnpm --filter @gonogo/app build
+  echo "[play] building @ksp-gonogo/app for production"
+  pnpm --filter @ksp-gonogo/app build
   printf "%s\n" "$APP_FP" > "$CACHE_DIR/app.hash"
 else
   echo "[play] app bundle is up-to-date — serving existing dist/"
@@ -132,4 +132,4 @@ fi
 # Serve via vite preview. Foregrounded so Ctrl+C tears down the
 # containers via the trap above.
 # ──────────────────────────────────────────────────────────────────────
-pnpm --filter @gonogo/app exec vite preview
+pnpm --filter @ksp-gonogo/app exec vite preview

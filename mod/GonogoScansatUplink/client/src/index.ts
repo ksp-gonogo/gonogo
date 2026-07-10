@@ -3,19 +3,19 @@
 // Co-located with the GonogoScansatUplink C# mod (mod/GonogoScansatUplink):
 // one directory holds the mod and the client TS it ships (Uplink architecture
 // §1). Importing this package's entry point side-effects the widget
-// registration into @gonogo/core's global component registry:
+// registration into @ksp-gonogo/core's global component registry:
 //
 //   - `Scanning` component → registerComponent({ id: "scanning", ... }) so it
 //     is placeable from the dashboard widget picker.
 //
-// To wire it into the app: `import "@gonogo/scansat";` during app bootstrap
+// To wire it into the app: `import "@ksp-gonogo/scansat";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
 // The scan OVERLAY on the core MapView (biome/fog/footprint layers) stays in
-// @gonogo/components for now — it is bidirectionally coupled to the core map
+// @ksp-gonogo/components for now — it is bidirectionally coupled to the core map
 // and only cleanly extracts once the `map-view.overlay` augment slot exists
 // (arch §4.8). Until then the Minimap here reuses those hooks via
-// @gonogo/components.
+// @ksp-gonogo/components.
 
 export type {
   ScanningConfig,

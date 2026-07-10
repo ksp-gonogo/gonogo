@@ -5,8 +5,8 @@ import type {
   SCANHeightGrid,
   SCANScanningVessel,
   SCANType,
-} from "@gonogo/core";
-import { useDataValue } from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { useDataValue } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import type {
   DecodedBiomes,

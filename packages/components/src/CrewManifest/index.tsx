@@ -1,10 +1,10 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BigReadout,
   EmptyState,
@@ -13,7 +13,7 @@ import {
   PanelTitle,
   ReadoutCaption,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 /**
@@ -55,7 +55,7 @@ export interface CrewBadgeContext {
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "crew-manifest.badges" })` and `<AugmentSlot name="crew-manifest.badges"
 // props={…} />` type-check precisely against `CrewBadgeContext`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "crew-manifest.badges": CrewBadgeContext;
   }

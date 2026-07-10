@@ -11,7 +11,7 @@ export interface FakeWallClock {
  * `m3-migration-plan.md` §4-test test-adapter's "FixedViewClock" pattern
  * (`new ViewClock({ nowWall: wall.now, warpRate: () => 1, delaySeconds: ()
  * => 0 })`, then `clock.scrubTo(fixtureUt)`) needs a `nowWall` function from
- * OUTSIDE this package (`@gonogo/components`' `setupStreamFixture`), and
+ * OUTSIDE this package (`@ksp-gonogo/components`' `setupStreamFixture`), and
  * there was no exported version to reuse before this.
  */
 export function createFakeWallClock(start = 0): FakeWallClock {

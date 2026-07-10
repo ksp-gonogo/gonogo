@@ -1,11 +1,11 @@
-import { PerfBudget, safeRandomUuid } from "@gonogo/core";
+import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type {
   BufferedDataSource,
   DataKeyMeta,
   FlightRecord,
-} from "@gonogo/data";
-import { isScriptable } from "@gonogo/data";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import { isScriptable } from "@ksp-gonogo/data";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -219,7 +219,7 @@ export class PeerHostService {
   >();
   private kosSessions = new KosSessionManager({
     getKosConfig: async () => {
-      const { getDataSource } = await import("@gonogo/core");
+      const { getDataSource } = await import("@ksp-gonogo/core");
       return getDataSource("kos")?.getConfig() as
         | { host?: string; port?: number; kosHost?: string; kosPort?: number }
         | undefined;
@@ -1098,7 +1098,7 @@ export class PeerHostService {
   // initial handshake (e.g. a future kOS datastream), this will need to
   // broadcast a new schema message to already-connected stations.
   private sendSchema(conn: DataConnection) {
-    import("@gonogo/core").then(({ getDataSources }) => {
+    import("@ksp-gonogo/core").then(({ getDataSources }) => {
       const sources = getDataSources().map((s) => ({
         id: s.id,
         name: s.name,
@@ -1121,7 +1121,7 @@ export class PeerHostService {
       logger.info(
         `[PeerHost] execute — source=${msg.sourceId} action=${msg.action}`,
       );
-      import("@gonogo/core").then(({ getDataSource }) => {
+      import("@ksp-gonogo/core").then(({ getDataSource }) => {
         getDataSource(msg.sourceId)?.execute(msg.action);
       });
     },
@@ -1371,7 +1371,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "query-range-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource(msg.sourceId) as
       | (ReturnType<typeof getDataSource> & {
           queryRange?: (
@@ -1417,7 +1417,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "kerbcast-negotiate-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource("kerbcast") as
       | (ReturnType<typeof getDataSource> & {
           relayOffer?: (offer: {
@@ -1456,10 +1456,10 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "kos-execute-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource("kos");
     const respond = (
-      data?: import("@gonogo/data").KosData,
+      data?: import("@ksp-gonogo/data").KosData,
       error?: string,
       isScriptError?: boolean,
     ): void => {
@@ -1486,7 +1486,7 @@ export class PeerHostService {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       // Duck-type: avoid importing the concrete class so this file stays
-      // free of @gonogo/app circular references.
+      // free of @ksp-gonogo/app circular references.
       const isScriptError =
         (error as { isScriptError?: unknown }).isScriptError === true;
       logger.warn(`[PeerHost] kos execute failed — ${error.message}`);
@@ -1518,7 +1518,7 @@ export class PeerHostService {
   }
 
   private async getBufferedDataSource(): Promise<BufferedDataSource | null> {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     // Duck-type: BufferedDataSource isn't exported as a runtime symbol from
     // PeerHostService's POV, and the registered "data" entry is wrapped in
     // PeerBroadcastingDataSource on the main screen. The wrapper forwards

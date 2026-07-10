@@ -1,4 +1,4 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatDistance,
@@ -6,13 +6,13 @@ import {
   resolveTargetName,
   useDataStreamStatus,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   buildCameraLabeler,
   useKerbcastCameras,
   useKerbcastStream,
-} from "@gonogo/kerbcast";
-import { useViewUt } from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/kerbcast";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   ConfigForm,
   Field,
@@ -24,7 +24,7 @@ import {
   StreamStatusBadge,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -123,7 +123,7 @@ export interface DistanceToTargetBadgeContext {
 // This is what makes `registerAugment` / `<AugmentSlot props={…}>` type-check the
 // contexts above precisely, rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would get.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;

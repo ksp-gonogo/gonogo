@@ -1,4 +1,4 @@
-import { Quality } from "@gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import type { OrbitElements, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
 import { closestApproach, STANDARD_GRAVITY } from "./propagation";
@@ -37,7 +37,7 @@ export interface OrbitEncounterPayload {
 /**
  * The `vessel.orbit` channel payload — elements, never position (M2 design
  * §2.4, mirrors `mod/Sitrep.Contract/VesselOrbit.cs`). Not yet codegen'd into
- * `@gonogo/sitrep-sdk`'s `__generated__/contract.ts` (that's the mod-side
+ * `@ksp-gonogo/sitrep-sdk`'s `__generated__/contract.ts` (that's the mod-side
  * channel-payload codegen, out of this task's scope) — hand-mirrored here so
  * `deriveVesselState` has a typed shape to read. Keep in sync with the C#
  * source until codegen catches up.

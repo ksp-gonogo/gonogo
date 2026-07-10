@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gonogo/sitrep-sdk";
+import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,

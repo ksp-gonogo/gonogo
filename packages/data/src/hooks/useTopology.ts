@@ -1,4 +1,8 @@
-import { getDataSource, useDataValue, type VesselTopology } from "@gonogo/core";
+import {
+  getDataSource,
+  useDataValue,
+  type VesselTopology,
+} from "@ksp-gonogo/core";
 import { useEffect, useState } from "react";
 
 /**

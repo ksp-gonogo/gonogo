@@ -1,4 +1,4 @@
-import type { SCANAnomalyEntry } from "@gonogo/core";
+import type { SCANAnomalyEntry } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import {
   compassPoint,

@@ -1,11 +1,11 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   getDataSource,
   registerComponent,
   safeRandomUuid,
   useKosProxy,
-} from "@gonogo/core";
-import { useReplayActive } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { useReplayActive } from "@ksp-gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -16,7 +16,7 @@ import {
   PanelTitle,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";

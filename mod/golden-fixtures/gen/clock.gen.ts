@@ -23,7 +23,7 @@
  * (`Sitrep.Core.Tests/ClockGoldenFixtureTests.cs`) are checked against this
  * same file.
  *
- * Run with: `pnpm --filter @gonogo/sitrep-server gen:golden-fixtures`
+ * Run with: `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
  */
 
 import { writeFileSync } from "node:fs";

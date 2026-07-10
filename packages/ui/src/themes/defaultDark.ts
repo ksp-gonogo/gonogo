@@ -1,4 +1,4 @@
-import { type GonogoTheme, registerTheme } from "@gonogo/core";
+import { type GonogoTheme, registerTheme } from "@ksp-gonogo/core";
 
 /**
  * `default-dark` — the built-in mission-control theme.

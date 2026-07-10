@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
@@ -7,7 +7,7 @@ import {
   registerComponent,
   useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Panel,
@@ -15,7 +15,7 @@ import {
   PanelTitle,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import { formatDensity } from "../shared/formatDensity";
 
@@ -40,7 +40,7 @@ export interface LandingStatusBadgesContext {
 // Co-located declaration-merge of this widget's slot id → its props (spec §4.6).
 // Kept next to the widget (not in a central registry file) so parallel slot
 // work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "landing-status.badges": LandingStatusBadgesContext;
   }

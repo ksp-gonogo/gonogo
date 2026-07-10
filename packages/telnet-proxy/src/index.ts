@@ -1,7 +1,11 @@
 import { hostname } from "node:os";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
+import {
+  AxiomConsentController,
+  AxiomTransport,
+  logger,
+} from "@ksp-gonogo/logger";
 import Fastify from "fastify";
 import { AnalyticsConfigClient } from "./analyticsConfigClient.js";
 import { registerKosBridge } from "./bridge.js";
@@ -57,7 +61,7 @@ const fastify = Fastify({ logger: true });
 await fastify.register(cors, { origin: true });
 await fastify.register(websocket);
 
-// Bridge Fastify's per-request log line through @gonogo/logger so HTTP
+// Bridge Fastify's per-request log line through @ksp-gonogo/logger so HTTP
 // traffic shows up in Axiom alongside the existing `[kos-bridge]`
 // lifecycle events. Without this, only kOS-terminal sessions are
 // visible remotely — `/version` probes from the main screen and any

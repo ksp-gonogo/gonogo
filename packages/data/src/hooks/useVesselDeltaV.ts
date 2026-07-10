@@ -1,5 +1,5 @@
-import type { StageInfo } from "@gonogo/core";
-import { useDataValue } from "@gonogo/core";
+import type { StageInfo } from "@ksp-gonogo/core";
+import { useDataValue } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 
 export interface VesselDeltaV {

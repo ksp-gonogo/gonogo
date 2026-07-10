@@ -1,4 +1,4 @@
-import { registerKosScript } from "@gonogo/core";
+import { registerKosScript } from "@ksp-gonogo/core";
 
 /**
  * Kerboscript for the kOS Processors widget. Lists every kOS CPU on the

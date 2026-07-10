@@ -1,6 +1,6 @@
-import type { ComponentProps, VesselTopology } from "@gonogo/core";
-import { AugmentSlot, registerComponent, useDataValue } from "@gonogo/core";
-import { usePartsLive, useTopology } from "@gonogo/data";
+import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
+import { AugmentSlot, registerComponent, useDataValue } from "@ksp-gonogo/core";
+import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ShipDiagram } from "./ShipDiagram";
@@ -62,7 +62,7 @@ export interface ShipMapBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "ship-map.overlay": ShipMapOverlayContext;
     "ship-map.badges": ShipMapBadgesContext;

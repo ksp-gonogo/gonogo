@@ -2,7 +2,7 @@ import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
   StubTransport,
@@ -10,7 +10,7 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,7 +20,7 @@ import { useDataSeries } from "./useDataSeries";
 
 /**
  * The M3 `useDataSeries` shim (the last M3 read-side unlock): mirrors
- * `@gonogo/core`'s `useDataValue.shim.test.tsx` pattern one level up — a
+ * `@ksp-gonogo/core`'s `useDataValue.shim.test.tsx` pattern one level up — a
  * MAPPED + CARRIED key builds its `SeriesRange` from the `TimelineStore`'s
  * `ClientTimeline` (via `TimelineStore.sampleRange`,
  * `timeline-store-sample-range.test.ts`) instead of the legacy
@@ -45,8 +45,8 @@ function readProbe(): string {
 
 /**
  * Same pinned-clock fixture pattern as `setupStreamFixture`
- * (`@gonogo/components/src/test/setupStreamFixture.tsx`) — inlined here so
- * `@gonogo/data`'s tests don't reach across to `@gonogo/components`.
+ * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`) — inlined here so
+ * `@ksp-gonogo/data`'s tests don't reach across to `@ksp-gonogo/components`.
  */
 function buildStreamFixture(opts: {
   carriedChannels: Iterable<string>;

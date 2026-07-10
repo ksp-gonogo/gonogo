@@ -10,9 +10,9 @@
  * the real provider tree catches that class of mistake.
  */
 
-import { clearRegistry, ErrorBoundary } from "@gonogo/core";
-import "@gonogo/components"; // self-register the built-in components
-import { ModalProvider } from "@gonogo/ui";
+import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
+import "@ksp-gonogo/components"; // self-register the built-in components
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MainScreen } from "../screens/MainScreen";

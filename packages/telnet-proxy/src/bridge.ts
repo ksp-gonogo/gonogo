@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import type { FastifyInstance } from "fastify";
 import * as pty from "node-pty";
 

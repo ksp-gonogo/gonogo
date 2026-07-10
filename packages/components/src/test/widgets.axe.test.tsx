@@ -1,4 +1,4 @@
-import { getComponent } from "@gonogo/core";
+import { getComponent } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component,

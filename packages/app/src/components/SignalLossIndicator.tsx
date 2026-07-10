@@ -1,6 +1,6 @@
-import { useTelemetry } from "@gonogo/core";
-import { collapseControlStateLevel } from "@gonogo/sitrep-client";
-import { SignalLossBanner, type SignalState } from "@gonogo/ui";
+import { useTelemetry } from "@ksp-gonogo/core";
+import { collapseControlStateLevel } from "@ksp-gonogo/sitrep-client";
+import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**

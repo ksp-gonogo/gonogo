@@ -1,10 +1,3 @@
-import type {
-  ConfigField,
-  DataKey,
-  DataSource,
-  DataSourceStatus,
-} from "@gonogo/core";
-import { PerfBudget, registerDataSource } from "@gonogo/core";
 import {
   type CameraState,
   type ClientMessage,
@@ -15,6 +8,13 @@ import {
   type KerbcastTransport,
   type Layer,
 } from "@jonpepler/kerbcast";
+import type {
+  ConfigField,
+  DataKey,
+  DataSource,
+  DataSourceStatus,
+} from "@ksp-gonogo/core";
+import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
 
 /**
  * gonogo `DataSource` wrapper around `KerbcastClient`. Surfaces the

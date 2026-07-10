@@ -1,18 +1,18 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getWidgetShape,
   registerComponent,
   useDataStreamStatus,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Panel,
   PanelSubtitle,
   PanelTitle,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
@@ -33,7 +33,7 @@ type CommSignalConfig = Record<string, never>;
 // so the props contract is empty — augments render from their own Topics. The
 // declaration-merge below keeps the slot ids co-located here (spec §4.6) rather
 // than in a shared central registry, so parallel widget work never collides.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "comm-signal.sections": Record<string, never>;
     "comm-signal.badges": Record<string, never>;

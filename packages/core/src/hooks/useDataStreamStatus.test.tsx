@@ -2,7 +2,7 @@ import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import {
   act,
   render,

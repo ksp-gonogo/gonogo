@@ -1,4 +1,4 @@
-import { DashboardItemContext } from "@gonogo/core";
+import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

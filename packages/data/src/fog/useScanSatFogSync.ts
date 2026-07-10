@@ -5,7 +5,7 @@ import {
   type SCANCoverageBitmap,
   type SCANType,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { useEffect } from "react";
 import { useFogMaskCache } from "./FogMaskContext";
 import { applyScanCoverageToMask } from "./scanCoverageSync";

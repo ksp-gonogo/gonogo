@@ -1,4 +1,4 @@
-import type { KosConnection, KosConnectionParams } from "@gonogo/core";
+import type { KosConnection, KosConnectionParams } from "@ksp-gonogo/core";
 import type { PeerClientService } from "./PeerClientService";
 
 type EventType = "open" | "message" | "close" | "error";

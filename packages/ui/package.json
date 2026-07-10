@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/ui",
+  "name": "@ksp-gonogo/ui",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*",
-    "@gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
     "lucide-react": "^1.14.0"
   },
   "devDependencies": {

@@ -1,10 +1,10 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useDataStreamStatus,
   useDataValue,
   useGameContext,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   DimmedOverlay,
   Panel,
@@ -12,7 +12,7 @@ import {
   PanelTitle,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 

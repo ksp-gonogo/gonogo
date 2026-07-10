@@ -1,10 +1,10 @@
-import { RequiresGuard } from "@gonogo/components";
+import { RequiresGuard } from "@ksp-gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
-} from "@gonogo/core";
-import type { InputMappings } from "@gonogo/serial";
+} from "@ksp-gonogo/core";
+import type { InputMappings } from "@ksp-gonogo/serial";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -12,7 +12,7 @@ import {
   FullWidthIcon,
   HalfHeightIcon,
   HalfWidthIcon,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { memo, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import type { DashboardItem, DashboardProps } from "./index";

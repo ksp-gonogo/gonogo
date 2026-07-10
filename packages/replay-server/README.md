@@ -1,4 +1,4 @@
-# @gonogo/replay-server
+# @ksp-gonogo/replay-server
 
 Drop-in Telemachus replacement that serves a recorded `FlightFixture` over the
 same wire format. Run alongside `pnpm dev` to exercise the whole gonogo app

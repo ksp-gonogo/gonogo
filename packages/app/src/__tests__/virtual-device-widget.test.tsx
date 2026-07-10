@@ -8,14 +8,14 @@ import {
   clearActionHandlers,
   DashboardItemContext,
   registerActionHandler,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   InputDispatcher,
   type InputMappingSource,
   SerialDeviceProvider,
   SerialDeviceService,
   VirtualDeviceComponent,
-} from "@gonogo/serial";
+} from "@ksp-gonogo/serial";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

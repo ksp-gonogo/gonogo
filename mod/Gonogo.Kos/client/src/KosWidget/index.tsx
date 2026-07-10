@@ -1,7 +1,7 @@
-import type { ComponentProps } from "@gonogo/core";
-import { formatAge, registerComponent } from "@gonogo/core";
-import { useKosWidget } from "@gonogo/data";
-import { EmptyState, ScrollArea } from "@gonogo/ui";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { formatAge, registerComponent } from "@ksp-gonogo/core";
+import { useKosWidget } from "@ksp-gonogo/data";
+import { EmptyState, ScrollArea } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { KosWidgetConfigComponent } from "./KosWidgetConfig";

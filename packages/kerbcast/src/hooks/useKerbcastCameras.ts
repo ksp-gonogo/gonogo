@@ -1,5 +1,5 @@
-import { getDataSource } from "@gonogo/core";
 import type { CameraState } from "@jonpepler/kerbcast";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useEffect, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 

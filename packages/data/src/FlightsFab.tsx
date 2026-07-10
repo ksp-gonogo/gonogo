@@ -1,5 +1,5 @@
-import { useScreen } from "@gonogo/core";
-import { Fab, HistoryIcon, useModal } from "@gonogo/ui";
+import { useScreen } from "@ksp-gonogo/core";
+import { Fab, HistoryIcon, useModal } from "@ksp-gonogo/ui";
 import { FlightsManager } from "./FlightsManager";
 
 /**

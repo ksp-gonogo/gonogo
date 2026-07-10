@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatCompactCurrency,
@@ -6,23 +6,23 @@ import {
   registerComponent,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BellIcon,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
  * Trigger shape used by the Mission Director's parameter bells. Mirrors
- * `ContractParameterTrigger` in `@gonogo/app/src/alarms/types.ts`;
- * declared inline here because @gonogo/components can't import from
- * @gonogo/app (would be circular). The bridge in
+ * `ContractParameterTrigger` in `@ksp-gonogo/app/src/alarms/types.ts`;
+ * declared inline here because @ksp-gonogo/components can't import from
+ * @ksp-gonogo/app (would be circular). The bridge in
  * `AlarmsLauncherBridge.tsx` accepts the shape via the generic
  * `AlarmCreator<TTrigger>` interface.
  */
@@ -105,7 +105,7 @@ export interface ContractBadgeContext {
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "contract-manager.badges" })` and `<AugmentSlot name="contract-manager.badges"
 // props={…} />` type-check precisely against `ContractBadgeContext`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "contract-manager.badges": ContractBadgeContext;
   }

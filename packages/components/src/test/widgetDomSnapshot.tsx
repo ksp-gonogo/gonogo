@@ -2,7 +2,7 @@ import {
   DashboardItemContext,
   type MockDataSource,
   registerStockBodies,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import {

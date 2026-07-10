@@ -1,4 +1,4 @@
-import { formatAge } from "@gonogo/core";
+import { formatAge } from "@ksp-gonogo/core";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import styled from "styled-components";
@@ -11,7 +11,7 @@ import styled from "styled-components";
  *   - "stale data" freshness badge
  *
  * The widget itself owns the body (children). Matches the layout of
- * @gonogo/components/KosWidget so the visual language stays consistent.
+ * @ksp-gonogo/components/KosWidget so the visual language stays consistent.
  */
 
 export interface KosScriptFrameProps {

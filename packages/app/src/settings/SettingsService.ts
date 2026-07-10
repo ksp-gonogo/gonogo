@@ -1,4 +1,4 @@
-import { PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 
 /**
  * Thin key/value store for app-wide user preferences. Values are JSON-

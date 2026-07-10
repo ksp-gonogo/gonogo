@@ -1,5 +1,5 @@
-import { DashboardItemContext, registerStockBodies } from "@gonogo/core";
-import { Quality } from "@gonogo/sitrep-sdk";
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";

@@ -1,11 +1,11 @@
-import { type DataSource, useDataSourceSubscription } from "@gonogo/core";
+import { type DataSource, useDataSourceSubscription } from "@ksp-gonogo/core";
 import {
   isTopicCarried,
   mapTopic,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import type { BufferedDataSource } from "../BufferedDataSource";
 import type { SeriesRange } from "../types";
@@ -26,7 +26,7 @@ const EMPTY: SeriesRange = { t: [], v: [] };
  * place for cheap appends, then a shallow `{ t, v }` wrapper is built at
  * snapshot time.
  *
- * **The M3 stream shim (last M3 read-side unlock).** Mirrors `@gonogo/core`'s
+ * **The M3 stream shim (last M3 read-side unlock).** Mirrors `@ksp-gonogo/core`'s
  * `useDataValue` shim exactly one level up, for the plotted/sparkline series
  * `GraphView`-based widgets read (`GraphSeries`, `SemiMajorAxis`, `Twr`,
  * `PowerSystems`, `KeplerPeriod`, `OrbitalAscent`, `EscapeProfile`). Same

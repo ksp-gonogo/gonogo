@@ -5,8 +5,8 @@
  * exercised against MockKosTelnet — no PeerJS or xterm in the loop.
  */
 
-import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { isKosScriptError, useKosWidget } from "@gonogo/data";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { isKosScriptError, useKosWidget } from "@ksp-gonogo/data";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KosDataSource } from "../dataSources/kos";

@@ -1,5 +1,5 @@
-import { useDataSources } from "@gonogo/core";
-import { SourceOfflineBanner } from "@gonogo/ui";
+import { useDataSources } from "@ksp-gonogo/core";
+import { SourceOfflineBanner } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**

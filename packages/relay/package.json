@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/relay",
+  "name": "@ksp-gonogo/relay",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
-    "@gonogo/logger": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
     "fastify": "^5.8.5"
   },
   "devDependencies": {

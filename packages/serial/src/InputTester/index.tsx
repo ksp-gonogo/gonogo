@@ -1,5 +1,5 @@
-import type { ComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
 import {
   EmptyState,
   Field,
@@ -7,7 +7,7 @@ import {
   Panel,
   PanelTitle,
   Select,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {

@@ -1,4 +1,4 @@
-import { useDataValue } from "@gonogo/core";
+import { useDataValue } from "@ksp-gonogo/core";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 

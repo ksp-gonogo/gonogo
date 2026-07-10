@@ -193,13 +193,13 @@ jobs:
       # dependency graph (lighter than a full `pnpm build`; no app/relay needed
       # since the harness doesn't use Playwright webServers).
       - name: Build render dependencies
-        run: pnpm --filter "@gonogo/components..." build
+        run: pnpm --filter "@ksp-gonogo/components..." build
 
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Visual gate (${{ matrix.browser }})
-        run: pnpm --filter @gonogo/components visual-gate --engine ${{ matrix.browser }}
+        run: pnpm --filter @ksp-gonogo/components visual-gate --engine ${{ matrix.browser }}
 
       - name: Upload visual diffs on failure
         if: failure()

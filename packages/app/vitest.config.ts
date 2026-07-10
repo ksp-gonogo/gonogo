@@ -6,25 +6,31 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@gonogo/core/test": path.resolve(
+      "@ksp-gonogo/core/test": path.resolve(
         import.meta.dirname,
         "../core/src/test/helpers.ts",
       ),
-      "@gonogo/core": path.resolve(import.meta.dirname, "../core/src/index.ts"),
-      "@gonogo/logger": path.resolve(
+      "@ksp-gonogo/core": path.resolve(
+        import.meta.dirname,
+        "../core/src/index.ts",
+      ),
+      "@ksp-gonogo/logger": path.resolve(
         import.meta.dirname,
         "../logger/src/index.ts",
       ),
-      "@gonogo/components": path.resolve(
+      "@ksp-gonogo/components": path.resolve(
         import.meta.dirname,
         "../components/src/index.ts",
       ),
-      "@gonogo/data": path.resolve(import.meta.dirname, "../data/src/index.ts"),
-      "@gonogo/serial": path.resolve(
+      "@ksp-gonogo/data": path.resolve(
+        import.meta.dirname,
+        "../data/src/index.ts",
+      ),
+      "@ksp-gonogo/serial": path.resolve(
         import.meta.dirname,
         "../serial/src/index.ts",
       ),
-      "@gonogo/sitrep-client": path.resolve(
+      "@ksp-gonogo/sitrep-client": path.resolve(
         import.meta.dirname,
         "../sitrep-client/src/index.ts",
       ),

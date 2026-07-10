@@ -5,7 +5,7 @@
  *   1. Replay server playing a recorded flight, freshly started so the
  *      launch is still ahead of the wall clock:
  *        pnpm replay "$PWD/local_docs/flight_recordings/<fixture>.json"
- *   2. App dev server: pnpm --filter @gonogo/app dev
+ *   2. App dev server: pnpm --filter @ksp-gonogo/app dev
  *   3. ImageMagick (`convert`) on PATH — same dependency as render-navball-gif.
  *
  * Then: node scripts/capture-readme-hero.mjs

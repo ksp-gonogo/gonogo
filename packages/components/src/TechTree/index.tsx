@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getSizeBucket,
@@ -6,14 +6,14 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -60,7 +60,7 @@ export interface TechNodeBadgeContext {
 // on other widgets never collides on this seam. Makes `registerAugment({
 // augments: "tech-tree.badges" })` and `<AugmentSlot name="tech-tree.badges"
 // props={…} />` type-check precisely against `TechNodeBadgeContext`.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "tech-tree.badges": TechNodeBadgeContext;
   }

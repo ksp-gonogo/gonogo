@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/sitrep-client",
+  "name": "@ksp-gonogo/sitrep-client",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -11,13 +11,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@gonogo/sitrep-sdk": "workspace:*"
+    "@ksp-gonogo/sitrep-sdk": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18 || ^19"
   },
   "devDependencies": {
-    "@gonogo/sitrep-server": "workspace:*",
+    "@ksp-gonogo/sitrep-server": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "@testing-library/react": "^16.3.2",

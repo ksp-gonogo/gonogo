@@ -2,8 +2,8 @@ import type {
   BodyDefinition,
   SCANAnomalyEntry,
   SCANScanningVessel,
-} from "@gonogo/core";
-import { latLonToMap } from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { latLonToMap } from "@ksp-gonogo/core";
 import { WORLD_H, WORLD_W } from "./camera";
 
 /**

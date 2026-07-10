@@ -1,4 +1,8 @@
-import type { EventMsg, ServerMessage, StreamData } from "@gonogo/sitrep-sdk";
+import type {
+  EventMsg,
+  ServerMessage,
+  StreamData,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { Clock } from "./clock";
 import type { Transport, TransportStatus } from "./transport";
 

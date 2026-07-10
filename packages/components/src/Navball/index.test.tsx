@@ -1,4 +1,4 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
   clearRegistry,
@@ -6,8 +6,8 @@ import {
   MockDataSource,
   registerAugment,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   act,
   cleanup,

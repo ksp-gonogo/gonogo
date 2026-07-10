@@ -1,4 +1,4 @@
-import { Quality } from "@gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
 import { makeMeta } from "./stub-transport";
@@ -14,7 +14,7 @@ import {
  * M2 bridge task, Fix 2: guards against the exact class of bug the red-team
  * found — a `mapTopic` entry pointing at `vessel.state.<field>` for a
  * `<field>` the shipped `deriveVesselState` never actually produces. Such an
- * entry LOOKS mapped (passes `mapTopic.coverage.test.ts` in `@gonogo/core`,
+ * entry LOOKS mapped (passes `mapTopic.coverage.test.ts` in `@ksp-gonogo/core`,
  * which only checks "mapped or gapped"), but is structurally a dead
  * `undefined` forever once a `TelemetryProvider` is mounted —
  * `TimelineStore.sampleDerived`'s field lookup silently returns `undefined`

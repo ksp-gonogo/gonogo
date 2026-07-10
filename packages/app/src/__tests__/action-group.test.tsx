@@ -1,13 +1,13 @@
 import {
   ActionGroupComponent,
   AlarmsLauncherProvider,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import {
   clearRegistry,
   DashboardItemContext,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http, ws } from "msw";

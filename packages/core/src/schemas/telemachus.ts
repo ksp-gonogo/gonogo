@@ -7,7 +7,7 @@
  * Third-party data sources follow the same pattern by augmenting
  * `DataSourceRegistry` via declaration merging in their own package:
  *
- *   declare module '@gonogo/core' {
+ *   declare module '@ksp-gonogo/core' {
  *     interface DataSourceRegistry {
  *       'my-source': MySourceSchema;
  *     }

@@ -1,5 +1,5 @@
-import { ScreenProvider, useScreen } from "@gonogo/core";
-import { Fab, LayersIcon, useModal } from "@gonogo/ui";
+import { ScreenProvider, useScreen } from "@ksp-gonogo/core";
+import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 import {

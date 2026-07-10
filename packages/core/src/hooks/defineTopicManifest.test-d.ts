@@ -18,7 +18,7 @@ import type {
   CommsDelay,
   VesselOrbit,
   VesselResources,
-} from "@gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentDefinition } from "../types";
 import { defineTopicManifest } from "./defineTopicManifest";
 

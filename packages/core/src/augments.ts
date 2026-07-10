@@ -1,5 +1,5 @@
-import { logger } from "@gonogo/logger";
-import type { TopicId } from "@gonogo/sitrep-sdk";
+import { logger } from "@ksp-gonogo/logger";
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 
 // ---------------------------------------------------------------------------
@@ -23,8 +23,8 @@ import type { ComponentType } from "react";
 // down to its augments. That gives full compile-time safety across all in-tree
 // Uplinks NOW — which is the whole current rollout.
 //
-//   // in @gonogo/components, next to registerComponent('power-systems'):
-//   declare module "@gonogo/core" {
+//   // in @ksp-gonogo/components, next to registerComponent('power-systems'):
+//   declare module "@ksp-gonogo/core" {
 //     interface SlotRegistry {
 //       "power-systems.sections": { instanceId: string };
 //     }

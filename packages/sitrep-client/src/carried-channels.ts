@@ -3,7 +3,7 @@ import type { TimelineStore } from "./timeline-store";
 /**
  * The M3 Wave 0 carried-channels allowlist gate (`m3-migration-plan.md` §5.1,
  * §7 must-not #1) — the safety mechanism that prevents the "big-bang
- * blank-out": mounting a `TelemetryProvider` used to make `@gonogo/core`'s
+ * blank-out": mounting a `TelemetryProvider` used to make `@ksp-gonogo/core`'s
  * `useDataValue` shim stop falling back to legacy for every MAPPED topic,
  * even when the mounted transport never actually delivers it. This module is
  * the single place that decides "is `topic` actually carried right now" —

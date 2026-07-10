@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useEffect, useReducer, useRef } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 

@@ -1,4 +1,4 @@
-import { CommsDelaySource } from "@gonogo/sitrep-sdk";
+import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";

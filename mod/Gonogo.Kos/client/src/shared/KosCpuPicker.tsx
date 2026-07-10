@@ -1,9 +1,9 @@
-import { formatAgeLong } from "@gonogo/core";
+import { formatAgeLong } from "@ksp-gonogo/core";
 import {
   type KosCpuEntry,
   useCpuRegistry,
   useCpuRegistryService,
-} from "@gonogo/data";
+} from "@ksp-gonogo/data";
 import {
   Field,
   FieldHint,
@@ -12,7 +12,7 @@ import {
   Input,
   PrimaryButton,
   Textarea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,

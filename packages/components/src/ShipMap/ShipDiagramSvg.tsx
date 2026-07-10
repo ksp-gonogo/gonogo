@@ -1,4 +1,4 @@
-import type { PartStateModule } from "@gonogo/core";
+import type { PartStateModule } from "@ksp-gonogo/core";
 import type React from "react";
 import { useMemo } from "react";
 import { styled } from "styled-components";

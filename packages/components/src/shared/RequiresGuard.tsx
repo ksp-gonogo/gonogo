@@ -1,5 +1,5 @@
-import { type ComponentRequirement, useGameContext } from "@gonogo/core";
-import { DimmedOverlay } from "@gonogo/ui";
+import { type ComponentRequirement, useGameContext } from "@ksp-gonogo/core";
+import { DimmedOverlay } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 

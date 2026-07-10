@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/sitrep-kernel",
+  "name": "@ksp-gonogo/sitrep-kernel",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -12,7 +12,7 @@
     "gen:golden-fixtures": "tsx ../golden-fixtures/gen/version.gen.ts && tsx ../golden-fixtures/gen/kernel.gen.ts"
   },
   "dependencies": {
-    "@gonogo/sitrep-server": "workspace:*"
+    "@ksp-gonogo/sitrep-server": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.0.0"

@@ -1,6 +1,6 @@
-import type { ConfigComponentProps } from "@gonogo/core";
-import { getAllBodies } from "@gonogo/core";
-import { useDataSchema } from "@gonogo/data";
+import type { ConfigComponentProps } from "@ksp-gonogo/core";
+import { getAllBodies } from "@ksp-gonogo/core";
+import { useDataSchema } from "@ksp-gonogo/data";
 import {
   ConfigForm,
   DataKeyMultiPicker,
@@ -12,7 +12,7 @@ import {
   Select,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import type { MapViewConfig } from "./types";
 

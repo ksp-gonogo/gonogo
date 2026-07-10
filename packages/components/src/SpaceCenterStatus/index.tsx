@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   formatCompactCurrency,
@@ -7,14 +7,14 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -26,7 +26,7 @@ type SpaceCenterStatusConfig = Record<string, never>;
 // broad header escape-hatch that drops an inline badge next to the title. Both are
 // plain markers with no slot props. Co-located `SlotRegistry` declaration-merge
 // (spec §4.6) so parallel slot work doesn't collide on a shared central file.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
     "space-center-status.badges": Record<string, never>;

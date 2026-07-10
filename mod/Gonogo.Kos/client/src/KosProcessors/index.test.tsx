@@ -3,7 +3,7 @@ import {
   clearRegistry,
   registerAugment,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type KosProcessorBadgeContext, KosProcessorsComponent } from "./index";

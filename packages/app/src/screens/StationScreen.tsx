@@ -1,14 +1,14 @@
 import {
   ManeuverTriggerProvider,
   StationConnectView,
-} from "@gonogo/components";
+} from "@ksp-gonogo/components";
 import {
   getDataSource,
   KosProxyContext,
   registerDataSource,
   type SCANType,
   ScreenProvider,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   CpuRegistryProvider,
   CpuRegistryService,
@@ -16,16 +16,16 @@ import {
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
-} from "@gonogo/data";
-import type { KerbcastDataSource } from "@gonogo/kerbcast";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import type { KerbcastDataSource } from "@ksp-gonogo/kerbcast";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
   SerialPortRecoveryWatcher,
-} from "@gonogo/serial";
-import { BannerStack, FabClusterProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {

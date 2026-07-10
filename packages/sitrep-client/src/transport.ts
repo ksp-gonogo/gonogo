@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from "@gonogo/sitrep-sdk";
+import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 
 /** Connection status of a Transport's underlying pipe. */
 export type TransportStatus =

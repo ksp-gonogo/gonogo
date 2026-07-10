@@ -1,4 +1,4 @@
-import { clearActionHandlers, registerActionHandler } from "@gonogo/core";
+import { clearActionHandlers, registerActionHandler } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InputDispatcher, type InputMappingSource } from "./InputDispatcher";
 import { SerialDeviceService } from "./SerialDeviceService";

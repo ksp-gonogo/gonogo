@@ -19,11 +19,13 @@
  * array.
  */
 
+import type { CameraLifecycle, Layer } from "@jonpepler/kerbcast";
+import { type MockCameraInit, MockSidecar } from "@jonpepler/kerbcast/testing";
 import type {
   ComponentProps,
   DataSource,
   DataSourceStatus,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
@@ -33,9 +35,7 @@ import {
   getAugmentsForSlot,
   registerAugment,
   registerDataSource,
-} from "@gonogo/core";
-import type { CameraLifecycle, Layer } from "@jonpepler/kerbcast";
-import { type MockCameraInit, MockSidecar } from "@jonpepler/kerbcast/testing";
+} from "@ksp-gonogo/core";
 import {
   act,
   cleanup,

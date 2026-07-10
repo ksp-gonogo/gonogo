@@ -2,7 +2,7 @@ import {
   clearRegistry,
   type DataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ws } from "msw";
 import { setupServer } from "msw/node";

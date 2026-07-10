@@ -1,5 +1,5 @@
-import type { ComponentProps, DataKey } from "@gonogo/core";
-import { getDataSource, registerComponent, useScreen } from "@gonogo/core";
+import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
+import { getDataSource, registerComponent, useScreen } from "@ksp-gonogo/core";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -9,7 +9,7 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";

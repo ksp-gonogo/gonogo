@@ -1,8 +1,8 @@
 /**
- * Shared test helpers for @gonogo/core consumers.
+ * Shared test helpers for @ksp-gonogo/core consumers.
  *
  * Keep this file dependency-free beyond the core package itself — it must not
- * import from @gonogo/data, @gonogo/components, or any other downstream
+ * import from @ksp-gonogo/data, @ksp-gonogo/components, or any other downstream
  * package, or it would create a circular workspace dependency.
  */
 

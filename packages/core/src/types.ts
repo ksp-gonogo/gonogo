@@ -1,6 +1,6 @@
 // Core shared types — expand as features are built
 
-import type { TopicId } from "@gonogo/sitrep-sdk";
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { TelemaachusSchema } from "./schemas/telemachus";
 import type { GonogoTheme } from "./theme";
@@ -21,7 +21,7 @@ export type DataSourceStatus =
  * Built-in schemas are pre-populated here. Third-party packages can add their
  * own data sources by augmenting this interface via declaration merging:
  *
- *   declare module '@gonogo/core' {
+ *   declare module '@ksp-gonogo/core' {
  *     interface DataSourceRegistry {
  *       'my-source': MySourceSchema;
  *     }

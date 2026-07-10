@@ -1,17 +1,17 @@
 /**
  * Adapts a `Courier` (the reference delay engine) to the `Transport`
- * interface consumed by `@gonogo/sitrep-client`'s `TelemetryClient`. This is
+ * interface consumed by `@ksp-gonogo/sitrep-client`'s `TelemetryClient`. This is
  * what lets the unchanged M2 client receive DELAYED streams and DELAYED
  * command round-trips: from the client's point of view it's just talking to
  * a `Transport`, same as `StubTransport` in M2 tests.
  *
  * `Transport`/`TransportStatus` are re-declared structurally here rather
- * than imported from `@gonogo/sitrep-client` — `sitrep-server` must never
+ * than imported from `@ksp-gonogo/sitrep-client` — `sitrep-server` must never
  * take a runtime dependency on `sitrep-client`. TypeScript's structural
  * typing means a `CourierTransport` still satisfies the real `Transport`
  * interface at the client's constructor call site, because the message
  * types (`ClientMessage`/`ServerMessage`) are the same nominal types,
- * imported by both packages from the shared `@gonogo/sitrep-sdk`.
+ * imported by both packages from the shared `@ksp-gonogo/sitrep-sdk`.
  *
  * One `CourierTransport` represents one connection: a single active
  * `node`/vessel observed from a single `vantage`, per the single-active-
@@ -22,7 +22,7 @@
  * client's loss timer and the courier's actual confirm-delivery schedule
  * agree by construction.
  */
-import type { ClientMessage, ServerMessage } from "@gonogo/sitrep-sdk";
+import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import type { Clock } from "./clock";
 import type { Courier } from "./courier";
 
@@ -33,7 +33,7 @@ export type TransportStatus =
   | "reconnecting"
   | "error";
 
-/** Structural mirror of `@gonogo/sitrep-client`'s `Transport` interface. */
+/** Structural mirror of `@ksp-gonogo/sitrep-client`'s `Transport` interface. */
 export interface Transport {
   readonly status: TransportStatus;
   send(message: ClientMessage): void;

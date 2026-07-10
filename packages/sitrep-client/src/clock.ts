@@ -4,7 +4,7 @@
  * schedules a callback at a UT a `Transport` predicted via
  * `predictConfirmEta()` — but it still needs a `Clock` to do the scheduling.
  *
- * Deliberately NOT imported from `@gonogo/sitrep-server` — sitrep-client
+ * Deliberately NOT imported from `@ksp-gonogo/sitrep-server` — sitrep-client
  * must never take a dependency (runtime or type-only) on the mod's delay
  * engine. This interface's shape mirrors sitrep-server's own `Clock`
  * exactly, so its `ManualClock` structurally satisfies this interface in

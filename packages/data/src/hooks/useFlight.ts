@@ -1,4 +1,4 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useCallback, useSyncExternalStore } from "react";
 import type { FlightRecord } from "../types";
 

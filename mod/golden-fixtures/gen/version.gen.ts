@@ -9,7 +9,7 @@
  * shared cross-language contract for `compareVersions` / `satisfiesKernel` /
  * `satisfiesModRange`.
  *
- * Run with: `pnpm --filter @gonogo/sitrep-kernel gen:golden-fixtures`
+ * Run with: `pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures`
  */
 
 import { writeFileSync } from "node:fs";

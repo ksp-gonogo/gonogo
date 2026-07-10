@@ -1,8 +1,16 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { getSizeBucket, registerComponent, safeRandomUuid } from "@gonogo/core";
-import type { DataKeyMeta, SeriesRange } from "@gonogo/data";
-import { useDataSchema } from "@gonogo/data";
-import type { ChartSeries, ChartSeriesData, ThresholdRule } from "@gonogo/ui";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
+import {
+  getSizeBucket,
+  registerComponent,
+  safeRandomUuid,
+} from "@ksp-gonogo/core";
+import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
+import { useDataSchema } from "@ksp-gonogo/data";
+import type {
+  ChartSeries,
+  ChartSeriesData,
+  ThresholdRule,
+} from "@ksp-gonogo/ui";
 import {
   BigReadout,
   ConfigForm,
@@ -20,7 +28,7 @@ import {
   Sparkline,
   useModalSaveBar,
   WidgetHeader,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import {
   type ReactNode,
   useCallback,

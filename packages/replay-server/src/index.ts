@@ -8,7 +8,7 @@ import { createReplayServer, loadFixtureFile } from "./server";
  * exercise the whole app against captured telemetry without KSP.
  *
  * Usage:
- *   pnpm --filter @gonogo/replay-server dev path/to/flight.fixture.json
+ *   pnpm --filter @ksp-gonogo/replay-server dev path/to/flight.fixture.json
  *   PORT=8085 RATE=2 pnpm replay path/to/flight.fixture.json
  *
  * Env:

@@ -1,17 +1,17 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   getBody,
   registerComponent,
   useActionInput,
   useTelemetry,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   type StreamStatusValue,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
   type VesselState,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
@@ -19,7 +19,7 @@ import {
   type ReadoutTone,
   StatusPill,
   StreamStatusBadge,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -28,7 +28,7 @@ import { useIsOrbiting } from "../shared/useIsOrbiting";
 
 /**
  * Provider-optional read of a raw OR derived stream Topic — mirrors
- * `@gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
+ * `@ksp-gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
  * `TelemetryProvider` is mounted instead of throwing. OrbitView reads its
  * derived `vessel.state.*` fields (which are not wire `TopicId`s, so the
  * canonical `useTelemetry` overload can't type them) through this and stays
@@ -160,7 +160,7 @@ export interface OrbitBadgesContext {
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "orbit-view.overlay": OrbitOverlayContext;
     "orbit-view.badges": OrbitBadgesContext;

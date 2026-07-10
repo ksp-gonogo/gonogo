@@ -1,4 +1,4 @@
-import type { ParsedManeuverNode } from "@gonogo/data";
+import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { describe, expect, it } from "vitest";
 import {
   COMPLETED_THRESHOLD_DV,

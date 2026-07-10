@@ -1,5 +1,9 @@
-import type { ClientMessage, Meta, ServerMessage } from "@gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@gonogo/sitrep-sdk";
+import type {
+  ClientMessage,
+  Meta,
+  ServerMessage,
+} from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import type { Transport, TransportStatus } from "./transport";
 
 /** Builds a valid, deterministic `Meta` for stubbed/test data. */

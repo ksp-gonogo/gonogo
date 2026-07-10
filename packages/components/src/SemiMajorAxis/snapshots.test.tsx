@@ -8,7 +8,7 @@
  * layer that DOM snapshots can't (styled-components CSS, fonts, etc).
  *
  * If the widget output intentionally changes, regenerate with
- * `pnpm --filter @gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
+ * `pnpm --filter @ksp-gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
  */
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";

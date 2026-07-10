@@ -1,5 +1,5 @@
-import { clamp } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import { clamp } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import type { InputEvent } from "../transports/DeviceTransport";
 import type { DeviceInput } from "../types";
 import { applyAnalogShaping } from "./analogShaping";

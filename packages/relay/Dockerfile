@@ -1,5 +1,5 @@
 # Build context for this Dockerfile is the REPO ROOT, not packages/relay,
-# so pnpm can resolve workspace deps (currently @gonogo/logger). The
+# so pnpm can resolve workspace deps (currently @ksp-gonogo/logger). The
 # compose service points `context: .` + `dockerfile:
 # packages/relay/Dockerfile`, and CI workflows do the same.
 
@@ -25,20 +25,20 @@ COPY packages/relay/package.json packages/relay/
 
 # Frozen install limited to relay + transitive workspace deps. `--filter`
 # follows workspace:* edges automatically.
-RUN pnpm install --frozen-lockfile --filter @gonogo/relay...
+RUN pnpm install --frozen-lockfile --filter @ksp-gonogo/relay...
 
-# Now bring in source. Build @gonogo/logger so its `dist/` exists, then
+# Now bring in source. Build @ksp-gonogo/logger so its `dist/` exists, then
 # build relay against it. Both packages emit Node-loadable ESM (logger
 # uses NodeNext + explicit .js extensions, relay's source likewise).
 COPY packages/logger/ packages/logger/
 COPY packages/relay/ packages/relay/
 
-RUN pnpm --filter @gonogo/logger build
-RUN pnpm --filter @gonogo/relay build
+RUN pnpm --filter @ksp-gonogo/logger build
+RUN pnpm --filter @ksp-gonogo/relay build
 
 # Deploy a self-contained app dir (workspace deps inlined into
 # node_modules) for the runtime stage.
-RUN pnpm --filter @gonogo/relay deploy --prod --legacy /app
+RUN pnpm --filter @ksp-gonogo/relay deploy --prod --legacy /app
 
 # ── runtime ──────────────────────────────────────────────────────────────────
 FROM node:24-bookworm-slim

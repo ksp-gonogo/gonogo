@@ -2,7 +2,7 @@ import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TelemachusAntennaBanner } from "./TelemachusAntennaBanner";

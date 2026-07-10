@@ -1,6 +1,6 @@
-import type { KosData, UseKosWidgetOptions } from "@gonogo/data";
-import { useKosWidget } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+import type { KosData, UseKosWidgetOptions } from "@ksp-gonogo/data";
+import { useKosWidget } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import { useMemo } from "react";
 
 /**
@@ -16,7 +16,7 @@ import { useMemo } from "react";
  * malformed" from "script crashed".
  *
  * The reusable bits intentionally stop here — widgets still own their own
- * rendering. See `@gonogo/components/src/ShipMap` for the first consumer.
+ * rendering. See `@ksp-gonogo/components/src/ShipMap` for the first consumer.
  */
 
 export interface UseKosScriptPayloadOptions<_T>

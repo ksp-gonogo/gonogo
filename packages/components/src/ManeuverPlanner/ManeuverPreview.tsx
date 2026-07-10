@@ -6,9 +6,9 @@ import {
   formatDuration,
   type ManeuverPlan,
   type ManeuverSequence,
-} from "@gonogo/core";
-import type { VesselDeltaV } from "@gonogo/data";
-import { Button, GhostButton } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import type { VesselDeltaV } from "@ksp-gonogo/data";
+import { Button, GhostButton } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { isSequence, type PlanResult } from "./planning";

@@ -1,5 +1,5 @@
 {
-  "name": "@gonogo/kos",
+  "name": "@ksp-gonogo/kos",
   "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
@@ -20,17 +20,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*",
-    "@gonogo/data": "workspace:*",
-    "@gonogo/logger": "workspace:*",
-    "@gonogo/sitrep-client": "workspace:*",
-    "@gonogo/ui": "workspace:*",
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/data": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/ui": "workspace:*",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
-    "@gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

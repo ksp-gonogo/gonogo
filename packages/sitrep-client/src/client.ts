@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gonogo/sitrep-sdk";
+import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { type Clock, RealTimeClock } from "./clock";
 import type { CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";

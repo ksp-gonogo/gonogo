@@ -1,4 +1,4 @@
-import { logger, tagRegistry } from "@gonogo/logger";
+import { logger, tagRegistry } from "@ksp-gonogo/logger";
 import {
   Button,
   Field,
@@ -9,7 +9,7 @@ import {
   Select,
   Switch,
   Textarea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import {
   type ChangeEvent,
   type FormEvent,

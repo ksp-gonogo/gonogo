@@ -100,7 +100,7 @@ to `Sitrep.Contract`'s netstandard2.0 build via `PrivateAssets="all"`), does
 not flow into any GPL-licensed assembly at runtime.
 
 Because `Sitrep.Contract` (and its generated TypeScript counterpart,
-`@gonogo/sitrep-sdk`) is licensed **MIT** rather than GPL-3.0-only,
+`@ksp-gonogo/sitrep-sdk`) is licensed **MIT** rather than GPL-3.0-only,
 third-party Uplinks that reference the contract are not constrained by
 core's GPL license at all — they only need to comply with MIT's terms
 (retain the copyright/permission notice), regardless of the Uplink's own

@@ -56,15 +56,15 @@ ENV VITE_RELAY_URL=http://localhost:3002
 # prerelease version in the peer hello handshake. Empty for release builds.
 ARG GONOGO_VERSION_SUFFIX
 ENV GONOGO_VERSION_SUFFIX=${GONOGO_VERSION_SUFFIX}
-RUN pnpm turbo build --filter=@gonogo/app...
+RUN pnpm turbo build --filter=@ksp-gonogo/app...
 
 # Build the two node services and deploy self-contained dirs (workspace deps
 # inlined into node_modules) for the runtime stage — same as their
 # standalone Dockerfiles.
-RUN pnpm --filter @gonogo/relay build \
-  && pnpm --filter @gonogo/relay deploy --prod --legacy /opt/relay
-RUN pnpm --filter @gonogo/telnet-proxy build \
-  && pnpm --filter @gonogo/telnet-proxy deploy --prod --legacy /opt/telnet-proxy
+RUN pnpm --filter @ksp-gonogo/relay build \
+  && pnpm --filter @ksp-gonogo/relay deploy --prod --legacy /opt/relay
+RUN pnpm --filter @ksp-gonogo/telnet-proxy build \
+  && pnpm --filter @ksp-gonogo/telnet-proxy deploy --prod --legacy /opt/telnet-proxy
 
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM node:24-bookworm-slim

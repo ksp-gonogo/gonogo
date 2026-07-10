@@ -1,5 +1,5 @@
-import type { ClientMessage, ServerMessage } from "@gonogo/sitrep-sdk";
-import { parseServerMessage } from "@gonogo/sitrep-sdk";
+import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import type { Transport, TransportStatus } from "./transport";
 
 /**
@@ -57,7 +57,7 @@ export interface WebSocketTransportOptions {
   retryTimeoutMs?: number;
   /**
    * Called once per delivered `stream-data` frame — the perf-budget seam.
-   * `@gonogo/sitrep-client` deliberately does NOT depend on `@gonogo/core`
+   * `@ksp-gonogo/sitrep-client` deliberately does NOT depend on `@ksp-gonogo/core`
    * (that would be a cycle: core imports this package), so the `PerfBudget`
    * itself lives in the app layer and records from this callback.
    */
@@ -101,7 +101,7 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * `connected`/`reconnecting`/`disconnected`/`error` status transitions, and
  * re-subscription of every still-active topic on every fresh connection.
  *
- * **Wire decode** reuses `parseServerMessage` (`@gonogo/sitrep-sdk`) — the
+ * **Wire decode** reuses `parseServerMessage` (`@ksp-gonogo/sitrep-sdk`) — the
  * exact decode path proven against real engine output by
  * `reference-wire-fixture.test.ts`; nothing is re-implemented here.
  *

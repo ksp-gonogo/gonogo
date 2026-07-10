@@ -2,8 +2,8 @@ import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

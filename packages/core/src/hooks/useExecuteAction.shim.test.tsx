@@ -5,7 +5,7 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-} from "@gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-client";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";

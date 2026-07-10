@@ -13,14 +13,14 @@ import {
   type ComponentProps,
   clearRegistry,
   registerComponent,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
 
 /* Stub context hooks and heavy dependencies pulled in transitively. */
-vi.mock("@gonogo/components", () => ({
+vi.mock("@ksp-gonogo/components", () => ({
   RequiresGuard: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),

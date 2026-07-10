@@ -1,4 +1,8 @@
-import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
+import {
+  AxiomConsentController,
+  AxiomTransport,
+  logger,
+} from "@ksp-gonogo/logger";
 
 /**
  * Build the Axiom transport factory for the browser, reading the ingest

@@ -1,4 +1,4 @@
-import type { Meta } from "@gonogo/sitrep-sdk";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * One point on a topic's `ClientTimeline`.

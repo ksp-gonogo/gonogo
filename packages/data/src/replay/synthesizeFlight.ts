@@ -1,4 +1,4 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import { FLIGHT_FIXTURE_FORMAT, type FlightFixture } from "./FlightFixture";
 
 export interface SynthesizeFlightOptions {

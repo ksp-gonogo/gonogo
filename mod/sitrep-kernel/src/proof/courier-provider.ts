@@ -1,13 +1,13 @@
 /**
  * The "real" `comms` provider: wires an actual M3 `Courier` + `StubNetwork`
  * (fixed one-way delay, `COURIER_DELAY_SECONDS`) + a shared `ManualClock`,
- * all imported unchanged from `@gonogo/sitrep-server` — this file only
+ * all imported unchanged from `@ksp-gonogo/sitrep-server` — this file only
  * adapts them to the `CommsCapability` shape, it never modifies M3 code.
  *
  * This is the milestone's headline: the entire M3 delay engine collapses to
  * one swappable provider behind the kernel's `comms` capability.
  */
-import { Courier, ManualClock, StubNetwork } from "@gonogo/sitrep-server";
+import { Courier, ManualClock, StubNetwork } from "@ksp-gonogo/sitrep-server";
 import type { ProviderRegistration } from "../capability";
 import { COMMS_CAPABILITY_ID, type CommsCapability } from "./comms-capability";
 

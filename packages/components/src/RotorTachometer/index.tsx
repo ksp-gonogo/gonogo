@@ -1,11 +1,11 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   EmptyState,
   Gauge,
@@ -14,7 +14,7 @@ import {
   StreamStatusBadge,
   ToggleButton,
   useElementSize,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 

@@ -4,7 +4,7 @@
  * `m1-provider-taxonomy-design.md` §5's migration map, cross-checked against
  * every widget's real `dataRequirements`/`useDataValue` call in
  * `packages/components/src` — see `map-topic.coverage.test.ts` in
- * `@gonogo/core`, which enumerates the live widget key set and asserts every
+ * `@ksp-gonogo/core`, which enumerates the live widget key set and asserts every
  * key is either mapped here or listed in `TELEMACHUS_KNOWN_GAPS`).
  *
  * Two independent concerns live in this file:
@@ -20,7 +20,7 @@
  *    pairs (today always `("data", "<Telemachus key>")`) → the new stream
  *    topic string, or `undefined` when there is no new home yet. `undefined`
  *    is the explicit "fall back to the legacy `DataSource` path" signal the
- *    `@gonogo/core` shim depends on — it is NOT an identity fallback, unlike
+ *    `@ksp-gonogo/core` shim depends on — it is NOT an identity fallback, unlike
  *    (1) above; the two functions have deliberately incompatible defaults
  *    because they serve different callers (a shim needs to know when it
  *    can't route; a direct-topic safety net needs to always return
@@ -569,7 +569,7 @@ const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
 /**
  * Old keys with NO new home yet — the M1 §5.2 gaps table, extended with
  * every gapped key actually found in widget `dataRequirements`/
- * `useDataValue` call sites. Exported so `@gonogo/core`'s coverage test can
+ * `useDataValue` call sites. Exported so `@ksp-gonogo/core`'s coverage test can
  * assert "mapped OR declared gap" without a silent third case.
  */
 export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
@@ -909,7 +909,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
  * the Telemachus `"data"` source (nothing else is wired to the new SDK in
  * M2), or `key` is a known, explicitly-tracked gap (`TELEMACHUS_KNOWN_GAPS`),
  * or `key` is genuinely unrecognized. In every `undefined` case the
- * `@gonogo/core` `useDataValue` shim falls back to the legacy `DataSource`
+ * `@ksp-gonogo/core` `useDataValue` shim falls back to the legacy `DataSource`
  * path — this function intentionally does NOT identity-fallback (contrast
  * with `redirectKinematicSubtopic` above).
  */
@@ -929,7 +929,7 @@ export function mapTopic(
   key: string,
 ): string | undefined {
   // kOS native + compute streams (U3 mod). Identity maps: the widget-facing
-  // key IS the wire topic. The `@gonogo/core` shim's carried-channels gate +
+  // key IS the wire topic. The `@ksp-gonogo/core` shim's carried-channels gate +
   // provider-mounted check still decide whether it actually routes to the
   // stream or falls back to the legacy telnet "kos" DataSource.
   if (dataSourceId === "kos") {

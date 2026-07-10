@@ -1,10 +1,10 @@
-import { RequiresGuard } from "@gonogo/components";
+import { RequiresGuard } from "@ksp-gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
-} from "@gonogo/core";
-import { CloseIcon } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { CloseIcon } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -265,7 +265,7 @@ const ItemFrame = styled.div`
   border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   /* Grid (not flex) so the body row has a definite height. Widgets whose
-     root is @gonogo/ui's Panel use height: 100% and need a concrete
+     root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
      percentage reference — flex: 1 + min-height: 0 doesn't reliably
      provide one. */
   display: grid;

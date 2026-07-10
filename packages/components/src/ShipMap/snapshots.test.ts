@@ -1,4 +1,8 @@
-import type { PartState, PartStateModule, VesselTopology } from "@gonogo/core";
+import type {
+  PartState,
+  PartStateModule,
+  VesselTopology,
+} from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
@@ -17,7 +21,7 @@ import {
 /**
  * SVG output snapshots — locks the rendered ship diagram against
  * unintended drift. The same `renderShipMapToSvg` helper drives the CLI
- * harness (`pnpm --filter @gonogo/components render-ship-map`) so the
+ * harness (`pnpm --filter @ksp-gonogo/components render-ship-map`) so the
  * snapshot reflects exactly what a reviewer would see when opening the
  * SVG in a browser.
  *
