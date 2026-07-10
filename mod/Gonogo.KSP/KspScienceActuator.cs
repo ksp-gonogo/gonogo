@@ -12,7 +12,8 @@ namespace Gonogo.KSP
     /// confirmed against this KSP version's actual API shapes via decompile
     /// (see each method's own comment for the specific call). Both methods
     /// operate on <c>FlightGlobals.ActiveVessel</c> — there is no per-call
-    /// vessel selector, matching every M1 read channel's "the vessel" scoping.
+    /// vessel selector; the science read side scopes to the active vessel the
+    /// same way.
     /// The experiment is addressed by the part's <c>flightID.ToString()</c>,
     /// the SAME opaque id <c>KspHost.BuildScienceInstruments</c> emits on the
     /// read side.

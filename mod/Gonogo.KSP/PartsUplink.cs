@@ -87,8 +87,8 @@ namespace Gonogo.KSP
                 },
             },
             // Robotics actuation is an uplink to the craft, so every command
-            // rides light-time (delayed: true) — the same F2 classification
-            // vessel.control.* uses (see VesselUplink's command table).
+            // rides light-time (delayed: true), like the vessel.control.*
+            // commands.
             Commands = new List<CommandDeclaration>
             {
                 Command(RoboticsCommandProvider.ServoSetTargetCommand),

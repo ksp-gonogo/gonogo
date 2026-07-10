@@ -102,6 +102,10 @@ namespace Sitrep.Core.Tests
             "KosExecArgs", "KosReEnableArgs", "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
             "SetWarpIndexArgs",
+            "ActivateStrategyArgs", "DeactivateStrategyArgs", "UnlockTechArgs",
+            "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
+            "SwitchVesselArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
+            "RotorSetValueArgs", "RotorReverseArgs", "ExperimentActionArgs",
         };
 
         private static IEnumerable<Type> ContractPayloadTypes() =>

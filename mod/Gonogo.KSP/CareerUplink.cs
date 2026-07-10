@@ -91,10 +91,8 @@ namespace Gonogo.KSP
             },
             // Every career-write command is ground-side KSC bookkeeping, not a
             // signal to a craft, so all seven are delayed: false — they take
-            // effect immediately, never at UT + uplink light-time (the F2 rule:
-            // a game-level/meta action is not an uplink; see VesselUplink's
-            // command-classification table, which names facility/contracts/tech/
-            // strategies as the delayed: false bucket).
+            // effect immediately rather than at UT + uplink light-time. Only
+            // commands sent to a vessel ride light-time.
             Commands = new List<CommandDeclaration>
             {
                 Command(CareerCommandProvider.ActivateStrategyCommand, delayed: false),
