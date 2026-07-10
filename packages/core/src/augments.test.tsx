@@ -8,13 +8,16 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AugmentSlot } from "./AugmentSlot";
 import {
+  clearAugments,
   getAugmentSettings,
   getAugmentsForSlot,
   registerAugment,
 } from "./augments";
-import { clearRegistry } from "./registry";
 
-beforeEach(() => clearRegistry());
+// The augment registry is intentionally NOT reset by `clearRegistry` (see its
+// doc comment): module-load augments must survive the per-widget-test data-source
+// reset. Augment-registry tests own their isolation and clear it explicitly.
+beforeEach(() => clearAugments());
 
 describe("augment registry — ordering", () => {
   it("orders augments in a slot by ascending priority, ties in registration order", () => {

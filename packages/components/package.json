@@ -11,7 +11,7 @@
     "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
     "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
     "render-navball": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball.ts",
     "render-navball-gif": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-gif.ts",

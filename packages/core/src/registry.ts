@@ -1,5 +1,4 @@
 import { logger } from "@gonogo/logger";
-import { clearAugments } from "./augments";
 import { clearKosScripts } from "./kos/scriptRegistry";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
@@ -158,12 +157,24 @@ export function getTheme(id: string): ThemeDefinition | undefined {
   return themes.get(id);
 }
 
-/** For use in tests only — resets all registries to empty. */
+/**
+ * For use in tests only — resets the component / data-source / theme / kOS-script
+ * registries to empty.
+ *
+ * Deliberately does NOT clear the augment registry. Augments (spec §4.2) are
+ * module-load registrations that an augment-consuming widget resolves through
+ * the registry AT RENDER TIME (`getAugmentsForSlot`) — unlike components, which
+ * a widget test renders directly, bypassing the registry. `setupMockDataSource`
+ * calls this before nearly every widget test to reset per-test data-source
+ * state; if that also wiped augments, a widget whose real content arrives via a
+ * slot (e.g. Objectives' mission + contract sources) would render an empty slot
+ * because nothing re-runs the once-only module-load `registerAugment`. Augment
+ * registry tests clear it explicitly with `clearAugments()` instead.
+ */
 export function clearRegistry(): void {
   components.clear();
   dataSources.clear();
   themes.clear();
   clearKosScripts();
-  clearAugments();
   notifyDataSourceChange();
 }
