@@ -102,6 +102,15 @@ namespace Sitrep.Host
         public const string RevertTopic = "ksp.revertAvailability";
 
         /// <summary>
+        /// The <c>game.dlc</c> capability channel — which KSP expansions are
+        /// installed (Breaking Ground / Making History). A ground-side,
+        /// scene-independent game fact (the <c>Meta.Dlc</c> path), so a widget
+        /// can tell "no DLC" apart from "DLC present, nothing deployed yet."
+        /// See <see cref="BuildGameDlc"/>.
+        /// </summary>
+        public const string DlcTopic = "game.dlc";
+
+        /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"bodies"</c> value (see
         /// the class doc for the encoding) to the clean <c>system.bodies</c>
         /// payload. Returns <c>null</c> — not an empty-bodies payload — when
@@ -273,6 +282,42 @@ namespace Sitrep.Host
             {
                 ["canRevertToEditor"] = SnapshotDict.GetBool(raw, "canRevertToEditor") ?? false,
                 ["canRevertToLaunch"] = SnapshotDict.GetBool(raw, "canRevertToLaunch") ?? false,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"dlc"</c> value
+        /// (<c>Gonogo.KSP.KspHost.BuildDlc</c>'s shape — two bools,
+        /// <c>breakingGround</c>/<c>makingHistory</c>, from
+        /// <c>ExpansionsLoader.IsExpansionInstalled</c>) to the
+        /// <c>game.dlc</c> payload: <c>{ "breakingGround": bool,
+        /// "makingHistory": bool }</c>. Follows <see cref="BuildSystemBodies"/>'s
+        /// own untyped-dict convention (no vessel-scoped provenance — this is a
+        /// <c>game</c>-domain capability snapshot, not the <c>vessel.*</c>
+        /// family). Returns <c>null</c> — not an all-false payload — when the
+        /// snapshot doesn't carry a <c>"dlc"</c> group at all (no sample has
+        /// landed yet), so a caller distinguishes "no data yet" from "the DLC
+        /// is genuinely absent" (both bools false). A present-but-partial group
+        /// defaults each missing bool to <c>false</c> (an expansion the raw
+        /// group didn't mention is treated as not installed), never null — the
+        /// wire shape is two plain bools.
+        /// </summary>
+        public static object? BuildGameDlc(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("dlc", out var rawDlc) || !(rawDlc is IDictionary<string, object?> raw))
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["breakingGround"] = SnapshotDict.GetBool(raw, "breakingGround") ?? false,
+                ["makingHistory"] = SnapshotDict.GetBool(raw, "makingHistory") ?? false,
             };
         }
 
