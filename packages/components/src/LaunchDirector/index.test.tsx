@@ -1,5 +1,6 @@
 import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import { clearAugments, registerAugment } from "@gonogo/core";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,6 +10,7 @@ import {
 } from "../test/setupMockDataSource";
 import {
   LaunchDirectorComponent,
+  type LaunchDirectorSlotContext,
   parseCrew,
   parseLaunchSites,
   parseSavedShips,
@@ -544,5 +546,96 @@ describe("parseCrew", () => {
     ]);
     expect(parsed?.[0]?.available).toBe(false);
     expect(parsed?.[0]?.unavailableReason).toBe("Hospitalized");
+  });
+});
+
+describe("LaunchDirectorComponent augment slots", () => {
+  let fixture: MockDataSourceFixture;
+  let source: MockDataSource;
+
+  beforeEach(async () => {
+    clearAugments();
+    fixture = await setupMockDataSource({ keys: KEYS });
+    source = fixture.source;
+  });
+
+  afterEach(() => {
+    teardownMockDataSource(fixture);
+    clearAugments();
+  });
+
+  // Drive the widget into the pre-launch checklist branch so both the header
+  // (badges) and the appended section slot are on screen.
+  function primePreLaunch() {
+    act(() => {
+      source.emit("career.funds", 100_000);
+      source.emit("kc.padOccupied", false);
+      source.emit("kc.launchSite", "LaunchPad");
+      source.emit("kc.savedShips", [
+        {
+          name: "Mun Hopper",
+          partCount: 12,
+          totalMass: 5.5,
+          facility: "VAB",
+          requiresFunds: 8000,
+          missingParts: [],
+        },
+      ]);
+    });
+  }
+
+  it("renders both slots with no bound augment (empty is fine)", () => {
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    primePreLaunch();
+
+    // Pre-launch checklist is on screen …
+    expect(screen.getByText("Mun Hopper")).toBeInTheDocument();
+    // … but nothing composes into either slot.
+    expect(screen.queryByTestId("ld-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ld-section")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound header-badge augment carrying the slot context", () => {
+    registerAugment<"launch-director.badges">({
+      id: "test-ld-badge",
+      augments: "launch-director.badges",
+      component: ({ selectedSite, inFlight }: LaunchDirectorSlotContext) => (
+        <span data-testid="ld-badge">
+          {selectedSite}/{String(inFlight)}
+        </span>
+      ),
+    });
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    primePreLaunch();
+
+    const badge = screen.getByTestId("ld-badge");
+    // Default site is "LaunchPad" and the pre-launch scene is not flight.
+    expect(badge).toHaveTextContent("LaunchPad/false");
+    // The badge sits in the header, beside the title.
+    const header = screen.getByText("LAUNCH & RECOVERY").closest("div");
+    expect(header).not.toBeNull();
+    expect(within(header as HTMLElement).getByTestId("ld-badge")).toBeTruthy();
+  });
+
+  it("appends a bound checklist-section augment carrying the selection", () => {
+    registerAugment<"launch-director.sections">({
+      id: "test-ld-section",
+      augments: "launch-director.sections",
+      component: ({ selectedShip, funds }: LaunchDirectorSlotContext) => (
+        <div data-testid="ld-section">
+          ship:{String(selectedShip)} funds:{String(funds)}
+        </div>
+      ),
+    });
+
+    render(<LaunchDirectorComponent config={{}} id="ld" />);
+    primePreLaunch();
+
+    const section = screen.getByTestId("ld-section");
+    // No craft selected yet, funds carried through from telemetry.
+    expect(section).toHaveTextContent("ship:null funds:100000");
+    // The existing funds readout in the subtitle is untouched (CLAUDE.md rule).
+    expect(screen.getByTitle("Available funds")).toBeInTheDocument();
   });
 });

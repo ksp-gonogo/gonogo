@@ -1,5 +1,6 @@
 import type { AvailableVesselEntry, ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
   useDataStreamStatus,
@@ -18,6 +19,39 @@ import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
 type LaunchDirectorConfig = Record<string, never>;
+
+/**
+ * The context both LaunchDirector slots pass to their augments (spec §4.4). A
+ * life-support / logistics Uplink reads the pre-launch selection (which craft,
+ * crew and site the operator is about to commit) to append a checklist item or
+ * a header badge — e.g. Kerbalism supplies-for-duration, USI-LS habitation.
+ */
+export interface LaunchDirectorSlotContext {
+  /** Current KSP scene ("Flight", "Editor", …); undefined until telemetry arrives. */
+  scene: string | undefined;
+  /** True while a vessel is in flight (scene === "Flight"). */
+  inFlight: boolean;
+  /** The saved craft selected in the pre-launch picker, or null when none. */
+  selectedShip: string | null;
+  /** The chosen launch-site name (e.g. "LaunchPad"). */
+  selectedSite: string;
+  /** Crew names the operator has selected for the launch. */
+  selectedCrew: string[];
+  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  funds: number | undefined;
+}
+
+// Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not a shared central file) so parallel slot work on
+// other widgets can't collide. This makes `registerAugment` and
+// `<AugmentSlot name="launch-director.sections" …>` type-check against
+// `LaunchDirectorSlotContext` rather than the loose fallback.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "launch-director.badges": LaunchDirectorSlotContext;
+    "launch-director.sections": LaunchDirectorSlotContext;
+  }
+}
 
 export interface SavedShip {
   name: string;
@@ -241,6 +275,19 @@ function LaunchDirectorComponent({
   const rows = h ?? 9;
   const showSubtitle = rows >= 4;
 
+  // Props both augment slots pass down (spec §4.4). A plain object rather than a
+  // hook so it can sit above the early return without a conditional `useMemo`; a
+  // fresh reference per render is fine since `AugmentSlot`'s subscription is
+  // store-driven and the live selection changes anyway.
+  const slotContext: LaunchDirectorSlotContext = {
+    scene,
+    inFlight: scene === "Flight",
+    selectedShip,
+    selectedSite,
+    selectedCrew: Array.from(selectedCrew),
+    funds: careerFunds,
+  };
+
   if (ships === null) {
     return (
       <Panel>
@@ -287,6 +334,10 @@ function LaunchDirectorComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+        {/* Inline header badges — an Uplink (e.g. a life-support summary) can
+            surface an indicator beside the title without a bespoke slot (spec
+            §4.8). Renders nothing until an augment binds. */}
+        <AugmentSlot name="launch-director.badges" props={slotContext} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       {showSubtitle && (
@@ -508,6 +559,10 @@ function LaunchDirectorComponent({
                 </LaunchControls>
               </>
             )}
+            {/* Pre-launch checklist augments — a life-support / logistics Uplink
+                appends a checklist item here (spec §4.8). Empty until bound; the
+                funds readout and existing controls above are untouched. */}
+            <AugmentSlot name="launch-director.sections" props={slotContext} />
           </>
         )}
       </Body>
@@ -1167,6 +1222,10 @@ registerComponent<LaunchDirectorConfig>({
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
+  // Header badges + a pre-launch checklist section (augment-slot-map:
+  // launch-director.badges / .sections). Unfilled until a life-support /
+  // logistics Uplink binds — the launch flow renders exactly as before.
+  augmentSlots: ["launch-director.badges", "launch-director.sections"],
   dataRequirements: [
     "kc.savedShips",
     "kc.crewRoster",
