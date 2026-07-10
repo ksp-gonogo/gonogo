@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
@@ -358,6 +361,114 @@ namespace Sitrep.Host.Tests
             var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
 
             Assert.Null(SystemViewProvider.BuildSystemVessels(snapshot));
+        }
+
+        // ----------------------------------------------------------------
+        // Contract-shape mirror (P0.5): the named Sitrep.Contract payload
+        // types (SystemBodies/BodyEntry/OrbitEntry, SystemVessels/
+        // VesselRosterEntry) exist so a widget resolves a real payload type
+        // instead of `unknown`. They are TYPING-ONLY — they do NOT
+        // participate in serialization (JsonWriter walks the provider's live
+        // value tree, not these POCOs). Nothing at compile time binds the
+        // POCO field set to the dict keys the provider actually emits, so
+        // these tests bind them at run time: every field name the provider
+        // puts on the wire must equal the camelCased public-property set of
+        // its contract type (RtConfig's CamelCaseForProperties rule), and no
+        // more. A rename/add/remove on either side — or a `meta` key
+        // creeping onto a system.* payload — fails here.
+        // ----------------------------------------------------------------
+
+        // RtConfig.CamelCaseForProperties: lowercase the first char only
+        // (every property here is single-or-multi-word PascalCase, e.g.
+        // MeanAnomalyAtEpoch -> meanAnomalyAtEpoch, ArgPe -> argPe).
+        private static string CamelCase(string pascal) =>
+            pascal.Length == 0 ? pascal : char.ToLowerInvariant(pascal[0]) + pascal.Substring(1);
+
+        private static HashSet<string> WireFieldNamesOf(Type contractType) =>
+            contractType
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(p => CamelCase(p.Name))
+                .ToHashSet();
+
+        private static HashSet<string> KeysOf(object? node) =>
+            Assert.IsType<Dictionary<string, object?>>(node).Keys.ToHashSet();
+
+        [Fact]
+        public void SystemBodiesContractTypeMirrorsTheProviderWireShapeExactly()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbol", ["index"] = 0, ["radius"] = 261_600_000.0 },
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbin",
+                            ["index"] = 1,
+                            ["parentIndex"] = 0,
+                            ["radius"] = 600_000.0,
+                            ["sma"] = 13_599_840_256.0,
+                            ["ecc"] = 0.0,
+                            ["inc"] = 0.0,
+                            ["lan"] = 0.0,
+                            ["argPe"] = 0.0,
+                            ["meanAnomalyAtEpoch"] = 3.14,
+                            ["epoch"] = 0.0,
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemBodies(snapshot));
+
+            // Top level: exactly { bodies } — no `meta` on a system.* payload.
+            Assert.Equal(WireFieldNamesOf(typeof(SystemBodies)), root.Keys.ToHashSet());
+
+            var bodies = Assert.IsType<List<object?>>(root["bodies"]);
+            var planet = Assert.IsType<Dictionary<string, object?>>(bodies[1]);
+            Assert.Equal(WireFieldNamesOf(typeof(BodyEntry)), KeysOf(planet));
+            Assert.Equal(WireFieldNamesOf(typeof(OrbitEntry)), KeysOf(planet["orbit"]));
+
+            // The eccentricAnomaly wart cannot exist on either the wire or the type.
+            Assert.DoesNotContain("eccentricAnomaly", WireFieldNamesOf(typeof(OrbitEntry)));
+            Assert.DoesNotContain("eccentricAnomaly", KeysOf(planet["orbit"]));
+        }
+
+        [Fact]
+        public void SystemVesselsContractTypeMirrorsTheProviderWireShapeExactly()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1 },
+                    },
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "11111111-2222-3333-4444-555555555555",
+                            ["name"] = "Kerbal X",
+                            ["vesselType"] = "Ship",
+                            ["situation"] = "ORBITING",
+                            ["mainBody"] = "Kerbin",
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemVessels(snapshot));
+
+            Assert.Equal(WireFieldNamesOf(typeof(SystemVessels)), root.Keys.ToHashSet());
+
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            Assert.Equal(WireFieldNamesOf(typeof(VesselRosterEntry)), KeysOf(vessels[0]));
         }
     }
 }
