@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Contracts;
+using Expansions;
 using Expansions.Serenity;
 using Sitrep.Host;
 using Strategies;
@@ -207,6 +208,65 @@ namespace Gonogo.KSP
                 {
                     Debug.LogWarning("[Gonogo] career snapshot build failed, omitting: " + ex);
                 }
+
+                // Game mode (SANDBOX / CAREER / SCIENCE_SANDBOX / ...) is a
+                // ground-side game-global fact, captured in ALL modes - unlike
+                // BuildCareer above, which returns null outside CAREER. A
+                // sandbox/science save still needs widgets (SpaceCenterStatus,
+                // TechTree, ...) to know which mode it is, and career.status
+                // can't carry it (it's null in those modes). Own try so a
+                // HighLogic hiccup can't take out the rest. The key is omitted
+                // entirely when no game is loaded (main menu) - the provider
+                // maps that to a null payload, "no data yet."
+                try
+                {
+                    var gameMode = BuildGameMode();
+                    if (gameMode != null)
+                    {
+                        values["gameMode"] = gameMode;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] game-mode snapshot build failed, omitting: " + ex);
+                }
+
+                // Installed-DLC capability (game.dlc) is a ground-side,
+                // scene-independent game fact - which expansions the install
+                // has, NOT vessel/scene state - so it's captured
+                // unconditionally here (no FlightGlobals gate), in its own try
+                // so an ExpansionsLoader hiccup can't take out the groups
+                // above. This is the Meta.Dlc path a widget uses to tell "no
+                // DLC" apart from "DLC present, nothing deployed yet."
+                try
+                {
+                    values["dlc"] = BuildDlc();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] dlc snapshot build failed, omitting: " + ex);
+                }
+
+                // Revert-availability (ksp.revertAvailability) is a flight-scene
+                // fact - whether the two stock "revert" actions are available
+                // right now - so it's gated to the flight scene rather than
+                // captured unconditionally: FlightDriver's static flags carry
+                // stale values from the previous flight in other scenes, so
+                // omitting the key outside flight is what lets the provider tell
+                // "not in flight" apart from "in flight, revert unavailable."
+                // Own try so a FlightDriver hiccup can't take out the groups
+                // above.
+                try
+                {
+                    if (HighLogic.LoadedSceneIsFlight)
+                    {
+                        values["revert"] = BuildRevertAvailability();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] revert-availability snapshot build failed, omitting: " + ex);
+                }
             }
             catch (Exception ex)
             {
@@ -258,7 +318,9 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "resources", () => BuildResources(vessel));
             TryBuildGroup(entry, "thermal", () => BuildThermal(vessel));
             TryBuildGroup(entry, "control", () => BuildControl(vessel));
+            TryBuildGroup(entry, "physics", () => BuildPhysics(vessel));
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
+            TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
             TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
             TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel, maneuverNodeIdRegistry));
@@ -636,6 +698,7 @@ namespace Gonogo.KSP
                 ["gear"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Gear] : null,
                 ["brakes"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Brakes] : null,
                 ["lights"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Light] : null,
+                ["abort"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Abort] : null,
                 // Precision (fine-control) mode is a global flight-input singleton,
                 // not a per-vessel field. Null when there's no active flight scene.
                 ["precisionControl"] = FlightInputHandler.fetch != null ? (bool?)FlightInputHandler.fetch.precisionMode : null,
@@ -659,6 +722,43 @@ namespace Gonogo.KSP
             return result;
         }
 
+        /// <summary>
+        /// The active vessel's physics-simulation regime, derived from KSP's
+        /// own <c>Vessel.loaded</c>/<c>Vessel.packed</c> bool fields (confirmed
+        /// via decompile). Emitted as a raw string under
+        /// <c>vessel.physics.mode</c>; <c>VesselViewProvider.BuildPhysicsMode</c>
+        /// maps it string→enum with an Unknown fallback (same convention as
+        /// sasMode). Never null — the flags are always readable on a present
+        /// vessel — so this is a single-key sub-group, not a whole-group
+        /// absence case:
+        /// <list type="bullet">
+        /// <item><c>!loaded</c> ⇒ <c>OnRails</c></item>
+        /// <item><c>loaded &amp;&amp; packed</c> ⇒ <c>Packed</c></item>
+        /// <item><c>loaded &amp;&amp; !packed</c> ⇒ <c>Unpacked</c></item>
+        /// </list>
+        /// </summary>
+        private static Dictionary<string, object?> BuildPhysics(Vessel vessel)
+        {
+            string mode;
+            if (!vessel.loaded)
+            {
+                mode = "OnRails";
+            }
+            else if (vessel.packed)
+            {
+                mode = "Packed";
+            }
+            else
+            {
+                mode = "Unpacked";
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["mode"] = mode,
+            };
+        }
+
         private static Dictionary<string, object?>? BuildComms(Vessel vessel)
         {
             var connection = vessel.connection;
@@ -672,6 +772,47 @@ namespace Gonogo.KSP
                 ["connected"] = connection.IsConnected,
                 ["signalStrength"] = connection.SignalStrength,
                 ["controlState"] = connection.ControlState.ToString(),
+            };
+        }
+
+        /// <summary>
+        /// The <c>vessel.crew</c> roster + capacity (G-13 additive growth of the
+        /// count-only channel). <c>Vessel.GetVesselCrew()</c> (verified: returns
+        /// <c>List&lt;ProtoCrewMember&gt;</c>) walked per member for
+        /// <c>name</c>/<c>trait</c>/<c>experienceLevel</c> (public fields) plus the
+        /// <c>type</c> (<c>KerbalType</c>) and <c>rosterStatus</c>
+        /// (<c>RosterStatus</c>) enums captured as string names;
+        /// <c>Vessel.GetCrewCapacity()</c> (verified: returns <c>int</c>) for the
+        /// seat count.
+        /// </summary>
+        private static Dictionary<string, object?> BuildCrew(Vessel vessel)
+        {
+            var members = new List<object?>();
+            var roster = vessel.GetVesselCrew();
+            if (roster != null)
+            {
+                foreach (var member in roster)
+                {
+                    if (member == null)
+                    {
+                        continue;
+                    }
+
+                    members.Add(new Dictionary<string, object?>
+                    {
+                        ["name"] = member.name,
+                        ["trait"] = member.trait,
+                        ["experienceLevel"] = member.experienceLevel,
+                        ["type"] = member.type.ToString(),
+                        ["rosterStatus"] = member.rosterStatus.ToString(),
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["capacity"] = vessel.GetCrewCapacity(),
+                ["members"] = members,
             };
         }
 
@@ -1104,6 +1245,54 @@ namespace Gonogo.KSP
             };
         }
 
+        /// <summary>
+        /// Installed-DLC capability (<c>game.dlc</c>) - which KSP expansions
+        /// the install has, read from <c>ExpansionsLoader.IsExpansionInstalled</c>
+        /// (the same static check the stock game uses everywhere it gates
+        /// Serenity/MakingHistory content). The internal expansion names are
+        /// <c>"Serenity"</c> (Breaking Ground) and <c>"MakingHistory"</c> -
+        /// confirmed against Assembly-CSharp's own call sites. Two plain
+        /// bools, never null: a ground-side, scene-independent fact, so
+        /// <see cref="Sample"/> captures it unconditionally.
+        /// </summary>
+        private static Dictionary<string, object?> BuildDlc()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["breakingGround"] = ExpansionsLoader.IsExpansionInstalled("Serenity"),
+                ["makingHistory"] = ExpansionsLoader.IsExpansionInstalled("MakingHistory"),
+            };
+        }
+
+        /// <summary>
+        /// Primitives-only snapshot of whether the two stock in-flight "revert"
+        /// actions are currently available, read from the same static
+        /// <c>FlightDriver</c> flags KSP's own pause menu
+        /// (<c>PauseMenu.drawStockRevertOptions</c>) gates its revert buttons
+        /// on. Only sampled in the flight scene (see the <c>Sample</c> call
+        /// site) — the flags are meaningless, and carry stale values from the
+        /// previous flight, outside it.
+        ///
+        /// <para><b>Mapping (verified against <c>drawStockRevertOptions</c>):</b>
+        /// the "Revert to Launch" button (calls <c>FlightDriver.RevertToLaunch()</c>,
+        /// restoring the on-pad <c>PostInitState</c>) is gated on
+        /// <c>CanRevertToPostInit</c>; the "Revert to VAB/SPH" buttons (call
+        /// <c>FlightDriver.RevertToPrelaunch(...)</c>, returning to the editor)
+        /// are gated on <c>CanRevertToPrelaunch</c>. So <c>canRevertToLaunch</c>
+        /// reads <c>CanRevertToPostInit</c> and <c>canRevertToEditor</c> reads
+        /// <c>CanRevertToPrelaunch</c> — the KSP field names read backwards to
+        /// their button meaning, so this mapping is deliberately the inverse of
+        /// a naive name-match.
+        /// </summary>
+        private static Dictionary<string, object?> BuildRevertAvailability()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["canRevertToEditor"] = FlightDriver.CanRevertToPrelaunch,
+                ["canRevertToLaunch"] = FlightDriver.CanRevertToPostInit,
+            };
+        }
+
         // ----------------------------------------------------------------
         // Career/KSC capture (funds/reputation/science, facility
         // levels+costs, contracts, strategies, unlocked tech)
@@ -1152,6 +1341,23 @@ namespace Gonogo.KSP
         /// on genuine <c>CAREER</c> mode is the correct "all or nothing"
         /// read, not a missed case.</para>
         /// </summary>
+        private static string? BuildGameMode()
+        {
+            var game = HighLogic.CurrentGame;
+            if (game == null)
+            {
+                return null;
+            }
+
+            // Raw Game.Modes name passed straight through (not pre-mapped) so
+            // the provider (CareerViewProvider.ParseGameMode) owns the
+            // enum-fold, same capture->provider split as every other pair
+            // here. Emitted in ALL modes - unlike BuildCareer, which returns
+            // null outside CAREER. HighLogic.CurrentGame.Mode is a Game.Modes
+            // field (decompile-verified).
+            return game.Mode.ToString();
+        }
+
         private static Dictionary<string, object?>? BuildCareer()
         {
             var game = HighLogic.CurrentGame;
@@ -1266,16 +1472,28 @@ namespace Gonogo.KSP
             return result;
         }
 
+        /// <summary>Bound on the recently-completed contracts list — the last N
+        /// <c>State.Completed</c> contracts by finish date, newest-first.</summary>
+        private const int CompletedRecentLimit = 10;
+
         /// <summary>
         /// Active + offered contracts (title/agent/rewards/advance/deadline/
         /// state) from <c>ContractSystem.Instance.Contracts</c> - the list
-        /// of NOT-YET-FINISHED contracts (completed/failed/expired ones live
-        /// in the separate <c>ContractsFinished</c> list, out of scope for
-        /// this capture). Every reward/advance field read here
-        /// (<c>FundsAdvance</c>/<c>FundsCompletion</c>/<c>FundsFailure</c>/
+        /// of NOT-YET-FINISHED contracts - PLUS a bounded recently-completed
+        /// list from the separate <c>ContractSystem.Instance.ContractsFinished</c>
+        /// (decompile-confirmed <c>List&lt;Contract&gt;</c>). Finished holds
+        /// every terminal contract (completed/failed/expired/cancelled/
+        /// withdrawn), so it is filtered to <c>Contract.State.Completed</c>,
+        /// sorted newest-first by <c>Contract.DateFinished</c>
+        /// (decompile-confirmed public <c>double</c>), and capped to
+        /// <see cref="CompletedRecentLimit"/>. Every reward/advance field read
+        /// here (<c>FundsAdvance</c>/<c>FundsCompletion</c>/<c>FundsFailure</c>/
         /// <c>ScienceCompletion</c>/<c>ReputationCompletion</c>/
         /// <c>ReputationFailure</c>) is a plain public field on
         /// <c>Contract</c>, confirmed via decompile - no getter indirection.
+        /// Recently-completed entries reuse the exact same
+        /// <see cref="BuildContractEntry"/> mapping as active/offered - no extra
+        /// fields (their <c>state</c> is always <c>"Completed"</c>).
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerContracts()
         {
@@ -1313,7 +1531,42 @@ namespace Gonogo.KSP
             {
                 ["active"] = active,
                 ["offered"] = offered,
+                ["completedRecent"] = BuildCompletedRecent(system),
             };
+        }
+
+        /// <summary>
+        /// The last <see cref="CompletedRecentLimit"/> completed contracts from
+        /// <c>ContractSystem.ContractsFinished</c>, newest-first by
+        /// <c>DateFinished</c>. Filters to <c>Contract.State.Completed</c> so
+        /// failed/expired/cancelled/withdrawn finished contracts are excluded.
+        /// </summary>
+        private static List<object?> BuildCompletedRecent(ContractSystem system)
+        {
+            var result = new List<object?>();
+            var finished = system.ContractsFinished;
+            if (finished == null)
+            {
+                return result;
+            }
+
+            var completed = new List<Contract>();
+            foreach (var contract in finished)
+            {
+                if (contract != null && contract.ContractState == Contract.State.Completed)
+                {
+                    completed.Add(contract);
+                }
+            }
+
+            completed.Sort((a, b) => b.DateFinished.CompareTo(a.DateFinished));
+
+            for (var i = 0; i < completed.Count && i < CompletedRecentLimit; i++)
+            {
+                result.Add(BuildContractEntry(completed[i]));
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -1730,6 +1983,8 @@ namespace Gonogo.KSP
         {
             var entry = new Dictionary<string, object?>();
             TryBuildGroup(entry, "experiments", () => BuildScienceExperiments(vessel));
+            TryBuildGroup(entry, "instruments", () => BuildScienceInstruments(vessel));
+            TryBuildGroup(entry, "sensors", () => BuildScienceSensors(vessel));
             TryBuildGroup(entry, "lab", () => BuildScienceLab(vessel));
             // Deployed science is captured GLOBALLY (across every loaded
             // vessel), NOT off the active vessel this method receives -- see
@@ -1861,6 +2116,143 @@ namespace Gonogo.KSP
                 ["inoperable"] = inoperable,
                 ["situation"] = situation,
             };
+        }
+
+        /// <summary>
+        /// One entry per <see cref="ModuleScienceExperiment"/> on the active
+        /// vessel, captured as an INVENTORY / operability list keyed by the
+        /// part's <c>flightID</c> - distinct from
+        /// <see cref="BuildScienceExperiments"/>, which walks the same modules
+        /// but emits one row per STORED <see cref="ScienceData"/> result (a
+        /// module holding no data produces no row there). This list emits a row
+        /// for EVERY experiment module regardless of whether it currently holds
+        /// data, so the operator can see what instruments are aboard and their
+        /// deploy/inoperable/rerunnable/resettable/collectable state. All five
+        /// booleans and <c>experimentID</c> are public fields on
+        /// <see cref="ModuleScienceExperiment"/> (confirmed via decompile);
+        /// <c>title</c> is the linked <c>ScienceExperiment.experimentTitle</c>,
+        /// read defensively since the definition can be lazily unresolved.
+        /// Null when the vessel carries no experiment modules at all, never an
+        /// empty list (same "omit entirely" convention the sibling builders
+        /// use).
+        /// </summary>
+        private static List<object?>? BuildScienceInstruments(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+                var partId = part.flightID != 0 ? part.flightID.ToString() : null;
+
+                var experiments = part.Modules.GetModules<ModuleScienceExperiment>();
+                if (experiments == null)
+                {
+                    continue;
+                }
+
+                foreach (var exp in experiments)
+                {
+                    if (exp == null)
+                    {
+                        continue;
+                    }
+
+                    string? title = null;
+                    try { title = exp.experiment != null ? exp.experiment.experimentTitle : null; }
+                    catch { title = null; }
+
+                    list ??= new List<object?>();
+                    list.Add(new Dictionary<string, object?>
+                    {
+                        ["partId"] = partId,
+                        ["partName"] = partName,
+                        ["experimentId"] = exp.experimentID,
+                        ["title"] = title,
+                        ["deployed"] = exp.Deployed,
+                        ["inoperable"] = exp.Inoperable,
+                        ["rerunnable"] = exp.rerunnable,
+                        ["resettable"] = exp.resettable,
+                        ["dataIsCollectable"] = exp.dataIsCollectable,
+                    });
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// One entry per <see cref="ModuleEnviroSensor"/> (thermometer,
+        /// barometer, gravioli detector, accelerometer, and any modded sensor
+        /// sharing the module) on the active vessel. A GENERAL sensor group -
+        /// one entry per module, <c>type</c> carrying the raw
+        /// <see cref="SensorType"/> enum name as a string - NOT four fixed
+        /// temp/pres/grav/acc keys, so modded sensor types and multiple
+        /// instances of the same type both fall out naturally. Verified public
+        /// members (via decompile): <c>sensorType</c> (SensorType enum),
+        /// <c>readoutInfo</c> (string, the live readout, "Off" when inactive),
+        /// <c>sensorActive</c> (bool). Null when the vessel carries no sensor
+        /// module at all, never an empty list (same "omit entirely" convention
+        /// <see cref="BuildScienceExperiments"/> uses).
+        /// </summary>
+        private static List<object?>? BuildScienceSensors(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var partName = part.partInfo != null ? part.partInfo.title : part.name;
+                // Same flightID join key as the power/robotics captures - see
+                // BuildPartsPower's comment. 0 is the uninitialized sentinel.
+                var partId = part.flightID != 0 ? part.flightID.ToString() : null;
+
+                var sensors = part.Modules.GetModules<ModuleEnviroSensor>();
+                if (sensors == null)
+                {
+                    continue;
+                }
+
+                foreach (var sensor in sensors)
+                {
+                    if (sensor == null)
+                    {
+                        continue;
+                    }
+                    list ??= new List<object?>();
+                    list.Add(new Dictionary<string, object?>
+                    {
+                        ["partId"] = partId,
+                        ["partName"] = partName,
+                        ["type"] = sensor.sensorType.ToString(),
+                        ["readout"] = sensor.readoutInfo,
+                        ["active"] = sensor.sensorActive,
+                    });
+                }
+            }
+
+            return list;
         }
 
         /// <summary>

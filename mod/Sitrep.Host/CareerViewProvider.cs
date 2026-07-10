@@ -33,7 +33,7 @@ namespace Sitrep.Host
     /// snapshot.Values["career"] = Dictionary&lt;string, object?&gt; {
     ///   "economy":    { "funds": double?, "reputation": double?, "science": double? }
     ///   "facilities": { "&lt;SpaceCenterFacility name&gt;": { "currentTier": int?, "maxTier": int?, "upgradeCost": double? }, ... }
-    ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ] }
+    ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ], "completedRecent": [ ContractEntry, ... ] }
     ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int }
     ///   "tech":       { "unlockedCount": int, "unlockedIds": [ string, ... ], "nodes": [ TechNodeEntry, ... ] }
     /// }
@@ -58,6 +58,15 @@ namespace Sitrep.Host
     {
         /// <summary>The typed stream topic this provider feeds.</summary>
         public const string Topic = "career.status";
+
+        /// <summary>
+        /// The <c>career.mode</c> topic — the save's <see cref="GameMode"/>.
+        /// A SEPARATE channel from <see cref="Topic"/> because
+        /// <see cref="BuildCareer"/> returns <c>null</c> outside career mode,
+        /// so the mode can't ride the <c>career.status</c> payload; a
+        /// sandbox/science save still needs widgets to know which mode it is.
+        /// </summary>
+        public const string ModeTopic = "career.mode";
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"career"</c> value to
@@ -88,6 +97,58 @@ namespace Sitrep.Host
                 ["tech"] = BuildTech(career),
             };
         }
+
+        /// <summary>
+        /// Maps the raw <c>Game.Modes.ToString()</c> string
+        /// <c>Gonogo.KSP.KspHost</c> captures at <c>Values["gameMode"]</c> to
+        /// the <c>career.mode</c> wire payload (<c>{ "mode": &lt;ordinal&gt; }</c>,
+        /// the <see cref="GameMode"/> enum's integer ordinal — same encoding
+        /// every other enum in this codec uses, see
+        /// <c>VesselViewProvider.ToWire</c>). Returns <c>null</c> — "no data
+        /// yet" — only when no game is loaded at all (the key is absent, e.g.
+        /// on the main menu); once a save is loaded the mode is always one of
+        /// the four members, with unrecognized KSP modes folded to
+        /// <see cref="GameMode.Unknown"/> rather than throwing.
+        /// </summary>
+        public static object? BuildCareerMode(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("gameMode", out var raw) || raw is not string mode)
+            {
+                return null;
+            }
+
+            return ToWire(new CareerMode { Mode = ParseGameMode(mode) });
+        }
+
+        /// <summary>
+        /// KSP's raw <c>Game.Modes</c> name (SCREAMING_SNAKE_CASE, from
+        /// <c>Mode.ToString()</c>) mapped onto <see cref="GameMode"/>'s
+        /// members. <c>SCIENCE_SANDBOX</c> → <see cref="GameMode.Science"/>,
+        /// <c>SANDBOX</c> → <see cref="GameMode.Sandbox"/>, <c>CAREER</c> →
+        /// <see cref="GameMode.Career"/>; everything else (SCENARIO,
+        /// MISSION, …, and any future KSP addition) →
+        /// <see cref="GameMode.Unknown"/>.
+        /// </summary>
+        private static GameMode ParseGameMode(string? raw)
+        {
+            return raw switch
+            {
+                "SANDBOX" => GameMode.Sandbox,
+                "CAREER" => GameMode.Career,
+                "SCIENCE_SANDBOX" => GameMode.Science,
+                _ => GameMode.Unknown,
+            };
+        }
+
+        private static Dictionary<string, object?> ToWire(CareerMode mode) => new Dictionary<string, object?>
+        {
+            ["mode"] = (int)mode.Mode,
+        };
 
         private static Dictionary<string, object?>? BuildEconomy(IDictionary<string, object?> career)
         {
@@ -141,6 +202,7 @@ namespace Sitrep.Host
             {
                 ["active"] = BuildContractList(raw, "active"),
                 ["offered"] = BuildContractList(raw, "offered"),
+                ["completedRecent"] = BuildContractList(raw, "completedRecent"),
             };
         }
 

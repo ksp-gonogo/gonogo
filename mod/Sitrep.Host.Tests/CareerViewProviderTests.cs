@@ -119,6 +119,33 @@ namespace Sitrep.Host.Tests
                                     ["parameters"] = new List<object?>(),
                                 },
                             },
+                            ["completedRecent"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "111111111111111",
+                                    ["title"] = "Orbit Kerbin",
+                                    ["agent"] = "Kerbin Space Program",
+                                    ["state"] = "Completed",
+                                    ["fundsAdvance"] = 3000.0,
+                                    ["fundsCompletion"] = 12000.0,
+                                    ["fundsFailure"] = 0.0,
+                                    ["scienceCompletion"] = 8.0,
+                                    ["reputationCompletion"] = 6.0,
+                                    ["reputationFailure"] = 0.0,
+                                    ["dateAccepted"] = 1000.0,
+                                    ["dateDeadline"] = 0.0,
+                                    ["dateExpire"] = 0.0,
+                                    ["parameters"] = new List<object?>
+                                    {
+                                        new Dictionary<string, object?>
+                                        {
+                                            ["title"] = "Reach orbit",
+                                            ["state"] = "Complete",
+                                        },
+                                    },
+                                },
+                            },
                         },
                         ["strategies"] = new Dictionary<string, object?>
                         {
@@ -267,6 +294,15 @@ namespace Sitrep.Host.Tests
             var offeredContract = Assert.IsType<Dictionary<string, object?>>(Assert.Single(offered));
             Assert.Equal("987654321098765", offeredContract["id"]);
             Assert.Empty(Assert.IsType<List<object?>>(offeredContract["parameters"]));
+            var completedRecent = Assert.IsType<List<object?>>(contracts["completedRecent"]);
+            var completedContract = Assert.IsType<Dictionary<string, object?>>(Assert.Single(completedRecent));
+            Assert.Equal("111111111111111", completedContract["id"]);
+            Assert.Equal("Orbit Kerbin", completedContract["title"]);
+            Assert.Equal("Completed", completedContract["state"]);
+            Assert.Equal(12000.0, completedContract["fundsCompletion"]);
+            var completedContractParam = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(completedContract["parameters"])));
+            Assert.Equal("Reach orbit", completedContractParam["title"]);
 
             var strategies = Assert.IsType<Dictionary<string, object?>>(root["strategies"]);
             var activeStrategies = Assert.IsType<List<object?>>(strategies["active"]);
@@ -396,6 +432,115 @@ namespace Sitrep.Host.Tests
             Assert.Null(root["contracts"]);
             Assert.Null(root["strategies"]);
             Assert.Null(root["tech"]);
+        }
+
+        [Fact]
+        public void BuildCareerEmitsEmptyCompletedRecentWhenTheRawContractsGroupOmitsIt()
+        {
+            // A pre-completedRecent capture (or a tick before any contract has
+            // finished) supplies a "contracts" group with only active/offered.
+            // The provider must still emit an empty completedRecent list -
+            // always-present, never-null, same discipline as active/offered -
+            // so a widget can bind to it unconditionally.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = new List<object?>(),
+                            ["offered"] = new List<object?>(),
+                            // completedRecent absent
+                        },
+                    },
+                },
+            };
+
+            var payload = CareerViewProvider.BuildCareer(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
+            Assert.Empty(Assert.IsType<List<object?>>(contracts["completedRecent"]));
+        }
+
+        [Theory]
+        [InlineData("SANDBOX", GameMode.Sandbox)]
+        [InlineData("CAREER", GameMode.Career)]
+        [InlineData("SCIENCE_SANDBOX", GameMode.Science)]
+        // Unrecognized KSP modes (SCENARIO/MISSION/... and any future
+        // addition) fold to Unknown rather than the mapper throwing.
+        [InlineData("SCENARIO", GameMode.Unknown)]
+        [InlineData("MISSION_BUILDER", GameMode.Unknown)]
+        [InlineData("something-new-in-a-future-ksp", GameMode.Unknown)]
+        public void BuildCareerModeMapsRawGameModeStringToTheEnumOrdinal(string raw, GameMode expected)
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 100.0,
+                Values = new Dictionary<string, object?> { ["gameMode"] = raw },
+            };
+
+            var payload = CareerViewProvider.BuildCareerMode(snapshot);
+
+            var wire = Assert.IsType<Dictionary<string, object?>>(payload);
+            // Enums serialize as their integer ordinal on the wire (same as
+            // every other enum in this codec - see JsonWriter / VesselViewProvider.ToWire).
+            Assert.Equal((int)expected, wire["mode"]);
+        }
+
+        [Fact]
+        public void BuildCareerModeReturnsNullWhenNoGameModeKey()
+        {
+            // No game loaded (main menu): KspHost omits the "gameMode" key
+            // entirely - the provider maps that to a null payload, "no data
+            // yet," never a fabricated mode.
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+
+            Assert.Null(CareerViewProvider.BuildCareerMode(snapshot));
+        }
+
+        [Fact]
+        public void BuildCareerModeReturnsNullWhenSnapshotItselfIsNull()
+        {
+            Assert.Null(CareerViewProvider.BuildCareerMode(null));
+        }
+
+        [Fact]
+        public void BuildCareerModeSerializesCleanlyThroughTheRealProductionPath()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 4242.0,
+                Values = new Dictionary<string, object?> { ["gameMode"] = "CAREER" },
+            };
+
+            var payload = CareerViewProvider.BuildCareerMode(snapshot);
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = CareerViewProvider.ModeTopic,
+                Payload = payload,
+                Meta = new Meta
+                {
+                    Source = "career",
+                    ValidAt = snapshot.Ut,
+                    Seq = 1,
+                    DeliveredAt = snapshot.Ut,
+                    Vantage = "host",
+                    Quality = Quality.Loaded,
+                    Active = true,
+                    Staleness = Staleness.Fresh,
+                },
+            };
+
+            var json = EnvelopeCodec.WriteStreamData(streamData);
+            var parsed = EnvelopeCodec.ParseStreamData(json);
+            Assert.Equal(CareerViewProvider.ModeTopic, parsed.Topic);
+            var parsedWire = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            Assert.Equal((double)(int)GameMode.Career, parsedWire["mode"]);
         }
     }
 }

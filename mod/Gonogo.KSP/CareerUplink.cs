@@ -51,12 +51,28 @@ namespace Gonogo.KSP
                     // TrueNow — same class as system.bodies/scansat.available.
                     Delay = DelayRole.TrueNow,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = CareerViewProvider.ModeTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // The save's game mode changes only on load (a new save /
+                    // switching saves), so the same low-churn 30s keyframe +
+                    // change-gate cadence career.status uses fits - the wire
+                    // dict is a fresh object each call, so the change-gate
+                    // falls back to reference/Equals comparison.
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Ground-side game-global fact (which mode the save is in),
+                    // not something learned over a vessel's comms link, so
+                    // TrueNow - same class as career.status/system.bodies.
+                    Delay = DelayRole.TrueNow,
+                },
             },
         };
 
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
+            host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
         }
     }
 }
