@@ -101,9 +101,27 @@ describe("SystemView — augment slots (spec §4)", () => {
     act(() => {
       fixture.emit("system.bodies", {
         bodies: [
-          { index: 0, name: "Kerbin", parentIndex: null, radius: 600_000, orbit: null },
-          { index: 1, name: "Mun", parentIndex: 0, radius: 200_000, orbit: null },
-          { index: 2, name: "Minmus", parentIndex: 0, radius: 60_000, orbit: null },
+          {
+            index: 0,
+            name: "Kerbin",
+            parentIndex: null,
+            radius: 600_000,
+            orbit: null,
+          },
+          {
+            index: 1,
+            name: "Mun",
+            parentIndex: 0,
+            radius: 200_000,
+            orbit: null,
+          },
+          {
+            index: 2,
+            name: "Minmus",
+            parentIndex: 0,
+            radius: 60_000,
+            orbit: null,
+          },
         ],
       });
       fixture.emit("vessel.identity", {

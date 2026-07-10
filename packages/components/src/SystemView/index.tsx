@@ -579,7 +579,10 @@ function SystemViewComponent({
                 empty slot is visually + interactively inert. */}
             {overlayContext !== null && (
               <OverlayLayer>
-                <AugmentSlot name="system-view.overlay" props={overlayContext} />
+                <AugmentSlot
+                  name="system-view.overlay"
+                  props={overlayContext}
+                />
               </OverlayLayer>
             )}
           </DiagramWrap>
