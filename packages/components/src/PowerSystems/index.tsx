@@ -4,6 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useActionInput,
@@ -70,6 +71,51 @@ interface Contribution {
  */
 interface PartsPowerPayload {
   totalProductionEc?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture spec §4 — PowerSystems is THE worked
+// example, §4 / augment-slot-map.md "Power / resources").
+//
+// `power-systems.sections` — a Table/section slot in the body, below the
+// net-rate/producer-consumer readout. The canonical first filler is
+// Kerbalism's EC-broker breakdown (Kerbalism re-derives EC production/
+// consumption via its own `ResourceBrokers`), contributed as an augment that
+// reads ONLY Kerbalism's own Topics. Core never references it — the host
+// composes whatever is registered.
+//
+// `power-systems.badges` — a broad escape-hatch badge slot in the header, next
+// to the title, for a small status/indicator an Uplink wants to surface (e.g. a
+// Kerbalism warning glyph).
+//
+// Both carry the widget's current resource focus as slot props so an augment
+// renders against the resource the operator is actually looking at (§4.4 —
+// slot-parameterised augments; the parent's context passed down). No augment
+// ships here (P3/P6) — the slots render nothing until one registers.
+// ---------------------------------------------------------------------------
+
+/** Props both PowerSystems slots pass to their augments (spec §4.4). */
+export interface PowerSystemsSlotContext {
+  /**
+   * The resource the widget is currently focused on (the picker/action-cycle
+   * selection). Lets an augment scope its breakdown/badge to the same resource
+   * the operator is viewing rather than assuming ElectricCharge.
+   */
+  resource: string;
+}
+
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
+// §4.6 hybrid, declaration-merging base). Co-located here so parallel slot work
+// on other widgets never collides on a shared central file. This is what types
+// `registerAugment({ augments: "power-systems.sections", … })` and
+// `<AugmentSlot name="power-systems.sections" props={…} />` against
+// `PowerSystemsSlotContext` rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would receive.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "power-systems.sections": PowerSystemsSlotContext;
+    "power-systems.badges": PowerSystemsSlotContext;
+  }
 }
 
 function PowerSystemsComponent({
@@ -147,6 +193,14 @@ function PowerSystemsComponent({
       return { resource: next };
     },
   });
+
+  // Stable per-resource slot-props object so an unchanged resource selection
+  // doesn't churn mounted augments (spec §4.4). Passed to both PowerSystems
+  // augment slots.
+  const slotProps = useMemo<PowerSystemsSlotContext>(
+    () => ({ resource }),
+    [resource],
+  );
 
   // Per-part flow contributions for the selected resource. Includes
   // zero-flow rows when the part exposes a nominalFlow — those are
@@ -331,6 +385,7 @@ function PowerSystemsComponent({
         <HeaderTitle>
           <PanelTitle>POWER SYSTEMS</PanelTitle>
           <StreamStatusBadge status={streamStatus} />
+          <AugmentSlot name="power-systems.badges" props={slotProps} />
         </HeaderTitle>
         <ResourceSelect
           value={resource}
@@ -458,6 +513,10 @@ function PowerSystemsComponent({
             </IdleList>
           </Section>
         )}
+        {/* Augment sections (spec §4) — e.g. a Kerbalism EC-broker breakdown —
+            compose here, below the stock producer/consumer/idle readout. Empty
+            (a bare fragment) until an Uplink registers into the slot. */}
+        <AugmentSlot name="power-systems.sections" props={slotProps} />
       </SectionsScroll>
     </Panel>
   );
@@ -850,6 +909,10 @@ registerComponent<PowerSystemsConfig>({
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
+  // Augment slots (spec §4). `sections` — body table/section below the stock
+  // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges` —
+  // broad header escape-hatch. Both render nothing until an Uplink registers.
+  augmentSlots: ["power-systems.sections", "power-systems.badges"],
   pushable: true,
   requires: ["flight"],
 });
