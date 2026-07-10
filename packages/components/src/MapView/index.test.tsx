@@ -407,7 +407,11 @@ describe("MapViewComponent", () => {
   // (cleared after each) to prove the slots compose and pass their props, and
   // that the empty slots are inert when nothing is registered.
   describe("augment slots", () => {
+    // cleanup() must unmount before clearAugments() notifies the augment
+    // registry's subscribers, else a still-mounted AugmentSlot re-renders
+    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
     afterEach(() => {
+      cleanup();
       clearAugments();
     });
 

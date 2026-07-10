@@ -7,7 +7,7 @@ import {
   registerDataSource,
 } from "@gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FuelStatusComponent } from "./index";
 
@@ -82,6 +82,10 @@ describe("FuelStatusComponent", () => {
   });
 
   afterEach(() => {
+    // cleanup() must unmount before clearAugments() notifies the augment
+    // registry's subscribers, else a still-mounted AugmentSlot re-renders
+    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    cleanup();
     clearAugments();
     buffered.disconnect();
   });

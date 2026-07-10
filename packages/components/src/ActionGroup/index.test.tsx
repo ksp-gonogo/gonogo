@@ -205,7 +205,13 @@ describe("ActionGroupComponent", () => {
 
   describe("augment slots", () => {
     beforeEach(() => clearAugments());
-    afterEach(() => clearAugments());
+    // cleanup() must unmount before clearAugments() notifies the augment
+    // registry's subscribers, else a still-mounted AugmentSlot re-renders
+    // outside act() (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    afterEach(() => {
+      cleanup();
+      clearAugments();
+    });
 
     // Renders the slot props so the test proves the parent's group context
     // flows through to the augment (spec §4.4), not merely that it mounted.

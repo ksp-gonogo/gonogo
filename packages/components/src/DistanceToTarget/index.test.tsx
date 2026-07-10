@@ -210,8 +210,12 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
   });
 
   afterEach(() => {
-    clearAugments();
+    // teardownMockDataSource() unmounts (cleanup()) before its own disconnect;
+    // clearAugments() must come after that unmount too, else a still-mounted
+    // AugmentSlot re-renders outside act() when the registry notifies
+    // (CLAUDE.md → Testing Philosophy, act() warning pattern).
     teardownMockDataSource(fixture);
+    clearAugments();
   });
 
   it("exposes the header .badges slot empty, then composes a registered augment with target context", () => {
