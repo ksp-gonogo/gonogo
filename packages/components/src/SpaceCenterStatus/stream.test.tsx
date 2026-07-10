@@ -15,11 +15,12 @@ import { SpaceCenterStatusComponent } from "./index";
  * `career.funds` (-> `career.status.economy.funds`) is a funds spender per
  * CLAUDE.md's "always show the balance" rule, so it must stream.
  * `kc.facilityLevels` (-> `career.status.facilities`, M3b career-detail
- * batch) streams too. `kc.partsAvailable`/`kc.launchSite`/`kc.padOccupied`/
- * `kc.padVesselTitle`/`kc.scene` are all still-gapped kc.* GonogoTelemetry
- * keys with no career.status equivalent shape — carried by a small
- * `setupMockDataSource` AUX, same mixed-source pattern the vessel-gap batch
- * established.
+ * batch) streams too. `kc.scene` (-> `spaceCenter.scene.scene`, P4a
+ * shared-map batch) streams now as well. `kc.partsAvailable`/
+ * `kc.launchSite`/`kc.padOccupied`/`kc.padVesselTitle` are still gapped
+ * kc.* GonogoTelemetry keys with no career.status equivalent shape —
+ * carried by a small `setupMockDataSource` AUX, same mixed-source pattern
+ * the vessel-gap batch established.
  */
 afterEach(() => {
   cleanup();
@@ -29,7 +30,7 @@ afterEach(() => {
 describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career batch)", () => {
   it("renders the funds readout derived from career.status.economy.funds", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
@@ -39,7 +40,6 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
-        { key: "kc.scene" },
       ],
       connectSource: true,
     });
@@ -55,7 +55,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       legacyAux.source.emit("kc.padOccupied", false);
       legacyAux.source.emit("kc.launchSite", "KSC");
       fixture.emit("career.status", {
@@ -84,7 +84,6 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
-        { key: "kc.scene" },
       ],
       connectSource: true,
     });
@@ -115,7 +114,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
 
   it("renders facility tiers/upgrade costs derived from career.status.facilities", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
@@ -125,7 +124,6 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
-        { key: "kc.scene" },
       ],
       connectSource: true,
     });
@@ -139,7 +137,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     );
 
     act(() => {
-      legacyAux.source.emit("kc.scene", "SpaceCenter");
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", {
         economy: { funds: 500000, reputation: 0, science: 0 },
         facilities: {

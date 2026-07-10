@@ -189,10 +189,19 @@ function SpaceCenterStatusComponent({
   // currentTier/maxTier/upgradeCost shape (career-capture-extend-report.md)
   // alongside the legacy short-code shape, so both the funds readout AND
   // the facility tier/upgrade-cost grid stream live off career.status.
-  // partsAvailable/launchSite/padOccupied/padVesselTitle/scene are still
-  // gapped kc.* GonogoTelemetry keys with no career.status equivalent and
-  // stay legacy. kc.upgradeFacility[...] (the spend command) still has no
-  // command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
+  // P4a shared-map batch: kc.scene -> spaceCenter.scene.scene is mapped
+  // too — a plain 2-segment raw-field walk (SpaceCenterScene.scene,
+  // already an enum-name string on the wire) — so this same
+  // useDataValue("data", "kc.scene") call now rides the stream via the
+  // mapTopic shim, zero code change here. partsAvailable/launchSite/
+  // padOccupied/padVesselTitle stay legacy: partsAvailable has no wire
+  // topic at all (excluded editor slice — KNOWN_GAPS), and the other
+  // three are only derivable from spaceCenter.launchSites via an
+  // array->scalar "pick the active pad" reduction (P4a brief §D4) that
+  // the shared-map batch left optional/deferred — no CLEAN_HOMES entry
+  // exists for them yet, so they keep falling back to legacy
+  // automatically. kc.upgradeFacility[...] (the spend command) still has
+  // no command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
   // automatically — this batch migrates reads only.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");

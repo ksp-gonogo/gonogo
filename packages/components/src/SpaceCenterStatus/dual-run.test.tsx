@@ -23,8 +23,14 @@ import { SpaceCenterStatusComponent } from "./index";
  * `nextLevelText` field at all, so a byte-identical comparison needs a
  * legacy fixture that already renders the same "older DLL, no tier text"
  * shape `parseFacilityLevels` produces for an enum-keyed entry (see that
- * fixture's own `_meta.notes`). `partsAvailable`/`launchSite`/
- * `padOccupied`/`padVesselTitle`/`scene` stay legacy on both legs.
+ * fixture's own `_meta.notes`). `scene` (-> `spaceCenter.scene.scene`) is
+ * migrated too as of the P4a shared-map batch — the legacy leg still reads
+ * it off the plain `DataSource` (that leg never mounts a
+ * `TelemetryProvider`, so the shim's carried-channels gate keeps it on the
+ * legacy path there); the stream leg now feeds it through the fixture's
+ * `spaceCenter.scene` topic instead of a legacy AUX `DataSource`.
+ * `partsAvailable`/`launchSite`/`padOccupied`/`padVesselTitle` stay legacy
+ * on both legs.
  */
 afterEach(() => {
   cleanup();
@@ -42,7 +48,7 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
@@ -52,7 +58,6 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
-        { key: "kc.scene" },
       ],
       connectSource: true,
     });
@@ -75,6 +80,9 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     // first means every facility cell + the funds readout mount fresh,
     // once, exactly like the legacy leg.
     act(() => {
+      streamFixture.emit("spaceCenter.scene", {
+        scene: midCareer["kc.scene"],
+      });
       streamFixture.emit("career.status", {
         economy: {
           funds: midCareer["career.funds"],
@@ -158,7 +166,6 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
         "kc.padVesselTitle",
         midCareer["kc.padVesselTitle"],
       );
-      legacyAux.source.emit("kc.scene", midCareer["kc.scene"]);
     });
 
     await waitFor(() => {
