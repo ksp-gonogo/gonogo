@@ -51,9 +51,38 @@ namespace Sitrep.Core.Tests
             "VesselControl", "VesselComms", "VesselCrew", "VesselManeuver",
             "VesselPropulsion", "VesselStructure", "VesselSurface", "VesselTarget",
             "VesselThermal", "ThermalHottestPart", "ManeuverNode", "Vec3",
-            "DockAlignment", "WarpState",
+            "DockAlignment", "WarpState", "CrewMember", "VesselPhysicsMode",
             // kOS status — flattened by its provider before publish.
             "KosComputeStatus",
+            // career.status / career.mode — CareerViewProvider builds every one of
+            // these as a Dictionary<string, object?> by hand (BuildEconomy/
+            // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and
+            // BuildCareerMode's local ToWire); the Sitrep.Contract POCOs exist only
+            // for the generated TS shape and are never handed to AppendValue raw.
+            "CareerMode", "CareerStatus", "CareerEconomy", "CareerFacility",
+            "CareerContracts", "CareerContract", "CareerContractParameter",
+            "CareerStrategies", "CareerStrategy", "CareerTech", "CareerTechNode",
+            // game.dlc / ksp.revertAvailability / system.bodies / system.vessels —
+            // SystemViewProvider.BuildGameDlc/BuildRevertAvailability/
+            // BuildSystemBodies/BuildSystemVessels all hand-build
+            // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
+            "GameDlc", "RevertAvailability", "SystemBodies", "BodyEntry",
+            "OrbitEntry", "SystemVessels", "VesselRosterEntry",
+            // parts.power / parts.robotics / robotics.available —
+            // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
+            // hand-build Dictionary<string, object?> trees; these POCOs are
+            // TS-shape-only.
+            "SolarPanelEntry", "BatteryEntry", "FuelCellEntry", "AlternatorEntry",
+            "PartsPower", "ServoEntry", "RoboticsAvailability",
+            // science.* — ScienceViewProvider.BuildExperiments/BuildInstruments/
+            // BuildLab/BuildDeployed/BuildSensors hand-build
+            // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
+            "ExperimentEntry", "InstrumentEntry", "LabEntry", "DeployedEntry",
+            "SensorEntry",
+            // scansat.scanningVessels — Gonogo.ScansatUplink.ScanningVessels.Build is
+            // deliberately SCANsat/KSP-type-free and hand-builds
+            // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
+            "ScanSensorEntry", "ScanTrackColor", "ScanningVesselEntry",
             // Envelope / meta — serialized field-by-field by EnvelopeCodec itself
             // (WriteStreamData / WriteMeta), never through AppendValue as a POCO.
             "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe",

@@ -1050,6 +1050,8 @@ namespace Sitrep.Host
             ["dynamicPressureKPa"] = flight.DynamicPressureKPa,
             ["mach"] = flight.Mach,
             ["atmDensity"] = flight.AtmDensity,
+            ["externalTemperature"] = flight.ExternalTemperature,
+            ["atmosphericTemperature"] = flight.AtmosphericTemperature,
             ["meta"] = ToWire(flight.Meta),
         };
 
