@@ -114,6 +114,14 @@ namespace Gonogo.KSP
                 // large but only changes on a staging/dock event, so the 30s
                 // keyframe + change-gate posture fits.
                 Channel(VesselPartsViewProvider.PartsTopic),
+                // dv.stages / dv.summary (P1b slice 2) — KSP's STOCK
+                // VesselDeltaV stage simulation (StageDeltaVViewProvider),
+                // captured off the active vessel like vessel.parts. Same
+                // structured-vessel.* cadence/DelayRole.Delayed posture; the
+                // Topic ids are dv.*-domain (not vessel.-prefixed), the same
+                // precedent VesselUplink already sets with time.warp.
+                Channel(StageDeltaVViewProvider.StagesTopic),
+                Channel(StageDeltaVViewProvider.SummaryTopic),
             },
             // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
             // truth — the ONE table to edit) ====================================
@@ -191,6 +199,8 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
             host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
             host.AddChannelSource(VesselPartsViewProvider.PartsTopic, VesselPartsViewProvider.BuildPartsWire);
+            host.AddChannelSource(StageDeltaVViewProvider.StagesTopic, StageDeltaVViewProvider.BuildStages);
+            host.AddChannelSource(StageDeltaVViewProvider.SummaryTopic, StageDeltaVViewProvider.BuildSummary);
 
             host.AddSampler(new VesselEpochSampler(host));
 

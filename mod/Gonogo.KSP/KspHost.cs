@@ -371,6 +371,14 @@ namespace Gonogo.KSP
             // try/omit discipline; per-part reads are individually guarded in
             // BuildTopology so one bad part can't blank the list.
             TryBuildGroup(entry, "topology", () => BuildTopology(vessel));
+            // ---- P1b slice 2 stage-ΔV capture-add — KSP's STOCK VesselDeltaV
+            // stage simulation (dv.stages / dv.summary channels,
+            // StageDeltaVViewProvider). The new stage-simulation capture path;
+            // heavier than a field read, so its own try/omit group. Omitted
+            // (BuildDeltaV returns null) until the stock sim is ready — the
+            // TryBuildGroup + null-return pattern already carries "not ready yet"
+            // through to the provider as a null payload.
+            TryBuildGroup(entry, "deltaV", () => BuildDeltaV(vessel));
             return entry;
         }
 
@@ -3167,6 +3175,96 @@ namespace Gonogo.KSP
                 ["isRobotics"] = part.isRobotic(),
                 ["isPowerRelated"] = IsPowerRelated(part),
                 ["fuelLineTargetId"] = FuelLineTargetId(part),
+            };
+        }
+
+        /// <summary>
+        /// The P1b slice 2 stage-ΔV capture — reads KSP's STOCK
+        /// <c>VesselDeltaV</c> stage simulation (the same numbers the in-game
+        /// ΔV app shows; atmosphere/ISP/crossfeed/staging all handled by the
+        /// game, so this never hand-rolls the rocket equation) into the raw
+        /// <c>deltaV</c> group <see cref="Sitrep.Host.StageDeltaVViewProvider"/>
+        /// maps to the <c>dv.stages</c>/<c>dv.summary</c> channels.
+        ///
+        /// <para>Uses <c>OperatingStageInfo</c> — the stages that actually have
+        /// ΔV — not the raw stage list, matching what the in-game app shows.
+        /// The per-stage dv/twr/thrust/mass fields are <c>float</c> on
+        /// <c>DeltaVStageInfo</c> and are widened to <c>double</c> here (no
+        /// precision concern); the <c>Total*</c> rollups are already
+        /// <c>double</c>.</para>
+        ///
+        /// <para><b>Readiness.</b> In the flight scene the stock sim can be
+        /// dormant. When it is not yet ready we kick it once
+        /// (<c>EnableStockSimluation</c> + <c>SetCalcsDirty</c>) so a subsequent
+        /// sample reads a clean result, and OMIT the group this tick
+        /// (return null) rather than block <c>Sample()</c> on it — the
+        /// <c>TryBuildGroup</c> + null-return pattern carries "not ready yet"
+        /// straight through to the provider as a null payload. Whether the
+        /// flight-scene sim is live by default is not decompile-resolvable, so
+        /// this self-heals either way.</para>
+        /// </summary>
+        private static Dictionary<string, object?>? BuildDeltaV(Vessel vessel)
+        {
+            var dv = vessel.VesselDeltaV;
+            if (dv == null)
+            {
+                return null;
+            }
+
+            if (!dv.IsReady)
+            {
+                // Stock sim dormant — request it, then read on a later tick.
+                if (!dv.DoStockSimulation)
+                {
+                    dv.EnableStockSimluation();
+                }
+                dv.SetCalcsDirty(false);
+                return null;
+            }
+
+            var stages = dv.OperatingStageInfo;
+            var stageList = new List<object?>();
+            if (stages != null)
+            {
+                foreach (var s in stages)
+                {
+                    if (s == null)
+                    {
+                        continue;
+                    }
+
+                    stageList.Add(new Dictionary<string, object?>
+                    {
+                        ["stage"] = s.stage,
+                        ["dvVac"] = (double)s.deltaVinVac,
+                        ["dvAsl"] = (double)s.deltaVatASL,
+                        ["dvActual"] = (double)s.deltaVActual,
+                        ["burnTime"] = s.stageBurnTime,
+                        ["twrVac"] = (double)s.TWRVac,
+                        ["twrAsl"] = (double)s.TWRASL,
+                        ["twrActual"] = (double)s.TWRActual,
+                        ["thrustVac"] = (double)s.thrustVac,
+                        ["thrustAsl"] = (double)s.thrustASL,
+                        ["thrustActual"] = (double)s.thrustActual,
+                        ["startMass"] = (double)s.startMass,
+                        ["endMass"] = (double)s.endMass,
+                        ["dryMass"] = (double)s.dryMass,
+                        ["fuelMass"] = (double)s.fuelMass,
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["stages"] = stageList,
+                ["summary"] = new Dictionary<string, object?>
+                {
+                    ["stageCount"] = stageList.Count,
+                    ["totalDvVac"] = dv.TotalDeltaVVac,
+                    ["totalDvAsl"] = dv.TotalDeltaVASL,
+                    ["totalDvActual"] = dv.TotalDeltaVActual,
+                    ["totalBurnTime"] = dv.TotalBurnTime,
+                },
             };
         }
 
