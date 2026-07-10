@@ -985,7 +985,13 @@ function MapViewComponent({
             projLat,
             projLon,
           );
-          return worldToScreen(wx, wy, camera, containerSize.w, containerSize.h);
+          return worldToScreen(
+            wx,
+            wy,
+            camera,
+            containerSize.w,
+            containerSize.h,
+          );
         },
       }
     : null;

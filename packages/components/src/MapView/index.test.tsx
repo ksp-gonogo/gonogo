@@ -439,7 +439,8 @@ describe("MapViewComponent", () => {
 
       const probe = await waitFor(() => {
         const el = container.querySelector('[data-testid="overlay-probe"]');
-        if (el === null) throw new Error("overlay augment has not rendered yet");
+        if (el === null)
+          throw new Error("overlay augment has not rendered yet");
         return el;
       });
       // The map canvases still render beneath the overlay layer.
