@@ -25,12 +25,35 @@ namespace Gonogo.KSP
     /// mostly idles), and ScienceOfficer/ScienceBench/DeployedScience each
     /// only need one of the three.</para>
     ///
-    /// <para>Read-only capture for this session — no commands. Science
-    /// actuation (deploy/reset/transmit/collect) is a follow-up.</para>
+    /// <para>Experiment actuation rides here too: <c>science.experiment.deploy</c>
+    /// and <c>science.experiment.transmit</c> (<see cref="ScienceCommandProvider"/>'s
+    /// <c>Handle*</c> glue against the <see cref="IScienceActuator"/> this
+    /// uplink is constructed with — <see cref="KspScienceActuator"/> in
+    /// production). Both are genuine uplinks to the craft (they actuate an
+    /// experiment ON the vessel), so both are declared <c>delayed: true</c>.
+    /// Reset/collect remain a follow-up.</para>
     /// </summary>
     [SitrepUplink("science")]
     public sealed class ScienceUplink : ISitrepUplink
     {
+        private readonly IScienceActuator _actuator;
+
+        public ScienceUplink(IScienceActuator actuator)
+        {
+            _actuator = actuator;
+        }
+
+        /// <summary>
+        /// The discovery-required parameterless constructor (see
+        /// <c>Sitrep.Host.UplinkDiscovery</c>: a discoverable Uplink resolves
+        /// its own real dependency rather than taking it as a discovery-time
+        /// argument). Builds its own <see cref="KspScienceActuator"/>, mirroring
+        /// <see cref="VesselUplink"/>'s parameterless-ctor shape.
+        /// </summary>
+        public ScienceUplink() : this(new KspScienceActuator())
+        {
+        }
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "science",
@@ -82,6 +105,16 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                 },
             },
+            // Experiment actuation is a genuine uplink to the craft (deploy runs
+            // an experiment ON the vessel; transmit drives its onboard
+            // transmitter), so both ride the same light-time delay every other
+            // vessel actuation does — delayed: true. See VesselUplink's command
+            // table for the full delay-classification rule.
+            Commands = new List<CommandDeclaration>
+            {
+                Command(ScienceCommandProvider.DeployCommand, delayed: true),
+                Command(ScienceCommandProvider.TransmitCommand, delayed: true),
+            },
         };
 
         public void Register(IUplinkHost host)
@@ -91,6 +124,15 @@ namespace Gonogo.KSP
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
             host.AddChannelSource(ScienceViewProvider.DeployedTopic, ScienceViewProvider.BuildDeployed);
             host.AddChannelSource(ScienceViewProvider.SensorsTopic, ScienceViewProvider.BuildSensors);
+
+            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.DeployCommand, args => ScienceCommandProvider.HandleDeploy(_actuator, args));
+            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.TransmitCommand, args => ScienceCommandProvider.HandleTransmit(_actuator, args));
         }
+
+        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        {
+            Command = command,
+            Delayed = delayed,
+        };
     }
 }
