@@ -1,5 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useActionInput,
   useDataStreamStatus,
@@ -36,6 +37,24 @@ import styled from "styled-components";
  */
 
 type WarpControlConfig = Record<string, never>;
+
+// Declaration-merge this widget's slot ids → props type into core's
+// `SlotRegistry` (Uplink architecture §4.6, declaration-merging base). Both
+// slots are plain composition points with no parent context to hand down — a
+// contributed action fires its OWN command via `useExecuteAction`, a badge
+// reads its OWN Topics — so each passes empty props (`Record<string, never>`).
+// Co-located here (not in a shared central registry file) so parallel P2 slot
+// work on other widgets never collides on the same module.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    // Footer action row: an Uplink contributes a warp-target action
+    // ("Warp to <mod-event>") alongside the widget's own warp buttons.
+    "warp-control.actions": Record<string, never>;
+    // Header badges: broad integration escape hatch for an inline indicator
+    // next to the WARP title.
+    "warp-control.badges": Record<string, never>;
+  }
+}
 
 const warpActions = [
   {
@@ -196,6 +215,10 @@ function WarpControlComponent({
     <Panel>
       <TitleRow>
         <PanelTitle>WARP</PanelTitle>
+        {/* Broad-escape-hatch badges slot: an Uplink surfaces an inline
+            indicator next to the title. Empty (renders nothing) until an
+            augment binds `warp-control.badges`. */}
+        <AugmentSlot name="warp-control.badges" props={{}} />
         <StreamStatusBadge status={streamStatus} />
       </TitleRow>
       <DimmedOverlay
@@ -290,6 +313,12 @@ function WarpControlComponent({
               </WarpButton>
             </Stepper>
           )}
+
+          {/* Contributed-actions slot: an Uplink adds a warp-target action
+              ("Warp to <mod-event>") alongside the widget's own warp buttons.
+              Empty (renders nothing) until an augment binds
+              `warp-control.actions`. */}
+          <AugmentSlot name="warp-control.actions" props={{}} />
         </Body>
       </DimmedOverlay>
     </Panel>
@@ -419,6 +448,7 @@ registerComponent<WarpControlConfig>({
   dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode", "t.isPaused"],
   defaultConfig: {},
   actions: warpActions,
+  augmentSlots: ["warp-control.actions", "warp-control.badges"],
   pushable: true,
 });
 
