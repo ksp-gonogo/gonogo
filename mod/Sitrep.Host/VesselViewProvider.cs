@@ -62,6 +62,7 @@ namespace Sitrep.Host
         public const string ResourcesTopic = "vessel.resources";
         public const string ThermalTopic = "vessel.thermal";
         public const string ControlTopic = "vessel.control";
+        public const string PhysicsModeTopic = "vessel.physics.mode";
         public const string CommsTopic = "vessel.comms";
         public const string PropulsionTopic = "vessel.propulsion";
         public const string ManeuverTopic = "vessel.maneuver";
@@ -78,7 +79,7 @@ namespace Sitrep.Host
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
-            AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, CommsTopic,
+            AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
             DockTopic, SurfaceTopic,
         };
@@ -518,6 +519,37 @@ namespace Sitrep.Host
             };
         }
 
+        /// <summary>
+        /// The <c>vessel.physics.mode</c> channel — the active vessel's
+        /// physics-simulation regime (<see cref="PhysicsMode"/>), mapped from
+        /// the raw <c>vessel.physics.mode</c> string
+        /// <c>Gonogo.KSP.KspHost.BuildPhysics</c> derives from
+        /// <c>Vessel.loaded</c>/<c>Vessel.packed</c>. Null only when there's no
+        /// vessel to attribute the sample to (or the raw group is absent);
+        /// otherwise a present-but-unrecognized string maps to
+        /// <see cref="PhysicsMode.Unknown"/> (same convention as
+        /// <see cref="ParseSasMode"/>), never a dropped record.
+        /// </summary>
+        public static VesselPhysicsMode? BuildPhysicsMode(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "physics", out var physics))
+            {
+                return null;
+            }
+
+            return new VesselPhysicsMode
+            {
+                Mode = ParsePhysicsMode(GetString(physics, "mode")),
+                Meta = BuildMeta(vesselId),
+            };
+        }
+
         public static VesselComms? BuildComms(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -927,6 +959,9 @@ namespace Sitrep.Host
         public static object? BuildControlWire(KspSnapshot? snapshot) =>
             BuildControl(snapshot) is { } control ? ToWire(control) : null;
 
+        public static object? BuildPhysicsModeWire(KspSnapshot? snapshot) =>
+            BuildPhysicsMode(snapshot) is { } physics ? ToWire(physics) : null;
+
         public static object? BuildCommsWire(KspSnapshot? snapshot) =>
             BuildComms(snapshot) is { } comms ? ToWire(comms) : null;
 
@@ -1068,6 +1103,12 @@ namespace Sitrep.Host
             ["throttle"] = control.Throttle,
             ["actionGroups"] = control.ActionGroups?.Select(b => (object?)b).ToList(),
             ["meta"] = ToWire(control.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselPhysicsMode physics) => new Dictionary<string, object?>
+        {
+            ["mode"] = (int)physics.Mode,
+            ["meta"] = ToWire(physics.Meta),
         };
 
         private static Dictionary<string, object?> ToWire(VesselComms comms) => new Dictionary<string, object?>
@@ -1313,6 +1354,17 @@ namespace Sitrep.Host
                 "antitarget" => SasMode.AntiTarget,
                 "maneuver" => SasMode.Maneuver,
                 _ => SasMode.Unknown,
+            };
+        }
+
+        private static PhysicsMode ParsePhysicsMode(string? raw)
+        {
+            return raw?.ToLowerInvariant() switch
+            {
+                "onrails" => PhysicsMode.OnRails,
+                "packed" => PhysicsMode.Packed,
+                "unpacked" => PhysicsMode.Unpacked,
+                _ => PhysicsMode.Unknown,
             };
         }
 

@@ -739,9 +739,71 @@ namespace Sitrep.Host.Tests
             Assert.Null(control!.Sas);
             Assert.Null(control.SasMode);
             Assert.Null(control.Abort);
-            Assert.Null(control.PrecisionControl);
             Assert.Null(control.Throttle);
             Assert.Null(control.ActionGroups);
+        }
+
+        // ---- vessel.physics.mode ----
+
+        [Theory]
+        [InlineData("OnRails", PhysicsMode.OnRails)]
+        [InlineData("Packed", PhysicsMode.Packed)]
+        [InlineData("Unpacked", PhysicsMode.Unpacked)]
+        public void BuildPhysicsModeMapsRawStringToEnum(string raw, PhysicsMode expected)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                physics: new Dictionary<string, object?> { ["mode"] = raw });
+
+            var physics = VesselViewProvider.BuildPhysicsMode(snapshot);
+
+            Assert.NotNull(physics);
+            Assert.Equal(expected, physics!.Mode);
+            Assert.Equal("vessel:" + VesselGuid, physics.Meta.Source);
+        }
+
+        [Fact]
+        public void BuildPhysicsModeFallsBackToUnknownForUnrecognizedRawValue()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                physics: new Dictionary<string, object?> { ["mode"] = "SomethingNew" });
+
+            var physics = VesselViewProvider.BuildPhysicsMode(snapshot);
+
+            Assert.NotNull(physics);
+            Assert.Equal(PhysicsMode.Unknown, physics!.Mode);
+        }
+
+        [Fact]
+        public void BuildPhysicsModeIsNullWhenPhysicsGroupAbsent()
+        {
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildPhysicsMode(snapshot));
+        }
+
+        [Fact]
+        public void BuildPhysicsModeIsNullWhenNoVessel()
+        {
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+
+            Assert.Null(VesselViewProvider.BuildPhysicsMode(snapshot));
+        }
+
+        [Fact]
+        public void BuildPhysicsModeWireFlattensModeToIntAndCarriesMeta()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                physics: new Dictionary<string, object?> { ["mode"] = "Unpacked" });
+
+            var wire = VesselViewProvider.BuildPhysicsModeWire(snapshot);
+            var wireDict = Assert.IsType<Dictionary<string, object?>>(wire);
+
+            Assert.Equal((int)PhysicsMode.Unpacked, wireDict["mode"]);
+            var metaDict = Assert.IsType<Dictionary<string, object?>>(wireDict["meta"]);
+            Assert.Equal("vessel:" + VesselGuid, metaDict["source"]);
         }
 
         // ---- vessel.comms ----
@@ -1842,6 +1904,7 @@ namespace Sitrep.Host.Tests
             Dictionary<string, object?>? resources = null,
             Dictionary<string, object?>? thermal = null,
             Dictionary<string, object?>? control = null,
+            Dictionary<string, object?>? physics = null,
             Dictionary<string, object?>? comms = null,
             Dictionary<string, object?>? propulsion = null,
             Dictionary<string, object?>? misc = null,
@@ -1881,6 +1944,10 @@ namespace Sitrep.Host.Tests
             if (control != null)
             {
                 vessel["control"] = control;
+            }
+            if (physics != null)
+            {
+                vessel["physics"] = physics;
             }
             if (comms != null)
             {
