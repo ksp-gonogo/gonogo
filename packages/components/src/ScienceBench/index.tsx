@@ -276,7 +276,7 @@ function ScienceBenchComponent({
   // widget at SC would hide legit career numbers, so we wrap only
   // the flight-dependent half. `hasGameSignal` keeps the dim off
   // until the kc.scene WS warmup completes.
-  const { inFlight, hasGameSignal } = useGameContext();
+  const { inFlight, hasGameSignal, careerMode } = useGameContext();
   const dimNonCareer = hasGameSignal && !inFlight;
 
   const body = useDataValue("data", "v.body");
@@ -312,7 +312,12 @@ function ScienceBenchComponent({
     "sci.experiments",
   );
 
-  const careerMode = useDataValue("data", "career.mode") as string | undefined;
+  // career.mode (D1, P4a) reads through useGameContext rather than a raw
+  // useDataValue call — the stream carries it as the mod's GameMode enum
+  // ORDINAL (a number), not the legacy Telemachus string, and
+  // useGameContext.careerMode already resolves both shapes to the same
+  // display value. A raw read here would silently stop recognising
+  // career mode the moment this widget's read routes to the stream.
   const careerScience = useDataValue("data", "career.science");
   const careerFunds = useDataValue("data", "career.funds");
   const careerRep = useDataValue("data", "career.reputation");
@@ -375,8 +380,7 @@ function ScienceBenchComponent({
   const sciDataAmount = experiments
     ? experiments.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
     : undefined;
-  const showCareer =
-    typeof careerMode === "string" && careerMode.toUpperCase() !== "SANDBOX";
+  const showCareer = careerMode !== "Unknown" && careerMode !== "SANDBOX";
 
   // Selective rendering — situation pill always; supplementary sections
   // drop bottom-up as height shrinks.
