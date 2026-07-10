@@ -4,6 +4,7 @@ import type {
   OrbitPatch,
 } from "@gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   resolveTargetName,
   useTelemetry,
@@ -48,6 +49,73 @@ interface SystemViewConfig {
    * name pins the frame regardless of vessel state.
    */
   frame?: "auto" | "root" | string;
+}
+
+// ── Augment slots (Uplink architecture spec §4) ─────────────────────────────────
+// SystemView is a HOST that exposes three slots; no first-party augment fills them
+// here (that is a later phase), so each renders nothing until an Uplink registers.
+// The `.actions` + `.overlay` pair is designed to be driven by ONE coordinated
+// augment (spec feedback round 1): e.g. a "show commlinks" toggle contributed into
+// `.actions` drives a commlink overlay contributed into `.overlay`, sharing state
+// through the augment's OWN context — no cross-Uplink coupling, the host only
+// exposes the two extension points.
+
+/**
+ * Props for `system-view.overlay` — an OVERLAY slot (spec §4.4/§4.8), rendered in
+ * a layer absolutely positioned over the solar-system body diagram. The diagram
+ * draws parent-centric in SVG user-units: the frame body sits at `center` (the
+ * SVG origin) and a distance of `d` metres from it projects to `d · plotScale`
+ * user-units, over a `width`×`height` px, origin-centred viewBox. An overlay
+ * augment — e.g. a future RealAntennas relay-network / range-ring visualiser —
+ * builds a matching viewBox / transform from these to draw in the diagram's
+ * coordinate space. The projection describes the diagram's auto-fit view (zoom=1,
+ * no pan); live pan/zoom is internal to `SystemDiagram` and not reflected here,
+ * matching `orbit-view.overlay`'s static-projection contract.
+ */
+export interface SystemOverlayContext {
+  /** Name of the parent body the diagram is centred on. */
+  parentName: string;
+  /** Diagram pixel width (origin-centred SVG frame). */
+  width: number;
+  /** Diagram pixel height. */
+  height: number;
+  /** Metres → SVG-user-unit plot scale at the diagram's auto-fit zoom. */
+  plotScale: number;
+  /** The parent body sits at the SVG origin. */
+  center: { x: number; y: number };
+}
+
+/**
+ * Props for `system-view.badges` — the widget's BROAD escape-hatch slot (spec
+ * feedback round 1: default to a `.badges` slot for inline indicators), rendered
+ * in the header next to the title. Badge augments read their own Topics via
+ * hooks, so the only context passed down is the frame body name for labelling.
+ */
+export interface SystemBadgesContext {
+  frameName: string | null;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props (spec
+// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// slot work on other widgets never collides on this seam. `.actions` takes no
+// props (`Record<string, never>`) — an actions augment reads its own state.
+declare module "@gonogo/core" {
+  interface SlotRegistry {
+    "system-view.actions": Record<string, never>;
+    "system-view.overlay": SystemOverlayContext;
+    "system-view.badges": SystemBadgesContext;
+  }
+}
+
+/** Auto-fit padding — mirrors `SystemDiagram`'s own `PAD` so the overlay
+ * projection matches the diagram's metres → px scale. */
+const DIAGRAM_PAD = 20;
+
+/** Case/whitespace-insensitive body-name match — mirrors `SystemDiagram`'s
+ * `nameMatches`, used to decide whether the vessel's orbit contributes to the
+ * overlay's auto-fit extent. */
+function frameNameMatches(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 // ── Client-side orbit derivations ───────────────────────────────────────────────
@@ -428,9 +496,49 @@ function SystemViewComponent({
   const showBottomAlmanac = isPortrait && rows >= 12;
   const showAlmanac = showSideAlmanac || showBottomAlmanac;
 
+  // Slot props (spec §4.4). `badges` carries just the frame name for labelling.
+  // `overlay` carries the diagram's parent-centric projection so an augment can
+  // draw in the SVG's coordinate space — the metres → px `plotScale` is
+  // reconstructed exactly as `SystemDiagram` derives it (auto-fit over the drawn
+  // children + the vessel's own orbit when it shares the frame). It is null until
+  // there is a frame and a measured diagram to overlay.
+  const badgesContext: SystemBadgesContext = { frameName: parentName };
+  const overlayContext = useMemo<SystemOverlayContext | null>(() => {
+    if (parentName === null || size.w <= 0 || size.h <= 0) return null;
+    let maxRadius = 0;
+    for (const child of children) {
+      const ecc = Math.min(Math.max(child.eccentricity ?? 0, 0), 0.999);
+      const apo = (child.semiMajorAxis ?? 0) * (1 + ecc);
+      if (apo > maxRadius) maxRadius = apo;
+    }
+    const vesselExtent =
+      vesselOrbit && frameNameMatches(vesselOrbit.parentName, parentName)
+        ? vesselOrbit.sma * (1 + Math.min(vesselOrbit.ecc, 0.999))
+        : 0;
+    const effectiveMax = Math.max(maxRadius, vesselExtent);
+    const baseRadius = Math.min(size.w, size.h) / 2 - DIAGRAM_PAD;
+    const plotScale = effectiveMax > 0 ? baseRadius / effectiveMax : 1;
+    return {
+      parentName,
+      width: size.w,
+      height: size.h,
+      plotScale,
+      center: { x: 0, y: 0 },
+    };
+  }, [parentName, children, vesselOrbit, size]);
+
   return (
     <Panel>
-      <PanelTitle>SYSTEM</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SYSTEM</PanelTitle>
+        <TitleControls>
+          {/* Header slots: an inline `.badges` escape-hatch and an `.actions`
+              control row, both alongside the widget's own header. Empty until an
+              Uplink binds (spec §4) — an empty slot renders nothing. */}
+          <AugmentSlot name="system-view.badges" props={badgesContext} />
+          <AugmentSlot name="system-view.actions" props={{}} />
+        </TitleControls>
+      </TitleRow>
       <PanelSubtitle>
         {bodies.length === 0
           ? "Waiting for body data…"
@@ -464,6 +572,15 @@ function SystemViewComponent({
                 width={size.w}
                 height={size.h}
               />
+            )}
+            {/* Overlay slot — layered over the body diagram, passed the diagram's
+                parent-centric projection so an augment draws in its coordinate
+                space (spec §4.4/§4.8). The layer is pointer-transparent so an
+                empty slot is visually + interactively inert. */}
+            {overlayContext !== null && (
+              <OverlayLayer>
+                <AugmentSlot name="system-view.overlay" props={overlayContext} />
+              </OverlayLayer>
             )}
           </DiagramWrap>
           {showAlmanac && (
@@ -648,6 +765,7 @@ const CompactSub = styled.div`
 `;
 
 const DiagramWrap = styled.div`
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -658,6 +776,29 @@ const DiagramWrap = styled.div`
     display: block;
     flex: 1;
   }
+`;
+
+const OverlayLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  /* Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment
+     re-enables pointer events on its own elements when it needs them. */
+  pointer-events: none;
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const TitleControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -672,6 +813,15 @@ registerComponent<SystemViewConfig>({
   minSize: { w: 3, h: 4 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
+  // Exposes a coordinated `.actions` + `.overlay` pair (one augment can drive an
+  // overlay from a header control, sharing its own context) plus a broad
+  // `.badges` header escape-hatch. No first-party augment fills any yet (spec §4);
+  // the overlay slot passes the diagram's projection as typed slot props (§4.4).
+  augmentSlots: [
+    "system-view.actions",
+    "system-view.overlay",
+    "system-view.badges",
+  ],
   // The body table + phase angles still fan out over the shared `b.*` hooks
   // (`useCelestialBodies`/`usePhaseAngles`) — a separate, shared-hook migration.
   // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
