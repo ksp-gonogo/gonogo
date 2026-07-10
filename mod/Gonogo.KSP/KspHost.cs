@@ -2163,7 +2163,56 @@ namespace Gonogo.KSP
             var entry = new Dictionary<string, object?>();
             TryBuildGroup(entry, "power", () => BuildPartsPower(vessel));
             TryBuildGroup(entry, "robotics", () => BuildPartsRobotics(vessel));
+            // Always-present availability flag (NOT a TryBuildGroup group -
+            // it must be a definite bool whenever there's an active vessel, so
+            // robotics.available can tell "vessel has no robotic parts"
+            // (false) apart from "no active vessel" (parts key omitted). See
+            // BuildRoboticsAvailable.
+            entry["roboticsAvailable"] = BuildRoboticsAvailable(vessel);
             return entry;
+        }
+
+        /// <summary>
+        /// True when the active vessel carries ANY Breaking Ground robotic
+        /// servo (rotor / hinge / piston) - all of which subclass the shared
+        /// <see cref="BaseServo"/> (<c>Expansions.Serenity</c>), so a single
+        /// <c>GetModules&lt;BaseServo&gt;()</c> per part covers all three
+        /// without enumerating the concrete subtypes. Powers the
+        /// <c>robotics.available</c> Topic. Each part's read is individually
+        /// try/caught so one bad part can't blank the flag; an absent Serenity
+        /// install just means no part reports a BaseServo, which reads as
+        /// false without any special-casing.
+        /// </summary>
+        private static bool BuildRoboticsAvailable(Vessel vessel)
+        {
+            var parts = vessel.parts;
+            if (parts == null || parts.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var servos = part.Modules.GetModules<BaseServo>();
+                    if (servos != null && servos.Count > 0)
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] robotics.available read failed on a part, skipping: " + ex);
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

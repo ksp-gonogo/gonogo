@@ -16,9 +16,11 @@ namespace Gonogo.KSP
     /// <c>"parts"</c> snapshot key (guarded to "there's an active vessel" —
     /// see <c>KspHost.BuildParts</c>'s doc comment).
     ///
-    /// <para>Two channels — power and robotics change at different cadences
+    /// <para>Three channels — power and robotics change at different cadences
     /// and are consumed by different widgets (PowerSystems vs.
-    /// RoboticsConsole/RotorTachometer).</para>
+    /// RoboticsConsole/RotorTachometer), plus a tiny robotics.available
+    /// wrapper the robotics widgets read to distinguish "no robotic parts on
+    /// this craft" from "no active vessel / no data".</para>
     ///
     /// <para>Read-only capture for this session — no commands. Robotics
     /// actuation (servo/rotor set-target/motor/lock/brake) is a follow-up,
@@ -49,6 +51,17 @@ namespace Gonogo.KSP
                     // Explicit retrofit — same as PowerTopic above.
                     Delay = DelayRole.Delayed,
                 },
+                new ChannelDeclaration
+                {
+                    // "Does THIS vessel have any Breaking Ground servos" — a
+                    // single { available } wrapper. Vessel-derived (parts on
+                    // the active vessel), so it rides the delay clock like the
+                    // other parts.* channels — NOT the ground-side DLC fact.
+                    Topic = PartsViewProvider.RoboticsAvailableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
             },
         };
 
@@ -56,6 +69,7 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
             host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);
+            host.AddChannelSource(PartsViewProvider.RoboticsAvailableTopic, PartsViewProvider.BuildRoboticsAvailable);
         }
     }
 }

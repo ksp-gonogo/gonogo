@@ -28,6 +28,7 @@ namespace Sitrep.Host
     ///     "servoMotorLimit", "motorState", "currentAngle", "targetAngle",
     ///     "traverseVelocity", "currentRPM", "rpmLimit", "normalizedOutput",
     ///     "brakePercentage", "currentExtension", "targetExtension" }, ... ] | null
+    ///   "roboticsAvailable": bool   // any Breaking Ground servo on THIS vessel
     /// }
     /// </code>
     ///
@@ -43,6 +44,7 @@ namespace Sitrep.Host
     {
         public const string PowerTopic = "parts.power";
         public const string RoboticsTopic = "parts.robotics";
+        public const string RoboticsAvailableTopic = "robotics.available";
 
         public static object? BuildPower(KspSnapshot? snapshot)
         {
@@ -87,6 +89,37 @@ namespace Sitrep.Host
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// The <c>robotics.available</c> channel — a wrapper object
+        /// <c>{ available: bool }</c>, or <c>null</c> when there is no active
+        /// vessel (no <c>"parts"</c> key at all). Unlike
+        /// <see cref="BuildRobotics"/>, this keys off the presence of the
+        /// <c>"parts"</c> group itself (which <c>Gonogo.KSP.KspHost.BuildParts</c>
+        /// only populates when there IS an active vessel), NOT the
+        /// <c>"robotics"</c> sub-key: a vessel with no robotic parts must
+        /// still report <c>available: false</c>, and only an omitted parts
+        /// key (no vessel) collapses to <c>null</c>. That is the empty-vs-no-
+        /// vessel disambiguation the bare <c>parts.robotics</c> array can't
+        /// carry — see <see cref="Sitrep.Contract.RoboticsAvailability"/>.
+        /// </summary>
+        public static object? BuildRoboticsAvailable(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("parts", out var rawParts) || rawParts is not IDictionary<string, object?> parts)
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["available"] = SnapshotDict.GetBool(parts, "roboticsAvailable"),
+            };
         }
 
         /// <summary>

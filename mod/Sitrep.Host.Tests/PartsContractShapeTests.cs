@@ -128,10 +128,32 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void RoboticsAvailabilityTypeMirrorsProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["parts"] = new Dictionary<string, object?> { ["roboticsAvailable"] = true },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(PartsViewProvider.BuildRoboticsAvailable(snapshot));
+
+            // Wrapper object: its key set must equal RoboticsAvailability's
+            // camelCase'd props, and the emitted value's runtime type must
+            // match the (Nullable-unwrapped) property type.
+            AssertKeysMatchType(typeof(RoboticsAvailability), root);
+            Assert.IsType<bool>(root["available"]);
+        }
+
+        [Fact]
         public void PayloadTypesAreTaggedWithTheirTopics()
         {
             AssertTopicTag(typeof(PartsPower), "parts.power", expectArray: false);
             AssertTopicTag(typeof(ServoEntry), "parts.robotics", expectArray: true);
+            AssertTopicTag(typeof(RoboticsAvailability), "robotics.available", expectArray: false);
         }
 
         private static void AssertTopicTag(Type type, string expectedTopic, bool expectArray)

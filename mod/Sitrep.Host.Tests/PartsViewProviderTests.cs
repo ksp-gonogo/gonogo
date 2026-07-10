@@ -299,6 +299,98 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildRoboticsAvailableReturnsNullWhenSnapshotHasNoPartsKeyAtAll()
+        {
+            var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
+
+            Assert.Null(PartsViewProvider.BuildRoboticsAvailable(snapshot));
+            Assert.Null(PartsViewProvider.BuildRoboticsAvailable(null));
+        }
+
+        [Fact]
+        public void BuildRoboticsAvailableReportsTrueWhenVesselHasRoboticParts()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["parts"] = new Dictionary<string, object?>
+                    {
+                        ["roboticsAvailable"] = true,
+                    },
+                },
+            };
+
+            var payload = Assert.IsType<Dictionary<string, object?>>(PartsViewProvider.BuildRoboticsAvailable(snapshot));
+            Assert.Equal(true, payload["available"]);
+        }
+
+        /// <summary>
+        /// The whole reason robotics.available is its own Topic and not an
+        /// empty <c>parts.robotics</c> array: a vessel present but carrying no
+        /// robotic parts must report <c>available: false</c> (the parts key
+        /// exists, roboticsAvailable is false) — distinct from "no active
+        /// vessel" (no parts key → null payload). Both cases are asserted
+        /// here so the empty-vs-no-vessel disambiguation can't regress.
+        /// </summary>
+        [Fact]
+        public void BuildRoboticsAvailableReportsFalseForAVesselWithNoRoboticParts()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["parts"] = new Dictionary<string, object?>
+                    {
+                        // A vessel present (parts key exists) with power but no
+                        // robotics sub-group at all - roboticsAvailable false.
+                        ["power"] = new Dictionary<string, object?>
+                        {
+                            ["solarPanels"] = new List<object?>(),
+                            ["batteries"] = new List<object?>(),
+                            ["fuelCells"] = new List<object?>(),
+                            ["alternators"] = new List<object?>(),
+                            ["totalProductionEc"] = 0.0,
+                        },
+                        ["roboticsAvailable"] = false,
+                    },
+                },
+            };
+
+            var payload = Assert.IsType<Dictionary<string, object?>>(PartsViewProvider.BuildRoboticsAvailable(snapshot));
+            Assert.Equal(false, payload["available"]);
+
+            // BuildRobotics (the bare array) collapses to null for the same
+            // vessel - which is exactly why it can't carry availability.
+            Assert.Null(PartsViewProvider.BuildRobotics(snapshot));
+        }
+
+        [Fact]
+        public void BuildRoboticsAvailableYieldsNullAvailableWhenFieldWasNeverRecorded()
+        {
+            // An older snapshot recorded before roboticsAvailable existed: the
+            // parts key is present but the flag is absent, so SnapshotDict
+            // yields null rather than a sentinel.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["parts"] = new Dictionary<string, object?>
+                    {
+                        ["robotics"] = new List<object?>(),
+                    },
+                },
+            };
+
+            var payload = Assert.IsType<Dictionary<string, object?>>(PartsViewProvider.BuildRoboticsAvailable(snapshot));
+            Assert.True(payload.ContainsKey("available"));
+            Assert.Null(payload["available"]);
+        }
+
+        [Fact]
         public void BuildRoboticsReturnsNullWhenSubGroupIsAbsentEvenThoughPartsKeyExists()
         {
             var snapshot = new KspSnapshot

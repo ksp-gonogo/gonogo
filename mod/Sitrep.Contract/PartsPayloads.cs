@@ -181,3 +181,38 @@ public class ServoEntry
 
     public double? TargetExtension { get; set; }
 }
+
+/// <summary>
+/// The <c>robotics.available</c> channel payload — a single wrapper object
+/// (or <c>null</c> when there is no active vessel) whose one field states
+/// whether the active vessel carries ANY Breaking Ground robotic servo
+/// (rotor / hinge / piston). This is deliberately its OWN Topic, not a field
+/// folded into the bare-array <c>parts.robotics</c>: an empty
+/// <c>ServoEntry[]</c> can't disambiguate "vessel has no robotic parts"
+/// (<c>available: false</c>) from "no snapshot / no active vessel"
+/// (payload <c>null</c>) — the very ambiguity a widget like
+/// <c>RoboticsConsole</c> / <c>RotorTachometer</c> needs resolved to decide
+/// whether to render a "no robotics on this craft" empty state versus stay
+/// dark. It is DISTINCT from the Breaking-Ground DLC-presence fact (that is
+/// the <c>deployed.available</c> / <c>Meta.Dlc</c> build) — this reflects
+/// parts present on THIS vessel, so it rides the delay clock (Delayed),
+/// whereas DLC presence is a ground-side TrueNow fact.
+///
+/// <para><see cref="Available"/> is nullable to mirror
+/// <c>SnapshotDict.GetBool</c>'s null-on-absence rule — a snapshot recorded
+/// before this field existed reads as <c>null</c>; a live snapshot always
+/// carries a concrete <c>true</c>/<c>false</c>.</para>
+///
+/// <para><b>Typing-only mirror</b> of
+/// <c>Sitrep.Host.PartsViewProvider.BuildRoboticsAvailable</c> — see
+/// <see cref="PartsPower"/> for the "no wire change" rationale.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("robotics.available")]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class RoboticsAvailability
+{
+    public bool? Available { get; set; }
+}
