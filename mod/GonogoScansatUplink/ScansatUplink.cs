@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Sitrep.Contract;
 using SCANsat;
 using UnityEngine;
@@ -413,17 +412,76 @@ namespace Gonogo.ScansatUplink
             return entries;
         }
 
-        private static List<object> BuildScanningVessels()
+        internal static List<object> BuildScanningVessels()
         {
             // SCANcontroller.Known_Vessels is public (SCANcontroller.cs:555)
             // and allocates fresh per call (spec §0C cost caveat) - fine at
-            // a coarse cadence, not per frame. Cast<object> because the
-            // wire-typed SCANScanningVessel mapping (SCANvessel -> the
-            // [SitrepContract] payload type) is P2 scope, not implemented
-            // here - see this class's scope note.
+            // a coarse cadence, not per frame. Each SCANvessel -> one wire
+            // dict via the pure ScanningVessels.Build (the [SitrepTopic]
+            // ScanningVesselEntry shape), reading only public SCANvessel/
+            // SCANsensor fields (SCANcontroller.cs:32-74).
             var controller = SCANcontroller.controller;
             if (controller == null) return new List<object>();
-            return controller.Known_Vessels.Cast<object>().ToList();
+
+            double homeRadius = Planetarium.fetch?.Home?.Radius ?? 0.0;
+            var result = new List<object>();
+            foreach (var v in controller.Known_Vessels)
+            {
+                if (v == null) continue;
+                var entry = MapScanningVessel(v, homeRadius);
+                if (entry != null) result.Add(entry);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Reads one SCANsat <c>SCANvessel</c>'s public fields
+        /// (SCANcontroller.cs:55-74) + its sensors' public fields
+        /// (SCANcontroller.cs:32-53) into plain scalars and hands them to the
+        /// pure <see cref="ScanningVessels.Build"/>. This is the only
+        /// SCANsat-typed step; all shaping (sensor array, per-side FoV widths,
+        /// trackColor packing) lives in the headlessly-tested pure builder.
+        /// Returns null when the vessel has no main body (nothing to scope to).
+        /// </summary>
+        private static Dictionary<string, object?>? MapScanningVessel(SCANcontroller.SCANvessel v, double homeRadius)
+        {
+            var body = v.body;
+            if (body == null) return null;
+
+            var sensorList = v.sensors ?? new List<SCANcontroller.SCANsensor>();
+            var sensors = new List<ScanningVessels.SensorInput>(sensorList.Count);
+            foreach (var s in sensorList)
+            {
+                if (s == null) continue;
+                sensors.Add(new ScanningVessels.SensorInput(
+                    (int)s.sensor,
+                    s.fov,
+                    s.min_alt,
+                    s.max_alt,
+                    s.best_alt,
+                    s.inRange,
+                    s.bestRange));
+            }
+
+            // trackColor is the per-VESSEL Color32 (SCANvessel.trackColor,
+            // SCANcontroller.cs:61) — the same tint SCANsat paints the ground
+            // track with, mirrored on the minimap/MapView footprint.
+            var tc = v.trackColor;
+            return ScanningVessels.Build(
+                v.id.ToString(),
+                v.vessel?.vesselName ?? "",
+                body.name,
+                v.latitude,
+                v.longitude,
+                v.vessel?.altitude ?? 0.0,
+                sensors,
+                body.Radius,
+                body.sphereOfInfluence,
+                homeRadius,
+                tc.r,
+                tc.g,
+                tc.b,
+                tc.a);
         }
     }
 }
