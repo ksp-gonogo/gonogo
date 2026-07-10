@@ -121,3 +121,77 @@ describe("useGameContext — career.mode streamed GameMode ordinal (mapped + car
     expect(result.current.careerMode).toBe("SCIENCE");
   });
 });
+
+/**
+ * P4a shared-map: `kc.scene` maps onto `spaceCenter.scene.scene` — a plain
+ * raw-field walk, no ordinal/normalization step needed. The mod's
+ * `SpaceCenterViewProvider.MapScene` already folds the raw `GameScenes` enum
+ * name onto the same six tokens (`Flight`/`SpaceCenter`/`Editor`/
+ * `TrackingStation`/`MainMenu`/`Other`) the legacy `kc.scene` key used, so
+ * `KNOWN_SCENES` resolves the streamed value exactly like the legacy one.
+ */
+describe("useGameContext — kc.scene streamed (mapped + carried)", () => {
+  it("resolves a streamed scene the same way as the legacy string", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeSource();
+    registerDataSource(legacySource);
+
+    const { result } = renderHook(() => useGameContext(), {
+      wrapper: ({ children }) => (
+        <TelemetryProvider
+          client={client}
+          carriedChannels={["spaceCenter.scene"]}
+        >
+          {children}
+        </TelemetryProvider>
+      ),
+    });
+
+    expect(result.current.scene).toBe("Unknown");
+    expect(transport.isSubscribed("spaceCenter.scene")).toBe(true);
+
+    act(() => transport.emit("spaceCenter.scene", { scene: "Flight" }));
+    await waitFor(() => expect(result.current.scene).toBe("Flight"));
+    expect(result.current.inFlight).toBe(true);
+
+    act(() =>
+      transport.emit("spaceCenter.scene", { scene: "TrackingStation" }),
+    );
+    await waitFor(() => expect(result.current.scene).toBe("TrackingStation"));
+    expect(result.current.inFlight).toBe(false);
+
+    // A legacy emit must not surface once the key is carried — the stream
+    // value keeps winning over it (same invariant as the career.mode test).
+    act(() => legacySource.emit("kc.scene", "Flight"));
+    expect(result.current.scene).toBe("TrackingStation");
+  });
+});
+
+/**
+ * `kc.padOccupied` has no clean wire home (brief: `LaunchSiteEntry.
+ * padOccupied` is a SpaceCenter-scene notion, not the Flight-scene
+ * PRELAUNCH predicate this field documents) — it stays on
+ * `TELEMACHUS_KNOWN_GAPS` and the hook keeps reading it straight off the
+ * legacy `DataSource`, carried channels or not.
+ */
+describe("useGameContext — kc.padOccupied stays on the legacy fallback", () => {
+  it("reads padOccupied from the legacy DataSource even with a TelemetryProvider mounted", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeSource();
+    registerDataSource(legacySource);
+
+    const { result } = renderHook(() => useGameContext(), {
+      wrapper: ({ children }) => (
+        <TelemetryProvider client={client} carriedChannels={[]}>
+          {children}
+        </TelemetryProvider>
+      ),
+    });
+
+    expect(result.current.padOccupied).toBe(false);
+    act(() => legacySource.emit("kc.padOccupied", true));
+    expect(result.current.padOccupied).toBe(true);
+  });
+});
