@@ -335,11 +335,11 @@ export interface LaunchArgs
 	site: string;
 	crew: string[];
 }
-export interface ISetFlyByWireArgs
+export interface SetFlyByWireArgs
 {
 	enabled: boolean;
 }
-export interface ISetControlAxesArgs
+export interface SetControlAxesArgs
 {
 	pitch?: number;
 	yaw?: number;

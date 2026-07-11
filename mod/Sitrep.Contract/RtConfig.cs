@@ -134,6 +134,9 @@ public static class RtConfig
                 typeof(RotorSetValueArgs),
                 typeof(RotorReverseArgs),
                 typeof(ExperimentActionArgs),
+                // vessel.control fly-by-wire command args
+                typeof(SetFlyByWireArgs),
+                typeof(SetControlAxesArgs),
                 // career.status channel payload + sub-groups (P0.5)
                 typeof(CareerStatus),
                 typeof(CareerEconomy),
