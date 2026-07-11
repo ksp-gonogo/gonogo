@@ -18,19 +18,19 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
 /**
  * Objectives — a read-only, in-flight-friendly view of everything you're
- * currently trying to achieve. It is the **augment-model dogfood** (Uplink
- * architecture spec §4.9): the widget itself is a pure *frame* (Panel +
+ * currently trying to achieve. It is the **augment-model dogfood**: the
+ * widget itself is a pure *frame* (Panel +
  * `OBJECTIVES` title + one `objectives.sections` slot), and its content arrives
  * through the augment system. Active-contract parameters (`contracts.active`)
  * are the sole source, rendered as an augment satisfying the typed "objective
- * source" contract the frame publishes as the slot's props (§4.4).
+ * source" contract the frame publishes as the slot's props.
  *
  * Making History mission objectives (`mh.*`) were a second source here, but
  * the `mh` keyword carries no channel on the new SDK wire — contracts are the
  * sole objective source going forward. The frame + slot stay in place so a
  * future Uplink source (or a revived mission channel) can bind in the same
  * way; that's the point of exercising typed slot props and settings-merge
- * (§4.7) here rather than hardcoding a single source into the frame.
+ * here rather than hardcoding a single source into the frame.
  *
  * Degrades to a muted empty state when the source yields no items, which also
  * covers no contracts being active.
@@ -53,7 +53,7 @@ export interface ObjectiveItem {
 }
 
 // ---------------------------------------------------------------------------
-// The typed "objective source" contract (spec §4.4 / §4.9)
+// The typed "objective source" contract
 //
 // `objectives.sections` is the first typed-contract slot. The frame publishes,
 // as the slot's props, the interface an objective-source augment must satisfy:
@@ -69,7 +69,7 @@ export interface ObjectiveSection {
   /** The source's objectives — each an {@link ObjectiveItem}. */
   items: ObjectiveItem[];
   /**
-   * Optional per-item alarm affordance a source may offer (spec §4.9). Returns
+   * Optional per-item alarm affordance a source may offer. Returns
    * a control for an item, or `null` for items that cannot be alarmed. The
    * contracts source supplies one.
    */
@@ -377,7 +377,7 @@ registerComponent<ObjectivesConfig>({
   minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
   // Exposes one typed-contract slot; the built-in source below binds into it,
-  // and any future Uplink objective source can too (spec §4.6).
+  // and any future Uplink objective source can too.
   augmentSlots: ["objectives.sections"],
   dataRequirements: ["contracts.active"],
   defaultConfig: {},

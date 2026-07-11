@@ -236,7 +236,7 @@ export const PredictionCanvas = CanvasBase;
 
 /**
  * Absolutely-positioned layer stacked over the map canvases for the
- * `map-view.overlay` augment slot (Uplink architecture spec §4.8). Sits on
+ * `map-view.overlay` augment slot. Sits on
  * top of every canvas (last DOM child) yet stays out of the map's pointer
  * path, so an empty slot is visually and interactively inert; an overlay
  * augment re-enables pointer events on its own elements when it needs them.

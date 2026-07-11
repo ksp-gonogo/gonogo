@@ -4,14 +4,14 @@ import type { Certainty } from "./view-clock";
 
 /**
  * Whether the current frame's view is `"confirmed"` (at-or-before the
- * certainty horizon) or `"predicted"` (past it — M2 design §3.3). Rides its
+ * certainty horizon) or `"predicted"` (past it). Rides its
  * own channel, read at the SAME `FrameToken` `useTimelineStream`/
  * `useStreamStatus` read for the same topic (the `useKosScriptStatus`
  * pattern: value, staleness/absence, and certainty are three independent
  * channels a widget composes, never nested inside one another).
  *
  * Certainty is a property of the FRAME's `viewUt`, not of any one topic (the
- * single-view-time invariant, M2 design §7.4) — every topic read in the same
+ * single-view-time invariant) — every topic read in the same
  * frame shares the same certainty. `topic` is accepted anyway (rather than a
  * topic-less `useCertainty(store)`) purely so the hook's call shape matches
  * its siblings and a future per-channel certainty override (were one ever

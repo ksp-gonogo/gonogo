@@ -219,7 +219,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // used by Twr, Navball, CrewManifest, GroundSurvey, ActionGroup ag1..10,
   // and DistanceToTarget. Each is a `vessel.state.*` field
   // `deriveVesselState` now produces (see
-  // vessel-state.ts), same display-map pattern as the batches above:
+  // vessel-state.ts), same display-map pattern as elsewhere in this table:
   //  - twr (dv.currentTWR) = currentThrust/(totalMass·g) off vessel.propulsion.
   //  - isControllable (v.isControllable) from vessel.comms.controlState LEVEL.
   //  - isEVA/isSplashed (v.isEVA/v.splashed) from vessel.identity.
@@ -922,8 +922,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
  * `useDataValue` today — to the new SDK stream topic it should read from.
  *
  * Returns `undefined` when there is no mapping: either `dataSourceId` isn't
- * the Telemachus `"data"` source (nothing else is wired to the new SDK in
- * M2), or `key` is a known, explicitly-tracked gap (`TELEMACHUS_KNOWN_GAPS`),
+ * the Telemachus `"data"` source (nothing else is wired to the new SDK yet),
+ * or `key` is a known, explicitly-tracked gap (`TELEMACHUS_KNOWN_GAPS`),
  * or `key` is genuinely unrecognized. In every `undefined` case the
  * `@ksp-gonogo/core` `useDataValue` shim falls back to the legacy `DataSource`
  * path — this function intentionally does NOT identity-fallback (contrast
@@ -933,8 +933,8 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
  * `kos.compute.<id>.<field>` — the dynamic centralised-compute namespace.
  * Identity-mapped so a future compute-feed slice reads straight off the
  * stream; `.status` sub-topics and `.dispatchNow`/`.reEnable` command keys
- * are deliberately excluded (status has no P1 producer; commands never route
- * through `useDataValue`).
+ * are deliberately excluded (status has no producer on this table; commands
+ * never route through `useDataValue`).
  */
 const KOS_COMPUTE_FIELD = /^kos\.compute\.[\w-]+\.[\w-]+$/;
 const KOS_COMPUTE_NON_VALUE =

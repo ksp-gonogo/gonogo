@@ -1,9 +1,9 @@
 import type { TimelineStore } from "./timeline-store";
 
 /**
- * The M3 Wave 0 carried-channels allowlist gate (`m3-migration-plan.md` §5.1,
- * §7 must-not #1) — the safety mechanism that prevents the "big-bang
- * blank-out": mounting a `TelemetryProvider` used to make `@ksp-gonogo/core`'s
+ * The carried-channels allowlist gate (see `m3-migration-plan.md`) — the
+ * safety mechanism that prevents the "big-bang blank-out": mounting a
+ * `TelemetryProvider` used to make `@ksp-gonogo/core`'s
  * `useDataValue` shim stop falling back to legacy for every MAPPED topic,
  * even when the mounted transport never actually delivers it. This module is
  * the single place that decides "is `topic` actually carried right now" —
@@ -16,10 +16,10 @@ import type { TimelineStore } from "./timeline-store";
  * - A raw topic depends only on itself (`store.resolveSubscriptionTopics`'s
  *   identity fallback) — carried iff it's directly in the set.
  * - A DERIVED topic (`vessel.state.*`) depends on its declared `inputs`,
- *   resolved recursively — carried iff ALL of them are (`m3-migration-plan.md`
- *   §Build 1: "for a DERIVED topic, it's carried iff all its declared inputs
- *   are carried"). A derived channel with even one uncarried input can never
- *   produce a whole record, so treating it as carried would reintroduce
+ *   resolved recursively — carried iff ALL of them are (see
+ *   `m3-migration-plan.md`: "for a DERIVED topic, it's carried iff all its
+ *   declared inputs are carried"). A derived channel with even one uncarried
+ *   input can never produce a whole record, so treating it as carried would reintroduce
  *   exactly the permanent-`undefined`-blank-out this gate exists to prevent.
  *
  * Reuses `TimelineStore.resolveSubscriptionTopics` (already the

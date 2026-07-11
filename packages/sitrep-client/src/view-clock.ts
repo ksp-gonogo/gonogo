@@ -163,7 +163,7 @@ export class ViewClock {
   }
 
   /**
-   * Manual history scrub (M2 design §1.2/§3.2): pins `viewUt()` to `ut`
+   * Manual history scrub: pins `viewUt()` to `ut`
    * regardless of `mode`, for exploring history (a scrub bar). The live
    * cursor keeps advancing underneath while scrubbed (confirmed-edge
    * tracking / predicted estimate both keep updating from `observeSample`
@@ -186,7 +186,7 @@ export class ViewClock {
    *   cursor clamp server-side) — the cursor resets to `-Infinity` on an
    *   epoch bump via `observeSample`, so "monotonic" is scoped per-epoch,
    *   not across a rewind.
-   * - **Predicted mode** (M2 design §3.3): tracks `utNowEstimate()`
+   * - **Predicted mode**: tracks `utNowEstimate()`
    *   directly — deliberately NOT run through the confirmed cursor's
    *   monotonic clamp (`lastConfirmedViewUt`), so a predicted excursion can
    *   never leak forward and pin the confirmed cursor ahead of the real

@@ -125,7 +125,7 @@ function isKnownParamState(value: string): value is ContractParameterState {
  * Defensive parser for contract array payloads. Accepts BOTH the legacy
  * GonogoTelemetry shape (`contracts.active`/`contracts.offered`/
  * `contracts.completedRecent`: `agency`/`repCompletion`/`deadlineUt`) and
- * the M3b career-detail wire shape (`career.status.contracts.active`/
+ * the career-detail wire shape (`career.status.contracts.active`/
  * `.offered`, mod/Sitrep.Host/CareerViewProvider.cs's `BuildContractList`:
  * `agent`/`reputationCompletion`/`dateDeadline`) — same "one parser, either
  * wire shape" pattern ScienceBench's `parseExperiments` established

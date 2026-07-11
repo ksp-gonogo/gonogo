@@ -3,7 +3,7 @@ import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 /**
  * One point on a topic's `ClientTimeline`.
  *
- * `payload: null` is a tombstone (absence-as-data, M2 design §4) — a
+ * `payload: null` is a tombstone (absence-as-data) — a
  * confirmed "there is no value", distinct from `undefined` (never received).
  * `meta` is kept whole (not just the payload) because quality-picking,
  * subject-provenance guarding (`sameSubject`, later task), and staleness all
@@ -44,7 +44,7 @@ const DEFAULT_RETENTION_SECONDS = 300;
  * long-running client doesn't grow this unboundedly — see
  * `ClientTimelineOptions.retentionSeconds` and `evictBelow`.
  *
- * Epoch-aware (M2 design §3.4/§7.6, "client-side ghost avoidance"): a
+ * Epoch-aware ("client-side ghost avoidance"): a
  * quickload rewind is detected per-topic from the incoming sample's own
  * `epoch` field (no separate reset message needed at this layer) —
  *
@@ -138,8 +138,8 @@ export class ClientTimeline<T = unknown> {
   /**
    * Proactively adopt a higher epoch with no incoming sample — a no-op if
    * `epoch` isn't actually higher than the one this timeline currently
-   * holds. Used by `TimelineStore`'s cross-topic sweep (M2 fix-report
-   * Defect 1+2, "the client ghost"): a rewind confirmed by one topic's
+   * holds. Used by `TimelineStore`'s cross-topic sweep (guards against
+   * "the client ghost"): a rewind confirmed by one topic's
    * ingest doesn't, on its own, tell every OTHER topic's `ClientTimeline` to
    * reset — each timeline only ever learns about a rewind from its own next
    * `append`. Without this, a slow/change-gated topic that hasn't re-sampled

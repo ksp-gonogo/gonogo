@@ -104,7 +104,7 @@ export interface ShipBaseLayout {
  * Compute the diagram's base-frame layout (fit bounds + metres→px scale) for a
  * given part set and viewport. Mirrors exactly what `ShipDiagramSvg` computes
  * internally; exposed so the host widget can hand the same projection to the
- * `ship-map.overlay` slot (spec §4.4). The base frame is the identity-camera
+ * `ship-map.overlay` slot. The base frame is the identity-camera
  * projection — the diagram's live zoom/pan is layered on top of it at render
  * time and is not reflected here.
  */

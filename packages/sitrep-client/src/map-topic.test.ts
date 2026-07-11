@@ -268,14 +268,13 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
   });
 
   it("returns undefined for known gaps (no silent identity fallback)", () => {
-    // (tar.availableVessels was un-gapped in the M3 vessel-gap batch — it now
-    // maps to system.vessels; see the roster mapping test below. career.funds/
-    // reputation/science were un-gapped in the M3 career batch, and
-    // strategies.all/tech.nodes/contracts.active/contracts.offered/
-    // kc.facilityLevels were un-gapped in the M3b career-detail batch — see
-    // the career.status mapping tests below. contracts.completedRecent was
-    // un-gapped in the P4a shared-map batch — see the dedicated test below.
-    // The four ballistic land.* scalars were un-gapped as client-derived
+    // (tar.availableVessels now maps to system.vessels; see the roster
+    // mapping test below. career.funds/reputation/science map onto
+    // career.status.economy, and strategies.all/tech.nodes/contracts.active/
+    // contracts.offered/kc.facilityLevels map onto career.status — see
+    // the career.status mapping tests below. contracts.completedRecent
+    // ships alongside active/offered — see the dedicated test below.
+    // The four ballistic land.* scalars are client-derived onto
     // vessel.state.landing* — see the dedicated test below; the three
     // terrain/trajectory land.* fields below stay gapped.)
     expect(mapTopic("data", "land.predictedLat")).toBeUndefined();
@@ -352,7 +351,7 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     expect(isKnownTelemachusGap("data", "contracts.offered")).toBe(false);
     expect(isKnownTelemachusGap("data", "strategies.all")).toBe(false);
     expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(false);
-    // contracts.completedRecent UN-GAPPED (P4a shared-map batch): a
+    // contracts.completedRecent maps onto career.status too: a
     // completedRecent list now ships alongside active/offered.
     expect(mapTopic("data", "contracts.completedRecent")).toBe(
       "career.status.contracts.completedRecent",
@@ -446,11 +445,11 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // (vessel.state.parentBodyName / referenceBodyName), they map cleanly;
         // see the dedicated body-name test below.
         // b.number / o.encounter* / dock.x / dock.y / tar.o.relativeVelocity
-        // were here until the batch-2 shape-mismatch migration — now that
+        // were here until the shape-mismatch migration — now that
         // client-side derived subtopics exist (system.state.bodyCount,
         // vessel.state.encounter*, vessel.state.targetRelativeSpeed) and
         // dock.x/y walk into vessel.dock.relativePosition, they map cleanly;
-        // see the dedicated batch-2 test above.
+        // see the dedicated shape-mismatch test above.
         // comm.controlState / comm.controlStateName + v.situationString /
         // f.sasMode / tar.type were here until the enum-ordinal→name migration;
         // now that client-side ordinal→string/level display-map subtopics
@@ -458,8 +457,8 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
         // situationName / sasModeName / targetKind), they map cleanly — see the
         // dedicated enum-ordinal→name test above.
         "o.maneuverNodes", // deltaV tuple + orbit-preview fields not on the wire
-        // dv.currentTWR moved to CLEAN_HOMES (R6): derived on vessel.state.twr
-        // off vessel.propulsion — see the R6 shared-derivations test above.
+        // dv.currentTWR moved to CLEAN_HOMES: derived on vessel.state.twr
+        // off vessel.propulsion — see the shared-derivations test above.
         // comm.signalDelay moved to CLEAN_HOMES (Step-3): comms.delay is live
         // on the wire — see the dedicated comm.signalDelay test above.
       ];

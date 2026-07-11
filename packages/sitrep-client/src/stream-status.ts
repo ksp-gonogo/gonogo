@@ -1,6 +1,6 @@
 /**
- * The staleness/absence surface (M2 design §4, "carries M1 finding B") — the
- * status a topic (raw or derived) is in, from the operator's point of view.
+ * The staleness/absence surface — the status a topic (raw or derived) is
+ * in, from the operator's point of view.
  * Rides alongside the value, never inside it (the `useKosScriptStatus`
  * pattern) — see `use-stream-status.ts`.
  *
@@ -9,8 +9,8 @@
  *   know: either client-inferred from missed heartbeat keyframes
  *   (`HeartbeatTracker`, NEVER from `validAt` age — see that file's doc), or
  *   server-stamped (`meta.staleness === HeldStale`) on catch-up.
- * - `"disconnected"` — the whole TRANSPORT (WS) is down (M2 design §4.3's
- *   "transport-down short-circuit", finding B item 1): rather than letting
+ * - `"disconnected"` — the whole TRANSPORT (WS) is down (the
+ *   "transport-down short-circuit"): rather than letting
  *   every topic independently drift into `"held-stale"` on its own
  *   heartbeat margin, a `TimelineStore.setTransportConnected(false)` call
  *   marks every topic with confirmed data `"disconnected"` immediately.
@@ -22,12 +22,12 @@
  *   sample that got out before a blackout the Courier already knew about
  *   when it served this point.
  * - `"absent"` — a tombstone (`payload: null`): the subject confidently says
- *   "there is no value" (M1 finding B). Distinct from `"held-stale"` — the
- *   two things an operator most needs to tell apart (M2 design §4.2). Also
- *   distinct from `"disconnected"`: absence is a confirmed fact about the
- *   SUBJECT, link-down is a fact about the TRANSPORT — orthogonal axes (M2
- *   design §4). A tombstoned topic reads `"absent"` even while the transport
- *   is down; link-down never masks a confirmed subject-absence.
+ *   "there is no value". Distinct from `"held-stale"` — the two things an
+ *   operator most needs to tell apart. Also distinct from `"disconnected"`:
+ *   absence is a confirmed fact about the SUBJECT, link-down is a fact about
+ *   the TRANSPORT — orthogonal axes. A tombstoned topic reads `"absent"`
+ *   even while the transport is down; link-down never masks a confirmed
+ *   subject-absence.
  * - `"resyncing"` — no point at-or-before the current `viewUt` yet in this
  *   epoch: cold start, or resynchronizing after a rewind until the first
  *   post-reset keyframe lands. Mirrors `useTimelineStream`'s `undefined`.
@@ -70,9 +70,9 @@ const STATUS_SEVERITY: Record<StreamStatusValue, number> = {
 };
 
 /**
- * The worst (highest-severity) status among a set of inputs — M2 design
- * §4.4: "derived channels propagate the worst input staleness into their
- * own status" (e.g. `vessel.state`, see `vessel-state.ts`'s
+ * The worst (highest-severity) status among a set of inputs: derived
+ * channels propagate the worst input staleness into their own status
+ * (e.g. `vessel.state`, see `vessel-state.ts`'s
  * `deriveVesselStateStatus`). An empty list is vacuously `"live"` — no
  * `DerivedChannelDefinition` should actually declare zero inputs and rely on
  * this default in practice.

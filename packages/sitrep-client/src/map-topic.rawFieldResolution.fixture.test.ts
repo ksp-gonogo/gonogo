@@ -6,11 +6,11 @@ import { isCiEnvironment } from "./ci-env";
 import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
 
 /**
- * M3 batch-2 fixture hardening: the deeper half of
+ * Fixture hardening: the deeper half of
  * `map-topic.rawFieldRoots.coverage.test.ts`'s guarantee. That test only
  * checks that a raw-field target's `<domain>.<channel>` ROOT names a real
  * published topic — it does NOT walk the rest of the dotted path against a
- * real payload, so it could never have caught the M3 batch-1
+ * real payload, so it could never have caught the
  * `vessel.resources` bug (a correct root, wrong field PATH one layer
  * deeper — see `map-topic.ts`'s doc comment on the resource regex) or any
  * of its siblings hiding in a channel the old 6-topic reference wire
@@ -34,7 +34,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * is blanket-ignored). Regenerate via `dotnet test --filter
  * WireFixtureGeneratorTests` in `mod/`.
  *
- * M3 whole-branch review #2: skip-cleanly must NOT extend to CI. Before this
+ * Skip-cleanly must NOT extend to CI. Before this
  * fix, an absent fixture made this whole suite a no-op `it("SKIPPED: …")`
  * everywhere, including CI — the deepest guard against a bad/drifted
  * raw-field mapping was effectively never run there, so a bad mapping could
@@ -66,7 +66,7 @@ const fixtureExists = existsSync(fixturePath);
 /**
  * All per-domain reference wire fixtures (`reference-wire-fixture*.json`) —
  * the base 15-channel one plus the per-domain captures
- * (`-dock`/`-maneuver`/`-comms`/`-career`, M3 fixture-family additions,
+ * (`-dock`/`-maneuver`/`-comms`/`-career`,
  * `WireFixtureGeneratorTests.cs`). A raw-field target's channel may only be
  * captured in a per-domain fixture (e.g. `vessel.dock.*` lives ONLY in
  * `reference-wire-fixture-dock.json`, since `vessel.dock` is null in the base
@@ -109,7 +109,7 @@ function resolvesFieldPath(payload: unknown, fieldPath: string[]): boolean {
   return true;
 }
 
-// M3 whole-branch review #2: in CI, a missing fixture must fail loudly, not
+// In CI, a missing fixture must fail loudly, not
 // silently skip (see this file's doc comment). `describe.skipIf` only ever
 // skips (never fails), so the CI case gets its OWN always-failing suite
 // instead of reusing the skip path.
@@ -199,7 +199,7 @@ describe.skipIf(!fixtureExists)(
     // The parametric `r.resource[X]`/`r.resourceMax[X]` family isn't a
     // static CLEAN_HOMES entry (mapTopic generates its target via regex —
     // see RESOURCE_VESSEL_TOTAL in map-topic.ts) but resolves through the
-    // exact same raw-field mechanism, and is the concrete M3 batch-1 bug
+    // exact same raw-field mechanism, and is the concrete bug
     // this whole test family exists to prevent a recurrence of. Proven
     // directly against a real resource name captured in the fixture.
     it("the r.resource[X] parametric mapping resolves against a real vessel.resources payload", async () => {

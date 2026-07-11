@@ -15,14 +15,14 @@ import type { Transport, TransportStatus } from "./transport";
  * `recordingFile`, `frameCount`, `epochsSeen`, ...) are simply ignored.
  *
  * `frames` are each the EXACT raw wire text of one captured frame (a
- * `JSON.stringify`'d `ServerMessage` — `stream-data` or `event`, per M3
- * Wave 0's spec), same convention as the C# generator and
+ * `JSON.stringify`'d `ServerMessage` — `stream-data` or `event`), same
+ * convention as the C# generator and
  * `reference-wire-fixture.test.ts`'s own driver loop.
  */
 export interface ReplayFixture {
   /**
    * The topics this recording session subscribed to — the transport's own
-   * `carriedChannels` declaration (M3 Wave 0 carried-channels gate,
+   * `carriedChannels` declaration (the carried-channels gate,
    * `./carried-channels.ts`) is built straight from this list. Optional:
    * when omitted, `ReplayTransport` derives the same set itself from the
    * distinct `topic` fields actually present across `frames`.
@@ -35,7 +35,7 @@ export interface ReplayTransportOptions {
   /**
    * Drives WHEN each frame is delivered. Never real wall time — this is the
    * whole point of `ReplayTransport` as the no-KSP iteration engine
-   * (`m3-migration-plan.md` §4-transport): a test (or a headless replay
+   * (see `m3-migration-plan.md`): a test (or a headless replay
    * screen) injects a deterministic clock so "replay this recorded flight"
    * never races a real timer. `schedule`'s time domain must match the
    * fixture's own `meta.deliveredAt` units (UT seconds, same convention as
@@ -68,7 +68,7 @@ function isDataOrEventFrame(
  * A `Transport` that replays a captured wire recording (the
  * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honoring
  * each frame's own `meta.deliveredAt` cadence under an INJECTED clock — the
- * M3 Wave 0 no-KSP iteration engine (`m3-migration-plan.md` §4-transport):
+ * no-KSP iteration engine (see `m3-migration-plan.md`):
  * "lets the whole dashboard run off the recording headlessly... with no KSP
  * restarts and no deployed mod — the recording is the iteration engine."
  *
@@ -84,7 +84,7 @@ function isDataOrEventFrame(
  *   — so a fixture recorded against an arbitrary in-game UT replays correctly
  *   against a test clock that starts at 0, or a production clock that starts
  *   at "now".
- * - **`carriedChannels`** (M3 Wave 0 carried-channels gate,
+ * - **`carriedChannels`** (the carried-channels gate,
  *   `./carried-channels.ts`) is declared statically at construction as
  *   EXACTLY the fixture's topic set — `TelemetryProvider` reads this
  *   straight through `client.declaredChannels`, so a screen mounted with a

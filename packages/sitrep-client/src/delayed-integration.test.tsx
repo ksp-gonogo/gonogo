@@ -12,8 +12,8 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-// This is the M3 milestone's end-to-end proof: the SAME hooks/client/provider
-// from M2 (`integration.test.tsx`), now wired to the REAL delay-modelling
+// This is the end-to-end proof: the SAME hooks/client/provider
+// from `integration.test.tsx`, now wired to the REAL delay-modelling
 // server stack instead of `StubTransport` — `ManualClock` + `StubNetwork` +
 // `Courier` + `CourierTransport`, imported from the `@ksp-gonogo/sitrep-server`
 // package. The dependency graph is the natural DAG
@@ -28,8 +28,8 @@ import { useCommand } from "./use-command";
 import { useStream } from "./use-stream";
 
 /**
- * One component exercising both hooks, same shape as M2's `MissionPanel` in
- * `integration.test.tsx` — the milestone's point is that NEITHER hook nor the
+ * One component exercising both hooks, same shape as the `MissionPanel` in
+ * `integration.test.tsx` — the point is that NEITHER hook nor the
  * component changes when the transport underneath starts modelling delay.
  */
 function MissionPanel() {
@@ -95,7 +95,7 @@ describe("sitrep delayed comms end-to-end (M3)", () => {
     // clock-driven state update outside any DOM event, so it needs an
     // explicit act() (fireEvent wraps this automatically; a bare
     // ManualClock.advanceTo() call doesn't). The re-render itself lands one
-    // animation frame later (M2 finalization Fix 1's coalesced
+    // animation frame later (the coalesced
     // `beginFrame()`), hence `waitFor` rather than a synchronous assertion.
     act(() => {
       clock.advanceTo(2);

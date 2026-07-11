@@ -214,7 +214,7 @@ describe("ActionGroupComponent", () => {
     });
 
     // Renders the slot props so the test proves the parent's group context
-    // flows through to the augment (spec §4.4), not merely that it mounted.
+    // flows through to the augment, not merely that it mounted.
     function TestBadge({ groupId, stateLabel }: ActionGroupSlotContext) {
       return (
         <span>

@@ -1,5 +1,5 @@
 // Type-level proof that `objectives.sections` is a genuinely TYPED-CONTRACT slot
-// (Uplink architecture spec §4.4 / §4.9) — the dogfood's whole point.
+// — the dogfood's whole point.
 //
 // Checked by `tsc` (the package `typecheck`), NOT the vitest runner: a
 // `*.test-d.ts` file is not matched by the test tsconfig's `*.test.ts` exclude,

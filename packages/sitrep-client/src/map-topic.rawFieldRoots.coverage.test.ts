@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
 
 /**
- * M3 batch-1 harness hardening: guards the structural assumption
+ * Harness hardening: guards the structural assumption
  * `TimelineStore.resolveRawFieldSubtopic` (`timeline-store.ts`) bakes in —
  * that any `mapTopic` target of the raw-field form `<domain>.<channel>.
  * <field...>` (3+ dot segments, NOT a derived-channel field subtopic) names
@@ -17,7 +17,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * `isUnresolvableField` (that guard only covers the derived-channel phantom-
  * field case, see the comment there). This test is the missing static check
  * for the raw-field half of that same risk. The exact bug this test would
- * have caught: the M3 batch-1 `vessel.resources` fix (see `map-topic.ts`'s
+ * have caught: the `vessel.resources` fix (see `map-topic.ts`'s
  * doc comment on the resource regex) was a field-PATH bug inside a correct
  * root, one layer deeper than what this test checks — this test guards the
  * ROOT only, which is the cheap, mechanically-checkable half of the
@@ -49,21 +49,21 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   "vessel.target",
   "vessel.crew",
   "vessel.structure",
-  // M3 R3 capture-adds (VesselViewProvider.cs's DockTopic/SurfaceTopic).
+  // VesselViewProvider.cs's DockTopic/SurfaceTopic capture-adds.
   "vessel.dock",
   "vessel.surface",
   "time.warp",
   "system.bodies",
-  // SystemViewProvider.cs's VesselsTopic (M3 vessel-gap batch roster add).
+  // SystemViewProvider.cs's VesselsTopic (roster add).
   "system.vessels",
-  // CareerViewProvider.cs's Topic (M3 career batch).
+  // CareerViewProvider.cs's Topic.
   "career.status",
-  // CareerViewProvider.cs's ModeTopic (P4a client-derivations batch, D1).
+  // CareerViewProvider.cs's ModeTopic (client-derivations, D1).
   "career.mode",
   // Comms uplink channels (CommsCoreUplink / RealAntennasUplink). comms.delay
   // is the TrueNow signal-delay channel behind comm.signalDelay.
   "comms.delay",
-  // P4a shared-map batch: remaining raw-field-walk roots.
+  // Remaining raw-field-walk roots.
   // SystemViewProvider.cs's DlcTopic (deployed.available).
   "game.dlc",
   // PartsViewProvider.cs's RoboticsAvailableTopic (robotics.available).
