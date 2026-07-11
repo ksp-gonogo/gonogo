@@ -1684,3 +1684,163 @@ describe("R6 closestApproachUt — vessel.state.closestApproachUt (o.closestTgtA
     expect(deriveVesselState(get, 0)?.closestApproachUt).toBeNull();
   });
 });
+
+describe("landing scalars — vessel.state.landing* (land.timeToImpact/speedAtImpact/bestSpeedAtImpact/suicideBurnCountdown)", () => {
+  // Synthetic body chosen so gravity is a round g = mu/(radius+altitudeAsl)²:
+  // mu = 8e10, radius = 200_000, altitudeAsl = 0 → g = 8e10/200000² = 2.0 m/s².
+  const LANDING_BODIES: SystemBodiesPayload = {
+    bodies: [
+      {
+        name: "Testmun",
+        index: 3,
+        parentIndex: 0,
+        radius: 200_000,
+        orbit: null,
+      },
+    ],
+  };
+  const LANDING_ORBIT: VesselOrbitPayload = {
+    referenceBodyIndex: 3,
+    sma: 250_000,
+    ecc: 0,
+    inc: 0,
+    lan: null,
+    argPe: null,
+    meanAnomalyAtEpoch: 0,
+    epoch: 0,
+    mu: 8e10,
+  };
+  // availableThrust/totalMass = 6 m/s² → TWR = 3 over g = 2.
+  const LANDING_PROP: VesselPropulsionPayload = {
+    totalMass: 1,
+    dryMass: 0.5,
+    currentThrust: 0,
+    availableThrust: 6,
+  };
+  // Descending at 10 m/s (vDown = 10), 20 m/s surface speed, 100 m above terrain.
+  const DESCENT_FLIGHT: VesselFlightPayload = {
+    latitude: 0,
+    longitude: 0,
+    altitudeAsl: 0,
+    altitudeTerrain: 100,
+    verticalSpeed: -10,
+    surfaceSpeed: 20,
+    orbitalSpeed: 20,
+    gForce: 0,
+    dynamicPressureKPa: 0,
+    mach: 0,
+    atmDensity: 0,
+  };
+
+  function landingGet(
+    flightOver: Partial<VesselFlightPayload> = {},
+    opts: {
+      quality?: Quality;
+      orbit?: VesselOrbitPayload;
+      noBodies?: boolean;
+      noProp?: boolean;
+      prop?: VesselPropulsionPayload;
+    } = {},
+  ): DerivedGet {
+    return getFrom({
+      "vessel.orbit": orbitPoint(opts.orbit ?? LANDING_ORBIT, {
+        quality: opts.quality ?? Quality.Loaded,
+      }),
+      "vessel.flight": flightPoint({ ...DESCENT_FLIGHT, ...flightOver }),
+      "system.bodies": opts.noBodies ? undefined : bodiesPoint(LANDING_BODIES),
+      "vessel.propulsion": opts.noProp
+        ? undefined
+        : pt(opts.prop ?? LANDING_PROP, Quality.Loaded),
+    });
+  }
+
+  it("derives the full ballistic set on a descent (g=2, h=100, vDown=10, aMax=6)", () => {
+    const s = deriveVesselState(landingGet(), 0);
+    // t = (-10 + √(10² + 2·2·100)) / 2 = (-10 + √500)/2
+    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
+    // √(20² + 2·2·100) = √800
+    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
+    // aNet = 6-2 = 4, burn d = 10²/(2·4) = 12.5 ≤ 100 → perfect landing reachable
+    expect(s?.landingBestSpeedAtImpact).toBe(0);
+    // ignition at h-d = 87.5: t = (-10 + √(100 + 2·2·87.5))/2 = (-10 + √450)/2
+    expect(s?.landingSuicideBurnCountdown).toBeCloseTo(
+      (-10 + Math.sqrt(450)) / 2,
+      6,
+    );
+  });
+
+  it("gravity uses altitudeAsl, not just the body radius (r = radius + altitudeAsl)", () => {
+    // altitudeAsl = 200_000 → r = 400_000 → g = 8e10/400000² = 0.5 m/s².
+    const s = deriveVesselState(landingGet({ altitudeAsl: 200_000 }), 0);
+    // t = (-10 + √(100 + 2·0.5·100)) / 0.5 = (-10 + √200)/0.5
+    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(200)) / 0.5, 6);
+  });
+
+  it("residual best-speed is positive when the burn can't fit (d > h)", () => {
+    // h = 5, d = 12.5 > 5 → best = √(vDown² - 2·aNet·h) = √(100 - 40) = √60,
+    // and ignition height 5 - 12.5 < 0 → IGNITE now (countdown 0).
+    const s = deriveVesselState(landingGet({ altitudeTerrain: 5 }), 0);
+    expect(s?.landingBestSpeedAtImpact).toBeCloseTo(Math.sqrt(60), 6);
+    expect(s?.landingSuicideBurnCountdown).toBe(0);
+  });
+
+  it("burn fields are null when thrust can't beat gravity (TWR ≤ 1)", () => {
+    // aMax = 1 < g = 2.
+    const s = deriveVesselState(
+      landingGet({}, { prop: { ...LANDING_PROP, availableThrust: 1 } }),
+      0,
+    );
+    // Impact fields still derive (no thrust needed for a ballistic fall).
+    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
+    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
+    expect(s?.landingBestSpeedAtImpact).toBeNull();
+    expect(s?.landingSuicideBurnCountdown).toBeNull();
+  });
+
+  it("impact fields still derive with no vessel.propulsion; burn fields null", () => {
+    const s = deriveVesselState(landingGet({}, { noProp: true }), 0);
+    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
+    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
+    expect(s?.landingBestSpeedAtImpact).toBeNull();
+    expect(s?.landingSuicideBurnCountdown).toBeNull();
+  });
+
+  it("all four are null when not descending (verticalSpeed ≥ 0)", () => {
+    const climbing = deriveVesselState(landingGet({ verticalSpeed: 10 }), 0);
+    expect(climbing?.landingTimeToImpact).toBeNull();
+    expect(climbing?.landingSpeedAtImpact).toBeNull();
+    expect(climbing?.landingBestSpeedAtImpact).toBeNull();
+    expect(climbing?.landingSuicideBurnCountdown).toBeNull();
+
+    const level = deriveVesselState(landingGet({ verticalSpeed: 0 }), 0);
+    expect(level?.landingTimeToImpact).toBeNull();
+  });
+
+  it("all four are null at or below the terrain (altitudeTerrain ≤ 0)", () => {
+    const s = deriveVesselState(landingGet({ altitudeTerrain: 0 }), 0);
+    expect(s?.landingTimeToImpact).toBeNull();
+    expect(s?.landingSpeedAtImpact).toBeNull();
+    expect(s?.landingBestSpeedAtImpact).toBeNull();
+    expect(s?.landingSuicideBurnCountdown).toBeNull();
+  });
+
+  it("all four are null without a system.bodies radius (can't compute gravity)", () => {
+    const s = deriveVesselState(landingGet({}, { noBodies: true }), 0);
+    expect(s?.landingTimeToImpact).toBeNull();
+    expect(s?.landingSpeedAtImpact).toBeNull();
+    expect(s?.landingBestSpeedAtImpact).toBeNull();
+    expect(s?.landingSuicideBurnCountdown).toBeNull();
+  });
+
+  it("all four are null in the propagated (OnRails) basis", () => {
+    const s = deriveVesselState(
+      landingGet({}, { quality: Quality.OnRails }),
+      0,
+    );
+    expect(s?.basis).toBe("propagated");
+    expect(s?.landingTimeToImpact).toBeNull();
+    expect(s?.landingSpeedAtImpact).toBeNull();
+    expect(s?.landingBestSpeedAtImpact).toBeNull();
+    expect(s?.landingSuicideBurnCountdown).toBeNull();
+  });
+});

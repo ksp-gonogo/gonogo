@@ -274,10 +274,35 @@ describe("mapTopic(sourceId, key) — the M3 useDataValue migration table", () =
     // strategies.all/tech.nodes/contracts.active/contracts.offered/
     // kc.facilityLevels were un-gapped in the M3b career-detail batch — see
     // the career.status mapping tests below. contracts.completedRecent was
-    // un-gapped in the P4a shared-map batch — see the dedicated test below.)
-    expect(mapTopic("data", "land.speedAtImpact")).toBeUndefined();
-    expect(mapTopic("data", "land.timeToImpact")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(true);
+    // un-gapped in the P4a shared-map batch — see the dedicated test below.
+    // The four ballistic land.* scalars were un-gapped as client-derived
+    // vessel.state.landing* — see the dedicated test below; the three
+    // terrain/trajectory land.* fields below stay gapped.)
+    expect(mapTopic("data", "land.predictedLat")).toBeUndefined();
+    expect(mapTopic("data", "land.predictedLon")).toBeUndefined();
+    expect(mapTopic("data", "land.slopeAngle")).toBeUndefined();
+    expect(isKnownTelemachusGap("data", "land.slopeAngle")).toBe(true);
+  });
+
+  it("maps the four ballistic land.* scalars onto vessel.state.landing*", () => {
+    expect(mapTopic("data", "land.timeToImpact")).toBe(
+      "vessel.state.landingTimeToImpact",
+    );
+    expect(mapTopic("data", "land.speedAtImpact")).toBe(
+      "vessel.state.landingSpeedAtImpact",
+    );
+    expect(mapTopic("data", "land.bestSpeedAtImpact")).toBe(
+      "vessel.state.landingBestSpeedAtImpact",
+    );
+    expect(mapTopic("data", "land.suicideBurnCountdown")).toBe(
+      "vessel.state.landingSuicideBurnCountdown",
+    );
+    expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(false);
+    expect(isKnownTelemachusGap("data", "land.speedAtImpact")).toBe(false);
+    expect(isKnownTelemachusGap("data", "land.bestSpeedAtImpact")).toBe(false);
+    expect(isKnownTelemachusGap("data", "land.suicideBurnCountdown")).toBe(
+      false,
+    );
   });
 
   it("maps the M3 career batch's economy scalars onto career.status", () => {

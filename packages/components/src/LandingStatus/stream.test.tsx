@@ -1,52 +1,50 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * The M3 batch-3 stream test-adapter proof for LandingStatus (mirrors
- * `ThermalStatus/stream.test.tsx`, batch 1 / `AtmosphereProfile/stream.test.tsx`,
- * batch 2): genuinely running off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` — no legacy
- * `DataSource` is registered anywhere in this file.
+ * LandingStatus genuinely running OFF THE STREAM (a real `TelemetryProvider`/
+ * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`) — no legacy
+ * `DataSource` is registered anywhere in this file, so a value only reaches the
+ * widget if it actually streamed.
  *
- * LandingStatus's keys split MAPPED / GAPPED (`map-topic.ts`):
- * - MAPPED: `v.heightFromTerrain` -> raw `vessel.flight.altitudeTerrain`,
- *   `v.verticalSpeed` -> raw `vessel.flight.verticalSpeed`,
- *   `v.atmosphericDensity` -> raw `vessel.flight.atmDensity`.
- * - GAPPED: `v.body` (needs a display-map subtopic), every `land.*` key
- *   (the whole suicide-burn/impact/prediction family — no channel exists
- *   yet), `v.atmosphericTemperature`/`v.externalTemperature` (G-11, not
- *   captured on the wire).
+ * The four ballistic `land.*` scalars (`timeToImpact`/`speedAtImpact`/
+ * `bestSpeedAtImpact`/`suicideBurnCountdown`) are now client-derived
+ * `vessel.state.landing*` fields (`vessel-state.ts` `deriveLanding`): a vacuum
+ * ballistic solve off `vessel.flight` + `vessel.orbit.mu` + the `system.bodies`
+ * radius + `vessel.propulsion`, MEASURED basis only. `noPrediction` (the gate
+ * deciding whether the metric `Body` or the `EmptyState` renders) is driven by
+ * `land.timeToImpact`, so with the descent streamed the full suicide-burn /
+ * impact / descent readout appears — no legacy source needed.
  *
- * `noPrediction` (the gate deciding whether the metrics `Body` or the
- * `EmptyState` renders) is driven entirely by the GAPPED `land.timeToImpact`
- * — so with no legacy source registered here, the widget's own DOM can
- * NEVER surface the 3 mapped `vessel.flight.*` values directly (the whole
- * metric grid, including the altitude/descent/ambient rows those 3 keys
- * feed, stays behind the gapped gate). This is the same "gated behind a
- * GAPPED dependency" shape `AtmosphereProfile` hit in batch 2 (there:
- * `v.body`; here: `land.timeToImpact`).
- *
- * Two proofs, matching that precedent:
- * 1. `verticalSpeed`'s sign is visible even through the gate — it drives
- *    `descending`, which flips the EmptyState's own copy ("No landing in
- *    progress" -> "Waiting for a landing prediction…") without needing the
- *    metric grid to render at all. That's a genuine DOM-visible proof for
- *    one of the three mapped keys.
- * 2. White-box `store.sample()` (mirroring `getStreamSnapshot`'s own call)
- *    for `heightFromTerrain`/`atmDensity`, which have no such DOM escape
- *    hatch while gapped.
+ * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs — the
+ * carried-channels gate is parent-channel-scoped, not per-field (see
+ * `vessel-state.ts`'s `vesselStateChannel` doc comment). `vessel.orbit` is
+ * emitted with `{ quality: Quality.Loaded }` so the derivation runs the
+ * MEASURED branch (the landing scalars are null in the propagated basis).
+ * Gravity uses a synthetic body (mu = 8e10, radius = 200_000 → g = 2 m/s² at
+ * sea level) so the arithmetic is easy to reason about.
  */
 afterEach(() => {
   cleanup();
 });
 
-describe("LandingStatus — genuinely runs off the stream (M3 batch 3)", () => {
-  it("reads heightFromTerrain/verticalSpeed/atmosphericDensity off the real stream pipeline, not legacy", async () => {
+describe("LandingStatus — derived landing scalars genuinely run off the stream", () => {
+  it("shows the suicide-burn / impact readout from the derived vessel.state.landing* fields, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight"],
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
       pinnedUt: 10,
     });
 
@@ -58,47 +56,82 @@ describe("LandingStatus — genuinely runs off the stream (M3 batch 3)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet — verticalSpeed undefined, so descending is
-    // false and the widget shows the non-descending empty copy.
+    // Nothing arrived yet — the empty state shows.
     expect(container.textContent).toContain("No landing in progress");
 
-    // A real subscription must have happened for this to deliver at all —
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for StubTransport (which is
+    // subscription-gated) to deliver at all.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
 
     act(() => {
+      // Loaded quality -> measured branch, where the landing scalars are live.
+      fixture.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 3,
+          sma: 250_000,
+          ecc: 0,
+          inc: 0,
+          argPe: 0,
+          mu: 8e10,
+          meanAnomalyAtEpoch: 0,
+          epoch: 10,
+        },
+        { quality: Quality.Loaded },
+      );
+      // Descending at 42.5 m/s, 2800 m above terrain, at sea level (r = radius).
       fixture.emit("vessel.flight", {
+        altitudeAsl: 0,
         altitudeTerrain: 2800,
         verticalSpeed: -42.5,
-        atmDensity: 0.087,
+        surfaceSpeed: 50,
+        orbitalSpeed: 50,
+        atmDensity: 0,
+      });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Testmun",
+            index: 3,
+            parentIndex: 0,
+            radius: 200_000,
+            orbit: null,
+          },
+        ],
+      });
+      // aMax = availableThrust/totalMass = 6 m/s² -> TWR 3 over g = 2.
+      fixture.emit("vessel.propulsion", {
+        totalMass: 1,
+        dryMass: 0.5,
+        currentThrust: 0,
+        availableThrust: 6,
       });
     });
 
-    // Proof 1: verticalSpeed's sign flips the EmptyState copy — visible
-    // even though land.timeToImpact (GAPPED) keeps the metric grid hidden.
+    // The derived land.timeToImpact opens the gate — the full readout renders.
     await waitFor(() => {
-      if (
-        !container.textContent?.includes("Waiting for a landing prediction")
-      ) {
-        throw new Error("stream leg has not propagated verticalSpeed yet");
+      if (!container.textContent?.includes("Impact in")) {
+        throw new Error(
+          "derived landing scalars have not streamed through yet",
+        );
       }
     });
-    // land.* is entirely gapped/legacy with no source here — the metric
-    // grid never appears.
-    expect(container.textContent).not.toContain("Impact in");
+    expect(container.textContent).toContain("Suicide burn");
+    expect(container.textContent).not.toContain("No landing in progress");
+    expect(container.textContent).not.toContain(
+      "Waiting for a landing prediction",
+    );
 
-    // Proof 2: sample the SAME topics useDataValue's stream path reads
-    // (getStreamSnapshot's own store.sample(topic, store.currentFrame()))
-    // for the two mapped fields with no DOM escape hatch of their own.
-    const heightFromTerrain = fixture.store.sample<number>(
-      "vessel.flight.altitudeTerrain",
+    // White-box: the same derived field useDataValue's stream path reads is a
+    // finite number in the store — proving it went through the derivation, not
+    // a legacy fallback that isn't wired here.
+    const timeToImpact = fixture.store.sample<number>(
+      "vessel.state.landingTimeToImpact",
       fixture.store.currentFrame(),
     );
-    expect(heightFromTerrain?.payload).toBe(2800);
-    const atmDensity = fixture.store.sample<number>(
-      "vessel.flight.atmDensity",
-      fixture.store.currentFrame(),
+    expect(timeToImpact?.payload).toBeCloseTo(
+      (-42.5 + Math.sqrt(42.5 * 42.5 + 2 * 2 * 2800)) / 2,
+      4,
     );
-    expect(atmDensity?.payload).toBe(0.087);
   });
 });

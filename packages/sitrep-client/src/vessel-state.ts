@@ -584,6 +584,51 @@ export interface VesselState {
    * degenerate solve.
    */
   closestApproachUt: number | null | undefined;
+  /**
+   * Seconds until a no-burn ballistic vacuum fall reaches the terrain below —
+   * the positive root of `altitudeTerrain = vDown·t + ½·g·t²` (old Telemachus
+   * `land.timeToImpact`, LandingStatus). `g = mu/(radius+altitudeAsl)²` off
+   * `vessel.orbit.mu` + the `system.bodies` radius; `vDown = -verticalSpeed`.
+   * A vacuum approximation — ignores atmospheric drag, so on an atmospheric
+   * body it's an upper bound. MEASURED basis only (reads `vessel.flight`);
+   * `null` in the propagated basis, when not descending (`verticalSpeed ≥ 0`),
+   * at or below the terrain (`altitudeTerrain ≤ 0`), or when a required input
+   * (`system.bodies` radius, a finite `mu`) is missing.
+   */
+  landingTimeToImpact: number | null;
+  /**
+   * Speed at terrain impact with no burn, m/s — `√(surfaceSpeed² + 2·g·h)`,
+   * the current surface speed with the potential energy of the remaining drop
+   * added as kinetic energy (old Telemachus `land.speedAtImpact`,
+   * LandingStatus). Uses the full `surfaceSpeed` magnitude, not just the
+   * vertical component. Same vacuum approximation, inputs, basis and `null`
+   * discipline as `landingTimeToImpact`.
+   */
+  landingSpeedAtImpact: number | null;
+  /**
+   * Residual speed at impact if a full-thrust retro burn starts NOW and runs
+   * out of altitude before nulling velocity, m/s (old Telemachus
+   * `land.bestSpeedAtImpact`, LandingStatus). `0` when the burn distance
+   * `d = vDown²/(2·aNet)` fits within `altitudeTerrain` (a perfect landing is
+   * reachable), else `√(vDown² − 2·aNet·h)`, with `aNet = availableThrust/
+   * totalMass − g` the net deceleration. Uses the vertical descent component
+   * `vDown` (vacuum-vertical model, matching `landingSuicideBurnCountdown`).
+   * `null` when thrust can't overcome gravity (`aMax ≤ g`, TWR ≤ 1) plus the
+   * same basis/input/`null` discipline as `landingTimeToImpact`.
+   */
+  landingBestSpeedAtImpact: number | null;
+  /**
+   * Seconds until the latest-possible full-thrust suicide burn must ignite to
+   * null out velocity exactly at the terrain (old Telemachus
+   * `land.suicideBurnCountdown`, LandingStatus). Solves the ballistic fall to
+   * the ignition altitude `altitudeTerrain − d`, where `d = vDown²/(2·aNet)`
+   * is the burn distance and `aNet = availableThrust/totalMass − g`. `0`
+   * ("IGNITE") when already at or past that altitude; `null` when thrust can't
+   * overcome gravity (`aMax ≤ g`, TWR ≤ 1). Uses the vertical descent
+   * component `vDown` (vacuum-vertical model). Same basis/input/`null`
+   * discipline as `landingTimeToImpact`.
+   */
+  landingSuicideBurnCountdown: number | null;
   /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
   basis: "propagated" | "measured";
   /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
@@ -1327,6 +1372,122 @@ function deriveClosestApproachUt(
  * same not-whole-yet reason; a tombstoned `vessel.flight` is `null`. Never a
  * fabricated zero-valued record either way.
  */
+/** The four `null`-when-not-derivable landing scalars `deriveLanding` produces. */
+interface LandingDerivations {
+  landingTimeToImpact: number | null;
+  landingSpeedAtImpact: number | null;
+  landingBestSpeedAtImpact: number | null;
+  landingSuicideBurnCountdown: number | null;
+}
+
+/** All four landing scalars `null` — the propagated basis and the not-derivable measured case. */
+const LANDING_NONE: LandingDerivations = {
+  landingTimeToImpact: null,
+  landingSpeedAtImpact: null,
+  landingBestSpeedAtImpact: null,
+  landingSuicideBurnCountdown: null,
+};
+
+/**
+ * The four client-derived ballistic landing scalars (`vessel.state.landing*`,
+ * old Telemachus `land.timeToImpact`/`speedAtImpact`/`bestSpeedAtImpact`/
+ * `suicideBurnCountdown`), MEASURED basis only. Every input is already on the
+ * wire and carried — no terrain asset, no drag model, no mod-side channel:
+ *
+ * - `g = mu/(radius+altitudeAsl)²`, gravitational acceleration at the current
+ *   radius. `mu` is the parent body's GM off `vessel.orbit.mu` (a physical
+ *   body constant, valid even in the Loaded basis where the orbital ELEMENTS
+ *   are osculating garbage); `radius` is the reference body's mean radius from
+ *   `system.bodies` (same lookup as `deriveApsides`).
+ * - `h = altitudeTerrain` (height above terrain), `vDown = -verticalSpeed`
+ *   (positive downward), `vSurf = surfaceSpeed` — all off `vessel.flight`.
+ * - `aMax = availableThrust/totalMass` (kN/t = m/s²) off `vessel.propulsion`.
+ *
+ * All four are `null` unless the vessel is descending toward terrain that's
+ * still below it (`verticalSpeed < 0` and `h > 0`) and `g` resolves finite and
+ * positive; the two burn-dependent fields are additionally `null` when thrust
+ * can't overcome gravity (`aMax ≤ g`). The impact-energy field (`speedAtImpact`)
+ * uses the full surface-speed magnitude; the two burn fields use the vertical
+ * component `vDown` (a vacuum-vertical descent model). Vacuum throughout —
+ * ignores atmospheric drag, so on an atmospheric body these are upper bounds
+ * (the widget already labels that case "treat as upper bound").
+ */
+function deriveLanding(
+  get: DerivedGet,
+  orbit: VesselOrbitPayload,
+  flight: VesselFlightPayload,
+): LandingDerivations {
+  const h = flight.altitudeTerrain;
+  const vDown = -flight.verticalSpeed;
+  // Only meaningful while descending toward terrain still below the vessel.
+  if (!(h > 0) || !(vDown > 0)) return LANDING_NONE;
+
+  const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
+  if (radius == null) return LANDING_NONE;
+  const g =
+    orbit.mu / ((radius + flight.altitudeAsl) * (radius + flight.altitudeAsl));
+  if (!(g > 0) || !Number.isFinite(g)) return LANDING_NONE;
+
+  // Ballistic no-burn fall to terrain: positive root of ½g·t² + vDown·t − h = 0.
+  const timeToImpact = finiteOrNull(
+    (-vDown + Math.sqrt(vDown * vDown + 2 * g * h)) / g,
+  );
+  // Impact speed with no burn — full surface speed plus the drop's added energy.
+  const speedAtImpact = finiteOrNull(
+    Math.sqrt(flight.surfaceSpeed * flight.surfaceSpeed + 2 * g * h),
+  );
+
+  const aMax = deriveMaxAccel(get);
+  // A suicide burn needs net deceleration — thrust must beat gravity (TWR > 1).
+  if (aMax == null || !(aMax > g)) {
+    return {
+      landingTimeToImpact: timeToImpact,
+      landingSpeedAtImpact: speedAtImpact,
+      landingBestSpeedAtImpact: null,
+      landingSuicideBurnCountdown: null,
+    };
+  }
+
+  const aNet = aMax - g;
+  // Distance to null out the vertical descent at full thrust.
+  const burnDistance = (vDown * vDown) / (2 * aNet);
+  // Best (minimum) impact speed if the burn starts now: 0 when the burn fits,
+  // else the residual after decelerating across all remaining altitude.
+  const bestSpeedAtImpact =
+    burnDistance <= h
+      ? 0
+      : finiteOrNull(Math.sqrt(Math.max(0, vDown * vDown - 2 * aNet * h)));
+  // Countdown to the latest ignition: ballistic fall to the ignition altitude
+  // (h − burnDistance). 0 ("IGNITE") once already at or past it.
+  const ignitionHeight = h - burnDistance;
+  const suicideBurnCountdown =
+    ignitionHeight <= 0
+      ? 0
+      : finiteOrNull(
+          (-vDown + Math.sqrt(vDown * vDown + 2 * g * ignitionHeight)) / g,
+        );
+
+  return {
+    landingTimeToImpact: timeToImpact,
+    landingSpeedAtImpact: speedAtImpact,
+    landingBestSpeedAtImpact: bestSpeedAtImpact,
+    landingSuicideBurnCountdown: suicideBurnCountdown,
+  };
+}
+
+/**
+ * Max achievable acceleration `availableThrust/totalMass` (kN/t = m/s²) off
+ * `vessel.propulsion` — the ceiling a suicide burn can pull. `null` when
+ * `vessel.propulsion` hasn't arrived, is a tombstone, or `totalMass ≤ 0`.
+ */
+function deriveMaxAccel(get: DerivedGet): number | null {
+  const point = get<VesselPropulsionPayload>("vessel.propulsion");
+  if (!point || point.payload === null) return null;
+  const { availableThrust, totalMass } = point.payload;
+  if (!(totalMass > 0)) return null;
+  return finiteOrNull(availableThrust / totalMass);
+}
+
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
@@ -1417,6 +1578,10 @@ export function deriveVesselState(
       ...deriveActionGroups(get),
       // Closest approach needs a propagated self conic — OnRails only.
       closestApproachUt: deriveClosestApproachUt(get, orbit, elements, viewUt),
+      // Landing scalars are surface-frame MEASURED quantities (read
+      // vessel.flight) — null in the propagated basis, like altitudeAsl/
+      // verticalSpeed/surfaceSpeed/horizontalSpeed above.
+      ...LANDING_NONE,
       basis: "propagated",
       subjectId,
     };
@@ -1489,6 +1654,9 @@ export function deriveVesselState(
     // Closest approach needs a propagated self conic (osculating garbage in
     // the measured basis) — OnRails only, null here.
     closestApproachUt: undefined,
+    // Ballistic landing scalars — LIVE here (measured basis), off vessel.flight
+    // + vessel.orbit.mu + the system.bodies radius + vessel.propulsion.
+    ...deriveLanding(get, orbit, flight),
     basis: "measured",
     subjectId,
   };

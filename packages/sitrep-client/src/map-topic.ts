@@ -246,6 +246,20 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.ag10Value": "vessel.state.actionGroup10",
   "o.closestTgtApprUT": "vessel.state.closestApproachUt",
 
+  // --- land.* ballistic scalars: closed-form vacuum landing solves derived
+  // client-side (vessel-state.ts `deriveLanding`) off channels already on the
+  // wire — no terrain asset, no drag model, no mod-side change. Gravity is
+  // `mu/(radius+altitudeAsl)²` from vessel.orbit.mu (parent-body GM, valid in
+  // the measured basis) + the system.bodies radius; the fall/burn kinematics
+  // are off vessel.flight; the suicide-burn thrust ceiling is off
+  // vessel.propulsion. MEASURED basis only (null while orbiting). The three
+  // remaining land.* keys (predictedLat/Lon/slopeAngle) need a trajectory
+  // integrator + terrain asset and stay in TELEMACHUS_KNOWN_GAPS below. ---
+  "land.timeToImpact": "vessel.state.landingTimeToImpact",
+  "land.speedAtImpact": "vessel.state.landingSpeedAtImpact",
+  "land.bestSpeedAtImpact": "vessel.state.landingBestSpeedAtImpact",
+  "land.suicideBurnCountdown": "vessel.state.landingSuicideBurnCountdown",
+
   // --- system.state (derived) — b.number is a plain COUNT; system.bodies is
   // the raw body ARRAY. `systemStateChannel` (system-state.ts) derives
   // `bodyCount = bodies.length` on its own SYSTEM-scoped derived channel
@@ -711,11 +725,16 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // now carries a `precisionControl` field — see TELEMACHUS_CLEAN_HOMES
   // above (shared with f.precisionControl).
 
-  // --- land.* — no channel; terrain-touching fields need a terrain asset ---
-  "land.timeToImpact",
-  "land.speedAtImpact",
-  "land.bestSpeedAtImpact",
-  "land.suicideBurnCountdown",
+  // --- land.* impact-point predictor — the three terrain/trajectory fields
+  // that AREN'T a closed-form scalar. predictedLat/Lon need a forward
+  // trajectory-to-surface integration de-rotated into the turning body frame
+  // (plus a drag model on atmospheric bodies); slopeAngle needs the terrain
+  // heightmap (PQS) sampled around the predicted point — a mod-side terrain
+  // asset. A separately-scoped impact-point-predictor feature, not folded in
+  // here. (The four ballistic SCALARS — timeToImpact/speedAtImpact/
+  // bestSpeedAtImpact/suicideBurnCountdown — are client-derived on
+  // vessel.state.landing* off vessel.flight + vessel.orbit.mu + the
+  // system.bodies radius + vessel.propulsion; see TELEMACHUS_CLEAN_HOMES.) ---
   "land.predictedLat",
   "land.predictedLon",
   "land.slopeAngle",
