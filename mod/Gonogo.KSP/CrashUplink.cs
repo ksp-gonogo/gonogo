@@ -65,14 +65,14 @@ namespace Gonogo.KSP
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Channel(CrashTopics.LastCrash, Delivery.ReliableOrdered),
+                Channel(CrashTopics.LastCrashTopic, Delivery.ReliableOrdered),
                 Channel(CrashTopics.HasRecent, Delivery.ReliableOrdered),
             },
         };
 
         public void Register(IUplinkHost host)
         {
-            _lastCrash = host.Publisher(CrashTopics.LastCrash);
+            _lastCrash = host.Publisher(CrashTopics.LastCrashTopic);
             _hasRecent = host.Publisher(CrashTopics.HasRecent);
 
             // Per-tick main-thread sample of the active vessel, feeding the

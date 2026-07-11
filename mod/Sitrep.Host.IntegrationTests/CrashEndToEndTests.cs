@@ -66,7 +66,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, CrashTopics.LastCrash, Timeout);
+                await SubscribeAsync(client, CrashTopics.LastCrashTopic, Timeout);
                 await SubscribeAsync(client, CrashTopics.HasRecent, Timeout);
 
                 const double ut = 41486.3595;
@@ -81,11 +81,11 @@ namespace Sitrep.Host.IntegrationTests
                     byTopic[delivered.Topic] = delivered;
                 }
 
-                Assert.True(byTopic.ContainsKey(CrashTopics.LastCrash));
+                Assert.True(byTopic.ContainsKey(CrashTopics.LastCrashTopic));
                 Assert.True(byTopic.ContainsKey(CrashTopics.HasRecent));
                 Assert.Equal(true, byTopic[CrashTopics.HasRecent].Payload);
 
-                var payload = Assert.IsType<Dictionary<string, object?>>(byTopic[CrashTopics.LastCrash].Payload);
+                var payload = Assert.IsType<Dictionary<string, object?>>(byTopic[CrashTopics.LastCrashTopic].Payload);
                 Assert.Equal("CrashSplashdown", payload["eventKind"]);
                 Assert.Equal("Ship", payload["vesselType"]);
                 Assert.Equal("career-orbital-test", payload["vesselName"]);
@@ -115,7 +115,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, CrashTopics.LastCrash, Timeout);
+                await SubscribeAsync(client, CrashTopics.LastCrashTopic, Timeout);
 
                 // Two distinct crashes, each published then ticked (mirroring
                 // two deaths at different flight times). The ReliableOrdered
@@ -128,7 +128,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(101.0, null, Timeout);
 
                 var frames = await DrainAllStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
-                var crashes = frames.FindAll(f => f.Topic == CrashTopics.LastCrash);
+                var crashes = frames.FindAll(f => f.Topic == CrashTopics.LastCrashTopic);
                 Assert.Equal(2, crashes.Count);
 
                 var firstPayload = Assert.IsType<Dictionary<string, object?>>(crashes[0].Payload);
@@ -160,7 +160,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {
-                    Channel(CrashTopics.LastCrash),
+                    Channel(CrashTopics.LastCrashTopic),
                     Channel(CrashTopics.HasRecent),
                 },
             };
@@ -175,7 +175,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host)
             {
-                LastCrash = host.Publisher(CrashTopics.LastCrash);
+                LastCrash = host.Publisher(CrashTopics.LastCrashTopic);
                 HasRecent = host.Publisher(CrashTopics.HasRecent);
             }
         }

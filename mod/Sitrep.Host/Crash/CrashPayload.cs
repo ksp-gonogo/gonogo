@@ -12,7 +12,7 @@ namespace Sitrep.Host.Crash
     /// </summary>
     public static class CrashTopics
     {
-        public const string LastCrash = "crash.lastCrash";
+        public const string LastCrashTopic = "crash.lastCrash";
         public const string HasRecent = "crash.hasRecent";
     }
 

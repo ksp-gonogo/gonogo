@@ -126,7 +126,7 @@ namespace Sitrep.Host.Tests
             var msg = new StreamData<object?>
             {
                 Type = "stream-data",
-                Topic = CrashTopics.LastCrash,
+                Topic = CrashTopics.LastCrashTopic,
                 Payload = dict,
                 Meta = new Meta
                 {

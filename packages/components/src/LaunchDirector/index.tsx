@@ -179,7 +179,7 @@ function LaunchDirectorComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
-  // M3 career batch: career.funds -> career.status.economy.funds is the one
+  // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
   // the balance" rule). kc.savedShips/kc.crewRoster and crash.hasRecent/
   // crash.lastCrash resolve to their own dedicated topics too (map-topic.ts).
