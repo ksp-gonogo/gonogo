@@ -7,9 +7,22 @@ import {
   useDataValue,
 } from "@ksp-gonogo/core";
 import { useScanAnomalies, useScanningVessels } from "@ksp-gonogo/data";
-import { Panel, PanelTitle, ScrollArea } from "@ksp-gonogo/ui";
+import {
+  Badge,
+  Card,
+  Cluster,
+  EmptyState,
+  Grid,
+  Panel,
+  PanelTitle,
+  ProgressBar,
+  ScrollArea,
+  Section,
+  SectionTitle,
+  Stack,
+  Value,
+} from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import styled from "styled-components";
 import { MinimapForActiveVessel } from "./Minimap";
 
 // ---------------------------------------------------------------------------
@@ -120,114 +133,140 @@ function ScanningComponent({
 
   return (
     <Panel>
-      <Header>
+      <Cluster>
         <PanelTitle>Scanning</PanelTitle>
         <AugmentSlot name="scanning.badges" props={slotProps} />
-      </Header>
+      </Cluster>
 
-      <Body>
-        {biome ? <BiomeStrip>Biome: {biome}</BiomeStrip> : null}
+      <ScrollArea>
+        <Stack gap="lg">
+          {biome ? (
+            <Card>
+              <Value size="sm" tone="default">
+                Biome: {biome}
+              </Value>
+            </Card>
+          ) : null}
 
-        {body ? (
+          {body ? (
+            <Section>
+              <SectionTitle>Live view</SectionTitle>
+              <MinimapForActiveVessel body={body} />
+            </Section>
+          ) : null}
+
           <Section>
-            <SectionTitle>Live view</SectionTitle>
-            <MinimapForActiveVessel body={body} />
+            <SectionTitle>Coverage — {bodyName ?? "?"}</SectionTitle>
+            {bodyName ? (
+              <Stack gap="xs">
+                {DISPLAY_SCAN_TYPES.map((type) => (
+                  <CoverageRow key={type} bodyName={bodyName} scanType={type} />
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState>No active body.</EmptyState>
+            )}
+            {/* Augment coverage rows (spec §4) — e.g. a resource-scanning Uplink
+                contributing its own scan-type coverage alongside SCANsat's.
+                Appended to the coverage list; empty until an Uplink registers. */}
+            <AugmentSlot name="scanning.sections" props={slotProps} />
           </Section>
-        ) : null}
 
-        <Section>
-          <SectionTitle>Coverage — {bodyName ?? "?"}</SectionTitle>
-          {bodyName ? (
-            <CoverageList>
-              {DISPLAY_SCAN_TYPES.map((type) => (
-                <CoverageRow key={type} bodyName={bodyName} scanType={type} />
-              ))}
-            </CoverageList>
-          ) : (
-            <EmptyState>No active body.</EmptyState>
-          )}
-          {/* Augment coverage rows (spec §4) — e.g. a resource-scanning Uplink
-              contributing its own scan-type coverage alongside SCANsat's.
-              Appended to the coverage list; empty until an Uplink registers. */}
-          <AugmentSlot name="scanning.sections" props={slotProps} />
-        </Section>
+          <Section>
+            <SectionTitle>Scanning vessels</SectionTitle>
+            {scanningVessels && scanningVessels.length > 0 ? (
+              <Stack gap="md">
+                {scanningVessels.map((v) => (
+                  <Card key={v.vesselId}>
+                    <Stack gap="xs">
+                      <Cluster>
+                        <Value size="sm" tone="default">
+                          {v.vesselName || "(unnamed)"}
+                        </Value>
+                        <Value size="xs" tone="muted">
+                          {v.body}
+                        </Value>
+                      </Cluster>
+                      <Value size="xs" tone="muted">
+                        sub-point {v.subLatitude.toFixed(2)},{" "}
+                        {v.subLongitude.toFixed(2)} · alt{" "}
+                        {Math.round(v.altitude / 1000).toLocaleString()} km
+                      </Value>
+                      <Stack gap="xs">
+                        {v.sensors.length === 0 ? (
+                          <EmptyState>No scanners.</EmptyState>
+                        ) : (
+                          v.sensors.map((s, i) => (
+                            <Grid
+                              // biome-ignore lint/suspicious/noArrayIndexKey: sensors don't have a stable id; index is the natural order
+                              key={i}
+                              cols="140px 1fr auto"
+                              gap="md"
+                            >
+                              <Value size="xs" tone="default">
+                                {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
+                              </Value>
+                              <Value size="xs" tone="muted">
+                                FoV {s.fov.toFixed(1)}° · alt{" "}
+                                {Math.round(s.minAlt / 1000)}–
+                                {Math.round(s.maxAlt / 1000)} km
+                              </Value>
+                              <Badge
+                                size="sm"
+                                tone={
+                                  s.bestRange
+                                    ? "go"
+                                    : s.inRange
+                                      ? "info"
+                                      : "neutral"
+                                }
+                              >
+                                {s.bestRange
+                                  ? "best"
+                                  : s.inRange
+                                    ? "scanning"
+                                    : "out of range"}
+                              </Badge>
+                            </Grid>
+                          ))
+                        )}
+                      </Stack>
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState>No vessels tracked by SCANsat yet.</EmptyState>
+            )}
+          </Section>
 
-        <Section>
-          <SectionTitle>Scanning vessels</SectionTitle>
-          {scanningVessels && scanningVessels.length > 0 ? (
-            <VesselList>
-              {scanningVessels.map((v) => (
-                <VesselCard key={v.vesselId}>
-                  <VesselHeader>
-                    <VesselName>{v.vesselName || "(unnamed)"}</VesselName>
-                    <VesselBody>{v.body}</VesselBody>
-                  </VesselHeader>
-                  <VesselMeta>
-                    sub-point {v.subLatitude.toFixed(2)},{" "}
-                    {v.subLongitude.toFixed(2)} · alt{" "}
-                    {Math.round(v.altitude / 1000).toLocaleString()} km
-                  </VesselMeta>
-                  <SensorList>
-                    {v.sensors.length === 0 ? (
-                      <EmptyState>No scanners.</EmptyState>
-                    ) : (
-                      v.sensors.map((s, i) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: sensors don't have a stable id; index is the natural order
-                        <SensorRow key={i}>
-                          <SensorName>
-                            {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
-                          </SensorName>
-                          <SensorRange>
-                            FoV {s.fov.toFixed(1)}° · alt{" "}
-                            {Math.round(s.minAlt / 1000)}–
-                            {Math.round(s.maxAlt / 1000)} km
-                          </SensorRange>
-                          <SensorState
-                            $inRange={s.inRange}
-                            $bestRange={s.bestRange}
-                          >
-                            {s.bestRange
-                              ? "best"
-                              : s.inRange
-                                ? "scanning"
-                                : "out of range"}
-                          </SensorState>
-                        </SensorRow>
-                      ))
-                    )}
-                  </SensorList>
-                </VesselCard>
-              ))}
-            </VesselList>
-          ) : (
-            <EmptyState>No vessels tracked by SCANsat yet.</EmptyState>
-          )}
-        </Section>
-
-        <Section>
-          <SectionTitle>Anomalies — {bodyName ?? "?"}</SectionTitle>
-          {anomalies && anomalies.length > 0 ? (
-            <AnomalyList>
-              {anomalies.map((a) => (
-                <AnomalyRow key={`${a.name}-${a.latitude}`} $known={a.known}>
-                  <AnomalyName>
-                    {a.detail ? a.name : a.known ? "(unknown)" : "(undetected)"}
-                  </AnomalyName>
-                  {a.known ? (
-                    <AnomalyCoords>
-                      {a.latitude.toFixed(2)}, {a.longitude.toFixed(2)}
-                    </AnomalyCoords>
-                  ) : (
-                    <AnomalyCoords>—</AnomalyCoords>
-                  )}
-                </AnomalyRow>
-              ))}
-            </AnomalyList>
-          ) : (
-            <EmptyState>None known.</EmptyState>
-          )}
-        </Section>
-      </Body>
+          <Section>
+            <SectionTitle>Anomalies — {bodyName ?? "?"}</SectionTitle>
+            {anomalies && anomalies.length > 0 ? (
+              <Stack gap="xs">
+                {anomalies.map((a) => (
+                  <Grid key={`${a.name}-${a.latitude}`} cols="1fr auto">
+                    <Value size="xs" tone={a.known ? "default" : "muted"}>
+                      {a.detail
+                        ? a.name
+                        : a.known
+                          ? "(unknown)"
+                          : "(undetected)"}
+                    </Value>
+                    <Value size="xs" tone="muted">
+                      {a.known
+                        ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
+                        : "—"}
+                    </Value>
+                  </Grid>
+                ))}
+              </Stack>
+            ) : (
+              <EmptyState>None known.</EmptyState>
+            )}
+          </Section>
+        </Stack>
+      </ScrollArea>
     </Panel>
   );
 }
@@ -242,188 +281,20 @@ function CoverageRow({
   );
   const value = typeof pct === "number" ? pct : 0;
   return (
-    <CoverageRowOuter>
-      <CoverageLabel>{SCAN_TYPE_LABELS[scanType]}</CoverageLabel>
-      <CoverageBar>
-        <CoverageFill style={{ width: `${value.toFixed(1)}%` }} />
-      </CoverageBar>
-      <CoverageValue>{value.toFixed(1)}%</CoverageValue>
-    </CoverageRowOuter>
+    <Grid cols="120px 1fr 60px" gap="md">
+      <Value size="xs" tone="default">
+        {SCAN_TYPE_LABELS[scanType]}
+      </Value>
+      <ProgressBar
+        value={value}
+        ariaLabel={`${SCAN_TYPE_LABELS[scanType]} coverage — ${bodyName}`}
+      />
+      <Value size="xs" tone="muted">
+        {value.toFixed(1)}%
+      </Value>
+    </Grid>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────────────────────
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-`;
-
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-`;
-
-const Section = styled.section`
-  margin-top: 12px;
-  &:first-of-type {
-    margin-top: 0;
-  }
-`;
-
-const SectionTitle = styled.h3`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 6px 0;
-`;
-
-const CoverageList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const CoverageRowOuter = styled.div`
-  display: grid;
-  grid-template-columns: 120px 1fr 60px;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-`;
-
-const CoverageLabel = styled.span`
-  color: var(--color-text-primary);
-`;
-
-const CoverageBar = styled.div`
-  height: 6px;
-  background: var(--color-surface-raised);
-  border-radius: 3px;
-  overflow: hidden;
-`;
-
-const CoverageFill = styled.div`
-  height: 100%;
-  background: var(--color-accent-fg);
-  transition: width 250ms linear;
-`;
-
-const CoverageValue = styled.span`
-  text-align: right;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const VesselList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const VesselCard = styled.div`
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 6px 8px;
-`;
-
-const VesselHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-`;
-
-const VesselName = styled.span`
-  font-weight: 600;
-  color: var(--color-text-primary);
-`;
-
-const VesselBody = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-`;
-
-const VesselMeta = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin: 2px 0 6px;
-`;
-
-const SensorList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
-
-const SensorRow = styled.div`
-  display: grid;
-  grid-template-columns: 140px 1fr auto;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-  align-items: center;
-`;
-
-const SensorName = styled.span`
-  color: var(--color-text-primary);
-`;
-
-const SensorRange = styled.span`
-  color: var(--color-text-muted);
-`;
-
-const SensorState = styled.span<{ $inRange: boolean; $bestRange: boolean }>`
-  color: ${(p) =>
-    p.$bestRange
-      ? "var(--color-status-go-fg)"
-      : p.$inRange
-        ? "var(--color-status-info-fg)"
-        : "var(--color-text-faint)"};
-  font-variant-numeric: tabular-nums;
-`;
-
-const AnomalyList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const AnomalyRow = styled.div<{ $known: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-  color: ${(p) =>
-    p.$known ? "var(--color-text-primary)" : "var(--color-text-faint)"};
-`;
-
-const AnomalyName = styled.span``;
-
-const AnomalyCoords = styled.span`
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const BiomeStrip = styled.div`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-  padding: 4px 8px;
-  margin-bottom: 10px;
-`;
-
-const EmptyState = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  padding: 4px 0;
-`;
 
 // ── Registration ────────────────────────────────────────────────────────────
 

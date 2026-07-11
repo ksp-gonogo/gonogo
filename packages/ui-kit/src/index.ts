@@ -57,5 +57,10 @@ export {
 } from "./science/ScienceExperimentRow";
 export { Truncate } from "./Truncate";
 export * from "./theme";
-export { Value, type ValueProps, type ValueTone } from "./Value";
+export {
+  Value,
+  type ValueProps,
+  type ValueSize,
+  type ValueTone,
+} from "./Value";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";

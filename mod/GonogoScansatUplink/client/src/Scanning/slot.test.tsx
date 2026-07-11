@@ -9,9 +9,10 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 /**
  * Scanning augment-slot exposure (Uplink architecture spec §4 / augment-slot-map
@@ -58,7 +59,7 @@ describe("Scanning — augment slots (spec §4)", () => {
   // Drive the widget to the present-SCANsat layout, where both the `badges`
   // header slot and the `sections` coverage slot render.
   function renderPresent() {
-    render(<ScanningComponent config={{}} id="scanning" />);
+    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");

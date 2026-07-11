@@ -6,10 +6,11 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { ScanningComponent } from "./index";
+import { renderWithTheme } from "./testTheme";
 
 const KEYS: DataKey[] = [
   { key: "scansat.available" },
@@ -46,7 +47,7 @@ describe("ScanningComponent", () => {
   });
 
   it("shows the empty state when SCANsat is not installed", () => {
-    render(<ScanningComponent config={{}} id="scanning" />);
+    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", false);
     });
@@ -54,7 +55,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders the coverage / vessels / anomalies layout when SCANsat is present", () => {
-    render(<ScanningComponent config={{}} id="scanning" />);
+    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -68,7 +69,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders coverage percentages for each scan type when values are emitted", () => {
-    render(<ScanningComponent config={{}} id="scanning" />);
+    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -88,7 +89,7 @@ describe("ScanningComponent", () => {
   });
 
   it("renders anomaly names according to discovery state", () => {
-    render(<ScanningComponent config={{}} id="scanning" />);
+    renderWithTheme(<ScanningComponent config={{}} id="scanning" />);
     act(() => {
       source.emit("scansat.available", true);
       source.emit("v.body", "Kerbin");
@@ -126,7 +127,7 @@ describe("ScanningComponent", () => {
   });
 
   it("passes an a11y smoke when SCANsat is unavailable", async () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <ScanningComponent config={{}} id="scanning" />,
     );
     act(() => {

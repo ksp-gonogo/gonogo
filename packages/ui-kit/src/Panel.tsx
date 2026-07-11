@@ -48,6 +48,14 @@ const ScrollAreaRoot = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
+  /* Grow to fill the remaining height of a flex-column parent (a Panel body
+     below a fixed-height header) so the inner element's own flex:1 can
+     engage overflow, instead of the outer box sizing to content and
+     spilling past the panel's overflow:hidden edge. Every real consumer
+     wrapping this in a Body styled-component re-applies exactly these two
+     rules, so they're the default here rather than something each widget
+     has to remember. */
+  flex: 1;
   min-height: 0;
 `;
 
