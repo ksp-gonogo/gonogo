@@ -91,6 +91,7 @@ export type { Transport, TransportStatus } from "./transport";
 export { useCertainty } from "./use-certainty";
 export { type UseCommandResult, useCommand } from "./use-command";
 export { useStream } from "./use-stream";
+export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
 export type {

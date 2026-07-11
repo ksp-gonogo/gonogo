@@ -120,6 +120,15 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "spaceCenter.crewRoster",
   "spaceCenter.savedShips",
   "spaceCenter.partsAvailable",
+  // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
+  // record and its companion "a notable crash happened recently" flag. Raw
+  // wire topics — the gate promotes at raw-topic granularity — so a widget
+  // reading them through `useDataValue` reaches the stream instead of the
+  // legacy Telemachus source. Delivered on the reliable lane, so every crash
+  // arrives (none coalesced); consumers that must act once per crash use
+  // `useStreamEvent` rather than a sticky value read.
+  "crash.lastCrash",
+  "crash.hasRecent",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */
