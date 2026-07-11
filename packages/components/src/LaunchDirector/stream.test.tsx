@@ -15,9 +15,13 @@ import { LaunchDirectorComponent } from "./index";
  * funds spender per CLAUDE.md's "always show the balance" rule.
  * `kc.savedShips`/`kc.crewRoster` are mapped onto SpaceCenterUplink's own
  * `spaceCenter.savedShips`/`spaceCenter.crewRoster` bare-array topics.
- * Every other read (kc.padOccupied/padVesselTitle/launchSite/launchSites,
- * ksp.*, crash.*, tar.availableVessels) stays legacy — carried by a
- * `setupMockDataSource` AUX.
+ * `crash.hasRecent`/`crash.lastCrash` route to the stream too (whole-topic
+ * identity reads off CrashUplink's `ReliableOrdered` channel — a widget
+ * mount always picks up whatever crash last landed, same sticky-cache
+ * contract as any other topic). Every other read
+ * (kc.padOccupied/padVesselTitle/launchSite/launchSites, ksp.*,
+ * tar.availableVessels) stays legacy — carried by a `setupMockDataSource`
+ * AUX.
  */
 afterEach(() => {
   cleanup();
@@ -31,6 +35,8 @@ describe("LaunchDirector — genuinely runs off the stream", () => {
         "career.status",
         "spaceCenter.savedShips",
         "spaceCenter.crewRoster",
+        "crash.hasRecent",
+        "crash.lastCrash",
       ],
       pinnedUt: 10,
     });
@@ -57,6 +63,8 @@ describe("LaunchDirector — genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
     expect(fixture.transport.isSubscribed("spaceCenter.savedShips")).toBe(true);
     expect(fixture.transport.isSubscribed("spaceCenter.crewRoster")).toBe(true);
+    expect(fixture.transport.isSubscribed("crash.hasRecent")).toBe(true);
+    expect(fixture.transport.isSubscribed("crash.lastCrash")).toBe(true);
 
     act(() => {
       legacyAux.source.emit("kc.padOccupied", false);
@@ -100,6 +108,63 @@ describe("LaunchDirector — genuinely runs off the stream", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeTruthy(),
     );
+
+    teardownMockDataSource(legacyAux);
+  });
+
+  it("surfaces a crash chip and disables recover when the streamed crash is for the active vessel", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["crash.hasRecent", "crash.lastCrash"],
+      pinnedUt: 10,
+    });
+    const legacyAux = await setupMockDataSource({
+      id: "data",
+      keys: [
+        { key: "kc.savedShips" },
+        { key: "kc.padOccupied" },
+        { key: "kc.scene" },
+        { key: "v.name" },
+        { key: "v.missionTime" },
+        { key: "v.altitude" },
+        { key: "ksp.canRevertToLaunch" },
+        { key: "ksp.canRevertToEditor" },
+      ],
+      connectSource: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: "ld-stream-crash" }}
+        >
+          <LaunchDirectorComponent id="ld-stream-crash" w={7} h={9} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    expect(fixture.transport.isSubscribed("crash.hasRecent")).toBe(true);
+    expect(fixture.transport.isSubscribed("crash.lastCrash")).toBe(true);
+
+    act(() => {
+      legacyAux.source.emit("kc.savedShips", []);
+      legacyAux.source.emit("kc.padOccupied", true);
+      legacyAux.source.emit("kc.scene", "Flight");
+      legacyAux.source.emit("v.name", "Doomed Probe");
+      legacyAux.source.emit("v.missionTime", 12);
+      legacyAux.source.emit("v.altitude", 50);
+      legacyAux.source.emit("ksp.canRevertToLaunch", false);
+      legacyAux.source.emit("ksp.canRevertToEditor", false);
+      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Crash in progress — return to Space Center/i),
+      ).toBeInTheDocument(),
+    );
+    const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
+    expect(recoverBtn).toBeDisabled();
 
     teardownMockDataSource(legacyAux);
   });

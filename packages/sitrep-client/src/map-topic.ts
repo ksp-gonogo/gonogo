@@ -517,6 +517,14 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // above.
   "kc.partsAvailable": "spaceCenter.partsAvailable.count",
 
+  // crash.hasRecent/crash.lastCrash: the single-slot "last notable crash"
+  // event (CrashUplink, ReliableOrdered) — LaunchDirector's revert-recovery
+  // gate and FlightOutcomeBanner's outcome parse both read these directly.
+  // Whole-topic identity reads, same "key == topic" shape as parts.robotics/
+  // science.lab above.
+  "crash.hasRecent": "crash.hasRecent",
+  "crash.lastCrash": "crash.lastCrash",
+
   // contracts.completedRecent: the state map's old "no wire equivalent"
   // rationale was stale — CareerContracts now carries a completedRecent
   // list alongside active/offered.
@@ -747,10 +755,6 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // identity list (partId-keyed selection + every robotics.* command)
   // straight off `parts.robotics` (CLEAN_HOMES above), which carries a
   // stable stringified `partId` per entry.
-
-  // --- M2 event stream (ReliableOrdered), not this milestone's state model ---
-  "crash.hasRecent",
-  "crash.lastCrash",
 
   // v.isControllable UN-GAPPED (R6 shared-derivations batch): derived from
   // vessel.comms.controlState's control LEVEL on vessel.state.isControllable

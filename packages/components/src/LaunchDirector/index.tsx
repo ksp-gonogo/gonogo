@@ -181,10 +181,12 @@ function LaunchDirectorComponent({
     | undefined;
   // M3 career batch: career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
-  // the balance" rule). Every kc.*/ksp.*/crash.*/tar.availableVessels read
-  // below stays legacy — kc.* has no career.status equivalent shape (see
-  // map-topic.ts's doc comment on the facilities gap), the rest are separate
-  // provider families or vessel-provider gaps untouched by this batch.
+  // the balance" rule). kc.savedShips/kc.crewRoster and crash.hasRecent/
+  // crash.lastCrash resolve to their own dedicated topics too (map-topic.ts).
+  // The rest of the kc.*/ksp.*/tar.availableVessels reads below stay legacy
+  // — kc.* has no career.status equivalent shape (see map-topic.ts's doc
+  // comment on the facilities gap), the others are separate provider
+  // families or vessel-provider gaps untouched by this batch.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
   const vesselName = useDataValue<string>("data", "v.name");
