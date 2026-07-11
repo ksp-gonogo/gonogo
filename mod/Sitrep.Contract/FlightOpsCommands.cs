@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
@@ -42,4 +43,37 @@ public class RevertToEditorArgs
 public class SwitchVesselArgs
 {
     public string VesselId { get; set; } = "";
+}
+
+/// <summary>
+/// <c>ksp.launch</c>'s args — load a saved craft onto a launch site. The craft
+/// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
+/// was saved from (<c>"VAB"</c>/<c>"SPH"</c>, case-insensitive — the host
+/// bridges it to KSP's <c>EditorFacility</c> and rebuilds the on-disk
+/// <c>.craft</c> path server-side, so the wire never carries a native KSP type
+/// or an absolute path). An empty ship name or an unrecognised facility fails
+/// admission (<see cref="CommandErrorCode.NotFound"/>/<see cref="CommandErrorCode.Range"/>)
+/// before the game is ever touched.
+///
+/// <para><see cref="Crew"/> is a real array of kerbal names (empty = launch
+/// unmanned), NOT the legacy semicolon-joined blob the old Telemachus action
+/// string used — the command surface is JSON, so the client unwinds its
+/// <c>;</c>-encoded crew list back into an array before dispatching and the
+/// host assigns each name into a free craft seat.</para>
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class LaunchArgs
+{
+    public string ShipName { get; set; } = "";
+
+    /// <summary><c>"VAB"</c> or <c>"SPH"</c> (case-insensitive). Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
+    public string Facility { get; set; } = "";
+
+    public string Site { get; set; } = "LaunchPad";
+
+    /// <summary>Kerbal names to seat, in order. Empty = launch unmanned.</summary>
+    public List<string> Crew { get; set; } = new();
 }

@@ -328,6 +328,13 @@ export interface SwitchVesselArgs
 {
 	vesselId: string;
 }
+export interface LaunchArgs
+{
+	shipName: string;
+	facility: string;
+	site: string;
+	crew: string[];
+}
 export interface GameDlc
 {
 	breakingGround: boolean;

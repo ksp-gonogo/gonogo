@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Xunit;
@@ -134,6 +135,110 @@ namespace Sitrep.Host.Tests
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.NoVessel, result.ErrorCode);
+        }
+
+        [Fact]
+        public void HandleLaunchThreadsTheParsedArgsToTheActuator()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = "Kerbal X",
+                Facility = "VAB",
+                Site = "LaunchPad",
+                Crew = new List<string> { "Jebediah Kerman", "Bill Kerman" },
+            });
+
+            Assert.True(result.Success);
+            Assert.Equal("Kerbal X", actuator.LastLaunchShipName);
+            Assert.Equal(EditorFacilityKind.Vab, actuator.LastLaunchFacility);
+            Assert.Equal("LaunchPad", actuator.LastLaunchSite);
+            Assert.Equal(new[] { "Jebediah Kerman", "Bill Kerman" }, actuator.LastLaunchCrew);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void HandleLaunchRejectsAnEmptyShipNameBeforeEverCallingTheActuator(string? shipName)
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = shipName!,
+                Facility = "VAB",
+            });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastLaunchShipName);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("hangar")]
+        [InlineData("launchpad")]
+        public void HandleLaunchRejectsAnUnrecognisedFacilityBeforeEverCallingTheActuator(string facility)
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = "Kerbal X",
+                Facility = facility,
+            });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
+            Assert.Null(actuator.LastLaunchFacility);
+        }
+
+        [Theory]
+        [InlineData("sph", EditorFacilityKind.Sph)]
+        [InlineData("VAB", EditorFacilityKind.Vab)]
+        public void HandleLaunchBridgesTheFacilityStringCaseInsensitively(string facility, EditorFacilityKind expected)
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = "Kerbal X",
+                Facility = facility,
+            });
+
+            Assert.Equal(expected, actuator.LastLaunchFacility);
+        }
+
+        [Fact]
+        public void HandleLaunchNormalisesANullCrewToAnEmptyList()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = "Kerbal X",
+                Facility = "VAB",
+                Crew = null!,
+            });
+
+            Assert.NotNull(actuator.LastLaunchCrew);
+            Assert.Empty(actuator.LastLaunchCrew!);
+        }
+
+        [Fact]
+        public void HandleLaunchSurfacesTheActuatorsUnavailableError()
+        {
+            var actuator = new FakeFlightOpsActuator { LaunchResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            {
+                ShipName = "Kerbal X",
+                Facility = "VAB",
+            });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
     }
 }

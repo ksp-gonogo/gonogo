@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -19,6 +20,10 @@ namespace Sitrep.Host.Tests
         public int ToTrackingStationCallCount;
         public string? LastSwitchVesselId;
         public int RecoverCallCount;
+        public string? LastLaunchShipName;
+        public EditorFacilityKind? LastLaunchFacility;
+        public string? LastLaunchSite;
+        public IReadOnlyList<string>? LastLaunchCrew;
 
         // ---- configurable results (default: success) ----
         public CommandResult RevertToLaunchResult = CommandResult.Ok();
@@ -26,6 +31,7 @@ namespace Sitrep.Host.Tests
         public CommandResult ToTrackingStationResult = CommandResult.Ok();
         public CommandResult SwitchVesselResult = CommandResult.Ok();
         public CommandResult RecoverResult = CommandResult.Ok();
+        public CommandResult LaunchResult = CommandResult.Ok();
 
         public CommandResult RevertToLaunch()
         {
@@ -55,6 +61,15 @@ namespace Sitrep.Host.Tests
         {
             RecoverCallCount++;
             return RecoverResult;
+        }
+
+        public CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew)
+        {
+            LastLaunchShipName = shipName;
+            LastLaunchFacility = facility;
+            LastLaunchSite = site;
+            LastLaunchCrew = crew;
+            return LaunchResult;
         }
     }
 }

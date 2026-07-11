@@ -626,6 +626,25 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     buildArgs: () => null,
   },
 
+  // FlightOpsCommandProvider.HandleLaunch. LaunchDirector fires the legacy
+  // `ksp.launch[${ship.name},${ship.facility},${site},${crewSemis}]`, where
+  // `crewSemis = Array.from(selectedCrew).join(";")` — Telemachus split action
+  // args on comma, so crew names were packed into the 4th comma-arg with `;`.
+  // This is the ONE place that `;`-blob is unwound back into a real array for
+  // the JSON command (LaunchArgs.Crew); the mod never sees the semicolon
+  // encoding. An empty ship name or facility can't build a craft path, so it
+  // falls back to legacy rather than dispatching a launch the handler would
+  // only reject as NotFound/Range.
+  "ksp.launch": {
+    command: "ksp.launch",
+    buildArgs: (rawArgs) => {
+      const [shipName, facility, site, crewSemis] = rawArgs;
+      if (!shipName || !facility) return INVALID;
+      const crew = crewSemis ? crewSemis.split(";").filter(Boolean) : [];
+      return { shipName, facility, site: site || "LaunchPad", crew };
+    },
+  },
+
   // --- tar.switchVessel -> ksp.switchVessel (RENAMED). system.vessels'
   // roster entries carry a stable vesselId (SystemViewProvider
   // .BuildSystemVessels) — same index -> stable-id shape as
@@ -686,11 +705,9 @@ export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   // TELEMACHUS_COMMAND_HOMES entries; career.status.* already streams every
   // id these key on.
 
-  // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation and
-  // tar.switchVessel -> ksp.switchVessel are routed above — see the
-  // ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries.
-  // ksp.launch STAYS gapped (below) — no LaunchCommand handler exists yet.
-  "ksp.launch",
+  // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation,
+  // tar.switchVessel -> ksp.switchVessel, and ksp.launch are all routed above
+  // — see the ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries.
 ]);
 
 /**

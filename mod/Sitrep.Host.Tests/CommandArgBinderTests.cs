@@ -84,6 +84,40 @@ namespace Sitrep.Host.Tests
             Assert.Equal("node-7", args.NodeId);
         }
 
+        [Fact]
+        public void BindsStringListFromWireArray()
+        {
+            // Wire arrays arrive as List<object?> of boxed strings — the binder
+            // must materialise the declared List<string>. LaunchArgs.Crew is the
+            // first command-arg list; without list support a populated crew
+            // array would throw at bind time and dead-soft the whole launch.
+            var args = Bind<LaunchArgs>(new Dictionary<string, object?>
+            {
+                ["shipName"] = "Kerbal X",
+                ["facility"] = "VAB",
+                ["site"] = "LaunchPad",
+                ["crew"] = new List<object?> { "Jebediah Kerman", "Bill Kerman" },
+            });
+            Assert.Equal("Kerbal X", args.ShipName);
+            Assert.Equal("VAB", args.Facility);
+            Assert.Equal("LaunchPad", args.Site);
+            Assert.Equal(new[] { "Jebediah Kerman", "Bill Kerman" }, args.Crew);
+        }
+
+        [Fact]
+        public void BindsAnEmptyCrewListWhenTheWireArrayIsAbsent()
+        {
+            // Unmanned launch: the crew key never arrives, so the property stays
+            // at its default-constructed empty list rather than throwing.
+            var args = Bind<LaunchArgs>(new Dictionary<string, object?>
+            {
+                ["shipName"] = "Kerbal X",
+                ["facility"] = "SPH",
+            });
+            Assert.NotNull(args.Crew);
+            Assert.Empty(args.Crew);
+        }
+
         // ---- case 1: numeric ordinal -> enum (client sends the number) ----
 
         [Fact]

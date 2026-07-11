@@ -128,6 +128,7 @@ public static class RtConfig
                 typeof(UpgradeFacilityArgs),
                 typeof(RevertToEditorArgs),
                 typeof(SwitchVesselArgs),
+                typeof(LaunchArgs),
                 typeof(ServoSetTargetArgs),
                 typeof(ServoSetEnabledArgs),
                 typeof(RotorSetValueArgs),

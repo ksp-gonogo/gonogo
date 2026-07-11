@@ -111,7 +111,7 @@ namespace Sitrep.Core.Tests
             "SetWarpIndexArgs",
             "ActivateStrategyArgs", "DeactivateStrategyArgs", "UnlockTechArgs",
             "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
-            "SwitchVesselArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
+            "SwitchVesselArgs", "LaunchArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
             "RotorSetValueArgs", "RotorReverseArgs", "ExperimentActionArgs",
         };
 

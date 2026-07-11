@@ -361,7 +361,7 @@ describe("mapCommand", () => {
     });
 
     it("strips bracketed args before checking the gap set", () => {
-      expect(isKnownCommandGap("data", "ksp.launch[a,b,c,d]")).toBe(true);
+      expect(isKnownCommandGap("data", "f.setPitchTrim[0.5]")).toBe(true);
     });
   });
 
@@ -560,9 +560,58 @@ describe("mapCommand", () => {
       expect(mapCommand("data", "tar.switchVessel[]")).toBeUndefined();
     });
 
-    it("ksp.launch stays a known command gap — no LaunchCommand handler exists yet", () => {
-      expect(mapCommand("data", "ksp.launch[a,b,c,d]")).toBeUndefined();
-      expect(isKnownCommandGap("data", "ksp.launch[a,b,c,d]")).toBe(true);
+    it("ksp.launch unwinds the semicolon crew blob into a real array", () => {
+      expect(
+        mapCommand(
+          "data",
+          "ksp.launch[Kerbal X,VAB,LaunchPad,Jebediah Kerman;Bill Kerman]",
+        ),
+      ).toEqual({
+        command: "ksp.launch",
+        args: {
+          shipName: "Kerbal X",
+          facility: "VAB",
+          site: "LaunchPad",
+          crew: ["Jebediah Kerman", "Bill Kerman"],
+        },
+      });
+      expect(
+        isKnownCommandGap(
+          "data",
+          "ksp.launch[Kerbal X,VAB,LaunchPad,Jebediah Kerman;Bill Kerman]",
+        ),
+      ).toBe(false);
+    });
+
+    it("ksp.launch with an empty crew slot launches unmanned", () => {
+      expect(mapCommand("data", "ksp.launch[Kerbal X,SPH,Runway,]")).toEqual({
+        command: "ksp.launch",
+        args: {
+          shipName: "Kerbal X",
+          facility: "SPH",
+          site: "Runway",
+          crew: [],
+        },
+      });
+    });
+
+    it("ksp.launch defaults a missing site to LaunchPad", () => {
+      expect(mapCommand("data", "ksp.launch[Kerbal X,VAB]")).toEqual({
+        command: "ksp.launch",
+        args: {
+          shipName: "Kerbal X",
+          facility: "VAB",
+          site: "LaunchPad",
+          crew: [],
+        },
+      });
+    });
+
+    it("ksp.launch with no ship name or facility falls back to legacy", () => {
+      expect(mapCommand("data", "ksp.launch[,VAB,LaunchPad,]")).toBeUndefined();
+      expect(
+        mapCommand("data", "ksp.launch[Kerbal X,,LaunchPad,]"),
+      ).toBeUndefined();
     });
   });
 });

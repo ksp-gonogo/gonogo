@@ -838,8 +838,61 @@ namespace Sitrep.Host
                 return BindObject(dict, targetType);
             }
 
+            // Wire arrays arrive as List<object?> (never a typed List<T>): bind
+            // each element to the declared element type of a List<T>/IList<T>/
+            // IReadOnlyList<T>/IEnumerable<T>/T[] target. Placed AFTER the
+            // string/numeric/dictionary branches so those (all also IEnumerable)
+            // keep their own handling — the element-type probe returns null for
+            // anything that isn't a recognised sequence target, so a genuine
+            // mismatch still falls through to the throw below. Without this a
+            // populated command-arg list (e.g. LaunchArgs.Crew) would throw here
+            // and dead-soft the whole command over the real socket.
+            var elementType = GetSequenceElementType(targetType);
+            if (elementType != null && value is System.Collections.IEnumerable sequence)
+            {
+                var listType = typeof(List<>).MakeGenericType(elementType);
+                var list = (System.Collections.IList)Activator.CreateInstance(listType)!;
+                foreach (var item in sequence)
+                {
+                    list.Add(BindCommandArgs(item, elementType));
+                }
+                if (targetType.IsArray)
+                {
+                    var array = Array.CreateInstance(elementType, list.Count);
+                    list.CopyTo(array, 0);
+                    return array;
+                }
+                return list;
+            }
+
             throw new InvalidCastException(
                 $"Cannot bind wire value of type {value.GetType().Name} to {targetType.Name}.");
+        }
+
+        /// <summary>
+        /// The element type of a supported sequence target (a
+        /// <c>List&lt;T&gt;</c>, one of the read-only/collection interfaces
+        /// assignable from it, or a <c>T[]</c>), or null when
+        /// <paramref name="targetType"/> isn't a sequence the command binder
+        /// materialises element-by-element.
+        /// </summary>
+        private static Type? GetSequenceElementType(Type targetType)
+        {
+            if (targetType.IsArray)
+            {
+                return targetType.GetElementType();
+            }
+            if (targetType.IsGenericType)
+            {
+                var def = targetType.GetGenericTypeDefinition();
+                if (def == typeof(List<>) || def == typeof(IList<>) ||
+                    def == typeof(IReadOnlyList<>) || def == typeof(ICollection<>) ||
+                    def == typeof(IReadOnlyCollection<>) || def == typeof(IEnumerable<>))
+                {
+                    return targetType.GetGenericArguments()[0];
+                }
+            }
+            return null;
         }
 
         private static bool IsConvertibleNumeric(Type t) =>

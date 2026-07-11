@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Host
@@ -26,6 +27,7 @@ namespace Sitrep.Host
         public const string ToTrackingStationCommand = "ksp.toTrackingStation";
         public const string SwitchVesselCommand = "ksp.switchVessel";
         public const string RecoverCommand = "ksp.recover";
+        public const string LaunchCommand = "ksp.launch";
 
         public static CommandResult HandleRevertToLaunch(IFlightOpsActuator actuator, object? _) =>
             actuator.RevertToLaunch();
@@ -70,6 +72,32 @@ namespace Sitrep.Host
 
         public static CommandResult HandleRecover(IFlightOpsActuator actuator, object? _) =>
             actuator.Recover();
+
+        /// <summary>
+        /// Arg-gates a launch without touching KSP: an empty ship name can
+        /// never resolve to a craft file
+        /// (<see cref="CommandErrorCode.NotFound"/>), and an unrecognised
+        /// facility is an out-of-range arg (<see cref="CommandErrorCode.Range"/>)
+        /// — both rejected here, before the actuator (the one with the scene /
+        /// save folder / craft file in hand) is ever called. The
+        /// <c>"VAB"</c>/<c>"SPH"</c> wire string bridges to the KSP-free
+        /// <see cref="EditorFacilityKind"/> via the same
+        /// <see cref="ParseEditorFacility"/> helper <see cref="HandleRevertToEditor"/>
+        /// uses. A null crew list is normalised to empty (launch unmanned).
+        /// </summary>
+        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args)
+        {
+            if (args == null || string.IsNullOrEmpty(args.ShipName))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            var facility = ParseEditorFacility(args.Facility);
+            if (facility == EditorFacilityKind.Unknown)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range);
+            }
+            return actuator.Launch(args.ShipName, facility, args.Site, args.Crew ?? new List<string>());
+        }
 
         private static EditorFacilityKind ParseEditorFacility(string? editor)
         {

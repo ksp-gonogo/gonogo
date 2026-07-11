@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -163,6 +165,161 @@ namespace Gonogo.KSP
 
             GameEvents.OnVesselRecoveryRequested.Fire(vessel);
             return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Loads a saved craft onto a launch site via
+        /// <c>FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest)</c>
+        /// (decompile-confirmed signature), the same call KSP's own launch path
+        /// makes. Unlike the Telemachus-era original this runs directly on the
+        /// main thread — <see cref="ChannelEngine"/>'s
+        /// <c>executeCommandsOnMainThread: true</c> drains this handler in
+        /// <c>GonogoAddon.FixedUpdate</c> — so no <c>Defer</c> wrapper is needed
+        /// (KSP's scene loader is not re-entrant off the main thread).
+        ///
+        /// <para>Refuses unless the scene is the space center or an editor, and
+        /// refuses when an <c>ActiveVessel</c> from a prior flight still exists
+        /// (launching over one wedges KSP into a frozen Flight scene) — both
+        /// surface as <see cref="CommandErrorCode.ModeUnavailable"/>. The craft
+        /// path is rebuilt server-side from
+        /// <c>&lt;AppRoot&gt;/saves/&lt;SaveFolder&gt;/Ships/&lt;facility&gt;/&lt;shipName&gt;.craft</c>;
+        /// a missing save is <see cref="CommandErrorCode.NoVessel"/>, a missing
+        /// craft file <see cref="CommandErrorCode.NotFound"/>.</para>
+        ///
+        /// <para>A <c>VesselCrewManifest</c> is ALWAYS built from the craft node
+        /// (even unmanned — passing null NREs inside
+        /// <c>FlightDriver.setStartupNewVessel</c>, leaving a half-initialised
+        /// Flight scene that spams NREs every frame); seats are populated only
+        /// when crew names are supplied.</para>
+        /// </summary>
+        public CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew)
+        {
+            if (HighLogic.LoadedScene != GameScenes.SPACECENTER &&
+                HighLogic.LoadedScene != GameScenes.EDITOR)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            // A leftover ActiveVessel from an un-recovered prior flight wedges
+            // KSP when a second craft is launched over it — refuse so the
+            // operator recovers/reverts the existing vessel first.
+            if (FlightGlobals.ActiveVessel != null)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            string facilityFolder;
+            switch (facility)
+            {
+                case EditorFacilityKind.Vab:
+                    facilityFolder = "VAB";
+                    break;
+                case EditorFacilityKind.Sph:
+                    facilityFolder = "SPH";
+                    break;
+                default:
+                    return CommandResult.Fail(CommandErrorCode.Range);
+            }
+
+            var saveFolder = HighLogic.SaveFolder;
+            if (string.IsNullOrEmpty(saveFolder))
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            var craftPath = Path.Combine(KSPUtil.ApplicationRootPath, "saves");
+            craftPath = Path.Combine(craftPath, saveFolder);
+            craftPath = Path.Combine(craftPath, "Ships");
+            craftPath = Path.Combine(craftPath, facilityFolder);
+            craftPath = Path.Combine(craftPath, shipName + ".craft");
+            if (!File.Exists(craftPath))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            VesselCrewManifest manifest;
+            try
+            {
+                var craftNode = ConfigNode.Load(craftPath);
+                if (craftNode == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.NotFound);
+                }
+                manifest = VesselCrewManifest.FromConfigNode(craftNode);
+                if (crew != null && crew.Count > 0)
+                {
+                    AssignCrew(manifest, crew);
+                }
+            }
+            catch (Exception)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
+
+            FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest);
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Seats <paramref name="crewNames"/> into the craft's free seats, in
+        /// order — probing each part manifest's seats and skipping occupied
+        /// ones. Kerbals that aren't in the roster or aren't
+        /// <c>RosterStatus.Available</c> are skipped rather than blocking the
+        /// launch. Ported verbatim from the Telemachus-era implementation.
+        /// </summary>
+        private static void AssignCrew(VesselCrewManifest manifest, IReadOnlyList<string> crewNames)
+        {
+            if (manifest == null || crewNames == null)
+            {
+                return;
+            }
+            var roster = HighLogic.CurrentGame?.CrewRoster;
+            if (roster == null)
+            {
+                return;
+            }
+
+            var queue = new Queue<string>(crewNames);
+            foreach (var partManifest in manifest.PartManifests)
+            {
+                if (partManifest == null)
+                {
+                    continue;
+                }
+                if (queue.Count == 0)
+                {
+                    return;
+                }
+                var existing = partManifest.GetPartCrew();
+                if (existing == null)
+                {
+                    continue;
+                }
+                for (var i = 0; i < existing.Length && queue.Count > 0; i++)
+                {
+                    if (existing[i] != null)
+                    {
+                        continue;
+                    }
+                    var kerbalName = queue.Dequeue();
+                    if (string.IsNullOrEmpty(kerbalName))
+                    {
+                        continue;
+                    }
+                    var kerbal = roster[kerbalName];
+                    if (kerbal == null)
+                    {
+                        continue;
+                    }
+                    if (kerbal.rosterStatus != ProtoCrewMember.RosterStatus.Available)
+                    {
+                        continue;
+                    }
+                    partManifest.AddCrewToSeat(kerbal, i);
+                }
+            }
         }
     }
 }

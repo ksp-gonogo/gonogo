@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Host
@@ -54,5 +55,15 @@ namespace Sitrep.Host
         CommandResult SwitchVessel(string vesselId);
 
         CommandResult Recover();
+
+        /// <summary>
+        /// Loads a saved craft (<paramref name="shipName"/> saved from
+        /// <paramref name="facility"/>) onto <paramref name="site"/>, seating
+        /// <paramref name="crew"/> into free craft seats (empty = unmanned).
+        /// Fails soft when the scene isn't the space center / an editor, an
+        /// active vessel already exists, there's no active save, or the craft
+        /// file is missing.
+        /// </summary>
+        CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew);
     }
 }
