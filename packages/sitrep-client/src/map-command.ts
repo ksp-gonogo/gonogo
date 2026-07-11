@@ -493,12 +493,11 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
-  // --- career.* — command-ungap batch. career.status.* (facilities/
-  // contracts/strategies/tech/economy, map-topic.ts's M3b career-detail
-  // batch) already round-trips every id these commands key on — strategy id
-  // (`strategies.all[].id`), tech id (`tech.nodes[].id`), contract id
-  // (`contracts.*[].id`) are all read straight off that stream, so there is
-  // no read-side dependency left to close. CareerCommandProvider handlers
+  // --- career.* commands. career.status.* already streams every id these
+  // commands key on — strategy id (`strategies.all[].id`), tech id
+  // (`tech.nodes[].id`), contract id (`contracts.*[].id`) all read straight
+  // off that stream, so there is no read-side dependency left to close.
+  // CareerCommandProvider handlers
   // (mod/Sitrep.Host/CareerCommandProvider.cs) fail-fast NotFound on an
   // empty id, but buildArgs still rejects a blank string client-side to
   // fall back cleanly — same posture as the science bridges above.
@@ -566,8 +565,8 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
-  // --- robotics.* — command-ungap batch. `parts.robotics` (map-topic.ts)
-  // is already RoboticsConsole/RotorTachometer's whole identity list, and
+  // --- robotics.* commands. `parts.robotics` is already
+  // RoboticsConsole/RotorTachometer's whole identity list, and
   // every entry carries the stable stringified `partId` these commands key
   // on — read-side dependency already closed. RoboticsCommandProvider
   // (mod/Sitrep.Host/RoboticsCommandProvider.cs) re-validates torque/brake
@@ -597,7 +596,7 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
-  // --- ksp.* flight-ops — command-ungap batch (FlightOpsCommandProvider,
+  // --- ksp.* flight-ops commands (FlightOpsCommandProvider,
   // mod/Sitrep.Host/FlightOpsCommandProvider.cs). recover/revertToLaunch/
   // revertToEditor/toTrackingStation have no read-side id dependency at
   // all — they un-gap unconditionally regardless of LaunchDirector's other
@@ -678,20 +677,19 @@ export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   "f.throttleUp",
   "f.throttleDown",
 
-  // robotics.servo.*/robotics.rotor.* UN-GAPPED (command-ungap batch) — see
+  // robotics.servo.*/robotics.rotor.* are routed above — see
   // roboticsValueHome/roboticsEnabledHome's TELEMACHUS_COMMAND_HOMES
-  // entries above; parts.robotics already streams the partId these key on.
+  // entries; parts.robotics already streams the partId these key on.
 
   // strategies.activate/deactivate, tech.unlock, contracts.accept/decline/
-  // cancel, kc.upgradeFacility UN-GAPPED (command-ungap batch) — see the
-  // career.* TELEMACHUS_COMMAND_HOMES entries above; career.status.* (M3b
-  // career-detail batch) already streams every id these key on.
+  // cancel, kc.upgradeFacility are routed above — see the career.*
+  // TELEMACHUS_COMMAND_HOMES entries; career.status.* already streams every
+  // id these key on.
 
-  // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation,
-  // tar.switchVessel -> ksp.switchVessel UN-GAPPED (command-ungap batch) —
-  // see the ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries above.
-  // ksp.launch STAYS gapped (below) — no LaunchCommand handler exists yet,
-  // separate from this batch.
+  // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation and
+  // tar.switchVessel -> ksp.switchVessel are routed above — see the
+  // ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries.
+  // ksp.launch STAYS gapped (below) — no LaunchCommand handler exists yet.
   "ksp.launch",
 ]);
 

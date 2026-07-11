@@ -12,9 +12,7 @@ import { Spinner } from "../Spinner";
  * directly. This is the widget-facing projection of the SDK's
  * `InstrumentEntry` (`science.instruments` topic), *not* `ExperimentEntry`
  * (`science.experiments`) — the row needs `partId`/`hasData`/`rerunnable`,
- * fields `ExperimentEntry` doesn't carry. See
- * `local_docs/telemetry-mod/uikit-p0-brief-row.md` for the full field-level
- * comparison that drove this choice.
+ * fields `ExperimentEntry` doesn't carry.
  */
 export interface ScienceInstrument {
   partId: string;
