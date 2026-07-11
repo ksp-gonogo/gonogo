@@ -21,19 +21,19 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
  * currently trying to achieve. It is the **augment-model dogfood** (Uplink
  * architecture spec §4.9): the widget itself is a pure *frame* (Panel +
  * `OBJECTIVES` title + one `objectives.sections` slot), and its content arrives
- * through the augment system. Two co-located sources bind that slot — Making
- * History mission objectives (`mh.*`) and active-contract parameters
- * (`contracts.active`) — each rendered as an augment satisfying the typed
- * "objective source" contract the frame publishes as the slot's props (§4.4).
+ * through the augment system. Active-contract parameters (`contracts.active`)
+ * are the sole source, rendered as an augment satisfying the typed "objective
+ * source" contract the frame publishes as the slot's props (§4.4).
  *
- * Splitting the two hardcoded sources out into augments is the whole point: it
- * exercises typed slot props, priority ordering (mission before contracts), and
- * settings-merge (§4.7) before the mechanism is applied to other widgets. The
- * sources live here in `@ksp-gonogo/components` for the P2 dogfood; re-homing them
- * into dedicated Uplink packages is a later phase.
+ * Making History mission objectives (`mh.*`) were a second source here, but
+ * the `mh` keyword carries no channel on the new SDK wire — contracts are the
+ * sole objective source going forward. The frame + slot stay in place so a
+ * future Uplink source (or a revived mission channel) can bind in the same
+ * way; that's the point of exercising typed slot props and settings-merge
+ * (§4.7) here rather than hardcoding a single source into the frame.
  *
- * Degrades to a muted empty state when neither source yields items, which also
- * covers either DLC/feature being absent.
+ * Degrades to a muted empty state when the source yields no items, which also
+ * covers no contracts being active.
  */
 
 type ObjectivesConfig = Record<string, never>;
@@ -52,46 +52,26 @@ export interface ObjectiveItem {
   contractId?: string;
 }
 
-export interface MissionScore {
-  current: number;
-  max: number;
-  enabled: boolean;
-}
-
 // ---------------------------------------------------------------------------
 // The typed "objective source" contract (spec §4.4 / §4.9)
 //
 // `objectives.sections` is the first typed-contract slot. The frame publishes,
 // as the slot's props, the interface an objective-source augment must satisfy:
 // a presentational `Section` component that renders a source's contributed
-// `ObjectiveItem[]` plus optional mission-header metadata and an optional
-// per-item alarm affordance. An augment "satisfies the contract" by feeding the
-// frame's `Section` structured data — the frame owns all presentation so every
-// source renders identically, and the slot generic enforces the shape.
+// `ObjectiveItem[]` plus an optional per-item alarm affordance. An augment
+// "satisfies the contract" by feeding the frame's `Section` structured data —
+// the frame owns all presentation so every source renders identically, and
+// the slot generic enforces the shape.
 // ---------------------------------------------------------------------------
-
-/** Optional mission-style header a source may render above its items. */
-export interface ObjectiveHeader {
-  /** Mission / source name shown in the head. */
-  name: string;
-  /** Current phase line, shown when there is no end-of-mission banner. */
-  phase?: string;
-  /** End-of-mission banner (success / failure). Takes precedence over `phase`. */
-  banner?: { text: string; failed: boolean };
-  /** Score readout; rendered only when `enabled`. */
-  score?: MissionScore | null;
-}
 
 /** One source's contribution, rendered by the frame's {@link ObjectivesSection}. */
 export interface ObjectiveSection {
-  /** Optional header (missions render one; contracts do not). */
-  header?: ObjectiveHeader;
   /** The source's objectives — each an {@link ObjectiveItem}. */
   items: ObjectiveItem[];
   /**
    * Optional per-item alarm affordance a source may offer (spec §4.9). Returns
    * a control for an item, or `null` for items that cannot be alarmed. The
-   * contracts source supplies one; the mission source omits it.
+   * contracts source supplies one.
    */
   renderAlarm?: (item: ObjectiveItem) => ReactNode;
 }
@@ -122,38 +102,10 @@ const STATE_GLYPH: Record<ObjectiveState, string> = {
   failed: "✕",
 };
 
-function missionObjectiveState(raw: unknown): ObjectiveState {
-  return raw === "active" || raw === "reached" ? raw : "pending";
-}
-
 function contractParamState(raw: string): ObjectiveState {
   if (raw === "Complete") return "reached";
   if (raw === "Failed") return "failed";
   return "pending";
-}
-
-/** Mission objectives (`mh.objectives`) → unified items, tagged by mission. */
-export function missionObjectives(
-  raw: unknown,
-  missionName: string,
-): ObjectiveItem[] {
-  if (!Array.isArray(raw)) return [];
-  const out: ObjectiveItem[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const e = entry as Record<string, unknown>;
-    const id = typeof e.id === "string" && e.id ? e.id : "";
-    const title = typeof e.title === "string" ? e.title : "";
-    out.push({
-      id: `mh:${id || title}`,
-      title: title || "Objective",
-      description:
-        typeof e.description === "string" ? e.description : undefined,
-      state: missionObjectiveState(e.state),
-      source: missionName || "Mission",
-    });
-  }
-  return out;
 }
 
 /** Active contracts → unified items: each parameter, tagged by contract. */
@@ -191,120 +143,44 @@ export function contractObjectives(
   return out;
 }
 
-export function parseScore(raw: unknown): MissionScore | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const e = raw as Record<string, unknown>;
-  return {
-    current: typeof e.current === "number" ? e.current : 0,
-    max: typeof e.max === "number" ? e.max : 0,
-    enabled: e.enabled === true,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Frame-owned presentation — the `Section` component the slot hands to augments
 // ---------------------------------------------------------------------------
 
 /**
- * Renders one objective source's contribution: an optional mission head, then
- * the source's items (or a muted "No open objectives" when a header is present
- * but the source has no open items). The frame owns this so every source — the
- * built-in ones and any future Uplink source — renders identically.
+ * Renders one objective source's contribution: its items, or nothing when
+ * empty (letting the frame's empty state show if every source is empty). The
+ * frame owns this so every source — the built-in ones and any future Uplink
+ * source — renders identically.
  */
-function ObjectivesSection({ header, items, renderAlarm }: ObjectiveSection) {
+function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
+  if (items.length === 0) return null;
   return (
-    <>
-      {header && (
-        <MissionHead>
-          <MissionName>{header.name}</MissionName>
-          {header.banner ? (
-            <Banner
-              $failed={header.banner.failed}
-              role={header.banner.failed ? "alert" : "status"}
-              aria-live={header.banner.failed ? "assertive" : "polite"}
-            >
-              {header.banner.text}
-            </Banner>
-          ) : (
-            header.phase && <Phase>{header.phase}</Phase>
-          )}
-          {header.score?.enabled && (
-            <Score>
-              Score <strong>{Math.round(header.score.current)}</strong>
-              <ScoreMax> / {Math.round(header.score.max)}</ScoreMax>
-            </Score>
-          )}
-        </MissionHead>
-      )}
-
-      {items.length > 0 ? (
-        <List aria-label="Objectives">
-          {items.map((o) => (
-            <Item key={o.id} $state={o.state}>
-              <Glyph $state={o.state} aria-hidden="true">
-                {STATE_GLYPH[o.state]}
-              </Glyph>
-              <Text>
-                <Title>
-                  {o.title}
-                  {o.optional && <Optional> (optional)</Optional>}
-                </Title>
-                <Sourced>{o.source}</Sourced>
-                {o.description && <Desc>{o.description}</Desc>}
-              </Text>
-              <VisuallyHidden>{o.state}</VisuallyHidden>
-              {renderAlarm?.(o)}
-            </Item>
-          ))}
-        </List>
-      ) : (
-        // Only when this source has a header (a running mission with no open
-        // objectives of its own). A headerless source with no items renders
-        // nothing, letting the frame's empty state show if every source is empty.
-        header && <Muted role="status">No open objectives</Muted>
-      )}
-    </>
+    <List aria-label="Objectives">
+      {items.map((o) => (
+        <Item key={o.id} $state={o.state}>
+          <Glyph $state={o.state} aria-hidden="true">
+            {STATE_GLYPH[o.state]}
+          </Glyph>
+          <Text>
+            <Title>
+              {o.title}
+              {o.optional && <Optional> (optional)</Optional>}
+            </Title>
+            <Sourced>{o.source}</Sourced>
+            {o.description && <Desc>{o.description}</Desc>}
+          </Text>
+          <VisuallyHidden>{o.state}</VisuallyHidden>
+          {renderAlarm?.(o)}
+        </Item>
+      ))}
+    </List>
   );
 }
 
 // ---------------------------------------------------------------------------
-// The two built-in objective sources — bound to the slot as augments (§4.9)
+// The built-in objective source — bound to the slot as an augment (§4.9)
 // ---------------------------------------------------------------------------
-
-/**
- * Making History mission source. Reads `mh.*` and, while a mission is available,
- * renders the mission head (name / phase / score / end banner) and its
- * objectives. Availability is read from the widget's own data source in-body
- * rather than via the augment `requires` Domain gate: `requires` reads the
- * `<domain>.available` Topic off the streaming store, but `mh.available` still
- * flows through the legacy `"data"` source here, so the in-body read is what
- * matches the widget's data path (and preserves its behaviour).
- */
-function MissionObjectiveSource({ Section }: ObjectiveSourceContext) {
-  const missionAvailable = useDataValue<boolean>("data", "mh.available");
-  const missionName = useDataValue<string>("data", "mh.name");
-  const phase = useDataValue<string>("data", "mh.phase");
-  const scoreRaw = useDataValue("data", "mh.score");
-  const finished = useDataValue<boolean>("data", "mh.finished");
-  const outcome = useDataValue<string>("data", "mh.outcome");
-  const objectivesRaw = useDataValue("data", "mh.objectives");
-
-  if (missionAvailable !== true) return null;
-
-  const items = missionObjectives(objectivesRaw, missionName ?? "Mission");
-  const ended = finished === true;
-  const failed = outcome === "fail";
-  const header: ObjectiveHeader = {
-    name: missionName || "Mission",
-    phase,
-    score: parseScore(scoreRaw),
-    banner: ended
-      ? { text: failed ? "MISSION FAILED" : "MISSION SUCCESS", failed }
-      : undefined,
-  };
-
-  return <Section header={header} items={items} />;
-}
 
 /**
  * Active-contracts source. Reads `contracts.active`, maps each parameter to an
@@ -414,43 +290,6 @@ const Sections = styled.div`
   }
 `;
 
-const MissionHead = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const MissionName = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const Banner = styled.div<{ $failed: boolean }>`
-  padding: 4px 8px;
-  border-radius: 2px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-align: center;
-  background: ${(p) =>
-    p.$failed ? "var(--color-status-nogo-bg)" : "var(--color-status-go-bg)"};
-  color: ${(p) =>
-    p.$failed ? "var(--color-status-nogo-fg)" : "var(--color-status-go-fg)"};
-`;
-
-const Phase = styled.div`
-  font-size: 11px;
-  color: var(--color-text-secondary);
-`;
-
-const Score = styled.div`
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-`;
-
-const ScoreMax = styled.span`
-  color: var(--color-text-secondary);
-`;
-
 const List = styled.ul`
   list-style: none;
   margin: 0;
@@ -519,11 +358,6 @@ const Desc = styled.span`
   color: var(--color-text-secondary);
 `;
 
-const Muted = styled.div`
-  font-size: 11px;
-  color: var(--color-text-secondary);
-`;
-
 const VisuallyHidden = styled.span`
   position: absolute;
   width: 1px;
@@ -537,50 +371,23 @@ registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
   description:
-    "Read-only unified list of what you're currently trying to achieve: Making History mission objectives and active-contract parameters, each tagged with its source. Manage contracts in the Contract Manager widget.",
-  tags: ["mission", "contracts", "career"],
+    "Read-only unified list of what you're currently trying to achieve: active-contract parameters, each tagged with its source contract. Manage contracts in the Contract Manager widget.",
+  tags: ["contracts", "career"],
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
-  // Exposes one typed-contract slot; the built-in sources below bind into it,
+  // Exposes one typed-contract slot; the built-in source below binds into it,
   // and any future Uplink objective source can too (spec §4.6).
   augmentSlots: ["objectives.sections"],
-  dataRequirements: [
-    "mh.available",
-    "mh.name",
-    "mh.phase",
-    "mh.score",
-    "mh.finished",
-    "mh.outcome",
-    "mh.objectives",
-    "contracts.active",
-  ],
+  dataRequirements: ["contracts.active"],
   defaultConfig: {},
   actions: [],
   pushable: true,
 });
 
-// The two built-in sources bind the slot as augments. Mission renders before
-// contracts (ascending priority — spec §4.2/§4.8). Each declares a per-source
-// show/hide setting that the host widget's settings panel merges in (§4.7);
-// they are collected via `getAugmentSettings("objectives.sections")`.
-registerAugment({
-  id: "objectives-mission",
-  augments: "objectives.sections",
-  component: MissionObjectiveSource,
-  // No `channels`: `mh.*` is not (yet) a migrated Topic — it still flows through
-  // the legacy `"data"` source, read in-body via `useDataValue`.
-  priority: 10,
-  settings: [
-    {
-      key: "show",
-      type: "boolean",
-      label: "Show mission objectives",
-      default: true,
-    },
-  ],
-});
-
+// The built-in source binds the slot as an augment. It declares a show/hide
+// setting that the host widget's settings panel merges in (§4.7); collected
+// via `getAugmentSettings("objectives.sections")`.
 registerAugment({
   id: "objectives-contracts",
   augments: "objectives.sections",

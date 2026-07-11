@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
 import contractsOnly from "./__fixtures__/contracts-only.json";
@@ -17,11 +13,11 @@ import { ObjectivesComponent } from "./index";
  * produce byte-identical DOM at `delay=0`. `contracts.active` (->
  * `career.status.contracts.active`, consumed via the shared
  * `parseContracts`/`contractObjectives` from `../ContractManager`) is the
- * one migrated read — `mh.*` (no mission running in this fixture) stays
- * legacy. `contracts-only.json` was reusable as-is (unlike ContractManager's
- * own dual-run fixture): every parameter already sets `optional: false`,
- * so there is no `optional`/`parameterType` divergence between the legacy
- * and new-wire shapes to work around here.
+ * widget's only read (the `mh.*` mission source was removed — P4c: `mh`
+ * carries no channel on the new wire). `contracts-only.json` was reusable
+ * as-is (unlike ContractManager's own dual-run fixture): every parameter
+ * already sets `optional: false`, so there is no `optional`/`parameterType`
+ * divergence between the legacy and new-wire shapes to work around here.
  */
 afterEach(() => {
   cleanup();
@@ -43,11 +39,6 @@ describe("Objectives — behavior-preservation golden dual-run (delay=0)", () =>
       carriedChannels: ["career.status"],
       pinnedUt: 10,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "mh.available" }],
-      connectSource: true,
-    });
 
     const { container } = render(
       <streamFixture.Provider>
@@ -58,8 +49,6 @@ describe("Objectives — behavior-preservation golden dual-run (delay=0)", () =>
     );
 
     act(() => {
-      legacyAux.source.emit("mh.available", contractsOnly["mh.available"]);
-
       const wireActive = contractsOnly["contracts.active"].map((c) => {
         const { agency, repCompletion, deadlineUt, ...rest } = c;
         return {
@@ -85,7 +74,6 @@ describe("Objectives — behavior-preservation golden dual-run (delay=0)", () =>
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);
   });

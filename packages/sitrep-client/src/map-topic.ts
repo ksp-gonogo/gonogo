@@ -912,13 +912,6 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // GameDlc.breakingGround is its own independent capability boolean, not
   // derived from science.deployed's emptiness. See TELEMACHUS_CLEAN_HOMES
   // above.
-  "mh.score",
-  "mh.objectives",
-  "mh.available",
-  "mh.finished",
-  "mh.name",
-  "mh.outcome",
-  "mh.phase",
   "scansat.available",
   "scansat.scanningVessels",
   // ksp.canRevertToEditor / ksp.canRevertToLaunch UN-GAPPED (P4a shared-map

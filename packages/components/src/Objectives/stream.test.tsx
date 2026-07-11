@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
 
@@ -12,10 +8,9 @@ import { ObjectivesComponent } from "./index";
  * The M3b career-detail batch's stream test-adapter proof for Objectives:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `contracts.active` (->
- * `career.status.contracts.active`) is the one mapped read this widget
- * shares with ContractManager (`parseContracts`/`contractObjectives`).
- * `mh.*` (no mission running) is carried by a `setupMockDataSource` AUX,
- * same mixed-source pattern the vessel-gap batch established.
+ * `career.status.contracts.active`) is the widget's sole read, shared with
+ * ContractManager (`parseContracts`/`contractObjectives`) — the `mh.*`
+ * mission source was removed (P4c: `mh` carries no channel on the new wire).
  */
 afterEach(() => {
   cleanup();
@@ -27,11 +22,6 @@ describe("Objectives — genuinely runs off the stream (M3b career-detail batch)
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "mh.available" }],
-      connectSource: true,
     });
 
     render(
@@ -45,7 +35,6 @@ describe("Objectives — genuinely runs off the stream (M3b career-detail batch)
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("mh.available", false);
       fixture.emit("career.status", {
         economy: null,
         facilities: null,
@@ -80,7 +69,5 @@ describe("Objectives — genuinely runs off the stream (M3b career-detail batch)
       expect(screen.getByText("Test LV-909: Flying over Kerbin")).toBeTruthy(),
     );
     expect(screen.getByText("Test the LV-909 in flight")).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 });

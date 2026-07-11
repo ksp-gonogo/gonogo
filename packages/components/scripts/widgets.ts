@@ -477,9 +477,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Minimum registered width — tight list, source tags wrap.
       { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size — mission head + unified list.
+      // Default registered size — unified contract-parameter list.
       { name: "default-5x8", w: 5, h: 8 },
-      // Tall — mission objectives + several contracts.
+      // Tall — several active contracts.
       { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
