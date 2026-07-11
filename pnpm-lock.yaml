@@ -167,6 +167,9 @@ importers:
       '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../../../packages/ui-kit
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -174,6 +177,12 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../../../packages/sitrep-client
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../sitrep-sdk
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

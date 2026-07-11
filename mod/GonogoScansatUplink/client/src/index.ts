@@ -7,6 +7,10 @@
 //
 //   - `Scanning` component → registerComponent({ id: "scanning", ... }) so it
 //     is placeable from the dashboard widget picker.
+//   - `ScansatScienceAugment` → registerAugment({ id: "scansat-science", ... })
+//     so it fills @ksp-gonogo/components's ScienceOfficer widget's
+//     `science-officer.badges` slot (design brief:
+//     local_docs/telemetry-mod/scansat-sci-brief-augment.md).
 //
 // To wire it into the app: `import "@ksp-gonogo/scansat";` during app bootstrap
 // (alongside the other component-registration imports in app/src/main.tsx).
@@ -24,7 +28,10 @@ export type {
 export { ScanningComponent } from "./Scanning";
 export type { MinimapProps } from "./Scanning/Minimap";
 export { Minimap, MinimapForActiveVessel } from "./Scanning/Minimap";
+export { parseScanScience } from "./ScienceAugment";
 
-// Side-effect registration. Kept as a bare import so the built dist/index.js
-// retains it and bundlers won't tree-shake the registerComponent() call away.
+// Side-effect registration. Kept as bare imports so the built dist/index.js
+// retains them and bundlers won't tree-shake the registerComponent()/
+// registerAugment() calls away.
 import "./Scanning";
+import "./ScienceAugment";
