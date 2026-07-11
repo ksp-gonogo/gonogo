@@ -43,5 +43,31 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/components/src/**",
+        "mod/*/client/src/**",
+        "!packages/ui/**",
+        "!packages/ui-kit/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "warn",
+              "options": {
+                "paths": {
+                  "styled-components": {
+                    "message": "Migrated widgets carry zero bespoke CSS — compose @ksp-gonogo/ui-kit primitives + layout + tokens instead. See local_docs/telemetry-mod/ui-kit-design.md."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
