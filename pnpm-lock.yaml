@@ -94,6 +94,9 @@ importers:
       '@ksp-gonogo/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../../../packages/ui-kit
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0

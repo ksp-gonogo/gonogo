@@ -1,7 +1,15 @@
 import { formatAge } from "@ksp-gonogo/core";
+import {
+  ActionButton,
+  EmptyState,
+  Panel,
+  PanelTitle,
+  Spinner,
+  StatusIndicator,
+  WidgetHeader,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import styled from "styled-components";
 
 /**
  * Panel frame shared by all widgets driven by a kOS script that emits a
@@ -10,8 +18,8 @@ import styled from "styled-components";
  *   - collapsible error banner with script-error and JSON-parse-error paths
  *   - "stale data" freshness badge
  *
- * The widget itself owns the body (children). Matches the layout of
- * @ksp-gonogo/components/KosWidget so the visual language stays consistent.
+ * The widget itself owns the body (children). Built entirely from
+ * `@ksp-gonogo/ui-kit` primitives — no bespoke styling lives here.
  */
 
 export interface KosScriptFrameProps {
@@ -66,208 +74,57 @@ export function KosScriptFrame({
 
   return (
     <Panel>
-      <Header>
-        <Title>{title}</Title>
-        <HeaderActions>
-          {running && <Spinner aria-label="running">…</Spinner>}
-          {onRun && (
-            <RunButton
-              type="button"
-              onClick={onRun}
-              disabled={runDisabled ?? running}
-            >
-              Run
-            </RunButton>
-          )}
-        </HeaderActions>
-      </Header>
+      <WidgetHeader
+        title={<PanelTitle>{title}</PanelTitle>}
+        actions={
+          <>
+            {running && <Spinner size={12} ariaLabel="running" />}
+            {onRun && (
+              <ActionButton
+                type="button"
+                onClick={onRun}
+                disabled={runDisabled ?? running}
+              >
+                Run
+              </ActionButton>
+            )}
+          </>
+        }
+      />
       {paused && (
-        <PausedBanner role="status" aria-live="polite">
-          <PausedText>
-            <PausedLabel>Paused — kOS errors</PausedLabel>
-            {pausedReason && <PausedReason>{pausedReason}</PausedReason>}
-          </PausedText>
+        // Distinct tone (warn, not nogo) so users don't confuse "transient
+        // error" with "I gave up" — nogo is reserved for the genuine
+        // abort/failure path below.
+        <StatusIndicator tone="warn" live>
+          Paused — kOS errors
+          {pausedReason && ` — ${pausedReason}`}
           {onReEnable && (
-            <ReEnableButton type="button" onClick={onReEnable}>
+            <ActionButton type="button" onClick={onReEnable}>
+              {" "}
               Re-enable
-            </ReEnableButton>
+            </ActionButton>
           )}
-        </PausedBanner>
+        </StatusIndicator>
       )}
       {err && (
-        <ErrorBanner
-          type="button"
-          onClick={() => setErrorOpen((o) => !o)}
-          aria-label="Show error detail"
-          aria-expanded={errorOpen}
-        >
-          <ErrorLabel>
-            {scriptError ? "Script failed" : "Parse failed"}
-          </ErrorLabel>
-          {ageMs !== null && (
-            <ErrorMeta>good data {formatAge(ageMs)} ago</ErrorMeta>
-          )}
-        </ErrorBanner>
+        <StatusIndicator tone="nogo" live>
+          {scriptError ? "Script failed" : "Parse failed"}
+          {ageMs !== null && ` — good data ${formatAge(ageMs)} ago`}
+          <ActionButton
+            type="button"
+            onClick={() => setErrorOpen((o) => !o)}
+            aria-label="Show error detail"
+            aria-expanded={errorOpen}
+          >
+            {" "}
+            {errorOpen ? "Hide" : "Details"}
+          </ActionButton>
+        </StatusIndicator>
       )}
-      {errorOpen && err && <ErrorDetail>{err.message}</ErrorDetail>}
+      {errorOpen && err && (
+        <EmptyState layout="inline">{err.message}</EmptyState>
+      )}
       {children}
     </Panel>
   );
 }
-
-// ── Styles — mirror KosWidget intentionally ───────────────────────────────────
-
-const Panel = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  /* Without border-box, the 1px border overflows the parent and gets
-     clipped by its overflow:hidden — leaving the left/right edges of
-     the panel borderless. */
-  box-sizing: border-box;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  overflow: hidden;
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-surface-raised);
-  flex-shrink: 0;
-`;
-
-const Title = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  /* Shrink the title (ellipsis) at tight widths so the Run button keeps its
-     room rather than clipping to "Ru". */
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-`;
-
-const Spinner = styled.span`
-  font-size: 14px;
-  color: var(--color-text-muted);
-`;
-
-const RunButton = styled.button`
-  background: var(--color-status-go-bg);
-  border: 1px solid var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 2px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  &:hover:not(:disabled) {
-    background: var(--color-status-go-bg);
-  }
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorBanner = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-status-alert-muted);
-  border: none;
-  border-bottom: 1px solid var(--color-border-strong);
-  color: var(--color-status-nogo-fg);
-  font-size: 11px;
-  padding: 6px 10px;
-  cursor: pointer;
-  text-align: left;
-  &:hover {
-    background: var(--color-status-alert-muted);
-  }
-`;
-
-const ErrorLabel = styled.span`
-  font-weight: 700;
-`;
-
-const ErrorMeta = styled.span`
-  color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
-`;
-
-const ErrorDetail = styled.pre`
-  background: var(--color-status-alert-muted);
-  color: var(--color-status-nogo-fg);
-  font-size: 11px;
-  padding: 8px 10px;
-  margin: 0;
-  white-space: pre-wrap;
-  border-bottom: 1px solid var(--color-tag-dark-brown-bg);
-`;
-
-// Paused banner — visually distinct from ErrorBanner so users don't
-// confuse "transient error" with "I gave up". Uses the warn/alert
-// surface, not the nogo surface; reserved nogo for the genuine
-// abort/failure path.
-const PausedBanner = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--color-status-alert-muted);
-  border-bottom: 1px solid var(--color-border-strong);
-  color: var(--color-status-nogo-fg);
-  font-size: 11px;
-  padding: 6px 10px;
-`;
-
-const PausedText = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-`;
-
-const PausedLabel = styled.span`
-  font-weight: 700;
-`;
-
-const PausedReason = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-status-nogo-fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ReEnableButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--color-status-nogo-fg);
-  color: var(--color-status-nogo-fg);
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 2px;
-  cursor: pointer;
-  flex-shrink: 0;
-  &:hover {
-    background: var(--color-surface-raised);
-  }
-`;
