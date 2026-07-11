@@ -361,9 +361,208 @@ describe("mapCommand", () => {
     });
 
     it("strips bracketed args before checking the gap set", () => {
-      expect(isKnownCommandGap("data", "robotics.servo.setTarget[3,45]")).toBe(
-        true,
+      expect(isKnownCommandGap("data", "ksp.launch[a,b,c,d]")).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // command-ungap batch: career.*, robotics.*, ksp.*/tar.switchVessel now
+  // have registered mod handlers AND their read-side ids stream (career.
+  // status.*, parts.robotics — see map-topic.ts), so they move out of
+  // KNOWN_COMMAND_GAPS.
+  // ---------------------------------------------------------------------
+
+  describe("career.* — command-ungap batch", () => {
+    it("strategies.activate carries the strategy id and factor", () => {
+      expect(mapCommand("data", "strategies.activate[SETI,0.5]")).toEqual({
+        command: "career.strategy.activate",
+        args: { strategyId: "SETI", factor: 0.5 },
+      });
+      expect(isKnownCommandGap("data", "strategies.activate[SETI,0.5]")).toBe(
+        false,
       );
+    });
+
+    it("an empty strategies.activate id falls back to legacy", () => {
+      expect(mapCommand("data", "strategies.activate[,0.5]")).toBeUndefined();
+    });
+
+    it("strategies.deactivate carries the strategy id", () => {
+      expect(mapCommand("data", "strategies.deactivate[SETI]")).toEqual({
+        command: "career.strategy.deactivate",
+        args: { strategyId: "SETI" },
+      });
+    });
+
+    it("tech.unlock carries the tech id", () => {
+      expect(mapCommand("data", "tech.unlock[start]")).toEqual({
+        command: "career.tech.unlock",
+        args: { techId: "start" },
+      });
+    });
+
+    it("contracts.accept/decline/cancel carry the contract id", () => {
+      expect(mapCommand("data", "contracts.accept[c1]")).toEqual({
+        command: "career.contract.accept",
+        args: { contractId: "c1" },
+      });
+      expect(mapCommand("data", "contracts.decline[c1]")).toEqual({
+        command: "career.contract.decline",
+        args: { contractId: "c1" },
+      });
+      expect(mapCommand("data", "contracts.cancel[c1]")).toEqual({
+        command: "career.contract.cancel",
+        args: { contractId: "c1" },
+      });
+    });
+
+    it("an empty contract id falls back to legacy", () => {
+      expect(mapCommand("data", "contracts.accept[]")).toBeUndefined();
+    });
+
+    it("kc.upgradeFacility bridges the widget's short code to the SpaceCenterFacility enum name", () => {
+      expect(mapCommand("data", "kc.upgradeFacility[vab]")).toEqual({
+        command: "career.facility.upgrade",
+        args: { facilityId: "VehicleAssemblyBuilding" },
+      });
+      expect(mapCommand("data", "kc.upgradeFacility[astronaut]")).toEqual({
+        command: "career.facility.upgrade",
+        args: { facilityId: "AstronautComplex" },
+      });
+    });
+
+    it("an unrecognized kc.upgradeFacility short code falls back to legacy", () => {
+      expect(mapCommand("data", "kc.upgradeFacility[hangar]")).toBeUndefined();
+    });
+  });
+
+  describe("robotics.* — command-ungap batch", () => {
+    it("robotics.servo.setTarget carries the partId and value", () => {
+      expect(mapCommand("data", "robotics.servo.setTarget[11,65]")).toEqual({
+        command: "robotics.servo.setTarget",
+        args: { partId: "11", value: 65 },
+      });
+      expect(isKnownCommandGap("data", "robotics.servo.setTarget[11,65]")).toBe(
+        false,
+      );
+    });
+
+    it("robotics.servo.setMotor/setLock carry the partId and enabled bool", () => {
+      expect(mapCommand("data", "robotics.servo.setMotor[11,true]")).toEqual({
+        command: "robotics.servo.setMotor",
+        args: { partId: "11", enabled: true },
+      });
+      expect(mapCommand("data", "robotics.servo.setLock[11,false]")).toEqual({
+        command: "robotics.servo.setLock",
+        args: { partId: "11", enabled: false },
+      });
+    });
+
+    it("robotics.rotor.setRpmLimit carries the partId and value with no range check", () => {
+      expect(mapCommand("data", "robotics.rotor.setRpmLimit[101,310]")).toEqual(
+        {
+          command: "robotics.rotor.setRpmLimit",
+          args: { partId: "101", value: 310 },
+        },
+      );
+    });
+
+    it("robotics.rotor.setTorqueLimit rejects an out-of-0..100-range value", () => {
+      expect(
+        mapCommand("data", "robotics.rotor.setTorqueLimit[101,150]"),
+      ).toBeUndefined();
+      expect(
+        mapCommand("data", "robotics.rotor.setTorqueLimit[101,80]"),
+      ).toEqual({
+        command: "robotics.rotor.setTorqueLimit",
+        args: { partId: "101", value: 80 },
+      });
+    });
+
+    it("robotics.rotor.setBrake rejects an out-of-0..200-range value", () => {
+      expect(
+        mapCommand("data", "robotics.rotor.setBrake[101,250]"),
+      ).toBeUndefined();
+      expect(mapCommand("data", "robotics.rotor.setBrake[101,150]")).toEqual({
+        command: "robotics.rotor.setBrake",
+        args: { partId: "101", value: 150 },
+      });
+    });
+
+    it("robotics.rotor.setMotor/setLock carry the partId and enabled bool", () => {
+      expect(mapCommand("data", "robotics.rotor.setMotor[101,true]")).toEqual({
+        command: "robotics.rotor.setMotor",
+        args: { partId: "101", enabled: true },
+      });
+      expect(mapCommand("data", "robotics.rotor.setLock[101,false]")).toEqual({
+        command: "robotics.rotor.setLock",
+        args: { partId: "101", enabled: false },
+      });
+    });
+
+    it("robotics.rotor.reverse carries the partId only", () => {
+      expect(mapCommand("data", "robotics.rotor.reverse[101]")).toEqual({
+        command: "robotics.rotor.reverse",
+        args: { partId: "101" },
+      });
+    });
+
+    it("an empty robotics partId falls back to legacy", () => {
+      expect(
+        mapCommand("data", "robotics.servo.setTarget[,65]"),
+      ).toBeUndefined();
+      expect(mapCommand("data", "robotics.rotor.reverse[]")).toBeUndefined();
+    });
+  });
+
+  describe("ksp.* flight-ops / tar.switchVessel -> ksp.switchVessel — command-ungap batch", () => {
+    it("ksp.recover/revertToLaunch/toTrackingStation need no args", () => {
+      expect(mapCommand("data", "ksp.recover")).toEqual({
+        command: "ksp.recover",
+        args: null,
+      });
+      expect(mapCommand("data", "ksp.revertToLaunch")).toEqual({
+        command: "ksp.revertToLaunch",
+        args: null,
+      });
+      expect(mapCommand("data", "ksp.toTrackingStation")).toEqual({
+        command: "ksp.toTrackingStation",
+        args: null,
+      });
+      for (const key of [
+        "ksp.recover",
+        "ksp.revertToLaunch",
+        "ksp.toTrackingStation",
+      ]) {
+        expect(isKnownCommandGap("data", key)).toBe(false);
+      }
+    });
+
+    it("ksp.revertToEditor carries the literal editor string", () => {
+      expect(mapCommand("data", "ksp.revertToEditor[vab]")).toEqual({
+        command: "ksp.revertToEditor",
+        args: { editor: "vab" },
+      });
+      expect(isKnownCommandGap("data", "ksp.revertToEditor[vab]")).toBe(false);
+    });
+
+    it("tar.switchVessel maps to the renamed ksp.switchVessel command, carrying arg[0] verbatim as vesselId", () => {
+      expect(mapCommand("data", "tar.switchVessel[aaaa-1111]")).toEqual({
+        command: "ksp.switchVessel",
+        args: { vesselId: "aaaa-1111" },
+      });
+      expect(isKnownCommandGap("data", "tar.switchVessel[aaaa-1111]")).toBe(
+        false,
+      );
+    });
+
+    it("an empty tar.switchVessel id falls back to legacy", () => {
+      expect(mapCommand("data", "tar.switchVessel[]")).toBeUndefined();
+    });
+
+    it("ksp.launch stays a known command gap — no LaunchCommand handler exists yet", () => {
+      expect(mapCommand("data", "ksp.launch[a,b,c,d]")).toBeUndefined();
+      expect(isKnownCommandGap("data", "ksp.launch[a,b,c,d]")).toBe(true);
     });
   });
 });

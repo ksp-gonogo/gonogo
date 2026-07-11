@@ -209,6 +209,68 @@ const SAS_MODE_ORDINALS: Readonly<Record<string, number>> = {
 const TARGET_KIND_BODY_ORDINAL = 1;
 
 /**
+ * `kc.upgradeFacility[<shortCode>]` -> `UpgradeFacilityArgs.FacilityId`'s
+ * full `SpaceCenterFacility` enum name. The widget dispatches its own short
+ * code (`launchPad`/`vab`/`sph`/…, `SpaceCenterStatus/index.tsx`'s
+ * `FacilityKey`), the same short codes `career.status.facilities` reads back
+ * onto via `ENUM_FACILITY_TO_KEY` — this is that table's inverse. An
+ * unrecognized short code is `INVALID`.
+ */
+const FACILITY_KEY_TO_ENUM: Readonly<Record<string, string>> = {
+  launchPad: "LaunchPad",
+  runway: "Runway",
+  vab: "VehicleAssemblyBuilding",
+  sph: "SpaceplaneHangar",
+  mission: "MissionControl",
+  tracking: "TrackingStation",
+  admin: "Administration",
+  rd: "ResearchAndDevelopment",
+  astronaut: "AstronautComplex",
+};
+
+/**
+ * Shared `{ partId, value }` bridge for the robotics servo/rotor value
+ * commands — `RoboticsCommandProvider`'s `ServoSetTargetArgs`/
+ * `RotorSetValueArgs` both wire as `{partId, value}`. `range`, when given,
+ * mirrors the server's own bound (`RoboticsCommandProvider`'s
+ * `TorqueLimitMax`/`BrakePercentMax`) client-side too — belt-and-suspenders
+ * against ever dispatching an out-of-range value, same posture as
+ * `f.setThrottle`'s 0..1 check.
+ */
+function roboticsValueHome(
+  command: string,
+  range?: [number, number],
+): CommandHome {
+  return {
+    command,
+    buildArgs: (rawArgs) => {
+      const partId = rawArgs[0];
+      const value = parseFiniteNumber(rawArgs[1]);
+      if (!partId || value === INVALID) return INVALID;
+      if (range && (value < range[0] || value > range[1])) return INVALID;
+      return { partId, value };
+    },
+  };
+}
+
+/**
+ * Shared `{ partId, enabled }` bridge for the robotics servo/rotor
+ * motor/lock commands — `RoboticsCommandProvider`'s `ServoSetEnabledArgs`
+ * wire shape, absolute-set-only (there is no toggle -> absolute inversion
+ * here; the widget already tracks and sends the target state directly).
+ */
+function roboticsEnabledHome(command: string): CommandHome {
+  return {
+    command,
+    buildArgs: (rawArgs) => {
+      const partId = rawArgs[0];
+      if (!partId) return INVALID;
+      return { partId, enabled: rawArgs[1] === "true" };
+    },
+  };
+}
+
+/**
  * `o.addManeuverNode[ut,radial,normal,prograde]` -> `vessel.maneuver.add`'s
  * named `{ut, prograde, normal, radialOut}`. Field-order note (load-bearing —
  * see the project's own "Telemachus maneuver-node arg order" finding,
@@ -430,6 +492,158 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
       return { kind: 0 /* TargetKind.Vessel */, vesselId };
     },
   },
+
+  // --- career.* — command-ungap batch. career.status.* (facilities/
+  // contracts/strategies/tech/economy, map-topic.ts's M3b career-detail
+  // batch) already round-trips every id these commands key on — strategy id
+  // (`strategies.all[].id`), tech id (`tech.nodes[].id`), contract id
+  // (`contracts.*[].id`) are all read straight off that stream, so there is
+  // no read-side dependency left to close. CareerCommandProvider handlers
+  // (mod/Sitrep.Host/CareerCommandProvider.cs) fail-fast NotFound on an
+  // empty id, but buildArgs still rejects a blank string client-side to
+  // fall back cleanly — same posture as the science bridges above.
+  "strategies.activate": {
+    // CareerCommandProvider.HandleActivateStrategy
+    command: "career.strategy.activate",
+    buildArgs: (rawArgs) => {
+      const strategyId = rawArgs[0];
+      const factor = parseFiniteNumber(rawArgs[1]);
+      if (!strategyId || factor === INVALID) return INVALID;
+      return { strategyId, factor };
+    },
+  },
+  "strategies.deactivate": {
+    // CareerCommandProvider.HandleDeactivateStrategy
+    command: "career.strategy.deactivate",
+    buildArgs: (rawArgs) => {
+      const strategyId = rawArgs[0];
+      return strategyId ? { strategyId } : INVALID;
+    },
+  },
+  "tech.unlock": {
+    // CareerCommandProvider.HandleUnlockTech
+    command: "career.tech.unlock",
+    buildArgs: (rawArgs) => {
+      const techId = rawArgs[0];
+      return techId ? { techId } : INVALID;
+    },
+  },
+  "contracts.accept": {
+    // CareerCommandProvider.HandleAcceptContract
+    command: "career.contract.accept",
+    buildArgs: (rawArgs) => {
+      const contractId = rawArgs[0];
+      return contractId ? { contractId } : INVALID;
+    },
+  },
+  "contracts.decline": {
+    // CareerCommandProvider.HandleDeclineContract
+    command: "career.contract.decline",
+    buildArgs: (rawArgs) => {
+      const contractId = rawArgs[0];
+      return contractId ? { contractId } : INVALID;
+    },
+  },
+  "contracts.cancel": {
+    // CareerCommandProvider.HandleCancelContract
+    command: "career.contract.cancel",
+    buildArgs: (rawArgs) => {
+      const contractId = rawArgs[0];
+      return contractId ? { contractId } : INVALID;
+    },
+  },
+  "kc.upgradeFacility": {
+    // CareerCommandProvider.HandleUpgradeFacility — short-code -> enum-name
+    // bridge (FACILITY_KEY_TO_ENUM above). SpaceCenterStatus dispatches its
+    // own short code; an unrecognized one is INVALID rather than sending a
+    // facility id the mod can never resolve.
+    command: "career.facility.upgrade",
+    buildArgs: (rawArgs) => {
+      const facilityId = rawArgs[0]
+        ? FACILITY_KEY_TO_ENUM[rawArgs[0]]
+        : undefined;
+      return facilityId ? { facilityId } : INVALID;
+    },
+  },
+
+  // --- robotics.* — command-ungap batch. `parts.robotics` (map-topic.ts)
+  // is already RoboticsConsole/RotorTachometer's whole identity list, and
+  // every entry carries the stable stringified `partId` these commands key
+  // on — read-side dependency already closed. RoboticsCommandProvider
+  // (mod/Sitrep.Host/RoboticsCommandProvider.cs) re-validates torque/brake
+  // ranges server-side; the client-side range checks below are belt-and-
+  // suspenders, same posture as `f.setThrottle`.
+  "robotics.servo.setTarget": roboticsValueHome("robotics.servo.setTarget"),
+  "robotics.servo.setMotor": roboticsEnabledHome("robotics.servo.setMotor"),
+  "robotics.servo.setLock": roboticsEnabledHome("robotics.servo.setLock"),
+  "robotics.rotor.setRpmLimit": roboticsValueHome("robotics.rotor.setRpmLimit"),
+  "robotics.rotor.setTorqueLimit": roboticsValueHome(
+    "robotics.rotor.setTorqueLimit",
+    [0, 100],
+  ),
+  "robotics.rotor.setBrake": roboticsValueHome(
+    "robotics.rotor.setBrake",
+    [0, 200],
+  ),
+  "robotics.rotor.setMotor": roboticsEnabledHome("robotics.rotor.setMotor"),
+  "robotics.rotor.setLock": roboticsEnabledHome("robotics.rotor.setLock"),
+  "robotics.rotor.reverse": {
+    // RoboticsCommandProvider.HandleRotorReverse — direction flip, no state
+    // to invert (the lone robotics command with no value/enabled field).
+    command: "robotics.rotor.reverse",
+    buildArgs: (rawArgs) => {
+      const partId = rawArgs[0];
+      return partId ? { partId } : INVALID;
+    },
+  },
+
+  // --- ksp.* flight-ops — command-ungap batch (FlightOpsCommandProvider,
+  // mod/Sitrep.Host/FlightOpsCommandProvider.cs). recover/revertToLaunch/
+  // revertToEditor/toTrackingStation have no read-side id dependency at
+  // all — they un-gap unconditionally regardless of LaunchDirector's other
+  // reads staying hybrid.
+  "ksp.recover": {
+    // FlightOpsCommandProvider.HandleRecover — HandleRecover ignores its
+    // args entirely (`object? _`).
+    command: "ksp.recover",
+    buildArgs: () => null,
+  },
+  "ksp.revertToLaunch": {
+    command: "ksp.revertToLaunch",
+    buildArgs: () => null,
+  },
+  "ksp.revertToEditor": {
+    // FlightOpsCommandProvider.HandleRevertToEditor — literal "vab"/"sph";
+    // an unrecognized value is the handler's own Range rejection, no need
+    // to duplicate the enum bridge client-side.
+    command: "ksp.revertToEditor",
+    buildArgs: (rawArgs) => {
+      const editor = rawArgs[0];
+      return editor ? { editor } : INVALID;
+    },
+  },
+  "ksp.toTrackingStation": {
+    command: "ksp.toTrackingStation",
+    buildArgs: () => null,
+  },
+
+  // --- tar.switchVessel -> ksp.switchVessel (RENAMED). system.vessels'
+  // roster entries carry a stable vesselId (SystemViewProvider
+  // .BuildSystemVessels) — same index -> stable-id shape as
+  // tar.setTargetVessel above. buildArgs takes rawArgs[0] verbatim; the
+  // server no-ops an unknown id (harmless), an empty id is INVALID.
+  // FOLLOW-UP: LaunchDirector's onSwitchVessel still dispatches the
+  // legacy positional array index (`entry.index`), not system.vessels'
+  // vesselId — the widget itself needs the same rework already applied to
+  // TargetPicker before this command actually resolves anything live.
+  "tar.switchVessel": {
+    // FlightOpsCommandProvider.HandleSwitchVessel
+    command: "ksp.switchVessel",
+    buildArgs: (rawArgs) => {
+      const vesselId = rawArgs[0];
+      return vesselId ? { vesselId } : INVALID;
+    },
+  },
 };
 
 /**
@@ -464,36 +678,21 @@ export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   "f.throttleUp",
   "f.throttleDown",
 
-  // --- robotics / parts-surface — own asset-class work, matches the
-  // robotics.* read-side gaps (map-topic.ts) ---
-  "robotics.servo.setTarget",
-  "robotics.servo.setMotor",
-  "robotics.servo.setLock",
-  "robotics.rotor.setRpmLimit",
-  "robotics.rotor.setTorqueLimit",
-  "robotics.rotor.setBrake",
-  "robotics.rotor.setMotor",
-  "robotics.rotor.setLock",
-  "robotics.rotor.reverse",
+  // robotics.servo.*/robotics.rotor.* UN-GAPPED (command-ungap batch) — see
+  // roboticsValueHome/roboticsEnabledHome's TELEMACHUS_COMMAND_HOMES
+  // entries above; parts.robotics already streams the partId these key on.
 
-  // --- career domain — out of vessel-provider scope by design, matches the
-  // career.*/kc.*/contracts.*/strategies.*/tech.* read-side gaps ---
-  "strategies.activate",
-  "strategies.deactivate",
-  "tech.unlock",
-  "contracts.accept",
-  "contracts.decline",
-  "contracts.cancel",
-  "kc.upgradeFacility",
+  // strategies.activate/deactivate, tech.unlock, contracts.accept/decline/
+  // cancel, kc.upgradeFacility UN-GAPPED (command-ungap batch) — see the
+  // career.* TELEMACHUS_COMMAND_HOMES entries above; career.status.* (M3b
+  // career-detail batch) already streams every id these key on.
 
-  // --- scene/meta actions — matches the ksp.canRevertToEditor/Launch
-  // read-side gaps ---
-  "ksp.recover",
-  "ksp.revertToLaunch",
-  "ksp.revertToEditor",
-  "ksp.toTrackingStation",
+  // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation,
+  // tar.switchVessel -> ksp.switchVessel UN-GAPPED (command-ungap batch) —
+  // see the ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries above.
+  // ksp.launch STAYS gapped (below) — no LaunchCommand handler exists yet,
+  // separate from this batch.
   "ksp.launch",
-  "tar.switchVessel",
 ]);
 
 /**
