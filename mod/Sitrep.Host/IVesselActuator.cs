@@ -44,6 +44,22 @@ namespace Sitrep.Host
 
         CommandResult SetThrottle(double value);
 
+        /// <summary>
+        /// Arms or disarms the persistent fly-by-wire override. Arming attaches
+        /// a <c>Vessel.OnFlyByWire</c> callback that writes the held axes into
+        /// <c>FlightCtrlState</c> every physics frame; disarming detaches it and
+        /// neutralizes the stored axes/trims. See
+        /// <c>Gonogo.KSP.KspVesselActuator</c>'s override state machine.
+        /// </summary>
+        CommandResult SetFlyByWire(bool enabled);
+
+        /// <summary>
+        /// Partially updates the held fly-by-wire override — only the non-null
+        /// fields of <paramref name="axes"/> overwrite their stored value, so a
+        /// single-axis command never clobbers the others.
+        /// </summary>
+        CommandResult SetControlAxes(SetControlAxesArgs axes);
+
         CommandResult<int> Stage();
 
         CommandResult SetActionGroup(int group, bool state);

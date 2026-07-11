@@ -23,6 +23,8 @@ namespace Sitrep.Host.Tests
         public bool? LastSetLightsEnabled;
         public bool? LastSetAbortEnabled;
         public double? LastSetThrottleValue;
+        public bool? LastSetFlyByWireEnabled;
+        public SetControlAxesArgs? LastSetControlAxes;
         public int StageCallCount;
         public int? LastActionGroup;
         public bool? LastActionGroupState;
@@ -52,6 +54,8 @@ namespace Sitrep.Host.Tests
         public CommandResult SetLightsResult = CommandResult.Ok();
         public CommandResult SetAbortResult = CommandResult.Ok();
         public CommandResult SetThrottleResult = CommandResult.Ok();
+        public CommandResult SetFlyByWireResult = CommandResult.Ok();
+        public CommandResult SetControlAxesResult = CommandResult.Ok();
         public CommandResult<int> StageResultValue = CommandResult<int>.Ok(1);
         public CommandResult SetActionGroupResult = CommandResult.Ok();
         public CommandResult<string> AddManeuverNodeResultValue = CommandResult<string>.Ok("node-1");
@@ -108,6 +112,18 @@ namespace Sitrep.Host.Tests
         {
             LastSetThrottleValue = value;
             return SetThrottleResult;
+        }
+
+        public CommandResult SetFlyByWire(bool enabled)
+        {
+            LastSetFlyByWireEnabled = enabled;
+            return SetFlyByWireResult;
+        }
+
+        public CommandResult SetControlAxes(SetControlAxesArgs axes)
+        {
+            LastSetControlAxes = axes;
+            return SetControlAxesResult;
         }
 
         public CommandResult<int> Stage()

@@ -342,5 +342,129 @@ namespace Sitrep.Host.Tests
 
             Assert.True(actuator.LastSetPause);
         }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void HandleSetFlyByWirePassesEnabledThroughAsAbsoluteState(bool enabled)
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleSetFlyByWire(actuator, new SetFlyByWireArgs { Enabled = enabled });
+
+            Assert.Equal(enabled, actuator.LastSetFlyByWireEnabled);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void HandleSetFlyByWireSurfacesTheActuatorsNoVesselError()
+        {
+            var actuator = new FakeVesselActuator { SetFlyByWireResult = CommandResult.Fail(CommandErrorCode.NoVessel) };
+
+            var result = VesselCommandProvider.HandleSetFlyByWire(actuator, new SetFlyByWireArgs { Enabled = true });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NoVessel, result.ErrorCode);
+        }
+
+        /// <summary>
+        /// Distinct values on every axis prove each named field reaches the
+        /// actuator unscrambled — the fly-by-wire analog of the maneuver-node
+        /// arg-order test.
+        /// </summary>
+        [Fact]
+        public void HandleSetControlAxesThreadsEveryNamedAxisThrough()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetControlAxes(actuator, new SetControlAxesArgs
+            {
+                Pitch = 0.1,
+                Yaw = 0.2,
+                Roll = 0.3,
+                X = 0.4,
+                Y = 0.5,
+                Z = 0.6,
+                PitchTrim = 0.7,
+                YawTrim = 0.8,
+                RollTrim = 0.9,
+            });
+
+            var axes = actuator.LastSetControlAxes;
+            Assert.NotNull(axes);
+            Assert.Equal(0.1, axes!.Pitch);
+            Assert.Equal(0.2, axes.Yaw);
+            Assert.Equal(0.3, axes.Roll);
+            Assert.Equal(0.4, axes.X);
+            Assert.Equal(0.5, axes.Y);
+            Assert.Equal(0.6, axes.Z);
+            Assert.Equal(0.7, axes.PitchTrim);
+            Assert.Equal(0.8, axes.YawTrim);
+            Assert.Equal(0.9, axes.RollTrim);
+        }
+
+        /// <summary>
+        /// A single-axis command leaves every other field null, so the actuator
+        /// only overwrites the one axis it was given — the partial-update
+        /// contract that lets the client drive one axis without clobbering the
+        /// rest.
+        /// </summary>
+        [Fact]
+        public void HandleSetControlAxesLeavesUnsetFieldsNull()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetControlAxes(actuator, new SetControlAxesArgs { Pitch = 0.5 });
+
+            var axes = actuator.LastSetControlAxes;
+            Assert.NotNull(axes);
+            Assert.Equal(0.5, axes!.Pitch);
+            Assert.Null(axes.Yaw);
+            Assert.Null(axes.Roll);
+            Assert.Null(axes.X);
+            Assert.Null(axes.Y);
+            Assert.Null(axes.Z);
+            Assert.Null(axes.PitchTrim);
+            Assert.Null(axes.YawTrim);
+            Assert.Null(axes.RollTrim);
+        }
+
+        /// <summary>
+        /// Out-of-range axis readings are CLAMPED to −1..1 (not rejected) — an
+        /// over-range hardware stick is a routine quirk, not an error, unlike
+        /// throttle which rejects out-of-range with
+        /// <see cref="CommandErrorCode.Range"/>.
+        /// </summary>
+        [Fact]
+        public void HandleSetControlAxesClampsOutOfRangeValuesToTheUnitInterval()
+        {
+            var actuator = new FakeVesselActuator();
+
+            var result = VesselCommandProvider.HandleSetControlAxes(actuator, new SetControlAxesArgs
+            {
+                Pitch = 2.5,
+                Yaw = -3.0,
+                Z = 1.0,
+                RollTrim = -1.0,
+            });
+
+            var axes = actuator.LastSetControlAxes;
+            Assert.NotNull(axes);
+            Assert.Equal(1.0, axes!.Pitch);
+            Assert.Equal(-1.0, axes.Yaw);
+            Assert.Equal(1.0, axes.Z);
+            Assert.Equal(-1.0, axes.RollTrim);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void HandleSetControlAxesLeavesNullFieldsUnclamped()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetControlAxes(actuator, new SetControlAxesArgs { Pitch = 0.5 });
+
+            Assert.Null(actuator.LastSetControlAxes!.Yaw);
+        }
     }
 }

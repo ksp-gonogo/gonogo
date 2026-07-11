@@ -112,7 +112,7 @@ namespace Sitrep.Core.Tests
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
             "KosExecArgs", "KosReEnableArgs", "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
-            "SetWarpIndexArgs",
+            "SetWarpIndexArgs", "SetFlyByWireArgs", "SetControlAxesArgs",
             "ActivateStrategyArgs", "DeactivateStrategyArgs", "UnlockTechArgs",
             "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
             "SwitchVesselArgs", "LaunchArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",

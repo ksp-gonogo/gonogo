@@ -48,6 +48,14 @@ namespace Sitrep.Host
         public const string StageCommand = "vessel.control.stage";
         public const string SetActionGroupCommand = "vessel.control.setActionGroup";
 
+        // ---- fly-by-wire (persistent override, not one-shot actuation) --------
+        // Unlike every other vessel.control.* command, a raw control axis is
+        // re-zeroed by KSP each physics frame, so the actuator holds an override
+        // struct and re-applies it from Vessel.OnFlyByWire while armed. setFlyByWire
+        // arms/disarms; setAxes partially updates the held axes/trims.
+        public const string SetFlyByWireCommand = "vessel.control.setFlyByWire";
+        public const string SetControlAxesCommand = "vessel.control.setAxes";
+
         // ---- vessel.maneuver.* -- delayed:true (F2: a maneuver node is
         // craft-side state, so add/update/remove is an uplink that rides
         // light-time; see VesselUplink's command-classification table) ----
@@ -92,6 +100,50 @@ namespace Sitrep.Host
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
             return actuator.SetThrottle(args.Value);
+        }
+
+        public static CommandResult HandleSetFlyByWire(IVesselActuator actuator, SetFlyByWireArgs args) =>
+            actuator.SetFlyByWire(args.Enabled);
+
+        /// <summary>
+        /// Clamps every provided axis/trim field to −1..1 HERE (KSP-free
+        /// admission validation) before handing the whole partial-update struct
+        /// to the actuator. Axes are CLAMPED rather than rejected — an
+        /// over-range stick reading is a routine hardware quirk, not an error
+        /// (contrast <see cref="HandleSetThrottle"/>, which rejects out-of-range
+        /// with <see cref="CommandErrorCode.Range"/> because a throttle past
+        /// full is a genuine mistake).
+        /// </summary>
+        public static CommandResult HandleSetControlAxes(IVesselActuator actuator, SetControlAxesArgs args)
+        {
+            args.Pitch = ClampAxis(args.Pitch);
+            args.Yaw = ClampAxis(args.Yaw);
+            args.Roll = ClampAxis(args.Roll);
+            args.X = ClampAxis(args.X);
+            args.Y = ClampAxis(args.Y);
+            args.Z = ClampAxis(args.Z);
+            args.PitchTrim = ClampAxis(args.PitchTrim);
+            args.YawTrim = ClampAxis(args.YawTrim);
+            args.RollTrim = ClampAxis(args.RollTrim);
+            return actuator.SetControlAxes(args);
+        }
+
+        private static double? ClampAxis(double? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+            var v = value.Value;
+            if (v < -1.0)
+            {
+                return -1.0;
+            }
+            if (v > 1.0)
+            {
+                return 1.0;
+            }
+            return v;
         }
 
         public static CommandResult<int> HandleStage(IVesselActuator actuator, object? _) =>

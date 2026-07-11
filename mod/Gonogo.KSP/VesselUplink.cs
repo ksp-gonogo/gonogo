@@ -164,6 +164,14 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
                 Command(VesselCommandProvider.StageCommand, delayed: true),
                 Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
+                // fly-by-wire — a craft uplink like every other vessel.control.*,
+                // so it rides light-time (delayed:true). Each axis update takes
+                // effect at t0 + one-way delay and the operator sees it at
+                // +2×one-way; continuous FBW under multi-second delay is barely
+                // flyable by construction, which the client warning badge exists
+                // to flag (correct per the delay model, not a bug).
+                Command(VesselCommandProvider.SetFlyByWireCommand, delayed: true),
+                Command(VesselCommandProvider.SetControlAxesCommand, delayed: true),
                 // vessel.maneuver.* — F2 reclassified to delayed:true: a
                 // maneuver node is craft-side state, so placing/editing/removing
                 // it is an uplink that rides light-time like every other
@@ -214,6 +222,8 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetThrottleArgs, CommandResult>(VesselCommandProvider.SetThrottleCommand, args => VesselCommandProvider.HandleSetThrottle(_actuator, args));
             host.AddCommandHandler<object?, CommandResult<int>>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
             host.AddCommandHandler<SetActionGroupArgs, CommandResult>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));
+            host.AddCommandHandler<SetFlyByWireArgs, CommandResult>(VesselCommandProvider.SetFlyByWireCommand, args => VesselCommandProvider.HandleSetFlyByWire(_actuator, args));
+            host.AddCommandHandler<SetControlAxesArgs, CommandResult>(VesselCommandProvider.SetControlAxesCommand, args => VesselCommandProvider.HandleSetControlAxes(_actuator, args));
             host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
             host.AddCommandHandler<UpdateManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
             host.AddCommandHandler<RemoveManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));

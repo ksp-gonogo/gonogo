@@ -335,6 +335,22 @@ export interface LaunchArgs
 	site: string;
 	crew: string[];
 }
+export interface ISetFlyByWireArgs
+{
+	enabled: boolean;
+}
+export interface ISetControlAxesArgs
+{
+	pitch?: number;
+	yaw?: number;
+	roll?: number;
+	x?: number;
+	y?: number;
+	z?: number;
+	pitchTrim?: number;
+	yawTrim?: number;
+	rollTrim?: number;
+}
 export interface GameDlc
 {
 	breakingGround: boolean;

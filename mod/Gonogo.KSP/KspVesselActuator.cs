@@ -53,9 +53,34 @@ namespace Gonogo.KSP
         // call) sees a given node object first.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
 
+        // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
+        // Command handlers and Vessel.OnFlyByWire both run on the Unity main
+        // thread (see the class doc comment's F2 marshaling note), so this
+        // mutable state needs no synchronization. The callback delegate is
+        // created once so Delegate.Remove/Combine target the SAME reference; the
+        // struct holds every axis/trim value the callback writes each frame.
+        private struct FbwOverride
+        {
+            public bool Enabled;
+            public float Pitch;
+            public float Yaw;
+            public float Roll;
+            public float X;
+            public float Y;
+            public float Z;
+            public float PitchTrim;
+            public float YawTrim;
+            public float RollTrim;
+        }
+
+        private FbwOverride _fbw;
+        private Vessel? _attachedVessel;
+        private readonly FlightInputCallback _flyByWireCallback;
+
         public KspVesselActuator(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
+            _flyByWireCallback = ApplyFlyByWireOverride;
         }
 
         public CommandResult SetSas(bool enabled) => WithActionGroups(actionGroups =>
@@ -137,6 +162,152 @@ namespace Gonogo.KSP
             }
             FlightInputHandler.state.mainThrottle = (float)value;
             return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Arms/disarms the persistent fly-by-wire override. Arming attaches
+        /// <see cref="_flyByWireCallback"/> to <c>FlightGlobals.ActiveVessel</c>'s
+        /// <c>OnFlyByWire</c> (idempotent remove-then-combine) and sets the armed
+        /// flag; the axes resume from their last-set values (or 0 on first arm).
+        /// Disarming clears the flag, detaches the callback, and neutralizes the
+        /// stored axes AND trims so control is fully handed back to the player/SAS
+        /// with no residual override — a later re-arm starts from a clean stick.
+        /// </summary>
+        public CommandResult SetFlyByWire(bool enabled)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+            if (vessel == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            if (enabled)
+            {
+                AttachFlyByWire(vessel);
+                _fbw.Enabled = true;
+            }
+            else
+            {
+                _fbw.Enabled = false;
+                DetachFlyByWire();
+                _fbw.Pitch = _fbw.Yaw = _fbw.Roll = 0f;
+                _fbw.X = _fbw.Y = _fbw.Z = 0f;
+                _fbw.PitchTrim = _fbw.YawTrim = _fbw.RollTrim = 0f;
+            }
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Partially updates the held override — only the non-null fields of
+        /// <paramref name="axes"/> overwrite their stored value (single-axis
+        /// commands never clobber the others). Values arrive already clamped to
+        /// −1..1 by <see cref="VesselCommandProvider.HandleSetControlAxes"/>. If
+        /// the active vessel changed since the callback was attached, re-attach
+        /// it lazily here so a mid-flight vessel switch keeps the override live
+        /// on whichever vessel the next axis command targets.
+        /// </summary>
+        public CommandResult SetControlAxes(SetControlAxesArgs axes)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+            if (vessel == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            if (_fbw.Enabled && !ReferenceEquals(_attachedVessel, vessel))
+            {
+                AttachFlyByWire(vessel);
+            }
+
+            if (axes.Pitch.HasValue)
+            {
+                _fbw.Pitch = (float)axes.Pitch.Value;
+            }
+            if (axes.Yaw.HasValue)
+            {
+                _fbw.Yaw = (float)axes.Yaw.Value;
+            }
+            if (axes.Roll.HasValue)
+            {
+                _fbw.Roll = (float)axes.Roll.Value;
+            }
+            if (axes.X.HasValue)
+            {
+                _fbw.X = (float)axes.X.Value;
+            }
+            if (axes.Y.HasValue)
+            {
+                _fbw.Y = (float)axes.Y.Value;
+            }
+            if (axes.Z.HasValue)
+            {
+                _fbw.Z = (float)axes.Z.Value;
+            }
+            if (axes.PitchTrim.HasValue)
+            {
+                _fbw.PitchTrim = (float)axes.PitchTrim.Value;
+            }
+            if (axes.YawTrim.HasValue)
+            {
+                _fbw.YawTrim = (float)axes.YawTrim.Value;
+            }
+            if (axes.RollTrim.HasValue)
+            {
+                _fbw.RollTrim = (float)axes.RollTrim.Value;
+            }
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// The <c>FlightInputCallback</c> KSP runs each physics frame BEFORE the
+        /// autopilot (so SAS can trim on top, matching stock stick behaviour). A
+        /// no-op while disarmed, so on disarm the axes stop being written and
+        /// SAS/manual input resumes with no residual override. Both axes and
+        /// trims are written from inside the callback, keeping trim durable while
+        /// armed rather than one-shot-writing it to <c>ctrlState</c>.
+        /// </summary>
+        private void ApplyFlyByWireOverride(FlightCtrlState st)
+        {
+            if (!_fbw.Enabled)
+            {
+                return;
+            }
+            st.pitch = _fbw.Pitch;
+            st.yaw = _fbw.Yaw;
+            st.roll = _fbw.Roll;
+            st.X = _fbw.X;
+            st.Y = _fbw.Y;
+            st.Z = _fbw.Z;
+            st.pitchTrim = _fbw.PitchTrim;
+            st.yawTrim = _fbw.YawTrim;
+            st.rollTrim = _fbw.RollTrim;
+        }
+
+        /// <summary>
+        /// Binds <see cref="_flyByWireCallback"/> to <paramref name="vessel"/>'s
+        /// <c>OnFlyByWire</c> multicast delegate via the idempotent
+        /// remove-then-combine pattern (a double-arm never double-registers). If
+        /// a different vessel was previously attached, detach it first so only
+        /// one vessel ever carries the override.
+        /// </summary>
+        private void AttachFlyByWire(Vessel vessel)
+        {
+            if (!ReferenceEquals(_attachedVessel, vessel))
+            {
+                DetachFlyByWire();
+            }
+            vessel.OnFlyByWire = (FlightInputCallback)Delegate.Remove(vessel.OnFlyByWire, _flyByWireCallback);
+            vessel.OnFlyByWire = (FlightInputCallback)Delegate.Combine(vessel.OnFlyByWire, _flyByWireCallback);
+            _attachedVessel = vessel;
+        }
+
+        private void DetachFlyByWire()
+        {
+            if (_attachedVessel != null)
+            {
+                _attachedVessel.OnFlyByWire = (FlightInputCallback)Delegate.Remove(_attachedVessel.OnFlyByWire, _flyByWireCallback);
+                _attachedVessel = null;
+            }
         }
 
         public CommandResult<int> Stage()
