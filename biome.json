@@ -28,6 +28,19 @@
           "level": "error",
           "options": { "available": "newly" }
         }
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "@testing-library/react": {
+                "importNames": ["cleanup"],
+                "message": "Testing Library auto-cleans after every test — a manual cleanup import/call is redundant and masks real teardown bugs. Remove it and rely on automatic cleanup."
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -61,6 +74,10 @@
                 "paths": {
                   "styled-components": {
                     "message": "Migrated widgets carry zero bespoke CSS — compose @ksp-gonogo/ui-kit primitives + layout + tokens instead. See local_docs/telemetry-mod/ui-kit-design.md."
+                  },
+                  "@testing-library/react": {
+                    "importNames": ["cleanup"],
+                    "message": "Testing Library auto-cleans after every test — a manual cleanup import/call is redundant and masks real teardown bugs. Remove it and rely on automatic cleanup."
                   }
                 }
               }
