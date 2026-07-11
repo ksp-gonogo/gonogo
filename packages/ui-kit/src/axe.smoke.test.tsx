@@ -3,12 +3,18 @@ import { ThemeProvider } from "styled-components";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { Badge } from "./Badge";
+import { Card } from "./Card";
 import { defaultDarkTheme } from "./defaultDarkTheme";
 import { EmptyState } from "./EmptyState";
+import { Grid } from "./Grid";
 import { Panel, PanelTitle } from "./Panel";
+import { ProgressBar } from "./ProgressBar";
 import { Row, RowName } from "./Row";
+import { Section, SectionTitle } from "./Section";
+import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { axe } from "./test/axe";
+import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {
   it("ActionButton (both tones) has no axe violations", async () => {
@@ -67,6 +73,75 @@ describe("a11y smoke (jest-axe)", () => {
       <Panel>
         <PanelTitle>Science Lab</PanelTitle>
       </Panel>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Card has no axe violations", async () => {
+    const { container } = render(<Card>Kerbin Explorer I</Card>);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("ProgressBar has no axe violations", async () => {
+    const { container } = render(
+      <ProgressBar value={64} ariaLabel="Biome coverage — Kerbin" />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("StatusIndicator has no axe violations across tones, live or not", async () => {
+    const { container } = render(
+      <>
+        <StatusIndicator tone="go">Connected</StatusIndicator>
+        <StatusIndicator tone="nogo" live>
+          Disconnected
+        </StatusIndicator>
+      </>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("WidgetHeader has no axe violations", async () => {
+    const { container } = render(
+      <WidgetHeader
+        title="Mission clock"
+        actions={
+          <button type="button" aria-label="reset clock">
+            reset
+          </button>
+        }
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Section + SectionTitle has no axe violations", async () => {
+    const { container } = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Section>
+          <SectionTitle>Coverage</SectionTitle>
+          <span>Altimetry (Hi) — 42%</span>
+        </Section>
+      </ThemeProvider>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Grid has no axe violations", async () => {
+    const { container } = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Grid cols="120px 1fr 60px">
+          <span>Altimetry (Hi)</span>
+          <ProgressBar value={64} ariaLabel="Altimetry coverage" />
+          <span>64%</span>
+        </Grid>
+      </ThemeProvider>,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
