@@ -7,8 +7,8 @@ import munCluster from "./__fixtures__/mun-cluster-two-experiments.json";
 import { DeployedScienceComponent } from "./index";
 
 /**
- * DeployedScience's M3 science-domain-finale behavior-preservation golden
- * dual-run (mirrors `ScienceBench/dual-run.test.tsx` /
+ * DeployedScience's behavior-preservation golden dual-run (mirrors
+ * `ScienceBench/dual-run.test.tsx` /
  * `ScienceOfficer/dual-run.test.tsx`): the SAME deployed-cluster state,
  * rendered once off the legacy `DataSource` (`deployed.bases`'s grouped-base
  * shape) and once off the stream (`science.deployed`'s flat
@@ -25,7 +25,7 @@ import { DeployedScienceComponent } from "./index";
  * ever shows `body`/power label/EC numbers/experiment name/progress %/
  * collecting dot), so this dual-run is a genuine same-state comparison, not
  * a coincidence. `deployed.available` (-> `game.dlc.breakingGround`) is
- * migrated too (P4a shared-map batch) — the legacy leg still reads it off
+ * migrated too — the legacy leg still reads it off
  * the plain `DataSource` (that leg never mounts a `TelemetryProvider`, so
  * the shim's carried-channels gate keeps it on the legacy path there); the
  * stream leg now feeds it through the fixture's `game.dlc` topic instead of

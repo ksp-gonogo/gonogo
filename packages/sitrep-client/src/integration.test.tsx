@@ -13,8 +13,8 @@ import { useCommand } from "./use-command";
 import { useStream } from "./use-stream";
 
 /**
- * The M2 milestone's proof: one component reading a live telemetry stream
- * AND dispatching a command, both routed through the real
+ * Proof that one component can read a live telemetry stream
+ * AND dispatch a command, both routed through the real
  * `TelemetryProvider` -> `TelemetryClient` -> `Transport` boundary, with only
  * the transport's other end (`StubTransport`) faked.
  */
@@ -45,9 +45,8 @@ describe("sitrep-client end-to-end spine", () => {
     );
 
     // Stream: renders, then updates on new inbound data. `TelemetryProvider`
-    // coalesces `beginFrame()` to the next animation frame (M2 finalization
-    // Fix 1), so each update lands one frame after its emit, not
-    // synchronously.
+    // coalesces `beginFrame()` to the next animation frame, so each update
+    // lands one frame after its emit, not synchronously.
     expect(screen.getByText("altitude:—")).toBeTruthy();
     act(() => {
       transport.emit("v.alt", 1200);

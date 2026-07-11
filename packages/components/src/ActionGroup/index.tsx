@@ -48,19 +48,19 @@ const actionGroupActions = [
 export type ActionGroupActions = typeof actionGroupActions;
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4)
+// Augment slots
 //
 // ActionGroup is a single-group control, so its slot props carry the identity
 // and live readout of the *one* group this instance drives. An augment binds a
 // Kerbalism/mod-subsystem status describing WHAT that group toggles — e.g.
-// "AG3 → radiators" — using the group id/datum to scope itself (feedback r1).
+// "AG3 → radiators" — using the group id/datum to scope itself.
 //   • `action-group.badges`   — inline in the header row; per-group indicators.
 //   • `action-group.sections` — richer whole-widget status block in the body.
-// Both receive the same context; the placement differs (spec §4.8).
+// Both receive the same context; the placement differs.
 // ---------------------------------------------------------------------------
 
 /**
- * The context both ActionGroup slots pass to their augments (spec §4.4). An
+ * The context both ActionGroup slots pass to their augments. An
  * augment reads the `groupId` to decide whether/how to describe the toggled
  * subsystem, and can reflect the live `value` / `stateLabel` if it wants to.
  */
@@ -75,8 +75,8 @@ export interface ActionGroupSlotContext {
   stateLabel: string;
 }
 
-// Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
-// §4.6 declaration-merging base). Co-located here (not a central file) so
+// Declaration-merge the slot ids → props type into core's `SlotRegistry`.
+// Co-located here (not a central file) so
 // parallel slot work on other widgets can't collide. This makes
 // `registerAugment` and `<AugmentSlot name="action-group.badges" …>` type-check
 // against `ActionGroupSlotContext` rather than the loose fallback.
@@ -103,8 +103,9 @@ function ActionGroupComponent({
   // `group.value`/`group.toggle` are resolved dynamically off the ACTION_GROUPS
   // registry (`@ksp-gonogo/core/actionGroups.ts`), not literal `useDataValue`
   // string calls — see `mapTopic.coverage.test.ts`'s doc comment for why that
-  // makes this widget the scan's own blind spot. P4a un-gapped the last two
-  // holdouts (Abort/Precision Control's `.value` keys): `v.abortValue` ->
+  // makes this widget the scan's own blind spot. Abort and Precision
+  // Control's `.value` keys were the last two holdouts and are now
+  // un-gapped: `v.abortValue` ->
   // `vessel.control.abort` and `v.precisionControlValue` ->
   // `vessel.control.precisionControl` (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`)
   // — every other group's `.value` was already mapped. The `.toggle` side is
@@ -162,7 +163,7 @@ function ActionGroupComponent({
         ? "ON"
         : "OFF";
 
-  // Props both augment slots pass down (spec §4.4). Built after the `!group`
+  // Props both augment slots pass down. Built after the `!group`
   // guard, so this is a plain object rather than a hook — no `useMemo` may run
   // conditionally. A fresh reference per render is fine: the live `value`
   // changes anyway, and `AugmentSlot`'s subscription is store-driven.
@@ -260,7 +261,7 @@ function ActionGroupComponent({
         </LabelArea>
         <HeaderRight>
           {/* Inline per-group badges — an Uplink can surface a subsystem
-              indicator here without a bespoke slot (spec §4.8). Renders nothing
+              indicator here without a bespoke slot. Renders nothing
               until an augment binds `action-group.badges`. */}
           <AugmentSlot name="action-group.badges" props={slotContext} />
           {showBell && group.toggle && (
@@ -302,7 +303,7 @@ function ActionGroupComponent({
         </UnavailableNotice>
       )}
       {/* Richer whole-widget status block — the section-level counterpart to the
-          inline badges (spec §4.8). An Uplink describing what this group toggles
+          inline badges. An Uplink describing what this group toggles
           (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
       <AugmentSlot name="action-group.sections" props={slotContext} />
     </Panel>

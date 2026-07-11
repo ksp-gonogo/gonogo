@@ -3,8 +3,8 @@ import { useCelestialBodies } from "./useCelestialBodies";
 
 /**
  * Body rotation angle for the OrbitDiagram pole marker — derived CLIENT-SIDE
- * (R6 §1b REDESIGN) from the body's `rotationPeriod` + the SDK view-UT,
- * instead of the legacy per-frame `b.rotationAngle[i]` / `b.rotates[i]`
+ * from the body's `rotationPeriod` + the SDK view-UT, instead of the legacy
+ * per-frame `b.rotationAngle[i]` / `b.rotates[i]`
  * indexed reads this hook used to make.
  *
  * `angleDeg = (360 · viewUt / rotationPeriod) mod 360` — the rate is exact

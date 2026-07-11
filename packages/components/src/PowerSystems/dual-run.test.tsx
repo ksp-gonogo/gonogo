@@ -11,7 +11,7 @@ import charging from "./__fixtures__/03-solar-charging-sunlight.json";
 import { PowerSystemsComponent } from "./index";
 
 /**
- * PowerSystems' M3 science/parts batch behavior-preservation golden
+ * PowerSystems' behavior-preservation golden
  * dual-run (mirrors `DistanceToTarget/dual-run.test.tsx`): the SAME
  * solar-charging scenario, rendered once off the legacy `DataSource`
  * (`r.resourceFor[fid]`-summed PROD total) and once with `parts.power`

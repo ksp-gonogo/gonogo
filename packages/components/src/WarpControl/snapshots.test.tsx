@@ -46,7 +46,7 @@ interface Mode {
 }
 
 /**
- * WarpControl is de-Telemachus'd (R6): it reads its whole state off the
+ * WarpControl is de-Telemachus'd: it reads its whole state off the
  * native `time.warp` Topic via canonical `useTelemetry`, with no legacy
  * read-fallback. So the DOM snapshot feeds the SAME warp state the fixtures
  * describe through the real stream pipeline (`TelemetryProvider` +

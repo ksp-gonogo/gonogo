@@ -161,7 +161,7 @@ function fmtFixed(value: unknown, digits: number): string {
 
 /**
  * `dv.stages` can now arrive off either transport under the identical key
- * (P4a shared-map batch, map-topic.ts's whole-topic identity read): the
+ * (map-topic.ts's whole-topic identity read): the
  * legacy Telemachus `DataSource` still ships the historical `StageInfo`
  * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/…), while the new mod
  * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
@@ -218,13 +218,13 @@ function FuelStatusComponent({
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
   const currentStage = useDataValue("data", "v.currentStage");
-  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot).
+  // Connectivity indicator, mirroring the WarpControl pilot.
   // `v.currentStage` is this widget's one representative MAPPED key
   // (-> `vessel.structure.currentStage`). The ΔV totals/stage-stack `dv.*`
-  // keys were UN-GAPPED in the P4a shared-map batch (`dv.stages` ->
+  // keys are UN-GAPPED (`dv.stages` ->
   // whole-topic `dv.stages`; `dv.stageCount`/`totalDV*`/`totalBurnTime` ->
   // raw-field walks on the sibling `dv.summary` topic, map-topic.ts's
-  // `TELEMACHUS_CLEAN_HOMES`) and now route through the stream too — but
+  // `TELEMACHUS_CLEAN_HOMES`) and route through the stream too — but
   // the LiquidFuel/Oxidizer resource bars still read the GAPPED
   // stage-scoped `r.resourceCurrent(Max)[X]` keys (no wire home, stays
   // legacy), so this badge still can't be driven off "everything the
@@ -713,8 +713,8 @@ registerComponent<FuelStatusConfig>({
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
   // dv.stageCount/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
-  // dv.totalBurnTime/dv.stages all UN-GAPPED in the P4a shared-map batch —
-  // same declared keys, now routed through the stream by `mapTopic`
+  // dv.totalBurnTime/dv.stages are all UN-GAPPED —
+  // same declared keys, routed through the stream by `mapTopic`
   // (map-topic.ts's TELEMACHUS_CLEAN_HOMES) with a zero call-site rename;
   // `dv.stages`'s wire shape changed underneath it though, see
   // `parseStages` above. The r.resourceCurrent(Max)[X] stage-scoped splits

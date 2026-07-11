@@ -25,8 +25,8 @@ type ThermalStatusConfig = Record<string, never>;
 // whole-widget context, no slot props — a header quick-glance badge (e.g. a
 // future Kerbalism Reliability "N parts at risk" indicator) sits alongside the
 // stream-status badge. Declaration-merge the slot id → props type into core's
-// `SlotRegistry` (spec §4.6) co-located here so parallel slot work doesn't
-// collide on a shared central file. No props ⇒ empty object contract.
+// `SlotRegistry`, co-located here so parallel slot work doesn't collide on a
+// shared central file. No props ⇒ empty object contract.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "thermal-status.badges": Record<string, never>;
@@ -133,7 +133,7 @@ function ThermalStatusComponent({
   const rawShieldTempC = useDataValue("data", "therm.heatShieldTempCelsius");
   const rawShieldFluxKw = useDataValue("data", "therm.heatShieldFlux");
 
-  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot).
+  // Connectivity indicator (mirroring the WarpControl pilot).
   // `therm.hottestPartTemp` is the widget's one representative MAPPED key
   // (-> `vessel.thermal.hottestPart.skinTemp`) — the engine/heat-shield
   // rows all read GAPPED keys (map-topic.ts's TELEMACHUS_KNOWN_GAPS "thermal

@@ -9,7 +9,7 @@ import { CommSignalComponent } from "./index";
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` — no legacy
  * `DataSource` is registered anywhere in this file.
  *
- * R6 Wave-1: all five reads are clean homes now (`map-topic.ts`):
+ * All five reads are clean homes now (`map-topic.ts`):
  * - `comm.connected` -> `vessel.comms.connected`, `comm.signalStrength` ->
  *   `vessel.comms.signalStrength` (raw field subtopics of `vessel.comms`).
  * - `comm.controlState` -> `vessel.state.commsControlStateOrdinal`,
@@ -138,7 +138,7 @@ describe("CommSignal — genuinely runs off the stream (R6 Wave 1)", () => {
     // activity after the initial value — simulating the underlying
     // connection having gone silent. The streamed path does NOT clear to
     // undefined the way the retired legacy `DataSource` did on a status
-    // drop; it holds the last-known value (M2 staleness model).
+    // drop; it holds the last-known value instead of clearing it.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
       pinnedUt: 10,

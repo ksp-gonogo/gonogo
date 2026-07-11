@@ -11,7 +11,7 @@ import {
 } from "./vessel-state";
 
 /**
- * M2 bridge task, Fix 2: guards against the exact class of bug the red-team
+ * Guards against the exact class of bug the red-team
  * found — a `mapTopic` entry pointing at `vessel.state.<field>` for a
  * `<field>` the shipped `deriveVesselState` never actually produces. Such an
  * entry LOOKS mapped (passes `mapTopic.coverage.test.ts` in `@ksp-gonogo/core`,

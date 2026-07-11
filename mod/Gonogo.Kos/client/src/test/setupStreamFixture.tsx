@@ -12,20 +12,19 @@ import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { JSX, ReactNode } from "react";
 
 /**
- * The M3 stream test-adapter (`m3-migration-plan.md` §4-test), minimal
- * version — a migrated widget's test needs to genuinely run OFF THE STREAM
- * (a real `TelemetryProvider` + a real `TelemetryClient`/`TimelineStore`
- * pipeline), not the legacy `MockDataSource` registry. Built for the
- * WarpControl pilot; scoped to what it needs — the plan's fuller
- * `fromTelemachusFixture` bulk-fixture-converter is later-wave work once
- * more widgets migrate.
+ * A stream test-adapter, minimal version — a migrated widget's test needs
+ * to genuinely run OFF THE STREAM (a real `TelemetryProvider` + a real
+ * `TelemetryClient`/`TimelineStore` pipeline), not the legacy
+ * `MockDataSource` registry. Built for the WarpControl pilot; scoped to
+ * what it needs — a fuller `fromTelemachusFixture` bulk-fixture-converter
+ * is later work once more widgets migrate.
  *
  * - **`StubTransport`** (not `ReplayTransport`) — this adapter is for
  *   hand-authored, per-test wire emissions (`fixture.emit(topic, payload)`),
  *   subscription-gated exactly like production (`StubTransport.emit` only
  *   delivers once something has actually subscribed — proving the widget's
  *   `useStream`/shim ref-count genuinely subscribed, a real correctness
- *   signal per the plan). A widget test that wants to replay a full
+ *   signal). A widget test that wants to replay a full
  *   recording instead should build its own `ReplayTransport` directly.
  * - **`FixedViewClock` pattern** — `new ViewClock({ nowWall: wall.now,
  *   warpRate: () => 1, delaySeconds: () => opts.delaySeconds ?? 0 })`,
@@ -37,7 +36,7 @@ import type { JSX, ReactNode } from "react";
  *   which topics (read AND command) this fixture carries; nothing is
  *   silently promoted (mirrors the production allowlist's own "explicit
  *   dev-first promotion" contract, `TelemetryProvider`'s own doc comment).
- * - **`delaySeconds`** (M3 whole-branch review #4): every dual-run/stream
+ * - **`delaySeconds`**: every dual-run/stream
  *   test up to this point hardcoded `delaySeconds: () => 0` — the ONE
  *   knob the whole streaming pipeline exists for was untested. A caller
  *   that supplies a nonzero `delaySeconds` MUST leave `pinnedUt` unset:

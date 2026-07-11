@@ -55,7 +55,7 @@ interface NavballConfig {
 // surfacing its active mode next to SAS/RCS — a badge that reads its OWN
 // Domain's Topics, not the navball's attitude reads, so the slot passes no
 // props. Declaration-merge the slot id → props type into core's `SlotRegistry`
-// (spec §4.6) so `registerAugment` and `<AugmentSlot name="navball.badges" …>`
+// so `registerAugment` and `<AugmentSlot name="navball.badges" …>`
 // type-check against an empty-props contract rather than the loose
 // `Record<string, unknown>` fallback. Kept co-located here (not in a shared
 // central file) so parallel per-widget slot work never collides.
@@ -139,7 +139,7 @@ function NavballComponent({
       : 0;
   const isControllable = useDataValue("data", "v.isControllable") !== false;
 
-  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot):
+  // Connectivity indicator (mirroring the WarpControl pilot):
   // `n.heading` is representative of the widget's mapped attitude/control
   // read set regardless of the CoM-frame toggle (n.heading2 is a permanent
   // gap either way — see mapTopic's TELEMACHUS_KNOWN_GAPS "*2 CoM-attitude
@@ -907,7 +907,7 @@ registerComponent<NavballConfig>({
   component: NavballComponent,
   configComponent: NavballConfigComponent,
   // n.heading2/n.pitch2/n.roll2 (CoM-frame quartet) and v.angleToPrograde are
-  // dropped from this declared list (P4a brief): they're permanent gaps on
+  // dropped from this declared list: they're permanent gaps on
   // the new mod wire with no planned replacement (map-topic.ts's
   // TELEMACHUS_KNOWN_GAPS, V-9). The CoM-frame toggle keeps reading
   // n.heading2/pitch2/roll2 at runtime below — that's a legit legacy-only

@@ -1,5 +1,4 @@
-// SCANsat science augment for ScienceOfficer (Uplink architecture spec §4;
-// design brief: local_docs/telemetry-mod/scansat-sci-brief-augment.md).
+// SCANsat science augment for ScienceOfficer.
 //
 // Fills ScienceOfficer's `science-officer.badges` header slot with the
 // vessel's SCANsat map-scanner experiments — parts SCANsat manages via
@@ -9,7 +8,7 @@
 // widget's broad, once-per-widget escape-hatch slot (its own doc comment:
 // "badges-as-broad-escape-hatch") — the right shape for a whole extra
 // section, unlike `science-officer.sections` (per-instrument, wrong shape
-// here, brief §1).
+// here).
 //
 // Presence-gated on `requires: "scansat"`: `AugmentSlot` renders this only
 // while `scansat.available` is live, so an install without the SCANsat mod
@@ -30,7 +29,7 @@ import styled from "styled-components";
  * Parses `scansat.science` (`Sitrep.Contract.ScanScienceEntry[]`, built by
  * `mod/GonogoScansatUplink/ScanScience.cs`). Field names already match the
  * ui-kit row's `ScienceInstrument` shape 1:1 — the mod-side builder
- * deliberately names them to match (brief §2) — so this is a straight
+ * deliberately names them to match — so this is a straight
  * nullable-wire -> plain-boolean normalisation, same pattern as
  * ScienceOfficer's own `parseInstruments`: `bool?` -> `=== true`, missing
  * `partTitle`/`expId` -> a safe fallback, entries with no `partId` skipped.
@@ -64,19 +63,19 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
 }
 
 /**
- * Read-only first cut (brief §2): `onDeploy`/`onTransmit` are omitted, so
+ * Read-only first cut: `onDeploy`/`onTransmit` are omitted, so
  * each row's action cluster renders inert buttons gated purely on
  * `deployed`/`hasData` state. Wiring Deploy/Transmit is a follow-up —
- * Transmit in particular is blocked mod-side (a private SCANsat method, see
- * the mod brief §4) until that lands.
+ * Transmit in particular is blocked mod-side (a private SCANsat method)
+ * until that lands.
  *
- * Layout tension flagged, not solved, per the brief: `science-officer.badges`
+ * Layout tension flagged, not solved: `science-officer.badges`
  * renders inline in the header's flex `Cluster` next to the panel title, so
  * a full row list can't just sit there — it would crush the title. This
  * ships a collapsed count badge that expands a floating row list on click,
  * leaving the header's stock layout untouched either way (collapsed or
  * expanded). The clean long-term fix is a dedicated body-level
- * `science-officer.sections-append` slot on ScienceOfficer (brief §1) —
+ * `science-officer.sections-append` slot on ScienceOfficer —
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {

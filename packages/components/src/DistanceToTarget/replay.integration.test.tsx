@@ -18,7 +18,7 @@ import { DistanceToTargetComponent } from "./index";
  * every transition — including a tricky one (the small post-HUD distance
  * bump) — without scripting per-emit timing by hand.
  *
- * Post-R6 the widget reads the `vessel.target`/`vessel.dock` Vec3 fields, not
+ * The widget reads the `vessel.target`/`vessel.dock` Vec3 fields, not
  * the legacy scalar keys. Ranges/rates are laid out purely along z so
  * `|relativePosition| = z` and the derived radial rate === the z-velocity.
  */

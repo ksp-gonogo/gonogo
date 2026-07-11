@@ -25,7 +25,7 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  // R6 Wave 1 — both reads are now clean-home stream Topics (no gaps left),
+  // Both reads are clean-home stream Topics (no gaps left),
   // so this widget rides the Uplink stream end-to-end. Read via `useTelemetry`
   // (the canonical read hook — `useDataValue` is a deprecated alias): the
   // two-arg form resolves each key through `mapTopic` to its stream home —

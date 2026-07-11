@@ -1,6 +1,5 @@
 /**
- * The M3 write-half analog of `map-topic.ts`'s `mapTopic` (`m3-migration-plan
- * .md` §4-commands / §Build 1 "command shim"): old Telemachus action-string
+ * The write-half analog of `map-topic.ts`'s `mapTopic`: old Telemachus action-string
  * key (as passed to `useExecuteAction("data")(action)` today, e.g.
  * `"t.timeWarp[4]"`, `"t.pause"`) -> the new typed `vessel.*`/`time.*`
  * command + wire-shaped args, or `undefined` when there is no new command
@@ -31,12 +30,11 @@
  * `mod/sitrep-sdk/src/__generated__/contract.ts`, which are plain numeric
  * `enum { X = 0, ... }`.
  *
- * **The three harder arg-shape bridges** (`m3-migration-plan.md`'s own
- * flagged watch-items):
+ * **The three harder arg-shape bridges:**
  *
  * 1. **toggle -> absolute.** Every Telemachus `f.<x>` action is a pure "flip
  *    whatever it currently is" toggle with NO state encoded in the action
- *    string; every M1 actuation command is absolute-set-only (`SetEnabledArgs
+ *    string; every actuation command is absolute-set-only (`SetEnabledArgs
  *    .Enabled`, doc comment: "a toggle racing an unknown intervening state
  *    under light-time delay is a footgun this contract doesn't reproduce").
  *    `buildArgs` gets a `getCurrentValue(topic)` reader (backed by the
@@ -46,13 +44,13 @@
  *    returns `INVALID` — the shim falls back to legacy rather than ever
  *    dispatching an ambiguous toggle as a blind set. See `toggleHome`/
  *    `actionGroupHome` below.
- * 2. **index -> stable-id — UN-GAPPED as of the M3 vessel-gap batch.**
+ * 2. **index -> stable-id — now UN-GAPPED.**
  *    `o.updateManeuverNode[id,...]`/`o.removeManeuverNode[id]` used to carry
  *    only a positional array INDEX (`useManeuverNodes.ts`: "Index of this
  *    node in `o.maneuverNodes`"), while the new `vessel.maneuver.update`/
  *    `.remove` commands need the opaque `NodeId` `vessel.maneuver.add`'s OWN
  *    result returns (`KspVesselActuator.AddManeuverNode`:
- *    `Guid.NewGuid().ToString()`). M3 R3 closed this by making
+ *    `Guid.NewGuid().ToString()`). This was closed by making
  *    `vessel.maneuver.nodes[].id` republish that same guid on EVERY node,
  *    not just ones created through the command path — `map-topic.ts`'s new
  *    `o.maneuverNodeIds` key exposes it, and `ManeuverPlanner` resolves the
@@ -156,7 +154,7 @@ function toggleHome(command: string, readTopic: string): CommandHome {
  * shim safely falls back to legacy — exactly the documented "if unknowable,
  * prefer the safest mapping" contract, never a guessed toggle.
  *
- * `f.abort` UN-GAPPED (P4a command batch): `VesselControl` now carries a
+ * `f.abort` is UN-GAPPED: `VesselControl` now carries a
  * plain `Abort` field (`vessel.control.abort` — see `map-topic.ts`'s
  * `TELEMACHUS_CLEAN_HOMES`), so it gets the same clean `toggleHome` bridge
  * as sas/rcs/gear/brake/light below rather than this array-indexing one.
@@ -307,7 +305,7 @@ function maneuverAddHome(): CommandHome {
 }
 
 const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
-  // --- time.* (sim-meta, never delayed) — the M3 pilot's original two ---
+  // --- time.* (sim-meta, never delayed) ---
   "t.timeWarp": {
     // VesselCommandProvider.SetWarpIndexCommand
     command: "time.setWarpIndex",
@@ -332,7 +330,7 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
   "f.gear": toggleHome("vessel.control.setGear", "vessel.control.gear"),
   "f.brake": toggleHome("vessel.control.setBrakes", "vessel.control.brakes"),
   "f.light": toggleHome("vessel.control.setLights", "vessel.control.lights"),
-  // VesselCommandProvider.SetAbortCommand (P4a command batch un-gap).
+  // VesselCommandProvider.SetAbortCommand.
   "f.abort": toggleHome("vessel.control.setAbort", "vessel.control.abort"),
   "f.ag1": actionGroupHome(1),
   "f.ag2": actionGroupHome(2),
@@ -407,8 +405,8 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
   // --- vessel.maneuver.* — add is a CREATE, needs no id (bridge 3) ---
   "o.addManeuverNode": maneuverAddHome(),
 
-  // --- M3 vessel-gap batch: bridge 2 un-gap. vessel.maneuver.nodes[].id now
-  // round-trips a stable per-node guid (M3 R3 capture-add), closing this
+  // --- bridge 2 un-gap: vessel.maneuver.nodes[].id now
+  // round-trips a stable per-node guid, closing this
   // file's own doc comment's "no read channel carries a per-node nodeId" gap.
   // ManeuverPlanner resolves the real id via the new `o.maneuverNodeIds`
   // mapTopic read (map-topic.ts) when available, falling back to the legacy
@@ -476,7 +474,7 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
     },
   },
 
-  // --- M3 vessel-gap batch: bridge 2 un-gap. system.vessels' roster entries
+  // --- bridge 2 un-gap: system.vessels' roster entries
   // now carry a stable vesselId (Vessel.id guid, SystemViewProvider
   // .BuildSystemVessels), closing this file's own "index -> stable-id" gap
   // for target-by-vessel. TargetPicker passes that guid verbatim as
@@ -665,17 +663,17 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
 };
 
 /**
- * Old action keys with NO new command home yet — the M3 command-side
+ * Old action keys with NO new command home yet — the command-side
  * analog of `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`. Exported so
  * `@ksp-gonogo/core`'s coverage test can assert "mapped OR declared gap"
  * without a silent third case.
  */
 export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
-  // f.abort UN-GAPPED (P4a command batch) — see toggleHome's
+  // f.abort is UN-GAPPED — see toggleHome's
   // TELEMACHUS_COMMAND_HOMES entry above.
 
   // --- no discrete command exists for a continuous raw control axis ---
-  // v.setPitch/setYaw/setRoll/setTranslation: the M1 vessel.control.*
+  // v.setPitch/setYaw/setRoll/setTranslation: the vessel.control.*
   // command set is discrete actuation only (booleans, throttle, SAS mode,
   // stage) — there is no "set raw control-surface axis" command.
   "v.setPitch",

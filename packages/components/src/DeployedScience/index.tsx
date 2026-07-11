@@ -22,15 +22,14 @@ import styled from "styled-components";
  * Reads `deployed.bases` + `deployed.available`; degrades to a muted empty
  * state without Breaking Ground or when no base is deployed.
  *
- * `deployed.bases` is migrated (M3 science-domain finale) — `map-topic.ts`
- * routes it onto the new `science.deployed` stream topic
- * (`mod/Sitrep.Host/ScienceViewProvider.cs`'s `BuildDeployed`, itself fed by
- * `Gonogo.KSP.KspHost.BuildDeployedScience`'s GLOBAL
- * `FlightGlobals.Vessels` walk — a Breaking Ground cluster is its own
+ * `deployed.bases` is migrated — `map-topic.ts` routes it onto the new
+ * `science.deployed` stream topic (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
+ * `BuildDeployed`, itself fed by `Gonogo.KSP.KspHost.BuildDeployedScience`'s
+ * GLOBAL `FlightGlobals.Vessels` walk — a Breaking Ground cluster is its own
  * vessel, never the active one). `parseBases` below now accepts BOTH wire
  * shapes; see its own doc comment for the field-by-field mapping.
- * `deployed.available` is migrated too (P4a shared-map batch) — the earlier
- * "no new-wire equivalent" read was stale: `game.dlc.breakingGround` is its
+ * `deployed.available` is migrated too — the earlier "no new-wire
+ * equivalent" read was stale: `game.dlc.breakingGround` is its
  * own independent capability boolean, not derived from `science.deployed`'s
  * emptiness (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`).
  *
@@ -127,13 +126,13 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
 }
 
 /**
- * Coarse `powerState` enum ("Powered" | "NoPower" — decompile-confirmed,
- * `.superpowers/sdd/deployed-science-fix-report.md` — or any other non-empty
- * string a future KSP version might add, e.g. a hypothetical
- * "PartiallyPowered") -> the widget's existing `powered`/`partialPower`
- * boolean pair. `ModuleGroundSciencePart.PowerState` is a free string field,
- * not a closed enum this codebase controls, so an unrecognized non-empty
- * value is treated as "some power, but not full" rather than dropped.
+ * Coarse `powerState` enum ("Powered" | "NoPower" — decompile-confirmed —
+ * or any other non-empty string a future KSP version might add, e.g. a
+ * hypothetical "PartiallyPowered") -> the widget's existing
+ * `powered`/`partialPower` boolean pair. `ModuleGroundSciencePart.PowerState`
+ * is a free string field, not a closed enum this codebase controls, so an
+ * unrecognized non-empty value is treated as "some power, but not full"
+ * rather than dropped.
  */
 function powerFromState(powerState: string | null): {
   powered: boolean;
@@ -217,8 +216,8 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
  * - **Legacy GonogoTelemetry shape**: grouped per-base objects — a numeric
  *   `id`, an EC `powerAvailable`/`powerRequired` balance, and a nested
  *   `experiments` list already keyed by numeric `partId`.
- * - **New SDK `science.deployed`** (M3 science-domain finale, routed onto
- *   this key by `map-topic.ts`): a FLAT array of individual deployed
+ * - **New SDK `science.deployed`** (routed onto this key by
+ *   `map-topic.ts`): a FLAT array of individual deployed
  *   experiments — one entry per `ModuleGroundExperiment`, no base grouping
  *   — `{ vesselName, partName, body, situation, biome, experimentId,
  *   scienceCompletedPercentage, scienceTransmittedPercentage, scienceValue,

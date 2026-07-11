@@ -37,18 +37,18 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
 
-// ── Augment slots (Uplink architecture spec §4) ─────────────────────────────
-// Two host-owned slots any Uplink may compose into. Neither carries slot props
-// (spec §4.4): they are not overlay or typed-contract slots — a bound augment
+// ── Augment slots (Uplink architecture) ─────────────────────────────
+// Two host-owned slots any Uplink may compose into. Neither carries slot props:
+// they are not overlay or typed-contract slots — a bound augment
 // reads its OWN Topics via hooks and fires its own actions, so both pass `{}`.
 //
 //  - `target-picker.sections`: a body slot for a fleet-management Uplink (mission
 //    tagging / constellation grouping) to add a filter/grouping view alongside
-//    the stock Bodies / Vessels / Current tabs. No confirmed filler yet (P3+).
+//    the stock Bodies / Vessels / Current tabs. No confirmed filler yet.
 //  - `target-picker.badges`: the broad inline-indicator escape hatch (slot-map
 //    "Feedback round 1"), sitting in the header next to the title.
 //
-// Typed here via co-located `SlotRegistry` declaration-merging (spec §4.6) so
+// Typed here via co-located `SlotRegistry` declaration-merging so
 // the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
 // falling back to the loose `Record<string, unknown>`.
 declare module "@ksp-gonogo/core" {
@@ -130,7 +130,7 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const bodies = useCelestialBodies();
-  // Target-detail reads are Wave-1 clean homes (R6 §1) routed through
+  // Target-detail reads are clean homes routed through
   // `useTelemetry`'s legacy two-arg form onto their SDK-derived homes:
   // `tar.name` -> `vessel.target.name`, `tar.type` -> `vessel.state.targetKind`
   // (enum-ordinal → display name), `tar.distance` -> `vessel.state.targetDistance`
@@ -191,7 +191,7 @@ function TargetPickerComponent({
   };
 
   // ── Vessel listing via the `system.vessels` roster ───────────────────────
-  // Read canonically off the stream (R6): the roster is a structurally
+  // Read canonically off the stream: the roster is a structurally
   // different shape from the legacy `tar.availableVessels` array (no position/
   // distance field), so there is no shape-compatible legacy fallback to keep —
   // the canonical Topic read drops the Telemachus path outright and only ever
@@ -880,9 +880,9 @@ registerComponent<TargetPickerConfig>({
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
-  // Two host-owned augment slots (spec §4): a body `.sections` slot for a
+  // Two host-owned augment slots: a body `.sections` slot for a
   // fleet-management Uplink's filter/grouping view, and the broad `.badges`
-  // escape hatch in the header. Unfilled until an Uplink binds them (P3+).
+  // escape hatch in the header. Unfilled until an Uplink binds them.
   augmentSlots: ["target-picker.sections", "target-picker.badges"],
   dataRequirements: [
     "b.number",

@@ -24,8 +24,8 @@ import { formatDensity } from "../shared/formatDensity";
 type LandingStatusConfig = Record<string, never>;
 
 /**
- * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot
- * (spec §4.8 composable badges), rendered in the header row next to the title.
+ * Props for `landing-status.badges` — the widget's BROAD escape-hatch slot,
+ * rendered in the header row next to the title.
  * A cheap integration seam for small inline status chips an Uplink wants beside
  * the "LANDING" title (e.g. a landing-guidance quality chip). Badge augments
  * read their own Topics via hooks, so only labelling context is passed down.
@@ -37,7 +37,7 @@ export interface LandingStatusBadgesContext {
   atmospheric: boolean;
 }
 
-// Co-located declaration-merge of this widget's slot id → its props (spec §4.6).
+// Co-located declaration-merge of this widget's slot id → its props.
 // Kept next to the widget (not in a central registry file) so parallel slot
 // work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
@@ -118,12 +118,12 @@ function LandingStatusComponent({
   const atmTemperature = useDataValue("data", "v.atmosphericTemperature");
   const externalTemperature = useDataValue("data", "v.externalTemperature");
 
-  // Connectivity indicator (M3 batch-3, mirroring batch-1/2's TitleRow
-  // pattern). `v.heightFromTerrain` is this widget's representative MAPPED
+  // Connectivity indicator, mirroring the TitleRow pattern used elsewhere.
+  // `v.heightFromTerrain` is this widget's representative MAPPED
   // key (-> raw `vessel.flight.altitudeTerrain`); `v.verticalSpeed` (->
   // `vessel.flight.verticalSpeed`) and `v.atmosphericDensity` (->
   // `vessel.flight.atmDensity`) are also mapped. Every `land.*` key (the
-  // whole suicide-burn/impact/prediction family — G's "no channel yet" gap)
+  // whole suicide-burn/impact/prediction family has no channel yet)
   // plus `v.body`/`v.atmosphericTemperature`/`v.externalTemperature` stay
   // GAPPED/legacy — since `noPrediction` gates the entire metrics `Body` on
   // the GAPPED `land.timeToImpact`, a stream-only mount (no legacy source)
@@ -180,7 +180,7 @@ function LandingStatusComponent({
   // 4, 6, 8, 9; 28px is the intended size at the default/wide sizes.
   const suicideFontPx = cols >= 8 ? 28 : cols >= 6 ? 24 : 20;
 
-  // Slot props (spec §4.4) for the header badges escape-hatch. Labelling
+  // Slot props for the header badges escape-hatch. Labelling
   // context only — badge augments read their own Topics via hooks.
   const badgesContext: LandingStatusBadgesContext = {
     bodyName: bodyName ?? null,
@@ -458,9 +458,9 @@ registerComponent<LandingStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  // Broad header escape-hatch slot (spec §4.8): a badge augment can drop an
+  // Broad header escape-hatch slot: a badge augment can drop an
   // inline chip beside the title. No filler ships here — that's an Uplink
-  // augment (P3/P6); the slot renders nothing until one binds.
+  // augment; the slot renders nothing until one binds.
   augmentSlots: ["landing-status.badges"],
   pushable: true,
   requires: ["flight"],

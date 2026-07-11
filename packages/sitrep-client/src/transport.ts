@@ -12,8 +12,8 @@ export type TransportStatus =
  *
  * Transports know nothing about topics, subscriptions, or commands beyond
  * routing the SDK's wire messages; all of that semantics lives above this
- * boundary. Real implementations (WebSocket, PeerJS) arrive in later
- * milestones — this interface is what they (and `StubTransport`) implement.
+ * boundary. Real implementations (WebSocket, PeerJS) are added over time —
+ * this interface is what they (and `StubTransport`) implement.
  */
 export interface Transport {
   /** Current connection status. */
@@ -36,17 +36,17 @@ export interface Transport {
    * This is a *prediction*, not a commitment: the client never computes
    * delay itself, it only consumes whatever the transport hands back here
    * to size its own loss-inference timeout (see `TelemetryClient.dispatch`).
-   * `StubTransport` (M2, zero simulated latency) omits this method entirely
+   * `StubTransport` (zero simulated latency) omits this method entirely
    * — `eta` comes back `undefined` and the client never starts a loss timer
-   * for it. `CourierTransport` (M3) implements it using the courier's own
+   * for it. `CourierTransport` implements it using the courier's own
    * round-trip model.
    */
   predictConfirmEta?(): number | undefined;
 
   /**
    * OPTIONAL: the topics this transport actually delivers `stream-data` for
-   * — the M3 Wave 0 carried-channels allowlist gate's transport-side seed
-   * (`m3-migration-plan.md` §5.1/§Build 1, `./carried-channels.ts`).
+   * — the carried-channels allowlist gate's transport-side seed (see
+   * `./carried-channels.ts`).
    * `TelemetryClient.declaredChannels` reads this straight through;
    * `TelemetryProvider` unions it with its own explicit `carriedChannels`
    * promotion-list prop to build the allowlist `useDataValue`'s shim

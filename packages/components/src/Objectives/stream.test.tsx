@@ -5,12 +5,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
 
 /**
- * The M3b career-detail batch's stream test-adapter proof for Objectives:
+ * The stream test-adapter proof for Objectives:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `contracts.active` (->
  * `career.status.contracts.active`) is the widget's sole read, shared with
  * ContractManager (`parseContracts`/`contractObjectives`) — the `mh.*`
- * mission source was removed (P4c: `mh` carries no channel on the new wire).
+ * mission source was removed (`mh` carries no channel on the new wire).
  */
 afterEach(() => {
   cleanup();

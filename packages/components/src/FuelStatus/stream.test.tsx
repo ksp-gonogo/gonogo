@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * The M3 batch-1 stream test-adapter proof for FuelStatus (mirrors
+ * The stream test-adapter proof for FuelStatus (mirrors
  * `WarpControl/stream.test.tsx`, the pilot): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
@@ -17,7 +17,7 @@ import { FuelStatusComponent } from "./index";
  *   resources.<X>.{current,max}` — but only 3 of the 5 catalogued resources
  *   (MonoPropellant, XenonGas, ElectricCharge) are read at `scope:"vessel"`
  *   by `useResourceReading`; LiquidFuel/Oxidizer read the STAGE-scoped
- *   variant instead (below). Also MAPPED (P4a shared-map batch, G-14):
+ *   variant instead (below). Also MAPPED:
  *   `dv.stages` -> whole-topic `dv.stages` (a `StageDeltaVEntry[]`, a
  *   DIFFERENT field-name shape to the legacy `StageInfo` — `parseStages` in
  *   `index.tsx` reconciles it, exercised below) and `dv.stageCount`/
@@ -30,7 +30,7 @@ import { FuelStatusComponent } from "./index";
  *   the list) even once everything else streams.
  *
  * `vessel.resources`'s wire shape is `{ resources: { <name>: {current,
- * max} }, meta }` — the extra nesting the M3 batch-1 fix added to
+ * max} }, meta }` — the extra nesting that fix added to
  * `mapTopic`'s resource regex (see `map-topic.ts`'s doc comment); this
  * fixture reproduces that real shape rather than the flatter one a naive
  * reading of the old (buggy) mapping would suggest.

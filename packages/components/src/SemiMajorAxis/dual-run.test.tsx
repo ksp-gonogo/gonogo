@@ -6,7 +6,7 @@ import lkoKerbin from "./__fixtures__/lko-kerbin.json";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * R6 Wave 1 — SemiMajorAxis renders entirely off the Uplink stream.
+ * SemiMajorAxis renders entirely off the Uplink stream.
  *
  * This file used to be a fork↔stream behavior-preservation dual-run (the
  * WarpControl pilot pattern): the SAME state rendered once off the legacy

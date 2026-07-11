@@ -8,7 +8,7 @@ import {
 import { OrbitViewComponent } from "./index";
 
 /**
- * Shared stream-render harness for OrbitView's tests (R6 de-Telemachus).
+ * Shared stream-render harness for OrbitView's tests.
  * OrbitView now reads exclusively off the SDK stream — `vessel.orbit` (raw
  * elements) and the `vessel.state` derived channel — so every test drives it
  * through a real `TelemetryProvider`/`TimelineStore` via `setupStreamFixture`

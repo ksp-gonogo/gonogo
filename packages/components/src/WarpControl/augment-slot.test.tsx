@@ -11,11 +11,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl exposes two augment slots (Uplink architecture §4, locked in
+ * WarpControl exposes two augment slots (Uplink architecture, locked in
  * `augment-slot-map.md` Feedback round 1): `warp-control.actions` (footer
  * action row — an Uplink contributes a "Warp to <mod-event>" action alongside
  * the widget's own warp buttons) and `warp-control.badges` (header escape
- * hatch). P2 only EXPOSES the slots; no built-in augment fills them, so an
+ * hatch). This only EXPOSES the slots; no built-in augment fills them, so an
  * unaugmented widget renders exactly as before — the slots compose nothing.
  */
 afterEach(() => {

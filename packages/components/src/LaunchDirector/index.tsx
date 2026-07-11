@@ -21,7 +21,7 @@ import styled from "styled-components";
 type LaunchDirectorConfig = Record<string, never>;
 
 /**
- * The context both LaunchDirector slots pass to their augments (spec §4.4). A
+ * The context both LaunchDirector slots pass to their augments. A
  * life-support / logistics Uplink reads the pre-launch selection (which craft,
  * crew and site the operator is about to commit) to append a checklist item or
  * a header badge — e.g. Kerbalism supplies-for-duration, USI-LS habitation.
@@ -277,7 +277,7 @@ function LaunchDirectorComponent({
   const rows = h ?? 9;
   const showSubtitle = rows >= 4;
 
-  // Props both augment slots pass down (spec §4.4). A plain object rather than a
+  // Props both augment slots pass down. A plain object rather than a
   // hook so it can sit above the early return without a conditional `useMemo`; a
   // fresh reference per render is fine since `AugmentSlot`'s subscription is
   // store-driven and the live selection changes anyway.
@@ -407,8 +407,8 @@ function LaunchDirectorComponent({
               onArm={() => setArmed("revert")}
               onConfirm={() => {
                 setArmed(null);
-                // Revert always to VAB by default; the Phase 4 plugin
-                // accepts vab|sph but the widget doesn't know which
+                // Revert always to VAB by default; the mod's revertToEditor
+                // command accepts vab|sph but the widget doesn't know which
                 // editor the original craft came from from flight state
                 // alone. Prefer the explicit choice when we have it.
                 void execute("ksp.revertToEditor[vab]");
@@ -562,7 +562,7 @@ function LaunchDirectorComponent({
               </>
             )}
             {/* Pre-launch checklist augments — a life-support / logistics Uplink
-                appends a checklist item here (spec §4.8). Empty until bound; the
+                appends a checklist item here. Empty until bound; the
                 funds readout and existing controls above are untouched. */}
             <AugmentSlot name="launch-director.sections" props={slotContext} />
           </>

@@ -52,29 +52,29 @@ interface DistanceToTargetConfig {
   cameraFlightId?: number | null;
 }
 
-// ── Augment slots (Uplink architecture spec §4) ───────────────────────────────
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────
 //
-// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row +
-// Feedback round 1). Two are OVERLAY slots on the docking HUD and so PASS
-// slot-props (spec §4.4 — an overlay augment must draw in the HUD's own reticle
-// space, so it receives the parent's coordinate frame):
+// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row).
+// Two are OVERLAY slots on the docking HUD and so PASS slot-props — an
+// overlay augment must draw in the HUD's own reticle space, so it receives
+// the parent's coordinate frame:
 //
 //   • `distance-to-target.camera`  — a video backdrop behind the reticle/HUD.
-//     Feedback round 1: the close-range docking camera is meant to become a
-//     kerbcast AUGMENT here (not a standalone CameraFeed instance). This P2 pass
-//     only EXPOSES the slot; the built-in `HudCamera` backdrop stays untouched
-//     and the kerbcast filler + CameraFeed-out-migration are P3/P6.
+//     The close-range docking camera is meant to become a kerbcast AUGMENT
+//     here (not a standalone CameraFeed instance). Currently this slot is
+//     only EXPOSED; the built-in `HudCamera` backdrop stays untouched until
+//     the kerbcast filler and CameraFeed-out-migration land.
 //   • `distance-to-target.overlay` — alignment markers layered on top of the
 //     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
 //     into the reticle box using the passed context. Composable by priority
-//     (spec §4.8) so several rangefinder/marker augments coexist.
+//     so several rangefinder/marker augments coexist.
 //
-// The third is the broad `.badges` escape hatch (Feedback round 1) — an inline
-// header indicator (e.g. an autopilot Uplink's active docking-mode chip).
+// The third is the broad `.badges` escape hatch — an inline header indicator
+// (e.g. an autopilot Uplink's active docking-mode chip).
 
 /**
- * Coordinate/context the docking-HUD overlay slots pass down (spec §4.4) so an
- * augment can render in the HUD's own reticle space. Shared by both the camera
+ * Coordinate/context the docking-HUD overlay slots pass down so an augment
+ * can render in the HUD's own reticle space. Shared by both the camera
  * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
  * (`distance-to-target.overlay`).
  */
@@ -117,8 +117,8 @@ export interface DistanceToTargetBadgeContext {
   distance: number | undefined;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
-// §4.6 hybrid, declaration-merging base). Co-located here per-widget — no shared
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
+// hybrid, declaration-merging approach). Co-located here per-widget — no shared
 // central registry file — so parallel slot work in other widgets never collides.
 // This is what makes `registerAugment` / `<AugmentSlot props={…}>` type-check the
 // contexts above precisely, rather than the loose `Record<string, unknown>`
@@ -151,18 +151,18 @@ function DistanceToTargetComponent({
   const tarType = useTelemetry("data", "tar.type");
   // o.closestTgtApprUT is a clean home (map-topic.ts) — the SDK's two-body
   // closest-approach solve exposed on `vessel.state.closestApproachUt`
-  // (propagation.ts). `t.universalTime` is dropped as a data key (R6 §1a):
-  // the "current time" it carried IS the SDK view-UT the propagation is
+  // (propagation.ts). `t.universalTime` is dropped as a data key: the
+  // "current time" it carried IS the SDK view-UT the propagation is
   // evaluated at, so read that directly via `useViewUt` instead.
   const closestApproachUT = useTelemetry("data", "o.closestTgtApprUT");
   const universalTime = useViewUt();
 
   // The `vessel.target`/`vessel.dock` Vec3 reads — the widget derives every
-  // scalar/angle it needs client-side. R6 de-Telemachus: the legacy
-  // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
-  // `dock.ay` scalar reads and their `?? legacy` fallbacks are all dropped
-  // (each is cleanly derivable off these Vec3s — see shared/dockAngles.ts),
-  // and the true docking roll/az axis is dropped outright (no wire source).
+  // scalar/angle it needs client-side. The legacy `tar.distance`/
+  // `tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/`dock.ay` scalar
+  // reads and their `?? legacy` fallbacks are all dropped (each is cleanly
+  // derivable off these Vec3s — see shared/dockAngles.ts), and the true
+  // docking roll/az axis is dropped outright (no wire source).
   const tarRelPos = useTelemetry<Vec3>("data", "tar.relativePosition");
   const tarRelVelVec = useTelemetry<Vec3>("data", "tar.relativeVelocityVec");
   // vessel.dock is null unless the target is a docking port with a free
@@ -189,7 +189,7 @@ function DistanceToTargetComponent({
   const dockAy = derivedDockAngles?.ay;
   // Docking-port roll (az) misalignment isn't on the wire at all — vessel.dock
   // carries only RelativePosition/RelativeVelocity/Distance + a scalar
-  // ForwardDot. The true third axis is dropped per R6 §0.0 and renders "—".
+  // ForwardDot. The true third axis is unavailable and renders "—".
   const dockAz: number | undefined = undefined;
   const dockX = dockRelPos?.x;
   const dockY = dockRelPos?.y;
@@ -203,7 +203,7 @@ function DistanceToTargetComponent({
   const dockingDistance = dockDistanceStream ?? tarDistance;
 
   // Header `.badges` slot context — a fresh object each render so the indicator
-  // tracks live target data (spec §4.4 slot-props). Rendered next to the widget
+  // tracks live target data. Rendered next to the widget
   // title (its canonical header, `TitleRow`); the specialised approach/docking
   // modes keep their own bespoke headers.
   const badgeContext: DistanceToTargetBadgeContext = {
@@ -530,7 +530,7 @@ function DockingHud(props: DockingHudProps) {
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
 
   // Overlay/camera slot context — the reticle coordinate frame an augment needs
-  // to draw in the HUD's own space (spec §4.4). `reticleTravelPct` (40) is the
+  // to draw in the HUD's own space. `reticleTravelPct` (40) is the
   // `50 + dx·40 %` factor the built-in reticle uses, so an augment marker at
   // `50 + offset·reticleTravelPct` % lands in the same space.
   const hudContext: DistanceToTargetHudContext = {
@@ -552,8 +552,8 @@ function DockingHud(props: DockingHudProps) {
     >
       {showCamera && showViewport && <HudCamera flightId={cameraFlightId} />}
       {/* Camera-backdrop slot: an augment (e.g. kerbcast) draws a video layer
-          behind the reticle, in the HUD's space (spec §4.4). Separate from the
-          built-in `HudCamera` above, which this P2 pass leaves in place. */}
+          behind the reticle, in the HUD's space. Separate from the
+          built-in `HudCamera` above, which stays in place unless replaced. */}
       {showViewport && (
         <AugmentSlot name="distance-to-target.camera" props={hudContext} />
       )}
@@ -578,7 +578,7 @@ function DockingHud(props: DockingHudProps) {
           <VertTick style={{ top: "30%" }} />
           <VertTick style={{ top: "70%" }} />
           <VertTick style={{ top: "90%" }} />
-          {/* Alignment-marker overlay slot: composable augments (spec §4.8) draw
+          {/* Alignment-marker overlay slot: composable augments draw
               on top of the reticle in the same coordinate frame via `hudContext`. */}
           <AugmentSlot name="distance-to-target.overlay" props={hudContext} />
         </Viewport>

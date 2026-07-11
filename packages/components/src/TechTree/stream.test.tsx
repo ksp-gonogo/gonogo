@@ -5,13 +5,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
 
 /**
- * The M3/M3b career batch's stream test-adapter proof for TechTree:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`. `career.science`
- * (-> `career.status.economy.science`), `tech.nodes` (->
- * `career.status.tech.nodes`, M3b career-detail batch), AND `kc.scene`
- * (-> `spaceCenter.scene.scene`, P4a shared-map batch) all stream now — no
- * legacy `DataSource` aux needed for this widget any more.
+ * Stream test-adapter proof for TechTree: genuinely running off the real
+ * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
+ * `StubTransport`. `career.science` (-> `career.status.economy.science`),
+ * `tech.nodes` (-> `career.status.tech.nodes`), AND `kc.scene` (->
+ * `spaceCenter.scene.scene`) all stream now — no legacy `DataSource` aux
+ * needed for this widget any more.
  */
 afterEach(() => {
   cleanup();

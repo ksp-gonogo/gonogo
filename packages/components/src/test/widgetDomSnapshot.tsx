@@ -197,7 +197,7 @@ export async function renderWidgetMode<
  * snapshot churns on every styled-components release / file edit.
  */
 /**
- * Exported (beyond this file's own two internal callers) for the M3
+ * Exported (beyond this file's own two internal callers) for the
  * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`) —
  * comparing a legacy render against a stream render needs the exact same
  * styled-components-hash/testid stripping this file already does, so a

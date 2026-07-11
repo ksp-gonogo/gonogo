@@ -11,7 +11,7 @@ import kerbinDescent from "./__fixtures__/kerbin-descent-low-pass.json";
 import { GroundSurveyComponent } from "./index";
 
 /**
- * GroundSurvey's M3 batch-3 behavior-preservation golden dual-run — same
+ * GroundSurvey's behavior-preservation golden dual-run — same
  * "nothing is migratable" shape as `KeplerPeriod`/`OrbitalAscent`, but for
  * the structural reason documented in `stream.test.tsx`: the widget's data
  * layer (`useGroundSurveySamples`) bypasses `useDataValue` entirely via a

@@ -7,7 +7,7 @@ import farApproach from "./__fixtures__/far-approach-vessel.json";
 import { DistanceToTargetComponent } from "./index";
 
 /**
- * DistanceToTarget's R6 de-Telemachus behavior-preservation golden dual-run:
+ * DistanceToTarget's behavior-preservation golden dual-run:
  * the SAME tracking-mode target state, rendered once off the legacy
  * `DataSource` and once off the stream, must produce byte-identical DOM at
  * `delay=0`.
@@ -19,7 +19,7 @@ import { DistanceToTargetComponent } from "./index";
  * dropped. `far-approach-vessel` is a clean tracking-mode-only fixture (48 Mm
  * range, well past the docking/approach thresholds), so no dock.* readout is
  * on-screen. The STREAM leg has **no legacy `"data"` MockDataSource leg at
- * all** — the R6 read-fallback drop for this widget: `tar.name` rides
+ * all** — the read-fallback drop for this widget: `tar.name` rides
  * `vessel.target.name` and `tar.type` (mapped to the uncarried
  * `vessel.state.targetKind`) simply resolves to `undefined`, which — at 48 Mm,
  * far past every threshold — leaves the widget in tracking mode exactly as the

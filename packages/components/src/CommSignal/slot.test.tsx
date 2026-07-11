@@ -15,9 +15,9 @@ import { CommSignalComponent } from "./index";
  *  - `comm-signal.badges`   — header, next to the title
  *
  * These tests prove the seats exist and compose an augment WITHOUT CommSignal
- * importing any backend-aware code. P2 only exposes the slots; a real filler
- * (e.g. a RealAntennas per-antenna breakdown) is P3/P6. So an empty slot
- * rendering nothing is the correct steady state here.
+ * importing any backend-aware code. Only the slots are exposed here; a real
+ * filler (e.g. a RealAntennas per-antenna breakdown) is a separate concern.
+ * So an empty slot rendering nothing is the correct steady state here.
  */
 
 // Mirrors dual-run.test.tsx — every channel `vessel-state.ts` reads plus the

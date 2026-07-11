@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
 /**
- * OrbitView stream render check (R6 de-Telemachus). This was the M3
+ * OrbitView stream render check. This was previously a
  * behaviour-preservation golden DUAL-run — the same orbit state rendered once
  * off the legacy `DataSource` and once off the stream, asserted byte-identical.
  * With the fork gone the legacy leg is moot, so it collapses to a single

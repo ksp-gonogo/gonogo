@@ -11,7 +11,7 @@ import { DistanceToTargetComponent } from "./index";
 /**
  * DistanceToTarget's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`. Post-R6 the widget derives EVERY scalar/angle it renders
+ * `StubTransport`. The widget derives EVERY scalar/angle it renders
  * client-side from the `vessel.target`/`vessel.dock` Vec3 fields
  * (`tar.relativePosition`/`tar.relativeVelocityVec`/`dock.relativePosition`/
  * `dock.relativeVelocityVec`/`dock.distanceScalar`/`dock.forwardDot`) —

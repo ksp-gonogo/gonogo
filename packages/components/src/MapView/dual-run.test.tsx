@@ -12,8 +12,8 @@ import kerbinLaunchpad from "./__fixtures__/kerbin-launchpad.json";
 import { MapViewComponent } from "./index";
 
 /**
- * MapView's M3 mechanical-tail-batch behavior-preservation golden dual-run
- * (mirrors `AtmosphereProfile/dual-run.test.tsx`, batch 2): the SAME
+ * MapView's behavior-preservation golden dual-run
+ * (mirrors `AtmosphereProfile/dual-run.test.tsx`): the SAME
  * pre-launch state, rendered once off the legacy `DataSource` and once off
  * the stream, must produce byte-identical DOM at `delay=0`.
  *
@@ -55,8 +55,7 @@ describe("MapView — behavior-preservation golden dual-run (delay=0)", () => {
 
     const streamFixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (M3 vessel-state-extend) — see the matching
-      // note in stream.test.tsx.
+      // is parent-channel-scoped — see the matching note in stream.test.tsx.
       carriedChannels: [
         "vessel.orbit",
         "vessel.flight",

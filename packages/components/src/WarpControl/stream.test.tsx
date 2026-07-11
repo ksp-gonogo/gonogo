@@ -5,14 +5,14 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * The M3 pilot's stream test-adapter proof (`m3-migration-plan.md`
- * §4-test): `WarpControl` genuinely running off the stream — a real
+ * Stream test-adapter proof: `WarpControl` genuinely running off the
+ * stream — a real
  * `TelemetryProvider` + `TelemetryClient`/`TimelineStore` pipeline fed via
  * `StubTransport` — never the legacy `MockDataSource` registry (none is even
  * registered in this file). Green here means "works off streams", not
  * "green off the legacy fallback while the mapped read silently never
- * fires" (`m3-migration-plan.md` §5.4's "test-green-but-semantically-
- * drifted" risk this adapter exists to close).
+ * fires" — the test-green-but-semantically-drifted risk this adapter
+ * exists to close.
  */
 afterEach(() => {
   cleanup();

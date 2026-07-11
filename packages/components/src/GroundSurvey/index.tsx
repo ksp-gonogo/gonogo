@@ -30,7 +30,7 @@ interface GroundSurveyConfig {
 
 /**
  * Props for `ground-survey.badges` — the widget's BROAD escape-hatch slot
- * (spec §4.8 composable badges), rendered in the header beside the smoothness
+ * for composable badges, rendered in the header beside the smoothness
  * badge. Meant for small inline status chips an Uplink wants next to the
  * verdict; badge augments read their own Topics via hooks, so only labelling
  * context is passed down.
@@ -42,9 +42,9 @@ export interface GroundSurveyBadgesContext {
   surveyState: "idle" | "active" | "frozen" | "above-ceiling";
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not in a central registry file) so parallel
-// slot work on other widgets never collides on this seam.
+// Co-located declaration-merge of this widget's slot ids → their props. Kept
+// next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "ground-survey.badges": GroundSurveyBadgesContext;
@@ -89,7 +89,7 @@ function GroundSurveyComponent({
   const showPrediction =
     rows >= 4 && survey.predictedLat !== null && survey.predictedLon !== null;
 
-  // Slot props (spec §4.4). `badges` carries only labelling context — badge
+  // Slot props. `badges` carries only labelling context — badge
   // augments read their own Topics via hooks.
   const badgesContext: GroundSurveyBadgesContext = {
     body: survey.body,
@@ -382,8 +382,8 @@ registerComponent<GroundSurveyConfig>({
   ],
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
-  // Broad badges escape-hatch slot in the header meta row (spec §4.8). No
-  // filler ships here — that's an Uplink augment (P3/P6).
+  // Broad badges escape-hatch slot in the header meta row. No
+  // filler ships here — that's an Uplink augment.
   augmentSlots: ["ground-survey.badges"],
   pushable: true,
   requires: ["flight"],

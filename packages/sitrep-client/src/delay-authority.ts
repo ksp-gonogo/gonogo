@@ -35,21 +35,21 @@ function readOneWaySeconds(payload: unknown): number {
 }
 
 /**
- * The client-side delay authority (streaming-delay spec §7.3 Step 4). Holds
+ * The client-side delay authority. Holds
  * the latest `comms.delay.oneWaySeconds` off the wire and exposes it as a
  * `delaySeconds()` accessor wired into the ONE `ViewClock`
  * (`ViewClockOptions.delaySeconds`).
  *
  * **This is legibility, NOT enforcement.** The mod's reveal gate
- * (`ChannelEngine`, spec §4.0) has already withheld each channel's samples
+ * (`ChannelEngine`) has already withheld each channel's samples
  * until `UT <= now - delay`, so the raw timeline the client receives is
  * already delayed — for the SDK, a curl script, or a station relay alike.
  * This value does not re-gate anything; it only sizes the SDK's
  * PREDICT-FORWARD horizon: how far `utNowEstimate()` leads `confirmedEdgeUt()`
  * so a delayed vessel can be dead-reckoned to the predicted present and the
- * certainty-horizon snap is drawn in the right place (spec §3.3). Because
+ * certainty-horizon snap is drawn in the right place. Because
  * media (kerbcast `DelayedPlayoutBuffer`) reads the same clock, aligning this
- * one value aligns telemetry and video for free (spec §5.3).
+ * one value aligns telemetry and video for free.
  *
  * `comms.delay` is itself a `TrueNow` channel (it defines the delay, so it is
  * never gated by it) — the authority can trust the value it reads as current.

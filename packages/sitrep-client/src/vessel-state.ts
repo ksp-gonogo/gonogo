@@ -35,10 +35,10 @@ export interface OrbitEncounterPayload {
 }
 
 /**
- * The `vessel.orbit` channel payload — elements, never position (M2 design
- * §2.4, mirrors `mod/Sitrep.Contract/VesselOrbit.cs`). Not yet codegen'd into
+ * The `vessel.orbit` channel payload — elements, never position (mirrors
+ * `mod/Sitrep.Contract/VesselOrbit.cs`). Not yet codegen'd into
  * `@ksp-gonogo/sitrep-sdk`'s `__generated__/contract.ts` (that's the mod-side
- * channel-payload codegen, out of this task's scope) — hand-mirrored here so
+ * channel-payload codegen, out of scope here) — hand-mirrored here so
  * `deriveVesselState` has a typed shape to read. Keep in sync with the C#
  * source until codegen catches up.
  *
@@ -115,7 +115,7 @@ export interface VesselIdentityPayload {
  * `sasMode` is the raw `Sitrep.Contract.SasMode` enum ORDINAL on the wire
  * (`VesselViewProvider` serializes `(int)control.SasMode`), individually
  * nullable — `null` is a normal "this input isn't available this tick" per the
- * C# class doc (R1(a)), NOT a sentinel.
+ * C# class doc, NOT a sentinel.
  */
 export interface VesselControlPayload {
   sasMode: number | null;
@@ -151,11 +151,11 @@ export interface VesselPropulsionPayload {
  * `targetKind` display map (mirrors `mod/Sitrep.Contract/VesselTarget.cs`).
  * `kind` is the raw `Sitrep.Contract.TargetKind` enum ORDINAL on the wire
  * (`(int)target.Kind`). The WHOLE channel is absent (no point) when nothing is
- * targeted (R1(b)) — the common case — never a sentinel record.
+ * targeted — the common case — never a sentinel record.
  *
  * `relativePosition`/`relativeVelocity` are the canonical `Vec3` fields
  * (metres / m/s, self-relative), each individually `null` when the transform
- * data needed to compute it wasn't available this tick (R7). They're the
+ * data needed to compute it wasn't available this tick. They're the
  * source of `vessel.state.targetRelativeSpeed` — the signed range-rate behind
  * the old Telemachus scalar `tar.o.relativeVelocity`.
  */
@@ -184,7 +184,7 @@ export interface VesselTargetPayload {
  * enum ORDINAL on the wire (`(int)comms.ControlState` in `VesselViewProvider`
  * — despite the old `map-topic.ts` gap comment calling it a "STRING enum", the
  * host serializes the integer, same as every other contract enum). The whole
- * channel is absent when `vessel.connection` is null (R1(b)).
+ * channel is absent when `vessel.connection` is null.
  */
 export interface VesselCommsPayload {
   controlState: number;
@@ -217,13 +217,14 @@ export interface SystemBodiesPayload {
 }
 
 /**
- * The quality-picked, widget-facing kinematic surface (M2 design §2.4; M1
- * §6.2/§8.2's `vessel.state` obligation — the V-12 dual-altitude fix).
+ * The quality-picked, widget-facing kinematic surface — picks a single
+ * authoritative kinematics path per sample rather than leaving that choice
+ * to each widget, avoiding the dual-altitude ambiguity that creates.
  *
- * Scope note: the original T3 cut derived ONLY from `vessel.orbit` +
+ * Scope note: an earlier cut derived ONLY from `vessel.orbit` +
  * `vessel.flight` (no `system.bodies`/`vessel.identity` inputs), so fields
- * needing body geometry or the launch clock were out of scope. This M3 task
- * adds seven fields that ARE derivable from already-served data —
+ * needing body geometry or the launch clock were out of scope. Seven fields
+ * below ARE derivable from already-served data —
  * `met`/`period`/`trueAnomaly`/`apoapsisAlt`/`periapsisAlt`/`timeToAp`/
  * `timeToPe` — reading `vessel.identity` (for `met`'s `launchUt`) and
  * `system.bodies` (for the apsides' reference-body radius) alongside the
@@ -629,9 +630,9 @@ export interface VesselState {
    * discipline as `landingTimeToImpact`.
    */
   landingSuicideBurnCountdown: number | null;
-  /** Which path produced this record's kinematics — never a widget's choice (M1 §6.2's V-12 fix). */
+  /** Which path produced this record's kinematics — never a widget's choice (this avoids the dual-altitude ambiguity bug). */
   basis: "propagated" | "measured";
-  /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source` (M1 §6.1). */
+  /** `vessel:<guid>` — subject provenance, from the orbit sample's envelope `meta.source`. */
   subjectId: string;
 }
 
@@ -742,8 +743,8 @@ function deriveApsides(
  *   it yet.
  * - `null` only when `system.bodies` is an outright tombstone — a confirmed
  *   absence.
- * Never throws on a missing index / missing table (the "not-yet-loaded" case
- * the migration task calls out explicitly).
+ * Never throws on a missing index / missing table — that's a deliberate
+ * "not-yet-loaded" case, not an error.
  */
 function resolveBodyName(
   get: DerivedGet,
@@ -1120,9 +1121,9 @@ function resolveCommsControlStateOrdinal(
 }
 
 /**
- * All five enum-ordinal display maps carried on `vessel.state` (migration
- * task 1–4: `v.situationString`/`f.sasMode`/`tar.type`/`comm.controlStateName`
- * + numeric `comm.controlState`). Bundled so both quality branches of
+ * All five enum-ordinal display maps carried on `vessel.state` —
+ * `v.situationString`/`f.sasMode`/`tar.type`/`comm.controlStateName`
+ * + numeric `comm.controlState`. Bundled so both quality branches of
  * `deriveVesselState` populate them identically — each needs only its source
  * channel (`vessel.identity`/`vessel.control`/`vessel.target`/`vessel.comms`),
  * no orbital propagation, so they're live in the Loaded (measured) basis too,
@@ -1227,7 +1228,7 @@ function deriveIdentityFlags(get: DerivedGet): {
 }
 
 /**
- * The dynamic action-group derivation (R6 §0.0 REDESIGN) off
+ * The dynamic action-group derivation off
  * `vessel.control.actionGroups` (a fixed-order `[ag1..ag10]` bool array,
  * Action Groups Extended appends more): a keyed `{ [groupId]: bool }` map
  * (`vessel.state.actionGroups`, supports the variable count) PLUS the ten
@@ -1327,12 +1328,12 @@ function deriveClosestApproachUt(
 }
 
 /**
- * The `vessel.state` derivation (M2 design §2.4/§9.1). Reads `vessel.orbit`
+ * The `vessel.state` derivation. Reads `vessel.orbit`
  * + `vessel.flight` at the SAME frozen `viewUt` (the `get` closure enforces
  * this structurally — see `TimelineStore`) and quality-picks per
  * `Meta.Quality`, keyed off the ORBIT sample's quality specifically ("the
- * picker input is the quality on the orbit sample at viewUt" — M2 design
- * §2.4 — so a historical scrub through a regime change replays the switch
+ * picker input is the quality on the orbit sample at viewUt" — so a
+ * historical scrub through a regime change replays the switch
  * faithfully from archived quality stamps, not a live global flag):
  *
  * - **OnRails** (coasting): `vessel.orbit` is the CAUSE. Convert the wire's
@@ -1343,7 +1344,7 @@ function deriveClosestApproachUt(
  *   picks an arbitrary node/apsis reference on a circle where none is
  *   physically distinguished), then `kepler.solve(elements, viewUt)` for
  *   position/velocity, plus `kepler.solveAnomalies(elements, viewUt)` for
- *   `period`/`trueAnomaly`/`timeToAp`/`timeToPe` (M3: derivable straight from
+ *   `period`/`trueAnomaly`/`timeToAp`/`timeToPe` (derivable straight from
  *   the same elements, no extra input). `met` additionally reads
  *   `vessel.identity.launchUt`; `apoapsisAlt`/`periapsisAlt` additionally
  *   read `system.bodies` for the reference body's radius (`deriveApsides`).
@@ -1354,23 +1355,23 @@ function deriveClosestApproachUt(
  * - **Loaded** (powered/atmospheric): elements are osculating garbage for
  *   surface quantities, so altitude/vertical/surface speed come off
  *   `vessel.flight` at `viewUt` via `getInterpolated` — a straight-line lerp
- *   between the two buffered `vessel.flight` samples straddling `viewUt` (M2
- *   design §3.3/§2.4; `ClientTimeline.straddle` is the seam, `getInterpolated`
+ *   between the two buffered `vessel.flight` samples straddling `viewUt`
+ *   (`ClientTimeline.straddle` is the seam, `getInterpolated`
  *   is the "interpolating variant" this doc used to describe as deferred).
  *   Falls back to hold-last itself when there's nothing to straddle (e.g.
  *   only one `vessel.flight` sample so far). `basis: "measured"`.
  *
- * **`undefined` vs `null`, never conflated** (M2 design §2.1/§2.4 — this
- * task's explicit contract): no `vessel.orbit` point at-or-before `viewUt`
- * yet means the input isn't whole yet (cold start, or resynchronizing after
- * an epoch reset until the first post-reset keyframe lands) — there is no
- * quality signal to pick with, but nothing has confirmed the vessel is gone
- * either, so the whole record is `undefined` ("resynchronizing"). A
- * *tombstoned* `vessel.orbit` point (a real point whose `payload` is `null`)
- * means the vessel itself is confirmed absent, so the record is `null`.
- * Loaded quality with no `vessel.flight` point yet is `undefined` for the
- * same not-whole-yet reason; a tombstoned `vessel.flight` is `null`. Never a
- * fabricated zero-valued record either way.
+ * **`undefined` vs `null`, never conflated**: no `vessel.orbit` point
+ * at-or-before `viewUt` yet means the input isn't whole yet (cold start, or
+ * resynchronizing after an epoch reset until the first post-reset keyframe
+ * lands) — there is no quality signal to pick with, but nothing has
+ * confirmed the vessel is gone either, so the whole record is `undefined`
+ * ("resynchronizing"). A *tombstoned* `vessel.orbit` point (a real point
+ * whose `payload` is `null`) means the vessel itself is confirmed absent, so
+ * the record is `null`. Loaded quality with no `vessel.flight` point yet is
+ * `undefined` for the same not-whole-yet reason; a tombstoned
+ * `vessel.flight` is `null`. Never a fabricated zero-valued record either
+ * way.
  */
 /** The four `null`-when-not-derivable landing scalars `deriveLanding` produces. */
 interface LandingDerivations {
@@ -1663,8 +1664,8 @@ export function deriveVesselState(
 }
 
 /**
- * `vessel.state`'s own `StreamStatusValue` (M2 design §4.4: "derived
- * channels propagate the worst input staleness into their own status", T4).
+ * `vessel.state`'s own `StreamStatusValue` ("derived
+ * channels propagate the worst input staleness into their own status").
  * Mirrors `deriveVesselState`'s own branching EXACTLY — worst of
  * ACTUALLY-consulted inputs, not worst of every declared input: the OnRails
  * basis never reads `vessel.flight` at all (see the "does not read
@@ -1704,10 +1705,10 @@ export function deriveVesselStateStatus(
  * `vessel.state.altitudeAsl`) reading off this one memoized record, per
  * `TimelineStore`'s field-subtopic mechanism.
  *
- * `inputs` grew to four with the M3 vessel-state-extend task
- * (`vessel.identity`/`system.bodies`, for `met`/`apoapsisAlt`/`periapsisAlt`
- * — see `deriveVesselState`'s doc). This array is NOT just documentation: the
- * M3 carried-channels gate (`carried-channels.ts`'s `isTopicCarried`, via
+ * `inputs` grew to four, adding
+ * `vessel.identity`/`system.bodies`, for `met`/`apoapsisAlt`/`periapsisAlt`
+ * — see `deriveVesselState`'s doc. This array is NOT just documentation: the
+ * carried-channels gate (`carried-channels.ts`'s `isTopicCarried`, via
  * `TimelineStore.resolveSubscriptionTopics`) is PARENT-CHANNEL-scoped, not
  * per-field — a consumer of ANY `vessel.state.*` field (including the
  * already-shipped `altitudeAsl`/`orbitalSpeed`) is only "carried" once ALL
@@ -1728,8 +1729,8 @@ export function deriveVesselStateStatus(
  */
 export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   topic: "vessel.state",
-  // Grew from four to SEVEN with the enum-ordinal→name migration (tasks 1–4:
-  // `situationName`/`sasModeName`/`targetKind`/`commsControlState*`). The three
+  // Grew from four to SEVEN with the enum-ordinal→name display maps:
+  // `situationName`/`sasModeName`/`targetKind`/`commsControlState*`. The three
   // additions — `vessel.control`/`vessel.target`/`vessel.comms` — are the
   // source channels of the new display maps. Per this array's contract (above):
   // adding an input makes EVERY `vessel.state.*` field "carried" only once ALL
@@ -1740,13 +1741,13 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   // one nulls just that ONE field (never the whole record) and never drags
   // `deriveVesselStateStatus` (still orbit/flight-only — those three are not
   // status-bearing kinematic inputs).
-  // Grew to EIGHT with the R6 shared-derivations task: `vessel.propulsion`
-  // is the source of the client-derived `vessel.state.twr` (old
+  // Grew to EIGHT to include `vessel.propulsion`, the source of the
+  // client-derived `vessel.state.twr` (old
   // `dv.currentTWR`). Per this array's contract (above), adding it makes
   // EVERY `vessel.state.*` field "carried" only once `vessel.propulsion` is
   // too — so `DEFAULT_SITREP_CARRIED_TOPICS` and every test `carriedChannels`
   // allowlist that reads any `vessel.state.*` field was extended to list it.
-  // The other R6 flag/derivation additions (`isControllable`/`isEVA`/
+  // The other flag/derivation additions (`isControllable`/`isEVA`/
   // `isSplashed`/`actionGroup*`/`closestApproachUt`) read only channels
   // ALREADY declared here (`vessel.comms`/`vessel.identity`/`vessel.control`/
   // `vessel.target`), so they added no new input.

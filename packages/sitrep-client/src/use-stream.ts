@@ -6,7 +6,7 @@ import { useTelemetryClient, useTelemetryStore } from "./context";
  * `TimelineStore` supplied (indirectly, via `TelemetryProvider`'s auto-built
  * default) by the nearest `TelemetryProvider`.
  *
- * M2 bridge task: this used to read `client.getValue(topic)` directly, which
+ * This used to read `client.getValue(topic)` directly, which
  * only ever saw raw `stream-data` frames whose `topic` matched literally —
  * permanently `undefined` for a derived topic like `vessel.state.altitudeAsl`,
  * since no server channel ever sends that literal topic string. Routing

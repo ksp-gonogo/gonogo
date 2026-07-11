@@ -17,12 +17,12 @@ import { renderWithTheme } from "./testTheme";
  * state, rendered once off a plain legacy `DataSource` (fed the fixture's
  * legacy-shape keys straight, untranslated) and once with `science.lab` AND
  * `science.instruments` genuinely carried over the stream, must produce
- * byte-identical DOM at `delay=0`. `science.lab` has no legacy key at all
- * (M3 science/parts batch) — its leg proves the read-layer swap itself
- * (legacy `DataSource` read vs `TelemetryProvider`-routed stream read of the
- * identical topic name) is a no-op, independent of whether a prior legacy
- * key ever existed. `science.instruments` (P4a shared-map batch) DOES have
- * a legacy `sci.instruments` predecessor with a different wire shape
+ * byte-identical DOM at `delay=0`. `science.lab` has no legacy key at all —
+ * its leg proves the read-layer swap itself (legacy `DataSource` read vs
+ * `TelemetryProvider`-routed stream read of the identical topic name) is a
+ * no-op, independent of whether a prior legacy key ever existed.
+ * `science.instruments` DOES have a legacy `sci.instruments` predecessor
+ * with a different wire shape
  * (`partId` as a number, `partTitle`/`expId`/`hasData` instead of
  * `partName`/`experimentId`/`dataIsCollectable`) — its leg instead hand-
  * translates the fixture's legacy instrument entry into the new

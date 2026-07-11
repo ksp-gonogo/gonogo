@@ -39,11 +39,11 @@ import styled from "styled-components";
 type WarpControlConfig = Record<string, never>;
 
 // Declaration-merge this widget's slot ids → props type into core's
-// `SlotRegistry` (Uplink architecture §4.6, declaration-merging base). Both
+// `SlotRegistry` (Uplink architecture, declaration-merging base). Both
 // slots are plain composition points with no parent context to hand down — a
 // contributed action fires its OWN command via `useExecuteAction`, a badge
 // reads its OWN Topics — so each passes empty props (`Record<string, never>`).
-// Co-located here (not in a shared central registry file) so parallel P2 slot
+// Co-located here (not in a shared central registry file) so parallel slot
 // work on other widgets never collides on the same module.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -106,7 +106,7 @@ function WarpControlComponent({
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
-  // De-Telemachus'd (R6): the whole warp state rides one native Topic,
+  // De-Telemachus'd: the whole warp state rides one native Topic,
   // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
   // stream — no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
   // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,

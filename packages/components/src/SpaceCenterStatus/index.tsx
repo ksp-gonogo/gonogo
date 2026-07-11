@@ -25,7 +25,7 @@ type SpaceCenterStatusConfig = Record<string, never>;
 // Uplink's custom facilities / ground-based life-support depot); `.badges` is the
 // broad header escape-hatch that drops an inline badge next to the title. Both are
 // plain markers with no slot props. Co-located `SlotRegistry` declaration-merge
-// (spec §4.6) so parallel slot work doesn't collide on a shared central file.
+// so parallel slot work doesn't collide on a shared central file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
@@ -57,7 +57,7 @@ type FacilityKey =
   | "astronaut";
 
 /**
- * M3b career-detail batch: `career.status.facilities` (mod/Sitrep.Host/
+ * `career.status.facilities` (mod/Sitrep.Host/
  * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
  * `SpaceCenterFacility` enum name, not this widget's short codes — maps
  * each enum name onto its `FacilityKey`. Names match the real wire
@@ -100,7 +100,7 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
  * Defensive parser for facility-level payloads. Accepts BOTH the legacy
  * `kc.facilityLevels` shape (keyed by short code — launchPad/vab/sph/… —
  * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
- * M3b career-detail wire shape (`career.status.facilities`, keyed by the
+ * `career.status.facilities` wire shape, keyed by the
  * full `SpaceCenterFacility` enum name — `{ currentTier, maxTier,
  * upgradeCost }`, career-capture-extend-report.md). The new wire's
  * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
@@ -183,13 +183,13 @@ function SpaceCenterStatusComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
-  // M3 career batch: career.funds -> career.status.economy.funds.
-  // M3b career-detail batch: kc.facilityLevels -> career.status.facilities
-  // now MAPPED too — parseFacilityLevels accepts the enum-keyed
+  // career.funds reads through career.status.economy.funds.
+  // kc.facilityLevels reads through career.status.facilities
+  // too — parseFacilityLevels accepts the enum-keyed
   // currentTier/maxTier/upgradeCost shape (career-capture-extend-report.md)
   // alongside the legacy short-code shape, so both the funds readout AND
   // the facility tier/upgrade-cost grid stream live off career.status.
-  // P4a shared-map batch: kc.scene -> spaceCenter.scene.scene is mapped
+  // kc.scene reads through spaceCenter.scene.scene
   // too — a plain 2-segment raw-field walk (SpaceCenterScene.scene,
   // already an enum-name string on the wire) — so this same
   // useDataValue("data", "kc.scene") call now rides the stream via the
@@ -197,12 +197,12 @@ function SpaceCenterStatusComponent({
   // padOccupied/padVesselTitle stay legacy: partsAvailable has no wire
   // topic at all (excluded editor slice — KNOWN_GAPS), and the other
   // three are only derivable from spaceCenter.launchSites via an
-  // array->scalar "pick the active pad" reduction (P4a brief §D4) that
-  // the shared-map batch left optional/deferred — no CLEAN_HOMES entry
+  // array->scalar "pick the active pad" reduction that
+  // was left optional/deferred — no CLEAN_HOMES entry
   // exists for them yet, so they keep falling back to legacy
   // automatically. kc.upgradeFacility[...] (the spend command) still has
   // no command home either (KNOWN_COMMAND_GAPS) and falls back to legacy
-  // automatically — this batch migrates reads only.
+  // automatically — reads migrate first, commands come later.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 

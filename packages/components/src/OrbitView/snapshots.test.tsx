@@ -5,7 +5,7 @@ import { stripVolatile } from "../test/widgetDomSnapshot";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * OrbitView DOM snapshots (R6 de-Telemachus). The widget reads exclusively off
+ * OrbitView DOM snapshots. The widget reads exclusively off
  * the SDK stream now, so these render through a real `TelemetryProvider` via
  * `renderOrbitViewStream` — the shared legacy `MockDataSource`
  * `snapshotWidgetMode` harness no longer feeds a stream-only widget. Scenarios
@@ -29,8 +29,8 @@ const SCENARIOS: Record<string, OrbitScenario | null> = {
   // `useDataValue` shim, and `deriveVesselState`'s OnRails branch throws on
   // the elliptical-only Kepler solver for ecc≥1 — crashing any widget that
   // reads a `vessel.state` field for a hyperbolic vessel. That's a SharedLib
-  // gap (deriveVesselState should null-out rather than throw) to close before
-  // R6 ships; OrbitView's OWN derived read is already guarded.
+  // gap (deriveVesselState should null-out rather than throw) that still
+  // needs closing; OrbitView's OWN derived read is already guarded.
   "sub-orbital-kerbin": {
     bodyName: "Kerbin",
     sma: 820000,

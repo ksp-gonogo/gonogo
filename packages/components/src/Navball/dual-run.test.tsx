@@ -15,7 +15,7 @@ import northLevel from "./__fixtures__/north-level.json";
 import { NavballComponent } from "./index";
 
 /**
- * Navball's M3 batch-1 behavior-preservation golden dual-run (mirrors
+ * Navball's behavior-preservation golden dual-run (mirrors
  * `WarpControl/dual-run.test.tsx`, the pilot): the SAME attitude/control
  * state, rendered once off the legacy `DataSource` and once off the stream,
  * must produce byte-identical DOM at `delay=0`.
@@ -24,11 +24,11 @@ import { NavballComponent } from "./index";
  * (`n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*`; `f.sasEnabled` ->
  * `vessel.control.sas`; `v.rcsValue` -> `vessel.control.rcs`; `f.throttle`
  * -> `vessel.control.throttle`; `f.precisionControl` ->
- * `vessel.control.precisionControl`, P4a un-gap) or a declared GAP this
- * widget always reads regardless of config (`v.isControllable`, and — as
- * of the M3 batch-2 fixture audit — `f.sasMode`, a shape-mismatch gap:
- * `vessel.control.sasMode` is a numeric `SasMode` enum on the real wire,
- * not the string the widget renders/compares against, see `map-topic.ts`)
+ * `vessel.control.precisionControl`, now un-gapped) or a declared GAP this
+ * widget always reads regardless of config (`v.isControllable`, and
+ * `f.sasMode`, a shape-mismatch gap: `vessel.control.sasMode` is a numeric
+ * `SasMode` enum on the real wire, not the string the widget
+ * renders/compares against, see `map-topic.ts`)
  * — so the stream leg needs a legacy AUX source for exactly those two
  * gapped keys, registered alongside the `TelemetryProvider`, proving the
  * shim's MIXED-source coexistence (some keys stream, others legacy, same
@@ -96,17 +96,17 @@ describe("Navball — behavior-preservation golden dual-run (delay=0)", () => {
         // Included so the stream payload matches the real contract shape.
         sasMode: 0,
         rcs: northLevel["v.rcsValue"],
-        // f.precisionControl -> vessel.control.precisionControl (P4a
-        // un-gap): now lands off the stream, not the legacyAux.
+        // f.precisionControl -> vessel.control.precisionControl (now
+        // un-gapped): lands off the stream, not the legacyAux.
         precisionControl: northLevel["f.precisionControl"],
         throttle: northLevel["f.throttle"],
       });
     });
 
     await waitFor(() => {
-      // "StabilityAssist" alone no longer proves the STREAM leg landed — as
-      // of the M3 batch-2 fixture audit it comes from the separate,
-      // synchronous legacyAux emit (f.sasMode is now a gap), so it can settle
+      // "StabilityAssist" alone no longer proves the STREAM leg landed — it
+      // comes from the separate, synchronous legacyAux emit (f.sasMode is
+      // now a gap), so it can settle
       // before the async stream delivery of vessel.attitude/vessel.control
       // does. AttitudeIndicator's own HDG/PIT/ROL readout
       // (AttitudeIndicator.tsx) shows "—" until heading/pitch/roll actually

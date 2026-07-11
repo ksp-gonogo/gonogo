@@ -1,8 +1,7 @@
 /**
  * Client-side orbit-derivation helpers built on top of the analytic Kepler
- * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces the R6
- * REDESIGN calls for (docs/superpowers/plans/2026-07-09-r6-telemachus-removal.md
- * §0.0/§1b/§1c): the mod streams sparse orbital ELEMENTS (plus the next SOI
+ * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces: the
+ * mod streams sparse orbital ELEMENTS (plus the next SOI
  * `encounter`), and the SDK reconstructs everything a widget used to read as a
  * precomputed Telemachus scalar — closest-approach UT, a post-burn maneuver
  * preview, and the patched-conic chain — client-side.
@@ -299,10 +298,10 @@ export interface ManeuverBurn {
 }
 
 /**
- * The orbit a burn produces — the consumer-side post-burn preview the R6
- * plan (§1b `o.maneuverNodes`) and the `VesselManeuver` contract doc
- * ("derived, SDK-side, NOT streamed") both call for, replacing Telemachus's
- * arg-order-footgun `[x,y,z]` tuple + streamed preview.
+ * The orbit a burn produces — the consumer-side post-burn preview the
+ * `VesselManeuver` contract doc ("derived, SDK-side, NOT streamed") calls
+ * for, replacing Telemachus's arg-order-footgun `[x,y,z]` tuple + streamed
+ * preview (old `o.maneuverNodes`).
  */
 export interface ManeuverPreview {
   /** Post-burn osculating elements (radians), or `null` if the pre-burn orbit was degenerate. */
@@ -407,7 +406,7 @@ export interface BuildPatchesOptions {
 
 /**
  * Reconstruct the patched-conic chain client-side from streamed elements +
- * the next `encounter` — the R6 §0.0 `o.orbitPatches` REDESIGN (stream
+ * the next `encounter` — replacing the old `o.orbitPatches` capture (stream
  * elements + encounter, SDK reconstructs the chain; no mod capture of the
  * full chain).
  *

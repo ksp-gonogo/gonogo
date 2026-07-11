@@ -13,12 +13,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type GroundSurveyBadgesContext, GroundSurveyComponent } from "./index";
 
 /**
- * GroundSurvey augment-slot exposure (Uplink architecture spec §4). The
- * broad header `ground-survey.badges` escape-hatch slot (§4.8) is exposed but
- * ships no filler here (that's an Uplink augment, P3/P6): an empty slot must
+ * GroundSurvey augment-slot exposure (Uplink architecture). The
+ * broad header `ground-survey.badges` escape-hatch slot is exposed but
+ * ships no filler here (that's an Uplink augment): an empty slot must
  * render cleanly, and a test augment registered into it must appear beside the
  * smoothness badge, receiving the widget's labelling context as typed slot
- * props (§4.4).
+ * props.
  */
 
 const KEYS: DataKey[] = [

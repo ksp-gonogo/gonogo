@@ -106,19 +106,19 @@ function canvasColor(
 }
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4). MapView is a HOST that exposes
-// two slots; no first-party augment fills them here (that is a later phase), so
+// Augment slots (Uplink architecture). MapView is a HOST that exposes
+// two slots; no first-party augment fills them here, so
 // each renders nothing until an Uplink registers an augment into it. This is
-// THE HARD CASE (augment-slot-map "Feedback round 1"): the overlay must draw in
+// THE HARD CASE for slot design: the overlay must draw in
 // the map's own coordinate space, so `map-view.overlay` passes the live
-// equirectangular projection down as slot props (spec §4.4). Composable /
-// layered by priority (spec §4.8) — the SCANsat scan-layer (today hardcoded via
+// equirectangular projection down as slot props. Composable /
+// layered by priority — the SCANsat scan-layer (today hardcoded via
 // useScanLayerCanvas), commlink, and trajectory layers all route HERE rather
 // than to `scanning.sections`.
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `map-view.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `map-view.overlay` — an OVERLAY slot, rendered in a
  * layer absolutely positioned over the map canvases. The base map draws in
  * screen pixels via a per-body coordinate offset (equirectangular
  * `latLonToMap`) followed by the live pan/zoom camera. An overlay augment
@@ -153,8 +153,8 @@ export interface MapOverlayContext {
 }
 
 /**
- * Props for `map-view.badges` — the widget's BROAD escape-hatch slot (spec
- * §4.8 composable badges), rendered in the header next to the title. Badge
+ * Props for `map-view.badges` — the widget's BROAD escape-hatch slot
+ * for composable badges, rendered in the header next to the title. Badge
  * augments read their own Topics via hooks, so the only context passed down is
  * the mapped body name for labelling.
  */
@@ -162,9 +162,9 @@ export interface MapBadgesContext {
   bodyName: string | undefined;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not in a central registry file) so parallel
-// slot work on other widgets never collides on this seam.
+// Co-located declaration-merge of this widget's slot ids → their props. Kept
+// next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
@@ -290,7 +290,7 @@ function MapViewComponent({
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
   const encounterExists = useDataValue("data", "o.encounterExists");
-  // Connectivity indicator (M3 mechanical-tail batch). `v.lat` is this
+  // Connectivity indicator. `v.lat` is this
   // widget's representative MAPPED key (-> raw `vessel.flight.latitude`) —
   // `v.long`/`v.dynamicPressure`/`v.mach`/`v.surfaceSpeed`/`v.verticalSpeed`
   // are mapped the same way (raw `vessel.flight.*` fields) and `v.altitude`
@@ -301,7 +301,7 @@ function MapViewComponent({
   // `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
   // `o.encounterTime`) are all GAPPED (map-topic.ts) and stay legacy. The
   // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*`
-  // SCANsat channel are out of M1/M2/M3 scope entirely — `mapTopic` has no
+  // SCANsat channel are entirely unmapped — `mapTopic` has no
   // entry for them, so `useDataValue` falls back to legacy automatically.
   const streamStatus = useDataStreamStatus("data", "v.lat");
   // Principia (N-body) breaks patched-conic assumptions, so stock o.* and our
@@ -963,7 +963,7 @@ function MapViewComponent({
   const stackAnomaly =
     showAnomalySide && getWidgetShape(cols, rows).shape !== "landscape";
 
-  // Slot props (spec §4.4). `badges` carries just the mapped body name for
+  // Slot props. `badges` carries just the mapped body name for
   // labelling; `overlay` carries the live equirectangular projection so an
   // augment can draw in the map's own pixel space. `overlay` is null until the
   // container has measured — the layer only mounts once there's a pixel-sized

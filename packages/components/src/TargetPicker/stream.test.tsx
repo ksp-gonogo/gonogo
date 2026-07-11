@@ -9,7 +9,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetPickerComponent } from "./index";
 
 /**
- * The M3 vessel-gap batch's stream test-adapter proof for TargetPicker's
+ * Stream test-adapter proof for TargetPicker's
  * vessel roster: genuinely running off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
  * `tar.availableVessels` maps onto `system.vessels` (map-topic.ts) — a

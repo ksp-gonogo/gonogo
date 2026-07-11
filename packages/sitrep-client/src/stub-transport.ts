@@ -53,7 +53,7 @@ export class StubTransport implements Transport {
         break;
       case "command-request": {
         // Answer on a later microtask, not inline within this `send()` call.
-        // Even at M2's zero simulated latency, a command response must not
+        // Even at zero simulated latency, a command response must not
         // settle synchronously in the same call stack as the request — that
         // would let it race ahead of the caller's own `dispatch()` return,
         // skipping the observable `in-flight` phase. A real transport never

@@ -108,10 +108,10 @@ function streamStatusToKosStatus(
 }
 
 // ---------------------------------------------------------------------------
-// The `kos-processors.badges` slot contract (spec §4.4 / augment-slot-map)
+// The `kos-processors.badges` slot contract
 //
 // A per-processor-row inline badges slot. Once this widget migrates to its own
-// `@ksp-gonogo/kos` Uplink package (uplink-architecture.md §5 item 2), a third-party
+// `@ksp-gonogo/kos` Uplink package, a third-party
 // kOS-tooling Uplink could badge each CPU with a "script health" indicator
 // without leaving this widget. Because the slot renders once PER ROW, its props
 // MUST carry the processor's identity so the augment badges the right CPU —
@@ -131,8 +131,8 @@ export interface KosProcessorBadgeContext {
   index: number;
 }
 
-// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
-// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// Declaration-merge the slot id → props type into core's `SlotRegistry`.
+// Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "kos-processors.badges" })` and `<AugmentSlot name="kos-processors.badges"
 // props={…} />` type-check precisely against `KosProcessorBadgeContext`.
@@ -162,7 +162,7 @@ function KosProcessorsComponent({
   const payload = onStream ? adaptModProcessors(modProcs) : scriptProcs;
 
   // Status rides its own channel. On the stream path there is no
-  // `kos.compute.<id>.status` producer (P1) — derive liveness from the
+  // `kos.compute.<id>.status` producer — derive liveness from the
   // stream itself; on the legacy path keep the telnet compute status.
   const store = useTelemetryStoreOptional();
   const streamStatus = useOptionalStreamStatus(store, MOD_PROCESSORS_KEY);

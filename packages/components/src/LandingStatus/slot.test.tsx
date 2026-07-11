@@ -18,11 +18,11 @@ import {
 } from "./index";
 
 /**
- * LandingStatus augment-slot exposure (Uplink architecture spec §4). The widget
- * exposes one BROAD header escape-hatch slot (`landing-status.badges`, §4.8) but
- * ships no filler here (that's an Uplink augment, P3/P6): an empty slot must
+ * LandingStatus augment-slot exposure (Uplink architecture). The widget
+ * exposes one BROAD header escape-hatch slot (`landing-status.badges`) but
+ * ships no filler here (that's an Uplink augment): an empty slot must
  * render cleanly, and a test augment registered into it must appear in the
- * header, receiving the widget's labelling context as typed slot props (§4.4).
+ * header, receiving the widget's labelling context as typed slot props.
  */
 
 const KEYS: DataKey[] = [
@@ -98,7 +98,7 @@ describe("LandingStatus — augment slots (spec §4)", () => {
     });
 
     const badge = await screen.findByTestId("landing-status-badge-augment");
-    // The slot passed the widget's labelling context down (spec §4.4): the
+    // The slot passed the widget's labelling context down: the
     // current body and its atmosphere flag (Mun is a vacuum body).
     expect(badge.textContent).toBe("Mun|vac");
     teardownMockDataSource(fixture);

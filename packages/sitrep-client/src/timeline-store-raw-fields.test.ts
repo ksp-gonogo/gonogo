@@ -5,7 +5,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * M3 pilot (WarpControl): raw wire topics are multi-field RECORDS
+ * Raw wire topics are multi-field RECORDS
  * (`"time.warp"` carries `{ warpRate, warpRateIndex, warpMode, paused }` as
  * ONE payload — confirmed against the real
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`), but
@@ -16,18 +16,18 @@ import { ViewClock } from "./view-clock";
  * `vessel.state.*` entries, which ride the DERIVED-channel `fields: true`
  * mechanism (`vessel-state.ts`).
  *
- * Before this file's fix, `TimelineStore` only exposed `"<parent>.<field>"`
- * subtopic reads for a REGISTERED DERIVED channel (`resolveDerivedTopic`) —
- * nothing ever resolved a RAW multi-field topic's dotted subtopic, because
- * nothing ever publishes to the literal wire topic `"time.warp.warpRate"`.
- * A mapped raw-field key would carry (once promoted to the carried-channels
- * allowlist) forever, since `sample()`'s raw path looked up a `ClientTimeline`
- * keyed by the exact dotted string, which nothing ever ingests. This is the
- * WarpControl pilot's central discovery: the read shim's "mapped -> stream"
- * routing was silently a dead end for every raw-record mapping in the whole
- * migration table, not just `time.warp`.
+ * Without the resolution this file exercises, `TimelineStore` would only
+ * expose `"<parent>.<field>"` subtopic reads for a REGISTERED DERIVED
+ * channel (`resolveDerivedTopic`) — nothing would ever resolve a RAW
+ * multi-field topic's dotted subtopic, because nothing ever publishes to the
+ * literal wire topic `"time.warp.warpRate"`. A mapped raw-field key would
+ * carry (once promoted to the carried-channels allowlist) forever, since
+ * `sample()`'s raw path looked up a `ClientTimeline` keyed by the exact
+ * dotted string, which nothing ever ingests: the read shim's "mapped ->
+ * stream" routing would silently be a dead end for every raw-record mapping
+ * in the whole migration table, not just `time.warp`.
  *
- * The fix: `TimelineStore` now ALSO resolves a "<domain>.<channel>.<field...>"
+ * The fix: `TimelineStore` ALSO resolves a "<domain>.<channel>.<field...>"
  * topic (3+ dot-segments, no derived-channel match) against the raw
  * `"<domain>.<channel>"` timeline (first two segments — the actual wire
  * topic, per every entry in `TELEMACHUS_CLEAN_HOMES`), walking the remaining

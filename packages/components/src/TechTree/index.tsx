@@ -55,7 +55,7 @@ export interface TechNodeBadgeContext {
   node: TechNode;
 }
 
-// Co-located declaration-merge of this widget's slot id → its props (spec §4.6).
+// Co-located declaration-merge of this widget's slot id → its props.
 // Kept next to the widget (not in a central registry file) so parallel slot work
 // on other widgets never collides on this seam. Makes `registerAugment({
 // augments: "tech-tree.badges" })` and `<AugmentSlot name="tech-tree.badges"
@@ -69,7 +69,7 @@ declare module "@ksp-gonogo/core" {
 /**
  * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
  * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
- * "Researchable" | "Unavailable"` string) and the M3b career-detail wire
+ * "Researchable" | "Unavailable"` string) and the career-detail wire
  * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
  * `unlocked: boolean`, no `state` at all — the server deliberately doesn't
  * compute the 3-state "Researchable" distinction, career-capture-extend-
@@ -314,20 +314,19 @@ function layoutGraph(
 // ── Component ─────────────────────────────────────────────────────────────
 
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
-  // M3 career batch: career.science -> career.status.economy.science.
-  // M3b career-detail batch: tech.nodes -> career.status.tech.nodes now
-  // MAPPED too — the wire's career.status.tech.nodes carries
-  // id/title/scienceCost/unlocked/parents (career-capture-extend-report.md);
-  // parseTechNodes derives the Available/Unavailable state from `unlocked`
-  // client-side (no server-computed Researchable 3rd state — this widget's
-  // own computeResearchable already does that derivation). P4a shared-map
-  // batch: kc.scene -> spaceCenter.scene.scene is mapped too — a plain
-  // 2-segment raw-field walk (SpaceCenterScene.scene, already an enum-name
-  // string on the wire) — so this same useDataValue("data", "kc.scene")
-  // call now rides the stream via the mapTopic shim, zero code change here.
-  // tech.unlock[...] (the spend command) still has no command home
-  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically — this
-  // batch migrates reads only.
+  // career.science reads through career.status.economy.science. tech.nodes
+  // reads through career.status.tech.nodes now too — the wire's
+  // career.status.tech.nodes carries id/title/scienceCost/unlocked/parents
+  // (career-capture-extend-report.md); parseTechNodes derives the
+  // Available/Unavailable state from `unlocked` client-side (no
+  // server-computed Researchable 3rd state — this widget's own
+  // computeResearchable already does that derivation). kc.scene ->
+  // spaceCenter.scene.scene is mapped too — a plain 2-segment raw-field walk
+  // (SpaceCenterScene.scene, already an enum-name string on the wire) — so
+  // this same useDataValue("data", "kc.scene") call now rides the stream via
+  // the mapTopic shim, zero code change here. tech.unlock[...] (the spend
+  // command) still has no command home (KNOWN_COMMAND_GAPS) and falls back
+  // to legacy automatically — only the reads migrate here.
   const nodesRaw = useDataValue("data", "tech.nodes");
   const scene = useDataValue<string>("data", "kc.scene");
   const careerScience = useDataValue<number>("data", "career.science");

@@ -15,8 +15,8 @@ import type { Transport } from "./transport";
 import type { Certainty, ViewClock } from "./view-clock";
 
 /**
- * The frozen view-time token for one frame / read cycle (M2 design §1.2,
- * §7.4's "single-view-time invariant"). There is deliberately no method
+ * The frozen view-time token for one frame / read cycle — enforces the
+ * "single-view-time invariant". There is deliberately no method
  * anywhere in this file that reads "the current time" and hands back a
  * fresh UT per call — every read goes through a `FrameToken`, and a token's
  * `viewUt` never changes after it's minted. That's what makes the
@@ -27,14 +27,13 @@ export interface FrameToken {
   /**
    * Internal validity marker, bumped by every `beginFrame()` call. Not
    * meant to be read by callers — it's what lets `sample()` detect a token
-   * a caller cached across a frame boundary (M2 fix-report "FrameToken
-   * never invalidated") and fall back to the current frame instead of
-   * honoring a frozen-in-the-past `viewUt` forever.
+   * a caller cached across a frame boundary and fall back to the current
+   * frame instead of honoring a frozen-in-the-past `viewUt` forever.
    */
   readonly generation: number;
   /**
    * Whether `viewUt` sits at-or-before the `ViewClock`'s certainty horizon
-   * as of the moment this token was minted (M2 design §3.3). Computed once
+   * as of the moment this token was minted. Computed once
    * here — NOT recomputed against the live clock on each read — for the
    * same frame-coherence reason values are memoized per token: a mid-frame
    * `ingest` that nudges the horizon forward must not flip a read's
@@ -46,13 +45,13 @@ export interface FrameToken {
 
 export interface TimelineStoreOptions {
   timelineOptions?: ClientTimelineOptions;
-  /** Options for the store's `HeartbeatTracker` (M2 design §4.3's keyframe-cadence heartbeat, T4) — per-topic keyframe intervals, staleness-margin tuning. */
+  /** Options for the store's `HeartbeatTracker` (the keyframe-cadence heartbeat) — per-topic keyframe intervals, staleness-margin tuning. */
   heartbeatOptions?: HeartbeatTrackerOptions;
 }
 
 /**
- * What a `derive()` function reads inputs through (M2 design §2.1/§7.4's
- * "single-view-time invariant"). Deliberately NOT `(topic) => value` — it
+ * What a `derive()` function reads inputs through — enforces the
+ * "single-view-time invariant". Deliberately NOT `(topic) => value` — it
  * returns the whole `TimelinePoint` (so `derive` can read `meta.quality`/
  * `meta.source` for quality-picking and subject-provenance, per
  * `vessel-state.ts`'s `deriveVesselState`), and it is always bound to one
@@ -74,25 +73,25 @@ export interface DerivedChannelDefinition<T> {
   /**
    * Declarative list of input topics this channel reads. Not currently used
    * to drive subscription ref-counting (that requires wiring `TimelineStore`
-   * to `TelemetryClient`'s subscribe machinery, per M2 design §2.1 — a later
-   * task) — recorded here as the channel's own documentation of its
-   * dependencies, and reserved for that wiring.
+   * to `TelemetryClient`'s subscribe machinery — not yet done) — recorded
+   * here as the channel's own documentation of its dependencies, and
+   * reserved for that wiring.
    */
   inputs: string[];
   /**
    * Pure function: same `(get, viewUt)` inputs must produce the same output,
-   * always (the replay/scrub contract, M2 design §7.3). Two distinct
-   * "nothing" results, per §2.1/§2.4 — never conflate them:
+   * always (the replay/scrub contract). Two distinct
+   * "nothing" results — never conflate them:
    * - Return `undefined` when an input has no point at-or-before `viewUt`
    *   yet in the current epoch — "not whole yet" (cold start, or
    *   resynchronizing after an epoch reset until the first post-reset
-   *   keyframe lands per input, §3.4). `sample()`/`sampleDerived` propagate
+   *   keyframe lands per input). `sample()`/`sampleDerived` propagate
    *   this as "no point at all", never a fabricated tombstone.
    * - Return `null` for a confirmed absence (a tombstoned input, or the
    *   channel's own subject genuinely gone) — never a fabricated
    *   zero-valued record.
    *
-   * `getInterpolated` (M2 design §3.3/§2.4) is `get`'s sibling for MEASURED
+   * `getInterpolated` is `get`'s sibling for MEASURED
    * raw inputs: it lerps between the two buffered points straddling
    * `viewUt` instead of holding the latest one (`ClientTimeline.straddle`'s
    * seam, per that method's own doc comment: "interpolation lands in a
@@ -112,15 +111,15 @@ export interface DerivedChannelDefinition<T> {
   ) => T | null | undefined;
   /**
    * Expose `"<topic>.<field>"` subtopics that read a single field off the
-   * one memoized record (M2 design §2.4) — e.g. `vessel.state.altitudeAsl`.
+   * one memoized record — e.g. `vessel.state.altitudeAsl`.
    * Field names are resolved dynamically off whatever `derive` returns, so
    * no static field list is needed here.
    */
   fields?: boolean;
   /**
-   * Optional override for this channel's own `StreamStatusValue` (M2 design
-   * §4.4: "derived channels propagate the worst input staleness into their
-   * own status", T4). `getStatus(topic)` resolves an input topic's own
+   * Optional override for this channel's own `StreamStatusValue` (derived
+   * channels propagate the worst input staleness into their own status
+   * by default). `getStatus(topic)` resolves an input topic's own
    * status — recursively, through the same `sampleStatus` machinery, for a
    * derived-on-derived input. `get`/`viewUt` are the SAME arguments
    * `derive` receives, for channels (like `vessel.state`) whose
@@ -138,7 +137,7 @@ export interface DerivedChannelDefinition<T> {
   ) => StreamStatusValue;
 }
 
-/** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (M2 design §4.4: "derived channels propagate the worst input staleness") is deferred to a later task — this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
+/** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (derived channels ultimately should propagate the worst input staleness) is not yet implemented — this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
 function derivedMeta(viewUt: number, epoch: number): Meta {
   return {
     source: "derived",
@@ -155,7 +154,7 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
 
 /**
  * Field names that carry a DEGREE-valued angle where wrapping is physically
- * meaningful (M2 T5 close-review Fix 3) — e.g. `longitude` 179 -> -179 is a
+ * meaningful — e.g. `longitude` 179 -> -179 is a
  * 2-degree hop across the antimeridian, not a ~358-degree hop the other way
  * around the planet. Interpolated the SHORT way around the wrap in
  * `lerpFieldValue` below, instead of the naive straight-line lerp every
@@ -173,7 +172,7 @@ const ANGULAR_DEGREE_FIELD_NAMES: ReadonlySet<string> = new Set([
 /**
  * Field names that are numeric but not genuinely continuous — an index,
  * enum ordinal, or other discrete quantity where a fractional value is
- * physically meaningless (M2 T5 close-review Fix 3) — e.g.
+ * physically meaningless — e.g.
  * `referenceBodyIndex` 1 -> 2 must never become `1.5`. Held at `before`
  * rather than fractionalized, mirroring how a non-numeric field that's
  * identical on both sides already passes through unchanged. Same
@@ -200,7 +199,7 @@ function lerpAngleDegrees(before: number, after: number, t: number): number {
 
 /**
  * Interpolate one field value at `t`, honoring the angular-wrap and
- * discrete-field policies above (M2 T5 close-review Fix 3). Falls back to
+ * discrete-field policies above. Falls back to
  * the caller's identical-value-passthrough / refuse-on-mismatch handling for
  * anything that isn't a plain number pair.
  */
@@ -225,7 +224,7 @@ function lerpFieldValue(
 
 /**
  * Linearly interpolate between two payloads of matching shape at `t` in
- * `[0, 1]` — the confirmed-range interpolation primitive (M2 design §3.3).
+ * `[0, 1]` — the confirmed-range interpolation primitive.
  * Numeric payloads lerp directly. A plain (non-array, non-null) object
  * lerps field-by-field via `lerpFieldValue`: a genuinely continuous numeric
  * field lerps straight-line, an ANGULAR field (`ANGULAR_DEGREE_FIELD_NAMES`)
@@ -277,7 +276,7 @@ export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
  * there's nothing to straddle, either bracketing point is a tombstone
  * (never interpolate across an absence transition — the confirmed truth
  * mid-transition is still "whatever was last known", not a fabricated
- * blend toward/away from `null`, M2 design §4), or `lerpPayload` can't
+ * blend toward/away from `null`), or `lerpPayload` can't
  * honestly produce a value.
  */
 function interpolatedRead<T>(
@@ -307,7 +306,7 @@ function interpolatedRead<T>(
  * Ties per-topic `ClientTimeline`s to the one shared `ViewClock` and mints
  * the frozen `FrameToken` every read goes through.
  *
- * Two consumption tiers per the design (§2.2):
+ * Two consumption tiers:
  * - **Reactive**: `subscribeFrame` + `sample` back a `useSyncExternalStore`
  *   hook (`useTimelineStream`) that reads at whatever `FrameToken`
  *   `currentFrame()` currently holds — it does NOT mint its own token per
@@ -317,8 +316,8 @@ function interpolatedRead<T>(
  *   (canvas widgets) — pass the token from `currentFrame()` (or one you
  *   minted yourself with `beginFrame()`) explicitly.
  *
- * This is the foundation derived channels (T3) build on, and that staleness
- * consumption (T4) and confirmed-vs-predicted (T5) will build on next.
+ * This is the foundation derived channels build on, along with staleness
+ * consumption and confirmed-vs-predicted reads.
  * Derived-channel registration (`registerDerivedChannel`) is implemented
  * here — see `sample`/`sampleDerived` for how a derived topic is resolved
  * and memoized through the exact same per-frame cache raw topics use.
@@ -334,26 +333,28 @@ export class TimelineStore {
   private generation = 0;
 
   /**
-   * Per-`FrameToken` memoization cache (M2 fix-report Defect 3, frame
-   * coherence). Keyed by token object identity via a `WeakMap` so it never
+   * Per-`FrameToken` memoization cache — gives frame coherence: the same
+   * `(token, topic)` read always returns the same result for that token's
+   * lifetime. Keyed by token object identity via a `WeakMap` so it never
    * needs manual cleanup — once a token is no longer referenced anywhere
    * (including as `currentToken`), its cache entry is collected too. The
    * first `sample(topic, token)` read for a given `(token, topic)` pair is
    * authoritative for that token's whole lifetime; a mid-frame `ingest`
-   * cannot flip it. Also the seam derived channels (T3) reuse instead of
+   * cannot flip it. Also the seam derived channels reuse instead of
    * building their own per-frame cache.
    */
   private readonly frameCache = new WeakMap<FrameToken, Map<string, unknown>>();
 
-  /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"` (M2 design §4.3, T4). */
+  /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"`. */
   readonly heartbeats: HeartbeatTracker;
 
   /**
    * Whole-transport connectivity, fed by `setTransportConnected`/
-   * `attachTransport` (M2 design §4.3's "transport-down short-circuit",
-   * finding B item 1). Defaults to `true` (connected) so a caller that never
+   * `attachTransport` (the "transport-down short-circuit" — see
+   * `sampleRawStatus`). Defaults to `true` (connected) so a caller that never
    * wires this up sees today's pure per-topic heartbeat inference unchanged
-   * — T4 shipped without any Transport reference on `TimelineStore` at all.
+   * — this is opt-in, so `TimelineStore` needs no direct `Transport`
+   * reference by default.
    */
   private transportConnected = true;
 
@@ -371,7 +372,7 @@ export class TimelineStore {
   }
 
   /**
-   * Set whole-transport connectivity (M2 design §4.3, finding B item 1).
+   * Set whole-transport connectivity.
    * While `false`, `sampleStatus` short-circuits every topic that has
    * confirmed data to `"disconnected"` immediately, instead of letting each
    * one independently drift into `"held-stale"` on its own heartbeat margin
@@ -389,7 +390,7 @@ export class TimelineStore {
    * `TelemetryClient` holds) — seeds the current status immediately and
    * keeps it live via `onStatusChange`. Only `"connected"` counts as
    * connected; `"reconnecting"`/`"error"`/`"disconnected"` all collapse to
-   * the same disconnected input — M2 design §4.3 only distinguishes "the
+   * the same disconnected input — this layer only distinguishes "the
    * link is currently reliable" from "it isn't"; the finer `TransportStatus`
    * taxonomy is presentation detail this layer doesn't need. Returns an
    * unsubscribe function.
@@ -409,7 +410,8 @@ export class TimelineStore {
    * advance are independent (many samples can arrive within one frame; the
    * frame only advances on `beginFrame()`).
    *
-   * Store-level epoch guard (M2 fix-report Defect 1+2, "the client ghost"):
+   * Store-level epoch guard (avoids "the client ghost" — a stale point
+   * surviving a reconnect/epoch bump):
    * the store — not any individual `ClientTimeline` — is the epoch
    * authority. A point tagged with an epoch lower than the shared clock's
    * current epoch is refused outright, even for a topic whose
@@ -446,7 +448,7 @@ export class TimelineStore {
     );
     // Every ingested sample — keyframe or change-emission alike — confirms
     // the link is alive as of this arrival. Deliberately keyed on
-    // `meta.deliveredAt`, never `point.validAt` (M2 design §4.3; see
+    // `meta.deliveredAt`, never `point.validAt` (see
     // `HeartbeatTracker`'s doc comment for why).
     this.heartbeats.noteArrival(topic, point.meta.deliveredAt);
 
@@ -464,12 +466,12 @@ export class TimelineStore {
   }
 
   /**
-   * Register a derived channel (M2 design §2.1). From this point on,
+   * Register a derived channel. From this point on,
    * `sample(def.topic, token)` (and `useTimelineStream(store, def.topic)`,
    * which is built on `sample`) transparently returns the memoized derived
    * value instead of reading a raw `ClientTimeline` — callers never need to
-   * know whether a topic is raw or derived (M2 design §6: "raw-vs-derived
-   * invisible"). If `def.fields` is set, `"<topic>.<field>"` subtopics are
+   * know whether a topic is raw or derived ("raw-vs-derived
+   * invisible" to consumers). If `def.fields` is set, `"<topic>.<field>"` subtopics are
    * resolved too (`resolveDerivedTopic`).
    *
    * Registering the same `topic` twice replaces the previous definition —
@@ -506,7 +508,7 @@ export class TimelineStore {
   }
 
   /**
-   * The frame's certainty (M2 design §3.3) — `"confirmed"` when the token's
+   * The frame's certainty — `"confirmed"` when the token's
    * `viewUt` sat at-or-before the certainty horizon at the moment it was
    * minted, `"predicted"` past it. Rides alongside a value/status read for
    * the same topic and frame, never inside either (the `useKosScriptStatus`
@@ -522,15 +524,15 @@ export class TimelineStore {
     return effectiveToken.certainty;
   }
 
-  /** Passthrough to the shared clock's certainty horizon (M2 design §3.3) — the first-class SDK value (`sdk.view.certaintyHorizonUt()`). */
+  /** Passthrough to the shared clock's certainty horizon — the first-class SDK value (`sdk.view.certaintyHorizonUt()`). */
   certaintyHorizonUt(): number {
     return this.clock.certaintyHorizonUt();
   }
 
   /**
    * The raw wire topics that must actually be subscribed (via
-   * `TelemetryClient.subscribe`) to keep `topic` resolvable (M2 bridge task,
-   * Fix 1 item 3 — "derived-input ref-counting"). A derived channel's own
+   * `TelemetryClient.subscribe`) to keep `topic` resolvable — the
+   * derived-input ref-counting mechanism. A derived channel's own
    * topic (or one of its `"<topic>.<field>"` subtopics) is NEVER itself a
    * subscribable wire topic — no server channel produces it — so a caller
    * that naively subscribed to the derived topic NAME would never receive
@@ -558,7 +560,7 @@ export class TimelineStore {
   ): void {
     const resolved = this.resolveDerivedTopic(topic);
     if (!resolved) {
-      // Raw record field-subtopic (M3 pilot): the raw wire topic that must
+      // Raw record field-subtopic: the raw wire topic that must
       // actually be subscribed is the record itself (`"time.warp"`), never
       // the literal dotted field string (`"time.warp.warpRate"`) — nothing
       // publishes to the latter. See `resolveRawFieldSubtopic`/`sample()`'s
@@ -589,16 +591,16 @@ export class TimelineStore {
    * lookup collapses "unknown field name" and "not whole yet" onto the same
    * `undefined` return, deliberately (see its own doc comment). This is a
    * SEPARATE diagnostic read for a caller (the `@ksp-gonogo/core` `useDataValue`
-   * compatibility shim, M2 bridge task Fix 1 item 4 — belt-and-suspenders
+   * compatibility shim — belt-and-suspenders
    * fallback safety) that needs to tell "still loading, keep waiting" apart
    * from "this can never resolve, fall back to another source" — never
    * folded into `sample()`'s own return value.
    *
-   * M3 whole-branch review #2: this guard originally only covered DERIVED
-   * channel parents. A RAW record field-subtopic (`resolveRawFieldSubtopic`
-   * — e.g. `"vessel.resources.resources.<name>.current"`) fell straight
-   * through and always returned `false`, so a wrong/drifted raw fieldpath
-   * served a permanent `undefined` with no fallback (the FuelStatus-class
+   * This guard covers both DERIVED
+   * channel parents and RAW record field-subtopics (`resolveRawFieldSubtopic`
+   * — e.g. `"vessel.resources.resources.<name>.current"`). A raw fieldpath
+   * that's wrong or has drifted would otherwise serve a permanent
+   * `undefined` with no fallback (the FuelStatus-class
    * bug: `useDataValue("data", vesselKey) ?? 0` turning a silent resolution
    * failure into an empty gauge). The second branch below applies the exact
    * same "whole-but-missing-field = unresolvable" check to a raw parent,
@@ -666,7 +668,7 @@ export class TimelineStore {
 
   /**
    * Windowed range read for a raw topic (or raw record field-subtopic) —
-   * the read side of `useDataSeries`'s M3 stream shim (`@ksp-gonogo/data`).
+   * the read side of `useDataSeries`'s stream shim (`@ksp-gonogo/data`).
    * Mirrors `sample()`'s raw-topic / raw-field-subtopic resolution
    * (`resolveRawFieldSubtopic`, see `timeline-store-raw-fields.test.ts`) but
    * returns every buffered point in `[fromUt, toUt]` instead of one
@@ -744,22 +746,22 @@ export class TimelineStore {
    * Imperative tier: read `topic` at a frame token's frozen `viewUt`
    * (defaults to `currentFrame()` — there is no per-read "now").
    *
-   * Three fixes live here (M2 fix-report):
+   * Three behaviours combine here:
    * - **Stale-token fallback**: a `token` from a superseded frame (its
    *   `generation` doesn't match the store's current one — e.g. a caller
    *   cached a token across a `beginFrame()` boundary) is not honored;
    *   the read is routed to `currentFrame()` instead.
-   * - **Store-level epoch guard (Defect 1+2)**: if `topic`'s timeline is
+   * - **Store-level epoch guard**: if `topic`'s timeline is
    *   still sitting on an epoch lower than the shared clock's, it's treated
    *   as cold (`undefined`) rather than serving its dead-epoch data — this
    *   is what actually closes the cross-topic ghost even in the split
    *   second before `ingest`'s proactive sweep has touched it, and for a
    *   timeline that gets lazily created (via `timelineFor`) after a rewind.
-   * - **Frame-coherent memoization (Defect 3)**: the first read of a given
+   * - **Frame-coherent memoization**: the first read of a given
    *   `(topic, token)` pair is authoritative for that token's whole
    *   lifetime, so a mid-frame `ingest` can't flip the answer mid-read-cycle
    *   (tearing) — the change only surfaces once a new `beginFrame()` mints a
-   *   new token. **Except across an epoch bump** (M2 T5 close-review Fix 1):
+   *   new token. **Except across an epoch bump**:
    *   the memo key folds in `clock.getEpoch()`, same as the derived-topic
    *   path below, so a mid-token quickload rewind is a cache miss rather
    *   than a replayed pre-bump ghost — including to a derived channel's
@@ -782,10 +784,10 @@ export class TimelineStore {
       // running only once per frame regardless of how many field subtopics
       // of the same parent are read.
       //
-      // The key folds in the CURRENT epoch (M2 design §2.3/§3.4: "memos die
-      // by epoch") — unlike the frame-coherent raw-topic path below (which
-      // deliberately freezes for the token's whole lifetime, M2 fix-report
-      // Defect 3), a derived value must NOT survive a mid-frame epoch bump
+      // The key folds in the CURRENT epoch — memos must die
+      // by epoch — unlike the frame-coherent raw-topic path below (which
+      // deliberately freezes for the token's whole lifetime), a derived
+      // value must NOT survive a mid-frame epoch bump
       // (quickload rewind) for the rest of the frame. Folding epoch into the
       // key makes a post-bump read a fresh cache miss, so it falls through to
       // `sampleDerived` and recomputes against the new epoch instead of
@@ -796,10 +798,10 @@ export class TimelineStore {
       );
     }
 
-    // Folds in the CURRENT epoch (M2 T5 close-review Fix 1, "the LENS-4
-    // ghost") — exactly like the derived-topic key above. Without this, the
+    // Folds in the CURRENT epoch — exactly like the derived-topic key above,
+    // guarding against the same class of stale-epoch ghost. Without this, the
     // first read of a given (token, topic) pair is authoritative for the
-    // token's whole lifetime (Defect 3's frame-coherence, intentional for an
+    // token's whole lifetime (frame-coherence, intentional for an
     // ordinary mid-frame ingest) — but a mid-frame EPOCH BUMP is not an
     // ordinary ingest: it's a quickload rewind that the store's cross-topic
     // sweep (`ingest`) already propagates to every `ClientTimeline`
@@ -821,10 +823,9 @@ export class TimelineStore {
     );
     if (literal !== undefined) return literal;
 
-    // Raw record field-subtopic fallback (M3 pilot, WarpControl — the
-    // mechanism `map-topic.ts`'s whole `TELEMACHUS_CLEAN_HOMES` table has
-    // quietly depended on since M2 Task 7 without it actually existing until
-    // now): `topic` is a `"<domain>.<channel>.<field...>"` string with no
+    // Raw record field-subtopic fallback — the
+    // mechanism `map-topic.ts`'s whole `TELEMACHUS_CLEAN_HOMES` table
+    // depends on: `topic` is a `"<domain>.<channel>.<field...>"` string with no
     // registered-derived-channel match — e.g. `"time.warp.warpRate"`. No
     // wire message is EVER published to that literal string; the real wire
     // topic is `"time.warp"`, a whole record `{ warpRate, warpRateIndex,
@@ -849,8 +850,8 @@ export class TimelineStore {
   }
 
   /**
-   * Interpolating raw-topic read (M2 design §3.3: "confirmed view =
-   * interpolation of buffered samples up to the confirmed edge") — fills
+   * Interpolating raw-topic read — the confirmed view is an
+   * interpolation of buffered samples up to the confirmed edge — fills
    * the seam `ClientTimeline.straddle` left open (its own doc comment: "a
    * hold-last read (`at`) is what T2 consumers use; interpolation lands in
    * a later task").
@@ -862,7 +863,7 @@ export class TimelineStore {
    * intermediate orbits. `sample()` stays hold-last for exactly that
    * reason; this method is for MEASURED/discrete raw values where a
    * straight line between two buffered samples is an honest estimate in
-   * between (M2 design §2.4's `vessel.flight` case — see
+   * between (the `vessel.flight` case — see
    * `vessel-state.ts`'s use of `getInterpolated` for the Loaded/measured
    * basis).
    *
@@ -892,8 +893,8 @@ export class TimelineStore {
       return this.sample<T>(topic, effectiveToken);
     }
 
-    // Same epoch-fold as `sample()`'s raw path above (M2 T5 close-review Fix
-    // 1) — a mid-token epoch bump must invalidate this cache entry too,
+    // Same epoch-fold as `sample()`'s raw path above — a mid-token epoch
+    // bump must invalidate this cache entry too,
     // rather than replaying a pre-bump interpolation for the rest of the
     // token's life.
     const epoch = this.clock.getEpoch();
@@ -909,8 +910,8 @@ export class TimelineStore {
   }
 
   /**
-   * The topic's `StreamStatusValue` at a frame token's frozen `viewUt` (M2
-   * design §4.4, T4) — the staleness/absence surface, read alongside
+   * The topic's `StreamStatusValue` at a frame token's frozen `viewUt` —
+   * the staleness/absence surface, read alongside
    * `sample()` never inside it. Mirrors `sample()`'s stale-token fallback
    * and frame-coherent memoization exactly (same generation check, the same
    * per-`(token, key)` cache) so a status read and a value read for the
@@ -930,7 +931,7 @@ export class TimelineStore {
     if (resolved) {
       const parentTopic = resolved.def.topic;
       // Fold epoch into the key exactly like the derived-VALUE path in
-      // sample() (M2 design §2.3/§3.4): a derived status must NOT survive a
+      // sample(): a derived status must NOT survive a
       // mid-frame epoch bump (quickload rewind) for the rest of the frame, or
       // a status read and a value read for the same topic in the same frame
       // could disagree about which epoch they describe.
@@ -942,7 +943,7 @@ export class TimelineStore {
       );
     }
 
-    // Fold epoch into the raw-status key too (M2 §2.3/§3.4, LENS-4 class):
+    // Fold epoch into the raw-status key too:
     // a status memoized before a mid-frame epoch bump must not survive it, or
     // it would disagree with the (epoch-folded) value read for the same topic
     // and could report the dead timeline's status for the rest of the frame.
@@ -955,7 +956,7 @@ export class TimelineStore {
     // `"resyncing"` from the literal read means "no point ever recorded
     // under this exact topic string" (`sampleRawStatus`'s own first check) —
     // the same signal `sample()`'s literal-first fallback uses. Only then
-    // try the raw record field-subtopic interpretation (M3 pilot, mirrors
+    // try the raw record field-subtopic interpretation (mirrors
     // `sample()`'s matching branch): a field subtopic's status IS its real
     // parent raw topic's status outright, delegated by recursing straight
     // into this same method against `rawTopic` — that call hits the ordinary
@@ -971,8 +972,8 @@ export class TimelineStore {
   }
 
   /**
-   * Precedence, most to least authoritative (M2 design §4.3, folding in
-   * finding B item 1's transport-down short-circuit):
+   * Precedence, most to least authoritative (folding in
+   * the transport-down short-circuit):
    *
    * 1. No point at all in the current epoch -> `"resyncing"`. Unaffected by
    *    transport status — a topic we've never heard from is "cold", not
@@ -982,14 +983,14 @@ export class TimelineStore {
    * 2. A tombstone (`payload: null`) -> `"absent"`, unconditionally — a
    *    confirmed subject-absence is a fact about the SUBJECT, never masked
    *    by transport-down (a fact about the LINK). The two axes are
-   *    orthogonal (M2 design §4): the client already confirmedly knows there
+   *    orthogonal: the client already confirmedly knows there
    *    is no value, and that doesn't stop being true just because the
    *    transport dropped a moment later.
    * 3. Server-stamped `meta.staleness` wins outright when present (a
    *    catch-up/late-joiner mark is authoritative — no client inference
    *    needed for it, and it out-ranks a live transport-down reading too:
    *    it's a stronger, already-settled claim about this specific point).
-   * 4. Transport-down short-circuit (finding B item 1): when
+   * 4. Transport-down short-circuit: when
    *    `setTransportConnected(false)` is in effect, every topic with
    *    confirmed, non-tombstoned, non-server-stamped data reads
    *    `"disconnected"` immediately — not each independently waiting out its
@@ -997,8 +998,8 @@ export class TimelineStore {
    * 5. Otherwise the `HeartbeatTracker` (missed-keyframe inference, never
    *    `validAt` age) decides live vs. held-stale.
    *
-   * `isOverdue` is keyed off `clock.certaintyHorizonUt()` (M2 T5
-   * close-review Fix 2), NOT `token.viewUt`. Per M2 design §4.3 the overdue
+   * `isOverdue` is keyed off `clock.certaintyHorizonUt()`, NOT
+   * `token.viewUt`. The overdue
    * check is about a genuine gap in CONFIRMED arrivals, not about how far
    * the predicted-mode viewUt has raced ahead of the horizon on wall time
    * alone — in predicted mode `viewUt` is `utNowEstimate()`, which can run
@@ -1030,7 +1031,7 @@ export class TimelineStore {
    * A derived channel's own status: `def.deriveStatus` if it declared one
    * (quality-picked channels like `vessel.state` need this — see
    * `vessel-state.ts`), else the generic default of worst-of-every-declared-
-   * input (M2 design §4.4's baseline rule).
+   * input.
    */
   private sampleDerivedStatus(
     def: DerivedChannelDefinition<unknown>,
@@ -1070,7 +1071,7 @@ export class TimelineStore {
    * the REAL raw wire topic (always the first two segments — every raw
    * channel in this contract is `domain.channel`, e.g. `"time.warp"`,
    * `"vessel.flight"`, `"vessel.thermal"`) and the remaining segments as a
-   * nested field path into that record's payload (M3 pilot — see this file's
+   * nested field path into that record's payload (see this file's
    * own doc comment on the `sample()` branch that calls this, and
    * `timeline-store-raw-fields.test.ts`). Cross-checked against every dotted
    * value in `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`: a flat 3-segment
@@ -1102,8 +1103,8 @@ export class TimelineStore {
    * `sample()` path, including its own derived-channel/epoch/frame-coherence
    * handling) and walks `parsed.fieldPath` into its payload.
    *
-   * Mirrors `sampleDerived`'s two "nothing" cases (never conflated, M2 design
-   * §2.1): no point on the parent at all yet -> `undefined` ("not whole
+   * Mirrors `sampleDerived`'s two "nothing" cases (never conflated):
+   * no point on the parent at all yet -> `undefined` ("not whole
    * yet" — the raw topic's own not-arrived-yet case, propagated as-is,
    * intentionally NOT re-classified). A tombstoned parent (`payload: null`)
    * -> a real point with `payload: null` (a confirmed absence — the whole
@@ -1164,9 +1165,9 @@ export class TimelineStore {
    * SAME `memoize` seam raw `sample()` reads use, keyed by the channel's own
    * topic so N field-subtopic reads (`vessel.state.altitudeAsl`,
    * `vessel.state.orbitalSpeed`, …) in one frame still call `derive` exactly
-   * once (M2 design §2.3: "memoized to once per (topic, frame)"). `get`
+   * once (memoized to once per `(topic, frame)`). `get`
    * (passed to `derive`) is `sample` bound to this SAME `token` — the
-   * structural single-view-time invariant (§7.4): there is no other way for
+   * structural single-view-time invariant: there is no other way for
    * a `derive` implementation to read a UT. `epoch` is threaded in from the
    * caller (rather than re-read via `this.clock.getEpoch()`) so the value
    * used to build the memo key and the value stamped on the resulting point
@@ -1203,8 +1204,8 @@ export class TimelineStore {
 
     if (value === undefined) {
       // Not whole yet — an input has no point at-or-before `viewUt` in the
-      // current epoch (cold start, or resynchronizing after an epoch reset,
-      // M2 design §2.1/§3.4). There is no point to serve at all here, NOT a
+      // current epoch (cold start, or resynchronizing after an epoch reset).
+      // There is no point to serve at all here, NOT a
       // tombstone — propagates through field subtopics too, since there's
       // nothing to extract a field from yet.
       return undefined;
@@ -1212,8 +1213,8 @@ export class TimelineStore {
 
     if (value === null) {
       // Confirmed absence (a required input was tombstoned, or the channel
-      // itself returned null) — a real point, per the tombstone model (M2
-      // design §4): `payload: null`.
+      // itself returned null) — a real point, per the tombstone model:
+      // `payload: null`.
       return {
         validAt: token.viewUt,
         payload: null as T,
@@ -1241,7 +1242,7 @@ export class TimelineStore {
    * `(token, key)` pair wins for that token's lifetime; subsequent calls
    * return the cached result even if the underlying data changes in
    * between. Private for now — exposed indirectly via `sample()` — but
-   * deliberately generic so derived channels (T3) can reuse the same
+   * deliberately generic so derived channels can reuse the same
    * per-frame cache instead of building their own.
    */
   private memoize<T>(token: FrameToken, key: string, compute: () => T): T {

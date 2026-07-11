@@ -32,7 +32,7 @@ const TinyReadout = styled(BigReadout)`
 type CrewManifestConfig = Record<string, never>;
 
 // ---------------------------------------------------------------------------
-// The `crew-manifest.badges` slot contract (spec §4.4 / augment-slot-map)
+// The `crew-manifest.badges` slot contract (see augment-slot-map)
 //
 // A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
 // Uplink can badge each kerbal with comfort/radiation-dose without leaving this
@@ -50,8 +50,8 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
-// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
-// §4.6). Co-located here (not in a shared central file) so parallel slot work in
+// Declaration-merge the slot id → props type into core's `SlotRegistry`.
+// Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
 // "crew-manifest.badges" })` and `<AugmentSlot name="crew-manifest.badges"
 // props={…} />` type-check precisely against `CrewBadgeContext`.
@@ -68,7 +68,7 @@ declare module "@ksp-gonogo/core" {
  * Kerbalism because of the known kOS sensor incompatibility, so we
  * treat the value as a plain string array.
  *
- * P4a shared-map batch (G-13): `v.crew` is UN-GAPPED — `map-topic.ts` now
+ * `v.crew` is mapped on the wire — `map-topic.ts` now
  * points it at `vessel.crew.crew`, a `CrewMember[]` (`contract.ts`'s
  * `{name?, trait?, ...}`), so this same `useDataValue("data", "v.crew")`
  * call rides the stream via the `mapTopic` shim with zero code change
@@ -102,9 +102,9 @@ function CrewManifestComponent({
   const crewCapacity = useDataValue("data", "v.crewCapacity");
   const isEVA = useDataValue("data", "v.isEVA");
 
-  // Connectivity indicator (M3 §2 item 3, mirroring the WarpControl pilot):
-  // `v.crewCount`, `v.crew`, and `v.crewCapacity` are all MAPPED now (P4a
-  // shared-map batch, G-13) — all three land on the same `vessel.crew`
+  // Connectivity indicator (mirroring the WarpControl pilot):
+  // `v.crewCount`, `v.crew`, and `v.crewCapacity` are all MAPPED now —
+  // all three land on the same `vessel.crew`
   // wire channel, so `v.crewCount`'s stream status is representative of
   // the whole roster/capacity/count trio. `v.isEVA` remains a declared GAP
   // (no field on any channel yet) and stays legacy regardless.

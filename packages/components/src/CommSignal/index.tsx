@@ -17,7 +17,7 @@ import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
 
-// ── Augment slots (Uplink architecture spec §4) ────────────────────────────────
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────
 //
 // CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT
 // this widget ever importing backend-aware code (locked map: comm-signal):
@@ -31,7 +31,7 @@ type CommSignalConfig = Record<string, never>;
 //
 // Neither slot passes parent coordinates/projection (they aren't overlay slots),
 // so the props contract is empty — augments render from their own Topics. The
-// declaration-merge below keeps the slot ids co-located here (spec §4.6) rather
+// declaration-merge below keeps the slot ids co-located here rather
 // than in a shared central registry, so parallel widget work never collides.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -83,7 +83,7 @@ function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  // R6 Wave-1 de-Telemachus: every read is a clean home now (R6 §3), so all
+  // Every read has a clean home now, so all
   // five route off the legacy Telemachus `DataSource` and onto the stream via
   // `useTelemetry`'s two-arg `mapTopic` shim:
   //  - `comm.connected`     -> `vessel.comms.connected`

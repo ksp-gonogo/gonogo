@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
 /**
- * Twr's R6 Wave-2 stream test: the widget genuinely runs OFF THE STREAM (a
+ * Twr's stream test: the widget genuinely runs OFF THE STREAM (a
  * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`) — no legacy `DataSource` is registered anywhere in this
  * file, so a rendered TWR value can only have come from the derived
@@ -13,15 +13,14 @@ import { TwrComponent } from "./index";
  *
  * `dv.currentTWR` is MAPPED (`map-topic.ts`) to `vessel.state.twr` — TWR =
  * currentThrust/(totalMass·g), derived client-side off `vessel.propulsion`
- * (R6 shared-derivations batch, `vessel-state.ts`). `carriedChannels` lists
- * all EIGHT of `vessel.state`'s declared inputs even though `deriveTwr` only
- * consults `vessel.propulsion` — the carried-channels gate is
- * parent-channel-scoped, not per-field (see `vesselStateChannel`'s doc
- * comment).
+ * (`vessel-state.ts`). `carriedChannels` lists all EIGHT of
+ * `vessel.state`'s declared inputs even though `deriveTwr` only consults
+ * `vessel.propulsion` — the carried-channels gate is parent-channel-scoped,
+ * not per-field (see `vesselStateChannel`'s doc comment).
  *
  * The sparkline history (`useDataSeries`) never renders here: a derived topic
  * has no buffered range, so its own shim can't serve a series and there's no
- * legacy source to fall back to — the value read is what's proven de-Telemachus'd.
+ * legacy source to fall back to — the value read is proven to come entirely off the stream.
  */
 afterEach(() => {
   cleanup();

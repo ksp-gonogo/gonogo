@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
 /**
- * EscapeProfile's R6 de-Telemachus stream proof.
+ * EscapeProfile's stream proof.
  *
  * Its one direct read, `v.body`, migrated onto the derived
  * `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`

@@ -9,17 +9,17 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ScienceBenchComponent } from "./index";
 
 /**
- * The M3 science/parts batch's stream test-adapter proof for ScienceBench:
+ * Stream test-adapter proof for ScienceBench:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `sci.experiments` is mapped
  * onto `science.experiments` (map-topic.ts) — a raw array read wholesale,
  * same shape as `TargetPicker`'s `system.vessels` migration. `sci.count`/
- * `sci.dataAmount` no longer exist as reads at all (P4a D3) — the widget
+ * `sci.dataAmount` no longer exist as reads at all — the widget
  * derives both from this same experiments array. Every other science/career
  * key (`v.body`/`v.situationString`/`s.sensor.*`/`science.sensors`/
  * `career.*`) stays legacy-only (still-gapped, or mapped-but-not-carried-in-
  * this-fixture) throughout — a `setupMockDataSource` AUX carries those, the
- * same MIXED-source shape DistanceToTarget/TargetPicker's own M3 batches
+ * same MIXED-source shape DistanceToTarget and TargetPicker
  * established.
  */
 afterEach(() => {

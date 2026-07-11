@@ -5,17 +5,16 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
 
 /**
- * The M3 science-domain-finale stream test-adapter proof for
- * DeployedScience: genuinely running off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
- * `deployed.bases` is mapped onto `science.deployed` (map-topic.ts) — a raw
- * FLAT array read wholesale and grouped client-side by `vesselName`
- * (`groupFlatDeployedEntries`, index.tsx), same "one widget key, either wire
- * shape" pattern `science.experiments`/`sci.experiments` established for
- * ScienceBench. `deployed.available` (-> `game.dlc.breakingGround`) is
- * migrated too (P4a shared-map batch) — no legacy `DataSource` AUX needed
- * for this widget any more, it streams through the fixture's `game.dlc`
- * topic.
+ * The stream test-adapter proof for DeployedScience: genuinely running off
+ * the real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline
+ * via `StubTransport`. `deployed.bases` is mapped onto `science.deployed`
+ * (map-topic.ts) — a raw FLAT array read wholesale and grouped client-side
+ * by `vesselName` (`groupFlatDeployedEntries`, index.tsx), same "one widget
+ * key, either wire shape" pattern `science.experiments`/`sci.experiments`
+ * established for ScienceBench. `deployed.available` (->
+ * `game.dlc.breakingGround`) is migrated too — no legacy `DataSource` AUX
+ * needed for this widget any more, it streams through the fixture's
+ * `game.dlc` topic.
  */
 afterEach(() => {
   cleanup();

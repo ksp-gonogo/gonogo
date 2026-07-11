@@ -21,12 +21,11 @@ import {
 import { renderWithTheme } from "./testTheme";
 
 /**
- * ScienceOfficer augment-slot exposure (Uplink architecture spec §4,
- * augment-slot-map). The slots (`science-officer.sections` — the per-instrument
- * row slot, and `science-officer.badges` — the header escape-hatch) are exposed
- * but ship no filler here (that's an Uplink augment, P3/P6): an empty slot must
- * render cleanly, and a test augment registered into it must appear, receiving
- * the widget's focus as typed slot props (§4.4).
+ * ScienceOfficer augment-slot exposure. The slots (`science-officer.sections`
+ * — the per-instrument row slot, and `science-officer.badges` — the header
+ * escape-hatch) are exposed but ship no filler here (that's an Uplink
+ * augment): an empty slot must render cleanly, and a test augment registered
+ * into it must appear, receiving the widget's focus as typed slot props.
  */
 
 const KEYS: DataKey[] = [
@@ -102,7 +101,7 @@ describe("ScienceOfficer — augment slots (spec §4)", () => {
     });
 
     const augment = await screen.findByTestId("sci-section-augment");
-    // The per-row slot passed the widget's instrument down (spec §4.4).
+    // The per-row slot passed the widget's instrument down.
     expect(augment.textContent).toBe("LAB: Mystery Goo");
     teardownMockDataSource(fixture);
   });

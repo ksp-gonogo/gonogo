@@ -10,10 +10,10 @@ import noTarget from "./__fixtures__/no-target.json";
 import { TargetPickerComponent } from "./index";
 
 /**
- * TargetPicker's R6 de-Telemachus roster render.
+ * TargetPicker's de-Telemachus roster render.
  *
- * The old M3 dual-run compared a legacy `tar.availableVessels` array render
- * against the `system.vessels` roster render for byte-identical DOM. R6 drops
+ * The old dual-run compared a legacy `tar.availableVessels` array render
+ * against the `system.vessels` roster render for byte-identical DOM. This version drops
  * the legacy `"data"` MockDataSource leg entirely — the array shape is a
  * Telemachus-only wart with no home once the fork goes (the roster is read
  * canonically off the stream now, `index.tsx`'s `useTelemetry("system.vessels")`),

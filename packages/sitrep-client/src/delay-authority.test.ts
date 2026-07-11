@@ -13,7 +13,7 @@ import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
- * Streaming-delay spec §7.3 Steps 4-5 (SDK legibility layer). Enforcement is
+ * DelayAuthority tests (SDK legibility layer). Enforcement is
  * server-side (the mod's reveal gate already withheld samples); these tests
  * cover only the client's job — read `comms.delay` and size the
  * predicted-present horizon so the delay becomes LEGIBLE, never earlier.
@@ -98,7 +98,7 @@ describe("DelayAuthority", () => {
 
 describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
   /**
-   * Spec Step 5: with a fixed delay, the predicted-present estimate leads the
+   * With a fixed delay, the predicted-present estimate leads the
    * confirmed edge by exactly the delay — this is the PREDICT-FORWARD horizon
    * a delayed vessel is dead-reckoned across.
    */
@@ -117,7 +117,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     });
 
     // Observe a sample far ahead so the sample-clamp isn't the binding side of
-    // confirmedEdgeUt's min() — the delay is (spec §3.3).
+    // confirmedEdgeUt's min() — the delay is.
     clock.observeSample(10_000, 100);
     wall.advanceBy(0); // utNowEstimate == anchorUt == 100
 
@@ -231,7 +231,7 @@ function orbitPoint(
 
 describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () => {
   /**
-   * Spec §3.1/§3.2 Step 5: a delayed vessel is propagated FORWARD from its
+   * A delayed vessel is propagated FORWARD from its
    * last confirmed elements to the predicted-present view UT, and any
    * deterministic object (a body) resolves at that SAME view UT — never a
    * different instant. Here the delay authority sets the lead, predicted mode

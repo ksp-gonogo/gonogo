@@ -65,14 +65,14 @@ function AtmosphereProfileComponent({
   const liveDensity = useDataValue<number>("data", "v.atmosphericDensity");
   const liveAirTemp = useDataValue<number>("data", "v.atmosphericTemperature");
   const liveSkinTemp = useDataValue<number>("data", "v.externalTemperature");
-  // Connectivity indicator (M3 batch-2, mirroring the batch-1 pattern).
+  // Connectivity indicator (mirrors the pattern used elsewhere in this widget family).
   // `v.altitude` is this widget's representative MAPPED key — it resolves
   // to the DERIVED `vessel.state.altitudeAsl` subtopic (map-topic.ts's
-  // `TELEMACHUS_CLEAN_HOMES`), the first widget in this migration to route
-  // its badge through a derived channel rather than a raw wire topic.
+  // `TELEMACHUS_CLEAN_HOMES`), the first widget to route its badge through a
+  // derived channel rather than a raw wire topic.
   // `v.atmosphericDensity` is also mapped (raw `vessel.flight.atmDensity`).
-  // `v.atmosphericTemperature`/`v.externalTemperature` were UN-GAPPED in
-  // P4a (map-topic.ts now routes them to `vessel.flight.atmosphericTemperature`
+  // `v.atmosphericTemperature`/`v.externalTemperature` are mapped too
+  // (map-topic.ts routes them to `vessel.flight.atmosphericTemperature`
   // / `vessel.flight.externalTemperature`, the same already-carried channel
   // as the density read) — `useDataValue` picks that up with zero call-site
   // change. Only `v.body` remains GAPPED (needs a display-map subtopic the

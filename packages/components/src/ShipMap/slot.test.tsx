@@ -19,11 +19,11 @@ import {
 } from "./index";
 
 /**
- * ShipMap augment-slot exposure (Uplink architecture spec §4). The slots
+ * ShipMap augment-slot exposure (Uplink architecture). The slots
  * (`ship-map.overlay`, `ship-map.badges`) are exposed but ship no filler here
- * (that's an Uplink augment, P3/P6): an empty slot must render cleanly, and a
+ * (that's an Uplink augment's job): an empty slot must render cleanly, and a
  * test augment registered into it must appear, receiving the widget's projection
- * / labelling context as typed slot props (§4.4).
+ * / labelling context as typed slot props.
  */
 
 const KEYS: DataKey[] = [
@@ -104,7 +104,7 @@ describe("ShipMap — augment slots (spec §4)", () => {
     });
 
     const overlay = await screen.findByTestId("ship-map-overlay-augment");
-    // The slot passed the diagram's base-frame projection down (spec §4.4):
+    // The slot passed the diagram's base-frame projection down:
     // the fixture's part count, the measured canvas size, a positive scale.
     expect(overlay.textContent).toContain(`${TOPOLOGY.parts.length}|`);
     expect(overlay.textContent).toContain("scaled");

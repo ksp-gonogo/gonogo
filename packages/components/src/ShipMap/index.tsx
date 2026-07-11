@@ -12,13 +12,13 @@ import {
 } from "./shipTopology";
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4). ShipMap is a HOST that exposes
-// two slots; no first-party augment fills them here (that is P3/P6), so each
+// Augment slots (Uplink architecture). ShipMap is a HOST that exposes
+// two slots; no first-party augment fills them here, so each
 // renders nothing until an Uplink registers an augment into it.
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `ship-map.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `ship-map.overlay` — an OVERLAY slot, rendered in a
  * layer absolutely positioned over the part-diagram canvas. Carries the
  * diagram's base-frame projection so an augment — e.g. a future Kerbalism
  * `Reliability` Uplink badging a malfunctioning/critical part directly on the
@@ -84,14 +84,14 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // Ambient skin temperature — drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top.
-  // `v.externalTemperature` was UN-GAPPED in the P4a shared-map batch
+  // `v.externalTemperature` is mapped on the wire
   // (map-topic.ts's TELEMACHUS_CLEAN_HOMES routes it to the raw field
   // `vessel.flight.externalTemperature`, the same channel AtmosphereProfile's
   // skin-temp read now rides) and streams with zero call-site change here
   // too. `v.topology`/`v.topologySeq` (and the `therm.*` per-part detail
   // joined in below) stay GAPPED — they need the asset-class parts/thermal
-  // reconstruction (telemetry-mod brief 2 §Deferred), out of the safe P4a
-  // subset — so this widget stays hybrid on everything except this one read.
+  // reconstruction, which is deferred — so this widget stays hybrid on
+  // everything except this one read.
   const externalTemperature = useDataValue("data", "v.externalTemperature");
   // Current throttle — gates the engine-flame overlay so a staged-but-
   // idle engine doesn't render thrust. Forwarded through ShipDiagram
@@ -164,7 +164,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [externalTemperature],
   );
 
-  // Slot props (spec §4.4). `badges` carries labelling context; `overlay`
+  // Slot props. `badges` carries labelling context; `overlay`
   // carries the diagram's base-frame projection so an augment can draw in the
   // diagram's coordinate space. `overlay` is null until parts resolve — the
   // overlay layer only mounts once there's a diagram beneath it.
@@ -379,11 +379,11 @@ registerComponent<ShipMapConfig>({
   component: ShipMapComponent,
   // Exposes an overlay slot (drawn over the part diagram, passed the diagram's
   // base-frame projection) and a broad badges escape-hatch slot in the header
-  // meta row. No first-party augment fills either yet (spec §4).
+  // meta row. No first-party augment fills either yet.
   augmentSlots: ["ship-map.overlay", "ship-map.badges"],
   // useTopology internally subscribes to v.topologySeq + briefly to
   // v.topology on bump; per-part live data joins via usePartsLive.
-  // v.externalTemperature UN-GAPPED in the P4a shared-map batch — same
+  // v.externalTemperature is mapped on the wire — same
   // declared key, now routed through the stream by mapTopic with a zero
   // call-site change (see the read above). The rest stay GAPPED (need the
   // asset-class parts/thermal reconstruction) and remain legacy-only.

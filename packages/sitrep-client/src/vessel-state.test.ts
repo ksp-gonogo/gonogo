@@ -804,8 +804,8 @@ describe("deriveVesselState", () => {
 
       deriveVesselState(get, 100);
 
-      // vessel.identity/system.bodies ARE read on this basis (met/apsides,
-      // M3) — only vessel.flight is off-limits here.
+      // vessel.identity/system.bodies ARE read on this basis (met/apsides)
+      // — only vessel.flight is off-limits here.
       expect(requestedTopics).not.toContain("vessel.flight");
       expect(requestedTopics).toContain("vessel.orbit");
     });
@@ -1415,9 +1415,9 @@ describe("deriveVesselStateStatus (M2 design §4.4 — worst of inputs, T4)", ()
   });
 });
 
-// ── R6 shared-derivations batch ──────────────────────────────────────────────
+// ── shared-derivation tests ──────────────────────────────────────────────
 
-/** Generic point wrapper for the R6 derivations (arbitrary topics). */
+/** Generic point wrapper for the derivation tests below (arbitrary topics). */
 function pt<T>(payload: T | null, quality = Quality.OnRails): TimelinePoint<T> {
   return {
     validAt: 0,
@@ -1427,7 +1427,7 @@ function pt<T>(payload: T | null, quality = Quality.OnRails): TimelinePoint<T> {
   };
 }
 
-/** A `DerivedGet` over an arbitrary topic → point map (R6 derivations read new inputs). */
+/** A `DerivedGet` over an arbitrary topic → point map (these derivations read topics beyond vessel.orbit/vessel.flight). */
 function getFrom(points: Record<string, TimelinePoint<unknown> | undefined>) {
   return (<T>(topic: string) =>
     points[topic] as TimelinePoint<T> | undefined) as DerivedGet;

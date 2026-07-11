@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
 /**
- * OrbitView genuinely runs OFF THE STREAM (R6 de-Telemachus) — a real
+ * OrbitView genuinely runs OFF THE STREAM — a real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`, no legacy `DataSource` anywhere.
  *

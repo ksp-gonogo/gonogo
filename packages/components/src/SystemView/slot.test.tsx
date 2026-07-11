@@ -21,13 +21,13 @@ import {
 } from "./index";
 
 /**
- * SystemView augment-slot exposure (Uplink architecture spec §4). The widget is a
+ * SystemView augment-slot exposure (Uplink architecture). The widget is a
  * HOST exposing three slots — `system-view.actions` (header control row),
  * `system-view.overlay` (layered over the body diagram, passed the diagram's
- * projection as typed slot props, §4.4), and `system-view.badges` (broad header
- * escape-hatch). No first-party augment fills them here (that's an Uplink augment,
- * P3/P6): an empty slot must render cleanly, and a test augment registered into
- * one must appear — the overlay augment receiving the diagram projection.
+ * projection as typed slot props), and `system-view.badges` (broad header
+ * escape-hatch). No first-party augment fills them here (that's an Uplink
+ * augment): an empty slot must render cleanly, and a test augment registered
+ * into one must appear — the overlay augment receiving the diagram projection.
  */
 
 const BODY_KEYS: DataKey[] = [
@@ -169,7 +169,7 @@ describe("SystemView — augment slots (spec §4)", () => {
     });
 
     const badge = await screen.findByTestId("sv-badge-augment");
-    // The slot passed the current frame name down (spec §4.4).
+    // The slot passed the current frame name down.
     expect(badge.textContent).toBe("frame:Kerbin");
   });
 

@@ -29,8 +29,8 @@ describe("ThermalStatus DOM snapshots", () => {
           Widget: ThermalStatusComponent,
           fixture,
           mode,
-          // ThermalStatus now adopts useDataStreamStatus (M3 batch 1) —
-          // connect the raw MockDataSource so its rendered status badge
+          // ThermalStatus uses useDataStreamStatus — connect the raw
+          // MockDataSource so its rendered status badge
           // reflects the realistic "connected, streaming" scenario every
           // one of these fixtures actually depicts, instead of the shared
           // harness's opt-out-by-default "disconnected" convention (see

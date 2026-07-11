@@ -5,15 +5,15 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ThermalStatusComponent } from "./index";
 
 /**
- * The M3 batch-1 stream test-adapter proof for ThermalStatus (mirrors
+ * The stream test-adapter proof for ThermalStatus (mirrors
  * `WarpControl/stream.test.tsx`, the pilot): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * ThermalStatus is the most GAP-heavy of the batch-1 three (plan §G3
- * "thermal-status — degraded, headline ratios"): only the "hottest part"
- * row's 3 keys are MAPPED (`therm.hottestPartTemp` ->
+ * ThermalStatus is the most GAP-heavy of these widgets — degraded to
+ * headline ratios only: only the "hottest part" row's 3 keys are MAPPED
+ * (`therm.hottestPartTemp` ->
  * `vessel.thermal.hottestPart.skinTemp`, `therm.hottestPartMaxTemp` ->
  * `vessel.thermal.hottestPart.skinMaxTemp`, `therm.hottestPartTempRatio` ->
  * `vessel.thermal.maxInternalTempRatio`). Every engine/heat-shield key

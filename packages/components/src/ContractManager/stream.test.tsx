@@ -9,17 +9,16 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ContractManagerComponent } from "./index";
 
 /**
- * The M3b career-detail batch's stream test-adapter proof for
+ * The stream test-adapter proof for
  * ContractManager: genuinely running off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
  * `contracts.active`/`contracts.offered`/`contracts.completedRecent` (->
  * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
- * mapped reads as of the P4a shared-map batch — `completedRecent` was
- * un-gapped once `CareerContracts` started carrying it alongside
+ * mapped reads — `completedRecent` was
+ * mapped onto the wire once `CareerContracts` started carrying it alongside
  * active/offered (map-topic.ts's `TELEMACHUS_CLEAN_HOMES`). `t.universalTime`/
  * `v.altitude` are unrelated-to-career keys — carried by a
- * `setupMockDataSource` AUX, same mixed-source pattern the vessel-gap batch
- * established.
+ * `setupMockDataSource` AUX, the same mixed-source pattern used elsewhere.
  */
 afterEach(() => {
   cleanup();

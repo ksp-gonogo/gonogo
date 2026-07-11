@@ -27,11 +27,12 @@ import { KosCpuPicker } from "../shared/KosCpuPicker";
 import { KosScriptFrame } from "../shared/KosScriptFrame";
 
 /**
- * kOS Script Runner — helper layer 2 over the raw kOS terminal (P3 spec
- * §"Helper layer 2"). For far / unmanned craft you skip the terminal
- * entirely: pick a target CPU + a saved kerboscript path, and fire a single
- * delayed RUNPATH (`kos.exec`) rather than typing `RUNPATH(...)` interactively
- * under light-time delay. Run state (in-flight / error / last-good) surfaces
+ * kOS Script Runner — a second helper layer over the raw kOS terminal, one
+ * level up from KosTerminal's line-mode composition. For far / unmanned
+ * craft you skip the terminal entirely: pick a target CPU + a saved
+ * kerboscript path, and fire a single delayed RUNPATH (`kos.exec`) rather
+ * than typing `RUNPATH(...)` interactively under light-time delay. Run
+ * state (in-flight / error / last-good) surfaces
  * through the shared `KosScriptFrame` chrome.
  *
  * Uses the command-mode `useKosWidget` path — i.e. the data source's

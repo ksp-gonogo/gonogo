@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isCiEnvironment } from "./ci-env";
 
 /**
- * M3 whole-branch review #2: the gate that decides whether a missing
+ * The gate that decides whether a missing
  * fixture is a silent skip (dev machine) or a loud failure (CI) —
  * `map-topic.rawFieldResolution.fixture.test.ts`'s skip-cleanly contract
  * must not extend to CI. See that file's doc comment for the full "why".

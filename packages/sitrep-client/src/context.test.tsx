@@ -50,14 +50,14 @@ function installFakeRaf() {
 }
 
 /**
- * M2 finalization Fix 1: `TelemetryProvider` must coalesce `beginFrame()` to
- * animation-frame cadence, not call it once per `stream-data` message — a
- * burst of N messages arriving in the same tick must only mint ONE
- * `FrameToken`, matching `beginFrame`'s own doc ("call once per animation
- * frame / read cycle... never once per read"). Before the fix, `context.tsx`
- * called `store.beginFrame()` synchronously from `client.subscribeStore`'s
- * callback, so a burst of 5 ingests produced 5 `beginFrame()` calls — 5 Kepler
- * solves under `deriveVesselState` for what should have been a single frame.
+ * `TelemetryProvider` must coalesce `beginFrame()` to animation-frame
+ * cadence, not call it once per `stream-data` message — a burst of N
+ * messages arriving in the same tick must only mint ONE `FrameToken`,
+ * matching `beginFrame`'s own doc ("call once per animation frame / read
+ * cycle... never once per read"). Calling `store.beginFrame()`
+ * synchronously from `client.subscribeStore`'s callback instead would let a
+ * burst of 5 ingests produce 5 `beginFrame()` calls — 5 Kepler solves under
+ * `deriveVesselState` for what should have been a single frame.
  */
 describe("TelemetryProvider coalesces beginFrame() to (at most) once per animation-frame tick", () => {
   let raf: ReturnType<typeof installFakeRaf>;
@@ -138,12 +138,12 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
 });
 
 /**
- * M2 finalization Fix 2: an auto-built store (no `store` prop supplied) must
- * rebuild — and re-`attachStore`/detach — when the `client` prop's identity
- * changes. Before the fix, the provider's `useMemo` omitted `client` from its
- * dependency array, so an auto-built store survived a client swap (e.g. a
- * reconnect that hands the provider a fresh `TelemetryClient`), continuing to
- * serve topics from the OLD client forever and never picking up the new one.
+ * An auto-built store (no `store` prop supplied) must rebuild — and
+ * re-`attachStore`/detach — when the `client` prop's identity changes. If
+ * the provider's `useMemo` omitted `client` from its dependency array, an
+ * auto-built store would survive a client swap (e.g. a reconnect that hands
+ * the provider a fresh `TelemetryClient`), continuing to serve topics from
+ * the OLD client forever and never picking up the new one.
  */
 describe("TelemetryProvider rebuilds its auto-built store when `client` changes", () => {
   it("builds a new store attached to the new client, and detaches the old client from the old store", () => {

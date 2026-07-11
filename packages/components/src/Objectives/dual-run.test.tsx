@@ -7,13 +7,13 @@ import contractsOnly from "./__fixtures__/contracts-only.json";
 import { ObjectivesComponent } from "./index";
 
 /**
- * Objectives's M3b career-detail behavior-preservation golden dual-run
+ * Objectives's behavior-preservation golden dual-run
  * (mirrors `ContractManager/dual-run.test.tsx`): the SAME contract state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`. `contracts.active` (->
  * `career.status.contracts.active`, consumed via the shared
  * `parseContracts`/`contractObjectives` from `../ContractManager`) is the
- * widget's only read (the `mh.*` mission source was removed — P4c: `mh`
+ * widget's only read (the `mh.*` mission source was removed — `mh`
  * carries no channel on the new wire). `contracts-only.json` was reusable
  * as-is (unlike ContractManager's own dual-run fixture): every parameter
  * already sets `optional: false`, so there is no `optional`/`parameterType`

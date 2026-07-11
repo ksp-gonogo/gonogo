@@ -11,13 +11,13 @@ import kerbinSuborbital from "./__fixtures__/kerbin-suborbital-prograde-node.jso
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * ManeuverPlanner's M3 vessel-gap batch behavior-preservation golden
+ * ManeuverPlanner's behavior-preservation golden
  * dual-run (mirrors `CurrentOrbit/dual-run.test.tsx`): the SAME planned-node
  * state, rendered once off the legacy `DataSource` and once with a
  * `TelemetryProvider` mounted alongside it, must produce byte-identical DOM
  * at `delay=0`.
  *
- * Unlike the other two widgets in this batch, the migrated surface here
+ * Unlike the other two widgets migrated alongside this one, the migrated surface here
  * (`o.maneuverNodeIds` -> `vessel.maneuver.nodes`, feeding `resolveNodeId`)
  * is entirely DOM-INVISIBLE — no node id is ever rendered, only used to
  * build the update/remove command's args (see stream.test.tsx for that
@@ -28,7 +28,7 @@ import { ManeuverPlannerComponent } from "./index";
  * once ANY widget on a screen migrates) doesn't perturb this widget's own
  * still-fully-legacy rendering at all. `carriedChannels` deliberately
  * carries ONLY `vessel.maneuver` — none of this widget's OTHER keys that
- * happen to have a mapTopic home from earlier M3 batches
+ * happen to have a mapTopic home from earlier stream-mapping work
  * (`o.ApA`/`o.PeA`/`o.trueAnomaly`/`o.period`/`o.timeToAp`/`o.timeToPe`, all
  * -> `vessel.state.*`) are carried, so they all correctly stay on the
  * legacy read on both legs (`useDataValue`'s `carried` gate), matching

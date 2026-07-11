@@ -5,19 +5,19 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewManifestComponent } from "./index";
 
 /**
- * The M3 batch-4 stream test-adapter proof for CrewManifest (mirrors
- * `ThermalStatus/stream.test.tsx`, batch 1): genuinely running off the real
+ * The stream test-adapter proof for CrewManifest (mirrors
+ * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * P4a shared-map batch (G-13) un-gapped `v.crew` and `v.crewCapacity`
+ * `v.crew` and `v.crewCapacity` are mapped on the wire
  * alongside the already-mapped `v.crewCount` — all three now land on the
  * single `vessel.crew` wire channel (`count` / `capacity` / `crew:
  * CrewMember[]`):
  * - MAPPED: `v.crewCount` -> `vessel.crew.count`, `v.crew` ->
  *   `vessel.crew.crew`, `v.crewCapacity` -> `vessel.crew.capacity`.
- * - GAPPED: `v.isEVA` (derived quantity with no named field on any M1/M2
+ * - GAPPED: `v.isEVA` (derived quantity with no named field on any
  *   channel yet).
  *
  * With no legacy source registered, the full roster + capacity now render

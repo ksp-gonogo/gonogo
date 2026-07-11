@@ -11,7 +11,7 @@ import launchpad from "./__fixtures__/launchpad-full-tanks.json";
 import { FuelStatusComponent } from "./index";
 
 /**
- * FuelStatus's M3 batch-1 behavior-preservation golden dual-run (mirrors
+ * FuelStatus's behavior-preservation golden dual-run (mirrors
  * `WarpControl/dual-run.test.tsx`, the pilot): the SAME fuel/stage state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`.
@@ -22,13 +22,13 @@ import { FuelStatusComponent } from "./index";
  * ElectricCharge), 2 read the GAPPED stage-scoped keys off a legacy AUX
  * source (LiquidFuel/Oxidizer, per `useResourceReading`'s `scope:
  * "current"`) — plus `v.currentStage` (MAPPED). This is the widest MIXED-
- * source shape of the batch-1 three: two DIFFERENT resource scopes
+ * source shape among these dual-runs: two DIFFERENT resource scopes
  * coexisting with the legacy DataSource on the very same render, on top of
  * the mapped/gapped split every other widget's dual-run already proves.
  *
  * The whole ΔV/stage-stack family (`dv.stageCount`/`dv.totalDV*`/
- * `dv.totalBurnTime`/`dv.stages`) was UN-GAPPED in the P4a shared-map batch
- * (G-14) and now streams too — its leg hand-translates the fixture's
+ * `dv.totalBurnTime`/`dv.stages`) is UN-GAPPED
+ * and streams too — its leg hand-translates the fixture's
  * legacy-shape `dv.stages` entries into the new `StageDeltaVEntry` field
  * names (`dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/`twrActual`/
  * `thrustAsl`) and proves `parseStages` (index.tsx) reconciles both shapes

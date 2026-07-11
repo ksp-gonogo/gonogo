@@ -82,8 +82,8 @@ declare module "@ksp-gonogo/core" {
 // Stable empty reference so slot re-renders don't churn mounted augments.
 const EMPTY_SLOT_PROPS: Record<string, never> = {};
 
-/** One entry of `vessel.maneuver.nodes` — the M3 R3 shape (id + burn
- * vector components only, no post-burn orbit preview). Only `id` is read
+/** One entry of `vessel.maneuver.nodes` — id + burn
+ * vector components only, no post-burn orbit preview. Only `id` is read
  * here; the rest exists for documentation/type completeness. */
 interface StreamManeuverNode {
   id: string;
@@ -131,8 +131,8 @@ function ManeuverPlannerComponent({
   const currentUT = useDataValue("data", "t.universalTime");
   const orbitalSpeed = useDataValue("data", "o.orbitalSpeed");
   const radius = useDataValue("data", "o.radius");
-  // a.physicsMode (Principia n-body detector) STAYS HYBRID (P4a brief §
-  // ManeuverPlanner) — no wire equivalent exists on the new mod contract,
+  // a.physicsMode (Principia n-body detector) STAYS HYBRID —
+  // no wire equivalent exists on the new mod contract,
   // so this read has no stream home and keeps its legacy-only fallback
   // indefinitely. It's the one blocker keeping this whole widget hybrid;
   // every other read below either already rides the stream transparently
@@ -156,9 +156,9 @@ function ManeuverPlannerComponent({
   const period = useDataValue("data", "o.period");
 
   const nodes = useManeuverNodes();
-  // dv.stages is UN-GAPPED (P4a shared-map batch, map-topic.ts's
+  // dv.stages is mapped on the wire (see map-topic.ts's
   // TELEMACHUS_CLEAN_HOMES — whole-topic identity read, same "dv.stages"
-  // key off either transport) and now rides the stream once carried, with
+  // key off either transport) and rides the stream once carried, with
   // zero call-site change here: `useVesselDeltaV` reads it via the same
   // `useDataValue("data", "dv.stages")` regardless of which transport
   // ultimately answers. The wire shapes disagree on field names though
@@ -168,12 +168,12 @@ function ManeuverPlannerComponent({
   const execute = useExecuteAction("data");
   const schema = useDataSchema("data");
 
-  // M3 vessel-gap batch: the maneuver-node id round-trip. `o.maneuverNodes`
+  // The maneuver-node id round-trip. `o.maneuverNodes`
   // itself (behind `useManeuverNodes` above) stays a legacy/gapped read —
   // the new `vessel.maneuver.nodes` shape has no deltaV tuple or post-burn
   // orbit preview (map-topic.ts's TELEMACHUS_KNOWN_GAPS). This SEPARATE,
   // narrower `o.maneuverNodeIds` read exists purely to recover each node's
-  // now-round-tripping stable `id` (M3 R3) for the update/remove commands —
+  // round-tripping stable `id` for the update/remove commands —
   // it never touches the rendered node list (see ManeuverNodeList/NodeRow,
   // unchanged). `streamNodeIds`/`nodes` come from two independently-timed
   // reads of what is ultimately the same underlying KSP maneuver-node list,
@@ -619,13 +619,13 @@ registerComponent<ManeuverPlannerConfig>({
   // slot for alternate-transfer-strategy comparisons and a header `badges`
   // slot. Empty until an augment binds (Uplink §4 / augment-slot-map.md).
   augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
-  // P4a brief (ManeuverPlanner row): `dv.stages` is UN-GAPPED and rides the
+  // `dv.stages` is mapped on the wire and rides the
   // stream transparently (see the `useVesselDeltaV` call site above) — no
   // change needed to this list, it already carries the resolved key name.
   // `a.physicsMode` STAYS HYBRID (no wire equivalent, see the `physicsMode`
   // read above); `o.maneuverNodes` stays its own declared gap (shape
   // mismatch — see `StreamManeuverNode` above). The `o.maneuverNodes` ->
-  // `previewManeuver` post-burn preview derivation (P4a brief §D5) is
+  // `previewManeuver` post-burn preview derivation is
   // explicitly optional/lower-priority and deferred, not attempted here.
   dataRequirements: [
     "o.sma",

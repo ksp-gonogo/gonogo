@@ -26,29 +26,29 @@ import { useMemo } from "react";
 import { MinimapForActiveVessel } from "./Minimap";
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4 / augment-slot-map.md "scanning").
+// Augment slots.
 //
 // Scanning is a SCANsat-OWNED widget that nonetheless exposes slots OTHER
-// Uplinks fill (arch §4.6, cross-Uplink example) — even before the package
-// itself moves to `@ksp-gonogo/scansat` (P3). Two slots:
+// Uplinks fill — a cross-Uplink example — even before the package
+// itself moves to `@ksp-gonogo/scansat`. Two slots:
 //
 // `scanning.sections` — a body/section slot appended to the per-scan-type
 // coverage list. The flagship future filler is another scanning mod
 // contributing its OWN scan-type coverage row alongside SCANsat's altimetry/
-// biome/anomaly rows (augment-slot-map row for `scanning`). NOTE: SCANsat's own
+// biome/anomaly rows. NOTE: SCANsat's own
 // custom map LAYERS route to `map-view.overlay`, NOT here — this slot is for
-// extra COVERAGE ROWS only (Feedback round 1).
+// extra COVERAGE ROWS only.
 //
 // `scanning.badges` — a broad escape-hatch badge slot in the header, next to
 // the title, for a small status/indicator an Uplink wants to surface.
 //
 // Both carry the widget's current body focus as slot props so an augment scopes
-// its coverage rows / badge to the body the operator is actually looking at
-// (§4.4). No augment ships here (P3/P6) — the slots render nothing until one
+// its coverage rows / badge to the body the operator is actually looking at.
+// No augment ships here yet — the slots render nothing until one
 // registers.
 // ---------------------------------------------------------------------------
 
-/** Props both Scanning slots pass to their augments (spec §4.4). */
+/** Props both Scanning slots pass to their augments. */
 export interface ScanningSlotContext {
   /**
    * The body the widget's body-scoped sections (coverage, anomalies) are
@@ -59,8 +59,8 @@ export interface ScanningSlotContext {
   bodyName: string | undefined;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
-// §4.6 hybrid). Co-located here so parallel slot work on other widgets never
+// Declaration-merge the slot ids → props types into core's `SlotRegistry`.
+// Co-located here so parallel slot work on other widgets never
 // collides on a shared central file — this is what types
 // `registerAugment({ augments: "scanning.sections", … })` and
 // `<AugmentSlot name="scanning.sections" props={…} />` against
@@ -109,7 +109,7 @@ function ScanningComponent({
   const anomalies = useScanAnomalies(bodyName);
 
   // Stable per-body slot-props object so an unchanged body focus doesn't churn
-  // mounted augments (spec §4.4). Declared before any early return so the hook
+  // mounted augments. Declared before any early return so the hook
   // order stays stable across the SCANsat-absent / present paths.
   const slotProps = useMemo<ScanningSlotContext>(
     () => ({ bodyName }),
@@ -166,7 +166,7 @@ function ScanningComponent({
             ) : (
               <EmptyState>No active body.</EmptyState>
             )}
-            {/* Augment coverage rows (spec §4) — e.g. a resource-scanning Uplink
+            {/* Augment coverage rows — e.g. a resource-scanning Uplink
                 contributing its own scan-type coverage alongside SCANsat's.
                 Appended to the coverage list; empty until an Uplink registers. */}
             <AugmentSlot name="scanning.sections" props={slotProps} />
@@ -319,7 +319,7 @@ registerComponent<ScanningConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  // Augment slots (spec §4). `sections` — extra coverage rows appended to the
+  // Augment slots. `sections` — extra coverage rows appended to the
   // per-scan-type coverage list (a resource-scanning Uplink's own coverage is
   // the canonical filler); `badges` — broad header escape-hatch. Both render
   // nothing until an Uplink registers. Custom map LAYERS go to map-view.overlay.

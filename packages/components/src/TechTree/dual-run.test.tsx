@@ -7,23 +7,22 @@ import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { TechTreeComponent } from "./index";
 
 /**
- * TechTree's M3/M3b career batch behavior-preservation golden dual-run
- * (mirrors `Strategies/dual-run.test.tsx`): the SAME tech-tree state,
+ * TechTree's behavior-preservation golden dual-run (mirrors
+ * `Strategies/dual-run.test.tsx`): the SAME tech-tree state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`. `career.science` AND
- * `tech.nodes` (-> `career.status.tech.nodes`) are both migrated as of the
- * M3b career-detail batch — the fixture is
- * `small-career-detail.json`, not the rich `early-career-63-nodes.json`
- * (still used by the legacy-only `index.test.tsx`): `career.status.
- * tech.nodes` (CareerViewProvider.BuildTechNodes) has no description/parts
- * field at all, so a byte-identical comparison needs a legacy fixture that
- * already omits them (see that fixture's own `_meta.notes`). `kc.scene`
- * (-> `spaceCenter.scene.scene`) is migrated too as of the P4a shared-map
- * batch — the legacy leg still reads it off the plain `DataSource` (that
- * leg never mounts a `TelemetryProvider`, so the shim's carried-channels
- * gate keeps it on the legacy path there); the stream leg now feeds it
- * through the fixture's `spaceCenter.scene` topic instead of a legacy AUX
- * `DataSource`.
+ * `tech.nodes` (-> `career.status.tech.nodes`) are both migrated — the
+ * fixture is `small-career-detail.json`, not the rich
+ * `early-career-63-nodes.json` (still used by the legacy-only
+ * `index.test.tsx`): `career.status.tech.nodes`
+ * (CareerViewProvider.BuildTechNodes) has no description/parts field at
+ * all, so a byte-identical comparison needs a legacy fixture that already
+ * omits them (see that fixture's own `_meta.notes`). `kc.scene` (->
+ * `spaceCenter.scene.scene`) is migrated too — the legacy leg still reads
+ * it off the plain `DataSource` (that leg never mounts a
+ * `TelemetryProvider`, so the shim's carried-channels gate keeps it on the
+ * legacy path there); the stream leg now feeds it through the fixture's
+ * `spaceCenter.scene` topic instead of a legacy AUX `DataSource`.
  */
 afterEach(() => {
   cleanup();

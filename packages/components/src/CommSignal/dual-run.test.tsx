@@ -5,11 +5,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * CommSignal's R6 Wave-1 behavior test. This was a fork↔stream parity
+ * CommSignal's fork↔stream parity behavior test. This was originally a
  * dual-run back when `comm.controlState`/`comm.controlStateName`/
  * `comm.signalDelay` were GAPPED — the stream leg had to feed those three
  * through a legacy `"data"` `MockDataSource` because nothing streamed them.
- * The SharedLib phase un-gapped all three onto clean homes (control state →
+ * All three are now mapped onto clean homes (control state →
  * the SDK-derived `vessel.state.commsControlState*` display maps off
  * `vessel.comms.controlState`; delay → `comms.delay.oneWaySeconds`), so the
  * legacy MockDataSource leg is dropped: every field now feeds off the real

@@ -15,12 +15,11 @@ import { ScanningComponent, type ScanningSlotContext } from "./index";
 import { renderWithTheme } from "./testTheme";
 
 /**
- * Scanning augment-slot exposure (Uplink architecture spec §4 / augment-slot-map
- * "scanning" — SCANsat-OWNED widget exposing slots OTHER Uplinks fill, §4.6).
- * The slots (`scanning.sections`, `scanning.badges`) are exposed but ship no
- * filler here (that's an Uplink augment, P3/P6): an empty slot must render
- * cleanly, and a test augment registered into it must appear, receiving the
- * widget's body focus as typed slot props (§4.4).
+ * Scanning augment-slot exposure — SCANsat-OWNED widget exposing slots
+ * OTHER Uplinks fill. The slots (`scanning.sections`, `scanning.badges`)
+ * are exposed but ship no filler here (that's an Uplink augment): an empty
+ * slot must render cleanly, and a test augment registered into it must
+ * appear, receiving the widget's body focus as typed slot props.
  */
 
 const KEYS: DataKey[] = [

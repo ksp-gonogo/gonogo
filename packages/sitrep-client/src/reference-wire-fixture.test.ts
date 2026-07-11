@@ -15,7 +15,7 @@ import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
- * M2 end-to-end SDK validation, TS half — the counterpart to
+ * End-to-end SDK validation, TS half — the counterpart to
  * `mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests.cs`. That test
  * replays the REAL reference recording through
  * `ReplayKspHost -> ChannelEngine` (both extensions registered, zero network
@@ -29,7 +29,7 @@ import { ViewClock } from "./view-clock";
  * `TimelineStore`, proving the FULL SDK — derived channels, epoch/ghost
  * handling, staleness/certainty, the `ViewClock` estimator — against genuine
  * engine output rather than a hand-built fixture (`recording -> C# engine ->
- * wire -> TS SDK`, the actual M2 milestone claim).
+ * wire -> TS SDK` end to end).
  *
  * Skip-cleanly contract, same as the C# side and `reference-*.test.ts`
  * elsewhere in this repo: if the fixture file isn't present, the whole suite
@@ -306,7 +306,7 @@ describe.skipIf(!fixtureExists)(
             });
           }
 
-          // Monotonic viewUt (M2 design: "confirmed mode tracks
+          // Monotonic viewUt ("confirmed mode tracks
           // confirmedEdgeUt(), monotonic non-decreasing within an epoch" —
           // ViewClock.viewUt()'s OWN documented guarantee, delivered via its
           // internal lastConfirmedViewUt clamp). Deliberately NOT asserted
@@ -468,7 +468,7 @@ describe.skipIf(!fixtureExists)(
         // `state !== undefined`); restated here as an aggregate check over
         // the whole session.
         //
-        // M2 finalization Fix 3: this block used to ALSO assert that BOTH
+        // This block used to ALSO assert that BOTH
         // branches (immediate AND deferred resolution) were actually
         // observed across the session's 3 rewinds — a claim about which
         // topic happens to arrive first after each rewind, i.e. about THIS

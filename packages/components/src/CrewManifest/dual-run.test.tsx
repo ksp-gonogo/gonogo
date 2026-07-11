@@ -11,15 +11,15 @@ import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
 import { CrewManifestComponent } from "./index";
 
 /**
- * CrewManifest's M3 batch-4 behavior-preservation golden dual-run (mirrors
- * `ThermalStatus/dual-run.test.tsx`, batch 1): the SAME crew state, rendered
+ * CrewManifest's behavior-preservation golden dual-run (mirrors
+ * `ThermalStatus/dual-run.test.tsx`): the SAME crew state, rendered
  * once off the legacy `DataSource` and once off the stream, must produce
  * byte-identical DOM at `delay=0`.
  *
  * `valentina-solo-orbit` populates every field the widget reads (`v.crew`,
  * `v.crewCount`, `v.crewCapacity`, `v.isEVA`) so the full roster renders on
- * both legs. P4a shared-map batch (G-13) un-gapped `v.crew` and
- * `v.crewCapacity` alongside the already-mapped `v.crewCount` — all three
+ * both legs. `v.crew` and `v.crewCapacity` are mapped on the wire
+ * alongside the already-mapped `v.crewCount` — all three
  * now land on the single `vessel.crew` wire channel, so the stream leg
  * emits them together. Only `v.isEVA` (see `stream.test.tsx`'s doc comment)
  * still reads off a legacy AUX source in the stream leg.

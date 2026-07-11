@@ -7,13 +7,14 @@ import kerbinEscape from "./__fixtures__/kerbin-escape-trajectory.json";
 import { EscapeProfileComponent } from "./index";
 
 /**
- * EscapeProfile's R6 de-Telemachus behavior-preservation golden dual-run.
+ * EscapeProfile's behavior-preservation golden dual-run.
  *
  * Its one direct read, `v.body`, is now a clean home — the derived
  * `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`
  * resolved against `system.bodies`). So the STREAM leg feeds it purely off the
  * stream (emit `vessel.identity` + `system.bodies`) with **no legacy `"data"`
- * MockDataSource leg at all** — the R6 read-fallback drop for this widget.
+ * MockDataSource leg at all** — the legacy read-fallback is dropped for this
+ * widget.
  *
  * `v.altitude`/`v.orbitalVelocity` are read only via `GraphView` ->
  * `useDataSeries`, and both map to DERIVED `vessel.state.*` field-subtopics

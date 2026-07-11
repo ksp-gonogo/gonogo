@@ -8,9 +8,10 @@ import { useStream } from "./use-stream";
 import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
 
 /**
- * The M2 bridge task's core proof, at the `@ksp-gonogo/sitrep-client` layer
- * (independent of `@ksp-gonogo/core`'s `useDataValue` shim, which has its own
- * end-to-end test): before this task, NOTHING fed a `TimelineStore` in
+ * The core proof that `TelemetryProvider` bridges the client into a live
+ * `TimelineStore`, at the `@ksp-gonogo/sitrep-client` layer (independent of
+ * `@ksp-gonogo/core`'s `useDataValue` shim, which has its own end-to-end
+ * test): before this, NOTHING fed a `TimelineStore` in
  * production, so `vessel.state.*` (derived) topics were permanently
  * unreachable through `useStream`/`useDataValue` even with a
  * `TelemetryProvider` mounted — the derivation machinery in
@@ -66,7 +67,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
 
     expect(screen.getByText("alt:—")).toBeTruthy();
 
-    // Ref-counting (Fix 1 item 3): subscribing the derived topic must have
+    // Ref-counting: subscribing the derived topic must have
     // subscribed its declared INPUTS on the wire, never the (server-unknown)
     // derived topic name itself.
     expect(transport.isSubscribed("vessel.orbit")).toBe(true);
@@ -85,8 +86,8 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
     });
 
     // `TelemetryProvider` coalesces `beginFrame()` to the next animation
-    // frame (M2 finalization Fix 1), so the derived read resolves one frame
-    // after the emits, not synchronously.
+    // frame, so the derived read resolves one frame after the emits, not
+    // synchronously.
     await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
 
     // Unsubscribe symmetry: unmounting releases both ref-counted raw inputs.

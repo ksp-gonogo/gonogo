@@ -10,11 +10,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * The M3 vessel-gap batch's stream test-adapter proof for ManeuverPlanner's
+ * Stream test-adapter proof for ManeuverPlanner's
  * maneuver-node id round-trip: `o.maneuverNodes` (behind `useManeuverNodes`)
  * itself STAYS a legacy/gapped read — the new `vessel.maneuver.nodes` shape
  * has no deltaV tuple or post-burn orbit preview (map-topic.ts's
- * TELEMACHUS_KNOWN_GAPS) — but the id round-trips (M3 R3) via the new,
+ * TELEMACHUS_KNOWN_GAPS) — but the id round-trips via the new,
  * narrower `o.maneuverNodeIds` read, and `resolveNodeId` (index.tsx) uses it
  * to feed the real guid into the update/remove commands instead of a
  * positional array index. This is what "un-gapping
@@ -212,7 +212,7 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
     });
 
     // No TelemetryProvider mounted at all — the fully-unmigrated case,
-    // matching every widget's behavior before this batch.
+    // matching every widget's legacy-only behavior.
     render(
       <DashboardItemContext.Provider value={{ instanceId: "mnv-no-stream" }}>
         <ManeuverPlannerComponent id="mnv-no-stream" config={{}} />
@@ -306,17 +306,17 @@ describe("ManeuverPlanner — maneuver-node id round-trip (M3 vessel-gap batch)"
 });
 
 /**
- * P4a shared-map batch proof, separate from the M3 node-id round-trip
- * above: `dv.stages` is UN-GAPPED (map-topic.ts's TELEMACHUS_CLEAN_HOMES,
- * whole-topic identity read) and now rides the stream once carried, with
+ * Proof separate from the node-id round-trip
+ * above: `dv.stages` is mapped on the wire (map-topic.ts's TELEMACHUS_CLEAN_HOMES,
+ * whole-topic identity read) and rides the stream once carried, with
  * zero change to the `useVesselDeltaV()` call site in index.tsx. The two
  * transports disagree on field names though — legacy `StageInfo`
  * (`deltaVVac`/`deltaVASL`) vs. the new mod's `StageDeltaVEntry`
  * (`dvVac`/`dvAsl`) — so this proves `useVesselDeltaV`'s `normalizeStage`
  * reconciliation actually feeds the widget's rendered "Available" ΔV
  * figure, not just the legacy shape `index.test.tsx` already covers.
- * `a.physicsMode` has no stream equivalent (STAYS HYBRID per the P4a
- * brief), so the legacy `DataSource` still supplies every OTHER telemetry
+ * `a.physicsMode` has no stream equivalent (STAYS HYBRID), so the legacy
+ * `DataSource` still supplies every OTHER telemetry
  * key here.
  */
 describe("ManeuverPlanner — dv.stages read rides the stream (P4a shared-map batch)", () => {

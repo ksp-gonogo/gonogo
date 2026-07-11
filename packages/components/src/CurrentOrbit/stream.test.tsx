@@ -9,7 +9,7 @@ import { CurrentOrbitComponent } from "./index";
  * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
- * file. R6 Wave-1: CurrentOrbit reads no `TELEMACHUS_KNOWN_GAPS` key, so
+ * file. CurrentOrbit reads no `TELEMACHUS_KNOWN_GAPS` key, so
  * every field it shows is `TELEMACHUS_CLEAN_HOMES` and resolves off the
  * stream — what stays "—" here does so only because its INPUT topic isn't
  * emitted in this file, never because it's gapped.
@@ -31,7 +31,7 @@ import { CurrentOrbitComponent } from "./index";
  * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs
  * (`vessel.orbit`/`vessel.flight`/`vessel.identity`/`system.bodies` plus the
  * enum-display-map sources `vessel.control`/`vessel.target`/`vessel.comms` and
- * the R6 TWR source `vessel.propulsion`) even though most of the fields this
+ * the TWR source `vessel.propulsion`) even though most of the fields this
  * widget reads only actually consult
  * `vessel.orbit` — the carried-channels gate is parent-channel-scoped, not
  * per-field (see `vessel-state.ts`'s `vesselStateChannel` doc comment).

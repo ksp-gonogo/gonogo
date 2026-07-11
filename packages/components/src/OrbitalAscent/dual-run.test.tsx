@@ -11,11 +11,11 @@ import kerbinAscent from "./__fixtures__/kerbin-ascent-to-67km.json";
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * OrbitalAscent's R6 behavior-preservation golden dual-run: the SAME ascent
+ * OrbitalAscent's behavior-preservation golden dual-run: the SAME ascent
  * state, rendered once off the legacy `DataSource` and once with `v.body`
  * migrated onto the stream, must produce byte-identical DOM at `delay=0`.
  *
- * `v.body` is migrated (R6): it reads through `useTelemetry`, which resolves it
+ * `v.body` reads through `useTelemetry`, which resolves it
  * to the DERIVED `vessel.state.parentBodyName` field and streams it — so the
  * stream leg feeds it via `vessel.orbit`/`system.bodies`/`vessel.identity`
  * emissions, NOT the legacy AUX source. The AUX source here carries ONLY the

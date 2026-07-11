@@ -109,13 +109,13 @@ interface OrbitViewConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4). OrbitView is a HOST that exposes
-// two slots; no first-party augment fills them here (that is a later phase), so
+// Augment slots (Uplink architecture). OrbitView is a HOST that exposes
+// two slots; no first-party augment fills them here, so
 // each renders nothing until an Uplink registers an augment into it.
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `orbit-view.overlay` — an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `orbit-view.overlay` — an OVERLAY slot, rendered in a
  * layer absolutely positioned over the orbit-ellipse diagram. The diagram draws
  * body-centric in SVG user-units that match these orbital elements: the body
  * sits at `center` (the SVG origin), +x runs along the apsis line before
@@ -147,8 +147,8 @@ export interface OrbitOverlayContext {
 }
 
 /**
- * Props for `orbit-view.badges` — the widget's BROAD escape-hatch slot (spec
- * §4.8 composable badges), rendered in the header next to the title. Meant for
+ * Props for `orbit-view.badges` — the widget's BROAD escape-hatch slot,
+ * rendered in the header next to the title. Meant for
  * small status chips an Uplink wants beside the orbit heading; badge augments
  * read their own Topics via hooks, so the only context passed down is the
  * parent body name for labelling.
@@ -157,8 +157,8 @@ export interface OrbitBadgesContext {
   bodyName: string | undefined;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// Co-located declaration-merge of this widget's slot ids → their props.
+// Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -195,10 +195,10 @@ function OrbitViewComponent({
     },
   });
 
-  // R6 de-Telemachus: every read rides the SDK stream directly, no legacy
+  // Every read rides the SDK stream directly, no legacy
   // `useDataValue("data", …)` fallback.
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
-  //  - `vessel.state` (client-side derived channel, SharedLib §1b) carries
+  //  - `vessel.state` (client-side derived channel) carries
   //    `trueAnomaly` (propagated at view-UT) and `parentBodyName` (identity
   //    index → `system.bodies` name). It isn't a wire `TopicId`, so it reads
   //    through the provider-optional `useStreamOptional`.
@@ -208,8 +208,7 @@ function OrbitViewComponent({
   //    `deriveVesselState`'s OnRails branch throws for hyperbolic orbits
   //    (ecc≥1, escape trajectories) before it ever computes those fields.
   //  - `useBodyRotation` derives the pole marker client-side from the body's
-  //    `rotationPeriod` + view-UT (SharedLib §1b); `useIsOrbiting` stays a
-  //    shared hook.
+  //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
   const orbit = useTelemetry("vessel.orbit");
   const vesselState = useStreamOptional<VesselState>("vessel.state");
   const sma = orbit?.sma;
@@ -308,7 +307,7 @@ function OrbitViewComponent({
     />
   ) : null;
 
-  // Slot props (spec §4.4). `badges` carries just the body name for labelling;
+  // Slot props. `badges` carries just the body name for labelling;
   // `overlay` carries the diagram's body-centric projection so an augment can
   // draw in the SVG's coordinate space. `overlay` is null until the elements
   // resolve — the wrapper only mounts the slot once there's a diagram beneath.
@@ -407,11 +406,11 @@ registerComponent<OrbitViewConfig>({
   component: OrbitViewComponent,
   // Exposes an overlay slot (drawn over the SVG diagram, passed the diagram's
   // projection) and a broad badges escape-hatch slot in the header. No
-  // first-party augment fills either yet (spec §4).
+  // first-party augment fills either yet.
   augmentSlots: ["orbit-view.overlay", "orbit-view.badges"],
-  // Legacy `dataRequirements` kept during migration (rename/removal is R7);
-  // the reads themselves are stream-native (`vessel.orbit` + the `vessel.state`
-  // derived channel).
+  // Legacy `dataRequirements` kept during migration (rename/removal still
+  // pending); the reads themselves are stream-native (`vessel.orbit` + the
+  // `vessel.state` derived channel).
   dataRequirements: [
     "o.sma",
     "o.eccentricity",

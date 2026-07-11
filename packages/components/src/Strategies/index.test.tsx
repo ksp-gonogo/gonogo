@@ -15,7 +15,7 @@ import {
 } from "./index";
 
 /**
- * R6 de-Telemachus: the widget reads its whole career snapshot off the
+ * The widget reads its whole career snapshot off the
  * canonical `career.status` Topic (no legacy read fallback), so these
  * interactive tests feed reads through a real stream pipeline
  * (`setupStreamFixture`). Commands are still COMMAND-blocked

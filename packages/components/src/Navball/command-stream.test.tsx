@@ -14,9 +14,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
 /**
- * The M3 batch-4 command-table proof for Navball — Part B of the M3 batch
- * task ("validate the vessel-control command widgets' command side"),
- * mirroring `ActionGroup/stream.test.tsx`'s pilot pattern but covering the
+ * The command-table proof for Navball ("validate the vessel-control command
+ * widgets' command side"), mirroring `ActionGroup/stream.test.tsx`'s pilot
+ * pattern but covering the
  * three DISTINCT `map-command.ts` arg-shape bridges Navball's own control
  * surface exercises (the widget code is unchanged — this is test/validation
  * work proving the transparent command shim genuinely routes each one, not
@@ -41,9 +41,9 @@ import { NavballComponent } from "./index";
  * `f.throttleUp`/`f.throttleDown`/`arm-fbw`/`disarm-fbw`
  * (`v.setFbW`)/`set-pitch`/`set-yaw`/`set-roll`/`translate-*`/`set-*-trim`
  * are all `KNOWN_COMMAND_GAPS` — deliberately NOT exercised here; they stay
- * command-legacy (see `map-command.ts`'s own gap list). `Twr` (the batch's
- * other Navball/Twr command-validation candidate) declares `actions: []` —
- * no `useExecuteAction` call at all, so there is nothing to validate there;
+ * command-legacy (see `map-command.ts`'s own gap list). `Twr` (the other
+ * Navball/Twr command-validation candidate) declares `actions: []` — no
+ * `useExecuteAction` call at all, so there is nothing to validate there;
  * it's command-legacy by having no command surface whatsoever.
  *
  * Every test renders Navball in `controlMode: true` at a size that clears

@@ -51,17 +51,17 @@ interface SystemViewConfig {
   frame?: "auto" | "root" | string;
 }
 
-// ── Augment slots (Uplink architecture spec §4) ─────────────────────────────────
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────────
 // SystemView is a HOST that exposes three slots; no first-party augment fills them
-// here (that is a later phase), so each renders nothing until an Uplink registers.
+// here, so each renders nothing until an Uplink registers.
 // The `.actions` + `.overlay` pair is designed to be driven by ONE coordinated
-// augment (spec feedback round 1): e.g. a "show commlinks" toggle contributed into
-// `.actions` drives a commlink overlay contributed into `.overlay`, sharing state
-// through the augment's OWN context — no cross-Uplink coupling, the host only
-// exposes the two extension points.
+// augment: e.g. a "show commlinks" toggle contributed into `.actions` drives a
+// commlink overlay contributed into `.overlay`, sharing state through the
+// augment's OWN context — no cross-Uplink coupling, the host only exposes the
+// two extension points.
 
 /**
- * Props for `system-view.overlay` — an OVERLAY slot (spec §4.4/§4.8), rendered in
+ * Props for `system-view.overlay` — an OVERLAY slot, rendered in
  * a layer absolutely positioned over the solar-system body diagram. The diagram
  * draws parent-centric in SVG user-units: the frame body sits at `center` (the
  * SVG origin) and a distance of `d` metres from it projects to `d · plotScale`
@@ -86,18 +86,18 @@ export interface SystemOverlayContext {
 }
 
 /**
- * Props for `system-view.badges` — the widget's BROAD escape-hatch slot (spec
- * feedback round 1: default to a `.badges` slot for inline indicators), rendered
- * in the header next to the title. Badge augments read their own Topics via
- * hooks, so the only context passed down is the frame body name for labelling.
+ * Props for `system-view.badges` — the widget's BROAD escape-hatch slot for
+ * inline indicators, rendered in the header next to the title. Badge augments
+ * read their own Topics via hooks, so the only context passed down is the
+ * frame body name for labelling.
  */
 export interface SystemBadgesContext {
   frameName: string | null;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not in a central registry file) so parallel
-// slot work on other widgets never collides on this seam. `.actions` takes no
+// Co-located declaration-merge of this widget's slot ids → their props. Kept
+// next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam. `.actions` takes no
 // props (`Record<string, never>`) — an actions augment reads its own state.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -122,8 +122,8 @@ function frameNameMatches(a: string, b: string): boolean {
 // Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
 // widget reconstructs the scalars it used to read off Telemachus's `o.*` keys
 // (trueAnomaly / next-apsis / encounter) directly from the streamed
-// `vessel.orbit` elements + the SDK view-UT — the R6 §0.0/§1b client-side
-// REDESIGN. `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
+// `vessel.orbit` elements + the SDK view-UT, derived client-side.
+// `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
 // `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
 // normalised (meanAnomalyAtEpoch is already radians — the documented KSP quirk).
 
@@ -215,18 +215,18 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
-  // Streamed Topics (R6 de-Telemachus): raw `vessel.*` records read straight
-  // off the Uplink store via the canonical `useTelemetry(TopicId)` hook — no
-  // legacy `DataSource` fallback. The scalars the widget used to read off
+  // Streamed Topics: raw `vessel.*` records read straight off the Uplink
+  // store via the canonical `useTelemetry(TopicId)` hook — no legacy
+  // `DataSource` fallback. The scalars the widget used to read off
   // Telemachus's derived `o.*` keys (trueAnomaly / next-apsis / encounter) are
   // reconstructed client-side below from `vessel.orbit`'s elements + the SDK
-  // view-UT (§0.0/§1b REDESIGN).
+  // view-UT.
   const orbit = useTelemetry("vessel.orbit");
   const identity = useTelemetry("vessel.identity");
   const systemBodies = useTelemetry("system.bodies");
   const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
-  // View-UT — the SDK view time the propagation already evaluates at (the R6
-  // `t.universalTime` DROP: it was never a stream, it IS `sdk.view.ut()`).
+  // View-UT — the SDK view time the propagation already evaluates at
+  // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
   const universalTime = useViewUt();
 
   // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
@@ -325,8 +325,8 @@ function SystemViewComponent({
     typeof universalTime === "number" ? universalTime : undefined,
     1,
   );
-  // Client-propagated predicted trajectory (R6 §0.0 REDESIGN): with only the
-  // current elements + the next transition on the wire, the honestly-drawable
+  // Client-propagated predicted trajectory: with only the current elements +
+  // the next transition on the wire, the honestly-drawable
   // chain is a single conic — the current orbit sampled from the view-UT to the
   // encounter (an arc terminated at the SOI boundary) or, with no encounter,
   // over one full period (a closed ellipse). Built as the core `OrbitPatch`
@@ -496,7 +496,7 @@ function SystemViewComponent({
   const showBottomAlmanac = isPortrait && rows >= 12;
   const showAlmanac = showSideAlmanac || showBottomAlmanac;
 
-  // Slot props (spec §4.4). `badges` carries just the frame name for labelling.
+  // Slot props. `badges` carries just the frame name for labelling.
   // `overlay` carries the diagram's parent-centric projection so an augment can
   // draw in the SVG's coordinate space — the metres → px `plotScale` is
   // reconstructed exactly as `SystemDiagram` derives it (auto-fit over the drawn
@@ -534,7 +534,7 @@ function SystemViewComponent({
         <TitleControls>
           {/* Header slots: an inline `.badges` escape-hatch and an `.actions`
               control row, both alongside the widget's own header. Empty until an
-              Uplink binds (spec §4) — an empty slot renders nothing. */}
+              Uplink binds — an empty slot renders nothing. */}
           <AugmentSlot name="system-view.badges" props={badgesContext} />
           <AugmentSlot name="system-view.actions" props={{}} />
         </TitleControls>
@@ -575,8 +575,8 @@ function SystemViewComponent({
             )}
             {/* Overlay slot — layered over the body diagram, passed the diagram's
                 parent-centric projection so an augment draws in its coordinate
-                space (spec §4.4/§4.8). The layer is pointer-transparent so an
-                empty slot is visually + interactively inert. */}
+                space. The layer is pointer-transparent so an empty slot is
+                visually + interactively inert. */}
             {overlayContext !== null && (
               <OverlayLayer>
                 <AugmentSlot
@@ -818,8 +818,8 @@ registerComponent<SystemViewConfig>({
   configComponent: SystemViewConfigComponent,
   // Exposes a coordinated `.actions` + `.overlay` pair (one augment can drive an
   // overlay from a header control, sharing its own context) plus a broad
-  // `.badges` header escape-hatch. No first-party augment fills any yet (spec §4);
-  // the overlay slot passes the diagram's projection as typed slot props (§4.4).
+  // `.badges` header escape-hatch. No first-party augment fills any yet;
+  // the overlay slot passes the diagram's projection as typed slot props.
   augmentSlots: [
     "system-view.actions",
     "system-view.overlay",

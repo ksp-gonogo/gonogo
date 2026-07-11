@@ -5,7 +5,7 @@ import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * OrbitView behavioural unit tests. R6 de-Telemachus: the widget reads
+ * OrbitView behavioural unit tests. The widget reads
  * exclusively off the SDK stream (`vessel.orbit` + the `vessel.state` derived
  * channel), so these render through a real `TelemetryProvider` via the shared
  * `renderOrbitViewStream` harness — there is no legacy `MockDataSource`
@@ -79,7 +79,7 @@ describe("OrbitViewComponent", () => {
 });
 
 /**
- * Augment-slot exposure (Uplink architecture spec §4). OrbitView exposes an
+ * Augment-slot exposure (Uplink architecture). OrbitView exposes an
  * `orbit-view.overlay` slot over the diagram and an `orbit-view.badges`
  * escape-hatch in the header. No first-party augment fills them, so these tests
  * register throwaway augments (cleared each test) to prove the slots compose,

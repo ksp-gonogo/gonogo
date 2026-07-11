@@ -5,22 +5,22 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * The M3 batch-2 stream test-adapter proof for SemiMajorAxis (mirrors
- * `ThermalStatus/stream.test.tsx`, batch 1): genuinely running off the real
+ * The stream test-adapter proof for SemiMajorAxis (mirrors
+ * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
- * SemiMajorAxis's keys are both clean-home stream Topics now (R6 Wave 1 —
- * no gaps left, `map-topic.ts`):
+ * SemiMajorAxis's keys are both clean-home stream Topics now (no gaps left,
+ * `map-topic.ts`):
  * - `o.sma` -> the raw `vessel.orbit.sma` field-subtopic (the headline value).
  * - `o.referenceBody` -> the derived `vessel.state.referenceBodyName`
  *   display-map (the SDK resolves `vessel.orbit.referenceBodyIndex` against
  *   `system.bodies`). The subtitle body suffix therefore streams too, so this
  *   fixture carries all EIGHT `vessel.state` inputs and emits `system.bodies`.
  *
- * `useDataSeries` (sparkline history, `@ksp-gonogo/data`) now carries its own M3
- * stream shim (the `useDataSeries` shim task) mirroring `useDataValue`'s —
+ * `useDataSeries` (sparkline history, `@ksp-gonogo/data`) now carries its own
+ * stream shim mirroring `useDataValue`'s —
  * same `mapTopic`/carried-channels gate, reading its window off
  * `TimelineStore.sampleRange` once `vessel.orbit` is carried. The second
  * `it` below is the end-to-end proof: since NO legacy `DataSource` is

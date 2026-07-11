@@ -9,10 +9,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
 /**
- * KeplerPeriod's R6 Wave-1 stream proof. When this widget was first authored
+ * KeplerPeriod's stream proof. When this widget was first authored
  * its two `useDataValue` reads (`v.body`, `o.referenceBody`) were declared
  * GAPS, so it stayed 100% legacy and this test only asserted a stream-safe
- * no-op. The SharedLib phase un-gapped both onto SDK-derived display maps —
+ * no-op. Both are now un-gapped onto SDK-derived display maps —
  * `v.body` -> `vessel.state.parentBodyName`, `o.referenceBody` ->
  * `vessel.state.referenceBodyName` (index→name resolution against
  * `system.bodies`, see `vessel-state.ts`) — so the reads are now migrated to

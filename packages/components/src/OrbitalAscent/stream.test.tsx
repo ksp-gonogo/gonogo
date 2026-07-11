@@ -5,13 +5,13 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * The R6 stream test-adapter proof for OrbitalAscent: the widget's own read
+ * The stream test-adapter proof for OrbitalAscent: the widget's own read
  * (`v.body`) genuinely runs off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport` — no legacy `DataSource` is
  * registered anywhere in this file, so a value only reaches the widget if it
  * actually streamed.
  *
- * `v.body` is mapped (R6 / Step-2 migration) to the DERIVED
+ * `v.body` is mapped to the DERIVED
  * `vessel.state.parentBodyName` field — the index→name display map
  * `deriveVesselState` resolves from `vessel.identity.parentBodyIndex` against
  * `system.bodies` (`vessel-state.ts`). Emitting `vessel.orbit` (which gates the

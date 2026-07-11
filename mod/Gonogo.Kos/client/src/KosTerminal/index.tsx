@@ -33,7 +33,8 @@ interface KosTerminalConfig {
    */
   cpuName?: string;
   /**
-   * Line-mode composition (P3 spec §"Helper layer 1"). When on, the client
+   * Line-mode composition — a helper layer over the raw terminal, one
+   * below KosScriptRunner's full script-dispatch layer. When on, the client
    * composes a line locally with instant echo and only sends it — as one
    * message — on Enter, instead of forwarding each keystroke individually.
    * Under light-time delay char-by-char is N round-trips; a whole line is
@@ -141,8 +142,8 @@ type TermWriter = { write(data: string): void };
  * Enter; pasted / multi-char input is processed char-by-char. Returns the
  * updated buffer.
  *
- * The batched send rides today's telnet-proxy byte path. The P3 target is to
- * swap this one `ws.send` for a single delayed `kos.keystroke` command
+ * The batched send rides today's telnet-proxy byte path. A planned follow-up
+ * swaps this one `ws.send` for a single delayed `kos.keystroke` command
  * carrying the whole line (the mod's `TypeLine` helper types line + `\r`);
  * only the send call changes — the local-compose UX is identical.
  */

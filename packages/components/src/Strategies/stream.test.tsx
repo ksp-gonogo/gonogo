@@ -5,12 +5,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
 
 /**
- * The M3/M3b career batch's stream test-adapter proof for Strategies:
+ * The stream test-adapter proof for Strategies:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`. `career.funds`/
  * `career.reputation`/`career.science` (-> `career.status.economy.*`) AND
- * `strategies.all` (-> `career.status.strategies.all`, M3b career-detail
- * batch) all stream now — no legacy AUX needed for this widget any more.
+ * `strategies.all` (-> `career.status.strategies.all`)
+ * all stream now — no legacy AUX needed for this widget any more.
  */
 afterEach(() => {
   cleanup();

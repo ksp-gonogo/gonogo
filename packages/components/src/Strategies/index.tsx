@@ -49,7 +49,7 @@ const COMMIT_TIMEOUT_MS = 5_000;
 
 /**
  * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
- * the M3b career-detail wire shape (`career.status.strategies.all`,
+ * the new wire shape (`career.status.strategies.all`,
  * CareerViewProvider.BuildStrategyList: `department`) — same field-rename
  * normalization ContractManager's `parseContracts` applies. Every other
  * field name matches the new wire 1:1 (decompile-confirmed,
@@ -146,7 +146,7 @@ function StrategiesComponent({
   w,
   h,
 }: Readonly<ComponentProps<StrategiesConfig>>) {
-  // R6 de-Telemachus (read-migrate): the whole career snapshot rides ONE
+  // The whole career snapshot rides ONE
   // canonical Topic, `career.status` (CareerStatus). economy.{funds,
   // reputation,science} and strategies.all are the fields this widget reads —
   // the wire's `career.status.strategies.all` carries the full `id`/costs/
@@ -156,7 +156,7 @@ function StrategiesComponent({
   // fallback — the canonical Topic read has none. The activate/deactivate
   // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
   // the legacy DataSource via `useExecuteAction` automatically — a later
-  // phase migrates the write path.
+  // migration will move the write path too.
   const career = useTelemetry("career.status");
   const stratsRaw = career?.strategies?.all;
   const funds = career?.economy?.funds;

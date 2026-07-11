@@ -11,13 +11,13 @@ import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { ContractManagerComponent } from "./index";
 
 /**
- * ContractManager's M3b career-detail behavior-preservation golden dual-run
+ * ContractManager's behavior-preservation golden dual-run
  * (mirrors `Strategies/dual-run.test.tsx`): the SAME contract state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`. `contracts.active`/
  * `contracts.offered`/`contracts.completedRecent` (->
  * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
- * three migrated reads as of the P4a shared-map batch — `parseContracts`
+ * three migrated reads — `parseContracts`
  * normalizes `agent` -> `agency`/`reputationCompletion` ->
  * `repCompletion`/`dateDeadline` -> `deadlineUt`. `t.universalTime`/
  * `v.altitude` (unrelated to career) stay legacy on both legs. The fixture's

@@ -15,12 +15,12 @@ import {
 import { PowerSystemsComponent, type PowerSystemsSlotContext } from "./index";
 
 /**
- * PowerSystems augment-slot exposure (Uplink architecture spec §4 — this widget
+ * PowerSystems augment-slot exposure (this widget
  * is THE worked example). The slots (`power-systems.sections`,
  * `power-systems.badges`) are exposed but ship no filler here (that's an Uplink
- * augment, P3/P6): an empty slot must render cleanly, and a test augment
+ * augment's job): an empty slot must render cleanly, and a test augment
  * registered into it must appear, receiving the widget's resource focus as
- * typed slot props (§4.4).
+ * typed slot props.
  */
 
 const KEYS: DataKey[] = [
@@ -103,7 +103,7 @@ describe("PowerSystems — augment slots (spec §4)", () => {
 
     const augment = await screen.findByTestId("ps-section-augment");
     expect(augment).toBeTruthy();
-    // The slot passed the widget's current resource focus down (spec §4.4).
+    // The slot passed the widget's current resource focus down.
     expect(augment.textContent).toBe("EC-BROKER: ElectricCharge");
     teardownMockDataSource(fixture);
   });

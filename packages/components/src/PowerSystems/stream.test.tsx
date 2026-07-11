@@ -9,15 +9,15 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
 /**
- * The M3 science/parts batch's stream test-adapter proof for PowerSystems:
+ * The stream test-adapter proof for PowerSystems:
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport` for `parts.power` — a NEW
  * capability, no legacy Telemachus analogue. `useTopology`/`usePartsLive`
  * (the per-part Producers/Consumers/Idle breakdown) bypass `useDataValue`
  * entirely (`getDataSource().subscribe` directly) and therefore stay
  * legacy-only regardless of whether a `TelemetryProvider` is mounted — a
- * `setupMockDataSource` AUX feeds those here, same MIXED-source shape
- * DistanceToTarget/TargetPicker's own M3 batches established.
+ * `setupMockDataSource` AUX feeds those here, the same MIXED-source shape
+ * DistanceToTarget/TargetPicker's own stream tests established.
  */
 afterEach(() => {
   cleanup();
@@ -36,7 +36,7 @@ describe("PowerSystems — genuinely runs off the stream (M3 science/parts batch
     // whenever present, so PROD/NET could show a number that contradicts
     // the itemized Producers rows below it — and NET drives a
     // charge/consume read the operator relies on. This is the concrete
-    // case from the review: a single +5.00 producer row, but
+    // failure case: a single +5.00 producer row, but
     // `totalProductionEc` (a stale/disagreeing measurement) says 42.
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.power"],

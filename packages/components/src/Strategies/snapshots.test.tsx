@@ -35,7 +35,7 @@ interface CareerFixture {
 }
 
 /**
- * R6 de-Telemachus DOM snapshots. The widget reads its whole career snapshot
+ * DOM snapshots. The widget reads its whole career snapshot
  * off the canonical `career.status` Topic (no legacy fallback), so — unlike
  * the shared legacy `snapshotWidgetMode` helper, which seeds a
  * `MockDataSource` — these snapshots feed the fixture through a real stream

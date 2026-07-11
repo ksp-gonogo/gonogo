@@ -1,12 +1,12 @@
 /**
- * Docking-alignment HUD-proxy helpers (R6 §0.0 dock.a* REDESIGN) — the
- * line-of-sight offset angles + closing-rate derivations DistanceToTarget's
- * docking HUD renders, promoted out of that widget into a shared module so the
- * migrate-widget task (and any future docking view) reuses one implementation.
+ * Docking-alignment HUD-proxy helpers — the line-of-sight offset angles +
+ * closing-rate derivations DistanceToTarget's docking HUD renders, promoted
+ * out of that widget into a shared module so other widgets (and any future
+ * docking view) reuse one implementation.
  *
  * `vessel.dock` carries only `RelativePosition`/`RelativeVelocity`/`Distance`
  * + a scalar `ForwardDot` — NOT the true port-frame misalignment axes
- * (yaw/pitch/roll) Telemachus's `dock.ax`/`ay`/`az` reported. The R6 decision
+ * (yaw/pitch/roll) Telemachus's `dock.ax`/`ay`/`az` reported. The decision
  * is to DROP those true axes and use the LINE-OF-SIGHT offset off the
  * `relativePosition` Vec3 as a HUD proxy instead (a genuinely new derivation,
  * not a reproduction of a legacy formula).

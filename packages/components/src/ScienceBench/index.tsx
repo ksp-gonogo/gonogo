@@ -44,7 +44,7 @@ const WIRE_SENSOR_TYPE: Record<SensorType, string> = {
 };
 
 /**
- * Parses the `science.sensors` whole-topic read (D2, P4a) — a bare
+ * Parses the `science.sensors` whole-topic read — a bare
  * `SensorEntry[]` or `null`/`undefined` while not yet loaded — into a plain
  * object array `readingFromObject`/`parseSensorReadings` can filter by
  * `type` and parse per sensor row. Returns `null` (not "no sensors") when
@@ -146,7 +146,7 @@ function readingFromObject(entry: unknown): SensorReading | null {
           ? e.v
           : null;
   if (value === null && typeof e.readout === "string") {
-    // science.sensors' `readout` (D2, P4a) is KSP's own human-readable
+    // science.sensors' `readout` is KSP's own human-readable
     // sensor string (`ModuleEnviroSensor.readoutInfo`, e.g. "293.1K",
     // "Off") rather than a raw number — pull the leading numeric value out
     // of it. A non-numeric readout (an inactive/disabled sensor) has no
@@ -184,7 +184,7 @@ export interface ParsedExperiment {
  * - Legacy Telemachus Reborn: `{ part, title, dataAmount,
  *   scienceValueBase, transmitBoost, subjectId }` (see
  *   ScienceCareerDataLinkHandler in the Telemachus fork).
- * - New SDK `science.experiments` (M3 science/parts batch, mapped onto this
+ * - New SDK `science.experiments` (mapped onto this
  *   same widget-facing key via `map-topic.ts`): `{ partName, location,
  *   experimentId, subjectId, title, dataAmount, ... }` —
  *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,
@@ -294,7 +294,7 @@ function ScienceBenchComponent({
   const presRaw = useDataValue("data", "s.sensor.pres");
   const gravRaw = useDataValue("data", "s.sensor.grav");
   const accRaw = useDataValue("data", "s.sensor.acc");
-  // D2 (P4a): `s.sensor.<type>` itself stays a known gap (no per-type
+  // `s.sensor.<type>` itself stays a known gap (no per-type
   // fields on the new wire — see map-topic.ts) but the WHOLE sensor list
   // (`science.sensors`, SensorEntry[]) is a clean new capability. Read it
   // once and, when it's resolved, prefer a client-side filter-by-type over
@@ -305,14 +305,14 @@ function ScienceBenchComponent({
 
   const sciExperimentsRaw = useDataValue("data", "sci.experiments");
   const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
-  // M3 science/parts batch: sci.experiments is mapped onto science.experiments
+  // sci.experiments is mapped onto science.experiments
   // (map-topic.ts) — the rest of the science reads above stay legacy-only.
   const experimentsStreamStatus = useDataStreamStatus(
     "data",
     "sci.experiments",
   );
 
-  // career.mode (D1, P4a) reads through useGameContext rather than a raw
+  // career.mode reads through useGameContext rather than a raw
   // useDataValue call — the stream carries it as the mod's GameMode enum
   // ORDINAL (a number), not the legacy Telemachus string, and
   // useGameContext.careerMode already resolves both shapes to the same
@@ -373,7 +373,7 @@ function ScienceBenchComponent({
 
   const experiments = parseExperiments(sciExperimentsRaw);
   const breakdown = parseExperimentBreakdown(sciBreakdownRaw);
-  // D3 (P4a): sci.count/sci.dataAmount stay gapped on the wire (no
+  // sci.count/sci.dataAmount stay gapped on the wire (no
   // pre-aggregated field) — derive both client-side from the same
   // already-migrated experiments array instead of a separate read.
   const sciCount = experiments ? experiments.length : undefined;

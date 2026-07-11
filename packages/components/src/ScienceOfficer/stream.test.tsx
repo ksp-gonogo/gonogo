@@ -12,16 +12,15 @@ import { renderWithTheme } from "./testTheme";
 /**
  * ScienceOfficer's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` for BOTH `science.lab` (M3 science/parts batch — a NEW
- * capability, no legacy Telemachus/GonogoTelemetry analogue) AND
- * `science.instruments` (P4a shared-map batch — `sci.instruments`'s new wire
- * home, `map-topic.ts`). `sci.experiments` IS also mapped (map-topic.ts,
- * an earlier M3 batch) but isn't in THIS fixture's `carriedChannels`, so it
- * still resolves off the legacy path here — a `setupMockDataSource` AUX
- * carries it, the same MIXED-source shape ScienceBench/PowerSystems' own M3
- * batches established. The `science.instruments` payload below uses the
- * NEW `InstrumentEntry` field names (`partId` as a string, `partName`,
- * `experimentId`, `dataIsCollectable`) to prove `parseInstruments`'s P4a
+ * `StubTransport` for BOTH `science.lab` (a NEW capability, no legacy
+ * Telemachus/GonogoTelemetry analogue) AND `science.instruments`
+ * (`sci.instruments`'s new wire home, `map-topic.ts`). `sci.experiments` IS
+ * also mapped (map-topic.ts) but isn't in THIS fixture's `carriedChannels`,
+ * so it still resolves off the legacy path here — a `setupMockDataSource`
+ * AUX carries it, the same MIXED-source shape ScienceBench/PowerSystems'
+ * own migrations established. The `science.instruments` payload below uses
+ * the NEW `InstrumentEntry` field names (`partId` as a string, `partName`,
+ * `experimentId`, `dataIsCollectable`) to prove `parseInstruments`'s
  * shape fix reads the new wire correctly, not just the legacy shape. Uses
  * the exact idle-lab payload captured in
  * `local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json` (an
@@ -96,7 +95,7 @@ describe("ScienceOfficer — genuinely runs off the stream (M3 science.lab + P4a
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
 
     // The new-shape science.instruments entry rendered too — proves
-    // parseInstruments's P4a shape fix (string partId, partName/
+    // parseInstruments's shape fix (string partId, partName/
     // experimentId/dataIsCollectable renames) reads the new wire, not just
     // the legacy shape.
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();

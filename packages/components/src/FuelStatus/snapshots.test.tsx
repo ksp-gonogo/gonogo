@@ -29,7 +29,7 @@ describe("FuelStatus DOM snapshots", () => {
           Widget: FuelStatusComponent,
           fixture,
           mode,
-          // FuelStatus now adopts useDataStreamStatus (M3 batch 1) — connect
+          // FuelStatus uses useDataStreamStatus — connect
           // the raw MockDataSource so its rendered status badge reflects the
           // realistic "connected, streaming" scenario every one of these
           // fixtures actually depicts, instead of the shared harness's

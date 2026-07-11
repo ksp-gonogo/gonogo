@@ -57,7 +57,7 @@ function buildReferenceCurve(
 function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
-  // R6 read-migration: `v.body` reads through the canonical `useTelemetry`
+  // `v.body` reads through the canonical `useTelemetry`
   // hook. The shim resolves it to the derived `vessel.state.parentBodyName`
   // Topic (index→name display map, see `map-topic.ts`) and streams it once a
   // `TelemetryProvider` carries `vessel.state`'s inputs — no Telemachus

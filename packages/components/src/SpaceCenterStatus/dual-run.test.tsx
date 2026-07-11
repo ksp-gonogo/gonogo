@@ -11,12 +11,12 @@ import midCareer from "./__fixtures__/mid-career-mixed-no-tier-text.json";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * SpaceCenterStatus's M3/M3b career batch behavior-preservation golden
- * dual-run (mirrors `DistanceToTarget/dual-run.test.tsx`, M3 vessel-gap
- * batch): the SAME career state, rendered once off the legacy `DataSource`
+ * SpaceCenterStatus's career behavior-preservation golden
+ * dual-run (mirrors `DistanceToTarget/dual-run.test.tsx`): the SAME career
+ * state, rendered once off the legacy `DataSource`
  * and once off the stream, must produce byte-identical DOM at `delay=0`.
  * `career.funds` (78400) AND `kc.facilityLevels` (-> `career.status.
- * facilities`) are both migrated as of the M3b career-detail batch — the
+ * facilities`) are both migrated — the
  * fixture uses `mid-career-mixed-no-tier-text.json`, not
  * `mid-career-mixed.json`: `career.status.facilities`
  * (CareerViewProvider.BuildFacilities) has no `currentLevelText`/
@@ -24,7 +24,7 @@ import { SpaceCenterStatusComponent } from "./index";
  * legacy fixture that already renders the same "older DLL, no tier text"
  * shape `parseFacilityLevels` produces for an enum-keyed entry (see that
  * fixture's own `_meta.notes`). `scene` (-> `spaceCenter.scene.scene`) is
- * migrated too as of the P4a shared-map batch — the legacy leg still reads
+ * migrated too — the legacy leg still reads
  * it off the plain `DataSource` (that leg never mounts a
  * `TelemetryProvider`, so the shim's carried-channels gate keeps it on the
  * legacy path there); the stream leg now feeds it through the fixture's

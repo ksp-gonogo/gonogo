@@ -11,9 +11,9 @@ import kerbinReentry from "./__fixtures__/kerbin-reentry-atmospheric.json";
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus's M3 batch-3 behavior-preservation golden dual-run (mirrors
- * `ThermalStatus/dual-run.test.tsx`, batch 1 / `AtmosphereProfile/
- * dual-run.test.tsx`, batch 2): the SAME landing state, rendered once off
+ * LandingStatus's behavior-preservation golden dual-run (mirrors
+ * `ThermalStatus/dual-run.test.tsx` and `AtmosphereProfile/
+ * dual-run.test.tsx`): the SAME landing state, rendered once off
  * the legacy `DataSource` and once off the stream, must produce
  * byte-identical DOM at `delay=0`.
  *

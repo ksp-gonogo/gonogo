@@ -12,7 +12,7 @@ import { CurrentOrbitComponent } from "./index";
  * the legacy `DataSource` and once off the stream, must produce byte-identical
  * DOM at `delay=0`.
  *
- * R6 Wave-1: CurrentOrbit is now fully de-Telemachus'd — every field it reads
+ * CurrentOrbit is now fully de-Telemachus'd — every field it reads
  * is a `TELEMACHUS_CLEAN_HOMES` mapping, so the STREAM leg derives ALL of them
  * with no legacy-AUX crutch (the old `["o.referenceBody", "v.body"]`
  * MockDataSource leg is gone — both are derived on
@@ -82,11 +82,10 @@ describe("CurrentOrbit — behavior-preservation golden dual-run (delay=0)", () 
 
     const streamFixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (M3 vessel-state-extend grew
-      // vesselStateChannel.inputs to four) — every field this widget now
-      // reads off vessel.state needs all four carried, even the ones (like
-      // period/timeToAp/timeToPe) that don't themselves consult
-      // vessel.identity/system.bodies.
+      // is parent-channel-scoped (vesselStateChannel.inputs has grown to
+      // four) — every field this widget now reads off vessel.state needs
+      // all four carried, even the ones (like period/timeToAp/timeToPe)
+      // that don't themselves consult vessel.identity/system.bodies.
       carriedChannels: [
         "vessel.orbit",
         "vessel.flight",

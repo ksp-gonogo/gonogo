@@ -6,19 +6,19 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * The M3 batch-2 stream test-adapter proof for AtmosphereProfile (mirrors
- * `ThermalStatus/stream.test.tsx`, batch 1): genuinely running off the real
+ * The stream test-adapter proof for AtmosphereProfile (mirrors
+ * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` — no legacy `DataSource` is registered anywhere in this
  * file.
  *
  * AtmosphereProfile's keys split MAPPED / GAPPED (`map-topic.ts`):
  * - MAPPED: `v.altitude` -> the DERIVED `vessel.state.altitudeAsl`
- *   subtopic (this widget is the FIRST in the M3 migration to route
- *   through the derived `vessel.state` channel rather than a raw wire
+ *   subtopic (this widget is the FIRST to route through the derived
+ *   `vessel.state` channel rather than a raw wire
  *   topic — see `vessel-state.ts`'s `deriveVesselState`). `v.
  *   atmosphericDensity` -> the raw field `vessel.flight.atmDensity`.
- *   `v.atmosphericTemperature`/`v.externalTemperature` (UN-GAPPED in P4a)
+ *   `v.atmosphericTemperature`/`v.externalTemperature` (also mapped)
  *   -> the raw fields `vessel.flight.atmosphericTemperature` /
  *   `vessel.flight.externalTemperature` — the same already-carried
  *   `vessel.flight` channel as the density read, so no new
@@ -56,9 +56,9 @@ describe("AtmosphereProfile — genuinely runs off the stream (M3 batch 2)", () 
     registerStockBodies();
     const fixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (M3 vessel-state-extend grew
-      // vesselStateChannel.inputs to four) — altitudeAsl needs all four
-      // carried even though it doesn't itself read the two new ones.
+      // is parent-channel-scoped (vesselStateChannel.inputs grew to four) —
+      // altitudeAsl needs all four carried even though it doesn't itself
+      // read the two new ones.
       carriedChannels: [
         "vessel.orbit",
         "vessel.flight",

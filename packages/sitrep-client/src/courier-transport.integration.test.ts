@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 
-// These cases drive a real M2 `TelemetryClient` over the M3 delay-modelling
+// These cases drive a real `TelemetryClient` over the delay-modelling
 // server stack (`Courier` + `CourierTransport` + `StubNetwork`, all from
 // `@ksp-gonogo/sitrep-server`). They live here — not in sitrep-server's own
 // `courier-transport.test.ts` — because sitrep-server must not depend on
@@ -40,7 +40,7 @@ describe("CourierTransport", () => {
     expect(received).toHaveLength(0);
 
     // Delivered exactly when UT reaches validAt + delay, through the
-    // unchanged M2 client's subscribe callback.
+    // client's subscribe callback, unchanged by the delay model.
     clock.advanceTo(2);
     expect(received).toEqual([100]);
     expect(client.getValue("alt")).toBe(100);
@@ -84,7 +84,7 @@ describe("CourierTransport", () => {
     });
 
     // Downlink elapsed: confirmation arrives back at the vantage, through
-    // the unchanged M2 client's dispatch() promise.
+    // the client's dispatch() promise, unchanged by the delay model.
     clock.advanceTo(4);
     await expect(result).resolves.toEqual({ ok: "deploy" });
     expect(client.getCommand(requestId)).toEqual({

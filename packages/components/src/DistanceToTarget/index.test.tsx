@@ -11,7 +11,7 @@ import { DistanceToTargetComponent } from "./index";
 
 /**
  * Mode-transition + docking-gate behavior, exercised through the legacy
- * `DataSource` fallback path (no `TelemetryProvider` mounted). Post-R6 the
+ * `DataSource` fallback path (no `TelemetryProvider` mounted). The
  * widget derives distance / closing rate / docking angles client-side from
  * `vessel.target`/`vessel.dock`'s Vec3 fields, so these tests feed those Vec3
  * reads directly — the widget's `tarDistance` (which drives every mode switch)
@@ -244,7 +244,7 @@ describe("DistanceToTarget — augment slots (spec §4)", () => {
       source.emit("tar.type", "CelestialBody");
       source.emit("tar.relativePosition", atRange(1_000));
     });
-    // Slot-props flow live target data to the badge (spec §4.4).
+    // Slot-props flow live target data to the badge.
     expect(screen.getByTestId("badge").textContent).toBe("badge:Minmus");
   });
 

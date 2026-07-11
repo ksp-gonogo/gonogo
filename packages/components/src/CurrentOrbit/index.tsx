@@ -69,14 +69,14 @@ function CurrentOrbitComponent({
   const period = useTelemetry("data", "o.period");
   const refBody = useTelemetry("data", "o.referenceBody");
   const bodyName = useTelemetry("data", "v.body");
-  // R6 Wave-1 de-Telemachus: every read this widget makes is a
-  // `TELEMACHUS_CLEAN_HOMES` mapping (map-topic.ts), so all of them resolve
-  // straight off the mod stream — there are no `TELEMACHUS_KNOWN_GAPS` left
-  // for CurrentOrbit and nothing falls back to the legacy Telemachus source.
+  // Every read this widget makes is a `TELEMACHUS_CLEAN_HOMES` mapping
+  // (map-topic.ts), so all of them resolve straight off the mod stream —
+  // there are no `TELEMACHUS_KNOWN_GAPS` left for CurrentOrbit and nothing
+  // falls back to the legacy Telemachus source.
   //   - sma/eccentricity/inclination/argumentOfPeriapsis -> raw `vessel.orbit.*`
   //   - trueAnomaly/period + Ap/Pe/ApR/PeR/timeToAp/timeToPe (via
   //     `useOrbitElements`) -> derived `vessel.state.*` (deriveVesselState,
-  //     landed in the SharedLib phase)
+  //     via `@ksp-gonogo/sitrep-client`)
   //   - referenceBody/v.body -> derived `vessel.state.referenceBodyName` /
   //     `parentBodyName` (index -> name resolution against `system.bodies`)
   // Connectivity indicator: `o.sma` is the representative topic (its resolved

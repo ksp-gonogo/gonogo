@@ -12,8 +12,8 @@ import kerbinSeaLevel from "./__fixtures__/kerbin-sea-level.json";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * AtmosphereProfile's M3 batch-2 behavior-preservation golden dual-run
- * (mirrors `ThermalStatus/dual-run.test.tsx`, batch 1): the SAME
+ * AtmosphereProfile's behavior-preservation golden dual-run
+ * (mirrors `ThermalStatus/dual-run.test.tsx`): the SAME
  * altitude/atmosphere state, rendered once off the legacy `DataSource` and
  * once off the stream, must produce byte-identical DOM at `delay=0`.
  *
@@ -23,7 +23,7 @@ import { AtmosphereProfileComponent } from "./index";
  * actually surfaces the MAPPED values (`v.altitude` -> DERIVED
  * `vessel.state.altitudeAsl`, `v.atmosphericDensity` -> raw `vessel.
  * flight.atmDensity`, `v.atmosphericTemperature`/`v.externalTemperature`
- * (UN-GAPPED in P4a) -> raw `vessel.flight.atmosphericTemperature` /
+ * -> raw `vessel.flight.atmosphericTemperature` /
  * `vessel.flight.externalTemperature`) — renders on both legs. `v.body`
  * (GAPPED — needs a display-map subtopic) reads off a legacy AUX source in
  * the stream leg; the pressure curve itself is entirely a function of the
@@ -48,8 +48,7 @@ describe("AtmosphereProfile — behavior-preservation golden dual-run (delay=0)"
 
     const streamFixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (M3 vessel-state-extend) — see the matching
-      // note in stream.test.tsx.
+      // is parent-channel-scoped — see the matching note in stream.test.tsx.
       carriedChannels: [
         "vessel.orbit",
         "vessel.flight",

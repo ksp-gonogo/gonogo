@@ -11,7 +11,7 @@ import reentryWarning from "./__fixtures__/reentry-warning.json";
 import { ThermalStatusComponent } from "./index";
 
 /**
- * ThermalStatus's M3 batch-1 behavior-preservation golden dual-run (mirrors
+ * ThermalStatus's behavior-preservation golden dual-run (mirrors
  * `WarpControl/dual-run.test.tsx`, the pilot): the SAME thermal state,
  * rendered once off the legacy `DataSource` and once off the stream, must
  * produce byte-identical DOM at `delay=0`.

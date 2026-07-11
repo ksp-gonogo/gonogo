@@ -24,7 +24,7 @@ describe("useStream", () => {
       t.emit("v.alt", 123);
     });
     // `TelemetryProvider` coalesces `beginFrame()` to the next animation
-    // frame (M2 finalization Fix 1) rather than minting one per ingest, so
+    // frame rather than minting one per ingest, so
     // the re-render lands one frame after the emit, not synchronously.
     await waitFor(() => expect(screen.getByText("alt:123")).toBeTruthy());
   });

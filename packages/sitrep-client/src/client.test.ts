@@ -44,7 +44,7 @@ class FakeClock implements Clock {
 /**
  * Minimal `Transport` test double that predicts a fixed `etaConfirm` and
  * lets the test deliver responses on demand — `StubTransport` deliberately
- * doesn't implement `predictConfirmEta` (that's the M2 shape under test
+ * doesn't implement `predictConfirmEta` (that shape is covered under test
  * elsewhere), and its microtask-based auto-response can't be held open long
  * enough to exercise the loss-inference window.
  */

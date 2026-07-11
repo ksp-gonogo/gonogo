@@ -6,7 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * The M3 mechanical-tail-batch stream test-adapter proof for MapView —
+ * The stream test-adapter proof for MapView —
  * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
  * `TimelineStore` pipeline via `StubTransport`; no legacy `DataSource` is
  * registered anywhere in this file.
@@ -21,8 +21,8 @@ import { MapViewComponent } from "./index";
  *   `land.predictedLon`, `a.physicsMode`, `o.encounterExists` (plus
  *   `OrbitalEventChips`'s own `o.encounterBody`/`o.encounterTime`, a
  *   separate shared-component read site). The per-key `TelemetryRow`/
- *   `CoverageRow` readouts and every `scan.*` SCANsat channel are out of
- *   M1/M2/M3 scope — `mapTopic` has no entry for them, so `useDataValue`
+ *   `CoverageRow` readouts and every `scan.*` SCANsat channel are entirely
+ *   unmapped — `mapTopic` has no entry for them, so `useDataValue`
  *   falls back to legacy automatically regardless of which dynamic key is
  *   selected.
  *
@@ -39,9 +39,9 @@ describe("MapView — genuinely runs off the stream (M3 mechanical-tail batch)",
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (M3 vessel-state-extend grew
-      // vesselStateChannel.inputs to four) — altitudeAsl needs all four
-      // carried even though it doesn't itself read the two new ones.
+      // is parent-channel-scoped (vesselStateChannel.inputs grew to four) —
+      // altitudeAsl needs all four carried even though it doesn't itself
+      // read the two new ones.
       carriedChannels: [
         "vessel.orbit",
         "vessel.flight",

@@ -14,8 +14,8 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * SystemView post-R6 de-Telemachus. The widget's orbit / target / encounter /
- * apsis reads + view-UT now come off the streamed `vessel.*` / `system.bodies`
+ * SystemView reads off the stream, not Telemachus. The widget's orbit / target /
+ * encounter / apsis reads + view-UT now come off the streamed `vessel.*` / `system.bodies`
  * Topics via the canonical `useTelemetry(TopicId)` hook + `useViewUt`, with the
  * derived scalars (trueAnomaly / next-apsis / encounter) reconstructed
  * client-side from `vessel.orbit`'s elements — genuinely running off a real

@@ -10,7 +10,7 @@ import {
 } from "./propagation";
 
 /**
- * Unit coverage for the R6 client-side orbit derivations (`propagation.ts`):
+ * Unit coverage for the client-side orbit derivations (`propagation.ts`):
  * closest-approach solve (`o.closestTgtApprUT`), state-vector→elements
  * round-trip + post-burn maneuver preview (`o.maneuverNodes`), and the
  * patched-conic chain reconstruction (`o.orbitPatches`). All bottom out in

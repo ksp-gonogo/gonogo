@@ -9,11 +9,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
 /**
- * KeplerPeriod's R6 Wave-1 behavior test. This was a fork↔stream parity
+ * KeplerPeriod's behavior test. This was a fork↔stream parity
  * dual-run back when both `useDataValue` reads were GAPPED and the widget
  * stayed 100% legacy — the stream leg had to feed the gapped keys through a
- * legacy `"data"` `MockDataSource` because nothing streamed. The SharedLib
- * phase un-gapped `v.body`/`o.referenceBody` onto the SDK-derived
+ * legacy `"data"` `MockDataSource` because nothing streamed. `v.body`/
+ * `o.referenceBody` are now un-gapped onto the SDK-derived
  * `vessel.state.parentBodyName`/`referenceBodyName` display maps, so the
  * legacy MockDataSource leg is dropped: the widget now feeds entirely from
  * the real stream pipeline (`TelemetryProvider` + `StubTransport`), and this

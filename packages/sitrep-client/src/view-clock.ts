@@ -4,22 +4,22 @@ export type ViewClockMode = "confirmed" | "predicted";
 /**
  * Whether a read sits at-or-before the certainty horizon (`"confirmed"`: a
  * delivered sample or an honest interpolation between two of them) or past
- * it (`"predicted"`: a propagated/held-last estimate — M2 design §3.3). Rides
+ * it (`"predicted"`: a propagated/held-last estimate). Rides
  * alongside a value/status the same way `StreamStatusValue` does — see
  * `TimelineStore.sampleCertainty`.
  */
 export type Certainty = "confirmed" | "predicted";
 
 /**
- * Estimator health, used by later tasks to widen staleness margins
- * (M2 design §4.3/§7.1) — never to gate confirmation itself. T2 implements
- * only the `"locked"`/`"coasting"` split (silence-based); `"degraded"`
- * (a warp-rate change detected during silence) is deferred.
+ * Estimator health, used to widen staleness margins — never to gate
+ * confirmation itself. Only the `"locked"`/`"coasting"` split
+ * (silence-based) is implemented today; `"degraded"` (a warp-rate change
+ * detected during silence) is deferred.
  */
 export type ViewClockConfidence = "locked" | "coasting" | "degraded";
 
 export interface ViewClockOptions {
-  /** One delay authority (M2 design §1.2) — M2 default is a fixed/zero delay; later tasks swap in a real `DelayAuthority`. */
+  /** One delay authority — the default is a fixed/zero delay; a real `DelayAuthority` can be swapped in. */
   delaySeconds?: () => number;
   /** UT-per-wall-second slope. Default 1 (real-time, no warp modelling yet — a later task feeds the real `time.warp` channel). */
   warpRate?: () => number;
@@ -36,15 +36,15 @@ function defaultNowWall(): number {
 }
 
 /**
- * One per client — THE single view time (M2 design §1.2). Fits a UT↔wall
- * relationship from delivered-sample observations, but — per the design's
- * central insight (§0) — **the estimate only schedules; samples confirm**:
+ * One per client — THE single view time. Fits a UT↔wall
+ * relationship from delivered-sample observations, but the central
+ * invariant holds: **the estimate only schedules; samples confirm**:
  *
  * `confirmedEdgeUt()` is clamped to the max `validAt` actually observed via
  * `observeSample`. A wrong or fast-running estimate can therefore only ever
  * make `confirmedEdgeUt()` LOWER than the raw estimate (display latency, or
  * a too-early `HeldStale` later on) — never higher than what's actually been
- * delivered. That is the one invariant every other M2 feature (staleness,
+ * delivered. That is the one invariant every other feature (staleness,
  * media release, predicted-view) is built to never violate.
  *
  * Epoch-aware exactly like `ClientTimeline`: `observeSample`'s `epoch`
@@ -62,7 +62,7 @@ export class ViewClock {
   private lastObservedWall: number | undefined;
   /** Monotonic cursor for CONFIRMED mode only — deliberately not shared with predicted-mode reads, see `viewUt()`'s doc. */
   private lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
-  /** Manual history-scrub target (M2 design §3.2), `null` = live. Set via `scrubTo`. */
+  /** Manual history-scrub target, `null` = live. Set via `scrubTo`. */
   private scrubTarget: number | null = null;
 
   /** Which regime `viewUt()` is currently drawn from. */
@@ -72,8 +72,8 @@ export class ViewClock {
 
   /**
    * Switch between the confirmed view (`viewUt() = confirmedEdgeUt()`, the
-   * default) and the predicted-present view (`viewUt() = utNowEstimate()`,
-   * M2 design §3.3). Independent of `scrubTo` — a scrub target still wins
+   * default) and the predicted-present view (`viewUt() = utNowEstimate()`).
+   * Independent of `scrubTo` — a scrub target still wins
    * over either mode while active.
    */
   setMode(mode: ViewClockMode): void {
@@ -97,7 +97,7 @@ export class ViewClock {
       this.anchorWall = undefined;
       this.anchorUt = undefined;
       // A scrub target from the dead pre-rewind timeline must not survive
-      // (M2 design §7.6) — same per-epoch hygiene as every other reset here.
+      // — same per-epoch hygiene as every other reset here.
       this.scrubTarget = null;
     }
 
@@ -113,7 +113,7 @@ export class ViewClock {
     return this.epoch;
   }
 
-  /** One delay authority — feeds media release too (M2 design §5). */
+  /** One delay authority — feeds media release too. */
   delaySeconds(): number {
     return this.options.delaySeconds?.() ?? 0;
   }
@@ -133,7 +133,7 @@ export class ViewClock {
    * The certainty horizon: `min(utNowEstimate() - delaySeconds(), maxBufferedSampleUt + slack)`.
    * Never ahead of the max sample UT actually observed — see the class doc.
    * Returns `-Infinity` before any sample has ever been observed (nothing
-   * confirmed yet — the "resynchronizing" state after a rewind, per §3.4).
+   * confirmed yet — the "resynchronizing" state after a rewind).
    */
   confirmedEdgeUt(): number {
     if (this.maxSampleUt === Number.NEGATIVE_INFINITY)
@@ -144,7 +144,7 @@ export class ViewClock {
   }
 
   /**
-   * The certainty horizon (M2 design §3.3) — a first-class alias for
+   * The certainty horizon — a first-class alias for
    * `confirmedEdgeUt()`. A `viewUt` at-or-before this is CONFIRMED (a
    * delivered sample or an honest interpolation between two of them);
    * strictly after it is PREDICTED (propagated / held-last). It's the exact
@@ -157,7 +157,7 @@ export class ViewClock {
     return this.confirmedEdgeUt();
   }
 
-  /** Classify `ut` against the certainty horizon (M2 design §3.3) — `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). */
+  /** Classify `ut` against the certainty horizon — `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). */
   certaintyFor(ut: number): Certainty {
     return ut <= this.certaintyHorizonUt() ? "confirmed" : "predicted";
   }

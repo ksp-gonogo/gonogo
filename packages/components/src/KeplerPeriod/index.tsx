@@ -61,7 +61,7 @@ function buildPeriodCurve(
 function KeplerPeriodComponent({
   config,
 }: Readonly<ComponentProps<KeplerPeriodConfig>>) {
-  // Both reads are Wave-1 clean homes (R6 §1): `v.body` streams from the
+  // Both reads are clean stream homes: `v.body` streams from the
   // SDK-derived `vessel.state.parentBodyName` display map, `o.referenceBody`
   // from `vessel.state.referenceBodyName` (index→name resolution against
   // `system.bodies`, see `vessel-state.ts`). `useTelemetry`'s legacy two-arg

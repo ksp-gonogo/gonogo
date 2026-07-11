@@ -65,8 +65,8 @@ interface Contribution {
 
 /**
  * `parts.power` wire shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a NEW
- * capability with no legacy Telemachus analogue (M3 science/parts batch,
- * map-topic.ts). Only `totalProductionEc` is consumed today; the per-part
+ * capability with no legacy Telemachus analogue (see map-topic.ts). Only
+ * `totalProductionEc` is consumed today; the per-part
  * arrays exist on the wire for a future breakdown but aren't read here yet.
  */
 interface PartsPowerPayload {
@@ -74,8 +74,8 @@ interface PartsPowerPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4 — PowerSystems is THE worked
-// example, §4 / augment-slot-map.md "Power / resources").
+// Augment slots (PowerSystems is THE worked
+// example — see augment-slot-map.md "Power / resources").
 //
 // `power-systems.sections` — a Table/section slot in the body, below the
 // net-rate/producer-consumer readout. The canonical first filler is
@@ -89,12 +89,12 @@ interface PartsPowerPayload {
 // Kerbalism warning glyph).
 //
 // Both carry the widget's current resource focus as slot props so an augment
-// renders against the resource the operator is actually looking at (§4.4 —
-// slot-parameterised augments; the parent's context passed down). No augment
-// ships here (P3/P6) — the slots render nothing until one registers.
+// renders against the resource the operator is actually looking at —
+// slot-parameterised augments; the parent's context passed down. No augment
+// ships here yet — the slots render nothing until one registers.
 // ---------------------------------------------------------------------------
 
-/** Props both PowerSystems slots pass to their augments (spec §4.4). */
+/** Props both PowerSystems slots pass to their augments. */
 export interface PowerSystemsSlotContext {
   /**
    * The resource the widget is currently focused on (the picker/action-cycle
@@ -104,8 +104,8 @@ export interface PowerSystemsSlotContext {
   resource: string;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
-// §4.6 hybrid, declaration-merging base). Co-located here so parallel slot work
+// Declaration-merge the slot ids → props types into core's `SlotRegistry`
+// (the declaration-merging hybrid base). Co-located here so parallel slot work
 // on other widgets never collides on a shared central file. This is what types
 // `registerAugment({ augments: "power-systems.sections", … })` and
 // `<AugmentSlot name="power-systems.sections" props={…} />` against
@@ -130,14 +130,14 @@ function PowerSystemsComponent({
   );
   const liveByFlightId = usePartsLive(flightIds);
 
-  // M3 science/parts batch: `parts.power` mixed-source enrichment. The
+  // `parts.power` mixed-source enrichment. The
   // per-part Producers/Consumers/Idle breakdown above stays entirely on
   // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design —
   // no partId/flightId exists on the new wire to key a per-part breakdown
   // off). `parts.power.totalProductionEc` is a SEPARATE vessel-wide
   // measurement of the same quantity the itemized rows sum to.
   //
-  // M3 whole-branch review #3: this used to WIN over the topology-summed
+  // This measurement used to WIN over the topology-summed
   // total whenever carried, so PROD/NET (which drives a charge/consume
   // read the operator relies on) could silently contradict the itemized
   // Producers rows right below it — the widget's own tests enshrined a
@@ -195,7 +195,7 @@ function PowerSystemsComponent({
   });
 
   // Stable per-resource slot-props object so an unchanged resource selection
-  // doesn't churn mounted augments (spec §4.4). Passed to both PowerSystems
+  // doesn't churn mounted augments. Passed to both PowerSystems
   // augment slots.
   const slotProps = useMemo<PowerSystemsSlotContext>(
     () => ({ resource }),
@@ -257,7 +257,7 @@ function PowerSystemsComponent({
     [contributions],
   );
   // Single source of truth for PROD/NET: the itemized rows below, always —
-  // see the M3 whole-branch review #3 doc comment on `streamPower` above.
+  // see the doc comment on `streamPower` above.
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
@@ -513,7 +513,7 @@ function PowerSystemsComponent({
             </IdleList>
           </Section>
         )}
-        {/* Augment sections (spec §4) — e.g. a Kerbalism EC-broker breakdown —
+        {/* Augment sections — e.g. a Kerbalism EC-broker breakdown —
             compose here, below the stock producer/consumer/idle readout. Empty
             (a bare fragment) until an Uplink registers into the slot. */}
         <AugmentSlot name="power-systems.sections" props={slotProps} />
@@ -664,7 +664,7 @@ const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
         : "var(--color-surface-raised)"};
 `;
 
-/* M3 whole-branch review #3: a distinctly-bordered cell for the streamed
+/* A distinctly-bordered cell for the streamed
    `parts.power.totalProductionEc` reading, shown ONLY when it disagrees
    with the itemized PROD total — a visible "these two numbers don't match"
    signal (dashed border, muted warning tint) rather than either silently
@@ -909,7 +909,7 @@ registerComponent<PowerSystemsConfig>({
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
-  // Augment slots (spec §4). `sections` — body table/section below the stock
+  // Augment slots. `sections` — body table/section below the stock
   // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges` —
   // broad header escape-hatch. Both render nothing until an Uplink registers.
   augmentSlots: ["power-systems.sections", "power-systems.badges"],

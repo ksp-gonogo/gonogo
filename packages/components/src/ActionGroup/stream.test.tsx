@@ -12,12 +12,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
 /**
- * The M3 command-table proof for a representative toggle -> absolute widget
- * (`m3-migration-plan.md`'s watch-item, mirrored from `WarpControl/stream
- * .test.tsx`'s pilot pattern): `ActionGroupComponent` firing its SAS toggle
- * genuinely dispatches the new `vessel.control.setSas` COMMAND once that
- * command topic is promoted into the carried-channels allowlist, and falls
- * back to the unchanged legacy `execute()` when it isn't.
+ * The command-table proof for a representative toggle -> absolute widget
+ * (mirrored from `WarpControl/stream.test.tsx`): `ActionGroupComponent`
+ * firing its SAS toggle genuinely dispatches the new `vessel.control.setSas`
+ * COMMAND once that command topic is promoted into the carried-channels
+ * allowlist, and falls back to the unchanged legacy `execute()` when it isn't.
  *
  * SAS (not an AG-index like `f.ag1`) is the vehicle here on purpose:
  * `map-command.ts`'s `toggleHome`/`actionGroupHome` doc comments explain why

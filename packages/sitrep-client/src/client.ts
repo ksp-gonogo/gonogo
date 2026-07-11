@@ -72,8 +72,8 @@ export class TelemetryClient {
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
   /**
-   * `TimelineStore`s fed from this client's wire (M2 bridge task, Fix 1 item
-   * 1). A `Set`, not a single slot — nothing stops more than one screen from
+   * `TimelineStore`s fed from this client's wire. A `Set`, not a single
+   * slot — nothing stops more than one screen from
    * sharing a client, and each gets its own `TimelineStore`/`ViewClock`. In
    * practice `TelemetryProvider` attaches exactly one (the store it
    * auto-builds, or a caller-supplied one).
@@ -141,9 +141,9 @@ export class TelemetryClient {
 
   /**
    * The topics the underlying `Transport` declares it actually delivers
-   * (M3 Wave 0 carried-channels gate, `./carried-channels.ts`) — `[]` when
-   * the transport doesn't declare (`Transport.carriedChannels` omitted, e.g.
-   * `StubTransport`). `TelemetryProvider` reads this to seed its
+   * (see the carried-channels allowlist gate, `./carried-channels.ts`) —
+   * `[]` when the transport doesn't declare (`Transport.carriedChannels`
+   * omitted, e.g. `StubTransport`). `TelemetryProvider` reads this to seed its
    * carried-channels allowlist; nothing else on this class depends on it.
    */
   get declaredChannels(): readonly string[] {
@@ -151,8 +151,8 @@ export class TelemetryClient {
   }
 
   /**
-   * Feed this client's raw `stream-data` wire frames into `store` (M2 bridge
-   * task, Fix 1 item 1): from this call on, every future `stream-data`
+   * Feed this client's raw `stream-data` wire frames into `store`: from
+   * this call on, every future `stream-data`
    * message is ALSO delivered to `store.ingest(topic, point)`, in addition
    * to the existing `lastValues`/per-topic-subscriber delivery this class
    * already does — the two delivery paths are independent, neither replaces
@@ -200,11 +200,11 @@ export class TelemetryClient {
    * even a zero-latency stub must answer on a later tick, since a real
    * transport never resolves in the same call stack as the request.
    *
-   * Loss inference (D3): the client asks the transport to *predict* an
+   * Loss inference: the client asks the transport to *predict* an
    * `etaConfirm` (never computes delay itself). When the transport can't
    * predict one (`predictConfirmEta` omitted or returning `undefined`, e.g.
    * `StubTransport`), `etaConfirm` falls back to "now" and no loss timer is
-   * started — the command just waits, as at M2. When a prediction IS
+   * started — the command just waits. When a prediction IS
    * available, a loss timer is armed for `etaConfirm + LOSS_MARGIN`; if the
    * command is still `in-flight` when it fires, silence is inferred as
    * `lost` and the promise rejects. Any real settle (response or error)

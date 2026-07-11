@@ -28,10 +28,10 @@ const CarriedChannelsContext = createContext<ReadonlySet<string> | undefined>(
 /**
  * Union `additions` into `previous`, returning `previous` UNCHANGED
  * (referentially) when nothing new was added — the monotonic-growth seam
- * behind `TelemetryProvider`'s carried-channels allowlist (M3 Wave 0,
- * `m3-migration-plan.md` §Build 1: "adding a topic can only move it from
- * legacy->stream, never blank a widget"). Never used to shrink: a caller
- * whose next render passes a SMALLER explicit `carriedChannels` prop (or
+ * behind `TelemetryProvider`'s carried-channels allowlist: adding a topic
+ * can only move it from legacy->stream, never blank a widget. Never used
+ * to shrink: a caller whose next render passes a SMALLER explicit
+ * `carriedChannels` prop (or
  * whose transport's own `declaredChannels` shrinks — not expected in
  * practice, but not relied upon either) does not lose previously-carried
  * topics. This is what makes "promoting a topic" a one-way ratchet for the
@@ -55,8 +55,8 @@ function unionGrow(
  * microtask when `requestAnimationFrame` isn't available (SSR, and jsdom —
  * verified `jsdom@29` has no `requestAnimationFrame` at all, so this is the
  * path every test in this package actually exercises; there is no real-timer
- * race to make a test flaky). M2 finalization Fix 1: the coalescing primitive
- * behind `TelemetryProvider`'s ingest -> `beginFrame()` scheduling below.
+ * race to make a test flaky). The coalescing primitive behind
+ * `TelemetryProvider`'s ingest -> `beginFrame()` scheduling below.
  * Returns a cancel function.
  */
 function scheduleFrame(cb: () => void): () => void {
@@ -87,11 +87,10 @@ export interface TelemetryProviderProps {
   /** Only consulted when `store` is omitted — options for the default `ViewClock` this provider builds. */
   viewClockOptions?: ViewClockOptions;
   /**
-   * Explicit per-topic promotion list (M3 Wave 0 carried-channels gate,
-   * `m3-migration-plan.md` §5.1/§Build 1, `./carried-channels.ts`) — the
-   * "dev-first per-topic opt-in" half of the allowlist, alongside
-   * `client.declaredChannels` (the transport's own served-channel
-   * declaration). Union of the two is what `useDataValue`'s shim
+   * Explicit per-topic promotion list (the carried-channels allowlist gate,
+   * `./carried-channels.ts`) — the "dev-first per-topic opt-in" half of the
+   * allowlist, alongside `client.declaredChannels` (the transport's own
+   * served-channel declaration). Union of the two is what `useDataValue`'s shim
    * (`@ksp-gonogo/core`) consults before ever routing a MAPPED topic to the
    * stream instead of legacy. Monotonic: a topic named here (or ever
    * declared by the transport) stays carried for the life of this mounted
@@ -102,15 +101,14 @@ export interface TelemetryProviderProps {
 }
 
 /**
- * Supplies a `TelemetryClient` — and, since the M2 bridge task, a
- * `TimelineStore` fed from that client's wire — to the component tree via
- * context.
+ * Supplies a `TelemetryClient` — and a `TimelineStore` fed from that
+ * client's wire — to the component tree via context.
  *
- * **The bridge (M2 bridge task, Fix 1):** before this task, nothing in
- * production ever constructed a `TimelineStore` or registered a derived
- * channel on one, so `vessel.state.*` (and any future derived channel) was
- * permanently unreachable through `useStream`/`useDataValue` even once a
- * provider was mounted — the derivation machinery in `vessel-state.ts`/
+ * **The bridge:** without this provider, nothing in production ever
+ * constructed a `TimelineStore` or registered a derived channel on one, so
+ * `vessel.state.*` (and any future derived channel) was permanently
+ * unreachable through `useStream`/`useDataValue` even once a provider was
+ * mounted — the derivation machinery in `vessel-state.ts`/
  * `timeline-store.ts` existed but was wired to nothing. This provider is
  * what closes that gap:
  *
@@ -120,8 +118,8 @@ export interface TelemetryProviderProps {
  *   as more land) on it.
  * - `client.attachStore(store)` feeds every incoming `stream-data` wire
  *   frame into the store's per-topic timelines.
- * - `client.subscribeStore(...)` schedules a `store.beginFrame()` (M2
- *   finalization Fix 1) via `scheduleFrame` — a `requestAnimationFrame`
+ * - `client.subscribeStore(...)` schedules a `store.beginFrame()` via
+ *   `scheduleFrame` — a `requestAnimationFrame`
  *   (falling back to a microtask off the main thread when rAF isn't
  *   available). Multiple ingests landing before that scheduled callback
  *   fires are coalesced into the ONE `beginFrame()` call it makes, honoring
@@ -144,26 +142,24 @@ export function TelemetryProvider({
   viewClockOptions,
   carriedChannels: carriedChannelsProp,
 }: TelemetryProviderProps) {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency (M2 finalization Fix 2) for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns — a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below — see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const { store, delayAuthority } = useMemo(() => {
     if (providedStore) return { store: providedStore, delayAuthority: null };
-    // Auto-built store must rebuild on `client` identity change (M2
-    // finalization Fix 2, bridge review Important #1): before this fix,
-    // `client` was deliberately omitted from this memo's deps (the comment
-    // above used to argue the store "isn't tied to a specific client
-    // instance") — but an AUTO-BUILT store has no owner other than this
-    // provider, so a reconnect/client-swap that hands in a fresh
-    // `TelemetryClient` left the old store (with its topics/timelines still
-    // keyed off the old client's wire) permanently attached instead of
-    // resetting, unlike pre-bridge behavior. A caller-`providedStore` is
-    // still exempt — that store is the caller's own, its lifetime is
-    // deliberately independent of `client` (see the `attachStore`/
-    // `subscribeStore` effects below, which still re-wire IT to a new
-    // `client` without rebuilding it).
-    // Streaming-delay spec §7.3 Step 4 — the SINGLE delay-wiring point. The
-    // auto-built clock's `delaySeconds` reads the `DelayAuthority` (fed from
-    // `comms.delay` by the effect below) instead of the `() => 0` stub, so
-    // the certainty horizon / predicted-present lead is sized to the real
+    // Auto-built store must rebuild on `client` identity change: `client`
+    // was previously omitted from this memo's deps (on the theory that the
+    // store "isn't tied to a specific client instance") — but an
+    // AUTO-BUILT store has no owner other than this provider, so a
+    // reconnect/client-swap that hands in a fresh `TelemetryClient` would
+    // leave the old store (with its topics/timelines still keyed off the
+    // old client's wire) permanently attached instead of resetting. A
+    // caller-`providedStore` is still exempt — that store is the caller's
+    // own, its lifetime is deliberately independent of `client` (see the
+    // `attachStore`/ `subscribeStore` effects below, which still re-wire IT
+    // to a new `client` without rebuilding it).
+    // The SINGLE delay-wiring point. The auto-built clock's `delaySeconds`
+    // reads the `DelayAuthority` (fed from `comms.delay` by the effect
+    // below) instead of the `() => 0` stub, so the certainty horizon /
+    // predicted-present lead is sized to the real
     // one-way light-time. This is legibility over the already-server-delayed
     // wire, NOT enforcement (the mod's reveal gate already withheld the
     // samples). A caller who passes an explicit `viewClockOptions.delaySeconds`
@@ -182,15 +178,15 @@ export function TelemetryProvider({
     return { store: built, delayAuthority: authority };
   }, [providedStore, client]);
 
-  // The carried-channels allowlist (M3 Wave 0, `./carried-channels.ts`):
-  // seeded from `client.declaredChannels` (the transport's own served-topic
+  // The carried-channels allowlist (see `./carried-channels.ts`): seeded
+  // from `client.declaredChannels` (the transport's own served-topic
   // declaration) unioned with the explicit `carriedChannels` promotion-list
   // prop. Persists and only ever GROWS across renders of this same provider
-  // INSTANCE (`unionGrow` — the one-way ratchet `m3-migration-plan.md`
-  // §Build 1 calls for: "monotonic... adding a topic can only move it from
-  // legacy->stream, never blank a widget"), even if a later render's
-  // `carriedChannelsProp` shrinks. Only resets on a genuine `client` identity
-  // change (`carriedClientRef` tracks which client the current set belongs
+  // INSTANCE (`unionGrow` — the one-way ratchet: "monotonic... adding a
+  // topic can only move it from legacy->stream, never blank a widget"),
+  // even if a later render's `carriedChannelsProp` shrinks. Only resets on
+  // a genuine `client` identity change (`carriedClientRef` tracks which
+  // client the current set belongs
   // to) — a fresh session, matching the auto-built store's own
   // client-identity reset above; a client swap starts a new allowlist rather
   // than carrying stale entries from a transport that's no longer attached.
@@ -219,8 +215,8 @@ export function TelemetryProvider({
   }, [client, carriedChannelsProp]);
 
   useEffect(() => client.attachStore(store), [client, store]);
-  // Streaming-delay spec §7.3 Step 4: keep the auto-built clock's delay value
-  // current by subscribing the `DelayAuthority` to `comms.delay`. Skipped when
+  // Keep the auto-built clock's delay value current by subscribing the
+  // `DelayAuthority` to `comms.delay`. Skipped when
   // the caller supplied their own `store` (they own its clock's delay wiring),
   // matching the auto-built store's client-identity lifetime above.
   useEffect(() => {
@@ -228,8 +224,8 @@ export function TelemetryProvider({
     return delayAuthority.attach(client);
   }, [client, delayAuthority]);
   useEffect(() => {
-    // M2 finalization Fix 1: coalesce to (at most) one `beginFrame()` per
-    // animation-frame tick, instead of one per `stream-data` message — see
+    // Coalesce to (at most) one `beginFrame()` per animation-frame tick,
+    // instead of one per `stream-data` message — see
     // `scheduleFrame` and this component's own doc comment above.
     let scheduled = false;
     let cancelScheduled: (() => void) | null = null;
@@ -265,10 +261,10 @@ export function TelemetryProvider({
 }
 
 /**
- * Derived channels every `TelemetryProvider`-built default store registers
- * (M2 bridge task). A caller that needs a channel NOT in this list yet (or
- * wants to omit one) supplies its own pre-built `store` prop instead of
- * relying on the default.
+ * Derived channels every `TelemetryProvider`-built default store registers.
+ * A caller that needs a channel NOT in this list yet (or wants to omit one)
+ * supplies its own pre-built `store` prop instead of relying on the
+ * default.
  */
 const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] = [
   vesselStateChannel as DerivedChannelDefinition<unknown>,
@@ -291,7 +287,7 @@ export function useTelemetryClient(): TelemetryClient {
  * `TelemetryProvider` is mounted, instead of throwing.
  *
  * Exists for compatibility shims (`@ksp-gonogo/core`'s `useDataValue` →
- * `useStream` migration, M2 Task 7) that must keep working — falling back to
+ * `useStream` migration) that must keep working — falling back to
  * a legacy code path — during the migration window before every screen
  * mounts a `TelemetryProvider`. Ordinary SDK-native call sites should keep
  * using `useTelemetryClient` so a missing provider fails loudly.
@@ -301,9 +297,9 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 }
 
 /**
- * Reads the `TimelineStore` supplied by the nearest `TelemetryProvider` (M2
- * bridge task). Always mounted alongside the client by `TelemetryProvider`
- * (auto-built if the `store` prop was omitted) — throws if no provider is in
+ * Reads the `TimelineStore` supplied by the nearest `TelemetryProvider`.
+ * Always mounted alongside the client by `TelemetryProvider` (auto-built
+ * if the `store` prop was omitted) — throws if no provider is in
  * the tree, matching `useTelemetryClient`'s contract.
  */
 export function useTelemetryStore(): TimelineStore {
@@ -329,12 +325,12 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
 
 /**
  * The nearest `TelemetryProvider`'s **one** `ViewClock` — THE single delay
- * authority (M2 design §1.2). Every surface that must stay delay-consistent
- * with telemetry (staleness, predicted-view, and crucially the kerbcast media
- * `DelayedPlayoutBuffer`, M2 design §5) reads its release/certainty edge off
+ * authority. Every surface that must stay delay-consistent with telemetry
+ * (staleness, predicted-view, and crucially the kerbcast media
+ * `DelayedPlayoutBuffer`) reads its release/certainty edge off
  * THIS clock instance, never a second one it constructs itself. A media frame
  * and a telemetry sample stamped the same UT therefore surface at the same
- * `confirmedEdgeUt()` crossing — the §0 common-mode property.
+ * `confirmedEdgeUt()` crossing — a shared common-mode property.
  *
  * The returned `ViewClock` is structurally the `DelayClockLike` surface
  * (`confirmedEdgeUt` + `onFrame`) the media buffer depends on, so it can be
@@ -370,7 +366,7 @@ export function useViewClockOptional(): ViewClockView | undefined {
 
 /**
  * The current view time (UT seconds) as a reactive value — the ergonomic
- * "read view-UT directly" surface widgets need after the R6 `t.universalTime`
+ * "read view-UT directly" surface widgets need after the `t.universalTime`
  * DROP (it was never a stream; it IS the SDK view time the propagation already
  * evaluates at). Subscribes to the shared `ViewClock`'s per-frame `onFrame`
  * tick and returns the frozen `viewUt` for the current frame (respecting
@@ -403,7 +399,7 @@ export function useViewUt(): number | undefined {
 
 /**
  * Reads the carried-channels allowlist supplied by the nearest
- * `TelemetryProvider` (M3 Wave 0, `./carried-channels.ts`) — throws if no
+ * `TelemetryProvider` (see `./carried-channels.ts`) — throws if no
  * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary
  * SDK-native call sites needing to know "is this topic actually live right
  * now" should combine this with `isTopicCarried` rather than reading the raw

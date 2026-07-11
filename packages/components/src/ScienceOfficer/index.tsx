@@ -37,12 +37,11 @@ export interface Instrument {
 }
 
 /**
- * Slot context for `science-officer.sections` — the per-instrument-row slot
- * (Uplink architecture spec §4, augment-slot-map). The row slot passes down the
- * `Instrument` it sits beside so an augment (e.g. an on-vessel-lab Kerbalism
- * experiment table, the locked alternate to `deployed-science`) can render a
- * per-instrument extension scoped to exactly that instrument (spec §4.4:
- * slot-parameterised augments).
+ * Slot context for `science-officer.sections` — the per-instrument-row slot.
+ * The row slot passes down the `Instrument` it sits beside so an augment
+ * (e.g. an on-vessel-lab Kerbalism experiment table, the locked alternate to
+ * `deployed-science`) can render a per-instrument extension scoped to
+ * exactly that instrument (a slot-parameterised augment).
  */
 export interface ScienceOfficerInstrumentSlotContext {
   /** The instrument the augmented row is rendering. */
@@ -51,11 +50,10 @@ export interface ScienceOfficerInstrumentSlotContext {
 
 /**
  * Slot context for `science-officer.badges` — the header escape-hatch slot next
- * to the title. Deliberately broad (augment-slot-map "badges-as-broad-escape-
- * hatch"): it carries the whole instrument list (`null` while awaiting
- * telemetry, `[]` for a vessel with no instruments) plus the total stored
- * science so a header augment can summarise vessel-wide science state without
- * re-reading the topics itself.
+ * to the title. Deliberately broad: it carries the whole instrument list
+ * (`null` while awaiting telemetry, `[]` for a vessel with no instruments)
+ * plus the total stored science so a header augment can summarise
+ * vessel-wide science state without re-reading the topics itself.
  */
 export interface ScienceOfficerSlotContext {
   /** Parsed instrument list, or `null` before telemetry arrives. */
@@ -64,9 +62,9 @@ export interface ScienceOfficerSlotContext {
   dataAmount: number;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (spec
-// §4.6 hybrid). Co-located here so parallel slot work on other widgets never
-// collides on a shared central file. This is what types
+// Declaration-merge the slot ids → props types into core's `SlotRegistry`.
+// Co-located here so parallel slot work on other widgets never collides on
+// a shared central file. This is what types
 // `registerAugment({ augments: "science-officer.sections", … })` and
 // `<AugmentSlot name="science-officer.sections" props={…} />` against the
 // widget's own context types rather than the loose `Record<string, unknown>`
@@ -83,8 +81,8 @@ declare module "@ksp-gonogo/core" {
  *
  * - Legacy Telemachus/GonogoTelemetry: `{ partId: number, partTitle, expId,
  *   deployed, hasData, rerunnable, inoperable }`.
- * - New SDK `science.instruments` (P4a shared-map batch, mapped onto this
- *   same widget-facing key via `map-topic.ts`):
+ * - New SDK `science.instruments` (mapped onto this same widget-facing key
+ *   via `map-topic.ts`):
  *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s `InstrumentEntry` — `{
  *   partId: string (part.flightID.ToString()), partName, experimentId,
  *   title, deployed, inoperable, rerunnable, resettable, dataIsCollectable
@@ -143,10 +141,9 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
 
 /**
  * Sums `dataAmount` across every entry of `sci.experiments`/
- * `science.experiments` (D3, P4a client-derivations batch) — the same
- * vessel-wide aggregate the old `sci.dataAmount` Telemachus key carried,
- * derived instead of read as a separate pre-aggregated field (no such field
- * exists on the new wire).
+ * `science.experiments` — the same vessel-wide aggregate the old
+ * `sci.dataAmount` Telemachus key carried, derived instead of read as a
+ * separate pre-aggregated field (no such field exists on the new wire).
  */
 export function sumExperimentDataAmount(raw: unknown): number {
   if (!Array.isArray(raw)) return 0;
@@ -174,16 +171,15 @@ export interface LabStatus {
 }
 
 /**
- * Parses `science.lab` (M3 science/parts batch, `mod/Sitrep.Host/
- * ScienceViewProvider.cs`'s `BuildLab`) — a NEW capability, no legacy
- * Telemachus/GonogoTelemetry analogue existed for Mobile Processing Lab
- * status, so this is a straight whole-topic raw-array read (same
- * `parts.power`/`parts.robotics` "key == topic" precedent in
- * `map-topic.ts`), not a migration of an existing `sci.*` field. Each entry
- * is a lab part on the active vessel; an idle-but-operational lab (crewed,
- * no data loaded) is a normal, valid state — `dataStored`/`processingData`/
- * `scienceRate` all sitting at zero doesn't mean "no lab", it means "lab
- * with nothing to process yet".
+ * Parses `science.lab` (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
+ * `BuildLab`) — a NEW capability, no legacy Telemachus/GonogoTelemetry
+ * analogue existed for Mobile Processing Lab status, so this is a straight
+ * whole-topic raw-array read (same `parts.power`/`parts.robotics`
+ * "key == topic" precedent in `map-topic.ts`), not a migration of an
+ * existing `sci.*` field. Each entry is a lab part on the active vessel; an
+ * idle-but-operational lab (crewed, no data loaded) is a normal, valid
+ * state — `dataStored`/`processingData`/`scienceRate` all sitting at zero
+ * doesn't mean "no lab", it means "lab with nothing to process yet".
  */
 export function parseLab(raw: unknown): LabStatus[] | null {
   if (raw === null || raw === undefined) return null;
@@ -222,20 +218,20 @@ function ScienceOfficerComponent({
   // the stream the same way — no code change needed here either, since
   // execute() already goes through the shim regardless of route.
   const instrumentsRaw = useDataValue("data", "sci.instruments");
-  // D3 (P4a): sci.dataAmount stays gapped on the wire (no pre-aggregated
-  // field) — derive the vessel-wide total client-side from the same
-  // already-migrated sci.experiments read ScienceBench uses (sci.experiments
-  // -> science.experiments, map-topic.ts), same aggregate semantics as the
-  // old Telemachus key ("Total science data (mits)", telemachusMeta.ts).
+  // sci.dataAmount stays gapped on the wire (no pre-aggregated field) —
+  // derive the vessel-wide total client-side from the same already-migrated
+  // sci.experiments read ScienceBench uses (sci.experiments ->
+  // science.experiments, map-topic.ts), same aggregate semantics as the old
+  // Telemachus key ("Total science data (mits)", telemachusMeta.ts).
   const experimentsRaw = useDataValue("data", "sci.experiments");
   const instruments = parseInstruments(instrumentsRaw);
   const execute = useExecuteAction("data");
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
-  // M3 science/parts batch: science.lab is a NEW capability (no legacy
-  // sci.instruments equivalent — the Mobile Processing Lab is a different
-  // part from the crew-report/goo/barometer instruments sci.instruments
-  // tracks), read independently of the instrument list above.
+  // science.lab is a NEW capability (no legacy sci.instruments equivalent —
+  // the Mobile Processing Lab is a different part from the crew-report/goo/
+  // barometer instruments sci.instruments tracks), read independently of
+  // the instrument list above.
   const labRaw = useDataValue("data", "science.lab");
   const labs = parseLab(labRaw);
   const labStreamStatus = useDataStreamStatus("data", "science.lab");
@@ -286,7 +282,7 @@ function ScienceOfficerComponent({
       <Cluster>
         <PanelTitle>SCIENCE LAB</PanelTitle>
         <StreamStatusBadge status={labStreamStatus} />
-        {/* Header escape-hatch slot (spec §4) — a broad badge/summary augment
+        {/* Header escape-hatch slot — a broad badge/summary augment
             composes next to the title. Empty (renders nothing) until an Uplink
             registers into it. */}
         <AugmentSlot
@@ -320,12 +316,12 @@ function ScienceOfficerComponent({
                       void execute(`sci.transmit[${partId}]`)
                     }
                   />
-                  {/* Per-instrument section slot (spec §4.4) — passes this
-                      instrument down so an on-vessel-lab augment can extend
-                      the row. Empty until an Uplink registers into it. Kept
-                      here in the widget rather than inside the kit row: the
-                      slot is a framework concern and the row stays
-                      data/framework-free (§1). */}
+                  {/* Per-instrument section slot — passes this instrument
+                      down so an on-vessel-lab augment can extend the row.
+                      Empty until an Uplink registers into it. Kept here in
+                      the widget rather than inside the kit row: the slot is
+                      a framework concern and the row stays
+                      data/framework-free. */}
                   <AugmentSlot
                     name="science-officer.sections"
                     props={{ instrument: inst }}
@@ -487,8 +483,9 @@ const Body = styled(ScrollArea)<{ $row?: boolean }>`
 // `InstrumentList` resets `<ul>` browser chrome (list-style/margin/padding)
 // and stacks the per-instrument rows with the same 2px gap the kit's
 // `Section` uses one level up — the kit has no `<ul>`-reset primitive yet
-// (P0 covers the row, not the list it sits in), so this stays local rather
-// than risk the visual-gate diff of dropping list semantics altogether.
+// (only the row itself is covered, not the list it sits in), so this stays
+// local rather than risk the visual-gate diff of dropping list semantics
+// altogether.
 const InstrumentList = styled.ul`
   list-style: none;
   margin: 0;

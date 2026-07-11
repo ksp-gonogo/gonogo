@@ -1,6 +1,6 @@
 /**
- * Client-side science aggregation off the `science.experiments` array (R6
- * §1b / §0.0). The raw per-experiment array is a clean home on the new wire
+ * Client-side science aggregation off the `science.experiments` array.
+ * The raw per-experiment array is a clean home on the new wire
  * (`ScienceViewProvider`'s `ExperimentEntry[]` — mirrored here defensively as
  * `unknown`), so the two legacy pre-aggregated scalars ScienceBench/
  * ScienceOfficer read (`sci.count` / `sci.dataAmount`) and the
@@ -87,8 +87,8 @@ export interface DerivedBreakdownEntry {
 
 /**
  * Derive the per-subject breakdown client-side from the `science.experiments`
- * array — the R6 §0.0 `sci.experimentBreakdown` DROP (drop the precomputed
- * enrichment, derive from the raw inputs). `biome` comes from each entry's
+ * array, dropping the precomputed `sci.experimentBreakdown` enrichment in
+ * favour of deriving it from the raw inputs. `biome` comes from each entry's
  * `location`, `situation` from `situation`, `remainingPotential` from
  * `scienceValueRatio`. Sorted by `remainingPotential` descending (subjects
  * with the most science left to extract first), matching the old breakdown's

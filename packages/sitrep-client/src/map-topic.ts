@@ -1,21 +1,20 @@
 /**
  * The `mapTopic` compatibility shim's data: old-Telemachus-key → new SDK
- * stream topic (M2 design §6 "the `mapTopic` shim"; source of truth is
- * `m1-provider-taxonomy-design.md` §5's migration map, cross-checked against
- * every widget's real `dataRequirements`/`useDataValue` call in
- * `packages/components/src` — see `map-topic.coverage.test.ts` in
- * `@ksp-gonogo/core`, which enumerates the live widget key set and asserts every
- * key is either mapped here or listed in `TELEMACHUS_KNOWN_GAPS`).
+ * stream topic, cross-checked against every widget's real
+ * `dataRequirements`/`useDataValue` call in `packages/components/src` — see
+ * `map-topic.coverage.test.ts` in `@ksp-gonogo/core`, which enumerates the
+ * live widget key set and asserts every key is either mapped here or listed
+ * in `TELEMACHUS_KNOWN_GAPS`.
  *
  * Two independent concerns live in this file:
  *
- * 1. **`redirectKinematicSubtopic`** (T3's original single-arg `mapTopic`,
+ * 1. **`redirectKinematicSubtopic`** (originally a single-arg `mapTopic`,
  *    renamed) — a narrow, sourceId-agnostic safety net that redirects a
  *    handful of *new-SDK* raw topic strings onto the derived `vessel.state.*`
  *    surface, so nothing that already speaks the new topic namespace can
- *    reintroduce the dual-altitude wart (M1 §6.2, V-12). Identity fallback:
+ *    reintroduce the dual-altitude wart. Identity fallback:
  *    safe to call on any topic string.
- * 2. **`mapTopic(sourceId, key)`** (this task, M2 Task 7) — the M3
+ * 2. **`mapTopic(sourceId, key)`** — the
  *    `useDataValue` migration table: old widget-facing `(dataSourceId, key)`
  *    pairs (today always `("data", "<Telemachus key>")`) → the new stream
  *    topic string, or `undefined` when there is no new home yet. `undefined`
@@ -27,7 +26,7 @@
  *    something sane).
  *
  * `sourceId === "data"` (the Telemachus `DataSource`) is the main table.
- * `sourceId === "kos"` is ALSO routed now (U3 kOS slice): the mod publishes
+ * `sourceId === "kos"` is ALSO routed: the mod publishes
  * native `kos.processors` push telemetry plus the dynamic
  * `kos.compute.<id>.<field>` compute namespace, so those topics DO exist on
  * the wire. `"kerbcast"`/other sources remain deliberately NOT routed — their
@@ -37,9 +36,9 @@
  * live `DataSource`).
  */
 
-/** Kinematics → `vessel.state.*` routing (M1 §6.2/§8.2's V-12-prevention
- * rule: "`mapTopic` points kinematics at `vessel.state.*` derived subtopics
- * from the FIRST migrated widget"). Two input shapes are handled:
+/** Kinematics → `vessel.state.*` routing: `mapTopic` points kinematics at
+ * `vessel.state.*` derived subtopics from the first migrated widget. Two
+ * input shapes are handled:
  * - **Short semantic keys** (`"altitude"`, `"velocity"`, `"position"`,
  *   `"orbitalSpeed"`) — forward-compatible shorthand some SDK-native callers
  *   may use.
@@ -77,7 +76,7 @@ export function redirectKinematicSubtopic(topic: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// The M3 `useDataValue` migration table (M2 Task 7).
+// The `useDataValue` migration table.
 // ---------------------------------------------------------------------------
 
 /**
@@ -85,22 +84,21 @@ export function redirectKinematicSubtopic(topic: string): string {
  * calls in `packages/components/src`) → new stream topic. "derived" entries
  * are SDK-computed values (elements propagated at view-UT, quality-picked,
  * etc.) exposed as plain topic strings via `vessel.state`'s `fields: true`
- * subtopics (M2 §2.4) — `useStream` doesn't distinguish raw from derived, so
+ * subtopics — `useStream` doesn't distinguish raw from derived, so
  * the shim needs zero selector machinery.
  *
- * Source: `m1-provider-taxonomy-design.md` §5.1 "Clean homes", extended with
- * every literal key actually found in `packages/components/src`'s
- * `dataRequirements` arrays and `useDataValue("data", …)` call sites.
+ * Extended with every literal key actually found in
+ * `packages/components/src`'s `dataRequirements` arrays and
+ * `useDataValue("data", …)` call sites.
  */
 export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
-  // --- vessel.state (derived, quality-picked kinematics — V-12) ---
+  // --- vessel.state (derived, quality-picked kinematics) ---
   "v.altitude": "vessel.state.altitudeAsl",
   "v.orbitalVelocity": "vessel.state.orbitalSpeed",
   "o.orbitalSpeed": "vessel.state.orbitalSpeed",
 
-  // --- vessel.state (M3 vessel-state-extend: derivable orbital fields —
-  // un-gapped now that deriveVesselState actually produces them, see
-  // vessel-state.ts) ---
+  // --- vessel.state (derivable orbital fields — mapped on the wire now
+  // that deriveVesselState actually produces them, see vessel-state.ts) ---
   "v.missionTime": "vessel.state.met",
   "o.ApA": "vessel.state.apoapsisAlt",
   "o.PeA": "vessel.state.periapsisAlt",
@@ -118,9 +116,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.dynamicPressure": "vessel.flight.dynamicPressureKPa",
   "v.mach": "vessel.flight.mach",
   "v.atmosphericDensity": "vessel.flight.atmDensity",
-  // v.atmosphericTemperature / v.externalTemperature UN-GAPPED (P4a
-  // shared-map batch, G-11): plain raw fields on VesselFlight, not captured
-  // by the original M1 walk.
+  // v.atmosphericTemperature / v.externalTemperature are mapped on the wire:
+  // plain raw fields on VesselFlight, not captured by the original raw-field
+  // walk.
   "v.atmosphericTemperature": "vessel.flight.atmosphericTemperature",
   "v.externalTemperature": "vessel.flight.externalTemperature",
 
@@ -139,8 +137,8 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.identity ---
   "v.name": "vessel.identity.name",
 
-  // --- vessel.state (derived body-NAME display maps — Step-2 migration task
-  // 1). The mod's new homes for these are `vessel.identity.parentBodyIndex` /
+  // --- vessel.state (derived body-NAME display maps). The mod's new homes
+  // for these are `vessel.identity.parentBodyIndex` /
   // `vessel.orbit.referenceBodyIndex`, both `int?` INDEXES into
   // `system.bodies`, NOT the body-NAME strings ~14 widgets read and feed to
   // `getBody(id: string)`. `deriveVesselState` (vessel-state.ts) now resolves
@@ -171,9 +169,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "comm.controlStateName": "vessel.state.commsControlStateName",
   "comm.controlState": "vessel.state.commsControlStateOrdinal",
 
-  // --- vessel.state (derived, client-side shape-mismatch migration batch 2):
-  // three more display maps + one range-rate derivation off already-served
-  // channels, same pattern as the enum maps above.
+  // --- vessel.state (derived, client-side shape-mismatch fixes): three more
+  // display maps + one range-rate derivation off already-served channels,
+  // same pattern as the enum maps above.
   //  - encounterExists/encounterBody/encounterTime  <- vessel.orbit.encounter
   //    (nullable OrbitEncounter record). exists = signed -1/0/1 keyed off
   //    TransitionType (Encounter→1, Escape→-1, else 0 — the sign carries the
@@ -188,10 +186,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "o.encounterTime": "vessel.state.encounterTime",
   "tar.o.relativeVelocity": "vessel.state.targetRelativeSpeed",
 
-  // --- vessel.state (derived, client-side A-tranche migration): the
-  // "derived quantities with no named field" cluster that IS cleanly
-  // recoverable from data already on the wire. Same display-map/derivation
-  // pattern as the batches above, zero per-widget change:
+  // --- vessel.state (derived client-side): the "derived quantities with no
+  // named field" cluster that IS cleanly recoverable from data already on
+  // the wire. Same display-map/derivation pattern as above, zero
+  // per-widget change:
   //  - apoapsisRadius/periapsisRadius (o.ApR/o.PeR) = sma·(1±ecc), the apsis
   //    RADII from the body center — straight off the orbit elements, no body
   //    table (unlike apoapsisAlt, which subtracts the radius).
@@ -217,10 +215,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "tar.o.period": "vessel.state.targetPeriod",
   "tar.o.trueAnomaly": "vessel.state.targetTrueAnomaly",
 
-  // --- R6 shared-derivations batch: client-side derivations off channels
-  // already on the wire, unblocking Wave-2 widget migrations (Twr, Navball,
-  // CrewManifest, GroundSurvey, ActionGroup ag1..10, DistanceToTarget). Each
-  // is a `vessel.state.*` field `deriveVesselState` now produces (see
+  // --- Shared client-side derivations off channels already on the wire,
+  // used by Twr, Navball, CrewManifest, GroundSurvey, ActionGroup ag1..10,
+  // and DistanceToTarget. Each is a `vessel.state.*` field
+  // `deriveVesselState` now produces (see
   // vessel-state.ts), same display-map pattern as the batches above:
   //  - twr (dv.currentTWR) = currentThrust/(totalMass·g) off vessel.propulsion.
   //  - isControllable (v.isControllable) from vessel.comms.controlState LEVEL.
@@ -275,7 +273,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "dock.x": "vessel.dock.relativePosition.x",
   "dock.y": "vessel.dock.relativePosition.y",
 
-  // --- vessel.surface capture-add (M3 R3): biome + landedAt now ship on the
+  // --- vessel.surface capture-add: biome + landedAt now ship on the
   // mod wire (VesselSurface.Biome/LandedAt), so these two — previously gapped
   // as "needs capture add" — migrate as raw-field walks. vessel.surface is
   // null while ORBITING/ESCAPING (capture-side guard), so widgets see these
@@ -291,11 +289,11 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "v.gearValue": "vessel.control.gear",
   "v.brakeValue": "vessel.control.brakes",
   "v.lightValue": "vessel.control.lights",
-  // v.abortValue (P4a command batch): VesselControl.Abort now ships on the
+  // v.abortValue: VesselControl.Abort now ships on the
   // wire — see TELEMACHUS_KNOWN_GAPS's matching (removed) entry.
   "v.abortValue": "vessel.control.abort",
-  // v.precisionControlValue / f.precisionControl UN-GAPPED (P4a shared-map
-  // batch): VesselControl now carries a plain `precisionControl` field
+  // v.precisionControlValue / f.precisionControl are mapped on the wire:
+  // VesselControl now carries a plain `precisionControl` field
   // alongside `abort` — same raw-field walk as the other vessel.control
   // booleans above. ActionGroup's toggle read AND Navball's precision-mode
   // read both land on the same field.
@@ -305,7 +303,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.structure / vessel.crew ---
   "v.currentStage": "vessel.structure.currentStage",
   "v.crewCount": "vessel.crew.count",
-  // v.crew / v.crewCapacity UN-GAPPED (P4a shared-map batch, G-13): the full
+  // v.crew / v.crewCapacity are mapped on the wire: the full
   // roster + capacity now ship alongside the plain count above.
   "v.crew": "vessel.crew.crew",
   "v.crewCapacity": "vessel.crew.capacity",
@@ -339,17 +337,17 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "t.warpMode": "time.warp.warpMode",
   "t.isPaused": "time.warp.paused",
 
-  // --- M3 vessel-gap batch: DistanceToTarget/TargetPicker dock+roster
-  // migration. These are NEW widget-facing keys (no legacy equivalent —
-  // added by the migrating widgets themselves) that expose the raw Vec3
+  // --- DistanceToTarget/TargetPicker dock+roster migration. These are NEW
+  // widget-facing keys (no legacy equivalent — added by the migrating
+  // widgets themselves) that expose the raw Vec3
   // fields so the widget can derive a scalar/angle client-side and merge it
   // with the still-legacy read via a `??` fallback — the same
-  // MIXED-source-within-one-render pattern CurrentOrbit's M3 batch-2
-  // migration established. See DistanceToTarget/index.tsx's
+  // MIXED-source-within-one-render pattern CurrentOrbit's own migration
+  // established. See DistanceToTarget/index.tsx's
   // `vecMagnitude`/`deriveDockAngles`. Of the legacy keys that pattern backs,
   // `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y` have since been
-  // UN-GAPPED (they ARE cleanly derivable — see the batch-2 + A-tranche
-  // CLEAN_HOMES blocks above); only the docking-ORIENTATION angles
+  // mapped on the wire (they ARE cleanly derivable — see the CLEAN_HOMES
+  // blocks above); only the docking-ORIENTATION angles
   // `dock.ax`/`dock.ay`/`dock.az` stay gapped (no ax/ay/az decomposition on
   // the wire, only a single ForwardDot — see TELEMACHUS_KNOWN_GAPS below). ---
   "tar.relativePosition": "vessel.target.relativePosition",
@@ -363,17 +361,17 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "dock.distanceScalar": "vessel.dock.distance",
   "dock.forwardDot": "vessel.dock.forwardDot",
 
-  // --- M3 vessel-gap batch: ManeuverPlanner node-id command bridge. NEW
+  // --- ManeuverPlanner node-id command bridge. NEW
   // widget-facing key (no legacy equivalent) exposing the raw
   // `vessel.maneuver.nodes` array purely so the widget can read each node's
-  // now-round-tripping `id` (M3 R3) and pass the real guid into the
+  // now-round-tripping `id` and pass the real guid into the
   // update/remove commands instead of a positional array index. The
   // full-preview read `o.maneuverNodes` itself STAYS gapped below (shape
   // mismatch: no deltaV tuple, no post-burn orbit preview on the wire) — see
   // ManeuverPlanner/index.tsx's `resolveNodeId`. ---
   "o.maneuverNodeIds": "vessel.maneuver.nodes",
 
-  // --- M3 vessel-gap batch: TargetPicker roster. NEW shape — {vessels:
+  // --- TargetPicker roster. NEW shape — {vessels:
   // [{vesselId, name, vesselType, situation, bodyIndex}]}, no position/
   // distance field (system.vessels' own doc comment,
   // mod/Sitrep.Host/SystemViewProvider.cs) — TargetPicker normalizes both
@@ -381,7 +379,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // `normalizeRoster`. ---
   "tar.availableVessels": "system.vessels",
 
-  // --- M3 career batch: career.status economy scalars. Clean 1:1 raw-field
+  // --- career.status economy scalars. Clean 1:1 raw-field
   // reads — CareerViewProvider.BuildEconomy (mod/Sitrep.Host/
   // CareerViewProvider.cs) republishes Funding/Reputation/R&D science as
   // plain nullable doubles, same shape the widgets already expect. The
@@ -392,8 +390,8 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "career.reputation": "career.status.economy.reputation",
   "career.science": "career.status.economy.science",
 
-  // --- M3b career-detail batch: facilities/contracts/strategies/tech
-  // un-gapped now that CareerViewProvider carries the fields each widget's
+  // --- facilities/contracts/strategies/tech
+  // mapped on the wire now that CareerViewProvider carries the fields each widget's
   // parser needs (see the TELEMACHUS_KNOWN_GAPS entries these five keys
   // used to live under, just below, for the full before/after shape
   // rationale). Each target field-path is a raw walk off `career.status`
@@ -406,7 +404,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "strategies.all": "career.status.strategies.all",
   "tech.nodes": "career.status.tech.nodes",
 
-  // --- M3 science/parts batch: science.experiments un-gap. ScienceCapture's
+  // --- science.experiments mapping. ScienceCapture's
   // `science.experiments` (mod/Sitrep.Host/ScienceViewProvider.cs) is a raw
   // array whose entries are a strict SUPERSET of the legacy `sci.experiments`
   // shape — `partName` replaces `part` (same string, renamed field;
@@ -417,7 +415,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // read. `sci.count`/`sci.dataAmount`/`sci.experimentBreakdown` stay gapped
   // below — no equivalent aggregate/enriched field exists on the new wire
   // (count/dataAmount ARE derivable client-side from this same array, but
-  // the widget's existing two separate reads are left untouched this batch).
+  // the widget's existing two separate reads are left untouched here).
   "sci.experiments": "science.experiments",
 
   // --- science/parts topics: NEW capability, no legacy widget key existed
@@ -437,7 +435,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "parts.power": "parts.power",
   "parts.robotics": "parts.robotics",
 
-  // --- M3 ScienceOfficer batch: science.lab un-gap. NEW capability, no
+  // --- science.lab mapping. NEW capability, no
   // legacy widget key existed — `science.lab` (raw array of Mobile
   // Processing Lab entries, ScienceViewProvider.BuildLab) has no
   // pre-existing `sci.*` analogue at all (`sci.instruments` below tracks a
@@ -447,7 +445,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // ScienceOfficer/index.tsx's `parseLab` reads it directly. ---
   "science.lab": "science.lab",
 
-  // --- M3 science-domain finale: DeployedScience un-gap. `science.deployed`
+  // --- DeployedScience mapping. `science.deployed`
   // (raw FLAT array of individual `ModuleGroundExperiment` entries — no
   // legacy base/power-balance grouping — ScienceViewProvider.BuildDeployed,
   // itself fed by Gonogo.KSP.KspHost.BuildDeployedScience's GLOBAL
@@ -461,14 +459,14 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // (`groupFlatDeployedEntries`) — vesselName groups 1:1 with a Breaking
   // Ground cluster, itself its own vessel. `powerAvailable`/`powerRequired`
   // (no EC numbers on the new wire, only a coarse `powerState` enum) degrade
-  // to `0`/`0`, same "no new-wire equivalent, degrade" posture the M3b
-  // career-detail batch's `currentLevelText`/`nextLevelText` established.
+  // to `0`/`0`, same "no new-wire equivalent, degrade" posture the
+  // `currentLevelText`/`nextLevelText` career-detail fields established.
   // `deployed.available` stays gapped below — see that entry for why. ---
   "deployed.bases": "science.deployed",
 
-  // --- P4a client-derivations batch: career.mode + science.sensors. ---
+  // --- career.mode + science.sensors. ---
 
-  // career.mode (D1): CareerMode is its own 2-segment raw wire topic
+  // career.mode: CareerMode is its own 2-segment raw wire topic
   // ({ mode: GameMode }, CareerViewProvider) — a raw-field walk to the
   // single `mode` field (the numeric GameMode ordinal: Sandbox 0/Career
   // 1/Science 2/Unknown 3). useGameContext resolves the ordinal to the
@@ -476,7 +474,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // own callers already read (see useGameContext.ts's resolveCareerMode).
   "career.mode": "career.mode.mode",
 
-  // science.sensors (D2): NEW capability, no legacy per-type `s.sensor.
+  // science.sensors: NEW capability, no legacy per-type `s.sensor.
   // <type>` equivalent (those four stay individually gapped below — no
   // per-type field exists on the wire, only this general SensorEntry[]
   // list). Whole-topic identity read, same "key == topic" precedent as
@@ -485,13 +483,13 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // rather than the mod re-shaping it into four fixed fields.
   "science.sensors": "science.sensors",
 
-  // --- P4a shared-map batch: remaining trivial raw-field walks + whole-topic
+  // --- Remaining trivial raw-field walks + whole-topic
   // reads, now that each topic actually ships on the wire. Each of the
   // 2-segment raw topics below (game.dlc / robotics.available /
   // ksp.revertAvailability / spaceCenter.scene / dv.stages / dv.summary /
   // science.instruments) is also newly added to
   // DEFAULT_SITREP_CARRIED_TOPICS (SitrepTelemetryProvider.tsx) — career.status
-  // was already carried by the M3b career-detail batch. ---
+  // was already carried. ---
 
   // deployed.available: the state map's old "no DLC-presence boolean"
   // rationale was stale — GameDlc.breakingGround IS that boolean
@@ -575,13 +573,13 @@ const BODY_INDEXED_GAP = /^b\.(rotationAngle|rotates)\[-?\d+\]$/;
 /** `r.resource[X]` / `r.resourceMax[X]` (vessel-total) → `vessel.resources`
  * map, one field object per resource name. `r.resourceCurrent(Max)[X]`
  * (current-STAGE totals) has no home — `vessel.resources` is vessel-total
- * only (M1 §2.2); stage-scoped resource splits are the same G-14 stage-sim
+ * only; stage-scoped resource splits are the same stage-sim
  * gap as `dv.stages`.
  *
  * The generated target has an extra `.resources` segment
  * (`vessel.resources.resources.<name>.<current|max>`, not the flatter
  * `vessel.resources.<name>.<current|max>` you'd expect) — found + fixed in
- * the M3 batch-1 FuelStatus migration. `VesselViewProvider.ToWire`
+ * the FuelStatus migration. `VesselViewProvider.ToWire`
  * (`mod/Sitrep.Host/VesselViewProvider.cs`) serializes `VesselResources` as
  * `{ resources: { <name>: {current, max} }, meta: {...} }`, wrapping the
  * per-resource map under a `"resources"` KEY rather than publishing it at
@@ -602,54 +600,54 @@ const RESOURCE_VESSEL_TOTAL = /^r\.resource(Max)?\[([^\]]+)\]$/;
 const RESOURCE_STAGE_SCOPED = /^r\.resourceCurrent(Max)?\[([^\]]+)\]$/;
 
 /**
- * Old keys with NO new home yet — the M1 §5.2 gaps table, extended with
- * every gapped key actually found in widget `dataRequirements`/
- * `useDataValue` call sites. Exported so `@ksp-gonogo/core`'s coverage test can
- * assert "mapped OR declared gap" without a silent third case.
+ * Old keys with NO new home yet, covering every gapped key actually found
+ * in widget `dataRequirements`/`useDataValue` call sites. Exported so
+ * `@ksp-gonogo/core`'s coverage test can assert "mapped OR declared gap"
+ * without a silent third case.
  */
 export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
-  // --- M2 bridge task Fix 2's phantom vessel.state.* mapTopic targets
+  // --- The phantom vessel.state.* mapTopic targets
   // (met/apoapsisAlt/periapsisAlt/period/timeToAp/timeToPe/trueAnomaly) are
-  // UN-GAPPED as of M3 vessel-state-extend: deriveVesselState now actually
+  // mapped on the wire now that deriveVesselState actually
   // produces all seven (vessel-state.ts, reading vessel.orbit's elements
   // plus vessel.identity/system.bodies), so they moved up to
   // TELEMACHUS_CLEAN_HOMES above. vessel-state-mapping.coverage.test.ts
   // keeps enforcing "every vessel.state.* mapTopic target is a real produced
   // field" so this class of dead-mapping bug can't silently recur.
 
-  // --- CRITICAL-review shape-mismatch gaps (M2 Task 7 fix): each of these
+  // --- Shape-mismatch gaps: each of these
   // was previously in TELEMACHUS_CLEAN_HOMES pointing at a new topic whose
   // VALUE SHAPE does not match what the widget reads — a migrated widget
   // would have silently rendered garbage (or thrown) instead of falling
   // back to the working legacy DataSource path. Moved here so the fallback
   // fires until the real fix (a derived display-map/field subtopic, or a
-  // server-side field the contract doesn't have yet) lands in M3.
+  // server-side field the contract doesn't have yet) lands.
 
-  // v.body / o.referenceBody UN-GAPPED (Step-2 migration task 1): the
+  // v.body / o.referenceBody are mapped on the wire: the
   // index→name display-map subtopic now exists — deriveVesselState resolves
   // vessel.identity.parentBodyIndex / vessel.orbit.referenceBodyIndex against
   // system.bodies into vessel.state.parentBodyName / referenceBodyName. See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // b.number UN-GAPPED (batch-2 migration): the plain body COUNT the widget
+  // b.number is mapped on the wire: the plain body COUNT the widget
   // reads is now derived on the SYSTEM-scoped `system.state.bodyCount`
   // channel (system-state.ts, `bodies.length`) — see TELEMACHUS_CLEAN_HOMES.
 
-  // o.encounterExists/o.encounterBody/o.encounterTime UN-GAPPED (batch-2
-  // migration): the single nullable `vessel.orbit.encounter` record now feeds
+  // o.encounterExists/o.encounterBody/o.encounterTime are mapped on the
+  // wire: the single nullable `vessel.orbit.encounter` record now feeds
   // three derived `vessel.state.*` fields shaped exactly as OrbitalEventChips
   // reads them — signed -1/0/1 exists (keyed off TransitionType), the body
   // NAME (bodyIndex→system.bodies), and transitionUt. See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // dock.x/dock.y UN-GAPPED (batch-2 migration): NOT alignment axes after all
+  // dock.x/dock.y are mapped on the wire: NOT alignment axes after all
   // — the widget renders them as metres and already uses
   // vessel.dock.relativePosition.{x,y} as their verbatim drop-in replacement.
   // Mapped straight through the raw-field-subtopic walk into that Vec3 (no
   // derived field). See TELEMACHUS_CLEAN_HOMES above.
 
-  // comm.controlState/comm.controlStateName UN-GAPPED (enum-ordinal→name
-  // migration task 4): the mod field `vessel.comms.controlState` is a NUMERIC
+  // comm.controlState/comm.controlStateName are mapped on the wire: the mod
+  // field `vessel.comms.controlState` is a NUMERIC
   // `Sitrep.Contract.ControlState` enum ordinal on the wire (`(int)comms.
   // ControlState` — despite this comment's former "STRING enum" wording, the
   // host serializes the integer). `deriveVesselState` now resolves it BOTH
@@ -658,16 +656,16 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // control-level (`vessel.state.commsControlStateOrdinal`, the old numeric
   // `comm.controlState`). See TELEMACHUS_CLEAN_HOMES above.
 
-  // --- M3 batch-2 fixture-audit finds: the grown 15-channel reference wire
+  // --- Fixture-audit finds: the grown 15-channel reference wire
   // fixture (WireFixtureGeneratorTests.cs) put real vessel.identity/
   // vessel.control/vessel.target payloads in front of these three mappings
   // for the first time — each RESOLVES (the field path is real) but carries
   // the WRONG SHAPE for what the widget reads, the same class of bug as the
-  // CRITICAL-review findings above, just one level deeper than the raw-path
+  // findings above, just one level deeper than the raw-path
   // check `map-topic.rawFieldRoots.coverage.test.ts` already runs. ---
 
-  // v.situationString / f.sasMode / tar.type UN-GAPPED (enum-ordinal→name
-  // migration tasks 1–3): each mod field (vessel.identity.situation /
+  // v.situationString / f.sasMode / tar.type are mapped on the wire: each
+  // mod field (vessel.identity.situation /
   // vessel.control.sasMode / vessel.target.kind) is a NUMERIC contract-enum
   // ordinal on the wire; `deriveVesselState` resolves each to the STRING the
   // widget reads — `vessel.state.situationName` / `sasModeName` / `targetKind`
@@ -675,7 +673,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // DistanceToTarget's dockable gate compares against). See
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // tar.o.relativeVelocity UN-GAPPED (batch-2 migration): the signed scalar
+  // tar.o.relativeVelocity is mapped on the wire: the signed scalar
   // closing-speed is now derived on `vessel.state.targetRelativeSpeed` — the
   // range-rate dot(relPos,relVel)/|relPos| off vessel.target's two Vec3
   // fields, positive=opening / <0=closing as the widgets expect. See
@@ -688,32 +686,32 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // {ut, dvRadial?, dvNormal?, dvPrograde?, dvTotal?} — no deltaV tuple, no
   // orbit-preview fields at all (the post-burn preview is explicitly
   // documented as consumer-side-derived, not streamed).
-  // gap: needs a derived display-map/field subtopic; migrate in M3
+  // gap: needs a derived display-map/field subtopic; still an open gap
   "o.maneuverNodes",
 
-  // dv.currentTWR UN-GAPPED (R6 shared-derivations batch): `VesselPropulsion`
+  // dv.currentTWR is mapped on the wire: `VesselPropulsion`
   // ships CurrentThrust + TotalMass, so TWR = currentThrust/(totalMass·g) is
   // derived client-side on `vessel.state.twr` (vessel-state.ts, standard
   // gravity 9.80665). See TELEMACHUS_CLEAN_HOMES above.
 
-  // comm.signalDelay UN-GAPPED (Step-3 live batch): the old rationale
+  // comm.signalDelay is mapped on the wire: the old rationale
   // ("aspirational, no implementation") is STALE — comms.delay is live on the
   // wire (CommsCoreUplink, TrueNow) as { oneWaySeconds, source, meta } and is
   // gonogo's OWN SignalDelay authority. CommSignal reads a plain seconds
   // number, so comm.signalDelay -> comms.delay.oneWaySeconds (raw-field walk).
   // See TELEMACHUS_CLEAN_HOMES above.
 
-  // --- M2 Task 7 fix, part 2: ActionGroup's dynamically-resolved keys
+  // --- ActionGroup's dynamically-resolved keys
   // (see mapTopic.coverage.test.ts's collectDynamicTelemachusKeys). Of the
   // 17 keys, sas/rcs/gear/brake/light have clean 1:1 boolean homes above;
   // the rest don't exist as individual fields on VesselControl
   // (mod/Sitrep.Contract/VesselControl.cs) yet ---
 
-  // v.abortValue UN-GAPPED (P4a command batch): VesselControl now carries a
+  // v.abortValue is mapped on the wire: VesselControl now carries a
   // plain `Abort` field (`vessel.control.abort`, camelCase on the wire) —
   // see TELEMACHUS_CLEAN_HOMES above.
 
-  // v.ag1Value..v.ag10Value UN-GAPPED (R6 shared-derivations batch): the
+  // v.ag1Value..v.ag10Value are mapped on the wire: the
   // fixed-order `VesselControl.actionGroups` bool[] is now split into ten
   // per-index `vessel.state.actionGroup{n}` booleans each ActionGroup widget
   // instance reads as its own bool (plus a dynamic `vessel.state.actionGroups`
@@ -721,7 +719,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // TELEMACHUS_CLEAN_HOMES above. (The ActionGroup widget stays hybrid only
   // on precision — `v.precisionControlValue` below.)
 
-  // v.precisionControlValue UN-GAPPED (P4a shared-map batch): VesselControl
+  // v.precisionControlValue is mapped on the wire: VesselControl
   // now carries a `precisionControl` field — see TELEMACHUS_CLEAN_HOMES
   // above (shared with f.precisionControl).
 
@@ -742,10 +740,10 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- full patched-conic chain not captured, only next-patch (encounter) ---
   "o.orbitPatches",
 
-  // v.atmosphericTemperature / v.externalTemperature UN-GAPPED (P4a
-  // shared-map batch) — see TELEMACHUS_CLEAN_HOMES above.
+  // v.atmosphericTemperature / v.externalTemperature are mapped on the
+  // wire — see TELEMACHUS_CLEAN_HOMES above.
 
-  // --- thermal detail beyond headline ratios (G-12) ---
+  // --- thermal detail beyond headline ratios ---
   "therm.hottestPartName",
   "therm.hottestEngineTemp",
   "therm.hottestEngineMaxTemp",
@@ -754,18 +752,18 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "therm.heatShieldFlux",
   "therm.anyEnginesOverheating",
 
-  // v.crew / v.crewCapacity UN-GAPPED (P4a shared-map batch, G-13) — see
+  // v.crew / v.crewCapacity are mapped on the wire — see
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // v.biome / v.landedAt UN-GAPPED (R6 prep): vessel.surface now ships
+  // v.biome / v.landedAt are mapped on the wire: vessel.surface now ships
   // Biome + LandedAt — see TELEMACHUS_CLEAN_HOMES above.
 
   // dv.stageCount/dv.stages/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
-  // dv.totalBurnTime UN-GAPPED (P4a shared-map batch, G-14) — see
+  // dv.totalBurnTime are mapped on the wire — see
   // TELEMACHUS_CLEAN_HOMES above (dv.stages whole-topic + dv.summary.*
   // raw-field walks).
 
-  // --- parts surface — own ASSET-class design, out of M1 ---
+  // --- parts surface — own ASSET-class design, out of scope here ---
   "v.topology",
   "v.topologySeq",
   // robotics.available: a dedicated capability topic ships — see
@@ -775,21 +773,21 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // straight off `parts.robotics` (CLEAN_HOMES above), which carries a
   // stable stringified `partId` per entry.
 
-  // v.isControllable UN-GAPPED (R6 shared-derivations batch): derived from
+  // v.isControllable is mapped on the wire: derived from
   // vessel.comms.controlState's control LEVEL on vessel.state.isControllable
-  // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl UN-GAPPED (P4a
-  // shared-map batch) alongside v.precisionControlValue — see
+  // (see TELEMACHUS_CLEAN_HOMES above). f.precisionControl is mapped on the
+  // wire alongside v.precisionControlValue — see
   // TELEMACHUS_CLEAN_HOMES above.
 
-  // --- derived quantities with no named field on any M1/M2 channel yet ---
-  // A-tranche migration UN-GAPPED the cleanly-derivable members of this
+  // --- derived quantities with no named field on the wire yet ---
+  // The cleanly-derivable members of this
   // cluster (o.ApR/o.PeR/o.radius/o.nextApsisType/o.timeToNextApsis/
   // v.horizontalVelocity/tar.distance/tar.o.PeA/tar.o.period/
-  // tar.o.trueAnomaly) — all now derived on vessel.state.* (see
-  // TELEMACHUS_CLEAN_HOMES above). The keys BELOW are what genuinely can't be
-  // honestly derived from the current wire:
+  // tar.o.trueAnomaly) are mapped on the wire — all now derived on
+  // vessel.state.* (see TELEMACHUS_CLEAN_HOMES above). The keys BELOW are
+  // what genuinely can't be honestly derived from the current wire:
 
-  // v.isEVA / v.splashed UN-GAPPED (R6 shared-derivations batch): derived
+  // v.isEVA / v.splashed are mapped on the wire: derived
   // client-side as plain booleans on `vessel.state.isEVA` (vessel.identity
   // vesselType === EVA) / `vessel.state.isSplashed` (vessel.identity situation
   // === Splashed). See TELEMACHUS_CLEAN_HOMES above.
@@ -802,27 +800,27 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // direction is neither cleanly nor unambiguously derivable from what's on
   // the wire (and the one widget that lists it, Navball, doesn't even read it
   // — dead requirement).
-  // gap: needs a facing vector + a defined prograde frame, neither on the wire; migrate in M3
+  // gap: needs a facing vector + a defined prograde frame, neither on the wire
   "v.angleToPrograde",
 
-  // o.closestTgtApprUT UN-GAPPED (R6 shared-derivations batch): the two-body
+  // o.closestTgtApprUT is mapped on the wire: the two-body
   // closest-approach solve over vessel.orbit + vessel.target.orbit now runs
   // client-side (propagation.ts's `closestApproach`), exposed on
   // `vessel.state.closestApproachUt`. See TELEMACHUS_CLEAN_HOMES above.
 
   // dock.ax/dock.ay/dock.az: the true docking-port ORIENTATION misalignment
   // axes aren't on the wire (vessel.dock carries only RelativePosition/
-  // RelativeVelocity/Distance + a scalar ForwardDot). R6 §0.0 USER DECISION is
-  // to DROP them in favour of the LINE-OF-SIGHT HUD proxy — the shared
-  // `deriveDockAngles` helper (packages/components/src/shared/dockAngles.ts,
-  // R6 prep) computes ax/ay off dock.relativePosition. They stay gapped here
-  // until the DistanceToTarget migrate-widget task removes the legacy reads +
+  // RelativeVelocity/Distance + a scalar ForwardDot). The deliberate decision
+  // is to DROP them in favour of the LINE-OF-SIGHT HUD proxy — the shared
+  // `deriveDockAngles` helper (packages/components/src/shared/dockAngles.ts)
+  // computes ax/ay off dock.relativePosition. They stay gapped here
+  // until DistanceToTarget removes the legacy reads +
   // reworks the fixtures/snapshots/visual baselines.
   "dock.ax",
   "dock.ay",
   "dock.az",
 
-  // --- *2 CoM-attitude quartet deliberately not reproduced (V-9) ---
+  // --- *2 CoM-attitude quartet deliberately not reproduced ---
   "n.heading2",
   "n.pitch2",
   "n.roll2",
@@ -834,15 +832,15 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "t.universalTime",
 
   // --- out of vessel-provider scope by design — separate provider families ---
-  // career.mode UN-GAPPED (D1, P4a client-derivations batch): CareerMode is
+  // career.mode is mapped on the wire: CareerMode is
   // its own raw wire topic ({ mode: GameMode }) — a plain raw-field walk to
   // career.mode.mode (the numeric GameMode ordinal). useGameContext resolves
   // the ordinal to the SANDBOX/CAREER/SCIENCE/Unknown string the widgets
   // read (no vessel.state field needed — see TELEMACHUS_CLEAN_HOMES above).
-  // kc.crewRoster/kc.savedShips/kc.partsAvailable UN-GAPPED: SpaceCenterUplink
-  // now ships spaceCenter.crewRoster/spaceCenter.savedShips/
+  // kc.crewRoster/kc.savedShips/kc.partsAvailable are mapped on the wire:
+  // SpaceCenterUplink now ships spaceCenter.crewRoster/spaceCenter.savedShips/
   // spaceCenter.partsAvailable — see TELEMACHUS_CLEAN_HOMES above.
-  // kc.facilityLevels un-gapped M3b career-detail batch — see CLEAN_HOMES
+  // kc.facilityLevels is mapped on the wire — see CLEAN_HOMES
   // above (career.status.facilities, SpaceCenterStatus's parseFacilityLevels
   // now reads BOTH the legacy short-code shape and the new enum-keyed
   // currentTier/maxTier/upgradeCost shape).
@@ -850,14 +848,14 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "kc.launchSites",
   "kc.padOccupied",
   "kc.padVesselTitle",
-  // kc.scene UN-GAPPED (P4a shared-map batch): SpaceCenterScene now ships
+  // kc.scene is mapped on the wire: SpaceCenterScene now ships
   // its own raw topic — see TELEMACHUS_CLEAN_HOMES above.
 
-  // --- M3b career-detail batch: facilities/contracts/strategies/tech
-  // un-gapped. The 3069438 capture-extend session (career-capture-extend-
-  // report.md) widened CareerViewProvider's facilities/contracts/
-  // strategies/tech groups from the M3 "just enough to prove the channel
-  // exists" shape to what these five widgets actually need — integer
+  // --- facilities/contracts/strategies/tech
+  // are mapped on the wire. A later capture-extend pass widened
+  // CareerViewProvider's facilities/contracts/strategies/tech groups from a
+  // minimal "just enough to prove the channel exists" shape to what these
+  // five widgets actually need — integer
   // currentTier/maxTier/upgradeCost per facility, a stable string `id` +
   // `parameters` per contract, a stable `id` + full cost/eligibility set
   // per strategy (plus the `all` roster, not just `active`), and
@@ -866,20 +864,20 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // parser (ContractManager's `parseContracts`, Strategies's
   // `parseStrategies`, TechTree's `parseTechNodes`, SpaceCenterStatus's
   // `parseFacilityLevels`) for how each now accepts BOTH the legacy shape
-  // and this new one. `contracts.completedRecent` is UN-GAPPED as of the P4a
-  // shared-map batch — CareerContracts now carries a completedRecent list
+  // and this new one. `contracts.completedRecent` is mapped on the wire too
+  // — CareerContracts now carries a completedRecent list
   // too, see TELEMACHUS_CLEAN_HOMES above. `strategies.all`'s
   // `effectiveCostReputation` also stays
   // client-side-only — deliberately not added to the wire (no cheap
-  // decompiled source for KSP's nonlinear rep curve, career-capture-
-  // extend-report.md) — `parseStrategies` already falls back to
-  // `initialCostReputation` when it's absent, unchanged by this batch.
+  // decompiled source for KSP's nonlinear rep curve) — `parseStrategies`
+  // already falls back to
+  // `initialCostReputation` when it's absent, unchanged here.
   // Commands (facility upgrade, contract accept/decline/cancel, strategy
   // activate/deactivate, tech unlock) have no command home yet
   // (KNOWN_COMMAND_GAPS in map-command.ts) and fall back to the legacy
-  // DataSource automatically — this batch migrates READS only.
+  // DataSource automatically — reads only are mapped here.
 
-  // contracts.completedRecent UN-GAPPED (P4a shared-map batch): see
+  // contracts.completedRecent is mapped on the wire: see
   // TELEMACHUS_CLEAN_HOMES above.
 
   // sci.count/sci.dataAmount: ScienceBench reads two separate scalar
@@ -887,35 +885,35 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // raw per-experiment array these were always summarized FROM, but no
   // separate pre-aggregated count/total-dataAmount field exists on the new
   // wire — the widget's two independent `useDataValue` reads for these stay
-  // on the legacy path this batch rather than being rewritten to derive
+  // on the legacy path here rather than being rewritten to derive
   // client-side from the (now migrated) experiments array.
-  // gap: no aggregate field on the new wire; migrate in M3
+  // gap: no aggregate field on the new wire
   "sci.count",
   "sci.dataAmount",
   // sci.experimentBreakdown: GonogoTelemetry-only enriched shape (biome/
-  // situation/remainingPotential per subject) — no equivalent on the M1/M2
+  // situation/remainingPotential per subject) — no equivalent on the
   // science channel at all.
-  // gap: GonogoTelemetry-only enrichment, no new-wire equivalent; migrate in M3
+  // gap: GonogoTelemetry-only enrichment, no new-wire equivalent
   "sci.experimentBreakdown",
-  // sci.instruments UN-GAPPED (P4a shared-map batch): a per-instrument list
+  // sci.instruments is mapped on the wire: a per-instrument list
   // now ships as its own topic — see TELEMACHUS_CLEAN_HOMES above. It is a
   // DIFFERENT array from science.lab (the Mobile Processing Lab).
   "s.sensor.temp",
   "s.sensor.pres",
   "s.sensor.grav",
   "s.sensor.acc",
-  // deployed.bases un-gapped M3 science-domain finale — see CLEAN_HOMES
+  // deployed.bases is mapped on the wire — see CLEAN_HOMES
   // above (science.deployed, DeployedScience's parseBases now reads BOTH
   // the legacy grouped-base shape and the new flat-per-experiment shape).
-  // deployed.available UN-GAPPED (P4a shared-map batch): the old "can't
+  // deployed.available is mapped on the wire: the old "can't
   // disambiguate no-DLC from empty-deployed" rationale was stale —
   // GameDlc.breakingGround is its own independent capability boolean, not
   // derived from science.deployed's emptiness. See TELEMACHUS_CLEAN_HOMES
   // above.
   "scansat.available",
   "scansat.scanningVessels",
-  // ksp.canRevertToEditor / ksp.canRevertToLaunch UN-GAPPED (P4a shared-map
-  // batch): a dedicated RevertAvailability topic now ships both flags — see
+  // ksp.canRevertToEditor / ksp.canRevertToLaunch are mapped on the wire:
+  // a dedicated RevertAvailability topic now ships both flags — see
   // TELEMACHUS_CLEAN_HOMES above.
 ]);
 

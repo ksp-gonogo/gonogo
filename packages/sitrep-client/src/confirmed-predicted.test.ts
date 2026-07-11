@@ -10,12 +10,12 @@ import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
- * Confirmed-vs-predicted views + the certainty horizon (M2 design §3.3,
- * m2-sdk-delay-design.md). Complements `view-clock.test.ts` (the clock's own
- * mode/scrub/horizon mechanics) with `TimelineStore`-level integration:
- * real interpolation filling the `ClientTimeline.straddle` seam, real
- * propagation past the horizon for `vessel.state`, and the composition of
- * `certainty` alongside T4's `StreamStatusValue` and T3's undefined/null.
+ * Confirmed-vs-predicted views + the certainty horizon. Complements
+ * `view-clock.test.ts` (the clock's own mode/scrub/horizon mechanics) with
+ * `TimelineStore`-level integration: real interpolation filling the
+ * `ClientTimeline.straddle` seam, real propagation past the horizon for
+ * `vessel.state`, and the composition of `certainty` alongside
+ * `StreamStatusValue`'s held-stale status and plain undefined/null absence.
  */
 
 /** A wall clock a test can advance explicitly, instead of racing real time. */
@@ -422,7 +422,7 @@ describe("raw frame-cache defeats the epoch guard — the LENS-4 ghost (M2 T5 cl
     expect(second).toBeUndefined(); // must NOT be a ghost propagated off the dead orbit
   });
 
-  // M2 finalization Fix 4 (owed): the sibling of the two `sample()`/
+  // The sibling of the two `sample()`/
   // `sampleInterpolated()` LENS-4 cases above, for the STATUS surface. The
   // raw-status memo key folds epoch (`\0status\0${topic}\0epoch\0${epoch}`)
   // for exactly this reason — a status read taken before a mid-token epoch

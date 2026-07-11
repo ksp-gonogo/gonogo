@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isKnownCommandGap, mapCommand } from "./map-command";
 
 /**
- * The M3 write-half analog of `map-topic.ts`'s `mapTopic` (`m3-migration-plan
- * .md` §4-commands/§Build 1's "command shim"): old Telemachus action-string
+ * The write-half analog of `map-topic.ts`'s `mapTopic`: old Telemachus action-string
  * key -> new `vessel.*`/`time.*` typed command + args. Command topics/arg
  * shapes are confirmed against `mod/Sitrep.Host/VesselCommandProvider.cs` and
  * `mod/Sitrep.Contract/VesselCommands.cs`; the wire's arg CASING is
@@ -73,7 +72,7 @@ describe("mapCommand", () => {
         ["f.gear", "vessel.control.gear", "vessel.control.setGear"],
         ["f.brake", "vessel.control.brakes", "vessel.control.setBrakes"],
         ["f.light", "vessel.control.lights", "vessel.control.setLights"],
-        // f.abort UN-GAPPED (P4a command batch) — VesselControl.Abort now
+        // f.abort is UN-GAPPED — VesselControl.Abort now
         // ships on the wire, same clean toggle bridge as its siblings.
         ["f.abort", "vessel.control.abort", "vessel.control.setAbort"],
       ];
@@ -236,10 +235,10 @@ describe("mapCommand", () => {
   });
 
   // ---------------------------------------------------------------------
-  // Bridge 2: index -> stable-id — UN-GAPPED (M3 vessel-gap batch)
+  // Bridge 2: index -> stable-id — now UN-GAPPED
   //
   // The read side now round-trips a stable id (vessel.maneuver.nodes[].id
-  // and system.vessels[].vesselId, M3 R3), so ManeuverPlanner/TargetPicker
+  // and system.vessels[].vesselId), so ManeuverPlanner/TargetPicker
   // resolve the real id and pass it as the FIRST positional arg — these
   // three commands now have real homes instead of being declared gaps.
   // ---------------------------------------------------------------------
@@ -366,7 +365,7 @@ describe("mapCommand", () => {
   });
 
   // ---------------------------------------------------------------------
-  // command-ungap batch: career.*, robotics.*, ksp.*/tar.switchVessel now
+  // career.*, robotics.*, ksp.*/tar.switchVessel now
   // have registered mod handlers AND their read-side ids stream (career.
   // status.*, parts.robotics — see map-topic.ts), so they move out of
   // KNOWN_COMMAND_GAPS.

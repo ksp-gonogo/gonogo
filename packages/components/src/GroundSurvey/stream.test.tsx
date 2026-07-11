@@ -5,14 +5,14 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundSurveyComponent } from "./index";
 
 /**
- * The M3 batch-3 stream test-adapter proof for GroundSurvey — a NEW class
+ * The stream test-adapter proof for GroundSurvey — a NEW class
  * of "zero migratable keys" widget, distinct from `KeplerPeriod`/
  * `OrbitalAscent` (which route their live values through `useDataSeries`,
  * a sibling hook the shim doesn't cover). GroundSurvey's data layer,
  * `useGroundSurveySamples`, doesn't call `useDataValue` AT ALL — it calls
  * `getDataSource(cfg.sourceId)` directly and subscribes to the raw
  * `DataSource`/`BufferedDataSource` interface (`.subscribe`/
- * `.subscribeSamples`) itself, entirely bypassing the M3 read shim (which
+ * `.subscribeSamples`) itself, entirely bypassing the read shim (which
  * only wraps `useDataValue`/`useExecuteAction`/`useDataStreamStatus`). A
  * `TelemetryProvider` being mounted above this widget has literally zero
  * effect — `getDataSource` is a plain registry lookup, independent of React

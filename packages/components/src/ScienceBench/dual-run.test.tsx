@@ -11,7 +11,7 @@ import kerbinFlight from "./__fixtures__/kerbin-flight-two-experiments.json";
 import { ScienceBenchComponent } from "./index";
 
 /**
- * ScienceBench's M3 science/parts batch behavior-preservation golden
+ * ScienceBench's behavior-preservation golden
  * dual-run (mirrors `TargetPicker/dual-run.test.tsx`): the SAME two-
  * experiment state, rendered once off the legacy `DataSource` (`sci.
  * experiments`'s `part`-keyed shape) and once off the stream (`science.
