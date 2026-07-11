@@ -21,6 +21,7 @@ import type {
   CommsNetwork,
   CommsPath,
   CommsSignalStrength,
+  CrashReport,
   CrewRosterEntry,
   DeployedEntry,
   DockAlignment,
@@ -75,6 +76,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.network": CommsNetwork;
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
+  "crash.lastCrash": CrashReport;
   "dv.stages": StageDeltaVEntry[];
   "dv.summary": StageDeltaVSummary;
   "game.dlc": GameDlc;
@@ -129,6 +131,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.network",
   "comms.path",
   "comms.signalStrength",
+  "crash.lastCrash",
   "dv.stages",
   "dv.summary",
   "game.dlc",

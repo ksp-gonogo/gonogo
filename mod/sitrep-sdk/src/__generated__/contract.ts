@@ -231,6 +231,48 @@ export interface CommsLinkMargin
 	closesLink: boolean;
 	meta: PayloadMeta;
 }
+export interface CrashReport
+{
+	vesselId: string;
+	eventKind: string;
+	what: string;
+	vesselType: string;
+	msg: string;
+	latitude: number;
+	longitude: number;
+	partsLost: CrashPartLost[];
+	body: string;
+	flightStats: CrashFlightStats;
+	vesselName: string;
+	events: string[];
+	kerbalsKilled: string[];
+	situation: string;
+	crewAboard: string[];
+	altitude: number;
+	ut: number;
+}
+export interface CrashPartLost
+{
+	partId: number;
+	partName: string;
+	partTitle: string;
+	msg: string;
+}
+export interface CrashFlightStats
+{
+	kerbalsKilled: number;
+	partsLost: number;
+	flightEndMode: string;
+	highestSpeedOverLand: number;
+	missionEnd: boolean;
+	highestGee: number;
+	highestAltitude: number;
+	totalDistance: number;
+	missionTime: number;
+	highestSpeed: number;
+	groundDistance: number;
+	liftOff: boolean;
+}
 export interface StreamData<T>
 {
 	type: "stream-data";

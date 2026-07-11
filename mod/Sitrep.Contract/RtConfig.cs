@@ -190,6 +190,10 @@ public static class RtConfig
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),
+                // crash.lastCrash payload + nested value shapes
+                typeof(CrashReport),
+                typeof(CrashPartLost),
+                typeof(CrashFlightStats),
             },
             c => c.AutoI(false).WithPublicProperties());
 

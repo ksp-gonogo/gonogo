@@ -95,6 +95,11 @@ namespace Sitrep.Core.Tests
             // deliberately SCANsat/KSP-type-free and hand-builds
             // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
             "ScanSensorEntry", "ScanTrackColor", "ScanningVesselEntry",
+            // crash.lastCrash — Sitrep.Host.Crash.CrashPayload.Build hand-builds
+            // the Dictionary<string, object?> tree the producer (Gonogo.KSP.
+            // CrashUplink) publishes; these POCOs are TS-shape-only, never handed
+            // to AppendValue raw.
+            "CrashReport", "CrashPartLost", "CrashFlightStats",
             // Envelope / meta — serialized field-by-field by EnvelopeCodec itself
             // (WriteStreamData / WriteMeta), never through AppendValue as a POCO.
             "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe",
