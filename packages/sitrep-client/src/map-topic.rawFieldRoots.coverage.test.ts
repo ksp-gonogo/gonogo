@@ -74,6 +74,8 @@ const RAW_WIRE_TOPIC_ROOTS: ReadonlySet<string> = new Set([
   "spaceCenter.scene",
   // StageDeltaVViewProvider.cs's summary topic (dv.stageCount/totalDV*).
   "dv.summary",
+  // SpaceCenterViewProvider.cs's PartsAvailableTopic (kc.partsAvailable).
+  "spaceCenter.partsAvailable",
 ]);
 
 /**

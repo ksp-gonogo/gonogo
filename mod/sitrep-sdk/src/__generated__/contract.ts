@@ -399,6 +399,8 @@ export interface ServoEntry
 	brakePercentage?: number;
 	currentExtension?: number;
 	targetExtension?: number;
+	counterClockwise?: boolean;
+	maxTorque?: number;
 }
 export interface RoboticsAvailability
 {

@@ -18,48 +18,25 @@ import styled from "styled-components";
 
 /**
  * Robotics Console (Breaking Ground). Lists the active vessel's robotic
- * hinges, rotation servos and pistons with current-vs-target position, an
- * at-target indicator, and motor / lock controls. The selected joint (first
- * by default) gets a target stepper and is the target of the serial actions.
+ * hinges and pistons with current-vs-target position, an at-target
+ * indicator, and motor / lock controls. The selected joint (first by
+ * default) gets a target stepper and is the target of the serial actions.
  * Rotors live in the separate Rotor Tachometer widget.
  *
- * Reads `robotics.servos` + `robotics.available`; degrades to a muted empty
- * state without Breaking Ground or when no servo is present.
- *
- * P4a shared-map batch: `robotics.available` is UN-GAPPED (map-topic.ts routes
- * it to the dedicated `robotics.available.available` capability topic) — the
- * `useDataValue` call site below is unchanged, it just starts resolving off
- * the stream once a `TelemetryProvider` carries `robotics.available`.
- * `robotics.servos` (the identity list feeding partId-keyed selection and
- * every `robotics.*` command) stays GAPPED and fully hybrid — no stable id on
- * the wire, coupled to the still-blocked command setters (see the M3 doc
- * comment below).
- *
- * M3 science/parts batch: the identity list (partId-keyed selection +
- * commands) stays entirely on `robotics.servos` — `parts.robotics`
- * (map-topic.ts) carries the same live hinge readouts. `mergeServo` below
- * merges the live numeric fields onto the selected legacy servo, chosen by
- * `selectLiveServoEntry`.
- *
- * M3 whole-branch review #1: `parts.robotics` originally carried no stable
- * id, so the join was BY NAME — a `.find`, first-match-wins. Symmetric
- * arms/legs are commonly N identically-named parts, so a name join could
- * silently attribute a DIFFERENT joint's live reading to the selected one.
- * `selectLiveServoEntry` now prefers a stable `partId` join when the wire
- * carries one, and — since the wire may still lag that capture change —
- * falls back to a name join ONLY when the name is unique among the
- * streamed (non-rotor) entries; an ambiguous name refuses to merge at all
- * (staying on the correct legacy value beats a confidently-wrong one).
+ * Reads `parts.robotics` (the hinge/piston identity list, filtered by
+ * `type`) + `robotics.available`; degrades to a muted empty state without
+ * Breaking Ground or when no servo is present.
  */
 
 type RoboticsConsoleConfig = Record<string, never>;
 
 const TARGET_STEP = 5;
+const AT_TARGET_EPSILON = 0.5;
 
-export type ServoType = "hinge" | "rotation" | "piston";
+export type ServoType = "hinge" | "piston";
 
 export interface ServoInfo {
-  partId: number;
+  partId: string;
   name: string;
   type: ServoType;
   current: number;
@@ -77,113 +54,43 @@ function num(v: unknown, fallback = 0): number {
 const unitFor = (type: ServoType) => (type === "piston" ? "%" : "°");
 
 /**
- * Parse `robotics.servos`. Returns null when the key is absent (older fork)
- * so the widget can tell "no DLC support" from "no servos on this vessel".
+ * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
+ * down to the hinge/piston entries this widget drives (`type ∈ {"hinge",
+ * "piston"}`; rotors are Rotor Tachometer's domain). `partId` is
+ * `Part.flightID` stringified — stable per-part for the life of the flight
+ * and, unlike `partName`, unique even among symmetric same-named parts (e.g.
+ * a multirotor's N identical arms). Entries with no string `partId` are
+ * dropped — they can't be selected or targeted safely. A hinge's position
+ * comes off `currentAngle`/`targetAngle`; a piston's off `currentExtension`/
+ * `targetExtension`. `atTarget` is derived (no such field on the wire):
+ * current and target within half a unit of each other.
  */
-export function parseServos(raw: unknown): ServoInfo[] | null {
-  if (raw === null || raw === undefined) return null;
-  if (!Array.isArray(raw)) return null;
+export function parseServos(raw: unknown): ServoInfo[] {
+  if (!Array.isArray(raw)) return [];
   const out: ServoInfo[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    if (typeof e.partId !== "number") continue;
-    const type: ServoType =
-      e.type === "rotation" || e.type === "piston" ? e.type : "hinge";
+    if (e.type !== "hinge" && e.type !== "piston") continue;
+    if (typeof e.partId !== "string") continue;
+    const type: ServoType = e.type;
+    const current = num(
+      type === "piston" ? e.currentExtension : e.currentAngle,
+    );
+    const target = num(type === "piston" ? e.targetExtension : e.targetAngle);
     out.push({
       partId: e.partId,
-      name: typeof e.name === "string" ? e.name : `Servo ${e.partId}`,
+      name: typeof e.partName === "string" ? e.partName : `Servo ${e.partId}`,
       type,
-      current: num(e.current),
-      target: num(e.target),
-      atTarget: e.atTarget === true,
-      motorEngaged: e.motorEngaged === true,
-      locked: e.locked === true,
-      torqueLimit: num(e.torqueLimit),
+      current,
+      target,
+      atTarget: Math.abs(current - target) < AT_TARGET_EPSILON,
+      motorEngaged: e.servoMotorIsEngaged === true,
+      locked: e.servoIsLocked === true,
+      torqueLimit: num(e.servoMotorLimit),
     });
   }
   return out;
-}
-
-/**
- * `parts.robotics` entry shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a
- * raw array of BOTH hinges and rotors; RoboticsConsole only ever merges
- * `type !== "rotor"` entries (rotors are Rotor Tachometer's domain).
- * `partId` is `Part.flightID` STRINGIFIED (`Gonogo.KSP.KspHost`'s `partId =
- * part.flightID != 0 ? part.flightID.ToString() : null`) — a STRING, unlike
- * the legacy `robotics.servos` list's numeric `ServoInfo.partId` (the same
- * underlying flightID, just carried as a JS number there). Nullable/absent
- * on an older wire snapshot recorded before the stable-id capture change, or
- * when flightID read as the uninitialized 0 sentinel — `selectLiveServoEntry`
- * below handles both, comparing via `String(selected.partId)`.
- */
-interface StreamServoEntry {
-  partId?: string | null;
-  partName: string;
-  type: string;
-  servoIsLocked: boolean | null;
-  servoIsMotorized: boolean | null;
-  servoMotorIsEngaged: boolean | null;
-  servoMotorLimit: number | null;
-  currentAngle: number | null;
-  targetAngle: number | null;
-}
-
-/**
- * Picks the `parts.robotics` entry (if any) that live-updates `selected`.
- * See the module doc comment / M3 whole-branch review #1: prefer a stable
- * `partId` join (string-vs-number coerced — same underlying flightID, see
- * `StreamServoEntry`'s doc comment); only fall back to a name join when the
- * name is unique among the streamed (non-rotor) entries, and refuse to
- * merge at all when it's ambiguous — never let `.find`'s first-match-wins
- * attribute a sibling joint's reading to the selected one.
- */
-export function selectLiveServoEntry(
-  entries: StreamServoEntry[] | undefined,
-  selected: ServoInfo,
-): StreamServoEntry | undefined {
-  if (!entries) return undefined;
-  const servoEntries = entries.filter((e) => e.type !== "rotor");
-
-  const selectedId = String(selected.partId);
-  const idMatches = servoEntries.filter(
-    (e) => typeof e.partId === "string" && e.partId === selectedId,
-  );
-  if (idMatches.length > 0) return idMatches[0];
-
-  const nameMatches = servoEntries.filter((e) => e.partName === selected.name);
-  return nameMatches.length === 1 ? nameMatches[0] : undefined;
-}
-
-/** Merges live `parts.robotics` numeric/boolean fields onto a legacy
- * `ServoInfo` by name. Identity (`partId`, `type`) always stays from
- * `base` — only the values a physical servo's live state actually is are
- * candidates for the stream's fresher read, each independently `??`-falling
- * back to the legacy value when the stream field is absent. */
-function mergeServo(
-  base: ServoInfo,
-  live: StreamServoEntry | undefined,
-): ServoInfo {
-  if (!live) return base;
-  return {
-    ...base,
-    current:
-      typeof live.currentAngle === "number" ? live.currentAngle : base.current,
-    target:
-      typeof live.targetAngle === "number" ? live.targetAngle : base.target,
-    motorEngaged:
-      typeof live.servoMotorIsEngaged === "boolean"
-        ? live.servoMotorIsEngaged
-        : base.motorEngaged,
-    locked:
-      typeof live.servoIsLocked === "boolean"
-        ? live.servoIsLocked
-        : base.locked,
-    torqueLimit:
-      typeof live.servoMotorLimit === "number"
-        ? live.servoMotorLimit
-        : base.torqueLimit,
-  };
 }
 
 const roboticsActions = [
@@ -218,31 +125,21 @@ export type RoboticsConsoleActions = typeof roboticsActions;
 function RoboticsConsoleComponent(
   _: Readonly<ComponentProps<RoboticsConsoleConfig>>,
 ) {
-  const servosRaw = useDataValue("data", "robotics.servos");
-  // UN-GAPPED (P4a) -> robotics.available.available; resolves off the
-  // stream automatically once carried, same call site either way.
+  const roboticsRaw = useDataValue("data", "parts.robotics");
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
-  const streamServos = useDataValue<StreamServoEntry[]>(
-    "data",
-    "parts.robotics",
-  );
   const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
-  const servos = parseServos(servosRaw) ?? [];
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const rawSelected =
+  const servos = parseServos(roboticsRaw);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
-  const liveEntry = rawSelected
-    ? selectLiveServoEntry(streamServos, rawSelected)
-    : undefined;
-  const selected = rawSelected ? mergeServo(rawSelected, liveEntry) : null;
 
-  const setTarget = (id: number, value: number) =>
+  const setTarget = (id: string, value: number) =>
     void execute(`robotics.servo.setTarget[${id},${Math.round(value)}]`);
-  const setMotor = (id: number, engaged: boolean) =>
+  const setMotor = (id: string, engaged: boolean) =>
     void execute(`robotics.servo.setMotor[${id},${engaged}]`);
-  const setLock = (id: number, locked: boolean) =>
+  const setLock = (id: string, locked: boolean) =>
     void execute(`robotics.servo.setLock[${id},${locked}]`);
 
   useActionInput<RoboticsConsoleActions>({
@@ -545,7 +442,7 @@ registerComponent<RoboticsConsoleConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },
   component: RoboticsConsoleComponent,
-  dataRequirements: ["robotics.servos", "robotics.available", "parts.robotics"],
+  dataRequirements: ["parts.robotics", "robotics.available"],
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,

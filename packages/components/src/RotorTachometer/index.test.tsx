@@ -14,24 +14,25 @@ import {
 import { parseRotors, RotorTachometerComponent } from "./index";
 
 const KEYS: DataKey[] = [
-  { key: "robotics.rotors" },
+  { key: "parts.robotics" },
   { key: "robotics.available" },
 ];
 
 const rotor = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
-  partId: 101,
-  name: "Rotor A",
-  rpm: 120,
+  partId: "101",
+  partName: "Rotor A",
+  type: "rotor",
+  currentRPM: 120,
   rpmLimit: 200,
-  torqueLimit: 80,
+  servoMotorLimit: 80,
   maxTorque: 400,
   brakePercentage: 0,
-  motorEngaged: true,
-  locked: false,
+  servoMotorIsEngaged: true,
+  servoIsLocked: false,
   counterClockwise: false,
-  output: 0.6,
+  normalizedOutput: 0.6,
   ...over,
 });
 
@@ -60,7 +61,7 @@ describe("RotorTachometerComponent", () => {
     renderRotor();
     act(() => {
       source.emit("robotics.available", false);
-      source.emit("robotics.rotors", []);
+      source.emit("parts.robotics", []);
     });
     expect(
       screen.getByText(/Breaking Ground not installed/i),
@@ -71,14 +72,25 @@ describe("RotorTachometerComponent", () => {
     renderRotor();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.rotors", []);
+      source.emit("parts.robotics", []);
     });
     expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
   });
 
-  it("shows the no-rotors state when the key is absent (older fork)", () => {
+  it("shows the no-rotors state when the key is absent", () => {
     renderRotor();
     // Nothing emitted — both keys undefined.
+    expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
+  });
+
+  it("ignores hinge/piston entries in the same parts.robotics array", () => {
+    renderRotor();
+    act(() => {
+      source.emit("robotics.available", true);
+      source.emit("parts.robotics", [
+        { partId: "5", partName: "Arm Hinge", type: "hinge" },
+      ]);
+    });
     expect(screen.getByText(/No rotors on this vessel/i)).toBeInTheDocument();
   });
 
@@ -92,7 +104,9 @@ describe("RotorTachometerComponent", () => {
     renderRotor();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.rotors", [rotor({ rpm: 120, rpmLimit: 200 })]);
+      source.emit("parts.robotics", [
+        rotor({ currentRPM: 120, rpmLimit: 200 }),
+      ]);
     });
 
     expect(screen.getByText("120")).toBeInTheDocument(); // gauge value label
@@ -113,7 +127,7 @@ describe("RotorTachometerComponent", () => {
     renderRotor();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.rotors", [rotor({ motorEngaged: true })]);
+      source.emit("parts.robotics", [rotor({ servoMotorIsEngaged: true })]);
     });
 
     await user.click(screen.getByRole("button", { name: /Motor on/i }));
@@ -132,9 +146,9 @@ describe("RotorTachometerComponent", () => {
     renderRotor();
     act(() => {
       source.emit("robotics.available", true);
-      source.emit("robotics.rotors", [
-        rotor({ partId: 101, name: "Rotor A", rpmLimit: 200 }),
-        rotor({ partId: 202, name: "Rotor B", rpmLimit: 50 }),
+      source.emit("parts.robotics", [
+        rotor({ partId: "101", partName: "Rotor A", rpmLimit: 200 }),
+        rotor({ partId: "202", partName: "Rotor B", rpmLimit: 50 }),
       ]);
     });
 
@@ -147,18 +161,23 @@ describe("RotorTachometerComponent", () => {
 });
 
 describe("parseRotors", () => {
-  it("returns null for absent or non-array input", () => {
-    expect(parseRotors(undefined)).toBeNull();
-    expect(parseRotors(null)).toBeNull();
-    expect(parseRotors({})).toBeNull();
+  it("returns an empty list for absent or non-array input", () => {
+    expect(parseRotors(undefined)).toEqual([]);
+    expect(parseRotors(null)).toEqual([]);
+    expect(parseRotors({})).toEqual([]);
   });
 
-  it("drops entries with no numeric partId and coerces fields", () => {
-    const parsed = parseRotors([{ partId: 1, rpm: 50 }, { name: "no id" }]);
+  it("drops entries with no string partId or a non-rotor type, and coerces fields", () => {
+    const parsed = parseRotors([
+      { partId: "1", type: "rotor", currentRPM: 50 },
+      { partId: 2, type: "rotor" },
+      { partId: "3", type: "hinge", currentRPM: 999 },
+      { type: "rotor" },
+    ]);
     expect(parsed).toHaveLength(1);
-    expect(parsed?.[0]?.partId).toBe(1);
-    expect(parsed?.[0]?.rpm).toBe(50);
-    expect(parsed?.[0]?.motorEngaged).toBe(false);
-    expect(parsed?.[0]?.name).toBe("Rotor 1");
+    expect(parsed[0]?.partId).toBe("1");
+    expect(parsed[0]?.rpm).toBe(50);
+    expect(parsed[0]?.motorEngaged).toBe(false);
+    expect(parsed[0]?.name).toBe("Rotor 1");
   });
 });

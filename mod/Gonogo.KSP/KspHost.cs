@@ -3240,7 +3240,8 @@ namespace Gonogo.KSP
                                 currentAngle: null, targetAngle: null, traverseVelocity: null,
                                 currentRpm: rotor.currentRPM, rpmLimit: rotor.rpmLimit,
                                 normalizedOutput: rotor.normalizedOutput, brakePercentage: rotor.brakePercentage,
-                                currentExtension: null, targetExtension: null));
+                                currentExtension: null, targetExtension: null,
+                                counterClockwise: rotor.rotateCounterClockwise, maxTorque: rotor.maxTorque));
                         }
                     }
 
@@ -3258,7 +3259,8 @@ namespace Gonogo.KSP
                                 hinge, partName, partId, "hinge",
                                 currentAngle: hinge.currentAngle, targetAngle: hinge.targetAngle, traverseVelocity: hinge.traverseVelocity,
                                 currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
-                                currentExtension: null, targetExtension: null));
+                                currentExtension: null, targetExtension: null,
+                                counterClockwise: null, maxTorque: null));
                         }
                     }
 
@@ -3276,7 +3278,8 @@ namespace Gonogo.KSP
                                 piston, partName, partId, "piston",
                                 currentAngle: null, targetAngle: null, traverseVelocity: piston.traverseVelocity,
                                 currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
-                                currentExtension: piston.currentExtension, targetExtension: piston.targetExtension));
+                                currentExtension: piston.currentExtension, targetExtension: piston.targetExtension,
+                                counterClockwise: null, maxTorque: null));
                         }
                     }
                 }
@@ -3293,7 +3296,8 @@ namespace Gonogo.KSP
             BaseServo servo, string partName, string? partId, string type,
             float? currentAngle, float? targetAngle, float? traverseVelocity,
             float? currentRpm, float? rpmLimit, float? normalizedOutput, float? brakePercentage,
-            float? currentExtension, float? targetExtension)
+            float? currentExtension, float? targetExtension,
+            bool? counterClockwise, float? maxTorque)
         {
             return new Dictionary<string, object?>
             {
@@ -3314,6 +3318,8 @@ namespace Gonogo.KSP
                 ["brakePercentage"] = brakePercentage.HasValue ? (double?)brakePercentage.Value : null,
                 ["currentExtension"] = currentExtension.HasValue ? (double?)currentExtension.Value : null,
                 ["targetExtension"] = targetExtension.HasValue ? (double?)targetExtension.Value : null,
+                ["counterClockwise"] = counterClockwise,
+                ["maxTorque"] = maxTorque.HasValue ? (double?)maxTorque.Value : null,
             };
         }
 

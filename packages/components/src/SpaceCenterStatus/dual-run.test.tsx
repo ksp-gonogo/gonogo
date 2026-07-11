@@ -29,8 +29,10 @@ import { SpaceCenterStatusComponent } from "./index";
  * `TelemetryProvider`, so the shim's carried-channels gate keeps it on the
  * legacy path there); the stream leg now feeds it through the fixture's
  * `spaceCenter.scene` topic instead of a legacy AUX `DataSource`.
- * `partsAvailable`/`launchSite`/`padOccupied`/`padVesselTitle` stay legacy
- * on both legs.
+ * `kc.partsAvailable` (-> `spaceCenter.partsAvailable.count`) is migrated
+ * too — the stream leg feeds it through `spaceCenter.partsAvailable`
+ * instead of the legacy AUX. `launchSite`/`padOccupied`/`padVesselTitle`
+ * stay legacy on both legs.
  */
 afterEach(() => {
   cleanup();
@@ -48,13 +50,16 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: [
+        "career.status",
+        "spaceCenter.scene",
+        "spaceCenter.partsAvailable",
+      ],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.partsAvailable" },
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
@@ -82,6 +87,9 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     act(() => {
       streamFixture.emit("spaceCenter.scene", {
         scene: midCareer["kc.scene"],
+      });
+      streamFixture.emit("spaceCenter.partsAvailable", {
+        count: midCareer["kc.partsAvailable"],
       });
       streamFixture.emit("career.status", {
         economy: {
@@ -156,10 +164,6 @@ describe("SpaceCenterStatus — behavior-preservation golden dual-run (delay=0)"
     });
 
     act(() => {
-      legacyAux.source.emit(
-        "kc.partsAvailable",
-        midCareer["kc.partsAvailable"],
-      );
       legacyAux.source.emit("kc.launchSite", midCareer["kc.launchSite"]);
       legacyAux.source.emit("kc.padOccupied", midCareer["kc.padOccupied"]);
       legacyAux.source.emit(

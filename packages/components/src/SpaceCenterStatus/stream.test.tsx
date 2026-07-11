@@ -9,34 +9,35 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * The M3/M3b career batch's stream test-adapter proof for
- * SpaceCenterStatus: genuinely running off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`.
- * `career.funds` (-> `career.status.economy.funds`) is a funds spender per
- * CLAUDE.md's "always show the balance" rule, so it must stream.
- * `kc.facilityLevels` (-> `career.status.facilities`, M3b career-detail
- * batch) streams too. `kc.scene` (-> `spaceCenter.scene.scene`, P4a
- * shared-map batch) streams now as well. `kc.partsAvailable`/
- * `kc.launchSite`/`kc.padOccupied`/`kc.padVesselTitle` are still gapped
- * kc.* GonogoTelemetry keys with no career.status equivalent shape —
- * carried by a small `setupMockDataSource` AUX, same mixed-source pattern
- * the vessel-gap batch established.
+ * SpaceCenterStatus's stream test-adapter proof: genuinely running off the
+ * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
+ * `StubTransport`. `career.funds` (-> `career.status.economy.funds`) is a
+ * funds spender per CLAUDE.md's "always show the balance" rule, so it must
+ * stream. `kc.facilityLevels` (-> `career.status.facilities`) and `kc.scene`
+ * (-> `spaceCenter.scene.scene`) stream too, and now `kc.partsAvailable`
+ * (-> `spaceCenter.partsAvailable.count`) as well. `kc.launchSite`/
+ * `kc.padOccupied`/`kc.padVesselTitle` are still gapped kc.* GonogoTelemetry
+ * keys with no career.status equivalent shape — carried by a small
+ * `setupMockDataSource` AUX.
  */
 afterEach(() => {
   cleanup();
   clearActionHandlers();
 });
 
-describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career batch)", () => {
-  it("renders the funds readout derived from career.status.economy.funds", async () => {
+describe("SpaceCenterStatus — genuinely runs off the stream", () => {
+  it("renders the funds readout and parts-available count both off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: [
+        "career.status",
+        "spaceCenter.scene",
+        "spaceCenter.partsAvailable",
+      ],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.partsAvailable" },
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
@@ -53,9 +54,13 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     );
 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
+    expect(fixture.transport.isSubscribed("spaceCenter.partsAvailable")).toBe(
+      true,
+    );
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      fixture.emit("spaceCenter.partsAvailable", { count: 214 });
       legacyAux.source.emit("kc.padOccupied", false);
       legacyAux.source.emit("kc.launchSite", "KSC");
       fixture.emit("career.status", {
@@ -68,6 +73,7 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     });
 
     await waitFor(() => expect(screen.getByText("· 78,401f")).toBeTruthy());
+    expect(screen.getByText("214")).toBeTruthy();
 
     teardownMockDataSource(legacyAux);
   });
@@ -80,7 +86,6 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.partsAvailable" },
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
@@ -120,7 +125,6 @@ describe("SpaceCenterStatus — genuinely runs off the stream (M3/M3b career bat
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.partsAvailable" },
         { key: "kc.launchSite" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },

@@ -9,31 +9,34 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * The M3 career batch's stream test-adapter proof for LaunchDirector:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`. `career.funds` is the ONE
- * mapped read (-> `career.status.economy.funds`, map-topic.ts) — a funds
- * spender per CLAUDE.md's "always show the balance" rule, so it must stream.
- * Every other read (kc.*, ksp.*, crash.*, tar.availableVessels) stays legacy
- * — carried by a `setupMockDataSource` AUX, same mixed-source pattern the
- * vessel-gap batch established.
+ * LaunchDirector's stream test-adapter proof: genuinely running off the real
+ * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
+ * `StubTransport`. `career.funds` (-> `career.status.economy.funds`) is a
+ * funds spender per CLAUDE.md's "always show the balance" rule.
+ * `kc.savedShips`/`kc.crewRoster` are mapped onto SpaceCenterUplink's own
+ * `spaceCenter.savedShips`/`spaceCenter.crewRoster` bare-array topics.
+ * Every other read (kc.padOccupied/padVesselTitle/launchSite/launchSites,
+ * ksp.*, crash.*, tar.availableVessels) stays legacy — carried by a
+ * `setupMockDataSource` AUX.
  */
 afterEach(() => {
   cleanup();
   clearActionHandlers();
 });
 
-describe("LaunchDirector — genuinely runs off the stream (M3 career batch)", () => {
-  it("renders the funds readout derived from career.status.economy.funds", async () => {
+describe("LaunchDirector — genuinely runs off the stream", () => {
+  it("renders the funds readout, saved ships and crew roster all off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: [
+        "career.status",
+        "spaceCenter.savedShips",
+        "spaceCenter.crewRoster",
+      ],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.savedShips" },
-        { key: "kc.crewRoster" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
         { key: "kc.launchSite" },
@@ -52,10 +55,10 @@ describe("LaunchDirector — genuinely runs off the stream (M3 career batch)", (
     );
 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
+    expect(fixture.transport.isSubscribed("spaceCenter.savedShips")).toBe(true);
+    expect(fixture.transport.isSubscribed("spaceCenter.crewRoster")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("kc.savedShips", []);
-      legacyAux.source.emit("kc.crewRoster", []);
       legacyAux.source.emit("kc.padOccupied", false);
       legacyAux.source.emit("kc.launchSites", []);
       legacyAux.source.emit("kc.scene", "SpaceCenter");
@@ -66,9 +69,37 @@ describe("LaunchDirector — genuinely runs off the stream (M3 career batch)", (
         strategies: null,
         tech: null,
       });
+      fixture.emit("spaceCenter.savedShips", [
+        {
+          name: "Kerbal X",
+          partCount: 24,
+          totalMass: 18.4,
+          facility: "VAB",
+          requiresFunds: 0,
+          missingParts: [],
+        },
+      ]);
+      fixture.emit("spaceCenter.crewRoster", [
+        {
+          name: "Jebediah Kerman",
+          trait: "Pilot",
+          experienceLevel: 3,
+          available: true,
+          unavailableReason: "",
+        },
+      ]);
     });
 
     await waitFor(() => expect(screen.getByText("· 42,500f")).toBeTruthy());
+    expect(screen.getByText("Kerbal X")).toBeTruthy();
+
+    // The crew picker only renders once a ship is selected.
+    await act(async () => {
+      screen.getByText("Kerbal X").click();
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeTruthy(),
+    );
 
     teardownMockDataSource(legacyAux);
   });

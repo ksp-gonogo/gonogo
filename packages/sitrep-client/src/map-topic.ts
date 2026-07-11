@@ -406,10 +406,10 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // the widget's existing two separate reads are left untouched this batch).
   "sci.experiments": "science.experiments",
 
-  // --- M3 science/parts batch: NEW capability, no legacy widget key existed
+  // --- science/parts topics: NEW capability, no legacy widget key existed
   // for either — `parts.power` (dict: solarPanels/batteries/fuelCells/
   // alternators/totalProductionEc, mod/Sitrep.Host/PartsViewProvider.cs) and
-  // `parts.robotics` (raw array of hinge+rotor servo state) are both
+  // `parts.robotics` (raw array of hinge+piston+rotor servo state) are both
   // 2-segment raw wire topics read WHOLESALE (same "no legacy analogue, key
   // == topic" shape as `tar.relativePosition` etc. above) rather than a
   // `<domain>.<channel>.<field>` walk — matches `system.vessels`'s own
@@ -417,11 +417,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // MIXED-source enrichment (preferring `totalProductionEc` over its
   // topology-summed total when carried, `??` falls back otherwise — same
   // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
-  // RotorTachometer read `parts.robotics` (filtered by `type`) to merge live
-  // numeric readouts (angle/RPM/output/brake) onto the still-legacy
-  // `robotics.servos`/`robotics.rotors` identity list (no `partId`/stable id
-  // on the new wire — see those two keys' own TELEMACHUS_KNOWN_GAPS entries
-  // below, unchanged, for why the full list itself isn't migrated).
+  // RotorTachometer read `parts.robotics` (filtered by `type`) as their
+  // WHOLE identity list — partId-keyed selection and every `robotics.*`
+  // command key off the stable stringified `partId` each entry carries.
   "parts.power": "parts.power",
   "parts.robotics": "parts.robotics",
 
@@ -490,8 +488,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
 
   // robotics.available: RoboticsConsole/RotorTachometer's own
   // "any deployable part present" capability flag — separate from the
-  // identity-list gap (robotics.rotors/robotics.servos stay gapped, no
-  // stable id on the wire).
+  // identity list itself (`parts.robotics` above).
   "robotics.available": "robotics.available.available",
 
   // ksp.canRevertToEditor / ksp.canRevertToLaunch: LaunchDirector's revert
@@ -503,6 +500,22 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // raw topic (SpaceCenterScene.scene), a plain enum-name string on the
   // wire already, no display-map derivation needed.
   "kc.scene": "spaceCenter.scene.scene",
+
+  // kc.crewRoster/kc.savedShips: StaffRoster/LaunchDirector's whole-topic
+  // identity reads — SpaceCenterUplink's dedicated crewRoster/savedShips
+  // channels are bare arrays, same "key == topic" shape as parts.robotics/
+  // science.lab above. Each widget's existing parser already accepts the
+  // exact fields the mod ships (name/trait/experienceLevel/available/
+  // unavailableReason for crew; name/partCount/totalMass/facility/
+  // requiresFunds/missingParts for saved ships).
+  "kc.crewRoster": "spaceCenter.crewRoster",
+  "kc.savedShips": "spaceCenter.savedShips",
+
+  // kc.partsAvailable: SpaceCenterStatus's "parts unlocked" count — a
+  // wrapper object ({ count }) since a bare scalar has no Topic shape of
+  // its own, so this is a 1-field raw-field walk like robotics.available
+  // above.
+  "kc.partsAvailable": "spaceCenter.partsAvailable.count",
 
   // contracts.completedRecent: the state map's old "no wire equivalent"
   // rationale was stale — CareerContracts now carries a completedRecent
@@ -728,23 +741,12 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // --- parts surface — own ASSET-class design, out of M1 ---
   "v.topology",
   "v.topologySeq",
-  // robotics.available UN-GAPPED (P4a shared-map batch): a dedicated
-  // capability topic now ships — see TELEMACHUS_CLEAN_HOMES above.
-  // robotics.rotors/robotics.servos: RotorTachometer/RoboticsConsole read
-  // `{partId, name, ...}[]` lists keyed on a numeric `partId` that both
-  // commands (robotics.rotor.setRpmLimit[id,...] etc.) and React list
-  // selection depend on. `parts.robotics` (M3 science/parts batch,
-  // CLEAN_HOMES above) carries the same live hinge/rotor readouts
-  // (currentAngle/targetAngle/currentRPM/rpmLimit/normalizedOutput/
-  // brakePercentage/servoIsLocked/servoIsMotorized/servoMotorIsEngaged) but
-  // NO id field at all — the same "no stable id" shape-mismatch class as the
-  // career batch's contracts/strategies gaps. The full identity list (and
-  // therefore selection + every command) stays on this legacy read; the two
-  // widgets separately read the NEW `parts.robotics` key to merge live
-  // numeric values onto the selected part by name (mixed-source pattern).
-  // gap: no partId/stable id on the new wire; migrate in M3
-  "robotics.rotors",
-  "robotics.servos",
+  // robotics.available: a dedicated capability topic ships — see
+  // TELEMACHUS_CLEAN_HOMES above. robotics.rotors/robotics.servos are gone
+  // from this set entirely: RotorTachometer/RoboticsConsole now build their
+  // identity list (partId-keyed selection + every robotics.* command)
+  // straight off `parts.robotics` (CLEAN_HOMES above), which carries a
+  // stable stringified `partId` per entry.
 
   // --- M2 event stream (ReliableOrdered), not this milestone's state model ---
   "crash.hasRecent",
@@ -814,7 +816,9 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // career.mode.mode (the numeric GameMode ordinal). useGameContext resolves
   // the ordinal to the SANDBOX/CAREER/SCIENCE/Unknown string the widgets
   // read (no vessel.state field needed — see TELEMACHUS_CLEAN_HOMES above).
-  "kc.crewRoster",
+  // kc.crewRoster/kc.savedShips/kc.partsAvailable UN-GAPPED: SpaceCenterUplink
+  // now ships spaceCenter.crewRoster/spaceCenter.savedShips/
+  // spaceCenter.partsAvailable — see TELEMACHUS_CLEAN_HOMES above.
   // kc.facilityLevels un-gapped M3b career-detail batch — see CLEAN_HOMES
   // above (career.status.facilities, SpaceCenterStatus's parseFacilityLevels
   // now reads BOTH the legacy short-code shape and the new enum-keyed
@@ -823,8 +827,6 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   "kc.launchSites",
   "kc.padOccupied",
   "kc.padVesselTitle",
-  "kc.partsAvailable",
-  "kc.savedShips",
   // kc.scene UN-GAPPED (P4a shared-map batch): SpaceCenterScene now ships
   // its own raw topic — see TELEMACHUS_CLEAN_HOMES above.
 

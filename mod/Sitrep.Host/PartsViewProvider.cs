@@ -27,7 +27,8 @@ namespace Sitrep.Host
     ///     "servoIsLocked", "servoIsMotorized", "servoMotorIsEngaged",
     ///     "servoMotorLimit", "motorState", "currentAngle", "targetAngle",
     ///     "traverseVelocity", "currentRPM", "rpmLimit", "normalizedOutput",
-    ///     "brakePercentage", "currentExtension", "targetExtension" }, ... ] | null
+    ///     "brakePercentage", "currentExtension", "targetExtension",
+    ///     "counterClockwise", "maxTorque" (rotor entries only, null otherwise) }, ... ] | null
     ///   "roboticsAvailable": bool   // any Breaking Ground servo on THIS vessel
     /// }
     /// </code>
@@ -212,6 +213,8 @@ namespace Sitrep.Host
             ["brakePercentage"] = SnapshotDict.GetDouble(raw, "brakePercentage"),
             ["currentExtension"] = SnapshotDict.GetDouble(raw, "currentExtension"),
             ["targetExtension"] = SnapshotDict.GetDouble(raw, "targetExtension"),
+            ["counterClockwise"] = SnapshotDict.GetBool(raw, "counterClockwise"),
+            ["maxTorque"] = SnapshotDict.GetDouble(raw, "maxTorque"),
         };
     }
 }

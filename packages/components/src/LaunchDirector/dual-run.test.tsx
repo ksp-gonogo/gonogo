@@ -11,13 +11,14 @@ import preLaunch from "./__fixtures__/pre-launch-mixed.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * LaunchDirector's M3 career batch behavior-preservation golden dual-run
- * (mirrors `SpaceCenterStatus/dual-run.test.tsx`): the SAME pre-launch
- * state, rendered once off the legacy `DataSource` and once off the stream,
- * must produce byte-identical DOM at `delay=0`. `career.funds` (42500) is
- * the only migrated field — every other fixture key (`kc.savedShips`/
- * `crewRoster`/`padOccupied`/`padVesselTitle`/`launchSite`/`launchSites`/
- * `scene`) stays legacy on both legs.
+ * LaunchDirector's behavior-preservation golden dual-run (mirrors
+ * `SpaceCenterStatus/dual-run.test.tsx`): the SAME pre-launch state,
+ * rendered once off the legacy `DataSource` and once off the stream, must
+ * produce byte-identical DOM at `delay=0`. `career.funds` (->
+ * `career.status.economy.funds`) and `kc.savedShips`/`kc.crewRoster` (->
+ * `spaceCenter.savedShips`/`spaceCenter.crewRoster`) are the migrated
+ * fields — every other fixture key (`padOccupied`/`padVesselTitle`/
+ * `launchSite`/`launchSites`/`scene`) stays legacy on both legs.
  */
 afterEach(() => {
   cleanup();
@@ -35,14 +36,16 @@ describe("LaunchDirector — behavior-preservation golden dual-run (delay=0)", (
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
+      carriedChannels: [
+        "career.status",
+        "spaceCenter.savedShips",
+        "spaceCenter.crewRoster",
+      ],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
       keys: [
-        { key: "kc.savedShips" },
-        { key: "kc.crewRoster" },
         { key: "kc.padOccupied" },
         { key: "kc.padVesselTitle" },
         { key: "kc.launchSite" },
@@ -62,16 +65,14 @@ describe("LaunchDirector — behavior-preservation golden dual-run (delay=0)", (
 
     // Single batch, mirroring the legacy leg's `snapshotWidgetMode` (which
     // emits every fixture key inside one `act()`) — LaunchDirector's funds
-    // readout only renders once `ships !== null` (kc.savedShips has
-    // arrived), so unlike SpaceCenterStatus's per-facility UpgradeButton
-    // (gated on a bare HTML `disabled` attribute that can get appended
-    // out-of-order across two renders) there's no fresh-mount-vs-update
-    // hazard here to stagger around — every funds-dependent value renders
-    // via `aria-disabled`/styled-component props, always present from the
-    // first render regardless of value.
+    // readout only renders once `ships !== null` (savedShips has arrived),
+    // so unlike SpaceCenterStatus's per-facility UpgradeButton (gated on a
+    // bare HTML `disabled` attribute that can get appended out-of-order
+    // across two renders) there's no fresh-mount-vs-update hazard here to
+    // stagger around — every funds-dependent value renders via
+    // `aria-disabled`/styled-component props, always present from the first
+    // render regardless of value.
     act(() => {
-      legacyAux.source.emit("kc.savedShips", preLaunch["kc.savedShips"]);
-      legacyAux.source.emit("kc.crewRoster", preLaunch["kc.crewRoster"]);
       legacyAux.source.emit("kc.padOccupied", preLaunch["kc.padOccupied"]);
       legacyAux.source.emit(
         "kc.padVesselTitle",
@@ -91,6 +92,8 @@ describe("LaunchDirector — behavior-preservation golden dual-run (delay=0)", (
         strategies: null,
         tech: null,
       });
+      streamFixture.emit("spaceCenter.savedShips", preLaunch["kc.savedShips"]);
+      streamFixture.emit("spaceCenter.crewRoster", preLaunch["kc.crewRoster"]);
     });
 
     await waitFor(() => {

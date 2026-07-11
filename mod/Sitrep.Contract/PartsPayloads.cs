@@ -180,6 +180,20 @@ public class ServoEntry
     public double? CurrentExtension { get; set; }
 
     public double? TargetExtension { get; set; }
+
+    /// <summary>
+    /// Rotor spin direction (rotor entries only — <c>null</c> for hinge/piston).
+    /// Mirrors <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c>
+    /// means the rotor spins counter-clockwise.
+    /// </summary>
+    public bool? CounterClockwise { get; set; }
+
+    /// <summary>
+    /// Rotor torque ceiling in kN (rotor entries only — <c>null</c> for
+    /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c> — the
+    /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
+    /// </summary>
+    public double? MaxTorque { get; set; }
 }
 
 /// <summary>

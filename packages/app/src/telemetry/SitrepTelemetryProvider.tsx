@@ -112,6 +112,14 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.experiments",
   "science.lab",
   "science.deployed",
+  // spaceCenter.crewRoster/savedShips/partsAvailable: StaffRoster/
+  // LaunchDirector/SpaceCenterStatus's kc.crewRoster/kc.savedShips/
+  // kc.partsAvailable reads are now mapped in TELEMACHUS_CLEAN_HOMES — same
+  // "must be promoted or it silently stays on the legacy read" rule as
+  // every other mod-served topic above.
+  "spaceCenter.crewRoster",
+  "spaceCenter.savedShips",
+  "spaceCenter.partsAvailable",
 ];
 
 /** `true` when the dev streaming flag is set in the build env (dev channel first — hard-cut for release). */
