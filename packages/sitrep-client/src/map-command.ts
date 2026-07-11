@@ -268,6 +268,61 @@ function roboticsEnabledHome(command: string): CommandHome {
   };
 }
 
+/** Clamps a raw axis/trim value to the −1..1 range `vessel.control.setAxes`
+ * accepts — belt-and-suspenders alongside the mod's own admission-gate clamp
+ * (`SetControlAxesArgs` doc comment), same posture as `f.setThrottle`'s 0..1
+ * check. */
+function clampAxis(value: number): number {
+  return Math.max(-1, Math.min(1, value));
+}
+
+/**
+ * `v.setPitch[f]`/`v.setYaw[f]`/`v.setRoll[f]`/`f.setPitchTrim[f]`/
+ * `f.setYawTrim[f]`/`f.setRollTrim[f]` -> a single named field of
+ * `vessel.control.setAxes`'s nullable-partial `SetControlAxesArgs`. Each of
+ * these legacy actions carries exactly ONE raw float; sending only that one
+ * field (rather than zero-padding the others) is what makes the partial
+ * update non-clobbering — see `VesselCommandProvider.SetControlAxesCommand`'s
+ * own doc comment on `SetControlAxesArgs`.
+ */
+function axisHome(
+  field: "pitch" | "yaw" | "roll" | "pitchTrim" | "yawTrim" | "rollTrim",
+): CommandHome {
+  return {
+    // VesselCommandProvider.SetControlAxesCommand
+    command: "vessel.control.setAxes",
+    buildArgs: (rawArgs) => {
+      const value = parseFiniteNumber(rawArgs[0]);
+      if (value === INVALID) return INVALID;
+      return { [field]: clampAxis(value) };
+    },
+  };
+}
+
+/**
+ * Absolute-throttle reconstruction of the legacy relative `f.throttleUp`/
+ * `f.throttleDown` nudge — the new `vessel.control.setThrottle` command is
+ * absolute-only (no relative-nudge command exists), so this reads the LIVE
+ * current throttle off `vessel.control.throttle` (the same topic
+ * `map-topic.ts`'s `f.throttle` read maps to) and applies the legacy ±0.1
+ * step (confirmed against the decompiled fork's `mainThrottle += 0.1f`),
+ * clamped 0..1. When the current value isn't known yet, this is `INVALID`
+ * (falls back to legacy) rather than ever guessing a blind nudge — same
+ * "if unknowable, never assume a default" posture as `toggleHome`.
+ */
+function throttleNudgeHome(delta: number): CommandHome {
+  return {
+    command: "vessel.control.setThrottle",
+    buildArgs: (_rawArgs, getCurrentValue) => {
+      const current = getCurrentValue("vessel.control.throttle");
+      if (typeof current !== "number" || !Number.isFinite(current)) {
+        return INVALID;
+      }
+      return { value: Math.max(0, Math.min(1, current + delta)) };
+    },
+  };
+}
+
 /**
  * `o.addManeuverNode[ut,radial,normal,prograde]` -> `vessel.maneuver.add`'s
  * named `{ut, prograde, normal, radialOut}`. Field-order note (load-bearing —
@@ -377,6 +432,46 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
       const name = rawArgs[0];
       const mode = name === undefined ? undefined : SAS_MODE_ORDINALS[name];
       return mode === undefined ? INVALID : { mode };
+    },
+  },
+  "f.throttleUp": throttleNudgeHome(0.1),
+  "f.throttleDown": throttleNudgeHome(-0.1),
+
+  // --- vessel.control.* fly-by-wire — a PERSISTENT OVERRIDE the mod
+  // re-applies from a Vessel.OnFlyByWire callback every frame while armed,
+  // not a one-shot actuation. setFlyByWire arms/disarms; setAxes partially
+  // updates the held pitch/yaw/roll/translation/trim (nullable-partial, so
+  // each single-axis Navball action sends only its own field). See
+  // `FlyByWireCommands.cs`'s doc comments.
+  "v.setPitch": axisHome("pitch"),
+  "v.setYaw": axisHome("yaw"),
+  "v.setRoll": axisHome("roll"),
+  "f.setPitchTrim": axisHome("pitchTrim"),
+  "f.setYawTrim": axisHome("yawTrim"),
+  "f.setRollTrim": axisHome("rollTrim"),
+  "v.setTranslation": {
+    // VesselCommandProvider.SetControlAxesCommand — the Navball's translate
+    // handlers still zero-pad the other two axes into one legacy
+    // `v.setTranslation[x,y,z]` call (see this file's FOLLOW-UP note below);
+    // all three provided values are forwarded as named fields.
+    command: "vessel.control.setAxes",
+    buildArgs: (rawArgs) => {
+      const x = parseFiniteNumber(rawArgs[0]);
+      const y = parseFiniteNumber(rawArgs[1]);
+      const z = parseFiniteNumber(rawArgs[2]);
+      if (x === INVALID || y === INVALID || z === INVALID) return INVALID;
+      return { x: clampAxis(x), y: clampAxis(y), z: clampAxis(z) };
+    },
+  },
+  "v.setFbW": {
+    // VesselCommandProvider.SetFlyByWireCommand — arm/disarm is NOT a
+    // toggle (state is encoded in the legacy arg itself), so this needs no
+    // getCurrentValue inversion, unlike toggleHome above.
+    command: "vessel.control.setFlyByWire",
+    buildArgs: (rawArgs) => {
+      const state = parseFiniteNumber(rawArgs[0]);
+      if (state === INVALID) return INVALID;
+      return { enabled: state > 0 }; // legacy: on_attitude > 0 means armed
     },
   },
 
@@ -671,38 +766,17 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
 export const KNOWN_COMMAND_GAPS: ReadonlySet<string> = new Set([
   // f.abort is UN-GAPPED — see toggleHome's
   // TELEMACHUS_COMMAND_HOMES entry above.
-
-  // --- no discrete command exists for a continuous raw control axis ---
-  // v.setPitch/setYaw/setRoll/setTranslation: the vessel.control.*
-  // command set is discrete actuation only (booleans, throttle, SAS mode,
-  // stage) — there is no "set raw control-surface axis" command.
-  "v.setPitch",
-  "v.setYaw",
-  "v.setRoll",
-  "v.setTranslation",
-  // v.setFbW: fly-by-wire arm/disarm has no server actuator at all in this
-  // contract (kOS-adjacent concept, not a vessel.control.* command).
-  "v.setFbW",
-  // f.setPitchTrim/setYawTrim/setRollTrim: no trim command on the contract.
-  "f.setPitchTrim",
-  "f.setYawTrim",
-  "f.setRollTrim",
-  // f.throttleUp/f.throttleDown: a RELATIVE nudge — the new command needs an
-  // absolute value, and there's no defined step size in the contract to
-  // reconstruct one (unlike throttleZero/throttleFull, which ARE absolute
-  // and mapped above).
-  "f.throttleUp",
-  "f.throttleDown",
-
+  // v.setPitch/setYaw/setRoll/setTranslation/v.setFbW,
+  // f.setPitchTrim/setYawTrim/setRollTrim, f.throttleUp/f.throttleDown are
+  // all UN-GAPPED — see the fly-by-wire TELEMACHUS_COMMAND_HOMES entries
+  // above (axisHome/throttleNudgeHome, vessel.control.setAxes/setFlyByWire).
   // robotics.servo.*/robotics.rotor.* are routed above — see
   // roboticsValueHome/roboticsEnabledHome's TELEMACHUS_COMMAND_HOMES
   // entries; parts.robotics already streams the partId these key on.
-
   // strategies.activate/deactivate, tech.unlock, contracts.accept/decline/
   // cancel, kc.upgradeFacility are routed above — see the career.*
   // TELEMACHUS_COMMAND_HOMES entries; career.status.* already streams every
   // id these key on.
-
   // ksp.recover/revertToLaunch/revertToEditor/toTrackingStation,
   // tar.switchVessel -> ksp.switchVessel, and ksp.launch are all routed above
   // — see the ksp.*/tar.switchVessel TELEMACHUS_COMMAND_HOMES entries.

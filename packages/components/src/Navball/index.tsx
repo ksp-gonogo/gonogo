@@ -10,6 +10,7 @@ import {
   useDataStreamStatus,
   useDataValue,
   useExecuteAction,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   Button,
@@ -24,9 +25,33 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { Badge, StatusIndicator } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
+
+/**
+ * Warn once one-way signal delay crosses this threshold AND fly-by-wire is
+ * armed. The felt control-loop lag is ~2x one-way (command out + result
+ * back), so 1s one-way ≈ 2s round-trip — the point past which closed-loop
+ * stick flying stops working. Below that FBW is sloppy but usable; holding
+ * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
+ * mirrors `CommSignal`'s own `formatDelay` unit-switch breakpoint — an
+ * already-meaningful threshold in this codebase, tunable here if a live
+ * session says otherwise.
+ */
+const FBW_DELAY_WARN_SECONDS = 1.0;
+
+/** Mirrors `CommSignal`'s own `formatDelay` — ms below 1s, seconds below a
+ * minute, `m s` beyond that. */
+function formatDelaySeconds(seconds: number): string {
+  if (seconds < 0.001) return "0 ms";
+  if (seconds < 1) return `${(seconds * 1000).toFixed(0)} ms`;
+  if (seconds < 60) return `${seconds.toFixed(1)} s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds - m * 60);
+  return `${m}m ${s}s`;
+}
 
 const SAS_MODES = [
   "StabilityAssist",
@@ -173,6 +198,17 @@ function NavballComponent({
     void execute("v.setFbW[0]");
     setFbwArmed(false);
   };
+
+  // FBW-under-delay warning. `comm.signalDelay` is gonogo's own SignalDelay
+  // authority (a TrueNow channel, never itself delayed) — a plain number of
+  // one-way light-time seconds, 0 when the delay feature is disabled, so the
+  // warning naturally stays hidden with no extra "is it enabled" check.
+  const delaySeconds = useTelemetry("data", "comm.signalDelay");
+  const delayHigh =
+    typeof delaySeconds === "number" &&
+    Number.isFinite(delaySeconds) &&
+    delaySeconds > FBW_DELAY_WARN_SECONDS;
+  const showFbwDelayWarning = fbwArmed && delayHigh;
 
   // Action wiring — every action surface has a mapping into a Telemachus
   // execute call, with analog values clamped to [-1, 1] and throttle to
@@ -370,6 +406,11 @@ function NavballComponent({
             </ModeBadge>
             <ModeBadge $on={rcsOn}>RCS</ModeBadge>
             {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
+            {showFbwDelayWarning && typeof delaySeconds === "number" && (
+              <Badge tone="warn" size="sm">
+                FBW · {formatDelaySeconds(delaySeconds)} DELAY
+              </Badge>
+            )}
             {/* Header badge slot (augment-slot-map.md): an autopilot Uplink can
                 surface its active mode here, alongside SAS/RCS. Renders nothing
                 until an augment binds `navball.badges`. */}
@@ -436,6 +477,10 @@ function NavballComponent({
             onArmFbw={armFbw}
             onDisarmFbw={disarmFbw}
             execute={execute}
+            showFbwDelayWarning={showFbwDelayWarning}
+            delaySeconds={
+              typeof delaySeconds === "number" ? delaySeconds : null
+            }
           />
         )}
       </Body>
@@ -454,6 +499,8 @@ interface ControlSurfaceProps {
   onArmFbw: () => void;
   onDisarmFbw: () => void;
   execute: (action: string) => Promise<void>;
+  showFbwDelayWarning: boolean;
+  delaySeconds: number | null;
 }
 
 function ControlSurface({
@@ -467,6 +514,8 @@ function ControlSurface({
   onArmFbw,
   onDisarmFbw,
   execute,
+  showFbwDelayWarning,
+  delaySeconds,
 }: ControlSurfaceProps) {
   return (
     <ControlWrap>
@@ -585,6 +634,12 @@ function ControlSurface({
               : "Bind axes via the Inputs tab, then arm to take stick control."}
           </FbwHint>
         </FbwRow>
+        {showFbwDelayWarning && delaySeconds !== null && (
+          <StatusIndicator tone="warn" live>
+            High signal delay ({formatDelaySeconds(delaySeconds)}) — fly-by-wire
+            stick input lags round-trip; expect to overcorrect.
+          </StatusIndicator>
+        )}
       </Group>
     </ControlWrap>
   );
@@ -923,6 +978,7 @@ registerComponent<NavballConfig>({
     "v.rcsValue",
     "f.throttle",
     "v.isControllable",
+    "comm.signalDelay",
   ],
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,

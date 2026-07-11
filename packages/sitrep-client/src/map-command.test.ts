@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isKnownCommandGap, mapCommand } from "./map-command";
+import {
+  isKnownCommandGap,
+  KNOWN_COMMAND_GAPS,
+  mapCommand,
+} from "./map-command";
 
 /**
  * The write-half analog of `map-topic.ts`'s `mapTopic`: old Telemachus action-string
@@ -359,8 +363,13 @@ describe("mapCommand", () => {
       expect(isKnownCommandGap("kos", "f.abort")).toBe(false);
     });
 
-    it("strips bracketed args before checking the gap set", () => {
-      expect(isKnownCommandGap("data", "f.setPitchTrim[0.5]")).toBe(true);
+    it("KNOWN_COMMAND_GAPS is now empty — the fly-by-wire batch was the last remaining command gap", () => {
+      expect(KNOWN_COMMAND_GAPS.size).toBe(0);
+    });
+
+    it("strips bracketed args before checking the gap set (regression guard: a bracketed hasCommandHome key must never misread as a gap)", () => {
+      expect(isKnownCommandGap("data", "f.sas[true]")).toBe(false);
+      expect(isKnownCommandGap("data", "v.setFbW[1]")).toBe(false);
     });
   });
 
@@ -611,6 +620,145 @@ describe("mapCommand", () => {
       expect(
         mapCommand("data", "ksp.launch[Kerbal X,,LaunchPad,]"),
       ).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Fly-by-wire — command-ungap batch. vessel.control.setFlyByWire
+  // arms/disarms the mod's persistent override; vessel.control.setAxes is a
+  // nullable-partial single-field update, not a toggle bridge.
+  // ---------------------------------------------------------------------
+
+  describe("fly-by-wire — command-ungap batch", () => {
+    it("v.setPitch/v.setYaw/v.setRoll each map to their own named setAxes field", () => {
+      const table: Array<[string, "pitch" | "yaw" | "roll"]> = [
+        ["v.setPitch", "pitch"],
+        ["v.setYaw", "yaw"],
+        ["v.setRoll", "roll"],
+      ];
+      for (const [action, field] of table) {
+        expect(mapCommand("data", `${action}[0.5]`)).toEqual({
+          command: "vessel.control.setAxes",
+          args: { [field]: 0.5 },
+        });
+      }
+    });
+
+    it("axis values are clamped to -1..1", () => {
+      expect(mapCommand("data", "v.setPitch[2.5]")).toEqual({
+        command: "vessel.control.setAxes",
+        args: { pitch: 1 },
+      });
+      expect(mapCommand("data", "v.setYaw[-3]")).toEqual({
+        command: "vessel.control.setAxes",
+        args: { yaw: -1 },
+      });
+    });
+
+    it("a malformed axis arg falls back to legacy", () => {
+      expect(mapCommand("data", "v.setPitch[not-a-number]")).toBeUndefined();
+      expect(mapCommand("data", "v.setPitch")).toBeUndefined();
+    });
+
+    it("f.setPitchTrim/f.setYawTrim/f.setRollTrim each map to their own named setAxes trim field", () => {
+      const table: Array<[string, "pitchTrim" | "yawTrim" | "rollTrim"]> = [
+        ["f.setPitchTrim", "pitchTrim"],
+        ["f.setYawTrim", "yawTrim"],
+        ["f.setRollTrim", "rollTrim"],
+      ];
+      for (const [action, field] of table) {
+        expect(mapCommand("data", `${action}[-0.25]`)).toEqual({
+          command: "vessel.control.setAxes",
+          args: { [field]: -0.25 },
+        });
+      }
+    });
+
+    it("v.setTranslation maps all three positional floats to named x/y/z, clamped", () => {
+      expect(mapCommand("data", "v.setTranslation[0.5,-2,1]")).toEqual({
+        command: "vessel.control.setAxes",
+        args: { x: 0.5, y: -1, z: 1 },
+      });
+    });
+
+    it("a malformed v.setTranslation arg falls back to legacy", () => {
+      expect(mapCommand("data", "v.setTranslation[0.5,x,1]")).toBeUndefined();
+      expect(mapCommand("data", "v.setTranslation[0.5,1]")).toBeUndefined();
+    });
+
+    it("v.setFbW maps a positive state to enabled:true and non-positive to enabled:false", () => {
+      expect(mapCommand("data", "v.setFbW[1]")).toEqual({
+        command: "vessel.control.setFlyByWire",
+        args: { enabled: true },
+      });
+      expect(mapCommand("data", "v.setFbW[0]")).toEqual({
+        command: "vessel.control.setFlyByWire",
+        args: { enabled: false },
+      });
+    });
+
+    it("a malformed v.setFbW arg falls back to legacy", () => {
+      expect(mapCommand("data", "v.setFbW[armed]")).toBeUndefined();
+    });
+
+    it("f.throttleUp/f.throttleDown apply the legacy +-0.1 nudge to the live throttle reading, clamped 0..1", () => {
+      expect(
+        mapCommand("data", "f.throttleUp", (topic) =>
+          topic === "vessel.control.throttle" ? 0.5 : undefined,
+        ),
+      ).toEqual({
+        command: "vessel.control.setThrottle",
+        args: { value: 0.6 },
+      });
+
+      expect(
+        mapCommand("data", "f.throttleDown", (topic) =>
+          topic === "vessel.control.throttle" ? 0.5 : undefined,
+        ),
+      ).toEqual({
+        command: "vessel.control.setThrottle",
+        args: { value: 0.4 },
+      });
+
+      expect(
+        mapCommand("data", "f.throttleUp", (topic) =>
+          topic === "vessel.control.throttle" ? 0.95 : undefined,
+        ),
+      ).toEqual({ command: "vessel.control.setThrottle", args: { value: 1 } });
+
+      expect(
+        mapCommand("data", "f.throttleDown", (topic) =>
+          topic === "vessel.control.throttle" ? 0.05 : undefined,
+        ),
+      ).toEqual({ command: "vessel.control.setThrottle", args: { value: 0 } });
+    });
+
+    it("f.throttleUp/f.throttleDown without a live current value fall back to legacy — never a blind nudge", () => {
+      expect(mapCommand("data", "f.throttleUp")).toBeUndefined();
+      expect(
+        mapCommand("data", "f.throttleDown", () => undefined),
+      ).toBeUndefined();
+      expect(
+        mapCommand("data", "f.throttleUp", () => "not-a-number"),
+      ).toBeUndefined();
+    });
+
+    it("every fly-by-wire key is no longer a known command gap", () => {
+      const keys = [
+        "v.setPitch",
+        "v.setYaw",
+        "v.setRoll",
+        "v.setTranslation",
+        "v.setFbW",
+        "f.setPitchTrim",
+        "f.setYawTrim",
+        "f.setRollTrim",
+        "f.throttleUp",
+        "f.throttleDown",
+      ];
+      for (const key of keys) {
+        expect(isKnownCommandGap("data", key)).toBe(false);
+      }
     });
   });
 });

@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "../test/axe";
 import { NavballComponent } from "./index";
 
 const KEYS: DataKey[] = [
@@ -35,6 +36,7 @@ const KEYS: DataKey[] = [
   { key: "v.rcsValue" },
   { key: "f.throttle" },
   { key: "v.isControllable" },
+  { key: "comm.signalDelay" },
 ];
 
 function renderNavball(
@@ -158,6 +160,81 @@ describe("NavballComponent", () => {
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("f.setThrottle[0.750]");
+    });
+  });
+
+  describe("FBW-under-delay warning", () => {
+    // `role="status"` doesn't compute an accessible name from content (only
+    // aria-label/aria-labelledby), and `StreamStatusBadge` already owns a
+    // sibling status region ("OFFLINE") — so identify our live region by its
+    // actual text content across `screen.getAllByRole("status")` rather than
+    // an accessible-name query.
+    function findDelayStatus(): HTMLElement | undefined {
+      return screen
+        .getAllByRole("status")
+        .find((el) => /High signal delay/i.test(el.textContent ?? ""));
+    }
+
+    async function armFbw(user: ReturnType<typeof userEvent.setup>) {
+      const armButton = screen.getByRole("button", { name: /Arm FBW/ });
+      await user.click(armButton);
+      await waitFor(() => {
+        expect(onExecute).toHaveBeenCalledWith("v.setFbW[1]");
+      });
+    }
+
+    it("shows the warning badge and live-region caution when FBW is armed and delay is above threshold", async () => {
+      const user = userEvent.setup();
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 2.5);
+      });
+      await armFbw(user);
+
+      expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
+      const delayStatus = findDelayStatus();
+      expect(delayStatus).toBeDefined();
+      expect(delayStatus).toHaveAttribute("aria-live", "polite");
+    });
+
+    it("hides the warning when FBW is disarmed even if delay is high", () => {
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 2.5);
+      });
+      expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
+      expect(findDelayStatus()).toBeUndefined();
+    });
+
+    it("hides the warning when FBW is armed but delay is at/below threshold", async () => {
+      const user = userEvent.setup();
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 0.2);
+      });
+      await armFbw(user);
+
+      expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
+      expect(findDelayStatus()).toBeUndefined();
+    });
+
+    it("has no axe violations when the warning is showing", async () => {
+      const user = userEvent.setup();
+      const { container } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 3);
+      });
+      await armFbw(user);
+      await waitFor(() => {
+        expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
+      });
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });
