@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -43,43 +44,42 @@ function findRepoRoot(start: string): string {
   throw new Error(`Could not locate workspace root from ${start}`);
 }
 
-function* walk(dir: string): Generator<string> {
-  for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name === "dist" || name === "coverage")
-      continue;
-    const path = join(dir, name);
-    const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (/\.tsx?$/.test(name)) yield path;
-  }
+// A tracked .ts/.tsx file belongs to a widget/mod-client bundle (never the
+// styling layer) if it sits under packages/components/src or any
+// mod/<uplink>/client/src. dist/ output and packages/ui(-kit) are excluded.
+function isScannedBundleFile(rel: string): boolean {
+  if (!/\.tsx?$/.test(rel)) return false;
+  if (COMPONENT_SCAN_ROOTS.some((r) => rel.startsWith(`${r}/`))) return true;
+  const suffix = `/${MOD_CLIENT_SRC_SUFFIX.join("/")}/`;
+  return rel.startsWith("mod/") && rel.includes(suffix);
 }
 
-function findModClientSrcRoots(repoRoot: string): string[] {
-  const modDir = join(repoRoot, "mod");
-  if (!existsSync(modDir)) return [];
-  return readdirSync(modDir)
-    .map((name) => join(modDir, name, ...MOD_CLIENT_SRC_SUFFIX))
-    .filter((path) => existsSync(path));
-}
-
+// Enumerate git-TRACKED files, not a live filesystem walk — the walk races
+// with dist/ output and temp fixtures other packages write during a
+// concurrent `turbo test`, making the count flicker; the git index is stable
+// for the duration of a test run.
 function collectOffenders(): { file: string; line: number }[] {
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  const tracked = execFileSync(
+    "git",
+    ["ls-files", "-z", "--", "packages/components/src", "mod"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  )
+    .split("\0")
+    .filter(isScannedBundleFile);
   const offenders: { file: string; line: number }[] = [];
-  const scanRoots = [
-    ...COMPONENT_SCAN_ROOTS.map((r) => join(root, r)),
-    ...findModClientSrcRoots(root),
-  ];
-  for (const abs of scanRoots) {
-    if (!existsSync(abs)) continue;
-    for (const file of walk(abs)) {
-      const rel = relative(root, file);
-      const lines = readFileSync(file, "utf8").split("\n");
-      lines.forEach((text, i) => {
-        if (STYLED_IMPORT_RE.test(text)) {
-          offenders.push({ file: rel, line: i + 1 });
-        }
-      });
+  for (const rel of tracked) {
+    let lines: string[];
+    try {
+      lines = readFileSync(join(root, rel), "utf8").split("\n");
+    } catch {
+      continue;
     }
+    lines.forEach((text, i) => {
+      if (STYLED_IMPORT_RE.test(text)) {
+        offenders.push({ file: rel, line: i + 1 });
+      }
+    });
   }
   return offenders;
 }
@@ -110,5 +110,7 @@ describe("design-system: styled-components imports outside ui-kit", () => {
     expect(offenders.length).toBeLessThanOrEqual(
       STYLED_COMPONENTS_IMPORT_BASELINE,
     );
-  });
+    // Generous timeout: this scans every tracked source file, which is slow
+    // under the CPU contention of a full concurrent `turbo test` run.
+  }, 30_000);
 });

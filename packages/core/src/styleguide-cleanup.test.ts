@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -38,35 +39,28 @@ function findRepoRoot(start: string): string {
   throw new Error(`Could not locate workspace root from ${start}`);
 }
 
-function* walk(dir: string): Generator<string> {
-  for (const name of readdirSync(dir)) {
-    if (
-      name === "node_modules" ||
-      name === "dist" ||
-      name === "coverage" ||
-      name === "obj" ||
-      name === "bin"
-    )
-      continue;
-    const path = join(dir, name);
-    const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (/\.tsx?$/.test(name)) yield path;
-  }
-}
-
+// Enumerate git-TRACKED .ts/.tsx files under the scan roots. Deterministic
+// under concurrent `turbo test` load — a live filesystem walk races with the
+// dist/ output and temp fixtures other packages write mid-run, so the count
+// flickers; the git index does not move during a test run.
 function collectOffenders(): string[] {
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", ...SCAN_ROOTS], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split("\0")
+    .filter((rel) => /\.tsx?$/.test(rel));
   const offenders: string[] = [];
-  for (const scanRoot of SCAN_ROOTS) {
-    const abs = join(root, scanRoot);
-    if (!existsSync(abs)) continue;
-    for (const file of walk(abs)) {
-      const source = readFileSync(file, "utf8");
-      if (CLEANUP_IMPORT_RE.test(source)) {
-        offenders.push(relative(root, file));
-      }
+  for (const rel of tracked) {
+    let source: string;
+    try {
+      source = readFileSync(join(root, rel), "utf8");
+    } catch {
+      continue;
     }
+    if (CLEANUP_IMPORT_RE.test(source)) offenders.push(rel);
   }
   return offenders;
 }
@@ -95,5 +89,7 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
       );
     }
     expect(offenders.length).toBeLessThanOrEqual(CLEANUP_IMPORT_BASELINE);
-  });
+    // Generous timeout: this scans every tracked source file, which is slow
+    // under the CPU contention of a full concurrent `turbo test` run.
+  }, 30_000);
 });
