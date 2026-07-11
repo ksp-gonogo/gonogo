@@ -95,6 +95,10 @@ namespace Sitrep.Core.Tests
             // deliberately SCANsat/KSP-type-free and hand-builds
             // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
             "ScanSensorEntry", "ScanTrackColor", "ScanningVesselEntry",
+            // scansat.science — Gonogo.ScansatUplink.ScanScience.Build hand-builds
+            // the Dictionary<string, object?> tree the uplink publishes; this POCO
+            // is TS-shape-only, never handed to AppendValue raw.
+            "ScanScienceEntry",
             // crash.lastCrash — Sitrep.Host.Crash.CrashPayload.Build hand-builds
             // the Dictionary<string, object?> tree the producer (Gonogo.KSP.
             // CrashUplink) publishes; these POCOs are TS-shape-only, never handed

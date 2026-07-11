@@ -177,6 +177,8 @@ public static class RtConfig
                 typeof(ScanningVesselEntry),
                 typeof(ScanSensorEntry),
                 typeof(ScanTrackColor),
+                // scansat.science payload (per-part map-experiment state)
+                typeof(ScanScienceEntry),
                 // vessel.parts channel payload + nested value shapes (P1b)
                 typeof(VesselParts),
                 typeof(VesselPart),

@@ -140,3 +140,56 @@ public class ScanningVesselEntry
 
     public ScanTrackColor? TrackColor { get; set; }
 }
+
+/// <summary>
+/// One SCANsat map-scanner part on the active vessel — mirrors SCANsat's
+/// public <c>SCANexperiment</c> module (<c>SCAN_PartModules.SCANexperiment</c>,
+/// a <c>PartModule : IScienceDataContainer</c>, one instance per map-scanner
+/// part). The <c>scansat.science</c> channel payload is a BARE ARRAY of these
+/// (<c>ScanScienceEntry[]</c>) or <c>null</c> — never a wrapper object — so the
+/// Topic tag sits on this element type with <c>IsArray = true</c>.
+///
+/// <para><see cref="PartId"/> is the stable per-part id
+/// (<c>part.flightID</c>, the same id space Sitrep's core science surface uses
+/// via <c>InstrumentEntry.partId</c>); <see cref="ExpId"/> is the raw R&amp;D
+/// experiment id (<c>experimentType</c>, one of <c>SCANsatAltimetryLoRes</c> /
+/// <c>SCANsatAltimetryHiRes</c> / <c>SCANsatBiomeAnomaly</c> /
+/// <c>SCANsatResources</c> / <c>SCANsatVisual</c>); <see cref="Title"/> is the
+/// friendly name (RADAR / SAR / Multispectral / Resources / Visual);
+/// <see cref="HasData"/> is <c>GetScienceCount() &gt; 0</c>;
+/// <see cref="Rerunnable"/> mirrors <c>IsRerunnable()</c>, which SCANsat
+/// hard-codes to <c>true</c>.</para>
+///
+/// <para><see cref="Deployed"/> and <see cref="Inoperable"/> are ALWAYS
+/// <c>false</c>: SCANsat map experiments have no deploy or inoperable
+/// lifecycle (there is no persistent deployed flag, and a map experiment can
+/// never burn out). These constants are honest, not lossy — there is no
+/// SCANsat source for either.</para>
+///
+/// <para><b>Typing-only mirror</b> of
+/// <c>Gonogo.ScansatUplink.ScanScience.Build</c> — see this file's header for
+/// the "no wire change, all fields nullable" rationale.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("scansat.science", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class ScanScienceEntry
+{
+    public string? PartId { get; set; }
+
+    public string? PartTitle { get; set; }
+
+    public string? ExpId { get; set; }
+
+    public string? Title { get; set; }
+
+    public bool? Deployed { get; set; }
+
+    public bool? HasData { get; set; }
+
+    public bool? Rerunnable { get; set; }
+
+    public bool? Inoperable { get; set; }
+}

@@ -509,6 +509,17 @@ export interface ScanningVesselEntry
 	groundTrackLonHalfDeg?: number;
 	trackColor?: ScanTrackColor;
 }
+export interface ScanScienceEntry
+{
+	partId?: string;
+	partTitle?: string;
+	expId?: string;
+	title?: string;
+	deployed?: boolean;
+	hasData?: boolean;
+	rerunnable?: boolean;
+	inoperable?: boolean;
+}
 export interface ExperimentActionArgs
 {
 	partId: string;

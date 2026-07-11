@@ -35,6 +35,7 @@ import type {
   RevertAvailability,
   RoboticsAvailability,
   SavedShipEntry,
+  ScanScienceEntry,
   ScanningVesselEntry,
   SensorEntry,
   ServoEntry,
@@ -86,6 +87,7 @@ export interface GeneratedTopicPayloadMap {
   "parts.robotics": ServoEntry[];
   "robotics.available": RoboticsAvailability;
   "scansat.scanningVessels": ScanningVesselEntry[];
+  "scansat.science": ScanScienceEntry[];
   "science.deployed": DeployedEntry[];
   "science.experiments": ExperimentEntry[];
   "science.instruments": InstrumentEntry[];
@@ -141,6 +143,7 @@ export const GENERATED_TOPIC_IDS = [
   "parts.robotics",
   "robotics.available",
   "scansat.scanningVessels",
+  "scansat.science",
   "science.deployed",
   "science.experiments",
   "science.instruments",

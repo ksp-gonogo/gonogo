@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using SCANsat;
+using SCANsat.SCAN_PartModules;
 using UnityEngine;
 
 namespace Gonogo.ScansatUplink
@@ -53,6 +54,9 @@ namespace Gonogo.ScansatUplink
     {
         public const string AvailableTopic = "scansat.available";
         public const string ScanningVesselsTopic = "scansat.scanningVessels";
+        public const string ScienceTopic = "scansat.science";
+
+        private IChannelPublisher? _scienceSource;
 
         private IDynamicChannelSource? _coverageSource;
         private IDynamicChannelSource? _maskSource;
@@ -108,6 +112,17 @@ namespace Gonogo.ScansatUplink
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
+                // The active vessel's SCANsat map-experiment state (what its
+                // scanners hold) - vessel-derived, so it rides the delay clock
+                // alongside scanningVessels and every other vessel-sourced
+                // channel, NOT TrueNow.
+                new ChannelDeclaration
+                {
+                    Topic = ScienceTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                },
             },
         };
 
@@ -137,11 +152,21 @@ namespace Gonogo.ScansatUplink
                 host.SetAvailability(Availability.Unavailable(guard.Reason ?? "SCANsat unavailable"));
                 host.AddChannelSource(AvailableTopic, _ => false);
                 host.AddChannelSource(ScanningVesselsTopic, _ => new List<object>());
+                host.AddChannelSource(ScienceTopic, _ => new List<object>());
                 return;
             }
 
             host.AddChannelSource(AvailableTopic, _ => true);
             host.AddChannelSource(ScanningVesselsTopic, _ => BuildScanningVessels());
+
+            // The active vessel's SCANsat map-experiment state. The SCANexperiment
+            // read (FindPartModulesImplementing + part.flightID/title) is a live
+            // KSP read, so it runs in CaptureScienceOnMain on the Unity main
+            // thread; HandleScienceOnCourier just publishes the plain shaped list
+            // off-thread. Subscription-gated on the exact topic so the per-tick
+            // part-module scan is skipped whenever no client is watching.
+            _scienceSource = host.Publisher(ScienceTopic);
+            host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier, ScienceTopic);
 
             // Every dynamic grid namespace is Delayed — per
             // delay-architecture-resolution.md §3: "EVERYTHING scansat.* is
@@ -284,6 +309,80 @@ namespace Gonogo.ScansatUplink
                 };
                 source?.Publisher(publication.SubTopic).Publish(publication.Payload, publication.Ut);
             }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture of the active vessel's SCANsat map-experiment
+        /// state (see <see cref="IUplinkHost.AddSampledSource"/>). Reads each
+        /// <c>SCANexperiment</c> module's public members
+        /// (<c>experimentType</c>, <c>part.flightID</c>/<c>part.partInfo.title</c>,
+        /// <c>GetScienceCount()</c>, <c>IsRerunnable()</c>) — all live KSP/SCANsat
+        /// reads, safe here on the Unity main thread — and shapes each into a
+        /// plain wire dict via the pure <see cref="ScanScience.Build"/>. Returns a
+        /// self-contained holder (no live KSP handles) for
+        /// <see cref="HandleScienceOnCourier"/>, or null when there is no active
+        /// vessel (nothing to sample; the last value stands).
+        /// </summary>
+        internal object? CaptureScienceOnMain(KspSnapshot? snapshot)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+            if (vessel == null)
+            {
+                return null;
+            }
+
+            var capture = new ScienceCapture { Ut = snapshot?.Ut ?? 0.0 };
+            var modules = vessel.FindPartModulesImplementing<SCANexperiment>();
+            if (modules == null)
+            {
+                return capture;
+            }
+
+            foreach (var exp in modules)
+            {
+                if (exp == null)
+                {
+                    continue;
+                }
+                var part = exp.part;
+                if (part == null)
+                {
+                    continue;
+                }
+                capture.Entries.Add(ScanScience.Build(
+                    part.flightID.ToString(),
+                    part.partInfo?.title ?? "",
+                    exp.experimentType ?? "",
+                    exp.GetScienceCount() > 0,
+                    exp.IsRerunnable()));
+            }
+            return capture;
+        }
+
+        /// <summary>
+        /// COURIER-THREAD handle for the science capture: publishes the shaped
+        /// entry list (a bare array or empty) on <see cref="ScienceTopic"/>.
+        /// Touches NO KSP/Unity API — every SCANsat read already happened in
+        /// <see cref="CaptureScienceOnMain"/>.
+        /// </summary>
+        internal void HandleScienceOnCourier(object? captured)
+        {
+            if (captured is not ScienceCapture capture)
+            {
+                return;
+            }
+            _scienceSource?.Publish(capture.Entries, capture.Ut);
+        }
+
+        /// <summary>
+        /// The plain capture the science capture-on-main hands to its
+        /// handle-on-Courier: the tick UT plus the already-shaped wire dicts (no
+        /// live KSP/SCANsat handles).
+        /// </summary>
+        private sealed class ScienceCapture
+        {
+            public double Ut;
+            public List<object> Entries = new List<object>();
         }
 
         // ----------------------------------------------------------------
