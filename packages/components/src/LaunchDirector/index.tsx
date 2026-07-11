@@ -186,7 +186,7 @@ function LaunchDirectorComponent({
   // The rest of the kc.*/ksp.*/tar.availableVessels reads below stay legacy
   // — kc.* has no career.status equivalent shape (see map-topic.ts's doc
   // comment on the facilities gap), the others are separate provider
-  // families or vessel-provider gaps untouched by this batch.
+  // families or vessel-provider gaps with no wire home yet.
   const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
   const vesselName = useDataValue<string>("data", "v.name");
