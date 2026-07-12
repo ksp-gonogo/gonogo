@@ -298,14 +298,17 @@ describe("MapViewComponent", () => {
       primeScanScenario();
     });
     await expect(axe(container)).resolves.toHaveNoViolations();
-  });
+  }, 20000);
 
+  // axe traversal of the body picker (a select carrying every stock body) is
+  // slow enough to blow vitest's 5s default under CI load — give the a11y
+  // smoke a generous margin so it doesn't flake (it passes fast locally).
   it("a11y smoke: config component (body picker + toggles) has no violations", async () => {
     const { container } = render(
       <MapViewConfigComponent config={{}} onSave={() => {}} />,
     );
     await expect(axe(container)).resolves.toHaveNoViolations();
-  });
+  }, 20000);
 
   it("config body picker offers a Follow-vessel default and stock bodies", () => {
     render(<MapViewConfigComponent config={{}} onSave={() => {}} />);

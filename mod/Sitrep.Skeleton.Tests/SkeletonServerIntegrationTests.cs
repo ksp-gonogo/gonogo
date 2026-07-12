@@ -25,7 +25,12 @@ namespace Sitrep.Skeleton.Tests
     /// </summary>
     public class SkeletonServerIntegrationTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        // Generous margin: these are real-WebSocket round-trips (connect,
+        // subscribe, backpressure-drain, disconnect) and a busy CI runner's CPU
+        // contention + GC pauses pushed the backpressure/disconnect cases past a
+        // 10s budget (OperationCanceledException). The operations complete in ms
+        // when the box is idle; the timeout is a flake guard, not a real budget.
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
         [Fact]
         public async Task Echo_RoundTripsUnrecognizedFramesUnchanged()
@@ -129,7 +134,7 @@ namespace Sitrep.Skeleton.Tests
                 Assert.Equal((double)tickCount, (double)lastFast!.Payload!);
 
                 var slowDrain = Stopwatch.StartNew();
-                var lastSlow = await DrainToLatestAsync(slow, overallTimeout: TimeSpan.FromSeconds(10));
+                var lastSlow = await DrainToLatestAsync(slow, overallTimeout: TimeSpan.FromSeconds(30));
                 slowDrain.Stop();
                 Assert.NotNull(lastSlow);
                 Assert.Equal((double)tickCount, (double)lastSlow!.Payload!);
