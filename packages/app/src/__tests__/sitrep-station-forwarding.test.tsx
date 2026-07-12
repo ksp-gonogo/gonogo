@@ -414,4 +414,65 @@ describe("station Sitrep-stream forwarding — two-screen proof", () => {
     stationTransport.dispose();
     stationClient.dispose();
   });
+
+  it("replies to a sitrep command over the dispatching station's own connection only — a second, idle station never sees it", async () => {
+    // Targets the plan's §6 "two-client requestId namespaces" risk directly:
+    // a copy-paste of `broadcast` for `PeerHostService.handleSitrepCommand`
+    // instead of `conn.send` would leak this response to every connected
+    // station, not just the one that asked. Two independently-constructed
+    // `TelemetryClient`s each mint their own `requestId` counter starting at
+    // "c0", so this also exercises the "two stations' identically-numbered
+    // in-flight commands stay in separate namespaces" case the plan calls
+    // out — a broadcast bug here wouldn't just leak, it would cross-deliver
+    // one station's result under the other's very same in-flight id.
+    const { peerHost, hostTransport } = setupHost();
+    hostTransport.setCommandHandler((command, args) => ({ command, args }));
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const stationAService = await connectStationService(peerHost);
+    stationServices.push(stationAService);
+    const stationBService = await connectStationService(peerHost);
+    stationServices.push(stationBService);
+
+    const stationATransport = new PeerTransport(stationAService);
+    const stationAClient = new TelemetryClient(stationATransport);
+    const stationBTransport = new PeerTransport(stationBService);
+    const stationBClient = new TelemetryClient(stationBTransport);
+
+    const stationBResponses: unknown[] = [];
+    const stationBErrors: unknown[] = [];
+    const offResponse = stationBService.onSitrepCommandResponse(
+      (requestId, result) => {
+        stationBResponses.push({ requestId, result });
+      },
+    );
+    const offError = stationBService.onSitrepCommandError(
+      (requestId, code, message) => {
+        stationBErrors.push({ requestId, code, message });
+      },
+    );
+
+    // Station B is idle — it never dispatches anything. Only station A does.
+    const { result } = stationAClient.dispatch("vessel.control.setSas", {
+      enabled: true,
+    });
+
+    await expect(result).resolves.toEqual({
+      command: "vessel.control.setSas",
+      args: { enabled: true },
+    });
+
+    // Station B's own connection must never have received a reply to a
+    // request it never sent.
+    expect(stationBResponses).toEqual([]);
+    expect(stationBErrors).toEqual([]);
+
+    offResponse();
+    offError();
+    stationATransport.dispose();
+    stationAClient.dispose();
+    stationBTransport.dispose();
+    stationBClient.dispose();
+  });
 });
