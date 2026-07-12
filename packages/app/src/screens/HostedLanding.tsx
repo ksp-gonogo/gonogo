@@ -2,9 +2,9 @@ import styled from "styled-components";
 
 /**
  * Shown at "/" when the app is served over HTTPS, i.e. the published
- * GitHub Pages build. The main screen talks to KSP's Telemachus over
- * insecure ws://, which a secure-origin (HTTPS) page can't reach (mixed
- * content), so a hosted main screen can never connect. The published root
+ * GitHub Pages build. The main screen talks to the Gonogo mod's telemetry
+ * stream over insecure ws://, which a secure-origin (HTTPS) page can't
+ * reach (mixed content), so a hosted main screen can never connect. The published root
  * is a front door that points people at the local setup instead. Served
  * over http:// (the local container or the dev server), App renders the
  * real MainScreen.
@@ -26,7 +26,7 @@ export function HostedLanding() {
           your own machine, not here. This page is just the front door.
         </Note>
         <Actions>
-          <Primary href="https://github.com/jonpepler/gonogo#readme">
+          <Primary href="https://github.com/ksp-gonogo/gonogo#readme">
             Set up gonogo
           </Primary>
           <Secondary href={stationHref}>Open a station screen</Secondary>
