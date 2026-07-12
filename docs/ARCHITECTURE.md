@@ -35,7 +35,7 @@ KSP (kOS via telnet)                    ──► @ksp-gonogo/telnet-proxy (Fast
 Main screen ◄──► Station screens (PeerJS data channels, via a public broker)
 ```
 
-The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). The telnet proxy is **only** required for kOS; without it every other feature still works. The app shows proxy connection status prominently.
+The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`) — no HTTP polling. The telnet proxy is **only** required for kOS; without it every other feature still works. The app shows proxy connection status prominently.
 
 Two design constraints fall out of this:
 
@@ -72,14 +72,27 @@ interface DataSource {
 }
 ```
 
-Widgets read data and fire actions through two universal hooks:
+This interface covers the app's non-Sitrep data sources — kOS, the camera feed, serial devices — each still read and driven through the same two universal hooks:
 
 ```ts
-const altitude = useDataValue('telemachus', 'vessel.altitude');
-const execute  = useExecuteAction('telemachus');
+const altitude = useDataValue('kos', 'kos.compute.altitude-feed.value');
+const execute  = useExecuteAction('kos');
 ```
 
 These hooks are the **PeerJS boundary**. On the main screen they call the DataSource directly; on a station screen they route through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
+
+### Sitrep telemetry: Domain/Topic/Value
+
+The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface — it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.funds`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
+
+Widgets read and command Topics with `useTelemetry`/`useCommand` (`@ksp-gonogo/core`), the canonical replacements for `useDataValue`/`useExecuteAction` (which still work as deprecated aliases, and remain the only way to reach non-Sitrep sources):
+
+```ts
+const orbit = useTelemetry('vessel.orbit');   // canonical Topic read
+const execute = useCommand('data');           // fires a mapped action, same call shape as useExecuteAction
+```
+
+External Uplinks (mod-adjacent packages, not just built-in widgets) can also contribute UI into a host widget's named **augment slots** via `registerAugment`/`<AugmentSlot>`, without the host and the augment referencing each other directly.
 
 ## `@ksp-gonogo/components`
 
@@ -92,7 +105,7 @@ Widgets declare their `dataRequirements` (e.g. `['vessel.altitude']`) so the orc
 The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator**: a layout engine on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout). It reads the layout config and renders registered widgets by id; it hardcodes no widget. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised format stores a per-breakpoint map (`lg`, `md`, `sm`, …) so the grid reflows across screen sizes. Per-instance widget config is stored alongside the layout.
-- **Telemachus client**: direct HTTP/WS integration using React Query.
+- **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts the live `WebSocketTransport` to the Gonogo mod and feeds it into `@ksp-gonogo/sitrep-client`'s `TelemetryClient`/`TimelineStore`, which `useTelemetry`/`useCommand` read from directly (see the Data flow section above).
 - **kOS WebSocket client** connects to `@ksp-gonogo/telnet-proxy` and degrades gracefully if the proxy is unreachable.
 - **PeerJS integration**: the main screen is the peer host; stations connect as peers. The main screen distributes a serialised data snapshot to all peers; stations can send state back (e.g. GO/NO-GO votes).
 - **Station config** is localStorage-first. Stations can request a config from the main screen over PeerJS, and the main screen can push saved configs to connecting stations.

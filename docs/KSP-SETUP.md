@@ -18,7 +18,7 @@ kOS and SCANsat are on CKAN. The Gonogo mod and kerbcast are hand installs; both
 
 > **Not released yet.** The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") isn't on CKAN or SpaceDock, and there's no downloadable `GameData.zip` release yet — the publish pipeline (`.github/workflows/publish-mods.yml`) is built but still inert pending some upstream prerequisites. Until a release ships, this is a build-from-source step for anyone working in this repo; see `mod/Gonogo.KSP/RUN.md`. This section will get a straight download link once that lands.
 
-The mod replaces the old gonogo build of Telemachus as gonogo's data source. Once installed and KSP is running, it starts a WebSocket server on port **8090** automatically — you don't need to be in a flight scene, the main menu is enough.
+Once installed and KSP is running, it starts a WebSocket server on port **8090** automatically — you don't need to be in a flight scene, the main menu is enough.
 
 ## Connecting the dashboard to KSP
 
@@ -29,30 +29,6 @@ If KSP runs on a different computer, open **Settings → Data Sources → Sitrep
 Running the Docker bundle (see the root [README](../README.md#how-to-run-it))? `KSP_HOST` seeds this automatically, same as kOS and the camera feed — you only need the Settings panel to override it.
 
 Building the app from source instead and want the default baked in rather than set per-browser? `VITE_SITREP_HOST`/`VITE_SITREP_PORT` in `packages/app/.env.local` (gitignored — see [CONTRIBUTING.md](../CONTRIBUTING.md#getting-set-up)) set the build-time floor that the Settings panel and `KSP_HOST` both override.
-
-## Telemachus (optional debug tool)
-
-gonogo no longer reads from Telemachus — the Gonogo mod above is the app's telemetry source now. Telemachus is still worth having installed if you want to poke at a raw value or fire an action key by hand, outside the app; most players don't need this.
-
-### Installing the gonogo build of Telemachus
-
-1. Download the latest `GameData.zip` from the releases page: **<https://github.com/jonpepler/Telemachus-1/releases/>**
-2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder.
-3. Restart KSP and load a flight scene.
-
-Telemachus starts a server on port **8085**.
-
-### Reading action responses (CORS)
-
-To allow Telemachus to respond to a command you send it by hand, you have to edit the Telemachus config.
-
-Tell Telemachus which address you're making requests from. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/config.xml` and add this line inside the `<config>` element, replacing the address with the one you're actually using:
-
-```xml
-<string name="ALLOWED_ORIGINS">http://localhost:8080</string>
-```
-
-If you use more than one address, list them comma-separated with no spaces and no trailing slash. Restart KSP afterwards; the file is read once when the plugin starts.
 
 ## kOS
 
@@ -67,7 +43,7 @@ Live in-game camera feeds come through **kerbcast**, a separate KSP-side camera-
 ### Installing kerbcast
 
 1. Download the latest `kerbcast-<version>.zip` from the releases page: **<https://github.com/jonpepler/kerbcast/releases/>**. Take the full `kerbcast-<version>.zip`, not the bare `Kerbcast.dll`.
-2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder, the same way as Telemachus above.
+2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder, the same way as the Gonogo mod above.
 3. kerbcast uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
 
 By default kerbcast only accepts connections from the same computer. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, open `GameData/Kerbcast/settings.cfg` and change `BindAddress = 127.0.0.1` to the KSP computer's LAN address (or `0.0.0.0` for every interface). There's no password on the stream, so only open it up on a network you trust.
