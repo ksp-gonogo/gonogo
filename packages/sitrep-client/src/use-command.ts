@@ -1,5 +1,5 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
-import { useTelemetryClient } from "./context";
+import { useTelemetryClientOptional } from "./context";
 import type { CommandStatus } from "./lifecycle";
 
 /** Shared constant so `getSnapshot` returns a referentially stable value when
@@ -24,16 +24,21 @@ export interface UseCommandResult {
  * request re-renders the caller.
  */
 export function useCommand(command: string): UseCommandResult {
-  const client = useTelemetryClient();
+  // Degrade gracefully with no `TelemetryProvider` mounted (disconnected):
+  // status stays IDLE and `send` is a no-op — you can't dispatch a command
+  // with no link, and the hook must not throw just because the dashboard
+  // rendered before a connection exists.
+  const client = useTelemetryClientOptional();
   const [requestId, setRequestId] = useState<string | null>(null);
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => client.subscribeStore(onStoreChange),
+    (onStoreChange: () => void) =>
+      client ? client.subscribeStore(onStoreChange) : () => {},
     [client],
   );
 
   const getSnapshot = useCallback(
-    () => (requestId ? client.getCommand(requestId) : IDLE),
+    () => (client && requestId ? client.getCommand(requestId) : IDLE),
     [client, requestId],
   );
 
@@ -41,6 +46,7 @@ export function useCommand(command: string): UseCommandResult {
 
   const send = useCallback(
     (args?: unknown) => {
+      if (!client) return Promise.resolve(undefined);
       const { requestId: newRequestId, result } = client.dispatch(
         command,
         args,

@@ -72,7 +72,7 @@ namespace Sitrep.Core.Tests
             // BuildSystemBodies/BuildSystemVessels all hand-build
             // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
             "GameDlc", "RevertAvailability", "SystemBodies", "BodyEntry",
-            "OrbitEntry", "SystemVessels", "VesselRosterEntry",
+            "OrbitEntry", "AtmosphereEntry", "SystemVessels", "VesselRosterEntry",
             // dv.* — StageDeltaVViewProvider.BuildStages/BuildSummary hand-build
             // Dictionary/List trees; these POCOs are TS-shape-only.
             "StageDeltaVEntry", "StageDeltaVSummary",
