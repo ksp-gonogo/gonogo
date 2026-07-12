@@ -29,8 +29,10 @@ import {
   unregisterDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
 import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
@@ -330,24 +332,32 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // thing we want to verify.
   activeRoot = createRoot(root);
   activeRoot.render(
-    wrapWithPinnedViewUt(
-      resolvePinnedUt(payload.fixture),
-      createElement(
-        AlarmsLauncherProvider,
-        {
-          launcher: () => {},
-          creator: () => {},
-          manager: { find: () => null, remove: () => {} },
-        },
+    // ui-kit-composed widgets read design tokens off the styled-components
+    // theme (e.g. `theme.space.md` in Stack) — without a ThemeProvider the
+    // theme is `{}` and those reads throw "reading 'md'". Match the live app's
+    // ThemeProvider so the probe renders migrated widgets the same way.
+    createElement(
+      ThemeProvider,
+      { theme: defaultDarkTheme },
+      wrapWithPinnedViewUt(
+        resolvePinnedUt(payload.fixture),
         createElement(
-          DashboardItemContext.Provider,
-          { value: { instanceId } },
-          createElement(WidgetComponent, {
-            config: payload.config ?? def.defaultConfig ?? {},
-            id: instanceId,
-            w: payload.w,
-            h: payload.h,
-          }),
+          AlarmsLauncherProvider,
+          {
+            launcher: () => {},
+            creator: () => {},
+            manager: { find: () => null, remove: () => {} },
+          },
+          createElement(
+            DashboardItemContext.Provider,
+            { value: { instanceId } },
+            createElement(WidgetComponent, {
+              config: payload.config ?? def.defaultConfig ?? {},
+              id: instanceId,
+              w: payload.w,
+              h: payload.h,
+            }),
+          ),
         ),
       ),
     ),
