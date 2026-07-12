@@ -88,10 +88,28 @@ jobs:
             GonogoRealAntennasUplink.Tests
             Gonogo.Kos.Tests
           )
+          # Real-WebSocket integration suites are CPU-flaky on the shared CI
+          # runner: the in-process test server's pump competes with client work
+          # on the thread pool, so under load a ReceiveAsync can miss its window
+          # and time out — a DIFFERENT test each run, never reproducible on a
+          # fast box (confirmed by a podman --cpus=2 repro). Retry ONLY these
+          # two projects. Every other project runs once and must fail hard so a
+          # genuine regression can never hide behind a retry.
+          # TODO: make the WS test harness robust under constrained CPU (run the
+          # server pump on a dedicated thread) and drop the retry — see the
+          # deferred-hang notes for the Skeleton disconnect case.
+          flaky=" Sitrep.Host.IntegrationTests Sitrep.Skeleton.Tests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
-            dotnet test "$p/$p.csproj" --configuration Release
+            attempts=1
+            [[ "$flaky" == *" $p "* ]] && attempts=4
+            ok=0
+            for a in $(seq 1 "$attempts"); do
+              if dotnet test "$p/$p.csproj" --configuration Release; then ok=1; break; fi
+              echo "::warning::$p failed test attempt $a/$attempts"
+            done
             echo "::endgroup::"
+            [ "$ok" = 1 ] || { echo "::error::$p failed after $attempts attempt(s)"; exit 1; }
           done
 
   e2e:
