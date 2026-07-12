@@ -79,10 +79,15 @@ describe("analytics-config routes (fastify.inject)", () => {
 describe("analytics-config SSE stream (real listen)", () => {
   let app: ReturnType<typeof Fastify> | null = null;
 
+  // Real Fastify listen + SSE fetch + app.close(): fast locally, but on a
+  // slow/loaded CI runner the round-trips and the server close can crawl past
+  // vitest's 5s test / 10s hook defaults. Give both generous headroom (the
+  // cleanup itself is correct — see the disconnect test below) so this doesn't
+  // flake on runner-speed roulette.
   afterEach(async () => {
     await app?.close();
     app = null;
-  });
+  }, 20000);
 
   /**
    * Read SSE `data:` frames from a live response until `count` have arrived,
@@ -142,7 +147,7 @@ describe("analytics-config SSE stream (real listen)", () => {
     const frames = await framesPromise;
     ac.abort();
     expect(frames).toEqual([false, true]);
-  });
+  }, 20000);
 
   it("removes the subscriber when the client disconnects", async () => {
     app = Fastify();
@@ -158,5 +163,5 @@ describe("analytics-config SSE stream (real listen)", () => {
     // Give the server's `close` handler a tick to run the unsub.
     await new Promise((r) => setTimeout(r, 100));
     expect(controller.subscriberCount()).toBe(0);
-  });
+  }, 20000);
 });
