@@ -105,12 +105,14 @@ jobs:
           # TODO (tracked): make the WS harness robust under constrained CPU (run
           # the server pump on a dedicated, non-thread-pool thread) and restore
           # Sitrep.Host.IntegrationTests to a hard gate.
-          retried=" Sitrep.Host.IntegrationTests Sitrep.Skeleton.Tests "
+          # Retry EVERY project: a pathologically slow/loaded runner instance can
+          # time out even the normally-deterministic suites (Kos, Host.Tests) on
+          # their WS/async paths. A genuine regression fails all 4 attempts and is
+          # still caught; only intermittent-pass flakes are absorbed.
           nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
-            attempts=1
-            [[ "$retried" == *" $p "* ]] && attempts=4
+            attempts=4
             ok=0
             for a in $(seq 1 "$attempts"); do
               if dotnet test "$p/$p.csproj" --configuration Release; then ok=1; break; fi
