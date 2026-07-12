@@ -15,13 +15,38 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <!-- MainThreadDispatcher (the piece under test) has zero UnityEngine
-         dependency, so it's exercised headlessly here — no KSP, no Unity
-         runtime needed. Gonogo.Kos also contains KosExtension /
-         KosMainThreadDispatcherAddon, which DO touch UnityEngine/GameObject;
-         this project must not instantiate those directly (see
-         MainThreadDispatcherTests's doc comment) — a real GameObject can't
-         be created outside a live Unity process. -->
-    <ProjectReference Include="../Gonogo.Kos/Gonogo.Kos.csproj" />
+    <!-- Sitrep.Contract is the pure-DTO/SPI assembly KosExtension's KSP-free
+         half compiles against (UplinkManifest, ISitrepUplink, IUplinkHost,
+         CommandResult, the Kos*Args types, ...) — netstandard2.0;net472, no
+         KSP/Unity linkage. Mirrors GonogoScansatUplink.Tests's split.
+         Sitrep.Host (KosExtensionDiscoveryTests's UplinkDiscovery) is the
+         same story — its own csproj declares a zero-external-dependency,
+         KSP-free invariant. -->
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+    <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Only the KSP/Unity/kOS-type-free half of Gonogo.Kos is exercised
+         here — net10.0, no kOS.dll/UnityEngine.dll reference assemblies
+         needed, same headless-test split as GonogoScansatUplink/
+         GonogoScansatUplink.Tests. KosExtension.cs itself is split into a
+         KSP-free half (this file) and a KSP-touching half
+         (KosExtension.Ksp.cs, NOT included below) via `partial class` — see
+         KosExtension.cs's class doc comment for the seam
+         (InstallProductionDefaults). KosMainThreadDispatcherAddon (touches
+         UnityEngine/GameObject), KosComputeHarmony (touches kOS.Safe.Screen +
+         Harmony), and KosProcessorScreen (touches kOS.Module/kOS.Safe.Screen/
+         kOS.Screen/kOS.UserIO) are deliberately NOT included — nothing this
+         project needs reaches them (see MainThreadDispatcherTests's doc
+         comment: a real GameObject can't be created outside a live Unity
+         process, and this project must not instantiate those types
+         directly). -->
+    <Compile Include="..\Gonogo.Kos\KosChannels.cs" />
+    <Compile Include="..\Gonogo.Kos\KosComputeAccumulator.cs" />
+    <Compile Include="..\Gonogo.Kos\KosDataParser.cs" />
+    <Compile Include="..\Gonogo.Kos\KosVersionGuard.cs" />
+    <Compile Include="..\Gonogo.Kos\KosTerminalManager.cs" />
+    <Compile Include="..\Gonogo.Kos\MainThreadDispatcher.cs" />
+    <Compile Include="..\Gonogo.Kos\KosExtension.cs" />
   </ItemGroup>
 </Project>
