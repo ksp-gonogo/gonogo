@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useTelemetryClient } from "./context";
+import { useTelemetryClientOptional } from "./context";
 
 /**
  * Fires `handler` for each discrete event delivered on `topic` — the
@@ -31,11 +31,14 @@ export function useStreamEvent<T>(
   topic: string,
   handler: (payload: T) => void,
 ): void {
-  const client = useTelemetryClient();
+  // Degrade to a no-op when no `TelemetryProvider` is mounted (disconnected)
+  // — same `*Optional` contract as `useStream`/`useTelemetry`.
+  const client = useTelemetryClientOptional();
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
   useEffect(() => {
+    if (!client) return;
     // `client.subscribe` replays the sticky last value synchronously, inside
     // this call — flag that window so the replay is skipped and only genuinely
     // new deliveries (which arrive on a later tick, with `replayingSticky`

@@ -1,5 +1,8 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { useTelemetryClient, useTelemetryStore } from "./context";
+import {
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "./context";
 
 /**
  * Reactively reads the latest value for `topic` — raw OR derived — from the
@@ -34,11 +37,17 @@ import { useTelemetryClient, useTelemetryStore } from "./context";
  * relevant to `topic` actually changed.
  */
 export function useStream<T>(topic: string): T | undefined {
-  const client = useTelemetryClient();
-  const store = useTelemetryStore();
+  // Degrade gracefully when no `TelemetryProvider` is mounted (disconnected,
+  // or the frame before `SitrepTelemetryProvider`'s client is built) — mirror
+  // `useTelemetry`'s `*Optional` contract so a stream widget renders an empty
+  // state instead of throwing (which the ErrorBoundary would otherwise turn
+  // into an error card on every disconnected dashboard).
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
       const inputTopics = store.resolveSubscriptionTopics(topic);
       const unsubscribeInputs = inputTopics.map((inputTopic) =>
         client.subscribe(inputTopic, () => {}),
@@ -53,6 +62,7 @@ export function useStream<T>(topic: string): T | undefined {
   );
 
   const getSnapshot = useCallback((): T | undefined => {
+    if (!store) return undefined;
     const point = store.sample<T>(topic, store.currentFrame());
     // `point.payload` may itself be `null` (a confirmed tombstone) — passed
     // through as-is, same as the pre-bridge `client.getValue()` read would
