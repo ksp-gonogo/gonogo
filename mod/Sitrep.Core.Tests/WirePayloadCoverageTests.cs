@@ -131,6 +131,13 @@ namespace Sitrep.Core.Tests
             "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
             "SwitchVesselArgs", "LaunchArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
             "RotorSetValueArgs", "RotorReverseArgs", "ExperimentActionArgs",
+            // kos.terminal.* command args — inbound only (KosExtension.cs
+            // AddCommandHandler for open/keystroke/resize/close); deserialized
+            // client → server, never serialized outbound as a raw POCO. The
+            // OUTBOUND KosTerminalFrame is NOT allowlisted — it's published raw
+            // and has its own JsonWriter case (exercised by this test).
+            "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
+            "KosTerminalCloseArgs",
         };
 
         private static IEnumerable<Type> ContractPayloadTypes() =>
