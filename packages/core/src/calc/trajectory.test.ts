@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OrbitPatch } from "../schemas/telemachus";
+import type { OrbitPatch } from "../schemas/orbit";
 import {
   buildBodyRotation,
   eccentricToTrueAnomaly,

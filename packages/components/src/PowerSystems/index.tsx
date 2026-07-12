@@ -2,13 +2,16 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useActionInput,
-} from "@gonogo/core";
-import { useDataSeries, usePartsLive, useTopology } from "@gonogo/data";
+  useDataStreamStatus,
+  useDataValue,
+} from "@ksp-gonogo/core";
+import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
 import {
   ConfigForm,
   Field,
@@ -20,8 +23,9 @@ import {
   ScrollArea,
   Select,
   Sparkline,
+  StreamStatusBadge,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -59,17 +63,94 @@ interface Contribution {
   nominalFlow?: number;
 }
 
+/**
+ * `parts.power` wire shape (`mod/Sitrep.Host/PartsViewProvider.cs`) — a NEW
+ * capability with no legacy Telemachus analogue (see map-topic.ts). Only
+ * `totalProductionEc` is consumed today; the per-part
+ * arrays exist on the wire for a future breakdown but aren't read here yet.
+ */
+interface PartsPowerPayload {
+  totalProductionEc?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (PowerSystems is THE worked
+// example — see augment-slot-map.md "Power / resources").
+//
+// `power-systems.sections` — a Table/section slot in the body, below the
+// net-rate/producer-consumer readout. The canonical first filler is
+// Kerbalism's EC-broker breakdown (Kerbalism re-derives EC production/
+// consumption via its own `ResourceBrokers`), contributed as an augment that
+// reads ONLY Kerbalism's own Topics. Core never references it — the host
+// composes whatever is registered.
+//
+// `power-systems.badges` — a broad escape-hatch badge slot in the header, next
+// to the title, for a small status/indicator an Uplink wants to surface (e.g. a
+// Kerbalism warning glyph).
+//
+// Both carry the widget's current resource focus as slot props so an augment
+// renders against the resource the operator is actually looking at —
+// slot-parameterised augments; the parent's context passed down. No augment
+// ships here yet — the slots render nothing until one registers.
+// ---------------------------------------------------------------------------
+
+/** Props both PowerSystems slots pass to their augments. */
+export interface PowerSystemsSlotContext {
+  /**
+   * The resource the widget is currently focused on (the picker/action-cycle
+   * selection). Lets an augment scope its breakdown/badge to the same resource
+   * the operator is viewing rather than assuming ElectricCharge.
+   */
+  resource: string;
+}
+
+// Declaration-merge the slot ids → props types into core's `SlotRegistry`
+// (the declaration-merging hybrid base). Co-located here so parallel slot work
+// on other widgets never collides on a shared central file. This is what types
+// `registerAugment({ augments: "power-systems.sections", … })` and
+// `<AugmentSlot name="power-systems.sections" props={…} />` against
+// `PowerSystemsSlotContext` rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would receive.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "power-systems.sections": PowerSystemsSlotContext;
+    "power-systems.badges": PowerSystemsSlotContext;
+  }
+}
+
 function PowerSystemsComponent({
   config,
   w,
   h,
 }: Readonly<ComponentProps<PowerSystemsConfig>>) {
-  const topology = useTopology("data");
+  const topology = useTopology();
   const flightIds = useMemo(
     () => topology?.parts.map((p) => p.flightId) ?? [],
     [topology],
   );
   const liveByFlightId = usePartsLive(flightIds);
+
+  // `parts.power` mixed-source enrichment. The
+  // per-part Producers/Consumers/Idle breakdown above stays entirely on
+  // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design —
+  // both read `vessel.parts` directly, stream-native; `usePartsLive`'s
+  // `resources` join rides the SAME payload's per-part `resources` map, no
+  // separate subscription).
+  // `parts.power.totalProductionEc` is a SEPARATE vessel-wide
+  // measurement of the same quantity the itemized rows sum to.
+  //
+  // This measurement used to WIN over the topology-summed
+  // total whenever carried, so PROD/NET (which drives a charge/consume
+  // read the operator relies on) could silently contradict the itemized
+  // Producers rows right below it — the widget's own tests enshrined a
+  // PROD of +42.00 over a single +5.00 row as "expected". Fixed: PROD/NET
+  // now ALWAYS derive from the itemized total (`computedTotalProduced`
+  // below), so they can never disagree with the rows. When the streamed
+  // measurement meaningfully DISAGREES with that total, it's surfaced
+  // separately as an explicitly-labeled "MEASURED" reading (see the
+  // `Totals` cells) instead of being silently dropped OR silently winning.
+  const streamPower = useDataValue<PartsPowerPayload>("data", "parts.power");
+  const streamStatus = useDataStreamStatus("data", "parts.power");
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
@@ -114,6 +195,14 @@ function PowerSystemsComponent({
       return { resource: next };
     },
   });
+
+  // Stable per-resource slot-props object so an unchanged resource selection
+  // doesn't churn mounted augments. Passed to both PowerSystems
+  // augment slots.
+  const slotProps = useMemo<PowerSystemsSlotContext>(
+    () => ({ resource }),
+    [resource],
+  );
 
   // Per-part flow contributions for the selected resource. Includes
   // zero-flow rows when the part exposes a nominalFlow — those are
@@ -169,9 +258,24 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
+  // Single source of truth for PROD/NET: the itemized rows below, always —
+  // see the doc comment on `streamPower` above.
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
+
+  // The streamed measurement, surfaced separately (never substituted into
+  // PROD/NET) only when it MEANINGFULLY disagrees with the itemized total —
+  // agreement (the common/healthy case) shows nothing extra, keeping the
+  // Totals row exactly as it always has been.
+  const measuredTotalProduced =
+    resource === "ElectricCharge" &&
+    typeof streamPower?.totalProductionEc === "number"
+      ? streamPower.totalProductionEc
+      : undefined;
+  const measuredDisagrees =
+    measuredTotalProduced !== undefined &&
+    Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
   // Storage totals across every part that stores this resource — fuel
   // tanks + EC batteries + monoprop tanks. Independent of flow rows.
@@ -229,7 +333,10 @@ function PowerSystemsComponent({
   if (!topology) {
     return (
       <Panel>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <Header>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         <Hint>Waiting for vessel topology…</Hint>
       </Panel>
     );
@@ -238,7 +345,10 @@ function PowerSystemsComponent({
   if (resourcesWithFlow.length === 0) {
     return (
       <Panel>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <Header>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         {showHeader && (
           <PanelSubtitle>No active flow on any resource</PanelSubtitle>
         )}
@@ -256,7 +366,10 @@ function PowerSystemsComponent({
   if (!showFullList) {
     return (
       <Panel>
-        <PanelTitle>POWER</PanelTitle>
+        <Header>
+          <PanelTitle>POWER</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         <CompactBody>
           <CompactResource>{splitCamel(resource)}</CompactResource>
           <CompactNet $tone={netTone}>
@@ -271,7 +384,11 @@ function PowerSystemsComponent({
   return (
     <Panel>
       <Header>
-        <PanelTitle>POWER SYSTEMS</PanelTitle>
+        <HeaderTitle>
+          <PanelTitle>POWER SYSTEMS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+          <AugmentSlot name="power-systems.badges" props={slotProps} />
+        </HeaderTitle>
         <ResourceSelect
           value={resource}
           onChange={(e) => setResource(e.target.value)}
@@ -300,6 +417,14 @@ function PowerSystemsComponent({
             {totalProduced.toFixed(2)}
           </CellValue>
         </TotalsCell>
+        {measuredDisagrees && (
+          <MeasuredCell
+            title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+          >
+            <CellLabel>MEASURED</CellLabel>
+            <CellValue>{measuredTotalProduced?.toFixed(2)}</CellValue>
+          </MeasuredCell>
+        )}
         <TotalsCell>
           <CellLabel>CONS</CellLabel>
           <CellValue $sign="neg">{totalConsumed.toFixed(2)}</CellValue>
@@ -390,6 +515,10 @@ function PowerSystemsComponent({
             </IdleList>
           </Section>
         )}
+        {/* Augment sections — e.g. a Kerbalism EC-broker breakdown —
+            compose here, below the stock producer/consumer/idle readout. Empty
+            (a bare fragment) until an Uplink registers into the slot. */}
+        <AugmentSlot name="power-systems.sections" props={slotProps} />
       </SectionsScroll>
     </Panel>
   );
@@ -487,6 +616,13 @@ const Header = styled.div`
   gap: 8px;
 `;
 
+const HeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+`;
+
 const ResourceSelect = styled(Select)`
   max-width: 50%;
   font-size: 11px;
@@ -528,6 +664,16 @@ const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
       : $tone === "warn"
         ? "var(--color-status-warning-bg)"
         : "var(--color-surface-raised)"};
+`;
+
+/* A distinctly-bordered cell for the streamed
+   `parts.power.totalProductionEc` reading, shown ONLY when it disagrees
+   with the itemized PROD total — a visible "these two numbers don't match"
+   signal (dashed border, muted warning tint) rather than either silently
+   overriding PROD/NET or silently vanishing. */
+const MeasuredCell = styled(TotalsCell)`
+  border-style: dashed;
+  border-color: var(--color-status-warning-bg);
 `;
 
 const CellLabel = styled.span`
@@ -745,7 +891,7 @@ registerComponent<PowerSystemsConfig>({
   id: "power-systems",
   name: "Power Systems",
   description:
-    "Producers vs consumers per resource. Aggregates `r.resourceFor[fid].flow` across every part on the vessel — solar panels, RTGs, generators, ISRU, drills, engines. Default resource is ElectricCharge; the picker switches to any other resource with live flow contributions. Net rate, total produced, total consumed, plus per-part efficiency where the module exposes a nominal cap.",
+    "Producers vs consumers per resource. Aggregates live per-part resource flow across every part on the vessel — solar panels, RTGs, generators, ISRU, drills, engines. Default resource is ElectricCharge; the picker switches to any other resource with live flow contributions. Net rate, total produced, total consumed, plus per-part efficiency where the module exposes a nominal cap.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 3, h: 3 },
@@ -753,17 +899,22 @@ registerComponent<PowerSystemsConfig>({
   configComponent: PowerSystemsConfigComponent,
   openConfigOnAdd: false,
   // Subscribes via useTopology + usePartsLive — same chain as ShipMap.
-  // No explicit list of per-part keys here; the hook walks the topology
-  // and opens r.resourceFor[fid] / therm.part[fid] subscriptions
-  // dynamically. The sparkline reads r.resource[<defaultResource>]
+  // useTopology reads `vessel.parts` directly (stream-native, bypasses
+  // mapTopic); usePartsLive derives per-part thermal, resources, and
+  // module state off that SAME payload — no per-flightId subscriptions.
+  // The sparkline reads r.resource[<defaultResource>]
   // from the base-Telemachus vessel-wide reservoir.
   dataRequirements: [
-    "v.topologySeq",
-    "v.topology",
+    "vessel.parts",
     "r.resource[ElectricCharge]",
+    "parts.power",
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
+  // Augment slots. `sections` — body table/section below the stock
+  // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges` —
+  // broad header escape-hatch. Both render nothing until an Uplink registers.
+  augmentSlots: ["power-systems.sections", "power-systems.badges"],
   pushable: true,
   requires: ["flight"],
 });

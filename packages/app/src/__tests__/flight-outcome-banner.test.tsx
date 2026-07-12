@@ -2,8 +2,16 @@ import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  createFakeWallClock,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-client";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +23,52 @@ import {
 
 function Wrap({ children }: { children: ReactNode }) {
   return <ModalProvider>{children}</ModalProvider>;
+}
+
+// Mounts a real `TelemetryProvider` (`TelemetryClient` + `TimelineStore` over
+// a `StubTransport`) — mirrors `telemetry-components.test.tsx`'s
+// `setupTelemetryStream` (itself mirroring
+// `packages/components/src/test/setupStreamFixture.tsx`), duplicated here in
+// miniature for the same reason that file gives: no shared test-helper
+// package to import from. Used by the "genuinely runs off the stream" describe
+// block below — recovery.*/crash.* are `TELEMACHUS_CLEAN_HOMES` entries with
+// NO `"data"` `DataSource` registered at all, proving the banner reads them
+// off the mod-side stream rather than the legacy path the tests above exercise.
+function setupTelemetryStream(carriedChannels: Iterable<string>) {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  const store = new TimelineStore(clock);
+  // Pin the view clock so `store.sample(topic, currentFrame())` resolves —
+  // without a fixed frame the clock has no confirmed edge and every sample
+  // reads back `undefined` (the exact reason `setupStreamFixture` pins too).
+  // The sticky crash/recovery events emit at the default `validAt: 0`, so any
+  // pinned UT >= 0 sees them.
+  clock.scrubTo(10);
+
+  function Provider({ children }: { children: ReactNode }) {
+    return (
+      <ModalProvider>
+        <TelemetryProvider
+          client={client}
+          store={store}
+          carriedChannels={carriedChannels}
+        >
+          {children}
+        </TelemetryProvider>
+      </ModalProvider>
+    );
+  }
+
+  return {
+    emit: (topic: string, payload: unknown) => transport.emit(topic, payload),
+    Provider,
+  };
 }
 
 describe("FlightOutcomeBanner", () => {
@@ -238,5 +292,107 @@ describe("FlightOutcomeBanner", () => {
       src.emit("crash.lastCrash", crash);
     });
     expect(screen.queryByText("Reusable")).toBeNull();
+  });
+});
+
+describe("FlightOutcomeBanner — genuinely runs off the stream (P4c-b recovery.* topic build)", () => {
+  // NOTE: real timers here, unlike the legacy-path describe above. The stream
+  // read schedules its per-frame `beginFrame()` via a queued microtask/rAF
+  // (`scheduleFrame` in `context.tsx`) — `vi.useFakeTimers()` freezes that, so
+  // `store.currentFrame()` never advances and every sample reads back
+  // `undefined`. The legacy `MockDataSource` path above is synchronous and so
+  // is immune; the stream path is not. We only assert the banner appears, so
+  // no timer control is needed.
+  beforeEach(() => {
+    clearRegistry();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("fires the recovery banner from recovery.lastSummary/recovery.hasRecent with NO legacy data source registered", async () => {
+    // No `registerDataSource` call at all here — proves the read comes off
+    // the mod-side stream (RecoveryUplink), not a `"data"` legacy fallback.
+    const fixture = setupTelemetryStream([
+      "recovery.lastSummary",
+      "recovery.hasRecent",
+    ]);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    expect(screen.queryByText(/VESSEL RECOVERED/)).toBeNull();
+
+    await act(async () => {
+      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.lastSummary", {
+        capturedAtUT: 41520.75,
+        vesselName: "career-orbital-test",
+        recoveryLocation: "KSC",
+        recoveryFactor: "100%",
+        scienceEarned: 12.5,
+        totalScience: 340.25,
+        fundsEarned: 18500,
+        totalFunds: 289848,
+        reputationEarned: 4.2,
+        totalReputation: 88.6,
+        displayReputation: true,
+        scienceBreakdown: [
+          {
+            subjectId: "crewReport@KerbinSrfLandedKSC",
+            subjectTitle: "Crew Report from KSC",
+            dataGathered: 5,
+            scienceAmount: 2.5,
+          },
+        ],
+        partBreakdown: [],
+        resourceBreakdown: [],
+        crewBreakdown: [
+          {
+            name: "Bill Kerman",
+            trait: "Pilot",
+            isTourist: false,
+            xpGained: 1.2,
+            levelsGained: 1,
+            newLevel: 2,
+          },
+        ],
+      });
+      // Flush the microtask-scheduled `beginFrame()` (see `scheduleFrame`)
+      // so `store.currentFrame()` advances and the sticky event resolves.
+      await Promise.resolve();
+    });
+
+    expect(await screen.findByText(/VESSEL RECOVERED/)).toBeInTheDocument();
+    expect(screen.getByText("career-orbital-test")).toBeInTheDocument();
+    expect(screen.getByText("+18,500f")).toBeInTheDocument();
+    expect(screen.getByText("+12.5 sci")).toBeInTheDocument();
+    expect(screen.getByText("+4.2 rep")).toBeInTheDocument();
+  });
+
+  it("fires the crash banner from crash.lastCrash/crash.hasRecent with NO legacy data source registered", async () => {
+    const fixture = setupTelemetryStream([
+      "crash.lastCrash",
+      "crash.hasRecent",
+    ]);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    await act(async () => {
+      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      await Promise.resolve();
+    });
+
+    expect(await screen.findByText(/VESSEL DESTROYED/)).toBeInTheDocument();
+    expect(screen.getByText("career-orbital-test")).toBeInTheDocument();
   });
 });

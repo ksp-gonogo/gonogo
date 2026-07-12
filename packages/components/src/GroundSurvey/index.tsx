@@ -1,5 +1,5 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
+import { AugmentSlot, registerComponent } from "@ksp-gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -9,11 +9,11 @@ import {
   Panel,
   PanelSubtitle,
   PanelTitle,
+  useElementSize,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
-import { useElementSize } from "../shared/useElementSize";
 import { ProfileStrip } from "./ProfileStrip";
 import {
   rateSmoothness,
@@ -26,6 +26,29 @@ interface GroundSurveyConfig {
   freezeBelowM?: number;
   /** Above this hft (m) the strip stays idle. Default 10 000. */
   surveyCeilingM?: number;
+}
+
+/**
+ * Props for `ground-survey.badges` — the widget's BROAD escape-hatch slot
+ * for composable badges, rendered in the header beside the smoothness
+ * badge. Meant for small inline status chips an Uplink wants next to the
+ * verdict; badge augments read their own Topics via hooks, so only labelling
+ * context is passed down.
+ */
+export interface GroundSurveyBadgesContext {
+  /** Body currently being surveyed (`v.body`), when known. */
+  body: string | null;
+  /** Survey phase driving the strip. */
+  surveyState: "idle" | "active" | "frozen" | "above-ceiling";
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props. Kept
+// next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "ground-survey.badges": GroundSurveyBadgesContext;
+  }
 }
 
 function GroundSurveyComponent({
@@ -66,6 +89,13 @@ function GroundSurveyComponent({
   const showPrediction =
     rows >= 4 && survey.predictedLat !== null && survey.predictedLon !== null;
 
+  // Slot props. `badges` carries only labelling context — badge
+  // augments read their own Topics via hooks.
+  const badgesContext: GroundSurveyBadgesContext = {
+    body: survey.body,
+    surveyState: survey.surveyState,
+  };
+
   return (
     <Panel>
       <Header>
@@ -86,6 +116,7 @@ function GroundSurveyComponent({
         <BadgeArea>
           <SmoothnessBadge verdict={verdict} />
           {showSpeed && <SpeedReadout speed={survey.surfaceSpeed} />}
+          <AugmentSlot name="ground-survey.badges" props={badgesContext} />
         </BadgeArea>
       </Header>
       {showStrip && (
@@ -351,6 +382,9 @@ registerComponent<GroundSurveyConfig>({
   ],
   defaultConfig: { freezeBelowM: 1000, surveyCeilingM: 10_000 },
   actions: [],
+  // Broad badges escape-hatch slot in the header meta row. No
+  // filler ships here — that's an Uplink augment.
+  augmentSlots: ["ground-survey.badges"],
   pushable: true,
   requires: ["flight"],
 });

@@ -27,13 +27,14 @@ import {
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
-import { createElement } from "react";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
 import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
+import { setupStreamFixture } from "../../src/test/setupStreamFixture";
 
 // Stock-body registry needs to be populated before any widget that calls
 // getBody(v.body) tries to read it. The live app does this in main.tsx;
@@ -49,7 +50,7 @@ registerStockBodies();
  * KosScriptFrame chrome renders "last good" recent + not paused + not
  * erroring. The fixture payload itself drives the body (the processors
  * list); the status only governs the frame chrome. Kept probe-local so the
- * shared `@gonogo/core` MockDataSource stays untouched.
+ * shared `@ksp-gonogo/core` MockDataSource stays untouched.
  */
 class ProbeKosDataSource extends MockDataSource {
   // Sticky last-value cache. The base MockDataSource.emit only pushes to
@@ -135,6 +136,31 @@ export interface ProbePayload {
    * surfaces the error so brittle fixtures get caught.
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+}
+
+/**
+ * Fixtures authored before the `t.universalTime` client migration
+ * (`useDataValue("data", "t.universalTime")` -> `useViewUt()`) still carry a
+ * `"t.universalTime"` key — harmless to leave (a migrated widget just
+ * ignores the emit), but `useViewUt()` needs a mounted `TelemetryProvider`
+ * to resolve to anything at all. Pin one from the fixture's own value so a
+ * probe render matches what the same fixture produced off the legacy
+ * `DataSource` — no per-widget probe config needed. Fixtures with no such
+ * key are unaffected (`undefined`, no `TelemetryProvider` mounted).
+ */
+function resolvePinnedUt(fixture: Record<string, unknown>): number | undefined {
+  const raw = fixture["t.universalTime"];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+/** See {@link resolvePinnedUt}. `undefined` renders `children` untouched. */
+function wrapWithPinnedViewUt(
+  pinnedUt: number | undefined,
+  children: React.ReactNode,
+): React.ReactNode {
+  if (pinnedUt === undefined) return createElement(Fragment, null, children);
+  const { Provider } = setupStreamFixture({ carriedChannels: [], pinnedUt });
+  return createElement(Provider, null, children);
 }
 
 let activeRoot: Root | null = null;
@@ -304,22 +330,25 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // thing we want to verify.
   activeRoot = createRoot(root);
   activeRoot.render(
-    createElement(
-      AlarmsLauncherProvider,
-      {
-        launcher: () => {},
-        creator: () => {},
-        manager: { find: () => null, remove: () => {} },
-      },
+    wrapWithPinnedViewUt(
+      resolvePinnedUt(payload.fixture),
       createElement(
-        DashboardItemContext.Provider,
-        { value: { instanceId } },
-        createElement(WidgetComponent, {
-          config: payload.config ?? def.defaultConfig ?? {},
-          id: instanceId,
-          w: payload.w,
-          h: payload.h,
-        }),
+        AlarmsLauncherProvider,
+        {
+          launcher: () => {},
+          creator: () => {},
+          manager: { find: () => null, remove: () => {} },
+        },
+        createElement(
+          DashboardItemContext.Provider,
+          { value: { instanceId } },
+          createElement(WidgetComponent, {
+            config: payload.config ?? def.defaultConfig ?? {},
+            id: instanceId,
+            w: payload.w,
+            h: payload.h,
+          }),
+        ),
       ),
     ),
   );

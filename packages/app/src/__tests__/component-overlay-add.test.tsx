@@ -9,10 +9,10 @@ import {
   type ComponentDefinition,
   clearRegistry,
   registerComponent,
-} from "@gonogo/core";
-import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
-import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";

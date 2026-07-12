@@ -1,21 +1,58 @@
-import type { AvailableVesselEntry, ComponentProps } from "@gonogo/core";
+import type { AvailableVesselEntry, ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
   Spinner,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
 type LaunchDirectorConfig = Record<string, never>;
+
+/**
+ * The context both LaunchDirector slots pass to their augments. A
+ * life-support / logistics Uplink reads the pre-launch selection (which craft,
+ * crew and site the operator is about to commit) to append a checklist item or
+ * a header badge — e.g. Kerbalism supplies-for-duration, USI-LS habitation.
+ */
+export interface LaunchDirectorSlotContext {
+  /** Current KSP scene ("Flight", "Editor", …); undefined until telemetry arrives. */
+  scene: string | undefined;
+  /** True while a vessel is in flight (scene === "Flight"). */
+  inFlight: boolean;
+  /** The saved craft selected in the pre-launch picker, or null when none. */
+  selectedShip: string | null;
+  /** The chosen launch-site name (e.g. "LaunchPad"). */
+  selectedSite: string;
+  /** Crew names the operator has selected for the launch. */
+  selectedCrew: string[];
+  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  funds: number | undefined;
+}
+
+// Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
+// §4.6). Co-located here (not a shared central file) so parallel slot work on
+// other widgets can't collide. This makes `registerAugment` and
+// `<AugmentSlot name="launch-director.sections" …>` type-check against
+// `LaunchDirectorSlotContext` rather than the loose fallback.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "launch-director.badges": LaunchDirectorSlotContext;
+    "launch-director.sections": LaunchDirectorSlotContext;
+  }
+}
 
 export interface SavedShip {
   name: string;
@@ -49,6 +86,18 @@ const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
  * Parse `kc.launchSites`. Returns null when the key is absent (older fork
  * without the handler) so the picker can collapse rather than render empty.
  * Making History adds non-stock sites; without it only stock sites appear.
+ *
+ * Two wire shapes land here:
+ * - Legacy GonogoTelemetry: `{ name, displayName, facility, body, ready,
+ *   unlocked }`.
+ * - New SDK `spaceCenter.launchSites` (mapped onto this key via map-topic.ts):
+ *   the mod's `LaunchSiteEntry` — `editorFacility` in place of `facility`,
+ *   `bodyIndex` in place of the body name, and `isStock` instead of a
+ *   `ready`/`unlocked` pair. The mod enumerates `PSystemSetup.LaunchSites`
+ *   (the sites actually available to launch from), so a new-shape entry is
+ *   treated as selectable (`unlocked: true`) — the alternative (no `unlocked`
+ *   field → every site non-selectable → the picker vanishes) would silently
+ *   drop the feature.
  */
 export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -59,16 +108,25 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
+    // New-shape detection: the mod entry has `editorFacility`/`isStock` and no
+    // legacy `unlocked` field.
+    const isNewShape = !("unlocked" in e) && "editorFacility" in e;
+    const facility =
+      typeof e.facility === "string"
+        ? e.facility
+        : typeof e.editorFacility === "string"
+          ? e.editorFacility
+          : "";
     out.push({
       name,
       displayName:
         typeof e.displayName === "string" && e.displayName
           ? e.displayName
           : name,
-      facility: typeof e.facility === "string" ? e.facility : "",
+      facility,
       body: typeof e.body === "string" ? e.body : "",
       ready: e.ready === true,
-      unlocked: e.unlocked === true,
+      unlocked: isNewShape ? true : e.unlocked === true,
     });
   }
   return out;
@@ -143,6 +201,15 @@ function LaunchDirectorComponent({
   const careerFunds = useDataValue("data", "career.funds") as
     | number
     | undefined;
+  // career.funds -> career.status.economy.funds is the one
+  // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
+  // the balance" rule). kc.savedShips/kc.crewRoster and crash.hasRecent/
+  // crash.lastCrash resolve to their own dedicated topics too (map-topic.ts).
+  // The rest of the kc.*/ksp.*/tar.availableVessels reads below stay legacy
+  // — kc.* has no career.status equivalent shape (see map-topic.ts's doc
+  // comment on the facilities gap), the others are separate provider
+  // families or vessel-provider gaps with no wire home yet.
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   // In-flight context — populated when scene === "Flight".
   const vesselName = useDataValue<string>("data", "v.name");
   const missionTime = useDataValue<number>("data", "v.missionTime");
@@ -166,8 +233,10 @@ function LaunchDirectorComponent({
     ut?: number;
   } | null>("data", "crash.lastCrash");
   // For the revert-staleness guard below — a revert rewinds universal time
-  // below the crash snapshot's capture ut.
-  const universalTime = useDataValue<number>("data", "t.universalTime");
+  // below the crash snapshot's capture ut. t.universalTime is dropped as a
+  // data key (it was never a stream; it IS the SDK view-UT), so read that
+  // directly.
+  const universalTime = useViewUt();
   const availableVessels = useDataValue<AvailableVesselEntry[]>(
     "data",
     "tar.availableVessels",
@@ -232,10 +301,26 @@ function LaunchDirectorComponent({
   const rows = h ?? 9;
   const showSubtitle = rows >= 4;
 
+  // Props both augment slots pass down. A plain object rather than a
+  // hook so it can sit above the early return without a conditional `useMemo`; a
+  // fresh reference per render is fine since `AugmentSlot`'s subscription is
+  // store-driven and the live selection changes anyway.
+  const slotContext: LaunchDirectorSlotContext = {
+    scene,
+    inFlight: scene === "Flight",
+    selectedShip,
+    selectedSite,
+    selectedCrew: Array.from(selectedCrew),
+    funds: careerFunds,
+  };
+
   if (ships === null) {
     return (
       <Panel>
-        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+        <TitleRow>
+          <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         {showSubtitle && (
           <PanelSubtitle>Awaiting launch-pad telemetry</PanelSubtitle>
         )}
@@ -273,7 +358,14 @@ function LaunchDirectorComponent({
 
   return (
     <Panel>
-      <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+      <TitleRow>
+        <PanelTitle>LAUNCH & RECOVERY</PanelTitle>
+        {/* Inline header badges — an Uplink (e.g. a life-support summary) can
+            surface an indicator beside the title without a bespoke slot (spec
+            §4.8). Renders nothing until an augment binds. */}
+        <AugmentSlot name="launch-director.badges" props={slotContext} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle role="status" aria-live="polite">
           {inFlight
@@ -339,8 +431,8 @@ function LaunchDirectorComponent({
               onArm={() => setArmed("revert")}
               onConfirm={() => {
                 setArmed(null);
-                // Revert always to VAB by default; the Phase 4 plugin
-                // accepts vab|sph but the widget doesn't know which
+                // Revert always to VAB by default; the mod's revertToEditor
+                // command accepts vab|sph but the widget doesn't know which
                 // editor the original craft came from from flight state
                 // alone. Prefer the explicit choice when we have it.
                 void execute("ksp.revertToEditor[vab]");
@@ -493,6 +585,10 @@ function LaunchDirectorComponent({
                 </LaunchControls>
               </>
             )}
+            {/* Pre-launch checklist augments — a life-support / logistics Uplink
+                appends a checklist item here. Empty until bound; the
+                funds readout and existing controls above are untouched. */}
+            <AugmentSlot name="launch-director.sections" props={slotContext} />
           </>
         )}
       </Body>
@@ -539,7 +635,17 @@ function InFlightPanel({
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
   const switchableVessels = useMemo(() => {
-    const raw = availableVessels ?? [];
+    // The stream's `tar.availableVessels` -> `system.vessels` topic delivers
+    // the NEW roster shape `{ vessels: [...] }` (object), not the legacy bare
+    // `AvailableVesselEntry[]`, and its entries carry `vesselType`/`vesselId`
+    // rather than the `type`/`position`/`index` this switcher was written
+    // against. Until this switcher is migrated to normalise that roster (the
+    // way TargetPicker's `normalizeRoster` does) and dispatch by `vesselId`,
+    // guard against the object shape so the panel renders instead of throwing
+    // `raw.filter is not a function`. A non-array collapses to an empty list,
+    // which disables the "Switch to vessel" control rather than firing a
+    // `tar.switchVessel[undefined]` against the wrong entry shape.
+    const raw = Array.isArray(availableVessels) ? availableVessels : [];
     // Filter SpaceObjects (asteroids / comets) — same UX call as the
     // TargetPicker. Operator can pop open the Tracking Station for the
     // long tail if they actually want to switch to an asteroid.
@@ -738,6 +844,15 @@ function ArmedButton({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 const Body = styled(ScrollArea)`
   flex: 1;
@@ -1143,6 +1258,10 @@ registerComponent<LaunchDirectorConfig>({
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
+  // Header badges + a pre-launch checklist section (augment-slot-map:
+  // launch-director.badges / .sections). Unfilled until a life-support /
+  // logistics Uplink binds — the launch flow renders exactly as before.
+  augmentSlots: ["launch-director.badges", "launch-director.sections"],
   dataRequirements: [
     "kc.savedShips",
     "kc.crewRoster",
@@ -1159,7 +1278,6 @@ registerComponent<LaunchDirectorConfig>({
     "ksp.canRevertToEditor",
     "crash.hasRecent",
     "crash.lastCrash",
-    "t.universalTime",
     "tar.availableVessels",
   ],
   defaultConfig: {},

@@ -19,16 +19,16 @@
  * See local_docs/centralised_kos_compute.md for the full design.
  */
 
-import type { DataKey, KosScriptDefinition } from "@gonogo/core";
-import { getKosScript, getKosScripts, PerfBudget } from "@gonogo/core";
+import type { DataKey, KosScriptDefinition } from "@ksp-gonogo/core";
+import { getKosScript, getKosScripts, PerfBudget } from "@ksp-gonogo/core";
 import {
   hashKosScript,
   isKosScriptError,
   type KosData,
   type KosManagedScript,
   type KosScriptArg,
-} from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 
 /**
  * Soft cap on samples emitted from the centralised fanout. One sample per

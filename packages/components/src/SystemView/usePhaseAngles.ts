@@ -1,53 +1,30 @@
-import { getDataSource } from "@gonogo/core";
-import { useEffect, useReducer, useRef } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
- * Subscribes to `b.o.phaseAngle[i]` for each child of the rendered frame so
- * the AlmanacPanel can show the current phase angle to the active vessel
- * and SystemDiagram can render a live numeric label next to each body.
+ * Phase angle (deg) from each body to the active vessel, keyed by body index —
+ * the input the AlmanacPanel's transfer-window readout and SystemDiagram's
+ * per-body label used to show.
  *
- * Subscription set is keyed by the bodies' indices, so the effect only
- * re-runs when the visible body list changes (frame switch). One sub per
- * visible body is bounded by the total body count (~17 in stock Kerbol).
+ * FOLLOW-UP (not yet reimplemented): this rode Telemachus's derived
+ * `b.o.phaseAngle[i]` key via `getDataSource("data")` — a source deleted in the
+ * Telemachus removal, so the hook already degraded to an empty result. The
+ * `system.bodies` stream carries no phase angle (it's a static body snapshot,
+ * not vessel-relative), so a faithful replacement must DERIVE it client-side
+ * from the active vessel's orbital longitude and each body's, at the current
+ * view-UT (roughly `wrap(bodyLon − vesselLon)` where `lon ≈ lan + argPe + ν`).
+ * That needs the vessel orbit + UT threaded in here and its sign convention
+ * validated against KSP, so it's deferred to keep this migration a strict
+ * non-regression: the map is empty exactly as it already was in the field.
  *
- * Phase angle for the active vessel's parent is meaningless — caller is
- * expected to suppress the label for that body. This hook itself doesn't
- * filter, so other uses (e.g. transfer windows from a different parent)
- * stay possible.
+ * Returning an empty map is safe for every consumer — `SystemView`'s
+ * transfer-window highlighting and the AlmanacPanel phase row both already
+ * treat "no live phase angle" as their default (no highlight / row omitted).
  */
 export function usePhaseAngles(
-  bodies: readonly CelestialBody[],
-  sourceId = "data",
+  _bodies: readonly CelestialBody[],
 ): Map<number, number> {
-  const valuesRef = useRef<Map<number, number>>(new Map());
-  const [, bump] = useReducer((x: number) => x + 1, 0);
-
-  // Stable signature so we don't churn the effect on every render.
-  const indices = bodies.map((b) => b.index).join(",");
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `indices` is the stable proxy for `bodies` — depending on `bodies` directly would re-run the effect on every render because the array identity changes
-  useEffect(() => {
-    const source = getDataSource(sourceId);
-    if (!source) return;
-    valuesRef.current = new Map();
-    bump();
-
-    const unsubs: Array<() => void> = [];
-    for (const body of bodies) {
-      const key = `b.o.phaseAngle[${body.index}]`;
-      unsubs.push(
-        source.subscribe(key, (value) => {
-          if (typeof value !== "number" || !Number.isFinite(value)) return;
-          valuesRef.current.set(body.index, value);
-          bump();
-        }),
-      );
-    }
-    return () => {
-      for (const u of unsubs) u();
-    };
-  }, [indices, sourceId]);
-
-  return valuesRef.current;
+  return EMPTY;
 }
+
+// Stable identity so a consumer memoising on the returned map doesn't churn.
+const EMPTY: Map<number, number> = new Map();

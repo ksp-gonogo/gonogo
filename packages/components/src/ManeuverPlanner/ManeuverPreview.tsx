@@ -6,9 +6,9 @@ import {
   formatDuration,
   type ManeuverPlan,
   type ManeuverSequence,
-} from "@gonogo/core";
-import type { VesselDeltaV } from "@gonogo/data";
-import { Button, GhostButton } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import type { VesselDeltaV } from "@ksp-gonogo/data";
+import { Button, GhostButton } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { isSequence, type PlanResult } from "./planning";
@@ -46,7 +46,6 @@ interface ManeuverPreviewProps {
   requiredDeltaV: number;
   currentUT: number | undefined;
   error: string | null;
-  principia: boolean;
   committing: boolean;
   triggerEditorOpen: boolean;
   setTriggerEditorOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
@@ -85,7 +84,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
       <TriggerEditor
         open={props.triggerEditorOpen}
         numericKeys={props.numericKeys}
-        externallyDisabled={props.principia || !plan}
+        externallyDisabled={!plan}
         onClose={() => props.setTriggerEditorOpen(false)}
         onArm={props.onArm}
       />
@@ -93,16 +92,14 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         <GhostButton
           type="button"
           onClick={() => props.setTriggerEditorOpen((o) => !o)}
-          disabled={props.committing || props.principia || !plan}
+          disabled={props.committing || !plan}
           aria-expanded={props.triggerEditorOpen}
         >
           Add Node When…
         </GhostButton>
         <Button
           onClick={() => void props.onCommit()}
-          disabled={
-            props.committing || props.principia || props.feasible === false
-          }
+          disabled={props.committing || props.feasible === false}
         >
           {props.committing ? "Adding…" : "Add node"}
         </Button>

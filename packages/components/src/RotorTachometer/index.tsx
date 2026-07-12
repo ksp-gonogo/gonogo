@@ -1,14 +1,22 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
-import { EmptyState, Gauge, Panel, PanelTitle, ToggleButton } from "@gonogo/ui";
+} from "@ksp-gonogo/core";
+import {
+  EmptyState,
+  Gauge,
+  Panel,
+  PanelTitle,
+  StreamStatusBadge,
+  ToggleButton,
+  useElementSize,
+} from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
-import { useElementSize } from "../shared/useElementSize";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
@@ -16,8 +24,9 @@ import { useElementSize } from "../shared/useElementSize";
  * brake / direction controls. The selected rotor (first by default) gets a
  * tachometer dial and is the target of the serial-mappable actions.
  *
- * Reads `robotics.rotors` (array) + `robotics.available`; degrades to a
- * muted empty state without Breaking Ground or when no rotor is present.
+ * Reads `parts.robotics` (the rotor identity list, filtered by `type ===
+ * "rotor"`) + `robotics.available`; degrades to a muted empty state without
+ * Breaking Ground or when no rotor is present.
  */
 
 type RotorTachometerConfig = Record<string, never>;
@@ -27,7 +36,7 @@ const RPM_STEP = 10;
 const TORQUE_STEP = 10;
 
 export interface RotorInfo {
-  partId: number;
+  partId: string;
   name: string;
   rpm: number;
   rpmLimit: number;
@@ -45,30 +54,33 @@ function num(v: unknown, fallback = 0): number {
 }
 
 /**
- * Parse `robotics.rotors`. Returns null when the key is absent (older fork
- * without the handler) so the widget can tell "no DLC support" from "no
- * rotors on this vessel".
+ * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
+ * down to `type === "rotor"` entries (hinges/pistons are Robotics Console's
+ * domain). `partId` is `Part.flightID` stringified — stable per-part for the
+ * life of the flight and, unlike `partName`, unique even among symmetric
+ * same-named parts (multirotors, coaxial helis). Entries with no string
+ * `partId` are dropped — they can't be selected or targeted safely.
  */
-export function parseRotors(raw: unknown): RotorInfo[] | null {
-  if (raw === null || raw === undefined) return null;
-  if (!Array.isArray(raw)) return null;
+export function parseRotors(raw: unknown): RotorInfo[] {
+  if (!Array.isArray(raw)) return [];
   const out: RotorInfo[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    if (typeof e.partId !== "number") continue;
+    if (e.type !== "rotor") continue;
+    if (typeof e.partId !== "string") continue;
     out.push({
       partId: e.partId,
-      name: typeof e.name === "string" ? e.name : `Rotor ${e.partId}`,
-      rpm: num(e.rpm),
+      name: typeof e.partName === "string" ? e.partName : `Rotor ${e.partId}`,
+      rpm: num(e.currentRPM),
       rpmLimit: num(e.rpmLimit),
-      torqueLimit: num(e.torqueLimit),
+      torqueLimit: num(e.servoMotorLimit),
       maxTorque: num(e.maxTorque),
       brakePercentage: num(e.brakePercentage),
-      motorEngaged: e.motorEngaged === true,
-      locked: e.locked === true,
+      motorEngaged: e.servoMotorIsEngaged === true,
+      locked: e.servoIsLocked === true,
       counterClockwise: e.counterClockwise === true,
-      output: num(e.output),
+      output: num(e.normalizedOutput),
     });
   }
   return out;
@@ -115,36 +127,37 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  const rotorsRaw = useDataValue("data", "robotics.rotors");
+  const roboticsRaw = useDataValue("data", "parts.robotics");
   const available = useDataValue<boolean>("data", "robotics.available");
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
   // Measure the gauge slot so the dial follows the column width instead of a
   // fixed 180px that clips in a narrow slot.
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
 
-  const rotors = parseRotors(rotorsRaw) ?? [];
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const rotors = parseRotors(roboticsRaw);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
 
-  const setRpmLimit = (id: number, rpm: number) =>
+  const setRpmLimit = (id: string, rpm: number) =>
     void execute(
       `robotics.rotor.setRpmLimit[${id},${Math.round(clamp(rpm, 0, ROTOR_MAX_RPM))}]`,
     );
-  const setTorqueLimit = (id: number, pct: number) =>
+  const setTorqueLimit = (id: string, pct: number) =>
     void execute(
       `robotics.rotor.setTorqueLimit[${id},${Math.round(clamp(pct, 0, 100))}]`,
     );
-  const setBrake = (id: number, pct: number) =>
+  const setBrake = (id: string, pct: number) =>
     void execute(
       `robotics.rotor.setBrake[${id},${Math.round(clamp(pct, 0, 200))}]`,
     );
-  const setMotor = (id: number, engaged: boolean) =>
+  const setMotor = (id: string, engaged: boolean) =>
     void execute(`robotics.rotor.setMotor[${id},${engaged}]`);
-  const setLock = (id: number, locked: boolean) =>
+  const setLock = (id: string, locked: boolean) =>
     void execute(`robotics.rotor.setLock[${id},${locked}]`);
-  const reverse = (id: number) => void execute(`robotics.rotor.reverse[${id}]`);
+  const reverse = (id: string) => void execute(`robotics.rotor.reverse[${id}]`);
 
   useActionInput<RotorTachometerActions>({
     rpmUp: (p) => {
@@ -184,7 +197,10 @@ function RotorTachometerComponent({
   if (rotors.length === 0 || !selected) {
     return (
       <Panel>
-        <PanelTitle>ROTORS</PanelTitle>
+        <TitleRow>
+          <PanelTitle>ROTORS</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -210,7 +226,10 @@ function RotorTachometerComponent({
 
   return (
     <Panel>
-      <PanelTitle>ROTORS</PanelTitle>
+      <TitleRow>
+        <PanelTitle>ROTORS</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <Body>
         {showGauge && (
           <GaugeWrap ref={gaugeRef}>
@@ -353,6 +372,14 @@ function RotorTachometerComponent({
   );
 }
 
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -468,7 +495,7 @@ registerComponent<RotorTachometerConfig>({
   defaultSize: { w: 6, h: 10 },
   minSize: { w: 4, h: 4 },
   component: RotorTachometerComponent,
-  dataRequirements: ["robotics.rotors", "robotics.available"],
+  dataRequirements: ["parts.robotics", "robotics.available"],
   defaultConfig: {},
   actions: rotorActions,
   pushable: true,

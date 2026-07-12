@@ -1,11 +1,11 @@
-import type { DataSource } from "@gonogo/core";
+import type { DataSource } from "@ksp-gonogo/core";
 import type { KosManagedScript } from "../hooks/useKosWidget";
 import type { KosData, KosScriptArg } from "./kos-data-parser";
 
 /**
  * Extension of `DataSource` for sources that can dispatch a kerboscript on
  * a named CPU and resolve with its parsed `[KOSDATA]` payload. Lives in
- * `@gonogo/data` rather than `@gonogo/core` because the script-arg / data /
+ * `@ksp-gonogo/data` rather than `@ksp-gonogo/core` because the script-arg / data /
  * managed-script types it depends on are kOS-specific and already defined
  * in this package — pulling them up into core would invert the dependency.
  *

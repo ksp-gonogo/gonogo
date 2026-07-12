@@ -1,6 +1,6 @@
-import { formatDuration } from "@gonogo/core";
-import type { ParsedManeuverNode } from "@gonogo/data";
-import { CloseIcon, PencilIcon } from "@gonogo/ui";
+import { formatDuration } from "@ksp-gonogo/core";
+import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";

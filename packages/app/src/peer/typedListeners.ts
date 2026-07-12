@@ -1,4 +1,4 @@
-import { ListenerSet } from "@gonogo/data";
+import { ListenerSet } from "@ksp-gonogo/data";
 
 /**
  * A small typed event registry that collapses the "one `ListenerSet` field

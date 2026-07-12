@@ -47,6 +47,53 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+  # C# Sitrep mod: unit/integration tests + the contract shape-gate.
+  # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
+  #
+  # SCOPING — only the KSP-INDEPENDENT projects are built/tested here.
+  # Gonogo.KSP, Gonogo.Kos, and GonogoScansatUplink reference KSP/Unity/
+  # SCANsat/kOS assemblies via HintPaths into a gitignored local KSP install
+  # (local_docs/…/references/*.dll, local_docs/reference/{kos,scansat}), so
+  # they are NOT present on the CI runner and `dotnet build mod/Gonogo.sln`
+  # wholesale would fail on missing Assembly-CSharp etc. We therefore list the
+  # KSP-free projects explicitly rather than build the solution.
+  # FOLLOW-UP: to gate the KSP-facing projects in CI we need vendored KSP/
+  # SCANsat/kOS reference assemblies (a curated ref-DLL set committed or
+  # fetched at CI time) — tracked separately.
+  #
+  # dotnet test takes a single project, so we iterate the test-project list.
+  # The shape-gate (ContractShapeGateTests) lives in Sitrep.Host.Tests and is
+  # CI-safe: it reads PE metadata, no Reinforced.Typings runtime dependency.
+  mod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: dotnet test (KSP-independent Sitrep projects)
+        working-directory: mod
+        run: |
+          set -euo pipefail
+          projects=(
+            Sitrep.Core.Tests
+            Sitrep.Transport.Tests
+            Sitrep.Propagation.Tests
+            Sitrep.Skeleton.Tests
+            Sitrep.Host.Tests
+            Sitrep.Host.IntegrationTests
+            GonogoScansatUplink.Tests
+            GonogoRealAntennasUplink.Tests
+            Gonogo.Kos.Tests
+          )
+          for p in "${projects[@]}"; do
+            echo "::group::dotnet test $p"
+            dotnet test "$p/$p.csproj" --configuration Release
+            echo "::endgroup::"
+          done
+
   e2e:
     runs-on: ubuntu-latest
     strategy:
@@ -146,13 +193,13 @@ jobs:
       # dependency graph (lighter than a full `pnpm build`; no app/relay needed
       # since the harness doesn't use Playwright webServers).
       - name: Build render dependencies
-        run: pnpm --filter "@gonogo/components..." build
+        run: pnpm --filter "@ksp-gonogo/components..." build
 
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Visual gate (${{ matrix.browser }})
-        run: pnpm --filter @gonogo/components visual-gate --engine ${{ matrix.browser }}
+        run: pnpm --filter @ksp-gonogo/components visual-gate --engine ${{ matrix.browser }}
 
       - name: Upload visual diffs on failure
         if: failure()

@@ -1,12 +1,18 @@
-import type { ComponentProps } from "@gonogo/core";
-import { registerComponent, useDataValue, useGameContext } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  registerComponent,
+  useDataStreamStatus,
+  useDataValue,
+  useGameContext,
+} from "@ksp-gonogo/core";
 import {
   DimmedOverlay,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -28,6 +34,32 @@ const SENSOR_UNITS: Record<SensorType, string> = {
   grav: "m/s²",
   acc: "m/s²",
 };
+
+/** The mod's `SensorEntry.type` string (`Sitrep.Contract.SensorType` enum name, `TEMP`/`PRES`/`GRAV`/`ACC`) for each widget-facing sensor type. */
+const WIRE_SENSOR_TYPE: Record<SensorType, string> = {
+  temp: "TEMP",
+  pres: "PRES",
+  grav: "GRAV",
+  acc: "ACC",
+};
+
+/**
+ * Parses the `science.sensors` whole-topic read — a bare
+ * `SensorEntry[]` or `null`/`undefined` while not yet loaded — into a plain
+ * object array `readingFromObject`/`parseSensorReadings` can filter by
+ * `type` and parse per sensor row. Returns `null` (not "no sensors") when
+ * the topic hasn't resolved at all, so the per-type rows render as loading
+ * instead of a false "no sensors" for every type.
+ */
+function parseSensorEntryList(
+  raw: unknown,
+): Array<Record<string, unknown>> | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.filter(
+    (e): e is Record<string, unknown> =>
+      !!e && typeof e === "object" && !Array.isArray(e),
+  );
+}
 
 /**
  * Telemachus's `s.sensor.<type>` is documented loosely ("Sensor data by
@@ -104,7 +136,7 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
 function readingFromObject(entry: unknown): SensorReading | null {
   if (!entry || typeof entry !== "object") return null;
   const e = entry as Record<string, unknown>;
-  const value =
+  let value =
     typeof e.value === "number"
       ? e.value
       : typeof e.reading === "number"
@@ -112,6 +144,16 @@ function readingFromObject(entry: unknown): SensorReading | null {
         : typeof e.v === "number"
           ? e.v
           : null;
+  if (value === null && typeof e.readout === "string") {
+    // science.sensors' `readout` is KSP's own human-readable
+    // sensor string (`ModuleEnviroSensor.readoutInfo`, e.g. "293.1K",
+    // "Off") rather than a raw number — pull the leading numeric value out
+    // of it. A non-numeric readout (an inactive/disabled sensor) has no
+    // match and the entry is dropped, same as Telemachus's old
+    // disabled-sensor `0` handling elsewhere in this file.
+    const match = e.readout.match(/-?\d+(?:\.\d+)?/);
+    value = match ? Number(match[0]) : null;
+  }
   if (value === null || !Number.isFinite(value)) return null;
   const partName =
     typeof e.partName === "string"
@@ -136,9 +178,19 @@ export interface ParsedExperiment {
 }
 
 /**
- * Parses Telemachus Reborn's `sci.experiments` payload — an array of
- * `{ part, title, dataAmount, scienceValueBase, transmitBoost, subjectId }`
- * objects (see ScienceCareerDataLinkHandler in the Telemachus fork).
+ * Parses `sci.experiments`. Two wire shapes land here:
+ *
+ * - Legacy Telemachus Reborn: `{ part, title, dataAmount,
+ *   scienceValueBase, transmitBoost, subjectId }` (see
+ *   ScienceCareerDataLinkHandler in the Telemachus fork).
+ * - New SDK `science.experiments` (mapped onto this
+ *   same widget-facing key via `map-topic.ts`): `{ partName, location,
+ *   experimentId, subjectId, title, dataAmount, ... }` —
+ *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,
+ *   `partName` in place of `part`. `entry.partName ?? entry.part` below
+ *   reads either wire's field name identically; every other field the
+ *   widget needs (`title`/`dataAmount`/`subjectId`) is spelled the same on
+ *   both.
  */
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
@@ -150,9 +202,15 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
     const e = entry as Record<string, unknown>;
     const subjectId =
       typeof e.subjectId === "string" ? e.subjectId : `experiment-${i}`;
+    const part =
+      typeof e.partName === "string"
+        ? e.partName
+        : typeof e.part === "string"
+          ? e.part
+          : null;
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      part: typeof e.part === "string" ? e.part : null,
+      part,
       dataAmount: typeof e.dataAmount === "number" ? e.dataAmount : null,
       subjectId,
     });
@@ -171,11 +229,16 @@ export interface ExperimentBreakdownEntry {
 }
 
 /**
- * Parses `sci.experimentBreakdown` from the GonogoTelemetry plugin. Richer
- * shape than `sci.experiments`: includes biome / situation segments parsed
- * from the subject id and the remaining science potential. Used when
- * present; widget falls back to the existing `sci.experiments` view when
- * the plugin isn't installed.
+ * Parses `sci.experimentBreakdown` — now mapped on the wire onto
+ * `science.experimentBreakdown` (`Sitrep.Host.ScienceViewProvider.
+ * BuildExperimentBreakdown`), same field names as the old GonogoTelemetry
+ * shape this parser was originally written against. Richer than
+ * `sci.experiments`: one row per DISTINCT subject id, with biome/situation
+ * parsed off the subject id server-side and the ABSOLUTE remaining science
+ * potential (`scienceCap - science`). Used when present; widget falls back
+ * to the plain `sci.experiments` view when it's absent (legacy Telemachus
+ * with no GonogoTelemetry plugin, or a stream sample that hasn't arrived
+ * yet).
  */
 export function parseExperimentBreakdown(
   raw: unknown,
@@ -217,7 +280,7 @@ function ScienceBenchComponent({
   // widget at SC would hide legit career numbers, so we wrap only
   // the flight-dependent half. `hasGameSignal` keeps the dim off
   // until the kc.scene WS warmup completes.
-  const { inFlight, hasGameSignal } = useGameContext();
+  const { inFlight, hasGameSignal, careerMode } = useGameContext();
   const dimNonCareer = hasGameSignal && !inFlight;
 
   const body = useDataValue("data", "v.body");
@@ -231,17 +294,28 @@ function ScienceBenchComponent({
   // is only populated on the surface. Falls back to landedAt when blank.
   const liveBiome = useDataValue("data", "v.biome") as string | undefined;
 
-  const tempRaw = useDataValue("data", "s.sensor.temp");
-  const presRaw = useDataValue("data", "s.sensor.pres");
-  const gravRaw = useDataValue("data", "s.sensor.grav");
-  const accRaw = useDataValue("data", "s.sensor.acc");
+  // The whole sensor list (`science.sensors`, SensorEntry[]) is the single
+  // source for every per-type reading: filtered client-side by `type`
+  // (WIRE_SENSOR_TYPE below) instead of four per-type `s.sensor.<type>` reads,
+  // which have no per-type field on the new wire.
+  const sensorEntriesRaw = useDataValue("data", "science.sensors");
+  const sensorEntries = parseSensorEntryList(sensorEntriesRaw);
 
-  const sciCount = useDataValue("data", "sci.count");
-  const sciDataAmount = useDataValue("data", "sci.dataAmount");
   const sciExperimentsRaw = useDataValue("data", "sci.experiments");
   const sciBreakdownRaw = useDataValue("data", "sci.experimentBreakdown");
+  // sci.experiments is mapped onto science.experiments
+  // (map-topic.ts) — the rest of the science reads above stay legacy-only.
+  const experimentsStreamStatus = useDataStreamStatus(
+    "data",
+    "sci.experiments",
+  );
 
-  const careerMode = useDataValue("data", "career.mode") as string | undefined;
+  // career.mode reads through useGameContext rather than a raw
+  // useDataValue call — the stream carries it as the mod's GameMode enum
+  // ORDINAL (a number), not the legacy Telemachus string, and
+  // useGameContext.careerMode already resolves both shapes to the same
+  // display value. A raw read here would silently stop recognising
+  // career mode the moment this widget's read routes to the stream.
   const careerScience = useDataValue("data", "career.science");
   const careerFunds = useDataValue("data", "career.funds");
   const careerRep = useDataValue("data", "career.reputation");
@@ -278,17 +352,29 @@ function ScienceBenchComponent({
   }, [highlightUntil]);
   const showNew = highlightUntil > Date.now();
 
-  const sensors: Array<[SensorType, unknown]> = [
-    ["temp", tempRaw],
-    ["pres", presRaw],
-    ["grav", gravRaw],
-    ["acc", accRaw],
-  ];
+  const sensors: Array<[SensorType, unknown]> = SENSOR_TYPES.map((type) => [
+    type,
+    // null (not an empty array) while the list hasn't resolved — the parser
+    // renders that as loading rather than a false "no sensors".
+    sensorEntries
+      ? sensorEntries.filter(
+          (e) =>
+            typeof e.type === "string" &&
+            e.type.toUpperCase() === WIRE_SENSOR_TYPE[type],
+        )
+      : null,
+  ]);
 
   const experiments = parseExperiments(sciExperimentsRaw);
   const breakdown = parseExperimentBreakdown(sciBreakdownRaw);
-  const showCareer =
-    typeof careerMode === "string" && careerMode.toUpperCase() !== "SANDBOX";
+  // sci.count/sci.dataAmount stay gapped on the wire (no
+  // pre-aggregated field) — derive both client-side from the same
+  // already-migrated experiments array instead of a separate read.
+  const sciCount = experiments ? experiments.length : undefined;
+  const sciDataAmount = experiments
+    ? experiments.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
+    : undefined;
+  const showCareer = careerMode !== "Unknown" && careerMode !== "SANDBOX";
 
   // Selective rendering — situation pill always; supplementary sections
   // drop bottom-up as height shrinks.
@@ -300,7 +386,10 @@ function ScienceBenchComponent({
 
   return (
     <Panel>
-      <PanelTitle>SCIENCE</PanelTitle>
+      <TitleRow>
+        <PanelTitle>SCIENCE</PanelTitle>
+        <StreamStatusBadge status={experimentsStreamStatus} />
+      </TitleRow>
       <DimmedOverlay
         show={dimNonCareer}
         message="Sensors require flight"
@@ -516,6 +605,14 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
 const SituationLine = styled(PanelSubtitle)`
   display: flex;
   align-items: center;
@@ -707,12 +804,7 @@ registerComponent<ScienceBenchConfig>({
     "v.situationString",
     "v.landedAt",
     "v.biome",
-    "s.sensor.temp",
-    "s.sensor.pres",
-    "s.sensor.grav",
-    "s.sensor.acc",
-    "sci.count",
-    "sci.dataAmount",
+    "science.sensors",
     "sci.experiments",
     "sci.experimentBreakdown",
     "career.mode",

@@ -1,4 +1,5 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { getAugmentSettings, getAugmentsForSlot } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -6,22 +7,9 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
-import {
-  contractObjectives,
-  missionObjectives,
-  ObjectivesComponent,
-} from "./index";
+import { contractObjectives, ObjectivesComponent } from "./index";
 
-const KEYS: DataKey[] = [
-  { key: "mh.available" },
-  { key: "mh.name" },
-  { key: "mh.phase" },
-  { key: "mh.score" },
-  { key: "mh.finished" },
-  { key: "mh.outcome" },
-  { key: "mh.objectives" },
-  { key: "contracts.active" },
-];
+const KEYS: DataKey[] = [{ key: "contracts.active" }];
 
 const contract = (over: Record<string, unknown> = {}) => ({
   id: "8001",
@@ -53,49 +41,27 @@ describe("ObjectivesComponent", () => {
     teardownMockDataSource(fixture);
   });
 
-  it("shows the empty state with no mission and no contracts", () => {
+  it("shows the empty state with no contracts", () => {
     render(<ObjectivesComponent config={{}} id="ob" />);
     act(() => {
-      source.emit("mh.available", false);
       source.emit("contracts.active", []);
     });
     expect(screen.getByText(/No active objectives/i)).toBeInTheDocument();
   });
 
-  it("unifies mission objectives and contract parameters in one list", () => {
+  it("renders each contract parameter tagged with its contract", () => {
     render(<ObjectivesComponent config={{}} id="ob" />);
     act(() => {
-      source.emit("mh.available", true);
-      source.emit("mh.name", "Munar 1");
-      source.emit("mh.objectives", [
-        { id: "o1", title: "Land on the Mun", state: "pending" },
-      ]);
       source.emit("contracts.active", [contract()]);
     });
-    // Mission objective + its mission tag (name also appears in the header).
-    expect(screen.getByText("Land on the Mun")).toBeInTheDocument();
-    expect(screen.getAllByText("Munar 1").length).toBeGreaterThan(0);
-    // Contract parameters + their contract tag.
     expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
     expect(screen.getByText("Plant a flag")).toBeInTheDocument();
     expect(screen.getAllByText("Explore the Mun").length).toBeGreaterThan(0);
   });
 
-  it("renders contracts even when no mission is running", () => {
-    render(<ObjectivesComponent config={{}} id="ob" />);
-    act(() => {
-      source.emit("mh.available", false);
-      source.emit("contracts.active", [contract()]);
-    });
-    expect(screen.getByText("Plant a flag")).toBeInTheDocument();
-    // No mission head when no mission.
-    expect(screen.queryByText(/MISSION SUCCESS|MISSION FAILED/)).toBeNull();
-  });
-
   it("does not render an alarm bell without an alarm provider", () => {
     render(<ObjectivesComponent config={{}} id="ob" />);
     act(() => {
-      source.emit("mh.available", false);
       source.emit("contracts.active", [contract()]);
     });
     // Bell is gated on the alarm context; absent here, it degrades cleanly.
@@ -103,19 +69,57 @@ describe("ObjectivesComponent", () => {
   });
 });
 
-describe("objective mapping", () => {
-  it("maps mission objective states and tags by mission", () => {
-    const items = missionObjectives(
-      [
-        { id: "a", title: "X", state: "reached" },
-        { id: "b", title: "Y", state: "weird" },
-      ],
-      "Munar 1",
-    );
-    expect(items[0]).toMatchObject({ state: "reached", source: "Munar 1" });
-    expect(items[1]?.state).toBe("pending"); // unknown → pending
+describe("Objectives — augment slot composition (spec §4.9)", () => {
+  let fixture: MockDataSourceFixture;
+  let source: MockDataSource;
+
+  beforeEach(async () => {
+    fixture = await setupMockDataSource({ keys: KEYS });
+    source = fixture.source;
   });
 
+  afterEach(() => {
+    teardownMockDataSource(fixture);
+  });
+
+  it("binds the built-in contracts source to the slot", () => {
+    // `setupMockDataSource` calls `clearRegistry`, which deliberately no longer
+    // wipes the augment registry — the module-load `registerAugment` call
+    // survives so the frame's slot has a source to compose.
+    const ids = getAugmentsForSlot("objectives.sections").map((a) => a.id);
+    expect(ids).toEqual(["objectives-contracts"]);
+  });
+
+  it("renders the contracts source into the frame's slot", () => {
+    const { container } = render(<ObjectivesComponent config={{}} id="ob" />);
+    act(() => {
+      source.emit("contracts.active", [contract()]);
+    });
+
+    const lists = container.querySelectorAll('ul[aria-label="Objectives"]');
+    expect(lists).toHaveLength(1);
+    expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
+  });
+
+  it("shows the frame's empty fallback only when the source yields no items", () => {
+    render(<ObjectivesComponent config={{}} id="ob" />);
+    act(() => {
+      source.emit("contracts.active", [contract()]);
+    });
+    // A source yielded items → fallback stays out of the rendered content flow.
+    // (It is present-but-CSS-hidden; asserting the contract items render proves
+    // composition happened. The empty-state case is covered above.)
+    expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
+  });
+
+  it("merges the source's namespaced show/hide setting into the host panel (spec §4.7)", () => {
+    const merged = getAugmentSettings("objectives.sections");
+    expect(merged.map((m) => m.namespace)).toEqual(["objectives-contracts"]);
+    expect(merged.every((m) => m.fields[0]?.key === "show")).toBe(true);
+  });
+});
+
+describe("objective mapping", () => {
   it("maps contract parameter states and carries contractId for alarms", () => {
     const items = contractObjectives([contract()]);
     const flag = items.find((i) => i.title === "Plant a flag");

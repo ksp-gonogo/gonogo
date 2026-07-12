@@ -1,6 +1,6 @@
-export type { AxisScale, SeriesType } from "@gonogo/ui";
+export type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
 
-import type { AxisScale, SeriesType } from "@gonogo/ui";
+import type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
 
 /** Sentinel `xKey` value meaning "plot against wall-clock time". */
 export const TIME_AXIS = "$time";

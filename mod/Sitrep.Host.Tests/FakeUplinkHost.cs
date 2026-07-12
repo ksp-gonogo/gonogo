@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using Sitrep.Core;
+using Sitrep.Host;
+using Sitrep.Contract;
+
+namespace Sitrep.Host.Tests
+{
+    /// <summary>
+    /// A minimal <see cref="IUplinkHost"/> test double that only records
+    /// <see cref="ForceKeyframe"/> (and, optionally, <see cref="ResetChannelBirth"/>)
+    /// calls — used to unit-test <see cref="VesselEpochSampler"/> (and any
+    /// future sampler/handler that only needs those two) in isolation,
+    /// without spinning up a real <see cref="ChannelEngine"/>. Every other
+    /// member either no-ops or throws <see cref="NotSupportedException"/> —
+    /// a test that starts needing one of them should extend this double
+    /// deliberately, not silently rely on a guessed default.
+    /// </summary>
+    internal sealed class FakeUplinkHost : IUplinkHost
+    {
+        private readonly Action<string> _onForceKeyframe;
+        private readonly Action<IEnumerable<string>> _onResetChannelBirth;
+
+        /// <param name="onResetChannelBirth">
+        /// Optional -- defaults to a no-op so every PRE-EXISTING call site
+        /// (which only ever cared about <see cref="ForceKeyframe"/>) keeps
+        /// compiling and behaving identically now that
+        /// <see cref="VesselEpochSampler"/> ALSO calls
+        /// <see cref="ResetChannelBirth"/> on every subject switch. Pass a
+        /// callback to assert on it, matching <paramref name="onForceKeyframe"/>'s
+        /// shape.
+        /// </param>
+        public FakeUplinkHost(Action<string> onForceKeyframe, Action<IEnumerable<string>>? onResetChannelBirth = null)
+        {
+            _onForceKeyframe = onForceKeyframe;
+            _onResetChannelBirth = onResetChannelBirth ?? (_ => { });
+        }
+
+        public double NowUt() => 0.0;
+
+        public void AddSampler(ISnapshotSampler sampler)
+        {
+        }
+
+        public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
+        {
+        }
+
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+        {
+        }
+
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+        {
+        }
+
+        public bool IsAnyTopicSubscribed(string topicPrefix) => false;
+
+        public IChannelPublisher Publisher(string topic) => throw new NotSupportedException();
+
+        public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();
+
+        public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
+        {
+        }
+
+        public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
+        {
+        }
+
+        public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread)
+        {
+        }
+
+        public Kernel Kernel => throw new NotSupportedException();
+
+        public void SetAvailability(Availability availability)
+        {
+        }
+
+        public void ForceKeyframe(string topic) => _onForceKeyframe(topic);
+
+        public void ResetChannelBirth(IEnumerable<string> topics) => _onResetChannelBirth(topics);
+    }
+}

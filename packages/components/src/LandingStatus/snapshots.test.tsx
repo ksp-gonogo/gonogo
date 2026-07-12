@@ -29,6 +29,14 @@ describe("LandingStatus DOM snapshots", () => {
           Widget: LandingStatusComponent,
           fixture,
           mode,
+          // LandingStatus reads status through useDataStreamStatus —
+          // connect the raw MockDataSource so its rendered status badge
+          // reflects the realistic "connected, streaming" scenario every
+          // one of these fixtures actually depicts, instead of the shared
+          // harness's opt-out-by-default "disconnected" convention (see
+          // setupMockDataSource.ts's connectSource doc comment, and
+          // ThermalStatus/snapshots.test.tsx for the precedent).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

@@ -1,0 +1,171 @@
+name: Publish mod zips
+
+# OUTSTANDING PREREQS — this workflow is inert (or partially inert) until
+# both of these land:
+#
+#   1. ksp-gonogo/ksp-managed is MISSING GameData/SCANsat/Plugins/{SCANsat.dll,
+#      SCANsat.Unity.dll} and GameData/kOS/Plugins/{kOS.dll,kOS.Safe.dll}.
+#      The GonogoScansatUplink and GonogoKos matrix legs WILL FAIL to build
+#      until someone with push access to that private repo vendors those
+#      assemblies in (same redistribution-safe care as the existing
+#      HullCameraVDS entry — see kerbcam's ksp-managed usage). Gonogo core
+#      and GonogoRealAntennasUplink only need the base UnityEngine/
+#      Assembly-CSharp set already present there, so those two build fine
+#      today.
+#   2. SpaceDock publish needs four repo VARIABLES that do not exist yet:
+#      vars.SPACEDOCK_MOD_ID_GONOGO, vars.SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK,
+#      vars.SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK, and
+#      vars.SPACEDOCK_MOD_ID_GONOGOKOS. Until each is set, that mod's
+#      SpaceDock upload step no-ops with a `::warning::` (same pattern as
+#      kerbcam's release.yml) rather than failing the run.
+#
+# Two publish channels, mirroring publish-images.yml:
+#
+#   dev      every CI-green push to main (workflow_run). Builds each mod's
+#            GameData zip and upload-artifacts it — this validates the
+#            packaging pipeline on every push. No GitHub Release attach,
+#            no SpaceDock.
+#   release  dispatched by release.yml on a v* tag, with channel=release.
+#            Builds each mod zip, attaches it to the GitHub Release
+#            release.yml already created (`gh release upload`), AND
+#            publishes each mod to SpaceDock. The manual
+#            `prepare-release.yml` dispatch is the sole user gate — same
+#            as the app release — there is no separate SpaceDock approval.
+#
+# Secrets required:
+#   KSP_MANAGED_TOKEN — fine-grained PAT (Contents: read) for
+#                        ksp-gonogo/ksp-managed, org-level.
+#   SPACEDOCK_USERNAME / SPACEDOCK_PASSWORD — org-level; SpaceDock has no
+#                        API tokens, auth is cookie-based (see
+#                        _build-uplink-mod.yml's "Publish to SpaceDock" step).
+#
+# The per-mod build→package→SpaceDock logic lives in the reusable
+# `_build-uplink-mod.yml` (workflow_call) so a future third-party Uplink
+# repo (P7 marketplace) can call the exact same pipeline for its own mod
+# instead of us re-implementing it per repo. This file is just the
+# first-party matrix caller plus the cross-mod GitHub-Release aggregator.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Publish channel"
+        required: false
+        default: dev
+        type: choice
+        options:
+          - dev
+          - release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-mods-${{ inputs.channel || 'dev' }}
+  cancel-in-progress: false
+
+env:
+  # workflow_run events have no inputs — they're always the dev channel.
+  CHANNEL: ${{ inputs.channel || 'dev' }}
+
+jobs:
+  # Computed once and fanned out to every matrix leg below, rather than
+  # each leg re-deriving it — the reusable workflow takes version as an
+  # input instead of computing it itself.
+  version:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Compute version string
+        id: version
+        run: |
+          if [ "$CHANNEL" = "dev" ]; then
+            SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+            echo "value=dev-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-mod:
+    needs: version
+    # Only build when CI passed. workflow_dispatch skips the check.
+    # (Redundant with `needs: version` skip-propagation, kept explicit for
+    # parity with the pre-refactor condition.)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: Gonogo
+            csproj: mod/Gonogo.KSP/Gonogo.KSP.csproj
+            dll: Gonogo.dll
+            gamedata: Gonogo
+            extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll"
+            notice: ""
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGO
+          - id: GonogoScansatUplink
+            csproj: mod/GonogoScansatUplink/GonogoScansatUplink.csproj
+            dll: GonogoScansatUplink.dll
+            gamedata: GonogoScansatUplink
+            extra_dlls: ""
+            notice: mod/GonogoScansatUplink/NOTICE-SCANSAT.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK
+          - id: GonogoRealAntennasUplink
+            csproj: mod/GonogoRealAntennasUplink/GonogoRealAntennasUplink.csproj
+            dll: GonogoRealAntennasUplink.dll
+            gamedata: GonogoRealAntennasUplink
+            extra_dlls: ""
+            notice: mod/GonogoRealAntennasUplink/NOTICE-REALANTENNAS.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK
+          - id: GonogoKos
+            csproj: mod/Gonogo.Kos/Gonogo.Kos.csproj
+            dll: Gonogo.Kos.dll
+            gamedata: GonogoKos
+            extra_dlls: ""
+            notice: mod/Gonogo.Kos/NOTICE-KOS.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOKOS
+    uses: ./.github/workflows/_build-uplink-mod.yml
+    with:
+      id: ${{ matrix.id }}
+      csproj: ${{ matrix.csproj }}
+      dll: ${{ matrix.dll }}
+      gamedata: ${{ matrix.gamedata }}
+      extra_dlls: ${{ matrix.extra_dlls }}
+      notice: ${{ matrix.notice }}
+      channel: ${{ inputs.channel || 'dev' }}
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      version: ${{ needs.version.outputs.value }}
+      spacedock_mod_id: ${{ vars[matrix.mod_id_var] }}
+    secrets: inherit
+
+  # Attaches every mod zip to the GitHub Release release.yml already
+  # created for this tag. Needs its own contents:write — the workflow-level
+  # default stays contents:read since only this job writes anything. This
+  # is the first-party-monorepo-specific aggregation step — it stays here
+  # rather than in the reusable per-Uplink workflow.
+  attach-to-release:
+    needs: build-mod
+    if: ${{ inputs.channel == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download mod zips
+        uses: actions/download-artifact@v4
+        with:
+          path: mod-zips
+          pattern: "*-zip"
+
+      - name: Attach mod zips to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" mod-zips/*/*.zip \
+            --repo "${{ github.repository }}" \
+            --clobber

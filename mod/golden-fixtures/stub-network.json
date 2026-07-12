@@ -1,0 +1,425 @@
+[
+  {
+    "name": "defaults-unset-pairs",
+    "description": "Every unset (vantage, node) pair defaults to delay 0 and reachable true when no constructor defaults are given.",
+    "ops": [
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": true
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "anywhere",
+        "node": "anything",
+        "expected": 0
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "anywhere",
+        "node": "anything",
+        "expected": true
+      }
+    ]
+  },
+  {
+    "name": "constructor-defaults-override-unset-pairs",
+    "description": "Constructor-provided defaults (delay, reachable) apply to any pair that hasn't been explicitly pinned.",
+    "defaults": {
+      "delay": 120,
+      "reachable": false
+    },
+    "ops": [
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 120
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": false
+      }
+    ]
+  },
+  {
+    "name": "set-delay-isolated-to-its-pair",
+    "description": "setDelay overrides delay only for the exact (vantage, node) pair; other pairs (same vantage, different node; same node, different vantage) stay at default.",
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "Woomera",
+        "node": "v1",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "set-reachable-isolated-to-its-pair",
+    "description": "setReachable overrides reachability only for the exact pair; other pairs stay at default.",
+    "ops": [
+      {
+        "op": "setReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "ok": false
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": false
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": true
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "Woomera",
+        "node": "v1",
+        "expected": true
+      }
+    ]
+  },
+  {
+    "name": "delay-and-reachable-are-independent-axes",
+    "description": "Setting delay for a pair doesn't touch its reachability, and vice versa — they're tracked in separate maps.",
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 300
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 300
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": true
+      },
+      {
+        "op": "setReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "ok": false
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": false
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 300
+      }
+    ]
+  },
+  {
+    "name": "re-setting-a-pair-overwrites-the-previous-value",
+    "description": "Calling setDelay twice for the same pair keeps the latest value, not the first.",
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 50
+      },
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 75
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 75
+      }
+    ]
+  },
+  {
+    "name": "collision-safe-keying-ab-c-vs-a-bc",
+    "description": "Pairs are keyed with a nested map (vantage -> node -> value), not string concatenation, so ('ab','c') and ('a','bc') never collide.",
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "ab",
+        "node": "c",
+        "seconds": 111
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "ab",
+        "node": "c",
+        "expected": 111
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "a",
+        "node": "bc",
+        "expected": 0
+      },
+      {
+        "op": "setDelay",
+        "vantage": "a",
+        "node": "bc",
+        "seconds": 222
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "ab",
+        "node": "c",
+        "expected": 111
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "a",
+        "node": "bc",
+        "expected": 222
+      }
+    ]
+  },
+  {
+    "name": "scale-defaults-to-1-unscaled",
+    "description": "With no scale argument, delayTo returns the base delay unscaled, both for the default delay and a pinned pair.",
+    "defaults": {
+      "delay": 120
+    },
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": 120
+      }
+    ]
+  },
+  {
+    "name": "set-scale-multiplies-default-and-pinned-delays",
+    "description": "setScale(2) doubles both the default delay and any pinned pair's delay.",
+    "defaults": {
+      "delay": 120
+    },
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 240
+      },
+      {
+        "op": "setScale",
+        "scale": 2
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 480
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": 240
+      }
+    ]
+  },
+  {
+    "name": "set-scale-zero-collapses-every-delay",
+    "description": "setScale(0) zeroes delay for every pair — default, pinned, and never-touched alike (light-speed-instant collapse).",
+    "defaults": {
+      "delay": 120
+    },
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 240
+      },
+      {
+        "op": "setScale",
+        "scale": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "anywhere",
+        "node": "anything",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "scale-never-affects-reachable",
+    "description": "Scale is delay-only; reachable is a separate binary axis untouched by setScale(0).",
+    "ops": [
+      {
+        "op": "setReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "ok": false
+      },
+      {
+        "op": "setScale",
+        "scale": 0
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": false
+      },
+      {
+        "op": "queryReachable",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": true
+      }
+    ]
+  },
+  {
+    "name": "constructor-scale-argument",
+    "description": "The constructor's second (scale) argument applies from the very first delayTo call.",
+    "defaults": {
+      "delay": 100
+    },
+    "scale": 0,
+    "ops": [
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "set-scale-can-be-changed-again-after-being-set",
+    "description": "setScale is not one-shot: setting it to 0 then back to 1 flips delayTo's output back and forth on subsequent calls.",
+    "defaults": {
+      "delay": 100
+    },
+    "ops": [
+      {
+        "op": "setScale",
+        "scale": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      },
+      {
+        "op": "setScale",
+        "scale": 1
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 100
+      }
+    ]
+  },
+  {
+    "name": "negative-set-scale-clamps-to-zero",
+    "description": "setScale(-1) clamps to 0 rather than negating delay — a negative scale would schedule deliveries in the past.",
+    "defaults": {
+      "delay": 100
+    },
+    "ops": [
+      {
+        "op": "setScale",
+        "scale": -1
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "negative-constructor-scale-clamps-to-zero",
+    "description": "A negative scale passed to the constructor is clamped to 0, same as setScale.",
+    "defaults": {
+      "delay": 100
+    },
+    "scale": -5,
+    "ops": [
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      }
+    ]
+  }
+]

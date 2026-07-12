@@ -1,4 +1,4 @@
-import { ArrowRightIcon, PlayIcon, StopIcon } from "@gonogo/ui";
+import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";

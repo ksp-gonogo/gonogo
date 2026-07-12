@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- GPL-3.0-only. RealAntennas is CC-BY-SA-4.0 (comms-uplink-design.md §4.1),
+       a one-way-GPLv3-compatible CONTENT licence whose ShareAlike could reach a
+       COMBINED work. This uplink therefore NEVER links RA's assembly and NEVER
+       derives from its types — it reaches every RA member by runtime reflection
+       (RaReflection), the RemoteTech-style arm's-length pattern (§4.2). The
+       arm's-length boundary is what keeps this GPL-3.0-only assembly clear of
+       ShareAlike. RA's attribution notice is retained in NOTICE-REALANTENNAS.txt
+       alongside this file. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoRealAntennasUplink</AssemblyName>
+    <RootNamespace>Gonogo.RealAntennasUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- KspManaged: root for the portable KSP/Unity reference DLLs (below).
+       Defaults to the repo's local dev copy so a plain `dotnet build` with
+       no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
+       pointing at a checked-out ksp-managed reference-assembly repo instead
+       (see kerbcam's Plugin.csproj for the precedent this mirrors). -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies — same portable copy + Private="false"
+       pattern as Gonogo.KSP. Stock CommNet (CommNetVessel/CommPath/CommNode) is
+       stock KSP, so it is a normal reference; only the RealAntennas assembly is
+       forbidden as a compile-time reference (reached by reflection instead). -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract ONLY (Private="false") — the arm's-length compile surface
+       a third-party uplink needs. NOTE: no reference to RealAntennas.dll, by
+       design (§4.2). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

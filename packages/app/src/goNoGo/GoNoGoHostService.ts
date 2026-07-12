@@ -13,9 +13,14 @@
  * the React UI can render via useSyncExternalStore / useState+useEffect.
  */
 
-import type { DataSource } from "@gonogo/core";
-import { getDataSource } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
+import type { DataSource } from "@ksp-gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
+import {
+  dispatchActiveCommand,
+  getVesselState,
+  onActiveTimelineFrame,
+} from "@ksp-gonogo/sitrep-client";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 
@@ -153,7 +158,7 @@ export class GoNoGoHostService {
         // and this tone — inherited f.abort behaviour, not introduced here.
         // Internally gated by isSoundEnabled(); main-only.
         playAbortTone();
-        void this.dataSource?.execute("f.abort");
+        void this.dispatchCommand("f.abort");
         this.host.broadcast({
           type: "gonogo-abort-notify",
           stationName,
@@ -163,26 +168,70 @@ export class GoNoGoHostService {
       }),
     );
 
+    // Launch state: prefers the stream's `vessel.state.met` (the
+    // `v.missionTime` migration target — see `map-topic.ts`) via
+    // `onActiveTimelineFrame`, a plain-class non-hook subscription
+    // (`@ksp-gonogo/sitrep-client`) that re-runs on every ingested frame.
+    // The legacy `this.dataSource.subscribe("v.missionTime", ...)` stays
+    // wired as the fallback for whenever no `TelemetryProvider` is mounted
+    // yet or the stream hasn't resolved `vessel.state.met` — the same
+    // "mapped + carried -> stream, else legacy" shape `useTelemetry`'s
+    // shim applies, just without a React tree to read carried-channels
+    // from directly (`getVesselState()` already returns `undefined` in
+    // exactly those cases, so a plain `!= null` check is enough here).
+    this.unsubs.push(
+      onActiveTimelineFrame(() => {
+        const met = getVesselState()?.met;
+        if (met != null) this.handleMissionTime(met);
+      }),
+    );
+
     if (this.dataSource) {
       this.unsubs.push(
         this.dataSource.subscribe("v.missionTime", (value) => {
+          // Ignore the legacy echo once the stream is already resolving
+          // vessel.state.met — the stream read above wins whenever it's
+          // live.
+          if (getVesselState()?.met != null) return;
           const mt = typeof value === "number" ? value : 0;
-          const wasLaunched = this.launched;
-          this.launched = mt > 0;
-          if (wasLaunched && !this.launched) {
-            // Revert to pad — clear abort so the operator can try again.
-            this.abort = null;
-          }
-          if (this.launched && this.countdown) {
-            this.cancelCountdownIfRunning("launch detected");
-          }
-          if (wasLaunched !== this.launched || wasLaunched) this.emit();
+          this.handleMissionTime(mt);
         }),
       );
     } else {
       logger.warn(
-        `[GoNoGoHostService] no '${dataSourceId}' data source — launch/abort disabled`,
+        `[GoNoGoHostService] no '${dataSourceId}' data source — launch/abort legacy fallback disabled`,
       );
+    }
+  }
+
+  /** Shared launch-state transition for both the stream and legacy `v.missionTime` reads. */
+  private handleMissionTime(missionTime: number): void {
+    const wasLaunched = this.launched;
+    this.launched = missionTime > 0;
+    if (wasLaunched && !this.launched) {
+      // Revert to pad — clear abort so the operator can try again.
+      this.abort = null;
+    }
+    if (this.launched && this.countdown) {
+      this.cancelCountdownIfRunning("launch detected");
+    }
+    if (wasLaunched !== this.launched || wasLaunched) this.emit();
+  }
+
+  /**
+   * Fire a command through the new stream when it's mapped + carried
+   * (`dispatchActiveCommand`, the non-hook `useCommand` equivalent), else
+   * the legacy `DataSource.execute(action)` — same two-tier contract every
+   * other migrated read/write in the app follows. The routing decision
+   * itself is synchronous (see `dispatchActiveCommand`'s doc comment), so
+   * the legacy fallback fires in the same tick as before this migration.
+   */
+  private dispatchCommand(action: string): void {
+    const outcome = dispatchActiveCommand("data", action);
+    if (outcome.routed) {
+      void outcome.settled;
+    } else {
+      void this.dataSource?.execute(action);
     }
   }
 
@@ -273,7 +322,7 @@ export class GoNoGoHostService {
     // is instantiated only on MainScreen.
     playCountdownTone(true);
     if (this.config.triggerStageAtZero) {
-      void this.dataSource?.execute("f.stage");
+      void this.dispatchCommand("f.stage");
     }
     this.emit();
   }

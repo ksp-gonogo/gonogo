@@ -1,9 +1,9 @@
-import { safeRandomUuid } from "@gonogo/core";
-import type { BufferedDataSource } from "@gonogo/data";
-import { LocalStorageStore } from "@gonogo/data";
+import { safeRandomUuid } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
+import { dispatchActiveCommand, getViewUt } from "@ksp-gonogo/sitrep-client";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
-import { AlarmStateMachine, type TelemetryReader } from "./AlarmStateMachine";
+import { AlarmStateMachine } from "./AlarmStateMachine";
 import {
   type Alarm,
   type AlarmSnapshot,
@@ -30,7 +30,7 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
  *
  * Responsibilities:
  *   - Maintain the canonical alarm list (persisted in localStorage).
- *   - Tick at 1 Hz using Telemachus's `t.universalTime` to advance alarm
+ *   - Tick at 1 Hz using the SDK's view time (`getViewUt`) to advance alarm
  *     state (pending → arming → firing → fired).
  *   - When an alarm arms, drop KSP's warp to index 0 via `t.timeWarp[0]`.
  *   - Watch observed warp state for unscheduled changes (warp went up
@@ -65,7 +65,6 @@ export class AlarmHostService {
   private fireListeners = new Set<FireListener>();
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private observedUT: number | null = null;
-  private telemetry: TelemetryReader | null;
   private opts: Required<Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs">>;
   private storage: Storage;
   private alarmStore: LocalStorageStore<Alarm[]>;
@@ -74,12 +73,7 @@ export class AlarmHostService {
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
 
-  constructor(
-    host: PeerHostService | null,
-    telemetry: TelemetryReader | null,
-    opts: AlarmHostOptions = {},
-  ) {
-    this.telemetry = telemetry;
+  constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
       nowMs: opts.nowMs ?? (() => Date.now()),
       tickIntervalMs: opts.tickIntervalMs ?? 1000,
@@ -92,14 +86,12 @@ export class AlarmHostService {
     });
 
     this.stateMachine = new AlarmStateMachine(
-      telemetry,
       () => this.alarms,
       () => this.observedUT,
     );
 
     const initialMargin = this.loadMargin();
     this.warpObserver = new WarpObserver(
-      telemetry,
       {
         getAlarms: () => this.alarms,
         getObservedUT: () => this.observedUT,
@@ -109,7 +101,6 @@ export class AlarmHostService {
     );
 
     this.warp = new WarpControl(
-      telemetry,
       this.stateMachine,
       {
         getObservedIndex: () => this.warpObserver.getWarp().index,
@@ -299,7 +290,10 @@ export class AlarmHostService {
   }
 
   private tick(): void {
-    const ut = this.readTelemetryNumber("t.universalTime");
+    // Not a data-source key: `t.universalTime` was DROPPED — this is the
+    // SDK's own view time, read via the non-hook `getViewUt` accessor rather
+    // than the legacy telemetry reader.
+    const ut = getViewUt() ?? null;
     this.observedUT = ut ?? this.observedUT;
     this.warpObserver.observeWarp();
 
@@ -365,19 +359,23 @@ export class AlarmHostService {
   }
 
   private async dispatchOnFire(alarm: Alarm): Promise<void> {
-    if (!this.telemetry || !alarm.onFire) return;
+    if (!alarm.onFire) return;
     for (const fx of alarm.onFire) {
       switch (fx.kind) {
-        case "action-group":
-          try {
-            await this.telemetry.execute(fx.action);
-          } catch {
-            // Swallow individual action failures so one missing action
-            // group (e.g. `f.ag5` not bound on this vessel) doesn't
-            // block the rest of the list. The visible alarm fire still
-            // shows up regardless.
+        case "action-group": {
+          const outcome = dispatchActiveCommand("data", fx.action);
+          if (outcome.routed) {
+            try {
+              await outcome.settled;
+            } catch {
+              // Swallow individual action failures so one missing action
+              // group (e.g. `f.ag5` not bound on this vessel) doesn't
+              // block the rest of the list. The visible alarm fire still
+              // shows up regardless.
+            }
           }
           break;
+        }
       }
     }
   }
@@ -412,29 +410,23 @@ export class AlarmHostService {
       String(this.warp.getMarginSeconds()),
     );
   }
-
-  private readTelemetryNumber(key: string): number | null {
-    const v = this.telemetry?.getLatestValue(key);
-    return typeof v === "number" && Number.isFinite(v) ? v : null;
-  }
 }
 
+/**
+ * Convenience factory. Historically wrapped a live `BufferedDataSource`
+ * lookup so the host could be constructed at MainScreen-mount time even
+ * before the legacy `"data"` source was registered — now that every
+ * telemetry read/command dispatch inside `AlarmHostService` rides the
+ * stream (`getWarpState`/`getContractsActive`/`getValue`/
+ * `dispatchActiveCommand`), there's nothing left to wrap; kept as a thin
+ * pass-through so call sites (and `createManeuverTriggerHost`'s identical
+ * shape) don't need to change.
+ */
 export function createAlarmHost(
   host: PeerHostService | null,
-  getTelemetry: () => BufferedDataSource | null,
   opts?: AlarmHostOptions,
 ): AlarmHostService {
-  const telemetry: TelemetryReader = {
-    getLatestValue(key: string): unknown {
-      return getTelemetry()?.getLatestValue(key);
-    },
-    execute(action: string): Promise<void> {
-      const src = getTelemetry();
-      if (!src) return Promise.resolve();
-      return src.execute(action);
-    },
-  };
-  return new AlarmHostService(host, telemetry, opts);
+  return new AlarmHostService(host, opts);
 }
 
 function generateId(): string {

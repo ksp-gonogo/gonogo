@@ -1,6 +1,6 @@
-import type { Screen } from "@gonogo/core";
-import { safeRandomUuid } from "@gonogo/core";
-import { LocalStorageStore } from "@gonogo/data";
+import type { Screen } from "@ksp-gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 

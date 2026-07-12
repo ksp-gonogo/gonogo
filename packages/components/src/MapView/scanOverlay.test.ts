@@ -1,118 +1,86 @@
-import type { SCANAnomalyEntry } from "@gonogo/core";
+import type { BodyDefinition, SCANScanningVessel } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
-import {
-  compassPoint,
-  greatCircleMetres,
-  initialBearingDeg,
-  rankAnomaliesByDistance,
-} from "./scanOverlay";
+import { drawScanningFootprints } from "./scanOverlay";
 
-const KERBIN_R = 600_000;
+// The anomaly-distance geometry (greatCircleMetres/initialBearingDeg/
+// compassPoint/rankAnomaliesByDistance) that used to be tested here moved to
+// mod/GonogoScansatUplink/client/src/AnomalyOverlay alongside the display
+// itself (P4c-b) — see that package's own test suite.
 
-function anomaly(over: Partial<SCANAnomalyEntry>): SCANAnomalyEntry {
-  return {
-    name: "x",
-    latitude: 0,
-    longitude: 0,
-    known: true,
-    detail: false,
-    ...over,
-  };
-}
+describe("drawScanningFootprints", () => {
+  const kerbin: BodyDefinition = {
+    name: "Kerbin",
+    radius: 600_000,
+  } as BodyDefinition;
 
-describe("greatCircleMetres", () => {
-  it("is zero for the same point", () => {
-    expect(greatCircleMetres(10, 20, 10, 20, KERBIN_R)).toBe(0);
+  function vessel(over: Partial<SCANScanningVessel>): SCANScanningVessel {
+    return {
+      vesselId: "v1",
+      vesselName: "Mapper",
+      body: "Kerbin",
+      subLatitude: 0,
+      subLongitude: 0,
+      altitude: 250_000,
+      sensors: [],
+      groundTrackWidthDeg: 6,
+      groundTrackLonHalfDeg: 6.1,
+      trackColor: { r: 0, g: 255, b: 200, a: 200 },
+      ...over,
+    };
+  }
+
+  function fakeCtx() {
+    const calls: string[] = [];
+    return {
+      calls,
+      fillRect: (...args: number[]) => calls.push(`fillRect ${args.join(",")}`),
+      strokeRect: (...args: number[]) =>
+        calls.push(`strokeRect ${args.join(",")}`),
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 0,
+    } as unknown as CanvasRenderingContext2D;
+  }
+
+  it("skips vessels on a different body", () => {
+    const ctx = fakeCtx();
+    drawScanningFootprints(ctx, kerbin, [vessel({ body: "Mun" })], 1);
+    expect((ctx as unknown as { calls: string[] }).calls).toHaveLength(0);
   });
 
-  it("matches the quarter-circumference for a 90° separation along the equator", () => {
-    // Quarter of the great circle = π/2 · R.
-    const d = greatCircleMetres(0, 0, 0, 90, KERBIN_R);
-    expect(d).toBeCloseTo((Math.PI / 2) * KERBIN_R, 0);
-  });
-
-  it("matches the half-circumference for antipodal points", () => {
-    const d = greatCircleMetres(0, 0, 0, 180, KERBIN_R);
-    expect(d).toBeCloseTo(Math.PI * KERBIN_R, 0);
-  });
-});
-
-describe("initialBearingDeg", () => {
-  it("is due north (0°) for a point directly north", () => {
-    expect(initialBearingDeg(0, 0, 10, 0)).toBeCloseTo(0, 5);
-  });
-
-  it("is due east (90°) for a point on the equator to the east", () => {
-    expect(initialBearingDeg(0, 0, 0, 10)).toBeCloseTo(90, 5);
-  });
-
-  it("is due south (180°) for a point directly south", () => {
-    expect(initialBearingDeg(0, 0, -10, 0)).toBeCloseTo(180, 5);
-  });
-
-  it("is due west (270°) for a point on the equator to the west", () => {
-    expect(initialBearingDeg(0, 0, 0, -10)).toBeCloseTo(270, 5);
-  });
-});
-
-describe("compassPoint", () => {
-  it("maps cardinal + intercardinal bearings", () => {
-    expect(compassPoint(0)).toBe("N");
-    expect(compassPoint(90)).toBe("E");
-    expect(compassPoint(180)).toBe("S");
-    expect(compassPoint(270)).toBe("W");
-    expect(compassPoint(45)).toBe("NE");
-    expect(compassPoint(359)).toBe("N");
-  });
-});
-
-describe("rankAnomaliesByDistance", () => {
-  const far = anomaly({
-    name: "Far",
-    latitude: 0,
-    longitude: 60,
-    detail: true,
-  });
-  const near = anomaly({
-    name: "Near",
-    latitude: 0,
-    longitude: 5,
-    detail: true,
-  });
-  const undiscovered = anomaly({
-    name: "Hidden",
-    latitude: 0,
-    longitude: 1,
-    known: false,
-  });
-
-  it("excludes undiscovered anomalies", () => {
-    const ranked = rankAnomaliesByDistance(
-      [near, undiscovered],
-      0,
-      0,
-      KERBIN_R,
+  it("skips vessels with no in-range footprint (null/zero half-widths)", () => {
+    const ctx = fakeCtx();
+    drawScanningFootprints(
+      ctx,
+      kerbin,
+      [vessel({ groundTrackWidthDeg: null, groundTrackLonHalfDeg: null })],
+      1,
     );
-    expect(ranked.map((r) => r.anomaly.name)).toEqual(["Near"]);
+    expect((ctx as unknown as { calls: string[] }).calls).toHaveLength(0);
   });
 
-  it("sorts ascending by great-circle distance from the vessel", () => {
-    const ranked = rankAnomaliesByDistance([far, near], 0, 0, KERBIN_R);
-    expect(ranked.map((r) => r.anomaly.name)).toEqual(["Near", "Far"]);
-    expect(ranked[0].distanceMetres).toBeLessThan(ranked[1].distanceMetres);
-    expect(ranked[0].bearingDeg).toBeCloseTo(90, 5); // due east
+  it("paints a rect for an in-range vessel", () => {
+    const ctx = fakeCtx();
+    drawScanningFootprints(ctx, kerbin, [vessel({})], 1);
+    const calls = (ctx as unknown as { calls: string[] }).calls;
+    expect(calls.some((c) => c.startsWith("fillRect"))).toBe(true);
+    expect(calls.some((c) => c.startsWith("strokeRect"))).toBe(true);
   });
 
-  it("falls back to name-only (NaN distances) when the vessel position is unknown", () => {
-    const ranked = rankAnomaliesByDistance(
-      [far, near],
-      undefined,
-      undefined,
-      KERBIN_R,
+  it("splits into two rects when the footprint wraps the antimeridian", () => {
+    const ctx = fakeCtx();
+    drawScanningFootprints(
+      ctx,
+      kerbin,
+      [
+        vessel({
+          subLongitude: 179,
+          groundTrackLonHalfDeg: 5,
+        }),
+      ],
+      1,
     );
-    // Sorted by name when distances are NaN.
-    expect(ranked.map((r) => r.anomaly.name)).toEqual(["Far", "Near"]);
-    expect(Number.isNaN(ranked[0].distanceMetres)).toBe(true);
-    expect(Number.isNaN(ranked[0].bearingDeg)).toBe(true);
+    const calls = (ctx as unknown as { calls: string[] }).calls;
+    expect(calls.filter((c) => c.startsWith("fillRect")).length).toBe(2);
   });
 });

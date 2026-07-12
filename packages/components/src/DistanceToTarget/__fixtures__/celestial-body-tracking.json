@@ -1,17 +1,11 @@
 {
   "_meta": {
     "scenario": "celestial-body-tracking",
-    "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect."
+    "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect. Distance derives from vessel.target's Vec3 field."
   },
   "tar.name": "Mun",
   "tar.type": "CelestialBody",
-  "tar.distance": 850000,
-  "tar.o.relativeVelocity": 547.8,
-  "o.closestTgtApprUT": 0,
-  "t.universalTime": 123456,
-  "dock.ax": 0,
-  "dock.ay": 0,
-  "dock.az": 0,
-  "dock.x": 0,
-  "dock.y": 0
+  "tar.relativePosition": { "x": 0, "y": 0, "z": 850000 },
+  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 547.8 },
+  "o.closestTgtApprUT": 0
 }

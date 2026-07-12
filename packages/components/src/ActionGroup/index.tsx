@@ -3,15 +3,16 @@ import type {
   ActionGroupId,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   ACTION_GROUPS,
+  AugmentSlot,
   getSizeBucket,
   registerComponent,
   useActionInput,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BellIcon,
   ConfigForm,
@@ -24,7 +25,7 @@ import {
   Select,
   ToggleButton,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -47,6 +48,46 @@ const actionGroupActions = [
 export type ActionGroupActions = typeof actionGroupActions;
 
 // ---------------------------------------------------------------------------
+// Augment slots
+//
+// ActionGroup is a single-group control, so its slot props carry the identity
+// and live readout of the *one* group this instance drives. An augment binds a
+// Kerbalism/mod-subsystem status describing WHAT that group toggles — e.g.
+// "AG3 → radiators" — using the group id/datum to scope itself.
+//   • `action-group.badges`   — inline in the header row; per-group indicators.
+//   • `action-group.sections` — richer whole-widget status block in the body.
+// Both receive the same context; the placement differs.
+// ---------------------------------------------------------------------------
+
+/**
+ * The context both ActionGroup slots pass to their augments. An
+ * augment reads the `groupId` to decide whether/how to describe the toggled
+ * subsystem, and can reflect the live `value` / `stateLabel` if it wants to.
+ */
+export interface ActionGroupSlotContext {
+  /** The KSP action group this instance controls (e.g. "AG1", "SAS", "Gear"). */
+  groupId: ActionGroupId;
+  /** The display label — custom override or the official group name. */
+  label: string;
+  /** The group's current Value (boolean or numeric readout); `undefined` if unknown. */
+  value: unknown;
+  /** Rendered state readout — "ON" / "OFF" / a numeric string / "—". */
+  stateLabel: string;
+}
+
+// Declaration-merge the slot ids → props type into core's `SlotRegistry`.
+// Co-located here (not a central file) so
+// parallel slot work on other widgets can't collide. This makes
+// `registerAugment` and `<AugmentSlot name="action-group.badges" …>` type-check
+// against `ActionGroupSlotContext` rather than the loose fallback.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "action-group.badges": ActionGroupSlotContext;
+    "action-group.sections": ActionGroupSlotContext;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -59,6 +100,21 @@ function ActionGroupComponent({
   const group = ACTION_GROUPS.find((g) => g.name === config?.actionGroupId);
   const currentLabel = config?.label ?? group?.name ?? "";
 
+  // `group.value`/`group.toggle` are resolved dynamically off the ACTION_GROUPS
+  // registry (`@ksp-gonogo/core/actionGroups.ts`), not literal `useDataValue`
+  // string calls — see `mapTopic.coverage.test.ts`'s doc comment for why that
+  // makes this widget the scan's own blind spot. Abort and Precision
+  // Control's `.value` keys were the last two holdouts and are now
+  // un-gapped: `v.abortValue` ->
+  // `vessel.control.abort` and `v.precisionControlValue` ->
+  // `vessel.control.precisionControl` (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`)
+  // — every other group's `.value` was already mapped. The `.toggle` side is
+  // `useExecuteAction`, a different dispatch path this comment doesn't cover;
+  // `f.abort` -> `vessel.control.setAbort` rides the same toggle -> absolute
+  // bridge as `f.sas`/`f.rcs`/etc (`map-command.ts`). Together this closes the
+  // widget's last gapped pair with zero code change here — both keys already
+  // ride the stream via the mapTopic/mapCommand shim once `vessel.control` is
+  // carried; only test coverage needed adding.
   const value = useDataValue("data", group?.value ?? "v.sasValue");
   const isPaused = useDataValue<boolean>("data", "t.isPaused");
   const commConnected = useDataValue<boolean>("data", "comm.connected");
@@ -106,6 +162,17 @@ function ActionGroupComponent({
       : value === true
         ? "ON"
         : "OFF";
+
+  // Props both augment slots pass down. Built after the `!group`
+  // guard, so this is a plain object rather than a hook — no `useMemo` may run
+  // conditionally. A fresh reference per render is fine: the live `value`
+  // changes anyway, and `AugmentSlot`'s subscription is store-driven.
+  const slotContext: ActionGroupSlotContext = {
+    groupId: group.name,
+    label: currentLabel,
+    value,
+    stateLabel,
+  };
 
   // Surface the most common reasons the action wouldn't fire if the user
   // pressed it now. Mirrors Telemachus's action-group response codes 1–4
@@ -193,6 +260,10 @@ function ActionGroupComponent({
           )}
         </LabelArea>
         <HeaderRight>
+          {/* Inline per-group badges — an Uplink can surface a subsystem
+              indicator here without a bespoke slot. Renders nothing
+              until an augment binds `action-group.badges`. */}
+          <AugmentSlot name="action-group.badges" props={slotContext} />
           {showBell && group.toggle && (
             <AlarmIconButton
               type="button"
@@ -231,6 +302,10 @@ function ActionGroupComponent({
           {unavailableReason}
         </UnavailableNotice>
       )}
+      {/* Richer whole-widget status block — the section-level counterpart to the
+          inline badges. An Uplink describing what this group toggles
+          (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
+      <AugmentSlot name="action-group.sections" props={slotContext} />
     </Panel>
   );
 }
@@ -309,6 +384,7 @@ registerComponent<ActionGroupConfig>({
   dataRequirements: [],
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
+  augmentSlots: ["action-group.badges", "action-group.sections"],
   requires: ["flight"],
 });
 

@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 
 /**
  * STUN/TURN reachability probe for the main screen.

@@ -29,6 +29,14 @@ describe("FuelStatus DOM snapshots", () => {
           Widget: FuelStatusComponent,
           fixture,
           mode,
+          // FuelStatus uses useDataStreamStatus — connect
+          // the raw MockDataSource so its rendered status badge reflects the
+          // realistic "connected, streaming" scenario every one of these
+          // fixtures actually depicts, instead of the shared harness's
+          // opt-out-by-default "disconnected" convention (see
+          // setupMockDataSource.ts's connectSource doc comment, and
+          // WarpControl/snapshots.test.tsx for the precedent).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

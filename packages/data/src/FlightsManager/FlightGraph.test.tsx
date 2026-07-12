@@ -1,61 +1,77 @@
-import type { DataKey } from "@gonogo/core";
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@gonogo/core";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { BufferedDataSource } from "../BufferedDataSource";
-import { MemoryStore } from "../storage/MemoryStore";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
+import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MissionStore } from "../storage/MissionStore";
 import { FlightGraph } from "./FlightGraph";
+import { MissionHistorySource } from "./MissionHistorySource";
 
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.altitude" },
-  { key: "v.verticalSpeed" },
-];
+function frame(topic: string, payload: unknown, deliveredAt: number): string {
+  const message: ServerMessage = {
+    type: "stream-data",
+    topic,
+    payload,
+    meta: {
+      source: "stub",
+      validAt: deliveredAt,
+      seq: 0,
+      deliveredAt,
+      vantage: "stub",
+      quality: Quality.OnRails,
+      active: false,
+      staleness: Staleness.Fresh,
+      timelineEpoch: 0,
+    },
+  };
+  return JSON.stringify(message);
+}
+
+let dbCounter = 0;
 
 describe("FlightGraph", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
+  let store: MissionStore;
+  let historySource: MissionHistorySource;
+  let missionId: string;
+  const firstFrameUt = 0;
+  const lastFrameUt = 20; // 5 samples, 5s apart
 
   beforeEach(async () => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
+    dbCounter += 1;
+    store = new MissionStore({ dbName: `flightgraph-test-${dbCounter}` });
+    historySource = new MissionHistorySource(store);
+    registerDataSource(historySource);
 
-    // Prime a flight and emit a few samples so the store has data to plot.
-    source.emit("v.name", "Test");
-    source.emit("v.missionTime", 0);
-    await new Promise((r) => setTimeout(r, 0));
+    const fixture: ReplayFixture = {
+      subscribedTopics: ["vessel.state", "vessel.flight"],
+      frames: Array.from({ length: 5 }, (_, i) => [
+        frame("vessel.state", { altitudeAsl: 1000 + i * 100 }, i * 5),
+        frame("vessel.flight", { verticalSpeed: 10 + i }, i * 5),
+      ]).flat(),
+    };
 
-    for (let i = 0; i < 5; i++) {
-      source.emit("v.altitude", 1000 + i * 100);
-      source.emit("v.verticalSpeed", 10 + i);
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    await new Promise((r) => setTimeout(r, 20));
+    missionId = "m1";
+    await store.saveMission({
+      meta: {
+        id: missionId,
+        vesselName: "Test",
+        launchedAt: Date.now(),
+        firstFrameUt,
+        lastFrameUt,
+        frameCount: 10,
+      },
+      fixture,
+    });
   });
 
-  afterEach(() => {
-    cleanup();
-    buffered.disconnect();
-  });
-
-  it("renders a placeholder until the user picks a data key", async () => {
-    const flights = await buffered.listFlights();
-    const f = flights[0];
-    expect(f).toBeDefined();
-
+  it("renders a placeholder until the user picks a data key", () => {
     render(
       <FlightGraph
-        flightId={f.id}
-        launchedAt={f.launchedAt}
-        lastSampleAt={f.lastSampleAt || f.launchedAt + 60_000}
+        missionId={missionId}
+        firstFrameUt={firstFrameUt}
+        lastFrameUt={lastFrameUt}
       />,
     );
 
@@ -65,13 +81,11 @@ describe("FlightGraph", () => {
   });
 
   it("excludes non-numeric keys (enum/bool/raw) from the picker", async () => {
-    const flights = await buffered.listFlights();
-    const f = flights[0];
     render(
       <FlightGraph
-        flightId={f.id}
-        launchedAt={f.launchedAt}
-        lastSampleAt={f.lastSampleAt || f.launchedAt + 60_000}
+        missionId={missionId}
+        firstFrameUt={firstFrameUt}
+        lastFrameUt={lastFrameUt}
       />,
     );
 
@@ -81,5 +95,56 @@ describe("FlightGraph", () => {
       expect(screen.queryByText("Vessel name")).toBeNull();
       expect(screen.getByText("Altitude")).toBeTruthy();
     });
+  });
+
+  it("evicts the mission's cached full-history store when the panel unmounts", async () => {
+    // Populate the cache the same way the graph does once a key is picked
+    // (queryRange -> getFullHistoryStore -> buildFullHistoryStore, memoized
+    // by missionId).
+    await historySource.queryRange(
+      "v.altitude",
+      firstFrameUt,
+      lastFrameUt,
+      missionId,
+    );
+
+    const { unmount } = render(
+      <FlightGraph
+        missionId={missionId}
+        firstFrameUt={firstFrameUt}
+        lastFrameUt={lastFrameUt}
+      />,
+    );
+
+    const evictSpy = vi.spyOn(historySource, "evictFullHistoryStore");
+    unmount();
+
+    // Regression coverage: evictFullHistoryStore existed and was unit
+    // tested but had no call site outside its own test — historyCache grew
+    // unboundedly on the shared, module-level MissionHistorySource. The
+    // graph panel's unmount must actually free its mission's cache entry.
+    expect(evictSpy).toHaveBeenCalledWith(missionId);
+  });
+
+  it("evicts under the previous missionId, not the new one, when the mission changes without unmounting", () => {
+    const { rerender } = render(
+      <FlightGraph
+        missionId={missionId}
+        firstFrameUt={firstFrameUt}
+        lastFrameUt={lastFrameUt}
+      />,
+    );
+
+    const evictSpy = vi.spyOn(historySource, "evictFullHistoryStore");
+    rerender(
+      <FlightGraph
+        missionId="m2"
+        firstFrameUt={firstFrameUt}
+        lastFrameUt={lastFrameUt}
+      />,
+    );
+
+    expect(evictSpy).toHaveBeenCalledWith(missionId);
+    expect(evictSpy).not.toHaveBeenCalledWith("m2");
   });
 });

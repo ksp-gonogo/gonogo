@@ -1,4 +1,4 @@
-import { formatDuration, useDataValue } from "@gonogo/core";
+import { formatDuration, useDataValue } from "@ksp-gonogo/core";
 import styled from "styled-components";
 
 /**

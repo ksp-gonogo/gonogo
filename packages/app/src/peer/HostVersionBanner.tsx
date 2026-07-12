@@ -1,6 +1,6 @@
-import { compareVersions } from "@gonogo/core";
-import { logger } from "@gonogo/logger";
-import { VersionMismatchBanner } from "@gonogo/ui";
+import { compareVersions } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
+import { VersionMismatchBanner } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import { VERSION } from "../version";
 import type { PeerClientService } from "./PeerClientService";

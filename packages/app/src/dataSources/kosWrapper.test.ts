@@ -1,4 +1,4 @@
-import { hashKosScript } from "@gonogo/data";
+import { hashKosScript } from "@ksp-gonogo/data";
 import { describe, expect, it } from "vitest";
 import { buildKosWrapper } from "./kosWrapper";
 

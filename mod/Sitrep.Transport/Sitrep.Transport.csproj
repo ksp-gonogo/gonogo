@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <!-- Sitrep.Transport is KSP-free (no Unity/KSP references) and headless-testable —
+       see Sitrep.Transport.Tests. It has ZERO external PackageReferences: the
+       WebSocket implementation (Fleck) is vendored as SOURCE under
+       Vendor/Fleck/ (namespace Sitrep.Vendor.Fleck, see Vendor/Fleck/VENDORED.md)
+       and compiles straight into this assembly, rather than being referenced as a
+       NuGet package/DLL. KSP loads every GameData DLL into one Mono AppDomain with
+       first-assembly-name-wins resolution, so a bundled Fleck.dll would risk
+       colliding with any other mod that also bundles Fleck. Do not add a
+       PackageReference for Fleck (or anything else) without deliberately revisiting
+       this invariant — see Sitrep.Core/README.md for the same rule applied there. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+  </ItemGroup>
+</Project>

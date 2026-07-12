@@ -1,10 +1,11 @@
-import type { ComponentProps } from "@gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   getSizeBucket,
   registerComponent,
-  useDataValue,
+  useDataStreamStatus,
   useExecuteAction,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   Button,
   GhostButton,
@@ -13,7 +14,8 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -45,6 +47,16 @@ export interface Strategy {
 
 const COMMIT_TIMEOUT_MS = 5_000;
 
+/**
+ * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
+ * the new wire shape (`career.status.strategies.all`,
+ * CareerViewProvider.BuildStrategyList: `department`) — same field-rename
+ * normalization ContractManager's `parseContracts` applies. Every other
+ * field name matches the new wire 1:1 (decompile-confirmed,
+ * career-capture-extend-report.md), including `effectiveCostReputation`
+ * staying absent on the new wire — the fallback below to
+ * `initialCostReputation` already covers that, unchanged.
+ */
 export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -59,7 +71,11 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
       departmentName:
-        typeof e.departmentName === "string" ? e.departmentName : "",
+        typeof e.departmentName === "string"
+          ? e.departmentName
+          : typeof e.department === "string"
+            ? e.department
+            : "",
       isActive: e.isActive === true,
       factor: typeof e.factor === "number" ? e.factor : 0,
       dateActivated: typeof e.dateActivated === "number" ? e.dateActivated : 0,
@@ -130,10 +146,23 @@ function StrategiesComponent({
   w,
   h,
 }: Readonly<ComponentProps<StrategiesConfig>>) {
-  const stratsRaw = useDataValue("data", "strategies.all");
-  const funds = useDataValue<number>("data", "career.funds");
-  const reputation = useDataValue<number>("data", "career.reputation");
-  const science = useDataValue<number>("data", "career.science");
+  // The whole career snapshot rides ONE
+  // canonical Topic, `career.status` (CareerStatus). economy.{funds,
+  // reputation,science} and strategies.all are the fields this widget reads —
+  // the wire's `career.status.strategies.all` carries the full `id`/costs/
+  // canActivate/canDeactivate/effect-text shape `parseStrategies` needs
+  // (career-capture-extend-report.md; note `department`, not the legacy
+  // `departmentName`, which parseStrategies normalizes). No legacy read
+  // fallback — the canonical Topic read has none. The activate/deactivate
+  // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
+  // the legacy DataSource via `useExecuteAction` automatically — a later
+  // migration will move the write path too.
+  const career = useTelemetry("career.status");
+  const stratsRaw = career?.strategies?.all;
+  const funds = career?.economy?.funds;
+  const reputation = career?.economy?.reputation;
+  const science = career?.economy?.science;
+  const streamStatus = useDataStreamStatus("data", "career.funds");
   const execute = useExecuteAction("data");
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
@@ -182,7 +211,10 @@ function StrategiesComponent({
   if (strategies === null) {
     return (
       <Panel>
-        <PanelTitle>Strategies</PanelTitle>
+        <Header>
+          <PanelTitle>Strategies</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
+        </Header>
         {showSubtitle && <PanelSubtitle>Awaiting career data…</PanelSubtitle>}
       </Panel>
     );
@@ -238,6 +270,7 @@ function StrategiesComponent({
             {active.length} active
             {overCap && ` / ${inferredCap}`}
           </Tally>
+          <StreamStatusBadge status={streamStatus} />
         </Header>
       </Panel>
     );
@@ -247,6 +280,7 @@ function StrategiesComponent({
     <Panel>
       <Header>
         <PanelTitle>Admin Building</PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
         {/* HeaderMeta wraps to a second row at narrow widths so funds /
             rep / sci aren't clipped by the title's space-between layout.
             At very narrow widths (cols < 6) the funds/rep/sci line gets

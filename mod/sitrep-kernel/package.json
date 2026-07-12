@@ -1,0 +1,20 @@
+{
+  "name": "@ksp-gonogo/sitrep-kernel",
+  "license": "GPL-3.0-only",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "gen:golden-fixtures": "tsx ../golden-fixtures/gen/version.gen.ts && tsx ../golden-fixtures/gen/kernel.gen.ts"
+  },
+  "dependencies": {
+    "@ksp-gonogo/sitrep-server": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

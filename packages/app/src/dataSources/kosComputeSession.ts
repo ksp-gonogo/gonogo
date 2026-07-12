@@ -1,8 +1,8 @@
-import type { DataSourceStatus } from "@gonogo/core";
-import { PerfBudget } from "@gonogo/core";
-import type { KosData, KosManagedScript, KosScriptArg } from "@gonogo/data";
-import { KosScriptError, parseKosData, stripAnsi } from "@gonogo/data";
-import { logger } from "@gonogo/logger";
+import type { DataSourceStatus } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
+import type { KosData, KosManagedScript, KosScriptArg } from "@ksp-gonogo/data";
+import { KosScriptError, parseKosData, stripAnsi } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import type { KosCpu } from "./kos-menu-parser";
 import { parseKosMenu, parseListChanged } from "./kos-menu-parser";
 import { buildKosWrapper } from "./kosWrapper";

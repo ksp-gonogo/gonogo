@@ -1,12 +1,12 @@
-import type { ConfigField, DataKey, DataSourceStatus } from "@gonogo/core";
-import { PerfBudget, registerDataSource } from "@gonogo/core";
+import type { ConfigField, DataKey, DataSourceStatus } from "@ksp-gonogo/core";
+import { PerfBudget, registerDataSource } from "@ksp-gonogo/core";
 import type {
   KosData,
   KosManagedScript,
   KosScriptArg,
   ScriptableDataSource,
-} from "@gonogo/data";
-import { LocalStorageStore } from "@gonogo/data";
+} from "@ksp-gonogo/data";
+import { LocalStorageStore } from "@ksp-gonogo/data";
 import type { KosCpu } from "./kos-menu-parser";
 import { KosComputeManager, type KosTopicStatus } from "./kosCompute";
 import { KosComputeSession } from "./kosComputeSession";
@@ -20,7 +20,7 @@ export { KosMenuPeekSession } from "./kosMenuPeekSession";
 export type { KosManagedScript, KosScriptArg };
 
 export interface KosConfig extends Record<string, unknown> {
-  /** Proxy host (our @gonogo/telnet-proxy server). */
+  /** Proxy host (our @ksp-gonogo/telnet-proxy server). */
   host: string;
   /** Proxy port. */
   port: number;

@@ -1,7 +1,9 @@
-import type { DataSource, DataSourceStatus } from "@gonogo/core";
-import { PerfBudget } from "@gonogo/core";
+import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import { DataSourceWrapper } from "./DataSourceWrapper";
 import { getDerivedKeys } from "./derive";
+import type { FlightFixture } from "./fixtureIO";
+import { exportFlightToFixture } from "./fixtureIO";
 import { getKeepCount } from "./flightAutoDelete";
 import { FlightDetector } from "./flightDetector";
 import {
@@ -10,8 +12,6 @@ import {
 } from "./kos/ScriptableDataSource";
 import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
 import { debugFlight } from "./logger";
-import type { FlightFixture } from "./replay/FlightFixture";
-import { exportFlightToFixture } from "./replay/fixtureIO";
 import { enrichKey } from "./schema/telemachusMeta";
 import type { Store } from "./storage/Store";
 import type {

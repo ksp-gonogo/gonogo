@@ -1,9 +1,44 @@
-import type { ComponentProps } from "@gonogo/core";
-import { getWidgetShape, registerComponent, useDataValue } from "@gonogo/core";
-import { EmptyState, Panel, PanelSubtitle, PanelTitle } from "@gonogo/ui";
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  getWidgetShape,
+  registerComponent,
+  useDataStreamStatus,
+  useTelemetry,
+} from "@ksp-gonogo/core";
+import {
+  EmptyState,
+  Panel,
+  PanelSubtitle,
+  PanelTitle,
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 type CommSignalConfig = Record<string, never>;
+
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────
+//
+// CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT
+// this widget ever importing backend-aware code (locked map: comm-signal):
+//
+//  - `comm-signal.sections` (body, below the signal-bars readout) — the primary
+//    HIGH-value seat. A RealAntennas Uplink elected via capability contributes a
+//    per-antenna breakdown table (which antenna carries the link, its SNR) here,
+//    reading only its OWN RA Topics. CommSignal stays RA-agnostic.
+//  - `comm-signal.badges` (header, next to the title) — the broad escape hatch
+//    for small at-a-glance chips a comms Uplink wants beside the COMMNET title.
+//
+// Neither slot passes parent coordinates/projection (they aren't overlay slots),
+// so the props contract is empty — augments render from their own Topics. The
+// declaration-merge below keeps the slot ids co-located here rather
+// than in a shared central registry, so parallel widget work never collides.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "comm-signal.sections": Record<string, never>;
+    "comm-signal.badges": Record<string, never>;
+  }
+}
 
 // Telemachus' `comm.controlState` is an enum:
 //   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
@@ -48,11 +83,24 @@ function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  const connected = useDataValue("data", "comm.connected");
-  const strength = useDataValue("data", "comm.signalStrength");
-  const controlState = useDataValue("data", "comm.controlState");
-  const controlStateName = useDataValue("data", "comm.controlStateName");
-  const delay = useDataValue("data", "comm.signalDelay");
+  // Every read has a clean home now, so all
+  // five route off the legacy Telemachus `DataSource` and onto the stream via
+  // `useTelemetry`'s two-arg `mapTopic` shim:
+  //  - `comm.connected`     -> `vessel.comms.connected`
+  //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
+  //  - `comm.controlState`  -> `vessel.state.commsControlStateOrdinal` (the
+  //    SDK-derived collapse of `vessel.comms.controlState`'s rich `ControlState`
+  //    enum onto this widget's 0/1/2 level scheme — see `vessel-state.ts`)
+  //  - `comm.controlStateName` -> `vessel.state.commsControlStateName` (that
+  //    same ordinal resolved to its enum NAME string)
+  //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
+  //    SignalDelay authority, live via CommsCoreUplink)
+  const connected = useTelemetry("data", "comm.connected");
+  const strength = useTelemetry("data", "comm.signalStrength");
+  const controlState = useTelemetry("data", "comm.controlState");
+  const controlStateName = useTelemetry("data", "comm.controlStateName");
+  const delay = useTelemetry("data", "comm.signalDelay");
+  const streamStatus = useDataStreamStatus("data", "comm.connected");
 
   const hasData =
     connected !== undefined ||
@@ -62,7 +110,11 @@ function CommSignalComponent({
   if (!hasData) {
     return (
       <Panel>
-        <PanelTitle>COMMNET</PanelTitle>
+        <TitleRow>
+          <PanelTitle>COMMNET</PanelTitle>
+          <AugmentSlot name="comm-signal.badges" props={{}} />
+          <StreamStatusBadge status={streamStatus} />
+        </TitleRow>
         <EmptyState>No signal data</EmptyState>
       </Panel>
     );
@@ -132,7 +184,11 @@ function CommSignalComponent({
         : "";
   return (
     <Panel>
-      <PanelTitle>COMMNET</PanelTitle>
+      <TitleRow>
+        <PanelTitle>COMMNET</PanelTitle>
+        <AugmentSlot name="comm-signal.badges" props={{}} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && (
         <PanelSubtitle>
           {connected === false ? "No signal" : "Signal to KSC"}
@@ -164,6 +220,11 @@ function CommSignalComponent({
           </Grid>
         )}
       </Body>
+
+      {/* Body sections below the signal-bars readout — a comms Uplink (e.g. a
+          RealAntennas per-antenna breakdown) composes here from its own Topics.
+          Renders nothing until an augment binds this slot. */}
+      <AugmentSlot name="comm-signal.sections" props={{}} />
     </Panel>
   );
 }
@@ -186,6 +247,14 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   warn: "var(--color-status-warning-fg-muted)",
   lost: "var(--color-status-nogo-fg)",
 };
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 // Visually hidden, but read by screen readers. Only its text content changes
 // (and only on a connection-state transition), so the polite live region
@@ -290,6 +359,10 @@ registerComponent<CommSignalConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 3, h: 3 },
   component: CommSignalComponent,
+  // Two seats for a comms Uplink to extend the readout without CommSignal ever
+  // importing backend-aware code (locked map: comm-signal). See the
+  // `SlotRegistry` declaration-merge above for the slot props contracts.
+  augmentSlots: ["comm-signal.sections", "comm-signal.badges"],
   dataRequirements: [
     "comm.connected",
     "comm.signalStrength",

@@ -1,4 +1,4 @@
-import { BannerPill } from "@gonogo/ui";
+import { BannerPill } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import type { ConnStatus, PeerClientService } from "./PeerClientService";
 

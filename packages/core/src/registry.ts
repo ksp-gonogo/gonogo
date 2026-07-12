@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 import { clearKosScripts } from "./kos/scriptRegistry";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
@@ -66,6 +66,81 @@ export function getComponent(id: string): AnyDef | undefined {
   return components.get(id);
 }
 
+/**
+ * A widget-replacement conflict (spec §4.5): two or more registered widgets
+ * declare `replaces` the same `targetId`. Two full replacements are
+ * fundamentally not composable, so this is surfaced (for a user config pick /
+ * explicit priority) rather than silently merged.
+ */
+export interface ReplacementConflict {
+  /** The widget id both replacers target. */
+  targetId: string;
+  /** The ids of the widgets competing to replace it (≥2). */
+  replacerIds: string[];
+}
+
+/**
+ * Every replacement conflict currently in the registry — targets with two or
+ * more registered replacers. Empty when replacement is unambiguous. The host
+ * uses this to prompt the user to choose; {@link getResolvedComponents} leaves a
+ * conflicted target's original in place and hides the competing replacers until
+ * one is chosen, so nothing is silently merged.
+ */
+export function getReplacementConflicts(): ReplacementConflict[] {
+  const replacersByTarget = new Map<string, string[]>();
+  for (const def of components.values()) {
+    if (def.replaces === undefined) continue;
+    const list = replacersByTarget.get(def.replaces) ?? [];
+    list.push(def.id);
+    replacersByTarget.set(def.replaces, list);
+  }
+  const conflicts: ReplacementConflict[] = [];
+  for (const [targetId, replacerIds] of replacersByTarget) {
+    if (replacerIds.length >= 2) conflicts.push({ targetId, replacerIds });
+  }
+  return conflicts;
+}
+
+/**
+ * The components to actually render, with widget-level replacement (spec §4.5)
+ * applied:
+ *
+ * - A target with exactly ONE registered replacer → the original is suppressed
+ *   and the replacer takes its place.
+ * - A target with TWO OR MORE replacers → a conflict ({@link
+ *   getReplacementConflicts}): the original is kept, and every competing
+ *   replacer is withheld until the user resolves it. Never silently merged.
+ * - A replacer whose target isn't registered renders as an ordinary component.
+ *
+ * Prefer this over {@link getComponents} anywhere the rendered widget set is
+ * assembled; `getComponents` remains the raw, unresolved view.
+ */
+export function getResolvedComponents(): AnyDef[] {
+  const replacersByTarget = new Map<string, AnyDef[]>();
+  for (const def of components.values()) {
+    if (def.replaces === undefined) continue;
+    const list = replacersByTarget.get(def.replaces) ?? [];
+    list.push(def);
+    replacersByTarget.set(def.replaces, list);
+  }
+
+  // Ids to drop from the output: suppressed originals (single replacement) and
+  // conflicted replacers (held back pending user resolution).
+  const suppressed = new Set<string>();
+  for (const [targetId, replacers] of replacersByTarget) {
+    if (replacers.length === 1) {
+      suppressed.add(targetId); // original replaced by its sole replacer
+    } else {
+      // Conflict: keep the original, withhold the competing replacers.
+      for (const replacer of replacers) suppressed.add(replacer.id);
+    }
+  }
+
+  return Array.from(components.values()).filter(
+    (def) => !suppressed.has(def.id),
+  );
+}
+
 export function getDataSources(): AnySource[] {
   return Array.from(dataSources.values());
 }
@@ -82,7 +157,20 @@ export function getTheme(id: string): ThemeDefinition | undefined {
   return themes.get(id);
 }
 
-/** For use in tests only — resets all registries to empty. */
+/**
+ * For use in tests only — resets the component / data-source / theme / kOS-script
+ * registries to empty.
+ *
+ * Deliberately does NOT clear the augment registry. Augments (spec §4.2) are
+ * module-load registrations that an augment-consuming widget resolves through
+ * the registry AT RENDER TIME (`getAugmentsForSlot`) — unlike components, which
+ * a widget test renders directly, bypassing the registry. `setupMockDataSource`
+ * calls this before nearly every widget test to reset per-test data-source
+ * state; if that also wiped augments, a widget whose real content arrives via a
+ * slot (e.g. Objectives' mission + contract sources) would render an empty slot
+ * because nothing re-runs the once-only module-load `registerAugment`. Augment
+ * registry tests clear it explicitly with `clearAugments()` instead.
+ */
 export function clearRegistry(): void {
   components.clear();
   dataSources.clear();

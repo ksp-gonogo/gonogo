@@ -13,8 +13,19 @@ import type {
   ArmTriggerInput,
   FrozenPlanInputs,
   TriggerSnapshot,
-} from "@gonogo/components";
-import { describe, expect, it, vi } from "vitest";
+} from "@ksp-gonogo/components";
+import {
+  StubTransport,
+  setActiveCarriedChannelsForTests,
+  setActiveTelemetryClientForTests,
+  setActiveTimelineStoreForTests,
+  setActiveViewClockForTests,
+  TelemetryClient,
+  TimelineStore,
+  ViewClock,
+  vesselStateChannel,
+} from "@ksp-gonogo/sitrep-client";
+import { afterEach, describe, expect, it } from "vitest";
 import { ManeuverTriggerClientService } from "../maneuverTriggers/ManeuverTriggerClientService";
 import { ManeuverTriggerHostService } from "../maneuverTriggers/ManeuverTriggerHostService";
 import type { PeerClientService } from "../peer/PeerClientService";
@@ -50,30 +61,74 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-function fakeTelemetry(initial: Record<string, unknown>) {
-  const store = new Map<string, unknown>(Object.entries(initial));
-  const subs = new Map<string, Set<(v: unknown) => void>>();
-  const calls: string[] = [];
+/**
+ * `readLiveOrbit()`/`readVesselName()`'s stream leg — see
+ * `ManeuverTriggerHostService.test.ts`'s identical fixture for the full
+ * reasoning (real `TimelineStore` + `vesselStateChannel`, fed directly via
+ * `StubTransport.emit`, no React/`TelemetryProvider` needed). Also the
+ * trigger `dataKey` read (`getValue`) and maneuver-node fire's
+ * command-dispatch (`dispatchActiveCommand`) leg —
+ * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
+ * register the client/carried-channels a mounted `TelemetryProvider` would;
+ * `calls` records every dispatched `{command, args}` pair via
+ * `transport.setCommandHandler`.
+ */
+function buildOrbitStoreFixture(pinnedUt: number) {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: () => 0,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  clock.scrubTo(pinnedUt);
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(vesselStateChannel);
+  client.attachStore(store);
+  client.subscribe("vessel.orbit", () => {});
+  client.subscribe("vessel.identity", () => {});
+
+  const calls: Array<{ command: string; args: unknown }> = [];
+  transport.setCommandHandler((command, args) => {
+    calls.push({ command, args });
+    return null;
+  });
+
+  setActiveTelemetryClientForTests(client);
+  setActiveCarriedChannelsForTests(new Set(["vessel.maneuver.add"]));
+
   return {
-    getLatestValue: (k: string) => store.get(k),
-    execute: vi.fn(async (a: string) => {
-      calls.push(a);
-    }),
-    subscribe: (k: string, cb: (v: unknown) => void) => {
-      let bucket = subs.get(k);
-      if (!bucket) {
-        bucket = new Set();
-        subs.set(k, bucket);
-      }
-      bucket.add(cb);
-      return () => bucket?.delete(cb);
-    },
-    set(k: string, v: unknown) {
-      store.set(k, v);
-      const bucket = subs.get(k);
-      if (bucket) for (const cb of bucket) cb(v);
-    },
+    store,
     calls,
+    emitOrbit(payload: unknown): void {
+      transport.emit("vessel.orbit", payload);
+      store.beginFrame();
+    },
+    emitIdentity(payload: unknown): void {
+      transport.emit("vessel.identity", payload);
+      store.beginFrame();
+    },
+  };
+}
+
+/**
+ * `sma`/`ecc` drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
+ * body-radius-independent — see `vessel-state.ts`), which is what this
+ * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
+ * 707_000 at the defaults below.
+ */
+function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
+  return {
+    referenceBodyIndex: 1,
+    sma,
+    ecc: 0.01,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: pinnedUt,
+    mu: 3.5316e12,
+    patches: [],
   };
 }
 
@@ -149,26 +204,30 @@ function fakePeerClient() {
 }
 
 describe("Maneuver trigger peer roundtrip", () => {
-  it("station arms → host fires → client snapshot reflects removal", () => {
-    const t = fakeTelemetry({
-      "v.name": "Test Vessel",
-      "v.body": "Kerbin",
-      "o.referenceBody": "Kerbin",
-      "o.sma": 700_000,
-      "o.eccentricity": 0.01,
-      "o.ApR": 707_000,
-      "o.PeR": 693_000,
-      "o.timeToAp": 900,
-      "o.timeToPe": 1800,
-      "o.argumentOfPeriapsis": 0,
-      "o.trueAnomaly": 0,
-      "o.inclination": 0,
-      "o.lan": 0,
-      "o.period": 3600,
-      "o.orbitalSpeed": 2300,
-      "o.radius": 700_000,
-      "t.universalTime": 1_000_000,
-      "o.ApA": 50_000,
+  afterEach(() => {
+    setActiveViewClockForTests(undefined);
+    setActiveTimelineStoreForTests(undefined);
+    setActiveTelemetryClientForTests(undefined);
+    setActiveCarriedChannelsForTests(undefined);
+  });
+
+  it("station arms → host fires → client snapshot reflects removal", async () => {
+    // `t.universalTime`'s DROP: the host service reads view-UT via the
+    // non-hook `getViewUt()` accessor now — register the fixture's own UT
+    // value as the fake view clock so `readLiveOrbit`'s plan computation
+    // resolves the same as before.
+    setActiveViewClockForTests({ viewUt: () => 1_000_000 });
+    // Same DROP, for the vessel/target-orbit + vessel-identity reads AND
+    // the trigger dataKey read/maneuver-node fire — register a real store
+    // carrying a self-consistent orbit + identity.
+    const orbitStore = buildOrbitStoreFixture(1_000_000);
+    setActiveTimelineStoreForTests(orbitStore.store);
+    orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000));
+    orbitStore.emitIdentity({
+      vesselId: "test-vessel",
+      name: "Test Vessel",
+      vesselType: 0,
+      situation: 0,
     });
     const host = fakePeerHost();
     const client = fakePeerClient();
@@ -177,18 +236,18 @@ describe("Maneuver trigger peer roundtrip", () => {
 
     const hostSvc = new ManeuverTriggerHostService(
       host as unknown as PeerHostService,
-      t,
       { storage: memoryStorage() },
     );
     const clientSvc = new ManeuverTriggerClientService(
       client as unknown as PeerClientService,
     );
 
-    // Station arms via its peer-client surface.
+    // Station arms via its peer-client surface. Baseline apoapsisRadius
+    // (707_000) stays below 750_000 — pending until the orbit changes.
     clientSvc.arm({
-      dataKey: "o.ApA",
+      dataKey: "o.ApR",
       op: ">=",
-      value: 80_000,
+      value: 750_000,
       inputs: FROZEN,
     });
     // Replay the outgoing arm into the host.
@@ -200,12 +259,17 @@ describe("Maneuver trigger peer roundtrip", () => {
     expect(hostSvc.snapshot().triggers).toHaveLength(1);
     expect(clientSvc.snapshot().triggers).toHaveLength(1);
     expect(clientSvc.snapshot().triggers[0].createdBy).toBe("station-1");
-    expect(t.calls).toEqual([]);
+    expect(orbitStore.calls).toEqual([]);
 
-    // Telemetry crosses the threshold — host fires + dispatches burn.
-    t.set("o.ApA", 100_000);
-    expect(t.calls.length).toBe(1);
-    expect(t.calls[0]).toMatch(/^o\.addManeuverNode\[/);
+    // Telemetry crosses the threshold (bump sma so apoapsisRadius clears
+    // 750_000) — host fires + dispatches burn.
+    orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+    // The command dispatch settles on a microtask — drain it before
+    // asserting (see `ManeuverTriggerHostService.test.ts`'s identical note).
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(orbitStore.calls.length).toBe(1);
+    expect(orbitStore.calls[0].command).toBe("vessel.maneuver.add");
 
     // Client snapshot reflects the removal.
     expect(hostSvc.snapshot().triggers).toHaveLength(0);
@@ -215,16 +279,11 @@ describe("Maneuver trigger peer roundtrip", () => {
   });
 
   it("station cancel reaches the host and clears the trigger", () => {
-    const t = fakeTelemetry({
-      "v.name": "Test Vessel",
-      "o.ApA": 50_000,
-    });
     const host = fakePeerHost();
     const client = fakePeerClient();
     host.setOnBroadcast((msg) => client.deliver(msg));
     const hostSvc = new ManeuverTriggerHostService(
       host as unknown as PeerHostService,
-      t,
       { storage: memoryStorage() },
     );
     const clientSvc = new ManeuverTriggerClientService(
@@ -232,7 +291,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     );
 
     clientSvc.arm({
-      dataKey: "o.ApA",
+      dataKey: "o.ApR",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,

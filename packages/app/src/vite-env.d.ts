@@ -34,6 +34,18 @@ interface ImportMetaEnv {
    * true when unset.
    */
   readonly VITE_PEER_SECURE?: string;
+  /**
+   * Build-time fallback host for the Sitrep mod WebSocket (default
+   * `localhost`). `SitrepTelemetryProvider` mounts unconditionally — the mod
+   * is the app's only telemetry source since the legacy Telemachus
+   * `DataSource` was deleted at the R6 cutover (806e7fe2) — and this value
+   * is only the FLOOR of `sitrepRuntime.ts`'s resolution order: a
+   * KSP_HOST bundle seed or a saved Data Sources panel config both
+   * override it at runtime, no rebuild required.
+   */
+  readonly VITE_SITREP_HOST?: string;
+  /** Build-time fallback port for the Sitrep mod WebSocket (default 8090). Same override order as `VITE_SITREP_HOST`. */
+  readonly VITE_SITREP_PORT?: string;
 }
 
 interface ImportMeta {

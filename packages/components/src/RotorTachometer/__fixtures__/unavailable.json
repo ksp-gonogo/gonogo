@@ -4,5 +4,5 @@
     "notes": "Breaking Ground not installed — muted empty state, no rotors."
   },
   "robotics.available": false,
-  "robotics.rotors": []
+  "parts.robotics": []
 }

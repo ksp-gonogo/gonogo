@@ -1,4 +1,4 @@
-import { PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 
 import { quantiseUt } from "./predictionThrottle";

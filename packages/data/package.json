@@ -1,5 +1,6 @@
 {
-  "name": "@gonogo/data",
+  "name": "@ksp-gonogo/data",
+  "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,10 +10,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./replay": {
-      "types": "./src/replay-entry.ts",
-      "default": "./src/replay-entry.ts"
     }
   },
   "scripts": {
@@ -23,15 +20,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gonogo/core": "workspace:*",
-    "@gonogo/logger": "workspace:*",
-    "@gonogo/ui": "workspace:*"
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",
     "fake-indexeddb": "^6.0.0",
+    "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"

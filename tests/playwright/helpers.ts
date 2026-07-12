@@ -2,7 +2,7 @@
  * Shared helpers for multi-screen Playwright specs. Every widget-DOM
  * mirror test follows the same shape:
  *
- *   1. Seed both browser contexts with the test Telemachus endpoint
+ *   1. Seed both browser contexts with the test Sitrep stream endpoint
  *      AND a dashboard config that places the widget under test on
  *      the grid (so we don't have to drive the FAB/modal click chain).
  *   2. Open the main page, wait for the widget to render, grab the
@@ -16,6 +16,13 @@
  *
  * Don't add widget-specific logic here — keep this generic so a new
  * widget test is "import bootstrapPair; read DOM on both sides; assert".
+ *
+ * NOTE — station-side telemetry is currently a known gap: only the MAIN
+ * screen mounts `SitrepTelemetryProvider` (see that file's own doc
+ * comment — station stream forwarding over PeerJS is "a later task").
+ * A spec whose station assertion depends on an actual telemetry VALUE
+ * (not just static chrome) will not see it mirrored yet; that's an app
+ * gap this harness surfaces rather than papers over.
  */
 import {
   type Browser,
@@ -28,9 +35,9 @@ import { PORTS } from "../../playwright.config";
 const MAIN_URL = "/";
 const STATION_URL = "/station";
 
-const TELEMACHUS_CONFIG = JSON.stringify({
+const SITREP_CONFIG = JSON.stringify({
   host: "localhost",
-  port: PORTS.telemachusReplay,
+  port: PORTS.sitrepReplay,
 });
 
 export interface DashboardItem {
@@ -90,16 +97,16 @@ export async function seedContext(
   const dashboardJson = JSON.stringify(dashboard);
   await context.addInitScript(
     ({
-      teleCfg,
+      sitrepCfg,
       dashboardKey,
       dashboard,
     }: {
-      teleCfg: string;
+      sitrepCfg: string;
       dashboardKey: string;
       dashboard: string;
     }) => {
       try {
-        localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
+        localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
         // Pre-answer the analytics consent so the main-screen boot modal
         // (blocking until answered) doesn't sit over the dashboard and
@@ -110,7 +117,7 @@ export async function seedContext(
       }
     },
     {
-      teleCfg: TELEMACHUS_CONFIG,
+      sitrepCfg: SITREP_CONFIG,
       dashboardKey,
       dashboard: dashboardJson,
     },

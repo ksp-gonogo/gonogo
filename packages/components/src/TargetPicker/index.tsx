@@ -1,17 +1,19 @@
 import type {
   ActionDefinition,
-  AvailableVesselEntry,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   formatDistance,
   registerComponent,
   resolveTargetName,
   useActionInput,
-  useDataValue,
+  useDataStreamStatus,
   useExecuteAction,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
+import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   ConfigForm,
@@ -22,17 +24,96 @@ import {
   PanelTitle,
   ScrollArea,
   Spinner,
+  StreamStatusBadge,
   Tabs,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 
 // Config is empty post-migration — the kOS-driven vessel feed has been
-// retired in favour of native `tar.availableVessels`.
+// retired in favour of the native `system.vessels` roster.
 type TargetPickerConfig = Record<string, never>;
 type TabId = "bodies" | "vessels" | "current";
+
+// ── Augment slots (Uplink architecture) ─────────────────────────────
+// Two host-owned slots any Uplink may compose into. Neither carries slot props:
+// they are not overlay or typed-contract slots — a bound augment
+// reads its OWN Topics via hooks and fires its own actions, so both pass `{}`.
+//
+//  - `target-picker.sections`: a body slot for a fleet-management Uplink (mission
+//    tagging / constellation grouping) to add a filter/grouping view alongside
+//    the stock Bodies / Vessels / Current tabs. No confirmed filler yet.
+//  - `target-picker.badges`: the broad inline-indicator escape hatch (slot-map
+//    "Feedback round 1"), sitting in the header next to the title.
+//
+// Typed here via co-located `SlotRegistry` declaration-merging so
+// the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
+// falling back to the loose `Record<string, unknown>`.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "target-picker.sections": Record<string, never>;
+    "target-picker.badges": Record<string, never>;
+  }
+}
+
+/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs) — the
+ * ordinal -> display-label bridge for the new roster shape. */
+const VESSEL_TYPE_LABELS: readonly string[] = [
+  "Ship",
+  "Station",
+  "Lander",
+  "Probe",
+  "Rover",
+  "Base",
+  "Relay",
+  "EVA",
+  "Flag",
+  "Debris",
+  "SpaceObject",
+  "DeployedScienceController",
+  "DeployedSciencePart",
+  "DroppedPart",
+  "Unknown",
+];
+
+/** Display shape the `system.vessels` roster normalizes into — the widget
+ * renders/sorts off this alone. */
+interface DisplayVesselEntry {
+  /** React list key + `pendingTarget` disambiguator. */
+  key: string;
+  /** Exact bracket arg for `tar.setTargetVessel[...]` — the roster's stable
+   * `vesselId` guid. */
+  targetArg: string;
+  name: string;
+  type: string;
+  body: string | null;
+  distance: number;
+}
+
+/** `system.vessels`' roster (`SystemViewProvider.BuildSystemVessels`) carries
+ * NO position/distance field — a static snapshot list, not per-vessel
+ * kinematics — so every entry reports `Number.POSITIVE_INFINITY` distance,
+ * which `formatDistance` already renders as "—". */
+function normalizeRoster(
+  vessels: readonly VesselRosterEntry[] | undefined,
+  bodies: ReturnType<typeof useCelestialBodies>,
+): DisplayVesselEntry[] {
+  if (vessels === undefined) return [];
+  return vessels.map((entry) => ({
+    key: `roster:${entry.vesselId}`,
+    targetArg: entry.vesselId,
+    name: entry.name,
+    type: VESSEL_TYPE_LABELS[entry.vesselType] ?? "Unknown",
+    body:
+      entry.bodyIndex == null
+        ? null
+        : (bodies.find((b) => b.index === entry.bodyIndex)?.name ?? null),
+    // No position on the roster shape — formatDistance(Infinity) -> "—".
+    distance: Number.POSITIVE_INFINITY,
+  }));
+}
 
 const targetPickerActions = [
   {
@@ -49,11 +130,19 @@ function TargetPickerComponent({
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
   const bodies = useCelestialBodies();
-  const tarName = resolveTargetName(useDataValue("data", "tar.name"));
-  const tarType = useDataValue("data", "tar.type") as string | undefined;
-  const tarDistance = useDataValue("data", "tar.distance");
-  const tarRelVel = useDataValue("data", "tar.o.relativeVelocity");
+  // Target-detail reads are clean homes routed through
+  // `useTelemetry`'s legacy two-arg form onto their SDK-derived homes:
+  // `tar.name` -> `vessel.target.name`, `tar.type` -> `vessel.state.targetKind`
+  // (enum-ordinal → display name), `tar.distance` -> `vessel.state.targetDistance`
+  // (|relativePosition|) and `tar.o.relativeVelocity` ->
+  // `vessel.state.targetRelativeSpeed` (signed range-rate). Each shape matches
+  // the legacy scalar exactly, so the shim's fallback is a safe pass-through.
+  const tarName = resolveTargetName(useTelemetry("data", "tar.name"));
+  const tarType = useTelemetry("data", "tar.type") as string | undefined;
+  const tarDistance = useTelemetry("data", "tar.distance");
+  const tarRelVel = useTelemetry("data", "tar.o.relativeVelocity");
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "tar.availableVessels");
 
   const [tab, setTab] = useState<TabId>("bodies");
   const [filter, setFilter] = useState("");
@@ -69,8 +158,8 @@ function TargetPickerComponent({
   // Pending state — which row is awaiting the `tar.name` readback after a
   // click. We render a spinner on that row until the readback confirms
   // (or a 5 s safety net clears it). Body rows use the integer index;
-  // vessel rows use the vessel's `index` from `tar.availableVessels`
-  // (same disambiguator as the React key).
+  // vessel rows use the roster entry's `key` (same disambiguator as the
+  // React key).
   const [pendingTarget, setPendingTarget] = useState<{
     kind: "body" | "vessel";
     id: string;
@@ -101,21 +190,26 @@ function TargetPickerComponent({
     void execute("tar.clearTarget");
   };
 
-  // ── Vessel listing via tar.availableVessels ──────────────────────────────
-  // Native Telemachus path now — used to be a kOS managed script; replaced
-  // 2026-05-14. One subscription, server filters Flag/EVA/Debris/Unknown
-  // and the active vessel itself, position vector is local-frame so the
-  // client derives distance from `magnitude`.
-  const availableVessels = useDataValue("data", "tar.availableVessels");
+  // ── Vessel listing via the `system.vessels` roster ───────────────────────
+  // Read canonically off the stream: the roster is a structurally
+  // different shape from the legacy `tar.availableVessels` array (no position/
+  // distance field), so there is no shape-compatible legacy fallback to keep —
+  // the canonical Topic read drops the Telemachus path outright and only ever
+  // sees `{ vessels: [...] }`, normalized into `DisplayVesselEntry` above.
+  const roster = useTelemetry("system.vessels");
+  const displayVessels = useMemo(
+    () => normalizeRoster(roster?.vessels, bodies),
+    [roster, bodies],
+  );
 
-  const targetVessel = (entry: AvailableVesselEntry) => {
+  const targetVessel = (entry: DisplayVesselEntry) => {
     setPendingTarget({
       kind: "vessel",
-      id: `vessel:${entry.index}`,
+      id: `vessel:${entry.key}`,
       expectedName: entry.name,
       since: Date.now(),
     });
-    void execute(`tar.setTargetVessel[${entry.index}]`);
+    void execute(`tar.setTargetVessel[${entry.targetArg}]`);
   };
 
   const filterText = filter.trim().toLowerCase();
@@ -215,14 +309,13 @@ function TargetPickerComponent({
   );
 
   const vesselsContent = (() => {
-    const raw = (availableVessels ?? []) as AvailableVesselEntry[];
-    const spaceObjectCount = raw.filter((v) => v.type === "SpaceObject").length;
+    const spaceObjectCount = displayVessels.filter(
+      (v) => v.type === "SpaceObject",
+    ).length;
     const filtered = showSpaceObjects
-      ? raw
-      : raw.filter((v) => v.type !== "SpaceObject");
-    const sorted = [...filtered]
-      .map((v) => ({ entry: v, distance: vectorMagnitude(v.position) }))
-      .sort((a, b) => a.distance - b.distance);
+      ? displayVessels
+      : displayVessels.filter((v) => v.type !== "SpaceObject");
+    const sorted = [...filtered].sort((a, b) => a.distance - b.distance);
 
     return (
       <VesselsTab>
@@ -247,18 +340,18 @@ function TargetPickerComponent({
             </SpaceObjectToggle>
           )}
         </VesselsHeader>
-        {availableVessels === undefined ? (
+        {roster === undefined ? (
           <Hint>Waiting for vessel list…</Hint>
         ) : sorted.length === 0 ? (
           <Hint>No targets in range.</Hint>
         ) : (
           <BodyList>
-            {sorted.map(({ entry, distance }) => {
+            {sorted.map((entry) => {
               const isCurrent = tarName === entry.name;
-              const isPending = pendingTarget?.id === `vessel:${entry.index}`;
+              const isPending = pendingTarget?.id === `vessel:${entry.key}`;
               return (
                 <BodyRow
-                  key={entry.index}
+                  key={entry.key}
                   type="button"
                   $depth={0}
                   $current={isCurrent}
@@ -271,7 +364,9 @@ function TargetPickerComponent({
                       {entry.body ? ` · ${entry.body}` : ""}
                     </VesselType>
                   </VesselName>
-                  <VesselDistance>{formatDistance(distance)}</VesselDistance>
+                  <VesselDistance>
+                    {formatDistance(entry.distance)}
+                  </VesselDistance>
                   {isPending && <Spinner ariaLabel="Setting target" />}
                   {!isPending && isCurrent && <BodyTag>TARGET</BodyTag>}
                 </BodyRow>
@@ -331,7 +426,11 @@ function TargetPickerComponent({
   if (!showTabs) {
     return (
       <Panel>
-        <PanelTitle>TARGET</PanelTitle>
+        <CompactTitleRow>
+          <PanelTitle>TARGET</PanelTitle>
+          <AugmentSlot name="target-picker.badges" props={{}} />
+          <StreamStatusBadge status={streamStatus} />
+        </CompactTitleRow>
         <CompactCurrent>
           {tarName ? (
             <>
@@ -354,7 +453,11 @@ function TargetPickerComponent({
   return (
     <Panel>
       <PickerHeader>
-        <PanelTitle>TARGET PICKER</PanelTitle>
+        <PickerHeaderTitle>
+          <PanelTitle>TARGET PICKER</PanelTitle>
+          <AugmentSlot name="target-picker.badges" props={{}} />
+          <StreamStatusBadge status={streamStatus} />
+        </PickerHeaderTitle>
         {tarName && (
           <CurrentTargetChip
             type="button"
@@ -381,13 +484,15 @@ function TargetPickerComponent({
           onChange={(id) => setTab(id as TabId)}
         />
       </TabsScope>
+      {/* Host slot for a fleet-management Uplink's filter/grouping section,
+          rendered below the stock tabs. Empty (renders no DOM) until an augment
+          binds `target-picker.sections`; the wrapper collapses to zero height so
+          the widget's own layout is untouched when unfilled. */}
+      <AugmentSectionsRow>
+        <AugmentSlot name="target-picker.sections" props={{}} />
+      </AugmentSectionsRow>
     </Panel>
   );
-}
-
-function vectorMagnitude(v: [number, number, number] | undefined): number {
-  if (!v) return Number.POSITIVE_INFINITY;
-  return Math.hypot(v[0], v[1], v[2]);
 }
 
 interface BodyTreeNodeProps {
@@ -447,9 +552,9 @@ function TargetPickerConfigComponent(
       <Field>
         <FieldLabel>Target Picker</FieldLabel>
         <FieldHint>
-          No config — bodies come from Telemachus's <code>b.*</code> bucket,
-          vessels from <code>tar.availableVessels</code>. Click a row to set the
-          KSP target; click Clear in the Current tab to drop it.
+          No config — bodies come from the <code>system.bodies</code> roster,
+          vessels from <code>system.vessels</code>. Click a row to set the KSP
+          target; click Clear in the Current tab to drop it.
         </FieldHint>
       </Field>
     </ConfigForm>
@@ -466,6 +571,21 @@ const PickerHeader = styled.div`
   min-height: 0;
 `;
 
+const PickerHeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const CompactTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
 /** Chip row that collapses to zero height when there's no encounter / apsis
  *  data — keeps the header tight in the common steady-orbit case. */
 const OrbitalEventChipsRow = styled.div`
@@ -476,7 +596,19 @@ const OrbitalEventChipsRow = styled.div`
   }
 `;
 
-/** Scoped override of the shared @gonogo/ui Tabs chrome. The three tab
+/** Wraps the `target-picker.sections` augment slot. Collapses to zero height
+ *  when no augment is bound (the slot renders no DOM), keeping the stock layout
+ *  identical to before the slot existed. */
+const AugmentSectionsRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  &:empty {
+    display: none;
+  }
+`;
+
+/** Scoped override of the shared @ksp-gonogo/ui Tabs chrome. The three tab
  *  labels here ("Bodies" / "Vessels" / "Current") are longer than the
  *  shared component's default sizing was tuned for, so at this widget's
  *  common narrower widths the last tab clips under the overflow glow
@@ -742,12 +874,16 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body Telemachus reports grouped by reference-body. Vessels tab streams `tar.availableVessels` (Telemachus fork addition) and click-to-target by integer index. Current tab shows the active target's name / type / distance / Δv with a clear button.",
+    "Pick a target body, vessel, or inspect the current target. Bodies tab lists every body in the system grouped by reference-body. Vessels tab streams the `system.vessels` roster and click-to-targets by stable vessel id. Current tab shows the active target's name / type / distance / Δv with a clear button.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
+  // Two host-owned augment slots: a body `.sections` slot for a
+  // fleet-management Uplink's filter/grouping view, and the broad `.badges`
+  // escape hatch in the header. Unfilled until an Uplink binds them.
+  augmentSlots: ["target-picker.sections", "target-picker.badges"],
   dataRequirements: [
     "b.number",
     "tar.name",

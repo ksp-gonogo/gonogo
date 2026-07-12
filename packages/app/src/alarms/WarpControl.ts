@@ -1,5 +1,6 @@
-import { logger } from "@gonogo/logger";
-import type { AlarmStateMachine, TelemetryReader } from "./AlarmStateMachine";
+import { logger } from "@ksp-gonogo/logger";
+import { dispatchActiveCommand } from "@ksp-gonogo/sitrep-client";
+import type { AlarmStateMachine } from "./AlarmStateMachine";
 import type { Alarm, AlarmWarpState } from "./types";
 
 const HIGH_WARP_RATES: readonly number[] = [
@@ -34,7 +35,6 @@ export class WarpControl {
   private warpSafetyMarginSeconds: number;
 
   constructor(
-    private readonly telemetry: TelemetryReader | null,
     private readonly stateMachine: AlarmStateMachine,
     private readonly ctx: WarpControlContext,
     private readonly nowMs: () => number,
@@ -147,14 +147,19 @@ export class WarpControl {
     return chosen;
   }
 
+  /**
+   * Dispatches through the stream via the non-hook `dispatchActiveCommand`
+   * (`@ksp-gonogo/sitrep-client`) — `t.timeWarp[<i>]` is mapped to
+   * `time.setWarpIndex` (`map-command.ts`), a command every production
+   * `TelemetryProvider` mount carries.
+   */
   private commandWarp(index: number): void {
-    if (!this.telemetry) return;
-    void this.telemetry.execute(`t.timeWarp[${index}]`).catch((err) => {
-      logger.warn("alarm-host: warp command failed", {
-        index,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
+    const outcome = dispatchActiveCommand("data", `t.timeWarp[${index}]`);
+    if (!outcome.routed) {
+      logger.warn("alarm-host: warp command not routed", { index });
+      return;
+    }
+    void outcome.settled;
   }
 }
 

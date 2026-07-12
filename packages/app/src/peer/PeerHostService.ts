@@ -1,16 +1,17 @@
-import { PerfBudget, safeRandomUuid } from "@gonogo/core";
+import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type {
-  BufferedDataSource,
   DataKeyMeta,
+  FlightChapterRecord,
   FlightRecord,
-} from "@gonogo/data";
-import { isScriptable } from "@gonogo/data";
-import { debugPeer, logger } from "@gonogo/logger";
+} from "@ksp-gonogo/data";
+import { isScriptable } from "@ksp-gonogo/data";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
+import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { deriveHostPeerId } from "./hostPeerId";
 import { fetchHostIceServers } from "./iceServers";
-import { KosSessionManager } from "./KosSessionManager";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
@@ -89,6 +90,39 @@ function getOrCreateShareCode(): string {
   const code = generateShortId();
   localStorage.setItem(SHARE_CODE_KEY, code);
   return code;
+}
+
+/**
+ * The subset of `MissionHistorySource`'s flight-history surface the peer
+ * RPC dispatch actually touches — kept local (rather than importing the
+ * concrete class) so this file doesn't need a runtime dependency on
+ * `@ksp-gonogo/data`'s implementation, only its `FlightRecord`/
+ * `FlightChapterRecord` types. Deliberately excludes `getCurrentFlight`/
+ * `onFlightChange` — Missions have no live "currently recording" flight
+ * concept (see `dispatchFlightRpc`'s `"getCurrent"` case).
+ */
+interface MissionHistoryFlightApi {
+  listFlights(): Promise<FlightRecord[]>;
+  getFlight(id: string): Promise<FlightRecord | null>;
+  exportFlight(id: string): Promise<unknown>;
+  deleteFlight(id: string): Promise<void>;
+  clearAllFlights(): Promise<void>;
+  setFlightStarred(id: string, starred: boolean): Promise<void>;
+  pruneFlightsKeepLatest(opts: { keepCount: number }): Promise<string[]>;
+  addChapter(
+    missionId: string,
+    chapter: Omit<FlightChapterRecord, "id"> & { id?: string },
+  ): Promise<FlightRecord | null>;
+  updateChapter(
+    missionId: string,
+    chapterId: string,
+    patch: Partial<Omit<FlightChapterRecord, "id">>,
+  ): Promise<FlightRecord | null>;
+  removeChapter(
+    missionId: string,
+    chapterId: string,
+  ): Promise<FlightRecord | null>;
+  onFlightListChange(cb: () => void): () => void;
 }
 
 type StationInfoListener = (
@@ -217,14 +251,6 @@ export class PeerHostService {
     string,
     Map<string, { refCount: number; unsub: () => void }>
   >();
-  private kosSessions = new KosSessionManager({
-    getKosConfig: async () => {
-      const { getDataSource } = await import("@gonogo/core");
-      return getDataSource("kos")?.getConfig() as
-        | { host?: string; port?: number; kosHost?: string; kosPort?: number }
-        | undefined;
-    },
-  });
   private relayPeerId: string | null = null;
   // Operator's technical-analytics consent. Retained (not just broadcast
   // transiently) so it can be sent to each station on connect and
@@ -274,9 +300,7 @@ export class PeerHostService {
    *  share-code (resolvable) or fall back to the raw peer id. */
   relayRegistered = false;
 
-  private flightChangeUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
-  private currentFlightSnapshot: FlightRecord | null = null;
   /**
    * TURN-on-demand escalation flag. False by default — the host starts
    * STUN-only. Set to true permanently for the session when a station
@@ -508,26 +532,26 @@ export class PeerHostService {
           type: "analytics-consent",
           enabled: this.analyticsConsent,
         } satisfies PeerMessage);
-        // Latecomer's initial flight snapshot. The host's flight-change
-        // listener is set up lazily below; this send is independent so a
-        // station that connects mid-flight gets the current value
-        // immediately rather than waiting for the next transition.
+        // Missions have no live "currently recording" concept (a mission
+        // only exists once StreamRecorder finishes and saveMission is
+        // called) — unlike the old BufferedDataSource, which tracked an
+        // in-progress flight and pushed live "flight-change" transitions.
+        // Send a permanently-null snapshot for wire back-compat with
+        // stations that still listen for it (useFlight()'s live-current-
+        // flight badge simply never lights up), and nudge the station to
+        // (re)fetch its flight list so an open FlightsManager modal doesn't
+        // sit on a stale "no flights" view.
         conn.send({
           type: "flight-change",
-          flight: this.currentFlightSnapshot,
+          flight: null,
         } satisfies PeerMessage);
-        // Nudge the station to reload its flight list. flight-change above
-        // doesn't always trigger a re-render (when the cached snapshot ===
-        // the incoming snapshot, e.g. both `null`), so an open
-        // FlightsManager modal would otherwise stay on a "no flights" view
-        // until the next list mutation.
         conn.send({ type: "flight-list-changed" } satisfies PeerMessage);
-        // Lazy: wire the host's BufferedDataSource flight broadcaster on
-        // the first peer connection. The buffered source isn't registered
+        // Lazy: wire the host's MissionHistorySource list-change broadcaster
+        // on the first peer connection. The source isn't registered
         // synchronously — it imports kos + telemachus first — so doing
         // this in start() races. Per-connection is too eager (we'd subscribe
         // every time), so we gate on a single attach.
-        void this.attachFlightChangeBroadcaster();
+        void this.attachFlightListChangeBroadcaster();
         this.events.emit("peerConnect", conn.peer);
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
@@ -542,7 +566,6 @@ export class PeerHostService {
         }
         this.connections.delete(conn);
         this.peerIdToStationKey.delete(conn.peer);
-        this.kosSessions.closeAllForConn(conn);
         // Release any demand-only upstream subscribes held on behalf
         // of this peer. WeakMap-keyed by `conn`, so we must read it
         // before the conn drops out of scope. Without this, leaving
@@ -1098,7 +1121,7 @@ export class PeerHostService {
   // initial handshake (e.g. a future kOS datastream), this will need to
   // broadcast a new schema message to already-connected stations.
   private sendSchema(conn: DataConnection) {
-    import("@gonogo/core").then(({ getDataSources }) => {
+    import("@ksp-gonogo/core").then(({ getDataSources }) => {
       const sources = getDataSources().map((s) => ({
         id: s.id,
         name: s.name,
@@ -1121,7 +1144,7 @@ export class PeerHostService {
       logger.info(
         `[PeerHost] execute — source=${msg.sourceId} action=${msg.action}`,
       );
-      import("@gonogo/core").then(({ getDataSource }) => {
+      import("@ksp-gonogo/core").then(({ getDataSource }) => {
         getDataSource(msg.sourceId)?.execute(msg.action);
       });
     },
@@ -1134,20 +1157,11 @@ export class PeerHostService {
     "flight-rpc-request": (msg, conn) => {
       void this.handleFlightRpcRequest(msg, conn);
     },
+    "sitrep-command-request": (msg, conn) => {
+      void this.handleSitrepCommand(msg, conn);
+    },
     "kos-execute-request": (msg, conn) => {
       void this.handleKosExecuteRequest(msg, conn);
-    },
-    "kos-open": (msg, conn) => {
-      void this.kosSessions.handleOpen(msg, conn);
-    },
-    "kos-data": (msg) => {
-      this.kosSessions.handleData(msg);
-    },
-    "kos-resize": (msg) => {
-      void this.kosSessions.handleResize(msg);
-    },
-    "kos-close": (msg) => {
-      this.kosSessions.handleClose(msg);
     },
     "station-info": (msg, conn) => {
       if (msg.stationKey) {
@@ -1371,7 +1385,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "query-range-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource(msg.sourceId) as
       | (ReturnType<typeof getDataSource> & {
           queryRange?: (
@@ -1417,7 +1431,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "kerbcast-negotiate-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource("kerbcast") as
       | (ReturnType<typeof getDataSource> & {
           relayOffer?: (offer: {
@@ -1456,10 +1470,10 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "kos-execute-request" }>,
     conn: DataConnection,
   ) {
-    const { getDataSource } = await import("@gonogo/core");
+    const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource("kos");
     const respond = (
-      data?: import("@gonogo/data").KosData,
+      data?: import("@ksp-gonogo/data").KosData,
       error?: string,
       isScriptError?: boolean,
     ): void => {
@@ -1486,7 +1500,7 @@ export class PeerHostService {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       // Duck-type: avoid importing the concrete class so this file stays
-      // free of @gonogo/app circular references.
+      // free of @ksp-gonogo/app circular references.
       const isScriptError =
         (error as { isScriptError?: unknown }).isScriptError === true;
       logger.warn(`[PeerHost] kos execute failed — ${error.message}`);
@@ -1495,40 +1509,36 @@ export class PeerHostService {
   }
 
   /**
-   * Subscribe once to the buffered source's `onFlightChange` and broadcast
-   * each transition to every connected station. Idempotent — repeated
-   * calls after the first attach are no-ops.
+   * Subscribe once to `MissionHistorySource.onFlightListChange` and
+   * broadcast `flight-list-changed` to every connected station. Idempotent
+   * — repeated calls after the first attach are no-ops.
+   *
+   * Unlike the old BufferedDataSource-backed broadcaster, there is no
+   * `flight-change` (live in-progress flight) transition to forward —
+   * Missions have no such concept, a mission only exists once recording has
+   * finished (Product Decision: "press record", no always-on capture).
    */
-  private async attachFlightChangeBroadcaster(): Promise<void> {
-    if (this.flightChangeUnsub) return;
-    const source = await this.getBufferedDataSource();
+  private async attachFlightListChangeBroadcaster(): Promise<void> {
+    if (this.flightListChangeUnsub) return;
+    const source = await this.getMissionHistorySource();
     if (!source) return;
-    this.currentFlightSnapshot = source.getCurrentFlight();
-    this.flightChangeUnsub = source.onFlightChange((flight) => {
-      this.currentFlightSnapshot = flight;
-      this.broadcast({ type: "flight-change", flight } satisfies PeerMessage);
+    this.flightListChangeUnsub = source.onFlightListChange(() => {
+      this.broadcast({
+        type: "flight-list-changed",
+      } satisfies PeerMessage);
     });
-    if (typeof source.onFlightListChange === "function") {
-      this.flightListChangeUnsub = source.onFlightListChange(() => {
-        this.broadcast({
-          type: "flight-list-changed",
-        } satisfies PeerMessage);
-      });
-    }
   }
 
-  private async getBufferedDataSource(): Promise<BufferedDataSource | null> {
-    const { getDataSource } = await import("@gonogo/core");
-    // Duck-type: BufferedDataSource isn't exported as a runtime symbol from
-    // PeerHostService's POV, and the registered "data" entry is wrapped in
+  private async getMissionHistorySource(): Promise<MissionHistoryFlightApi | null> {
+    const { getDataSource } = await import("@ksp-gonogo/core");
+    // Duck-type: registered under "missionHistory", possibly wrapped in
     // PeerBroadcastingDataSource on the main screen. The wrapper forwards
-    // every flight method we touch here, so the duck check covers both.
-    const candidate = getDataSource("data") as
-      | (BufferedDataSource & {
-          onFlightChange?: BufferedDataSource["onFlightChange"];
-        })
+    // every flight method we touch here (PeerBroadcastingDataSource.ts),
+    // so the duck check covers both the raw and the peer-wrapped source.
+    const candidate = getDataSource("missionHistory") as
+      | (MissionHistoryFlightApi & { listFlights?: unknown })
       | undefined;
-    if (!candidate || typeof candidate.onFlightChange !== "function") {
+    if (!candidate || typeof candidate.listFlights !== "function") {
       return null;
     }
     return candidate;
@@ -1546,9 +1556,9 @@ export class PeerHostService {
         error,
       } satisfies PeerMessage);
     };
-    const source = await this.getBufferedDataSource();
+    const source = await this.getMissionHistorySource();
     if (!source) {
-      respond(undefined, "buffered data source not registered");
+      respond(undefined, "mission history source not registered");
       return;
     }
     try {
@@ -1561,8 +1571,79 @@ export class PeerHostService {
     }
   }
 
+  /**
+   * Sitrep command RPC — the correctness-required companion to
+   * `SitrepPeerRelay`'s read-path forwarding (see
+   * docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §4).
+   * Once a station mounts a real `TelemetryClient` off `PeerTransport`,
+   * `useCommand`'s carried-channels check can route a widget's command
+   * through the stream instead of the legacy PeerJS `execute` fallback — if
+   * this RPC didn't exist, that command would silently no-op on a station.
+   *
+   * `getActiveTelemetryClient()` is the HOST's own live client (the same
+   * plain-class accessor `dispatchActiveCommand()` uses) — this is a
+   * pass-through, never a second connection to the mod: the host is the
+   * only thing that ever talks to the mod server.
+   *
+   * `meta` on the response is a placeholder, not sourced from the mod's own
+   * `command-response` frame: `TelemetryClient.dispatch()`'s result Promise
+   * only resolves with `result` (see `handleCommandResponse` in
+   * `@ksp-gonogo/sitrep-client`'s `client.ts` — it never threads `meta`
+   * through), and nothing on the station side reads a dispatched command's
+   * response `meta` either (`TelemetryClient.handleMessage`'s
+   * `command-response` branch takes the same two args). The field only
+   * exists because `CommandResponse<T>`'s wire shape requires it.
+   */
+  private async handleSitrepCommand(
+    msg: Extract<PeerMessage, { type: "sitrep-command-request" }>,
+    conn: DataConnection,
+  ): Promise<void> {
+    const client = getActiveTelemetryClient();
+    if (!client) {
+      conn.send({
+        type: "sitrep-command-error",
+        requestId: msg.requestId,
+        code: "E_NO_CLIENT",
+        message: "host has no live Sitrep telemetry client",
+      } satisfies PeerMessage);
+      return;
+    }
+    const placeholderMeta = {
+      source: "sitrep-command-rpc",
+      validAt: 0,
+      seq: 0,
+      deliveredAt: 0,
+      vantage: "peer-relay",
+      quality: Quality.OnRails,
+      active: false,
+      staleness: Staleness.Fresh,
+      timelineEpoch: 0,
+    };
+    try {
+      const { result } = client.dispatch(msg.command, msg.args);
+      const value = await result;
+      conn.send({
+        type: "sitrep-command-response",
+        requestId: msg.requestId,
+        result: value,
+        meta: placeholderMeta,
+      } satisfies PeerMessage);
+    } catch (err) {
+      const { code, message } = err as { code?: string; message?: string };
+      logger.warn(
+        `[PeerHost] sitrep command RPC failed (${msg.command}) — ${message ?? String(err)}`,
+      );
+      conn.send({
+        type: "sitrep-command-error",
+        requestId: msg.requestId,
+        code: code ?? "E_UNKNOWN",
+        message: message ?? String(err),
+      } satisfies PeerMessage);
+    }
+  }
+
   private async dispatchFlightRpc(
-    source: BufferedDataSource,
+    source: MissionHistoryFlightApi,
     op: Extract<PeerMessage, { type: "flight-rpc-request" }>["op"],
   ): Promise<unknown> {
     switch (op.op) {
@@ -1571,7 +1652,8 @@ export class PeerHostService {
       case "get":
         return source.getFlight(op.id);
       case "getCurrent":
-        return source.getCurrentFlight();
+        // Missions have no live "currently recording" flight — always null.
+        return null;
       case "export":
         return source.exportFlight(op.id);
       case "delete":
@@ -1609,12 +1691,8 @@ export class PeerHostService {
   }
 
   stop() {
-    this.kosSessions.closeAll();
-    this.flightChangeUnsub?.();
-    this.flightChangeUnsub = null;
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;
-    this.currentFlightSnapshot = null;
     this.stopIceConfigRefresh();
     this.relayRegistration.stopHeartbeat();
     this.setRelayRegistered(false);

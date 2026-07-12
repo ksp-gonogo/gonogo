@@ -1,4 +1,4 @@
-import { clearRegistry, registerDataSource } from "@gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KosScriptError } from "../kos/KosScriptError";

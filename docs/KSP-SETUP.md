@@ -6,46 +6,53 @@ gonogo reads your game through mods installed in KSP. This page lists the mods y
 
 Install all of these:
 
-- **The gonogo build of Telemachus** (hand install, below). This is how gonogo reads the game and sends it commands. Stock or CKAN Telemachus won't do; it has to be the gonogo build
+- **The Gonogo mod** (hand install, below). This is how gonogo reads the game — telemetry, career state, science, comms, and more, streamed live over a WebSocket
 - **[kOS](https://ksp-kos.github.io/KOS/)** for the kOS Terminal widget and the kOS-driven widgets
 - **[SCANsat](https://github.com/S-C-A-N/SCANsat)** for the map and scanning widgets
 - **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for in-game cameras
 - **[Kerbcast](https://github.com/jonpepler/kerbcast)** for streaming and controlling the cameras
 
-kOS and SCANsat are on CKAN. The gonogo Telemachus build and kerbcast are hand installs; both are walked through below. Everything except the camera feeds works without kerbcast, so you can leave it for last, or skip it, if you like.
+kOS and SCANsat are on CKAN. The Gonogo mod and kerbcast are hand installs; both are walked through below. Everything except the camera feeds works without kerbcast, so you can leave it for last, or skip it, if you like.
 
-## Installing the gonogo build of Telemachus
+## Installing the Gonogo mod
 
-gonogo uses its own build of Telemachus rather than the stock or CKAN release. The gonogo build carries extra data that gonogo needs: career, science, strategies, SCANsat, and landing telemetry. Those aren't in the upstream release yet. The plan is to fold what makes sense back upstream, but for now you install the gonogo build directly.
+> **Not released yet.** The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") isn't on CKAN or SpaceDock, and there's no downloadable `GameData.zip` release yet — the publish pipeline (`.github/workflows/publish-mods.yml`) is built but still inert pending some upstream prerequisites. Until a release ships, this is a build-from-source step for anyone working in this repo; see `mod/Gonogo.KSP/RUN.md`. This section will get a straight download link once that lands.
+
+The mod replaces the old gonogo build of Telemachus as gonogo's data source. Once installed and KSP is running, it starts a WebSocket server on port **8090** automatically — you don't need to be in a flight scene, the main menu is enough.
+
+## Connecting the dashboard to KSP
+
+The Sitrep stream connects on its own, no setup needed, if KSP runs on the same computer as gonogo — it defaults to `localhost:8090`.
+
+If KSP runs on a different computer, open **Settings → Data Sources → Sitrep Stream** (the database icon in the bottom-right **+** menu) and set Host to the KSP computer's address (Port defaults to `8090`). This takes effect immediately, no restart needed. [NETWORKING.md](NETWORKING.md) walks through finding the KSP computer's address for a two-computer setup.
+
+Running the Docker bundle (see the root [README](../README.md#how-to-run-it))? `KSP_HOST` seeds this automatically, same as kOS and the camera feed — you only need the Settings panel to override it.
+
+Building the app from source instead and want the default baked in rather than set per-browser? `VITE_SITREP_HOST`/`VITE_SITREP_PORT` in `packages/app/.env.local` (gitignored — see [CONTRIBUTING.md](../CONTRIBUTING.md#getting-set-up)) set the build-time floor that the Settings panel and `KSP_HOST` both override.
+
+## Telemachus (optional debug tool)
+
+gonogo no longer reads from Telemachus — the Gonogo mod above is the app's telemetry source now. Telemachus is still worth having installed if you want to poke at a raw value or fire an action key by hand, outside the app; most players don't need this.
+
+### Installing the gonogo build of Telemachus
 
 1. Download the latest `GameData.zip` from the releases page: **<https://github.com/jonpepler/Telemachus-1/releases/>**
 2. Unzip it and merge its `GameData/` folder into your `Kerbal Space Program/GameData/` folder.
 3. Restart KSP and load a flight scene.
 
-Telemachus starts a server on port **8085**. gonogo connects to it for live data and for control actions.
+Telemachus starts a server on port **8085**.
 
-## Connecting the dashboard to KSP
+### Reading action responses (CORS)
 
-With KSP and the main screen on separate computers (see [NETWORKING.md](NETWORKING.md)) and a vessel on the launchpad or in flight:
+To allow Telemachus to respond to a command you send it by hand, you have to edit the Telemachus config.
 
-1. In gonogo, hover the **+** button (bottom-right) and click the **Data Sources** button (the database icon) to open the Data Sources panel.
-2. Next to the **data** row (Telemachus), click the gear icon.
-3. Set **host** to the KSP computer's address on your network and **port** to `8085`, then save.
-4. Click **Reconnect**. The indicator turns green and telemetry starts flowing.
-
-[NETWORKING.md](NETWORKING.md) walks through finding the KSP computer's address.
-
-## Letting gonogo read action responses (CORS)
-
-To allow Telemachus to respond to gonogo's commands, you have to edit the Telemachus config.
-
-Tell Telemachus which address you open gonogo at. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/config.xml` and add this line inside the `<config>` element, replacing the address with the one you actually open gonogo at:
+Tell Telemachus which address you're making requests from. After your first KSP launch with Telemachus installed, edit `GameData/Telemachus/Plugins/PluginData/Telemachus/config.xml` and add this line inside the `<config>` element, replacing the address with the one you're actually using:
 
 ```xml
 <string name="ALLOWED_ORIGINS">http://localhost:8080</string>
 ```
 
-If you open gonogo at more than one address, list them comma-separated with no spaces and no trailing slash. Restart KSP afterwards; the file is read once when the plugin starts.
+If you use more than one address, list them comma-separated with no spaces and no trailing slash. Restart KSP afterwards; the file is read once when the plugin starts.
 
 ## kOS
 

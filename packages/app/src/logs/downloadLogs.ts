@@ -1,4 +1,4 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 
 /**
  * Download the in-memory log buffer as a JSON file. Shared between the

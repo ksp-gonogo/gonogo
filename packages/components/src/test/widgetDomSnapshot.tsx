@@ -1,14 +1,66 @@
+import type { VesselTopology } from "@ksp-gonogo/core";
 import {
   DashboardItemContext,
   type MockDataSource,
   registerStockBodies,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
+import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { act, render, waitFor } from "@testing-library/react";
 import type React from "react";
+import { Fragment } from "react";
+import { ThemeProvider } from "styled-components";
 import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "./setupMockDataSource";
+import { setupStreamFixture } from "./setupStreamFixture";
+import {
+  extractLegacyPartLiveFromFixture,
+  topologyToVesselPartsWire,
+} from "./topologyToVesselPartsWire";
+
+/**
+ * Fixtures authored before the `t.universalTime` client migration
+ * (`useDataValue("data", "t.universalTime")` → `useViewUt()`) still carry a
+ * `"t.universalTime"` key — it's harmless to leave (widgets that don't read
+ * it just ignore the emit), but a migrated widget's `useViewUt()` needs a
+ * mounted `TelemetryProvider` to resolve to anything at all. Pin one from
+ * the fixture's own value so these fixtures keep rendering exactly as they
+ * did when the read came straight off the legacy `DataSource` — no
+ * per-fixture/per-test opt-in needed. Fixtures with no such key are
+ * unaffected (`pinnedUt` stays `undefined`, no `TelemetryProvider` mounted).
+ */
+function resolvePinnedUt(fixture: Fixture): number | undefined {
+  const raw = fixture["t.universalTime"];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+/**
+ * Same story as {@link resolvePinnedUt}, for the `v.topology`/`v.topologySeq`
+ * retirement: `useTopology` (ShipMap/PowerSystems) now reads `vessel.parts`
+ * canonically with NO legacy fallback at all, so a ShipMap/PowerSystems
+ * fixture that still carries a `v.topology` payload (every existing fixture
+ * does — captured before this migration) needs it reshaped onto the wire
+ * shape and streamed through the SAME mounted `TelemetryProvider`, or the
+ * "legacy" snapshot leg would render nothing but the "Waiting for vessel
+ * topology…" empty state. Fixtures with no `v.topology` key are unaffected.
+ *
+ * Also overlays any `r.resourceFor[fid]`/`v.partState[fid]` legacy keys the
+ * fixture carries — `usePartsLive`'s per-part `resources`/`partState` join
+ * rides this SAME `vessel.parts` payload now (no more legacy `DataSource`
+ * subscription), so a PowerSystems fixture with those keys (e.g.
+ * `03-solar-charging-sunlight`) needs them folded in here or the "legacy"
+ * leg would render an empty Producers/Consumers list instead of the
+ * fixture's real PROD/NET numbers.
+ */
+function resolveVesselPartsWire(fixture: Fixture): unknown {
+  const raw = fixture["v.topology"];
+  if (!raw || typeof raw !== "object") return undefined;
+  return topologyToVesselPartsWire(
+    raw as VesselTopology,
+    extractLegacyPartLiveFromFixture(fixture),
+  );
+}
 
 /**
  * Per-mode size descriptor consumed by the snapshot helper. Mirrors the
@@ -45,6 +97,71 @@ interface SnapshotOpts<Cfg> {
   instanceId?: string;
   /** Override the default config baseline (config overlay merges on top). */
   defaultConfig?: Cfg;
+  /** Forwarded to `setupMockDataSource` — see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
+  connectSource?: boolean;
+}
+
+/** Built once per snapshot render — see {@link buildStreamWrap}. */
+interface StreamWrap {
+  /** Wraps `children` in the `TelemetryProvider` this fixture built, or renders them untouched when neither `pinnedUt` nor a `vessel.parts` payload is needed. */
+  Wrap: (props: { children: React.ReactNode }) => React.ReactElement;
+  /** `true` when a `TelemetryProvider` was actually mounted — drives {@link flushProviderFrame}. */
+  providerMounted: boolean;
+  /** Emits the fixture's `v.topology` (reshaped) onto `vessel.parts`, or a no-op when the fixture carries no `v.topology`. Call inside the same `act()` block as the other fixture-key emits. */
+  emitVesselParts: () => void;
+}
+
+/**
+ * Builds the minimal `TelemetryProvider` a legacy-fixture snapshot needs for
+ * the two migrations that dropped their legacy fallback entirely:
+ * `useViewUt()` (pinned at `pinnedUt`, see {@link resolvePinnedUt}) and
+ * `useTopology()` (fed `vessel.parts`, see {@link resolveVesselPartsWire}).
+ * Nothing else is carried — every other read stays on the legacy
+ * `DataSource`. Returns a pass-through `Wrap` (no provider at all) when
+ * neither is needed, matching every widget that touches neither key.
+ */
+function buildStreamWrap(fixture: Fixture): StreamWrap {
+  const pinnedUt = resolvePinnedUt(fixture);
+  const vesselPartsWire = resolveVesselPartsWire(fixture);
+  if (pinnedUt === undefined && vesselPartsWire === undefined) {
+    return {
+      Wrap: ({ children }) => <Fragment>{children}</Fragment>,
+      providerMounted: false,
+      emitVesselParts: () => {},
+    };
+  }
+  const stream = setupStreamFixture({ carriedChannels: [], pinnedUt });
+  return {
+    Wrap: stream.Provider,
+    providerMounted: true,
+    emitVesselParts: () => {
+      if (vesselPartsWire !== undefined) {
+        stream.emit("vessel.parts", vesselPartsWire);
+      }
+    },
+  };
+}
+
+/**
+ * `useViewUt()`'s scrubbed value only lands via `ViewClock.onFrame`'s
+ * `requestAnimationFrame` loop (its synchronous initial seed reads
+ * `confirmedEdgeUt()`, which ignores `scrubTo` entirely — see that hook's
+ * own doc comment in `sitrep-client/src/context.tsx`), and `useTopology`'s
+ * canonical stream read similarly only lands via the `TelemetryProvider`'s
+ * `beginFrame()` scheduling (a `requestAnimationFrame`, falling back to a
+ * microtask under jsdom). Either way a plain `render()` + `act()` can commit
+ * BEFORE the value has actually reached React state. Flush two rAF ticks
+ * (wrapped in `act` so the resulting re-render doesn't warn) before reading
+ * the DOM whenever a `TelemetryProvider` was mounted for this render — a
+ * no-op when {@link StreamWrap.providerMounted} is `false`.
+ */
+async function flushProviderFrame(providerMounted: boolean): Promise<void> {
+  if (!providerMounted) return;
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  });
 }
 
 /**
@@ -72,6 +189,7 @@ export async function snapshotWidgetMode<
   const fixture = await setupMockDataSource({
     id: "data",
     keys: fixtureKeys.map((key) => ({ key })),
+    connectSource: opts.connectSource,
   });
   let source: MockDataSource | null = fixture.source;
 
@@ -81,15 +199,22 @@ export async function snapshotWidgetMode<
       ...((opts.mode.config ?? {}) as Cfg),
     };
     const instanceId = opts.instanceId ?? "snap";
+    const { Wrap, providerMounted, emitVesselParts } = buildStreamWrap(
+      opts.fixture,
+    );
     const { container } = render(
-      <DashboardItemContext.Provider value={{ instanceId }}>
-        <opts.Widget
-          config={config}
-          id={instanceId}
-          w={opts.mode.w}
-          h={opts.mode.h}
-        />
-      </DashboardItemContext.Provider>,
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Wrap>
+          <DashboardItemContext.Provider value={{ instanceId }}>
+            <opts.Widget
+              config={config}
+              id={instanceId}
+              w={opts.mode.w}
+              h={opts.mode.h}
+            />
+          </DashboardItemContext.Provider>
+        </Wrap>
+      </ThemeProvider>,
     );
 
     // Seed every fixture key after mount so useDataValue subscriptions
@@ -100,7 +225,9 @@ export async function snapshotWidgetMode<
       for (const key of fixtureKeys) {
         source?.emit(key, opts.fixture[key]);
       }
+      emitVesselParts();
     });
+    await flushProviderFrame(providerMounted);
 
     // Drain the async `useDataSeries` backfill (graphs/sparklines) before
     // snapshotting. waitFor wraps act, so the backfill's notify() flushes
@@ -147,6 +274,7 @@ export async function renderWidgetMode<
   const fixture = await setupMockDataSource({
     id: "data",
     keys: fixtureKeys.map((key) => ({ key })),
+    connectSource: opts.connectSource,
   });
   const source: MockDataSource = fixture.source;
 
@@ -155,22 +283,31 @@ export async function renderWidgetMode<
     ...((opts.mode.config ?? {}) as Cfg),
   };
   const instanceId = opts.instanceId ?? "snap";
+  const { Wrap, providerMounted, emitVesselParts } = buildStreamWrap(
+    opts.fixture,
+  );
   const { container } = render(
-    <DashboardItemContext.Provider value={{ instanceId }}>
-      <opts.Widget
-        config={config}
-        id={instanceId}
-        w={opts.mode.w}
-        h={opts.mode.h}
-      />
-    </DashboardItemContext.Provider>,
+    <ThemeProvider theme={defaultDarkTheme}>
+      <Wrap>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <opts.Widget
+            config={config}
+            id={instanceId}
+            w={opts.mode.w}
+            h={opts.mode.h}
+          />
+        </DashboardItemContext.Provider>
+      </Wrap>
+    </ThemeProvider>,
   );
 
   act(() => {
     for (const key of fixtureKeys) {
       source.emit(key, opts.fixture[key]);
     }
+    emitVesselParts();
   });
+  await flushProviderFrame(providerMounted);
 
   // Drain the async useDataSeries backfill the testing-library way (see
   // snapshotWidgetMode) so a11y assertions run against a settled tree.
@@ -186,7 +323,15 @@ export async function renderWidgetMode<
  * `sc-*` class/id attributes that change per build. Without this the
  * snapshot churns on every styled-components release / file edit.
  */
-function stripVolatile(html: string): string {
+/**
+ * Exported (beyond this file's own two internal callers) for the
+ * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`) —
+ * comparing a legacy render against a stream render needs the exact same
+ * styled-components-hash/testid stripping this file already does, so a
+ * genuine markup difference isn't masked by two builds' differing
+ * volatile-class churn.
+ */
+export function stripVolatile(html: string): string {
   return html
     .replace(/\sclass="[^"]*\bsc-[^"]*"/g, "")
     .replace(/\sid="[^"]*\bsc-[^"]*"/g, "")

@@ -2,13 +2,15 @@ import type {
   ComponentProps,
   ConfigComponentProps,
   StageInfo,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   clampSafe,
   getWidgetShape,
   registerComponent,
+  useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   BigReadout,
   ConfigForm,
@@ -20,8 +22,9 @@ import {
   PanelTitle,
   ReadoutCaption,
   Select,
+  StreamStatusBadge,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -156,6 +159,56 @@ function fmtFixed(value: unknown, digits: number): string {
   return value.toFixed(digits);
 }
 
+/**
+ * `dv.stages` can now arrive off either transport under the identical key
+ * (map-topic.ts's whole-topic identity read): the
+ * legacy Telemachus `DataSource` still ships the historical `StageInfo`
+ * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/…), while the new mod
+ * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
+ * same `dv.stages` topic — `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
+ * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
+ * Normalize every entry to the `StageInfo` shape the renderer already reads
+ * so `pickDeltaV`/`pickTWR` don't need to know which wire produced the row.
+ * Mirrors ScienceOfficer's `parseInstruments` shape-reconciliation pattern.
+ */
+export function parseStages(raw: unknown): StageInfo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: StageInfo[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    const num = (...keys: string[]): number => {
+      for (const k of keys) {
+        const v = e[k];
+        if (typeof v === "number" && Number.isFinite(v)) return v;
+      }
+      return Number.NaN;
+    };
+    out.push({
+      stage: num("stage"),
+      stageMass: num("stageMass"),
+      dryMass: num("dryMass"),
+      fuelMass: num("fuelMass"),
+      startMass: num("startMass"),
+      endMass: num("endMass"),
+      burnTime: num("burnTime"),
+      deltaVVac: num("deltaVVac", "dvVac"),
+      deltaVASL: num("deltaVASL", "dvAsl"),
+      deltaVActual: num("deltaVActual", "dvActual"),
+      TWRVac: num("TWRVac", "twrVac"),
+      TWRASL: num("TWRASL", "twrAsl"),
+      TWRActual: num("TWRActual", "twrActual"),
+      ispVac: num("ispVac"),
+      ispASL: num("ispASL"),
+      ispActual: num("ispActual"),
+      thrustVac: num("thrustVac"),
+      thrustASL: num("thrustASL", "thrustAsl"),
+      thrustActual: num("thrustActual"),
+    });
+  }
+  return out;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function FuelStatusComponent({
@@ -165,6 +218,18 @@ function FuelStatusComponent({
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
   const currentStage = useDataValue("data", "v.currentStage");
+  // Connectivity indicator, mirroring the WarpControl pilot.
+  // `v.currentStage` is this widget's one representative MAPPED key
+  // (-> `vessel.structure.currentStage`). The ΔV totals/stage-stack `dv.*`
+  // keys are UN-GAPPED (`dv.stages` ->
+  // whole-topic `dv.stages`; `dv.stageCount`/`totalDV*`/`totalBurnTime` ->
+  // raw-field walks on the sibling `dv.summary` topic, map-topic.ts's
+  // `TELEMACHUS_CLEAN_HOMES`) and route through the stream too. The
+  // LiquidFuel/Oxidizer resource bars' stage-scoped `r.resourceCurrent(Max)[X]`
+  // keys are ALSO un-gapped now (the `dv.currentStageResource(Max)`
+  // DERIVED channels, dv-stage-resources.ts), so every key this badge
+  // could plausibly stand in for rides the same transport together.
+  const streamStatus = useDataStreamStatus("data", "v.currentStage");
   const stageCount = useDataValue("data", "dv.stageCount");
   const totalDVVac = useDataValue("data", "dv.totalDVVac");
   const totalDVASL = useDataValue("data", "dv.totalDVASL");
@@ -188,10 +253,13 @@ function FuelStatusComponent({
   ];
 
   // `dv.stages` is the whole-vessel stage array. One subscription, all the
-  // per-stage data Telemachus knows about — length matches the real stage
-  // count, no hardcoded cap, no hook-per-stage. Entries arrive high → low
-  // (stage 3 first, stage 0 last) matching the stack-top-down render order.
-  const stages = useDataValue("data", "dv.stages") ?? [];
+  // per-stage data Telemachus (or the mod's StageDeltaVEntry[] topic, same
+  // key) knows about — length matches the real stage count, no hardcoded
+  // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
+  // stage 0 last) matching the stack-top-down render order. `parseStages`
+  // reconciles either wire's field names into the `StageInfo` shape below.
+  const stagesRaw = useDataValue("data", "dv.stages");
+  const stages = parseStages(stagesRaw);
   // Filter to finite values before Math.max — a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of
   // invisible bars.
@@ -229,7 +297,14 @@ function FuelStatusComponent({
 
   return (
     <Panel>
-      <PanelTitle>FUEL · ΔV</PanelTitle>
+      <TitleRow>
+        <PanelTitle>FUEL · ΔV</PanelTitle>
+        {/* Header escape-hatch slot (augment-slot-map "Feedback round 1"):
+            any Uplink can drop an inline badge next to the title. Renders
+            nothing until an augment binds `fuel-status.badges`. */}
+        <AugmentSlot name="fuel-status.badges" props={{}} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       {showSubtitle && currentStage !== undefined && (
         <PanelSubtitle>
           Stage {currentStage}
@@ -342,6 +417,12 @@ function FuelStatusComponent({
             })}
           </StageStack>
         )}
+
+        {/* Body slot appended after the per-stage ΔV/TWR stack. An
+            engine-realism Uplink (ignitions-remaining, propellant boil-off)
+            contributes per-stage supplemental rows here. Renders nothing
+            until an augment binds `fuel-status.sections`. */}
+        <AugmentSlot name="fuel-status.sections" props={{}} />
       </Sections>
     </Panel>
   );
@@ -410,6 +491,15 @@ function formatDuration(s: number): string {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+`;
 
 /**
  * `BigReadout`'s font-size clamps up to 38px regardless of the widget's own
@@ -595,6 +685,20 @@ const StageMeta = styled.span`
   font-size: var(--font-size-xs);
 `;
 
+// ── Augment slots ─────────────────────────────────────────────────────────────
+
+// Declaration-merge this widget's slot ids → their props types into core's
+// `SlotRegistry` (Uplink architecture §4.6). Both slots are plain
+// section/badge slots (not overlays), so they pass no coordinate/projection
+// context — an empty props object. Kept co-located here, not in a shared
+// central registry file, so parallel per-widget slot work never collides.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "fuel-status.sections": Record<string, never>;
+    "fuel-status.badges": Record<string, never>;
+  }
+}
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<FuelStatusConfig>({
@@ -607,6 +711,13 @@ registerComponent<FuelStatusConfig>({
   minSize: { w: 3, h: 3 },
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
+  // dv.stageCount/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
+  // dv.totalBurnTime/dv.stages are all UN-GAPPED —
+  // same declared keys, routed through the stream by `mapTopic`
+  // (map-topic.ts's TELEMACHUS_CLEAN_HOMES) with a zero call-site rename;
+  // `dv.stages`'s wire shape changed underneath it though, see
+  // `parseStages` above. The r.resourceCurrent(Max)[X] stage-scoped splits
+  // stay GAPPED (no wire home) and remain legacy-only.
   dataRequirements: [
     "v.currentStage",
     "dv.stageCount",
@@ -638,6 +749,7 @@ registerComponent<FuelStatusConfig>({
   ],
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
+  augmentSlots: ["fuel-status.sections", "fuel-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

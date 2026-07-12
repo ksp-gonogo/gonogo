@@ -1,8 +1,7 @@
 {
   "_meta": {
     "scenario": "empty",
-    "notes": "No mission, no contracts — muted empty state."
+    "notes": "No contracts — muted empty state."
   },
-  "mh.available": false,
   "contracts.active": []
 }

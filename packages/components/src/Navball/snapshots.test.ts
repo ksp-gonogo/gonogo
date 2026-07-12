@@ -12,7 +12,7 @@ import { renderAttitudeDialToSvg } from "./render";
 
 /**
  * Attitude-dial SVG snapshots. The same `renderAttitudeDialToSvg` helper
- * drives the CLI harness (`pnpm --filter @gonogo/components render-navball`)
+ * drives the CLI harness (`pnpm --filter @ksp-gonogo/components render-navball`)
  * so the snapshot reflects exactly what a reviewer would see when opening
  * the SVG in a browser.
  *

@@ -8,7 +8,7 @@
  * layer that DOM snapshots can't (styled-components CSS, fonts, etc).
  *
  * If the widget output intentionally changes, regenerate with
- * `pnpm --filter @gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
+ * `pnpm --filter @ksp-gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
  */
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
@@ -41,6 +41,12 @@ describe("SemiMajorAxis DOM snapshots", () => {
           Widget: SemiMajorAxisComponent,
           fixture,
           mode,
+          // SemiMajorAxis uses useDataStreamStatus — connect the raw
+          // MockDataSource so its rendered status badge reflects the
+          // realistic "connected, streaming" scenario every one of these
+          // fixtures actually depicts (see
+          // ThermalStatus/snapshots.test.tsx for the same pattern).
+          connectSource: true,
         });
         expect(html).toMatchSnapshot();
       });

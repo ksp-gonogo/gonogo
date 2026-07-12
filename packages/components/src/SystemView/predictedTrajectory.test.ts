@@ -1,4 +1,4 @@
-import type { OrbitPatch } from "@gonogo/core";
+import type { OrbitPatch } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import {
   nextEncounter,

@@ -1,5 +1,12 @@
-import type { ComponentProps, DataKey } from "@gonogo/core";
-import { getDataSource, registerComponent, useScreen } from "@gonogo/core";
+import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
+import { registerComponent, useScreen } from "@ksp-gonogo/core";
+import {
+  isTopicCarried,
+  mapTopic,
+  useCarriedChannelsOptional,
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -9,7 +16,7 @@ import {
   PanelTitle,
   PrimaryButton,
   ScrollArea,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -245,35 +252,44 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
 }
 
 /**
- * Set of keys known to the `data` source. Recomputed every render — the
- * registry is small (~few dozen entries) and the cost is well under a
- * millisecond, but freezing this at mount time meant a station that
- * mounted before the data source registered would see every variable
- * flash as `[?key]` forever. See `renderTemplate` for the
- * empty-set fall-through.
+ * Legacy source id `mapTopic` uses to resolve a `{{v.altitude}}`-style tag
+ * onto its stream `Topic` — no `DataSource` is registered under this id any
+ * more (deleted alongside `dataSources/telemachus.ts`), but `map-topic.ts`'s
+ * migration table survives P4c-b as the live stream router (see its own
+ * doc comment), so this id is still the correct lookup key.
+ */
+const LEGACY_DATA_SOURCE_ID = "data";
+
+/**
+ * Set of keys known to the legacy `data` source. The `DataSource` itself is
+ * gone (deleted alongside `dataSources/telemachus.ts`), so this always
+ * returns an empty set — `renderTemplate`'s empty-set fall-through treats
+ * that as "don't flag unknown tags" rather than crashing, so autocomplete
+ * degrades to always-trusting instead of validating against a live schema.
  */
 function useKnownDataKeys(): ReadonlySet<string> {
-  const source = getDataSource("data");
-  return useMemo(
-    () => new Set(source ? source.schema().map((k) => k.key) : []),
-    [source],
-  );
+  return useMemo(() => new Set<string>(), []);
 }
 
 /**
- * Reads the latest value of every tag from the `data` source. Forces a
- * re-render whenever any of them change. Implemented by subscribing
- * directly to the data source rather than a `useDataValue`-per-tag loop —
- * the loop would change hook count when the tag list grows / shrinks
- * mid-edit.
+ * Reads the latest value of every tag, one Topic per note-body placeholder
+ * (`{{v.altitude}}`-style). Forces a re-render whenever any of them change.
+ *
+ * Mirrors `useTelemetry`'s own per-key migration-shim decision (`@ksp-gonogo/core`)
+ * — mapped + a `TelemetryProvider` mounted + carried -> the `TimelineStore`;
+ * otherwise the legacy `DataSource` — but resolved imperatively for a
+ * DYNAMIC tag list instead of one fixed hook call, since a `useTelemetry`
+ * loop would change hook count as the tag list grows/shrinks mid-edit.
  */
 function useTagValues(tags: readonly string[]): Map<string, unknown> {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+  const carriedChannels = useCarriedChannelsOptional();
   const [snapshot, setSnapshot] = useState<Map<string, unknown>>(
     () => new Map(),
   );
+
   useEffect(() => {
-    const source = getDataSource("data");
-    if (!source) return;
     const next = new Map<string, unknown>();
     const unsubs: Array<() => void> = [];
     let scheduled = false;
@@ -281,22 +297,46 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
       scheduled = false;
       setSnapshot(new Map(next));
     };
-    for (const key of tags) {
-      const unsub = source.subscribe(key, (value) => {
-        next.set(key, value);
-        if (!scheduled) {
-          scheduled = true;
-          // Microtask coalesce — many tags can update in the same
-          // Telemachus tick; one re-render per flush is enough.
-          queueMicrotask(flush);
-        }
-      });
-      unsubs.push(unsub);
+    const scheduleFlush = () => {
+      if (scheduled) return;
+      scheduled = true;
+      // Microtask coalesce — many tags can update in the same tick; one
+      // re-render per flush is enough.
+      queueMicrotask(flush);
+    };
+
+    for (const tag of tags) {
+      const topic = mapTopic(LEGACY_DATA_SOURCE_ID, tag);
+      const carried =
+        store !== undefined &&
+        topic !== undefined &&
+        carriedChannels !== undefined &&
+        isTopicCarried(store, carriedChannels, topic);
+
+      if (client && store && topic !== undefined && carried) {
+        const inputTopics = store.resolveSubscriptionTopics(topic);
+        const unsubscribeInputs = inputTopics.map((inputTopic) =>
+          client.subscribe(inputTopic, () => {}),
+        );
+        const unsubscribeFrame = store.subscribeFrame(() => {
+          const point = store.sample(topic, store.currentFrame());
+          next.set(tag, point ? point.payload : undefined);
+          scheduleFlush();
+        });
+        unsubs.push(() => {
+          unsubscribeFrame();
+          for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        });
+      }
+      // No `else` branch — the legacy `DataSource` this used to fall back
+      // to for un-carried tags is gone. An un-mapped or un-carried tag
+      // simply never resolves (stays `undefined`), same as any other
+      // never-arrived value.
     }
     return () => {
       for (const u of unsubs) u();
     };
-  }, [tags]);
+  }, [tags, client, store, carriedChannels]);
   return snapshot;
 }
 

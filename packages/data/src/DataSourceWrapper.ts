@@ -3,7 +3,7 @@ import type {
   DataKey,
   DataSource,
   DataSourceStatus,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 
 /**
  * Base class for DataSource wrappers — sources that delegate the bulk of the

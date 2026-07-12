@@ -1,0 +1,28 @@
+{
+  "name": "@ksp-gonogo/sitrep-client",
+  "license": "GPL-3.0-only",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ksp-gonogo/sitrep-sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
+  "devDependencies": {
+    "@ksp-gonogo/sitrep-server": "workspace:*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/dom": "^10.4.1",
+    "jsdom": "^29.0.2",
+    "msw": "^2.13.2"
+  }
+}

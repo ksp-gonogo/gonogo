@@ -1,4 +1,4 @@
-import type { DataKey, TelemaachusSchema } from "@gonogo/core";
+import type { DataKey, TelemaachusSchema } from "@ksp-gonogo/core";
 
 // ---------------------------------------------------------------------------
 // DataSourceRegistry extension — declaration-merged so `useDataValue('data',
@@ -6,7 +6,7 @@ import type { DataKey, TelemaachusSchema } from "@gonogo/core";
 // telemachus schema; as derived keys land (Phase 2), they extend this type.
 // ---------------------------------------------------------------------------
 
-declare module "@gonogo/core" {
+declare module "@ksp-gonogo/core" {
   interface DataSourceRegistry {
     data: TelemaachusSchema;
   }
@@ -46,7 +46,7 @@ export type Unit =
 
 /**
  * DataKey enriched with human-facing metadata. The `<DataKeyPicker>` in
- * `@gonogo/ui` consumes these and groups alphabetically within `group`.
+ * `@ksp-gonogo/ui` consumes these and groups alphabetically within `group`.
  */
 export interface DataKeyMeta extends DataKey {
   label: string;
@@ -109,6 +109,18 @@ export interface FlightRecord {
    * vessel and the operator might still recover its remains.
    */
   outcome?: FlightOutcome;
+  /**
+   * UT (seconds) of the first/last captured frame — populated only by
+   * `MissionHistorySource` (Missions are UT-based; `BufferedDataSource`'s
+   * own flights have no UT domain at all and leave these undefined).
+   * `FlightGraph` needs the real UT bounds to call `queryRange` correctly —
+   * they can't be reconstructed from `launchedAt`/`lastSampleAt` alone,
+   * since those stay wall-clock-ms-shaped for backward compatibility with
+   * every other `FlightRecord` consumer (`ChaptersEditor`'s duration calc
+   * included).
+   */
+  firstFrameUt?: number;
+  lastFrameUt?: number;
 }
 
 /**

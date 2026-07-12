@@ -8,8 +8,8 @@
  * on unmount.
  */
 
-import { clearRegistry, registerDataSource } from "@gonogo/core";
-import { MockSidecar } from "@jonpepler/kerbcast/testing";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

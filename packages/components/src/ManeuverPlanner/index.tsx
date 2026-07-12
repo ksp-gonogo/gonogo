@@ -1,22 +1,30 @@
 import {
   type ActionDefinition,
+  AugmentSlot,
   type ComponentProps,
   type CurrentOrbit,
   getBody,
   registerComponent,
   resolveTargetName,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
   useOrbitElements,
-} from "@gonogo/core";
-import { useDataSchema, useManeuverNodes, useVesselDeltaV } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import {
+  useManeuverNodes,
+  useValueKeys,
+  useVesselDeltaV,
+} from "@ksp-gonogo/data";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
   Panel,
   PanelSubtitle,
   PanelTitle,
   ScrollArea,
-} from "@gonogo/ui";
+  StreamStatusBadge,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -46,6 +54,46 @@ import { usePlannerInputs } from "./usePlannerInputs";
 // Actions are stubbed at [] for now — the widget is mouse-driven. Hardware
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture §4 — locked in augment-slot-map.md)
+//
+// Two whole-widget append slots, both broad escape hatches: neither carries a
+// per-item datum, so their props are empty. `maneuver-planner.sections` sits
+// below the live preview + feasibility check for alternate transfer-strategy
+// comparisons (e.g. a porkchop / optimal-transfer Uplink); `maneuver-planner
+// .badges` rides in the header next to the title. Typed here via co-located
+// declaration-merging into core's `SlotRegistry` so `<AugmentSlot>` and
+// `registerAugment` see the precise (empty) prop shape rather than the loose
+// `Record<string, unknown>` fallback an unmerged slot id gets.
+// ---------------------------------------------------------------------------
+
+/** No slot props — whole-widget append escape hatch (no per-item datum). */
+export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
+/** No slot props — header badge escape hatch (no per-item datum). */
+export type ManeuverPlannerBadgesSlotProps = Record<string, never>;
+
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
+    "maneuver-planner.badges": ManeuverPlannerBadgesSlotProps;
+  }
+}
+
+// Stable empty reference so slot re-renders don't churn mounted augments.
+const EMPTY_SLOT_PROPS: Record<string, never> = {};
+
+/** One entry of `vessel.maneuver.nodes` — id + burn
+ * vector components only, no post-burn orbit preview. Only `id` is read
+ * here; the rest exists for documentation/type completeness. */
+interface StreamManeuverNode {
+  id: string;
+  ut: number;
+  dvRadial: number;
+  dvNormal: number;
+  dvPrograde: number;
+  dvTotal: number;
+}
 
 function ManeuverPlannerComponent({
   config,
@@ -81,10 +129,11 @@ function ManeuverPlannerComponent({
   } = useOrbitElements();
   const argPe = useDataValue("data", "o.argumentOfPeriapsis");
   const trueAnomaly = useDataValue("data", "o.trueAnomaly");
-  const currentUT = useDataValue("data", "t.universalTime");
+  // t.universalTime is dropped as a data key — it was never a stream, it IS
+  // the SDK view-UT the propagation is evaluated at, so read that directly.
+  const currentUT = useViewUt();
   const orbitalSpeed = useDataValue("data", "o.orbitalSpeed");
   const radius = useDataValue("data", "o.radius");
-  const physicsMode = useDataValue("data", "a.physicsMode");
   const refBody = useDataValue("data", "o.referenceBody");
   const bodyName = useDataValue("data", "v.body");
   const inclination = useDataValue("data", "o.inclination");
@@ -101,14 +150,54 @@ function ManeuverPlannerComponent({
   const period = useDataValue("data", "o.period");
 
   const nodes = useManeuverNodes();
+  // dv.stages is mapped on the wire (see map-topic.ts's
+  // TELEMACHUS_CLEAN_HOMES — whole-topic identity read, same "dv.stages"
+  // key off either transport) and rides the stream once carried, with
+  // zero call-site change here: `useVesselDeltaV` reads it via the same
+  // `useDataValue("data", "dv.stages")` regardless of which transport
+  // ultimately answers. The wire shapes disagree on field names though
+  // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`) — see
+  // useVesselDeltaV.ts's `normalizeStage` reconciliation.
   const vesselDeltaV = useVesselDeltaV();
   const execute = useExecuteAction("data");
-  const schema = useDataSchema("data");
+
+  // The maneuver-node id round-trip. `o.maneuverNodes` itself (behind
+  // `useManeuverNodes` above) now rides the stream (the `vessel.maneuver.
+  // legacy` reshape) but its `id` field is always the legacy positional
+  // index, not the real stream guid — this SEPARATE,
+  // narrower `o.maneuverNodeIds` read exists purely to recover each node's
+  // round-tripping stable `id` for the update/remove commands —
+  // it never touches the rendered node list (see ManeuverNodeList/NodeRow,
+  // unchanged). `streamNodeIds`/`nodes` come from two independently-timed
+  // reads of what is ultimately the same underlying KSP maneuver-node list,
+  // correlated by ARRAY POSITION (both server-side lists reflect the same
+  // ordering) — `resolveNodeId` below is the correlation point.
+  const streamNodeIds = useDataValue<StreamManeuverNode[]>(
+    "data",
+    "o.maneuverNodeIds",
+  );
+  const nodeIdStreamStatus = useDataStreamStatus("data", "o.maneuverNodeIds");
+
+  /**
+   * Resolves the command-string id for the node at legacy array position
+   * `index`: the real stream guid when the id-only read has delivered a
+   * node at that position, else the plain positional index (string) — the
+   * same value `handleDelete`/`handleEdit` have always sent, so a widget
+   * with no live stream (or one whose `vessel.maneuver.nodes[index].id`
+   * hasn't arrived yet) behaves exactly as before. See map-command.ts's
+   * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
+   * accepted-risk note on this fallback when reads/commands are carried
+   * unevenly.
+   */
+  function resolveNodeId(index: number): string {
+    const real = streamNodeIds?.[index]?.id;
+    return typeof real === "string" && real.length > 0 ? real : String(index);
+  }
 
   const { completedNodes } = useBurnCompletionTracker(nodes, execute);
 
   // Armed conditional triggers come from a service — host service on the
-  // main screen (see @gonogo/app/src/maneuverTriggers), client service on
+  // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
   // station screens. When the widget is rendered without a provider (legacy
   // tests, standalone embeds) we fall back to an in-process LocalService so
   // the feature still works for the local user.
@@ -132,19 +221,11 @@ function ManeuverPlannerComponent({
   // Editor visibility — the picker's draft fields live inside `TriggerEditor`.
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
 
-  const numericKeys = useMemo(
-    () =>
-      schema.filter(
-        (k) =>
-          k.unit !== "bool" &&
-          k.unit !== "enum" &&
-          k.unit !== "raw" &&
-          k.group !== "Actions",
-      ),
-    [schema],
-  );
+  // Value-restricted keys — see `useValueKeys`'s doc comment. A trigger's
+  // `dataKey` now reads off the stream (`LocalManeuverTriggerService`'s
+  // `getValue`), so this also excludes any legacy key with no stream home.
+  const numericKeys = useValueKeys("data");
 
-  const principia = physicsMode === "n_body";
   const body = getBody(bodyName ?? refBody ?? "");
 
   const mu = useMemo(
@@ -264,7 +345,6 @@ function ManeuverPlannerComponent({
 
   async function handleCommit() {
     if (!plan) return;
-    if (principia) return;
     setCommitting(true);
     setError(null);
     try {
@@ -289,7 +369,6 @@ function ManeuverPlannerComponent({
     op: ThresholdOp;
     value: number;
   }) {
-    if (principia) return;
     const inputs: FrozenPlanInputs = {
       preset,
       prograde,
@@ -318,7 +397,7 @@ function ManeuverPlannerComponent({
 
   async function handleDelete(id: number) {
     try {
-      await execute(`o.removeManeuverNode[${id}]`);
+      await execute(`o.removeManeuverNode[${resolveNodeId(id)}]`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -328,7 +407,7 @@ function ManeuverPlannerComponent({
     // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
     // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
     // RADIAL, NORMAL, PROGRADE — *not* prograde-first.
-    const action = `o.updateManeuverNode[${id},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
+    const action = `o.updateManeuverNode[${resolveNodeId(id)},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
     try {
       await execute(action);
       setError(null);
@@ -342,7 +421,7 @@ function ManeuverPlannerComponent({
     // Remove from the highest index down — removing index 0 first would
     // shift every subsequent id and break the loop.
     for (let i = nodes.length - 1; i >= 0; i--) {
-      await execute(`o.removeManeuverNode[${i}]`);
+      await execute(`o.removeManeuverNode[${resolveNodeId(i)}]`);
     }
   }
 
@@ -437,15 +516,18 @@ function ManeuverPlannerComponent({
 
   return (
     <Panel>
-      <PanelTitle>MANEUVER PLANNER</PanelTitle>
+      <TitleRow>
+        <TitleGroup>
+          <PanelTitle>MANEUVER PLANNER</PanelTitle>
+          <AugmentSlot
+            name="maneuver-planner.badges"
+            props={EMPTY_SLOT_PROPS}
+          />
+        </TitleGroup>
+        <StreamStatusBadge status={nodeIdStreamStatus} />
+      </TitleRow>
       {refBody !== undefined && <PanelSubtitle>{refBody}</PanelSubtitle>}
       <ScrollBody>
-        {principia && (
-          <PrincipiaBanner>
-            N-body physics detected — impulsive maneuver nodes are unsupported
-            under Principia. Commit disabled.
-          </PrincipiaBanner>
-        )}
         {renderNodesSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
@@ -476,7 +558,6 @@ function ManeuverPlannerComponent({
             requiredDeltaV={requiredDeltaV}
             currentUT={currentUT}
             error={error}
-            principia={principia}
             committing={committing}
             triggerEditorOpen={triggerEditorOpen}
             setTriggerEditorOpen={setTriggerEditorOpen}
@@ -485,6 +566,13 @@ function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         )}
+        {/* Whole-widget append below the preview + feasibility check — an
+            alternate-transfer-strategy Uplink (porkchop / optimal transfer)
+            binds here. Renders nothing until an augment registers. */}
+        <AugmentSlot
+          name="maneuver-planner.sections"
+          props={EMPTY_SLOT_PROPS}
+        />
       </ScrollBody>
     </Panel>
   );
@@ -503,6 +591,16 @@ registerComponent<ManeuverPlannerConfig>({
   defaultSize: { w: 10, h: 18 },
   minSize: { w: 6, h: 9 },
   component: ManeuverPlannerComponent,
+  // Two whole-widget append slots (broad escape hatches): a body `sections`
+  // slot for alternate-transfer-strategy comparisons and a header `badges`
+  // slot. Empty until an augment binds (Uplink §4 / augment-slot-map.md).
+  augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
+  // `dv.stages` and `o.maneuverNodes` are mapped on the wire and ride the
+  // stream transparently (see the `useVesselDeltaV` / `useManeuverNodes`
+  // read call sites above) — no change needed to this list, it already
+  // carries the resolved key names. The `o.maneuverNodes` ->
+  // `previewManeuver` post-burn preview derivation is explicitly
+  // optional/lower-priority and deferred, not attempted here.
   dataRequirements: [
     "o.sma",
     "o.eccentricity",
@@ -518,8 +616,7 @@ registerComponent<ManeuverPlannerConfig>({
     "o.radius",
     "o.referenceBody",
     "o.maneuverNodes",
-    "t.universalTime",
-    "a.physicsMode",
+    "o.maneuverNodeIds",
     "v.body",
     "dv.stages",
     "tar.name",
@@ -543,6 +640,21 @@ export { ManeuverPlannerComponent };
 // Styles
 // ---------------------------------------------------------------------------
 
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+`;
+
 const Section = styled.section`
   display: flex;
   flex-direction: column;
@@ -557,15 +669,6 @@ const SectionTitle = styled.h4`
   text-transform: uppercase;
   color: var(--color-text-dim);
   margin: 0 0 2px 0;
-`;
-
-const PrincipiaBanner = styled.div`
-  font-size: 11px;
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-status-nogo-fg);
-  padding: 4px 8px;
-  border-radius: 2px;
 `;
 
 const ScrollBody = styled(ScrollArea)`

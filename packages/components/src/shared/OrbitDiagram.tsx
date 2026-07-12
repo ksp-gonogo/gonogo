@@ -3,7 +3,7 @@ import {
   formatDistance,
   orbitalToCartesian,
   trueAnomalyToRadius,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 

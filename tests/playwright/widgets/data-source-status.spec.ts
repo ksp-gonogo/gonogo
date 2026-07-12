@@ -6,18 +6,22 @@
  * over PeerJS) have no data-source panel of their own.
  *
  * This boots the main screen, opens Settings → Data Sources, and asserts the
- * `data` row (the BufferedDataSource, named "Buffered Telemachus Reborn")
- * reports "connected" — exercising the host's Telemachus path end to end
- * against the replay server.
+ * `sitrep` row (`SitrepStreamDataSource`, named "Sitrep Stream" — a thin
+ * status/config front over the live `WebSocketTransport`
+ * `SitrepTelemetryProvider` owns, see `packages/app/src/dataSources/sitrep.ts`)
+ * reports "connected" — exercising the host's Sitrep stream path end to end
+ * against the replay server. The old `data`/"Buffered Telemachus Reborn" row
+ * this test used to check no longer exists — that `DataSource` was deleted in
+ * `806e7fe2` once the Sitrep stream became the app's only telemetry source.
  */
 import { expect, test } from "@playwright/test";
 import { PORTS } from "../../../playwright.config";
 
 const MAIN_URL = "/";
 
-const TELEMACHUS_CONFIG = JSON.stringify({
+const SITREP_CONFIG = JSON.stringify({
   host: "localhost",
-  port: PORTS.telemachusReplay,
+  port: PORTS.sitrepReplay,
 });
 
 test.describe("Settings — Data Sources tab — main screen", () => {
@@ -25,16 +29,16 @@ test.describe("Settings — Data Sources tab — main screen", () => {
     browser,
   }) => {
     const context = await browser.newContext();
-    await context.addInitScript((teleCfg: string) => {
+    await context.addInitScript((sitrepCfg: string) => {
       try {
-        localStorage.setItem("gonogo.datasource.telemachus", teleCfg);
+        localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         // Pre-answer analytics consent so the blocking boot modal doesn't
         // sit over the screen and intercept the FAB click.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
       } catch {
         /* private mode / quota — ignore; the seed just won't apply */
       }
-    }, TELEMACHUS_CONFIG);
+    }, SITREP_CONFIG);
 
     const page = await context.newPage();
     await page.goto(MAIN_URL);
@@ -56,12 +60,10 @@ test.describe("Settings — Data Sources tab — main screen", () => {
     await page.getByRole("tab", { name: "Data Sources" }).click();
 
     // The source rows render inside that tab panel (the standalone FAB +
-    // dashboard widget were retired), so a visible `data` row is itself proof
-    // the tab opened. Scope to the row that owns the `data` source name so we
-    // don't match another source's status label.
-    const dataRow = page
-      .locator("li")
-      .filter({ hasText: "Buffered Telemachus Reborn" });
+    // dashboard widget were retired), so a visible `sitrep` row is itself
+    // proof the tab opened. Scope to the row that owns the `sitrep` source
+    // name so we don't match another source's status label.
+    const dataRow = page.locator("li").filter({ hasText: "Sitrep Stream" });
     await expect(dataRow).toBeVisible({ timeout: 30_000 });
     await expect(dataRow.getByText("connected", { exact: true })).toBeVisible({
       timeout: 30_000,

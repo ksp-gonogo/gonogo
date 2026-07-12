@@ -2,7 +2,7 @@ import {
   clearRegistry,
   MockDataSource,
   registerDataSource,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,11 +13,33 @@ import {
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
 } from "./types";
 
-// AlarmsModal reads useDataSchema("data") for the threshold-trigger key
-// picker. We don't exercise that path in these tests (the onFire editor
-// lives on the time-trigger form too), but we still need the source
-// registered so the hook doesn't return an empty schema for unrelated
-// reasons.
+// AlarmsModal reads useValueKeys("data") for the threshold-trigger key
+// picker. These describe blocks don't exercise that path (the onFire editor
+// lives on the time-trigger form too, and the presets block only reads
+// telemetry VALUES, not the schema), so registering a mock "data"
+// `DataSource` here is harmless — but note it does NOT prove the real
+// threshold-picker path works. That's covered separately, with no "data"
+// `DataSource` registered at all, in the "threshold trigger key picker"
+// describe block at the bottom of this file (Finding 1: the legacy "data"
+// source was deleted in `806e7fe2`, so the real app never has one
+// registered either).
+/**
+ * `DataKeyPicker`'s search input and the native `<select>` for the onFire
+ * action-group both carry the implicit/explicit ARIA `combobox` role, and
+ * the picker's input has no accessible name (a pre-existing gap — its
+ * `<FieldLabel htmlFor="alarm-data-key">` doesn't actually connect to
+ * anything, since `DataKeyPicker` doesn't accept an `id` prop), so
+ * `getByRole("combobox")` alone is ambiguous. Disambiguate by tag: the
+ * picker renders an `<input>`, the action-group field renders a `<select>`.
+ */
+function getDataKeyCombobox(): HTMLElement {
+  const combobox = screen
+    .getAllByRole("combobox")
+    .find((el) => el.tagName === "INPUT");
+  if (!combobox) throw new Error("DataKeyPicker combobox input not found");
+  return combobox;
+}
+
 let dataSource: MockDataSource;
 function registerStubDataSource() {
   clearRegistry();
@@ -324,5 +346,69 @@ describe("AlarmsModal recommended presets", () => {
     // proving the future-node filter rather than the default-hidden state.
     emitData("o.maneuverNodes", [makeNode(500)]);
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
+  });
+});
+
+describe("AlarmsModal threshold trigger key picker", () => {
+  // Deliberately NOT registering a mock "data" `DataSource` — the real app
+  // never has one (deleted in `806e7fe2`). This is the config-UI proof for
+  // Finding 1: before the fix, `useValueKeys("data")` always returned `[]`
+  // here and the picker showed nothing but "No matches", making it
+  // impossible to set a threshold alarm at all.
+  beforeEach(clearRegistry);
+  afterEach(() => {
+    cleanup();
+    clearRegistry();
+  });
+
+  it("offers real telemetry keys with no 'data' DataSource registered", async () => {
+    const user = userEvent.setup();
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /when telemetry/i }));
+    await user.click(getDataKeyCombobox());
+
+    const options = await screen.findAllByRole("option");
+    expect(options.length).toBeGreaterThan(0);
+    expect(
+      options.some((o) => o.textContent?.toLowerCase().includes("altitude")),
+    ).toBe(true);
+  });
+
+  it("lets an operator pick a key and add a threshold alarm end to end", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
+    await user.click(screen.getByRole("tab", { name: /when telemetry/i }));
+    await user.click(getDataKeyCombobox());
+    const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
+      o.textContent?.toLowerCase().includes("altitude"),
+    );
+    expect(altitudeOption).toBeDefined();
+    if (altitudeOption) await user.click(altitudeOption);
+
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
+      kind: "threshold",
+      dataKey: "v.altitude",
+    });
   });
 });

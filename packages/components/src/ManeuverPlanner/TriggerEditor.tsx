@@ -1,5 +1,5 @@
-import type { DataKey } from "@gonogo/core";
-import { DataKeyPicker, GhostButton, PrimaryButton } from "@gonogo/ui";
+import type { DataKey } from "@ksp-gonogo/core";
+import { DataKeyPicker, GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import { THRESHOLD_OPS, type ThresholdOp } from "./triggerTypes";
@@ -8,9 +8,8 @@ interface TriggerEditorProps {
   open: boolean;
   numericKeys: DataKey[];
   /** True when arming would no-op for reasons external to the editor — kept
-   *  on the prop so the editor doesn't need to know which (Principia /
-   *  no plan / etc.). The "no key" / "non-finite value" cases are handled
-   *  internally. */
+   *  on the prop so the editor doesn't need to know which (no plan / etc.).
+   *  The "no key" / "non-finite value" cases are handled internally. */
   externallyDisabled: boolean;
   onClose: () => void;
   onArm: (input: { dataKey: string; op: ThresholdOp; value: number }) => void;

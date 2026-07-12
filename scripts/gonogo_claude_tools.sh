@@ -69,6 +69,11 @@
 #       Sidecar fetch is best-effort: skips silently if gh isn't
 #       installed / not authed / no successful run found.
 #
+#   build gonogo
+#       Build the first-party Gonogo.KSP mod (mod/Gonogo.KSP/Gonogo.KSP.csproj)
+#       and copy Gonogo.dll + the net472-flavored Sitrep.*.dll deps into the
+#       synced kspdata GameData/Gonogo/Plugins/ directory.
+#
 #   tele read <key1> [<key2>...]
 #       GET /telemachus/datalink with each key as a `?k=k` pair against
 #       the running KSP install. Pretty-prints JSON when possible. The
@@ -681,6 +686,144 @@ build_telemachus() {
   ls -la "$install_dir/Telemachus.dll"
 }
 
+build_gonogo() {
+  local proj="$ROOT/mod/Gonogo.KSP/Gonogo.KSP.csproj"
+  local out_dir="$ROOT/mod/Gonogo.KSP/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/Gonogo/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "Gonogo.KSP csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building Gonogo.KSP ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/Gonogo.dll" ]; then
+    echo "Gonogo.dll not produced (missing at $out_dir/Gonogo.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Gonogo.dll + every net472-flavored Sitrep.*.dll dep copied alongside it
+  # by CopyLocalLockFileAssemblies (Sitrep.Host/Core/Transport/Contract) —
+  # deploy the whole set, no ILRepack single-file merge yet.
+  local deployed=()
+  local dll
+  for dll in "$out_dir"/Gonogo.dll "$out_dir"/Sitrep.*.dll; do
+    [ -f "$dll" ] || continue
+    cp "$dll" "$install_dir/"
+    deployed+=("$(basename "$dll")")
+  done
+  echo "=== deployed to $install_dir ==="
+  printf '  %s\n' "${deployed[@]}"
+  ls -la "$install_dir"
+}
+
+build_gonogoscansatuplink() {
+  local proj="$ROOT/mod/GonogoScansatUplink/GonogoScansatUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoScansatUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoScansatUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoScansatUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoScansatUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoScansatUplink.dll" ]; then
+    echo "GonogoScansatUplink.dll not produced (missing at $out_dir/GonogoScansatUplink.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Only GonogoScansatUplink.dll - Sitrep.Contract.dll (provided by
+  # GonogoCore) and SCANsat.dll/SCANsat.Unity.dll (provided by the user's
+  # SCANsat install) are reference-only (Private="false") and must NOT be
+  # copied here - see .superpowers/sdd/uplink-packaging-pattern.md.
+  cp "$out_dir/GonogoScansatUplink.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
+build_gonogorealantennasuplink() {
+  local proj="$ROOT/mod/GonogoRealAntennasUplink/GonogoRealAntennasUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoRealAntennasUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoRealAntennasUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoRealAntennasUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoRealAntennasUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoRealAntennasUplink.dll" ]; then
+    echo "GonogoRealAntennasUplink.dll not produced (missing at $out_dir/GonogoRealAntennasUplink.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Only GonogoRealAntennasUplink.dll - Sitrep.Contract.dll (provided by
+  # GonogoCore) is reference-only (Private="false") and must NOT be copied
+  # here - see .superpowers/sdd/uplink-packaging-pattern.md. RealAntennas
+  # itself is never a compile-time reference (reflection-only, see the
+  # csproj header comment), so there's no RA DLL to exclude here either.
+  cp "$out_dir/GonogoRealAntennasUplink.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
+build_gonogokos() {
+  local proj="$ROOT/mod/Gonogo.Kos/Gonogo.Kos.csproj"
+  local out_dir="$ROOT/mod/Gonogo.Kos/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKos/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "Gonogo.Kos csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building Gonogo.Kos ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/Gonogo.Kos.dll" ]; then
+    echo "Gonogo.Kos.dll not produced (missing at $out_dir/Gonogo.Kos.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # Only Gonogo.Kos.dll - Sitrep.*.dll (provided by GonogoCore) and
+  # kOS.dll/kOS.Safe.dll/0Harmony.dll (provided by the user's kOS + Harmony
+  # installs) are reference-only (Private="false") and must NOT be copied
+  # here - see .superpowers/sdd/uplink-packaging-pattern.md.
+  cp "$out_dir/Gonogo.Kos.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -843,9 +986,13 @@ case "${1:-help}" in
         build_ocisly "$@"
         ;;
       kerbcast) build_kerbcast ;;
+      gonogo) build_gonogo ;;
+      gonogoscansatuplink) build_gonogoscansatuplink ;;
+      gonogorealantennasuplink) build_gonogorealantennasuplink ;;
+      gonogokos) build_gonogokos ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokos"
         exit 2
         ;;
     esac

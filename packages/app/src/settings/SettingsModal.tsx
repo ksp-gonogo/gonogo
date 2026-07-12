@@ -1,15 +1,21 @@
-import { DataSourceStatusComponent } from "@gonogo/components";
-import { getDataSource, useDataSources, useScreen } from "@gonogo/core";
-import { type KerbcastDataSource, KerbcastSettings } from "@gonogo/kerbcast";
-import { SerialDevicesMenu, useSerialAggregateStatus } from "@gonogo/serial";
-import { Switch, type TabDescriptor, Tabs } from "@gonogo/ui";
+import { DataSourceStatusComponent } from "@ksp-gonogo/components";
+import { getDataSource, useDataSources, useScreen } from "@ksp-gonogo/core";
+import {
+  type KerbcastDataSource,
+  KerbcastSettings,
+} from "@ksp-gonogo/kerbcast-feed";
+import {
+  SerialDevicesMenu,
+  useSerialAggregateStatus,
+} from "@ksp-gonogo/serial";
+import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
 import type { SettingDefinition } from "./registry";
-import { getSettingsForScreen } from "./registry";
+import { getSetting, getSettingsForScreen } from "./registry";
 import { useSetting } from "./SettingsContext";
 
 /**
@@ -168,6 +174,7 @@ function AnalyticsConsentRow() {
         onChange={(next) =>
           analyticsConsentService.set(next ? "enabled" : "disabled")
         }
+        aria-label="Send technical analytics"
       />
     </Row>
   );
@@ -189,13 +196,31 @@ function BooleanRow({
   def: Extract<SettingDefinition, { type: "boolean" }>;
 }) {
   const [value, setValue] = useSetting<boolean>(def.id, def.defaultValue);
+  // `dependsOn` is a rendering-only hint (see its doc comment in
+  // registry.ts): read the parent's CURRENT value the same way this row
+  // reads its own, so the row visually goes inert the instant the parent
+  // toggles off — no registry-level enforcement, just an honest reflection
+  // of what the consuming hook (e.g. `useMissionHistorySettings`) actually
+  // does with these two values.
+  const parent = def.dependsOn ? getSetting(def.dependsOn) : undefined;
+  const [parentValue] = useSetting<boolean>(
+    def.dependsOn ?? "__no_parent__",
+    parent?.type === "boolean" ? parent.defaultValue : true,
+  );
+  const inert = def.dependsOn !== undefined && !parentValue;
+
   return (
-    <Row>
+    <Row $indented={def.dependsOn !== undefined}>
       <RowText>
         <RowLabel>{def.label}</RowLabel>
         {def.description && <RowDesc>{def.description}</RowDesc>}
       </RowText>
-      <Switch checked={value} onChange={setValue} />
+      <Switch
+        checked={value}
+        onChange={setValue}
+        disabled={inert}
+        aria-label={def.label}
+      />
     </Row>
   );
 }
@@ -237,11 +262,12 @@ const SectionTitle = styled.h3`
   padding-bottom: 4px;
 `;
 
-const Row = styled.div`
+const Row = styled.div<{ $indented?: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  margin-left: ${({ $indented }) => ($indented ? "20px" : "0")};
 `;
 
 const RowText = styled.div`

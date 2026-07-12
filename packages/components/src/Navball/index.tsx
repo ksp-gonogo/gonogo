@@ -2,13 +2,16 @@ import type {
   ActionDefinition,
   ComponentProps,
   ConfigComponentProps,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
   useExecuteAction,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   Button,
   ConfigForm,
@@ -18,12 +21,37 @@ import {
   Panel,
   PanelTitle,
   Select,
+  StreamStatusBadge,
   Switch,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
+import { Badge, StatusIndicator } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { AttitudeIndicator } from "./AttitudeIndicator";
+
+/**
+ * Warn once one-way signal delay crosses this threshold AND fly-by-wire is
+ * armed. The felt control-loop lag is ~2x one-way (command out + result
+ * back), so 1s one-way ≈ 2s round-trip — the point past which closed-loop
+ * stick flying stops working. Below that FBW is sloppy but usable; holding
+ * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
+ * mirrors `CommSignal`'s own `formatDelay` unit-switch breakpoint — an
+ * already-meaningful threshold in this codebase, tunable here if a live
+ * session says otherwise.
+ */
+const FBW_DELAY_WARN_SECONDS = 1.0;
+
+/** Mirrors `CommSignal`'s own `formatDelay` — ms below 1s, seconds below a
+ * minute, `m s` beyond that. */
+function formatDelaySeconds(seconds: number): string {
+  if (seconds < 0.001) return "0 ms";
+  if (seconds < 1) return `${(seconds * 1000).toFixed(0)} ms`;
+  if (seconds < 60) return `${seconds.toFixed(1)} s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds - m * 60);
+  return `${m}m ${s}s`;
+}
 
 const SAS_MODES = [
   "StabilityAssist",
@@ -40,10 +68,26 @@ const SAS_MODES = [
 type SasMode = (typeof SAS_MODES)[number];
 
 interface NavballConfig {
-  /** When true, use n.heading2/pitch2/roll2 (CoM frame). Default false (root part). */
+  /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2) — see the component body's ternary comment for which raw key backs which frame. */
   useCoMFrame?: boolean;
   /** When true, render the control surface; otherwise show display-only. */
   controlMode?: boolean;
+}
+
+// `navball.badges` is a header badge slot (augment-slot-map.md): a broad
+// escape-hatch for small inline indicators alongside the SAS-mode / RCS
+// badges. The proposed filler is a future autopilot Uplink (MechJeb-alike)
+// surfacing its active mode next to SAS/RCS — a badge that reads its OWN
+// Domain's Topics, not the navball's attitude reads, so the slot passes no
+// props. Declaration-merge the slot id → props type into core's `SlotRegistry`
+// so `registerAugment` and `<AugmentSlot name="navball.badges" …>`
+// type-check against an empty-props contract rather than the loose
+// `Record<string, unknown>` fallback. Kept co-located here (not in a shared
+// central file) so parallel per-widget slot work never collides.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "navball.badges": Record<string, never>;
+  }
 }
 
 // Action surface — kept verbose so each axis / mode is independently
@@ -99,14 +143,23 @@ function NavballComponent({
   const useCoM = config?.useCoMFrame === true;
   const controlMode = config?.controlMode === true;
 
+  // VERIFIED (KspHost.BuildAttitude / VesselAttitude.cs class doc): the
+  // UNSUFFIXED n.heading/pitch/roll are the CoM-referenced frame; the *2
+  // suffix is the genuinely distinct ROOT-PART-referenced frame — the
+  // OPPOSITE pairing a naive reading of Telemachus's old root-vs-CoM
+  // convention would suggest. The ternary below is deliberately "backwards"
+  // relative to the key names so the toggle's OWN semantics (useCoMFrame
+  // true = CoM, default false = root part, both documented on
+  // NavballConfig/the config-form copy below) read correctly against the
+  // real frames.
   const heading = numericOrNull(
-    useDataValue("data", useCoM ? "n.heading2" : "n.heading"),
+    useDataValue("data", useCoM ? "n.heading" : "n.heading2"),
   );
   const pitch = numericOrNull(
-    useDataValue("data", useCoM ? "n.pitch2" : "n.pitch"),
+    useDataValue("data", useCoM ? "n.pitch" : "n.pitch2"),
   );
   const roll = numericOrNull(
-    useDataValue("data", useCoM ? "n.roll2" : "n.roll"),
+    useDataValue("data", useCoM ? "n.roll" : "n.roll2"),
   );
 
   const sasMode = useDataValue("data", "f.sasMode") as string | undefined;
@@ -119,6 +172,14 @@ function NavballComponent({
       ? throttleRaw
       : 0;
   const isControllable = useDataValue("data", "v.isControllable") !== false;
+
+  // Connectivity indicator (mirroring the WarpControl pilot):
+  // `n.heading` is representative of the widget's mapped attitude/control
+  // read set regardless of the CoM-frame toggle (both n.heading and
+  // n.heading2 are mapped on the wire now, off the same
+  // vessel.attitude topic) — so it stays a stable status source across
+  // config changes rather than switching with `useCoM`.
+  const streamStatus = useDataStreamStatus("data", "n.heading");
 
   const execute = useExecuteAction("data");
 
@@ -146,6 +207,17 @@ function NavballComponent({
     void execute("v.setFbW[0]");
     setFbwArmed(false);
   };
+
+  // FBW-under-delay warning. `comm.signalDelay` is gonogo's own SignalDelay
+  // authority (a TrueNow channel, never itself delayed) — a plain number of
+  // one-way light-time seconds, 0 when the delay feature is disabled, so the
+  // warning naturally stays hidden with no extra "is it enabled" check.
+  const delaySeconds = useTelemetry("data", "comm.signalDelay");
+  const delayHigh =
+    typeof delaySeconds === "number" &&
+    Number.isFinite(delaySeconds) &&
+    delaySeconds > FBW_DELAY_WARN_SECONDS;
+  const showFbwDelayWarning = fbwArmed && delayHigh;
 
   // Action wiring — every action surface has a mapping into a Telemachus
   // execute call, with analog values clamped to [-1, 1] and throttle to
@@ -335,6 +407,7 @@ function NavballComponent({
         <PanelTitle>
           {showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
         </PanelTitle>
+        <StreamStatusBadge status={streamStatus} />
         {showModeBadges && (
           <ModeBadgeRow>
             <ModeBadge $on={sasOn}>
@@ -342,6 +415,15 @@ function NavballComponent({
             </ModeBadge>
             <ModeBadge $on={rcsOn}>RCS</ModeBadge>
             {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
+            {showFbwDelayWarning && typeof delaySeconds === "number" && (
+              <Badge tone="warn" size="sm">
+                FBW · {formatDelaySeconds(delaySeconds)} DELAY
+              </Badge>
+            )}
+            {/* Header badge slot (augment-slot-map.md): an autopilot Uplink can
+                surface its active mode here, alongside SAS/RCS. Renders nothing
+                until an augment binds `navball.badges`. */}
+            <AugmentSlot name="navball.badges" props={{}} />
           </ModeBadgeRow>
         )}
       </Header>
@@ -404,6 +486,10 @@ function NavballComponent({
             onArmFbw={armFbw}
             onDisarmFbw={disarmFbw}
             execute={execute}
+            showFbwDelayWarning={showFbwDelayWarning}
+            delaySeconds={
+              typeof delaySeconds === "number" ? delaySeconds : null
+            }
           />
         )}
       </Body>
@@ -422,6 +508,8 @@ interface ControlSurfaceProps {
   onArmFbw: () => void;
   onDisarmFbw: () => void;
   execute: (action: string) => Promise<void>;
+  showFbwDelayWarning: boolean;
+  delaySeconds: number | null;
 }
 
 function ControlSurface({
@@ -435,6 +523,8 @@ function ControlSurface({
   onArmFbw,
   onDisarmFbw,
   execute,
+  showFbwDelayWarning,
+  delaySeconds,
 }: ControlSurfaceProps) {
   return (
     <ControlWrap>
@@ -553,6 +643,12 @@ function ControlSurface({
               : "Bind axes via the Inputs tab, then arm to take stick control."}
           </FbwHint>
         </FbwRow>
+        {showFbwDelayWarning && delaySeconds !== null && (
+          <StatusIndicator tone="warn" live>
+            High signal delay ({formatDelaySeconds(delaySeconds)}) — fly-by-wire
+            stick input lags round-trip; expect to overcorrect.
+          </StatusIndicator>
+        )}
       </Group>
     </ControlWrap>
   );
@@ -639,11 +735,12 @@ function NavballConfigComponent({
         <Switch
           checked={useCoMFrame}
           onChange={setUseCoMFrame}
-          label="Read from centre-of-mass frame (n.*2)"
+          label="Read from centre-of-mass frame"
         />
         <FieldHint>
-          Default reads from the root part. Switch on for vessels where the
-          probe core / command pod isn't aligned with the ship's geometry.
+          Default reads from the root part's own orientation. Switch on for
+          vessels where the probe core / command pod isn't aligned with the
+          ship's geometry.
         </FieldHint>
       </Field>
     </ConfigForm>
@@ -874,6 +971,12 @@ registerComponent<NavballConfig>({
   minSize: { w: 3, h: 4 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
+  // n.heading2/n.pitch2/n.roll2 (root-part frame) are mapped on
+  // the wire now — VesselAttitude carries a genuinely distinct second frame,
+  // see map-topic.ts's TELEMACHUS_CLEAN_HOMES. v.angleToPrograde stays
+  // dropped from this declared list: a permanent gap on the new mod wire
+  // with no planned replacement (map-topic.ts's TELEMACHUS_KNOWN_GAPS) —
+  // it was never actually read by this widget anyway.
   dataRequirements: [
     "n.heading",
     "n.pitch",
@@ -887,10 +990,14 @@ registerComponent<NavballConfig>({
     "v.rcsValue",
     "f.throttle",
     "v.isControllable",
-    "v.angleToPrograde",
+    "comm.signalDelay",
   ],
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
+  // Header badge slot for an autopilot (MechJeb-alike) active-mode indicator
+  // alongside the SAS/RCS badges. Unfilled until an Uplink registers an augment
+  // — see the `SlotRegistry` merge above and augment-slot-map.md.
+  augmentSlots: ["navball.badges"],
   pushable: true,
   requires: ["flight"],
 });

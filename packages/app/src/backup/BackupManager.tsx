@@ -6,7 +6,7 @@ import {
   FileInput,
   PrimaryButton,
   Switch,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { type ChangeEvent, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import {

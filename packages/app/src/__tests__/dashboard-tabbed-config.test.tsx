@@ -5,11 +5,11 @@
  * saving from each side persists the right shape in localStorage.
  */
 
-import type { ActionDefinition } from "@gonogo/core";
-import { clearRegistry, registerComponent } from "@gonogo/core";
-import { CpuRegistryProvider, CpuRegistryService } from "@gonogo/data";
-import { SerialDeviceProvider, SerialDeviceService } from "@gonogo/serial";
-import { ModalProvider } from "@gonogo/ui";
+import type { ActionDefinition } from "@ksp-gonogo/core";
+import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
+import { CpuRegistryProvider, CpuRegistryService } from "@ksp-gonogo/data";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

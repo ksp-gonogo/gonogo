@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- GPL-3.0-only: gonogo overall is GPLv3. SCANsat itself is 3-clause
+       BSD (see local_docs/reference/scansat/LICENSE.txt) - permissive,
+       GPL-compatible, no copyleft - so this assembly links it under
+       "GPL-by-inclusion" while retaining SCANsat's BSD attribution notice
+       (see NOTICE-SCANSAT.txt alongside this file, and
+       local_docs/telemetry-mod/scansat-migration-spec.md §5). -->
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <!-- net48, not net472 like Gonogo.KSP: the live SCANsat.dll/SCANsat.Unity.dll
+         copy under local_docs/syncthing/kspdata/GameData/SCANsat/Plugins/ is
+         itself built against .NETFramework 4.8 (MSB3274/3275 otherwise) -
+         KSP's Mono runtime loads either target fine at runtime. -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoScansatUplink</AssemblyName>
+    <RootNamespace>Gonogo.ScansatUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- KspManaged / KspGameData: roots for the portable reference DLLs below.
+       Default to the repo's local dev copies so a plain `dotnet build` with
+       no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
+       /p:KspGameData=... pointing at a checked-out ksp-managed reference-
+       assembly repo instead (see kerbcam's Plugin.csproj for the precedent
+       this mirrors). -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+    <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies - same portable copy + Private="false"
+       pattern as Gonogo.KSP.csproj: never copied to output, satisfied by
+       KSP's own GameData/../KSP_Data/Managed at runtime. -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- SCANsat is a THIRD-PARTY mod the user installs separately - direct-link
+       reference only (Private="false"), never bundled/copied into this
+       Uplink's own output. Provided by the user's live SCANsat install at
+       runtime; see local_docs/syncthing/kspdata/GameData/SCANsat/Plugins/
+       for the copy this repo builds against. -->
+  <ItemGroup>
+    <Reference Include="SCANsat" Private="false">
+      <HintPath>$(KspGameData)\SCANsat\Plugins\SCANsat.dll</HintPath>
+    </Reference>
+    <Reference Include="SCANsat.Unity" Private="false">
+      <HintPath>$(KspGameData)\SCANsat\Plugins\SCANsat.Unity.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only - the whole point of the Uplink split is that a
+       third-party Uplink author's compile-time surface needs nothing from
+       Sitrep.Host (the engine). Private="false": Sitrep.Contract.dll is
+       provided by the core mod (GonogoCore) at runtime, never copied here. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

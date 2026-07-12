@@ -1,4 +1,4 @@
-import { Button, PrimaryButton } from "@gonogo/ui";
+import { Button, PrimaryButton } from "@ksp-gonogo/ui";
 import { useId } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";

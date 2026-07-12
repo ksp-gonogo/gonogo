@@ -1,4 +1,4 @@
-import { safeRandomUuid } from "@gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { ReactNode } from "react";
 import {
   createContext,

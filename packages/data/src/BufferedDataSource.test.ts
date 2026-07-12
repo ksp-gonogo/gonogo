@@ -1,5 +1,5 @@
-import type { DataKey } from "@gonogo/core";
-import { MockDataSource } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
+import { MockDataSource } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BufferedDataSource } from "./BufferedDataSource";
 import { clearDerivedKeys, registerDerivedKey } from "./derive";

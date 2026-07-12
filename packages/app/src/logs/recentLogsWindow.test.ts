@@ -1,4 +1,4 @@
-import type { LogEntry } from "@gonogo/logger";
+import type { LogEntry } from "@ksp-gonogo/logger";
 import { describe, expect, it } from "vitest";
 import { recentLogsWindow } from "./recentLogsWindow";
 

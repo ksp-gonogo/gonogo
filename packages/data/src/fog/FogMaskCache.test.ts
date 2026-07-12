@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { SCAN_TYPE } from "@gonogo/core";
+import { SCAN_TYPE } from "@ksp-gonogo/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FogMaskCache } from "./FogMaskCache";
 import { FogMaskStore } from "./FogMaskStore";

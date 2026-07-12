@@ -1,14 +1,17 @@
-import type { ComponentDefinition } from "@gonogo/core";
-import { getComponents, safeRandomUuid } from "@gonogo/core";
-import { CpuRegistryProvider, useCpuRegistryService } from "@gonogo/data";
-import { SerialDeviceProvider, useSerialDeviceService } from "@gonogo/serial";
+import type { ComponentDefinition } from "@ksp-gonogo/core";
+import { getComponents, safeRandomUuid } from "@ksp-gonogo/core";
+import { CpuRegistryProvider, useCpuRegistryService } from "@ksp-gonogo/data";
+import {
+  SerialDeviceProvider,
+  useSerialDeviceService,
+} from "@ksp-gonogo/serial";
 import {
   CloseIcon,
   FilterChip,
   Tag,
   useFabCluster,
   useModal,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import type { KeyboardEvent, ReactNode } from "react";
 import {
   createContext,

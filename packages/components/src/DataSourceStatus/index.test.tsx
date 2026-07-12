@@ -1,5 +1,9 @@
-import type { ConfigField, DataSource, DataSourceStatus } from "@gonogo/core";
-import { clearRegistry, registerDataSource } from "@gonogo/core";
+import type {
+  ConfigField,
+  DataSource,
+  DataSourceStatus,
+} from "@ksp-gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";

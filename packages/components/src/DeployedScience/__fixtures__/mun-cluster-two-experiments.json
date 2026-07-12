@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "scenario": "mun-cluster-two-experiments",
+    "notes": "M3 science-domain finale dual-run fixture. Legacy deployed.bases values are chosen so parseBases's new-wire grouping branch (groupFlatDeployedEntries, index.tsx) reproduces this EXACT DOM from the flat science.deployed shape: powerAvailable/powerRequired zeroed (no EC numeric equivalent on the new wire, only the coarse powerState enum), progress/collecting derived straight from scienceCompletedPercentage, transmitted/stored derived from scienceValue x scienceTransmittedPercentage. See DeployedScience/dual-run.test.tsx for the matching stream-side emission."
+  },
+  "deployed.available": true,
+  "deployed.bases": [
+    {
+      "id": 0,
+      "body": "Mun",
+      "powered": true,
+      "partialPower": false,
+      "powerAvailable": 0,
+      "powerRequired": 0,
+      "controllerEnabled": true,
+      "experimentCount": 2,
+      "experiments": [
+        {
+          "id": "surfaceExperimentSeismicAccelerometer",
+          "name": "Seismic Accelerometer",
+          "total": 45,
+          "limit": 60,
+          "progress": 0.75,
+          "stored": 22.5,
+          "transmitted": 22.5,
+          "collecting": true
+        },
+        {
+          "id": "mysteryGoo",
+          "name": "Mystery Goo Experiment",
+          "total": 12,
+          "limit": 12,
+          "progress": 1,
+          "stored": 0,
+          "transmitted": 12,
+          "collecting": false
+        }
+      ]
+    }
+  ]
+}

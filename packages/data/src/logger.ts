@@ -1,8 +1,8 @@
-import { logger } from "@gonogo/logger";
+import { logger } from "@ksp-gonogo/logger";
 
 // Cached on first call so the hot path (every sample) is a single boolean
 // check after the initial resolution. Matches the debugPeer pattern in
-// @gonogo/core/src/logger/index.ts.
+// @ksp-gonogo/core/src/logger/index.ts.
 let enabled: boolean | null = null;
 
 export function debugFlight(

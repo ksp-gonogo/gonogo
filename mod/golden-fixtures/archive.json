@@ -1,0 +1,278 @@
+[
+  {
+    "name": "basic-read",
+    "description": "readAtVantage returns the latest sample with validAt <= sceneUt (nowUt - delaySeconds).",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 100,
+        "validAtUt": 0
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 200,
+        "validAtUt": 1
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 300,
+        "validAtUt": 2
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 400,
+        "validAtUt": 3
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 2,
+        "nowUt": 5,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      }
+    ]
+  },
+  {
+    "name": "two-vantage-independence",
+    "description": "Two vantages reading the same archive at independent delay offsets get independent cursors and independent scenes.",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 100,
+        "validAtUt": 0
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 200,
+        "validAtUt": 1
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 300,
+        "validAtUt": 2
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 400,
+        "validAtUt": 3
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 2,
+        "nowUt": 5,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v2",
+        "delaySeconds": 5,
+        "nowUt": 5,
+        "expected": {
+          "value": 100,
+          "validAt": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "freeze-on-recession",
+    "description": "A vantage whose delay grows faster than time advances (the observer recedes) HOLDS its scene rather than rewinding to an earlier sample; once time advances past the frozen scene again, the read still reflects the (still-latest) sample.",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 100,
+        "validAtUt": 0
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 200,
+        "validAtUt": 1
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 300,
+        "validAtUt": 2
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 400,
+        "validAtUt": 3
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 2,
+        "nowUt": 5,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 4,
+        "nowUt": 6,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 4,
+        "nowUt": 10,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      }
+    ]
+  },
+  {
+    "name": "before-first-sample",
+    "description": "A clamped scene before the first recorded sample's validAt returns null (TS undefined).",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 100,
+        "validAtUt": 10
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 2,
+        "nowUt": 5,
+        "expected": null
+      }
+    ]
+  },
+  {
+    "name": "read-before-any-record",
+    "description": "readAtVantage on a topic with no recorded samples at all returns null.",
+    "ops": [
+      {
+        "op": "readAtVantage",
+        "topic": "nonexistent",
+        "vantage": "v1",
+        "delaySeconds": 0,
+        "nowUt": 100,
+        "expected": null
+      }
+    ]
+  },
+  {
+    "name": "out-of-order-record",
+    "description": "A sample recorded with a validAtUt earlier than the last-appended sample is inserted to keep the list ascending, and reads see it in the correct position rather than the record-call order.",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 100,
+        "validAtUt": 0
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 400,
+        "validAtUt": 3
+      },
+      {
+        "op": "record",
+        "topic": "v.altitude",
+        "value": 300,
+        "validAtUt": 2
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v1",
+        "delaySeconds": 2,
+        "nowUt": 5,
+        "expected": {
+          "value": 400,
+          "validAt": 3
+        }
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "v.altitude",
+        "vantage": "v2",
+        "delaySeconds": 2,
+        "nowUt": 4,
+        "expected": {
+          "value": 300,
+          "validAt": 2
+        }
+      }
+    ]
+  },
+  {
+    "name": "collision-safe-keying",
+    "description": "Cursors are keyed by (topic, vantage) via a nested map, not string concatenation, so topic 'ab'/vantage 'c' never collides with topic 'a'/vantage 'bc'.",
+    "ops": [
+      {
+        "op": "record",
+        "topic": "ab",
+        "value": "topic-ab-c",
+        "validAtUt": 0
+      },
+      {
+        "op": "record",
+        "topic": "a",
+        "value": "topic-a-bc",
+        "validAtUt": 0
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "ab",
+        "vantage": "c",
+        "delaySeconds": 0,
+        "nowUt": 0,
+        "expected": {
+          "value": "topic-ab-c",
+          "validAt": 0
+        }
+      },
+      {
+        "op": "readAtVantage",
+        "topic": "a",
+        "vantage": "bc",
+        "delaySeconds": 0,
+        "nowUt": 0,
+        "expected": {
+          "value": "topic-a-bc",
+          "validAt": 0
+        }
+      }
+    ]
+  }
+]

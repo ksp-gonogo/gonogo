@@ -1,4 +1,4 @@
-import { debugPeer } from "@gonogo/logger";
+import { debugPeer } from "@ksp-gonogo/logger";
 import { relayBaseUrl } from "./iceServers";
 
 /** Heartbeat cadence for re-registering the share-code → peer-id mapping.

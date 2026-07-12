@@ -1,0 +1,67 @@
+[
+  {
+    "name": "meta-normal",
+    "kind": "meta",
+    "json": "{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"confidence\":0.87}"
+  },
+  {
+    "name": "meta-no-confidence",
+    "kind": "meta",
+    "json": "{\"source\":\"vessel-1\",\"validAt\":0,\"seq\":1,\"deliveredAt\":0,\"vantage\":\"KSC\",\"quality\":1,\"active\":false,\"staleness\":1,\"timelineEpoch\":3}"
+  },
+  {
+    "name": "meta-nan-infinity",
+    "kind": "meta",
+    "json": "{\"source\":\"vessel-1\",\"validAt\":\"NaN\",\"seq\":42,\"deliveredAt\":\"Infinity\",\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":2,\"timelineEpoch\":2,\"confidence\":\"-Infinity\"}"
+  },
+  {
+    "name": "stream-data-number",
+    "kind": "streamData",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.altitude\",\"payload\":70432.125,\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"confidence\":0.87}}"
+  },
+  {
+    "name": "stream-data-object",
+    "kind": "streamData",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.status\",\"payload\":{\"landed\":false,\"stage\":3,\"tags\":[\"prograde\",\"warp\"],\"note\":null},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"confidence\":0.87}}"
+  },
+  {
+    "name": "stream-data-nan-payload",
+    "kind": "streamData",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.orbit.eccentricAnomaly\",\"payload\":{\"eccentricAnomaly\":\"NaN\",\"apoapsis\":\"Infinity\"},\"meta\":{\"source\":\"vessel-1\",\"validAt\":0,\"seq\":1,\"deliveredAt\":0,\"vantage\":\"KSC\",\"quality\":1,\"active\":false,\"staleness\":1,\"timelineEpoch\":3}}"
+  },
+  {
+    "name": "event-msg",
+    "kind": "eventMsg",
+    "json": "{\"type\":\"event\",\"topic\":\"vessel.stage\",\"name\":\"stage-separated\",\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"confidence\":0.87}}"
+  },
+  {
+    "name": "command-request",
+    "kind": "commandRequest",
+    "json": "{\"type\":\"command-request\",\"requestId\":\"req-1\",\"command\":\"deploy\",\"args\":{\"part\":\"solar-panel-1\"},\"sentAt\":100}"
+  },
+  {
+    "name": "command-response",
+    "kind": "commandResponse",
+    "json": "{\"type\":\"command-response\",\"requestId\":\"req-1\",\"result\":{\"ok\":true,\"deployedAt\":101.5},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"confidence\":0.87}}"
+  },
+  {
+    "name": "error-msg-full",
+    "kind": "errorMsg",
+    "json": "{\"type\":\"error\",\"requestId\":\"req-2\",\"topic\":\"vessel.altitude\",\"code\":\"UNREACHABLE\",\"message\":\"node unreachable from vantage\"}"
+  },
+  {
+    "name": "error-msg-minimal",
+    "kind": "errorMsg",
+    "json": "{\"type\":\"error\",\"code\":\"INTERNAL\",\"message\":\"unexpected server error\"}"
+  },
+  {
+    "name": "subscribe",
+    "kind": "subscribe",
+    "json": "{\"type\":\"subscribe\",\"topic\":\"vessel.altitude\"}"
+  },
+  {
+    "name": "unsubscribe",
+    "kind": "unsubscribe",
+    "json": "{\"type\":\"unsubscribe\",\"topic\":\"vessel.altitude\"}"
+  }
+]

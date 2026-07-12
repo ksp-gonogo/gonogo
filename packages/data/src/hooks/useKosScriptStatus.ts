@@ -1,9 +1,9 @@
-import { getDataSource } from "@gonogo/core";
+import { getDataSource } from "@ksp-gonogo/core";
 import { useEffect, useState } from "react";
 
 /**
  * Topic-state shape exposed by the centralised kOS compute fanout. Mirrors
- * `KosTopicStatus` in `@gonogo/app` — duplicated here so widgets can pull
+ * `KosTopicStatus` in `@ksp-gonogo/app` — duplicated here so widgets can pull
  * the type without importing from the app package (which would be the
  * wrong dependency direction). The shape is intentionally small and
  * stable; if it ever needs richer fields, lift the type into core.

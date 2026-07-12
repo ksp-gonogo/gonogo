@@ -1,4 +1,4 @@
-import type { ParsedManeuverNode } from "@gonogo/data";
+import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useEffect, useRef, useState } from "react";
 
 export interface CompletedEntry {

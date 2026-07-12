@@ -57,7 +57,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build render dependencies
-        run: pnpm --filter "@gonogo/components..." build
+        run: pnpm --filter "@ksp-gonogo/components..." build
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium firefox webkit
@@ -69,9 +69,9 @@ jobs:
           for engine in chromium firefox webkit; do
             echo "── updating $engine baselines ──"
             if [ -n "$WIDGET" ]; then
-              pnpm --filter @gonogo/components visual-gate --engine "$engine" --update --widget "$WIDGET"
+              pnpm --filter @ksp-gonogo/components visual-gate --engine "$engine" --update --widget "$WIDGET"
             else
-              pnpm --filter @gonogo/components visual-gate --engine "$engine" --update
+              pnpm --filter @ksp-gonogo/components visual-gate --engine "$engine" --update
             fi
           done
 

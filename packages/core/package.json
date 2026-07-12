@@ -1,5 +1,6 @@
 {
-  "name": "@gonogo/core",
+  "name": "@ksp-gonogo/core",
+  "license": "GPL-3.0-only",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -20,12 +21,15 @@
     "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
   },
   "dependencies": {
-    "@gonogo/logger": "workspace:*"
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*"
   },
   "devDependencies": {
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",

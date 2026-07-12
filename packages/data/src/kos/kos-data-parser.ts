@@ -18,7 +18,7 @@
  * per topic, with bare `[KOSDATA]` keyed under `default`.
  */
 
-import { PerfBudget } from "@gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
 
 /**
  * Soft cap on parser invocations. The proxy emits one PTY chunk per

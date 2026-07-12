@@ -1,5 +1,4 @@
-import { getDataSource } from "@gonogo/core";
-import { TELEMACHUS_META } from "@gonogo/data";
+import { TELEMACHUS_META } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,
@@ -34,9 +33,9 @@ export interface TagAutocompleteProps {
 
 /**
  * Text input that opens a key-picker popover when the user types `{{`,
- * filtered against the data source's schema enriched with the friendly
- * labels from telemachusMeta. Selection inserts `{{<key>}}` and moves
- * the cursor past the closer.
+ * filtered against `TELEMACHUS_META`'s friendly labels/groups (the stream-
+ * mapped key catalog — see `useKeyOptions` below). Selection inserts
+ * `{{<key>}}` and moves the cursor past the closer.
  *
  * Supports both single-line and multi-line via the `multiline` prop —
  * Notes uses single-line for the add-row and multi-line for the
@@ -233,38 +232,25 @@ export const TagAutocomplete = forwardRef<
 });
 
 function useKeyOptions(): KeyOption[] {
-  const source = getDataSource("data");
+  // The legacy "data" `DataSource` (and its live schema listing) is gone —
+  // suggestions now come straight from `TELEMACHUS_META`, which already
+  // covers every stream-mapped key (see `map-topic.ts`'s
+  // `TELEMACHUS_CLEAN_HOMES`). Recomputed every render — the map is small
+  // (~few dozen entries) and the cost is well under a millisecond.
   return useMemo<KeyOption[]>(() => {
-    const keys = source ? source.schema().map((k) => k.key) : [];
-    const merged: KeyOption[] = [];
-    const seen = new Set<string>();
-    for (const k of keys) {
-      const meta = TELEMACHUS_META[k];
-      merged.push({
-        key: k,
-        label: meta?.label ?? k,
-        group: meta?.group ?? "Other",
-        unit: meta?.unit === "raw" ? undefined : meta?.unit,
-      });
-      seen.add(k);
-    }
-    // Also include any meta-known keys the data source hasn't registered
-    // (typical when the fork ships a key the gonogo schema doesn't yet
-    // surface — still safe to insert, may just render as `…` until live).
-    for (const [k, meta] of Object.entries(TELEMACHUS_META)) {
-      if (seen.has(k)) continue;
-      merged.push({
+    const merged: KeyOption[] = Object.entries(TELEMACHUS_META).map(
+      ([k, meta]) => ({
         key: k,
         label: meta.label,
         group: meta.group ?? "Other",
         unit: meta.unit === "raw" ? undefined : meta.unit,
-      });
-    }
+      }),
+    );
     return merged.sort((a, b) => {
       if (a.group !== b.group) return a.group.localeCompare(b.group);
       return a.label.localeCompare(b.label);
     });
-  }, [source]);
+  }, []);
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────

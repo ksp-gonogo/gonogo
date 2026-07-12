@@ -1,26 +1,28 @@
-import { ManeuverTriggerProvider } from "@gonogo/components";
+import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import {
+  type GameScene,
   getDataSource,
   getDataSources,
   ScreenProvider,
   useGameContext,
-} from "@gonogo/core";
-import type { BufferedDataSource } from "@gonogo/data";
+} from "@ksp-gonogo/core";
 import {
+  AutoRecordController,
   CpuRegistryProvider,
   CpuRegistryService,
   FlightsFab,
   FogMaskCacheProvider,
   FogMaskStore,
-  ReplayBanner,
-} from "@gonogo/data";
+  ReplaySessionBanner,
+  ReplaySessionProvider,
+} from "@ksp-gonogo/data";
 import {
   InputDispatcher,
   SerialDeviceProvider,
   SerialDeviceService,
   SerialPortRecoveryWatcher,
-} from "@gonogo/serial";
-import { BannerStack, FabClusterProvider } from "@gonogo/ui";
+} from "@ksp-gonogo/serial";
+import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -51,7 +53,6 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
-import { TelemachusAntennaBanner } from "../components/TelemachusAntennaBanner";
 import { KosDataSource } from "../dataSources/kos";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
@@ -68,8 +69,15 @@ import { peerHostService } from "../peer/PeerHostService";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
-import { SettingsFab, SettingsProvider, SettingsService } from "../settings";
+import {
+  SettingsFab,
+  SettingsProvider,
+  SettingsService,
+  useMissionHistorySettings,
+} from "../settings";
 import { initSoundSettings } from "../sound";
+import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
+import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { DEMO_CONFIG } from "./demoConfig";
 
 // ---------------------------------------------------------------------------
@@ -115,18 +123,10 @@ export function MainScreen() {
   // (the useState initializer only runs once per mount cycle).
   const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
   const [pushHost] = useState(() => new PushHostService(peerHostService));
-  const [alarmHost] = useState(() =>
-    createAlarmHost(
-      peerHostService,
-      () => (getDataSource("data") as BufferedDataSource | undefined) ?? null,
-    ),
-  );
+  const [alarmHost] = useState(() => createAlarmHost(peerHostService));
   const [notesHost] = useState(() => createNotesHost(peerHostService));
   const [maneuverTriggerHost] = useState(() =>
-    createManeuverTriggerHost(
-      peerHostService,
-      () => (getDataSource("data") as BufferedDataSource | undefined) ?? null,
-    ),
+    createManeuverTriggerHost(peerHostService),
   );
   const [fogSyncHost] = useState(
     () =>
@@ -198,74 +198,90 @@ export function MainScreen() {
   }, []);
 
   return (
-    <ScreenProvider value="main">
-      <SettingsProvider service={settingsService}>
-        <AnalyticsConsentHost
-          service={analyticsConsentService}
-          peerHost={peerHostService}
-        />
-        <AlarmHostProvider service={alarmHost}>
-          <NotesHostProvider service={notesHost}>
-            <ManeuverTriggerProvider service={maneuverTriggerHost}>
-              <CpuRegistryProvider service={cpuRegistry}>
-                <MissionProfilesProvider service={missionProfiles}>
-                  <GoNoGoHostProvider service={goNoGoHost}>
-                    <PushHostProvider service={pushHost}>
-                      <FogMaskCacheProvider store={fogMaskStore}>
-                        <SerialDeviceProvider service={serialService}>
-                          <OverlayProvider
-                            addItem={dashboard.addItem}
-                            updateItemConfig={dashboard.updateItemConfig}
-                          >
-                            <MainAlarmsLauncherScope>
-                              <Layout as="main" aria-label="Mission control">
-                                <Dashboard
-                                  items={dashboard.items}
-                                  layouts={dashboard.layouts}
-                                  currentLayouts={dashboard.currentLayouts}
-                                  breakpoint={dashboard.breakpoint}
-                                  onLayoutChange={dashboard.handleLayoutChange}
-                                  onBreakpointChange={
-                                    dashboard.handleBreakpointChange
-                                  }
-                                  updateItemConfig={dashboard.updateItemConfig}
-                                  updateItemMappings={
-                                    dashboard.updateItemMappings
-                                  }
-                                  updateItemMobileWidth={
-                                    dashboard.updateItemMobileWidth
-                                  }
-                                  updateItemMobileHeight={
-                                    dashboard.updateItemMobileHeight
-                                  }
-                                  removeItem={dashboard.removeItem}
-                                  moveItemUp={dashboard.moveItemUp}
-                                  moveItemDown={dashboard.moveItemDown}
-                                  lastAddedId={dashboard.lastAddedId}
-                                  clearLastAdded={dashboard.clearLastAdded}
-                                />
-                                <FabClusterProvider>
-                                  <ComponentOverlay
-                                    currentLayouts={dashboard.currentLayouts}
-                                  />
-                                  <FlightsFab />
-                                  <SerialPortRecoveryWatcher />
-                                  <StationLinkFab />
-                                  <FullscreenFab bottom={204} />
-                                  <SettingsFab bottom={264} />
-                                  <MissionProfilesFab
-                                    bottom={324}
-                                    currentItems={dashboard.items}
-                                    currentLayouts={dashboard.layouts}
-                                    onLoad={(p) =>
-                                      dashboard.replaceState(p.items, p.layouts)
-                                    }
-                                  />
-                                  <MainAlarmsFab />
-                                </FabClusterProvider>
-                                <ReplayBanner />
-                                <BannerStack>
-                                  {/* BannerStack is row-reverse —
+    <SitrepTelemetryProvider>
+      <SitrepPeerRelay peerHost={peerHostService} />
+      <ReplaySessionProvider>
+        <ScreenProvider value="main">
+          <SettingsProvider service={settingsService}>
+            <AnalyticsConsentHost
+              service={analyticsConsentService}
+              peerHost={peerHostService}
+            />
+            <AutoRecordControllerWithMissionHistory scene={scene} />
+            <AlarmHostProvider service={alarmHost}>
+              <NotesHostProvider service={notesHost}>
+                <ManeuverTriggerProvider service={maneuverTriggerHost}>
+                  <CpuRegistryProvider service={cpuRegistry}>
+                    <MissionProfilesProvider service={missionProfiles}>
+                      <GoNoGoHostProvider service={goNoGoHost}>
+                        <PushHostProvider service={pushHost}>
+                          <FogMaskCacheProvider store={fogMaskStore}>
+                            <SerialDeviceProvider service={serialService}>
+                              <OverlayProvider
+                                addItem={dashboard.addItem}
+                                updateItemConfig={dashboard.updateItemConfig}
+                              >
+                                <MainAlarmsLauncherScope>
+                                  <Layout
+                                    as="main"
+                                    aria-label="Mission control"
+                                  >
+                                    <Dashboard
+                                      items={dashboard.items}
+                                      layouts={dashboard.layouts}
+                                      currentLayouts={dashboard.currentLayouts}
+                                      breakpoint={dashboard.breakpoint}
+                                      onLayoutChange={
+                                        dashboard.handleLayoutChange
+                                      }
+                                      onBreakpointChange={
+                                        dashboard.handleBreakpointChange
+                                      }
+                                      updateItemConfig={
+                                        dashboard.updateItemConfig
+                                      }
+                                      updateItemMappings={
+                                        dashboard.updateItemMappings
+                                      }
+                                      updateItemMobileWidth={
+                                        dashboard.updateItemMobileWidth
+                                      }
+                                      updateItemMobileHeight={
+                                        dashboard.updateItemMobileHeight
+                                      }
+                                      removeItem={dashboard.removeItem}
+                                      moveItemUp={dashboard.moveItemUp}
+                                      moveItemDown={dashboard.moveItemDown}
+                                      lastAddedId={dashboard.lastAddedId}
+                                      clearLastAdded={dashboard.clearLastAdded}
+                                    />
+                                    <FabClusterProvider>
+                                      <ComponentOverlay
+                                        currentLayouts={
+                                          dashboard.currentLayouts
+                                        }
+                                      />
+                                      <FlightsFabWithMissionHistory />
+                                      <SerialPortRecoveryWatcher />
+                                      <StationLinkFab />
+                                      <FullscreenFab bottom={204} />
+                                      <SettingsFab bottom={264} />
+                                      <MissionProfilesFab
+                                        bottom={324}
+                                        currentItems={dashboard.items}
+                                        currentLayouts={dashboard.layouts}
+                                        onLoad={(p) =>
+                                          dashboard.replaceState(
+                                            p.items,
+                                            p.layouts,
+                                          )
+                                        }
+                                      />
+                                      <MainAlarmsFab />
+                                    </FabClusterProvider>
+                                    <ReplaySessionBanner />
+                                    <BannerStack>
+                                      {/* BannerStack is row-reverse —
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -273,36 +289,86 @@ export function MainScreen() {
                                         unscheduled warp) stack to its
                                         left as separate single-row
                                         pills. */}
-                                  <AlarmBanner />
-                                  <SafetyMarginPill />
-                                  <FiredAlarmPills />
-                                  <UnscheduledWarpPill />
-                                  <SignalLossIndicator />
-                                  <TelemachusAntennaBanner />
-                                  <SustainedFailureBanner />
-                                  <SceneChangeBanner />
-                                  <FlightOutcomeBanner />
-                                  <SceneSwitchPrompt
-                                    onLoad={(items, layouts) =>
-                                      dashboard.replaceState(items, layouts)
-                                    }
-                                  />
-                                </BannerStack>
-                                <PushedDashboardOverlay />
-                              </Layout>
-                            </MainAlarmsLauncherScope>
-                          </OverlayProvider>
-                        </SerialDeviceProvider>
-                      </FogMaskCacheProvider>
-                    </PushHostProvider>
-                  </GoNoGoHostProvider>
-                </MissionProfilesProvider>
-              </CpuRegistryProvider>
-            </ManeuverTriggerProvider>
-          </NotesHostProvider>
-        </AlarmHostProvider>
-      </SettingsProvider>
-    </ScreenProvider>
+                                      <AlarmBanner />
+                                      <SafetyMarginPill />
+                                      <FiredAlarmPills />
+                                      <UnscheduledWarpPill />
+                                      <SignalLossIndicator />
+                                      <SustainedFailureBanner />
+                                      <SceneChangeBanner />
+                                      <FlightOutcomeBanner />
+                                      <SceneSwitchPrompt
+                                        onLoad={(items, layouts) =>
+                                          dashboard.replaceState(items, layouts)
+                                        }
+                                      />
+                                    </BannerStack>
+                                    <PushedDashboardOverlay />
+                                  </Layout>
+                                </MainAlarmsLauncherScope>
+                              </OverlayProvider>
+                            </SerialDeviceProvider>
+                          </FogMaskCacheProvider>
+                        </PushHostProvider>
+                      </GoNoGoHostProvider>
+                    </MissionProfilesProvider>
+                  </CpuRegistryProvider>
+                </ManeuverTriggerProvider>
+              </NotesHostProvider>
+            </AlarmHostProvider>
+          </SettingsProvider>
+        </ScreenProvider>
+      </ReplaySessionProvider>
+    </SitrepTelemetryProvider>
+  );
+}
+
+/**
+ * `FlightsFab` needs the resolved mission-history settings, but
+ * `@ksp-gonogo/data` (where it lives) has no access to `@ksp-gonogo/app`'s
+ * `SettingsService` — this tiny wrapper bridges the two, and must be
+ * rendered inside `<SettingsProvider>` (unlike `MainScreen` itself, which
+ * constructs the `SettingsService` instance but sits OUTSIDE its own
+ * provider's subtree).
+ */
+function FlightsFabWithMissionHistory() {
+  const { missionHistoryEnabled, recordAllTopics } =
+    useMissionHistorySettings();
+  return (
+    <FlightsFab
+      missionHistoryEnabled={missionHistoryEnabled}
+      recordAllTopics={recordAllTopics}
+    />
+  );
+}
+
+/**
+ * Renders nothing — mounts `AutoRecordController`, the auto-record
+ * lifecycle (see that component's own doc comment for the flight-boundary
+ * approach), for the app's lifetime. Same settings-bridging need as
+ * `FlightsFabWithMissionHistory` above: `@ksp-gonogo/data` has no access to
+ * this app's `SettingsService`. `scene` is passed down rather than read via
+ * a second `useGameContext()` call — `MainScreen` already calls it once
+ * (for the per-scene dashboard key) and this wrapper reuses that value.
+ *
+ * Deliberately main-only by construction: this is only ever rendered from
+ * `MainScreen`'s own JSX, never `StationScreen`'s — there is no separate
+ * `isMain` gate to get wrong.
+ */
+function AutoRecordControllerWithMissionHistory({
+  scene,
+}: {
+  scene: GameScene;
+}) {
+  const { missionHistoryEnabled, recordAllTopics, videoRecordingEnabled } =
+    useMissionHistorySettings();
+  return (
+    <AutoRecordController
+      missionHistoryEnabled={missionHistoryEnabled}
+      recordAllTopics={recordAllTopics}
+      videoRecordingEnabled={videoRecordingEnabled}
+      scene={scene}
+    />
   );
 }
 
@@ -351,7 +417,7 @@ function MainAlarmsLauncherScope({ children }: { children: ReactNode }) {
 
 /**
  * Mounts the shared AlarmsFab backed by the main-screen AlarmHostService.
- * Lives here rather than in @gonogo/app/alarms so the FAB stays agnostic
+ * Lives here rather than in @ksp-gonogo/app/alarms so the FAB stays agnostic
  * between main (host) and station (peer client).
  */
 function MainAlarmsFab() {

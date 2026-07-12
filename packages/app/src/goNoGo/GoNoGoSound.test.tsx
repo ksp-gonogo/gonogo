@@ -1,4 +1,4 @@
-import { DashboardItemContext, ScreenProvider } from "@gonogo/core";
+import { DashboardItemContext, ScreenProvider } from "@ksp-gonogo/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";

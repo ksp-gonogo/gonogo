@@ -1,30 +1,38 @@
+export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
+export * from "./augments";
 export * from "./bodies";
 export * from "./calc";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
 export * from "./fog";
+export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
+export * from "./hooks/useCommand";
 export * from "./hooks/useDataSourceSubscription";
 export * from "./hooks/useDataSources";
+export * from "./hooks/useDataStreamStatus";
 export * from "./hooks/useDataValue";
 export * from "./hooks/useExecuteAction";
 export * from "./hooks/useGameContext";
 export * from "./hooks/useOrbitElements";
+export * from "./hooks/useTelemetry";
 export * from "./hooks/useTouchDevice";
-export * from "./kos/KosProxyContext";
 export * from "./kos/scriptRegistry";
 // ErrorBoundary stays in core (React-specific). The rest of the
 // logger surface — `logger`, `AxiomTransport`, `tagRegistry`, types,
-// debugPeer, handleError — moved to `@gonogo/logger` so Node services
+// debugPeer, handleError — moved to `@ksp-gonogo/logger` so Node services
 // can consume it without dragging in core's browser-leaning tree.
 export { ErrorBoundary } from "./logger/ErrorBoundary";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
 export * from "./registry";
 export * from "./safeRandomUuid";
+export * from "./schemas/orbit";
+export * from "./schemas/scansat";
 export * from "./schemas/telemachus";
+export * from "./schemas/vessel-parts";
 export * from "./stock-bodies";
 export * from "./telemachus";
 export * from "./testing/installDomStubs";

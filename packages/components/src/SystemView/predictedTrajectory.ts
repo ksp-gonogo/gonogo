@@ -19,7 +19,7 @@
  * The first sample of any non-initial patch (ENCOUNTER / ESCAPE transition) is
  * the SOI-crossing point — surfaced separately as an encounter marker.
  */
-import { type OrbitPatch, patchStateAt } from "@gonogo/core";
+import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
 
 /** A point on a predicted arc, in diagram-local px (origin = frame parent). */
 export interface ProjectedPoint {

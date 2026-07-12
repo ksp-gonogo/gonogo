@@ -1,4 +1,4 @@
-import { handleError } from "@gonogo/logger";
+import { handleError } from "@ksp-gonogo/logger";
 import { Component, type ReactNode } from "react";
 
 interface Props {

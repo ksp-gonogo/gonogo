@@ -1,19 +1,19 @@
 /**
  * Presentational "Connect to Mission Control" screen used by the station
- * pre-connection state. Extracted from `@gonogo/app`'s StationScreen so the
+ * pre-connection state. Extracted from `@ksp-gonogo/app`'s StationScreen so the
  * exact same markup the operator sees can be driven through the component
  * render-harness at multiple mobile breakpoints — single-source, no
  * probe-only copy that can drift from production.
  *
- * Pure presentational: depends only on `@gonogo/ui` primitives plus injected
+ * Pure presentational: depends only on `@ksp-gonogo/ui` primitives plus injected
  * slots. The station name editor (which needs app-scoped React context) and
  * the download-logs action arrive as props/slots so this view carries no
- * `@gonogo/app` dependency — that would be a reverse edge in the workspace
+ * `@ksp-gonogo/app` dependency — that would be a reverse edge in the workspace
  * graph. State (host input value, connection status) is owned by the caller;
  * the harness exercises the idle / error / reconnecting states purely by
  * varying the props, so no PeerClientService ever has to be mocked.
  */
-import { StatusIndicator } from "@gonogo/ui";
+import { StatusIndicator } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 

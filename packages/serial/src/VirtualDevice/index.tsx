@@ -1,5 +1,5 @@
-import type { ComponentProps, ConfigComponentProps } from "@gonogo/core";
-import { registerComponent } from "@gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -9,7 +9,7 @@ import {
   Placeholder,
   Select,
   useModalSaveBar,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {

@@ -11,9 +11,19 @@ import {
   type ManeuverTriggerService,
   type ThresholdOp,
   type TriggerSnapshot,
-} from "@gonogo/components";
-import { getBody, safeRandomUuid } from "@gonogo/core";
-import { LocalStorageStore } from "@gonogo/data";
+} from "@ksp-gonogo/components";
+import { getBody, safeRandomUuid } from "@ksp-gonogo/core";
+import { LocalStorageStore } from "@ksp-gonogo/data";
+import {
+  dispatchActiveCommand,
+  getValue,
+  getVesselIdentity,
+  getVesselOrbit,
+  getVesselState,
+  getVesselTarget,
+  getViewUt,
+  onActiveTimelineFrame,
+} from "@ksp-gonogo/sitrep-client";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**
@@ -23,25 +33,30 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *   - Maintain the canonical trigger list (persisted in localStorage so a
  *     reload doesn't lose armed conditions, including ones armed by a
  *     station — which is the whole point of moving them off the widget).
- *   - Tick at 1 Hz (alarm-style) plus on every value emit for the watched
- *     keys, evaluating each trigger's condition and firing once when the
- *     comparison first holds.
+ *   - Tick at 1 Hz (alarm-style) plus on every stream frame, evaluating each
+ *     trigger's condition and firing once when the comparison first holds.
  *   - On fire: recompute the plan from the trigger's frozen inputs against
- *     the *current* orbit, then dispatch each burn via execute.
- *   - Auto-clear triggers whose stored vesselName no longer matches the
- *     observed `v.name` — a circularize armed for vessel A shouldn't fire
- *     on vessel B.
+ *     the *current* orbit, then dispatch each burn via the stream.
+ *   - Auto-clear triggers whose observed vessel identity no longer matches
+ *     the one it was armed against — a circularize armed for vessel A
+ *     shouldn't fire on vessel B.
  *   - Broadcast snapshots to connected peers; accept arm / cancel from
  *     them via the host service.
+ *
+ * `readLiveOrbit()`/`readVesselName()` read the vessel's own orbit, the
+ * current target's orbit, and vessel identity off the non-hook
+ * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
+ * `getVesselState()` accessors (`@ksp-gonogo/sitrep-client`) — the same
+ * `TimelineStore` a mounted widget's `useTelemetry` would read. An armed
+ * TRIGGER's own `dataKey` is an operator-picked key too, but no longer an
+ * ARBITRARY one: the widget's `DataKeyPicker` only offers keys
+ * `@ksp-gonogo/data`'s `useValueKeys` resolves — the Value-restricted,
+ * stream-mapped set — so the threshold read (`getValue`) and the
+ * maneuver-node fire (`dispatchActiveCommand`) both ride the stream now, the
+ * same way `LocalManeuverTriggerService` does.
  */
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
-
-interface TelemetryReader {
-  getLatestValue(key: string): unknown;
-  execute(action: string): Promise<void>;
-  subscribe(key: string, cb: (value: unknown) => void): () => void;
-}
 
 export interface ManeuverTriggerHostOptions {
   nowMs?: () => number;
@@ -52,20 +67,16 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private triggers: ArmedTrigger[] = [];
   private listeners = new Set<(snap: TriggerSnapshot) => void>();
   private fired = new Set<string>();
-  private unsubByKey = new Map<string, () => void>();
   private vesselUnsub: (() => void) | null = null;
   private host: PeerHostService | null;
-  private telemetry: TelemetryReader | null;
   private store: LocalStorageStore<ArmedTrigger[]>;
   private readonly nowMs: () => number;
 
   constructor(
     host: PeerHostService | null,
-    telemetry: TelemetryReader | null,
     opts: ManeuverTriggerHostOptions = {},
   ) {
     this.host = host;
-    this.telemetry = telemetry;
     this.nowMs = opts.nowMs ?? (() => Date.now());
     this.store = new LocalStorageStore<ArmedTrigger[]>({
       key: STORAGE_KEY,
@@ -75,16 +86,13 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     this.load();
     this.bindPeerListeners();
     this.bindVesselWatcher();
-    this.rebuildKeySubscriptions();
     // Evaluate once on startup so an already-true condition (rare but
     // possible: page reload after telemetry has crossed the threshold)
-    // fires immediately rather than waiting for the next emit.
+    // fires immediately rather than waiting for the next stream frame.
     this.evaluate();
   }
 
   dispose(): void {
-    for (const unsub of this.unsubByKey.values()) unsub();
-    this.unsubByKey.clear();
     this.vesselUnsub?.();
     this.vesselUnsub = null;
     this.listeners.clear();
@@ -114,7 +122,6 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     this.fired.delete(id);
     if (this.triggers.length !== before) {
       this.persist();
-      this.rebuildKeySubscriptions();
       this.emit();
     }
   }
@@ -134,7 +141,6 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     };
     this.triggers.push(trigger);
     this.persist();
-    this.rebuildKeySubscriptions();
     this.emit();
     this.evaluate();
   }
@@ -158,8 +164,13 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   }
 
   private bindVesselWatcher(): void {
-    if (!this.telemetry) return;
-    this.vesselUnsub = this.telemetry.subscribe("v.name", () => {
+    // Vessel-identity/orbit reads ride the stream (`getVesselIdentity()` et
+    // al, sampled on demand — see `readLiveOrbit`/`readVesselName`), so this
+    // watches for a new stream FRAME rather than a legacy `v.name` value
+    // emit. The same frame tick re-evaluates every armed trigger's
+    // `dataKey` threshold below (`evaluate()`) — no more per-key data-source
+    // subscription.
+    this.vesselUnsub = onActiveTimelineFrame(() => {
       // Vessel changed — drop triggers for the old one.
       const live = this.readVesselName();
       const before = this.triggers.length;
@@ -172,30 +183,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       for (const id of removedIds) this.fired.delete(id);
       if (this.triggers.length !== before) {
         this.persist();
-        this.rebuildKeySubscriptions();
       }
       // Always emit so vesselName updates flow to peers + UI.
       this.emit();
       this.evaluate();
     });
-  }
-
-  private rebuildKeySubscriptions(): void {
-    if (!this.telemetry) return;
-    const wanted = new Set(this.triggers.map((t) => t.dataKey));
-    // Drop subscriptions for keys we no longer care about.
-    for (const [key, unsub] of this.unsubByKey) {
-      if (!wanted.has(key)) {
-        unsub();
-        this.unsubByKey.delete(key);
-      }
-    }
-    // Add subscriptions for any new keys.
-    for (const key of wanted) {
-      if (this.unsubByKey.has(key)) continue;
-      const unsub = this.telemetry.subscribe(key, () => this.evaluate());
-      this.unsubByKey.set(key, unsub);
-    }
   }
 
   private evaluate(): void {
@@ -210,8 +202,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         continue;
       }
       if (this.fired.has(t.id)) continue;
-      const value = this.readNumber(t.dataKey);
-      if (value === null) continue;
+      const value = getValue("data", t.dataKey);
+      if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
       this.fire(t);
@@ -220,13 +212,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     }
     if (mutated) {
       this.persist();
-      this.rebuildKeySubscriptions();
       this.emit();
     }
   }
 
   private fire(trigger: ArmedTrigger): void {
-    if (!this.telemetry) return;
     const live = this.readLiveOrbit();
     const planInputs = { ...trigger.inputs, ...live };
     const plan = computePlan(planInputs);
@@ -234,61 +224,53 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const burns = isSequence(plan) ? plan.burns : [plan];
     for (const b of burns) {
       const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
-      void this.telemetry.execute(action);
+      const outcome = dispatchActiveCommand("data", action);
+      if (outcome.routed) void outcome.settled;
     }
   }
 
   private readLiveOrbit() {
-    const sma = this.readNumber("o.sma") ?? undefined;
-    const ecc = this.readNumber("o.eccentricity") ?? undefined;
-    const ApR = this.readNumber("o.ApR") ?? undefined;
-    const PeR = this.readNumber("o.PeR") ?? undefined;
-    const timeToAp = this.readNumber("o.timeToAp") ?? undefined;
-    const timeToPe = this.readNumber("o.timeToPe") ?? undefined;
-    const currentUT = this.readNumber("t.universalTime") ?? undefined;
-    const orbitalSpeed = this.readNumber("o.orbitalSpeed") ?? undefined;
-    const radius = this.readNumber("o.radius") ?? undefined;
-    const period = this.readNumber("o.period") ?? undefined;
-    const bodyName = this.readString("v.body");
-    const refBody = this.readString("o.referenceBody");
+    const orbit = getVesselOrbit();
+    const state = getVesselState();
+    const target = getVesselTarget();
+    const targetOrbit = target?.orbit;
+    const sma = orbit?.sma;
+    const orbitalSpeed = state?.orbitalSpeed ?? undefined;
+    const radius = state?.orbitalRadius ?? undefined;
+    const period = state?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
         sma,
-        ecc,
-        ApR,
-        PeR,
-        timeToAp,
-        timeToPe,
+        ecc: orbit?.ecc,
+        ApR: state?.apoapsisRadius ?? undefined,
+        PeR: state?.periapsisRadius ?? undefined,
+        timeToAp: state?.timeToAp ?? undefined,
+        timeToPe: state?.timeToPe ?? undefined,
       }),
-      currentUT,
+      // Not a data-source key: `t.universalTime` was DROPPED — this is the
+      // SDK's own view time, read via the non-hook `getViewUt` accessor rather
+      // than the legacy telemetry reader.
+      currentUT: getViewUt(),
       mu: computeMu(orbitalSpeed, radius, sma, period),
-      trueAnomaly: this.readNumber("o.trueAnomaly") ?? undefined,
-      argPe: this.readNumber("o.argumentOfPeriapsis") ?? undefined,
-      inclination: this.readNumber("o.inclination") ?? undefined,
-      lan: this.readNumber("o.lan") ?? undefined,
-      targetInclinationLive: this.readNumber("tar.o.inclination") ?? undefined,
-      targetLanLive: this.readNumber("tar.o.lan") ?? undefined,
-      targetSma: this.readNumber("tar.o.sma") ?? undefined,
-      targetPeA: this.readNumber("tar.o.PeA") ?? undefined,
-      targetArgPe: this.readNumber("tar.o.argumentOfPeriapsis") ?? undefined,
-      targetTrueAnomaly: this.readNumber("tar.o.trueAnomaly") ?? undefined,
-      targetPeriod: this.readNumber("tar.o.period") ?? undefined,
-      bodyRadius: getBody(bodyName ?? refBody ?? "")?.radius,
+      trueAnomaly: state?.trueAnomaly ?? undefined,
+      argPe: orbit?.argPe,
+      inclination: orbit?.inc,
+      lan: orbit?.lan,
+      targetInclinationLive: targetOrbit?.inc,
+      targetLanLive: targetOrbit?.lan,
+      targetSma: targetOrbit?.sma,
+      targetPeA: state?.targetPeriapsisAlt ?? undefined,
+      targetArgPe: targetOrbit?.argPe,
+      targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
+      targetPeriod: state?.targetPeriod ?? undefined,
+      bodyRadius: getBody(
+        state?.parentBodyName ?? state?.referenceBodyName ?? "",
+      )?.radius,
     };
   }
 
   private readVesselName(): string | null {
-    return this.readString("v.name");
-  }
-
-  private readNumber(key: string): number | null {
-    const v = this.telemetry?.getLatestValue(key);
-    return typeof v === "number" && Number.isFinite(v) ? v : null;
-  }
-
-  private readString(key: string): string | null {
-    const v = this.telemetry?.getLatestValue(key);
-    return typeof v === "string" ? v : null;
+    return getVesselIdentity()?.name ?? null;
   }
 
   private emit(): void {

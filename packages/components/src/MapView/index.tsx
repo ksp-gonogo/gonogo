@@ -5,26 +5,27 @@ import type {
   SCANScanningVessel,
   SCANType,
   TrackSample,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   getBody,
   getImagingWindow,
-  getWidgetShape,
   latLonToMap,
   predictGroundTrack,
   registerComponent,
   SCAN_TYPE,
   splitOnLongitudeWrap,
   useActionInput,
+  useDataStreamStatus,
   useDataValue,
-} from "@gonogo/core";
+} from "@ksp-gonogo/core";
 import {
   useDataSchema,
-  useScanAnomalies,
   useScanningVessels,
   useScanSatFogSync,
-} from "@gonogo/data";
-import { Panel, PanelTitle, Switch } from "@gonogo/ui";
+} from "@ksp-gonogo/data";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { Panel, PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dataColor } from "../shared/dataPalette";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -38,13 +39,6 @@ import {
   zoomBounds,
 } from "./camera";
 import {
-  AnomalyPanel,
-  AnomalyPanelBearing,
-  AnomalyPanelDist,
-  AnomalyPanelItem,
-  AnomalyPanelList,
-  AnomalyPanelName,
-  AnomalyPanelTitle,
   BaseCanvas,
   BodyLabel,
   CanvasContainer,
@@ -62,10 +56,10 @@ import {
   MapBody,
   MapOuter,
   NoSignal,
+  OverlayAugmentLayer,
   OverlayCanvas,
   PersistentDataCanvas,
   PredictionCanvas,
-  PredictionChip,
   TelemetryPanel,
   TelKey,
   TelRow,
@@ -73,11 +67,7 @@ import {
 } from "./MapView.styles";
 import { MapViewConfigComponent } from "./MapViewConfig";
 import { quantiseUt } from "./predictionThrottle";
-import {
-  compassPoint,
-  drawScanningFootprints,
-  rankAnomaliesByDistance,
-} from "./scanOverlay";
+import { drawScanningFootprints } from "./scanOverlay";
 import type { MapViewConfig } from "./types";
 import { useCamera } from "./useCamera";
 import { useFogDisplayCanvas } from "./useFogMask";
@@ -100,6 +90,92 @@ function canvasColor(
 ): string {
   const v = getComputedStyle(el).getPropertyValue(varName).trim();
   return v || fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Augment slots (Uplink architecture). MapView is a HOST that exposes
+// two slots; no first-party augment fills them here, so
+// each renders nothing until an Uplink registers an augment into it. This is
+// THE HARD CASE for slot design: the overlay must draw in
+// the map's own coordinate space, so `map-view.overlay` passes the live
+// equirectangular projection down as slot props. Composable /
+// layered by priority — the SCANsat scan-layer (today hardcoded via
+// useScanLayerCanvas), commlink, and trajectory layers all route HERE rather
+// than to `scanning.sections`.
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for `map-view.overlay` — an OVERLAY slot, rendered in a
+ * layer absolutely positioned over the map canvases. The base map draws in
+ * screen pixels via a per-body coordinate offset (equirectangular
+ * `latLonToMap`) followed by the live pan/zoom camera. An overlay augment
+ * receives that full chain as `project`, so it can place markers on the exact
+ * same pixels the base map paints — without re-deriving the offset / camera
+ * maths. The raw pieces (`camera`, `worldW`/`worldH`, body identity) are passed
+ * alongside for augments that need to build their own transform (e.g. a WebGL
+ * layer) rather than call `project` per point.
+ */
+export interface MapOverlayContext {
+  /** Pixel width of the overlay layer (== the map canvas container). */
+  width: number;
+  /** Pixel height of the overlay layer. */
+  height: number;
+  /** Live pan/zoom camera driving the equirectangular projection. */
+  camera: { zoom: number; panX: number; panY: number };
+  /** Equirectangular world-canvas width the camera maps from. */
+  worldW: number;
+  /** Equirectangular world-canvas height the camera maps from. */
+  worldH: number;
+  /** The mapped body (may diverge from the active vessel under a pin). */
+  bodyName: string | undefined;
+  /** Mapped body physical radius, metres, when known. */
+  bodyRadius: number | undefined;
+  /**
+   * Project geographic lat/lon (degrees) to a pixel coordinate in the overlay
+   * layer's own space — the exact chain the base map draws with (per-body
+   * offset + camera), so an overlay augment (commlink, trajectory, custom scan
+   * layer) lands on the same pixels.
+   */
+  project: (lat: number, lon: number) => { x: number; y: number };
+  /**
+   * MapView's own `showAnomalies`/`showAnomalyPanel` config toggles, passed
+   * through so the SCANsat Uplink's `AnomalyOverlay` augment can respect the
+   * operator's settings without core MapView reading `scansat.anomalies`
+   * itself (Uplink invariant #5 — "augment, don't embed"). `showAnomalies`
+   * gates on-map markers; `showAnomalyPanel` gates the bearing/distance list.
+   */
+  showAnomalies: boolean;
+  showAnomalyPanel: boolean;
+  /**
+   * The active vessel's RAW (unadjusted — no `body.latitudeOffset`/
+   * `longitudeOffset` baked in) lat/lon, for great-circle distance/bearing
+   * ranking against anomalies. `undefined` when there's no position fix yet,
+   * or the mapped body diverges from the vessel's body (a `bodyOverride`
+   * pinned elsewhere) — matching the vessel-marker suppression rule the base
+   * map itself applies.
+   */
+  vesselLat: number | undefined;
+  vesselLon: number | undefined;
+}
+
+/**
+ * Props for `map-view.badges` — the widget's BROAD escape-hatch slot
+ * for composable badges, rendered in the header next to the title. Badge
+ * augments read their own Topics via hooks, so the only context passed down is
+ * the mapped body name for labelling.
+ */
+export interface MapBadgesContext {
+  bodyName: string | undefined;
+}
+
+// Co-located declaration-merge of this widget's slot ids → their props. Kept
+// next to the widget (not in a central registry file) so parallel slot work
+// on other widgets never collides on this seam.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "map-view.overlay": MapOverlayContext;
+    "map-view.badges": MapBadgesContext;
+  }
 }
 
 const mapViewActions = [
@@ -212,24 +288,32 @@ function MapViewComponent({
   const vSpeed = useDataValue("data", "v.verticalSpeed");
   const orbitPatches = useDataValue("data", "o.orbitPatches");
   const maneuverNodes = useDataValue("data", "o.maneuverNodes");
-  const universalTime = useDataValue("data", "t.universalTime");
+  // t.universalTime is dropped as a data key — it was never a stream, it IS
+  // the SDK view-UT the propagation is evaluated at, so read that directly.
+  const universalTime = useViewUt();
   const impactLat = useDataValue("data", "land.predictedLat");
   const impactLon = useDataValue("data", "land.predictedLon");
-  const physicsMode = useDataValue("data", "a.physicsMode");
   // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
   const encounterExists = useDataValue("data", "o.encounterExists");
-  // Principia (N-body) breaks patched-conic assumptions, so stock o.* and our
-  // Keplerian propagator are both wrong. Suppress the prediction entirely and
-  // show a chip. On Principia installs this field can briefly flap to
-  // "patched_conics" during scene loads — we accept a short cosmetic window
-  // where prediction is drawn before suppressing it; not worth the extra
-  // state machine to debounce.
-  const isNBody = physicsMode === "n_body";
+  // Connectivity indicator. `v.lat` is this
+  // widget's representative MAPPED key (-> raw `vessel.flight.latitude`) —
+  // `v.long`/`v.dynamicPressure`/`v.mach`/`v.surfaceSpeed`/`v.verticalSpeed`
+  // are mapped the same way (raw `vessel.flight.*` fields) and `v.altitude`
+  // is mapped to the DERIVED `vessel.state.altitudeAsl` subtopic, so one
+  // badge speaks for the whole telemetry-row set. `v.body`, `o.orbitPatches`/
+  // `o.maneuverNodes` (trajectory + maneuver overlays),
+  // `land.predictedLat`/`land.predictedLon`, and
+  // `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
+  // `o.encounterTime`) are all GAPPED (map-topic.ts) and stay legacy. The
+  // per-key `TelemetryRow`/`CoverageRow` readouts and every `scan.*`
+  // SCANsat channel are entirely unmapped — `mapTopic` has no
+  // entry for them, so `useDataValue` falls back to legacy automatically.
+  const streamStatus = useDataStreamStatus("data", "v.lat");
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
-  const predictionEnabled = showPrediction && !isNBody;
+  const predictionEnabled = showPrediction;
 
   // The body picker (config.bodyOverride) decouples MapView from the
   // active vessel's body so the operator can inspect ANY body's scan
@@ -321,12 +405,11 @@ function MapViewComponent({
   useScanSatFogSync(body);
   const biomeDisplay = useBiomeCanvas(body, baseLayer === "biome");
   const heightDisplay = useHeightCanvas(body, showHeightShading);
-  // Anomalies feed both the on-map markers (showAnomalies) and the
-  // bearing/distance side-panel (showAnomalyPanel), so fetch when either
-  // is enabled.
-  const anomalies = useScanAnomalies(
-    showAnomalies || showAnomalyPanel ? body?.name : undefined,
-  );
+  // Anomaly markers + the bearing/distance side-panel moved to the SCANsat
+  // Uplink's `AnomalyOverlay` augment (P4c-b, Uplink invariant #5) — core
+  // MapView no longer reads `scansat.anomalies` at all. showAnomalies/
+  // showAnomalyPanel stay as MapView config (passed down via overlayContext
+  // below) since they're still natural MapView-level settings.
   const fogDisplay = useFogDisplayCanvas(targetBodyId, fogLayerVisibility);
   // Cross-vessel footprint overlay (B). The list is global (every body);
   // the draw filters to the mapped body. Only fetched when enabled.
@@ -516,40 +599,14 @@ function MapViewComponent({
     if (footprintVessels && body) {
       drawScanningFootprints(ctx, body, footprintVessels, camera.zoom);
     }
-    // Anomaly markers — only render the discovered ones (known = true).
-    // `detail = true` parts get a brighter ring + label-ready hit area;
-    // discovered-without-detail render dimmer. Undiscovered anomalies
-    // don't appear at all (the player can't see what they haven't
-    // found).
-    if (showAnomalies && body && anomalies && anomalies.length > 0) {
-      const r = Math.max(2, 4 / camera.zoom);
-      const stroke = Math.max(1, 1.5 / camera.zoom);
-      for (const a of anomalies) {
-        if (!a.known) continue;
-        const adjLat = a.latitude + (body.latitudeOffset ?? 0);
-        const adjLon = a.longitude + (body.longitudeOffset ?? 0);
-        const { x, y } = latLonToMap(adjLat, adjLon, WORLD_W, WORLD_H);
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = a.detail
-          ? "rgba(255, 220, 90, 0.95)"
-          : "rgba(255, 220, 90, 0.55)";
-        ctx.fill();
-        ctx.strokeStyle = a.detail
-          ? "rgba(255, 255, 200, 0.95)"
-          : "rgba(255, 255, 200, 0.4)";
-        ctx.lineWidth = stroke;
-        ctx.stroke();
-      }
-    }
+    // Anomaly markers moved to the AnomalyOverlay augment (map-view.overlay
+    // slot) — see the MapOverlayContext doc comment above.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }, [
     containerSize,
     camera,
     fogDisplay.canvas,
     fogDisplay.version,
-    showAnomalies,
-    anomalies,
     body,
     footprintVessels,
   ]);
@@ -841,21 +898,6 @@ function MapViewComponent({
     return { label: "IMAGING", variant: "on" };
   }, [body, altSea]);
 
-  // Anomaly side-panel (C): discovered anomalies ranked by great-circle
-  // distance from the vessel sub-point. Distance/bearing are only
-  // meaningful when the vessel is at the mapped body — otherwise the
-  // list is name-only (rankAnomaliesByDistance returns NaN distances
-  // and sorts by name).
-  const rankedAnomalies = useMemo(() => {
-    if (!showAnomalyPanel || !body || !Array.isArray(anomalies)) return [];
-    return rankAnomaliesByDistance(
-      anomalies,
-      vesselOnThisBody ? lat : undefined,
-      vesselOnThisBody ? lon : undefined,
-      body.radius,
-    );
-  }, [showAnomalyPanel, body, anomalies, vesselOnThisBody, lat, lon]);
-
   // Selective rendering — at small sizes the canvas isn't readable, so
   // collapse to a lat/lon text readout. Header chrome (imaging chip, follow
   // toggle) drops at narrow widths.
@@ -865,25 +907,58 @@ function MapViewComponent({
   const showImagingChip = showMap && cols >= 8;
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
-  // The scan side-panels (coverage readout, anomaly list) and the body
-  // label live below / beside the map. They need a sensible minimum
-  // footprint so they don't crowd the canvas at tight sizes.
+  // The coverage readout and the body label live below the map. They need a
+  // sensible minimum footprint so they don't crowd the canvas at tight
+  // sizes. (The anomaly side-panel used to live here too — it moved into the
+  // AnomalyOverlay augment, which floats over the map canvas instead of
+  // reserving layout space beside/below it.)
   const showCoveragePanel = showMap && showCoverage && cols >= 7 && rows >= 8;
-  const showAnomalySide =
-    showMap && showAnomalyPanel && rankedAnomalies.length > 0 && cols >= 8;
-  // When the panel is shown, dock it BESIDE the map only for wide (landscape)
-  // placements; for tall/square ones stack it BELOW so the 2:1 map keeps its
-  // full width instead of being squeezed into a letterboxed sliver. Uses the
-  // shared aspect signal rather than a @container query (the Panel ancestor
-  // sets no container-type).
-  const stackAnomaly =
-    showAnomalySide && getWidgetShape(cols, rows).shape !== "landscape";
+
+  // Slot props. `badges` carries just the mapped body name for
+  // labelling; `overlay` carries the live equirectangular projection so an
+  // augment can draw in the map's own pixel space — plus the anomaly config
+  // toggles and the vessel's raw position, so the AnomalyOverlay augment can
+  // render markers/panel without core MapView reading `scansat.anomalies`
+  // itself. `overlay` is null until the container has measured — the layer
+  // only mounts once there's a pixel-sized map beneath it.
+  const badgesContext: MapBadgesContext = { bodyName: displayName };
+  const overlayContext: MapOverlayContext | null = containerSize
+    ? {
+        width: containerSize.w,
+        height: containerSize.h,
+        camera,
+        worldW: WORLD_W,
+        worldH: WORLD_H,
+        bodyName: targetBodyId,
+        bodyRadius: body?.radius,
+        showAnomalies,
+        showAnomalyPanel,
+        vesselLat: vesselOnThisBody ? lat : undefined,
+        vesselLon: vesselOnThisBody ? lon : undefined,
+        project: (projLat, projLon) => {
+          const { x: wx, y: wy } = adjustedMap(
+            WORLD_W,
+            WORLD_H,
+            projLat,
+            projLon,
+          );
+          return worldToScreen(
+            wx,
+            wy,
+            camera,
+            containerSize.w,
+            containerSize.h,
+          );
+        },
+      }
+    : null;
 
   if (!showMap) {
     return (
       <Panel>
         <Header>
           <PanelTitle>MAP VIEW</PanelTitle>
+          <StreamStatusBadge status={streamStatus} />
           {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
         </Header>
         <CompactReadout>
@@ -914,6 +989,8 @@ function MapViewComponent({
     <Panel>
       <Header>
         <PanelTitle>MAP VIEW</PanelTitle>
+        <AugmentSlot name="map-view.badges" props={badgesContext} />
+        <StreamStatusBadge status={streamStatus} />
         {showBodyLabel && displayName && (
           <BodyLabel>
             {displayName}
@@ -935,8 +1012,8 @@ function MapViewComponent({
         {showImagingChip && vesselOnThisBody && <OrbitalEventChips />}
       </Header>
 
-      <MapBody $stack={stackAnomaly}>
-        <MapOuter ref={outerRef} $stack={stackAnomaly}>
+      <MapBody>
+        <MapOuter ref={outerRef}>
           <CanvasContainer
             ref={interactionRef}
             style={
@@ -961,50 +1038,13 @@ function MapViewComponent({
                   : "No position data"}
               </NoSignal>
             )}
-            {showPrediction && vesselOnThisBody && isNBody && (
-              <PredictionChip title="Principia's N-body integrator invalidates patched-conic prediction.">
-                Prediction unavailable · N-body
-              </PredictionChip>
+            {overlayContext && (
+              <OverlayAugmentLayer>
+                <AugmentSlot name="map-view.overlay" props={overlayContext} />
+              </OverlayAugmentLayer>
             )}
           </CanvasContainer>
         </MapOuter>
-        {showAnomalySide && (
-          <AnomalyPanel
-            $stack={stackAnomaly}
-            role="region"
-            aria-label={`Anomalies near ${displayName ?? "body"}`}
-          >
-            <AnomalyPanelTitle>Anomalies</AnomalyPanelTitle>
-            <AnomalyPanelList $stack={stackAnomaly}>
-              {rankedAnomalies.map(
-                ({ anomaly, distanceMetres, bearingDeg }) => (
-                  <AnomalyPanelItem key={`${anomaly.name}-${anomaly.latitude}`}>
-                    <AnomalyPanelName>
-                      {anomaly.detail ? anomaly.name : "(unknown)"}
-                    </AnomalyPanelName>
-                    {Number.isFinite(distanceMetres) ? (
-                      <>
-                        <AnomalyPanelDist>
-                          {distanceMetres >= 1000
-                            ? `${(distanceMetres / 1000).toFixed(0)} km`
-                            : `${distanceMetres.toFixed(0)} m`}
-                        </AnomalyPanelDist>
-                        <AnomalyPanelBearing>
-                          {compassPoint(bearingDeg)} {bearingDeg.toFixed(0)}°
-                        </AnomalyPanelBearing>
-                      </>
-                    ) : (
-                      <AnomalyPanelDist>
-                        {anomaly.latitude.toFixed(1)},{" "}
-                        {anomaly.longitude.toFixed(1)}
-                      </AnomalyPanelDist>
-                    )}
-                  </AnomalyPanelItem>
-                ),
-              )}
-            </AnomalyPanelList>
-          </AnomalyPanel>
-        )}
       </MapBody>
 
       {showCoveragePanel && body && (
@@ -1084,8 +1124,8 @@ const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
 /**
  * Compact per-scan-type coverage readout for the mapped body, plus a
  * summary of which scan types currently have an in-range / best-range
- * scanner. Driven entirely by `scan.coverage[body,type]` and the
- * sensors on `scan.scanningVessels` for this body.
+ * scanner. Driven entirely by `scansat.coverage.body.type` and the
+ * sensors on `scansat.scanningVessels` for this body.
  */
 function CoveragePanelView({
   bodyName,
@@ -1141,7 +1181,7 @@ function CoverageRow({
 }>) {
   const pct = useDataValue<number>(
     "data",
-    `scan.coverage[${bodyName},${scanType}]`,
+    `scansat.coverage.${bodyName}.${scanType}`,
   );
   const value = typeof pct === "number" ? pct : 0;
   return (
@@ -1185,19 +1225,19 @@ registerComponent<MapViewConfig>({
     "o.encounterTime",
     "o.nextApsisType",
     "o.timeToNextApsis",
-    "t.universalTime",
     "n.pitch",
     "n.heading",
     // Body-parametric scan.* keys (heightGrid / biomeGrid / maskBitmap /
     // coverage / anomalies) can't be declared statically — they're
     // resolved per mapped body at runtime. scanningVessels is global.
-    "scan.scanningVessels",
+    "scansat.scanningVessels",
   ],
   defaultConfig: {
     trajectoryLength: 2000,
     showPrediction: true,
   },
   actions: mapViewActions,
+  augmentSlots: ["map-view.overlay", "map-view.badges"],
   pushable: true,
   requires: ["flight"],
 });

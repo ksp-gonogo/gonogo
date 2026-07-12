@@ -1,29 +1,16 @@
 import {
   ActionGroupComponent,
   AlarmsLauncherProvider,
-} from "@gonogo/components";
-import {
-  clearRegistry,
-  DashboardItemContext,
-  registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/components";
+import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { HttpResponse, http, ws } from "msw";
-import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
-import { telemachusSource } from "../dataSources/telemachus";
+  type FakeTelemachusHandle,
+  setupFakeTelemachus,
+} from "./fixtures/fakeTelemachus";
 
 function withItemContext(instanceId: string, children: ReactNode) {
   return (
@@ -33,92 +20,17 @@ function withItemContext(instanceId: string, children: ReactNode) {
   );
 }
 
-const telemachusWs = ws.link("ws://localhost:8085/datalink");
-const server = setupServer();
+let fake: FakeTelemachusHandle | null = null;
 
-let buffered: BufferedDataSource | null = null;
+beforeEach(() => {
+  clearRegistry();
+});
 
-beforeAll(() => server.listen());
 afterEach(() => {
   cleanup(); // unmount before disconnect to avoid out-of-act state updates
-  server.resetHandlers();
-  telemachusSource.disconnect();
-  buffered?.disconnect();
-  buffered = null;
+  fake?.buffered.disconnect();
+  fake = null;
 });
-afterAll(() => server.close());
-
-beforeEach(async () => {
-  clearRegistry();
-  registerDataSource(telemachusSource);
-  buffered = new BufferedDataSource({
-    source: telemachusSource,
-    store: new MemoryStore(),
-  });
-  registerDataSource(buffered);
-  await buffered.connect();
-});
-
-/**
- * Sets up MSW to handle a Telemachus WS connection and HTTP execute requests.
- *
- * The WS handler responds to {"run": [...keys]} subscription messages by
- * streaming back current state. The HTTP handler handles action toggles and
- * pushes the updated state back through the WS connection.
- */
-function setupTelemachus(initialState: Record<string, unknown> = {}) {
-  // Assume a healthy CommNet link by default — without it, BufferedDataSource
-  // would gate every non-comm.* sample and every test here would look broken.
-  // Individual tests that want to exercise blackout can override.
-  const state: Record<string, unknown> = {
-    "comm.connected": true,
-    ...initialState,
-  };
-  let wsClient: { send: (data: string) => void } | null = null;
-  let subscribedKeys: string[] = [];
-
-  const pushState = () => {
-    if (!wsClient || subscribedKeys.length === 0) return;
-    const update: Record<string, unknown> = {};
-    for (const key of subscribedKeys) update[key] = state[key] ?? false;
-    wsClient.send(JSON.stringify(update));
-  };
-
-  server.use(
-    telemachusWs.addEventListener("connection", ({ client }) => {
-      wsClient = client;
-      client.addEventListener("message", ({ data }) => {
-        const msg = JSON.parse(data as string) as {
-          "+"?: string[];
-          "-"?: string[];
-        };
-        if (msg["+"]) {
-          for (const key of msg["+"]) {
-            if (!subscribedKeys.includes(key)) subscribedKeys.push(key);
-          }
-          pushState();
-        }
-        if (msg["-"]) {
-          subscribedKeys = subscribedKeys.filter((k) => !msg["-"]?.includes(k));
-        }
-      });
-    }),
-    http.get("http://localhost:8085/telemachus/datalink", ({ request }) => {
-      const actionKey = new URL(request.url).searchParams.get("a");
-      if (actionKey !== null) {
-        // Derive the value key: f.ag1 → v.ag1Value, f.sas → v.sasValue
-        const base = actionKey.replace(/^f\./, "");
-        const valueKey = `v.${base}Value`;
-        state[valueKey] = !(state[valueKey] as boolean);
-        pushState(); // immediately push updated state over WS
-        return HttpResponse.json({ a: null });
-      }
-      return new HttpResponse(null, { status: 404 });
-    }),
-  );
-
-  return state;
-}
 
 describe("ActionGroup component", () => {
   it("shows placeholder when no action group is configured", () => {
@@ -127,42 +39,42 @@ describe("ActionGroup component", () => {
   });
 
   it("shows group name and OFF state on initial connect", async () => {
-    setupTelemachus({ "v.ag1Value": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
   });
 
   it("shows ON when the action group is already active", async () => {
-    setupTelemachus({ "v.ag1Value": true });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": true });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
   });
 
   it("sends a toggle request and reflects the updated state", async () => {
     const user = userEvent.setup();
-    setupTelemachus({ "v.ag1Value": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
@@ -172,8 +84,7 @@ describe("ActionGroup component", () => {
   });
 
   it("shows a disabled toggle for a read-only group (Precision Control)", async () => {
-    setupTelemachus({ "v.precisionControlValue": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.precisionControlValue": false });
     render(
       withItemContext(
         "t",
@@ -183,6 +94,7 @@ describe("ActionGroup component", () => {
         />,
       ),
     );
+    fake.seed();
 
     await waitFor(() =>
       expect(screen.getByText("Precision Control")).toBeInTheDocument(),
@@ -195,29 +107,19 @@ describe("ActionGroup component", () => {
   });
 
   it("clears state to unknown when the connection drops", async () => {
-    let serverClient: { close: (code?: number) => void } | null = null;
-    server.use(
-      telemachusWs.addEventListener("connection", ({ client }) => {
-        serverClient = client;
-        client.addEventListener("message", ({ data }) => {
-          const msg = JSON.parse(data as string) as { "+"?: string[] };
-          if (msg["+"]) client.send(JSON.stringify({ "v.ag1Value": true }));
-        });
-      }),
-    );
-
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": true });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
 
     act(() => {
-      serverClient?.close();
+      fake?.telemachus.disconnect();
     });
 
     await waitFor(() => expect(screen.getByText("—")).toBeInTheDocument());
@@ -225,14 +127,14 @@ describe("ActionGroup component", () => {
 
   it("toggles SAS independently from AG1", async () => {
     const user = userEvent.setup();
-    setupTelemachus({ "v.sasValue": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.sasValue": false });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "SAS" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
@@ -242,14 +144,14 @@ describe("ActionGroup component", () => {
   });
 
   it("hides the alarm bell when no AlarmsLauncherProvider is mounted", async () => {
-    setupTelemachus({ "v.ag1Value": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
     expect(
@@ -260,8 +162,7 @@ describe("ActionGroup component", () => {
   it("invokes the alarms launcher with the group's toggle action when the bell is clicked", async () => {
     const user = userEvent.setup();
     const launcher = vi.fn();
-    setupTelemachus({ "v.ag1Value": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       <AlarmsLauncherProvider launcher={launcher}>
         {withItemContext(
@@ -270,6 +171,7 @@ describe("ActionGroup component", () => {
         )}
       </AlarmsLauncherProvider>,
     );
+    fake.seed();
 
     await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
     await user.click(
@@ -283,8 +185,7 @@ describe("ActionGroup component", () => {
 
   it("hides the bell on read-only groups (Precision Control has no toggle action)", async () => {
     const launcher = vi.fn();
-    setupTelemachus({ "v.precisionControlValue": false });
-    await telemachusSource.connect();
+    fake = await setupFakeTelemachus({ "v.precisionControlValue": false });
     render(
       <AlarmsLauncherProvider launcher={launcher}>
         {withItemContext(
@@ -296,6 +197,7 @@ describe("ActionGroup component", () => {
         )}
       </AlarmsLauncherProvider>,
     );
+    fake.seed();
 
     await waitFor(() =>
       expect(screen.getByText("Precision Control")).toBeInTheDocument(),

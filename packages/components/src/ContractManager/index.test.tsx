@@ -1,5 +1,6 @@
-import type { DataKey, MockDataSource } from "@gonogo/core";
-import { act, render, screen } from "@testing-library/react";
+import type { DataKey, MockDataSource } from "@ksp-gonogo/core";
+import { clearAugments, registerAugment } from "@ksp-gonogo/core";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -8,6 +9,7 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import {
+  type ContractBadgeContext,
   ContractManagerComponent,
   formatDeadline,
   parseContracts,
@@ -31,6 +33,9 @@ describe("ContractManagerComponent", () => {
 
   afterEach(() => {
     teardownMockDataSource(fixture);
+    // The augment registry is intentionally not cleared by the data-source
+    // teardown; reset it so a test-bound augment can't leak into later tests.
+    clearAugments();
   });
 
   it("shows the awaiting placeholder before any telemetry", () => {
@@ -83,6 +88,77 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
     expect(screen.getByText(/5d 0h left/i)).toBeInTheDocument();
+  });
+
+  it("renders the per-contract badges slot with no bound augment (empty is fine)", () => {
+    // No augment registered → the slot composes nothing and the cards render
+    // exactly as before, one per contract.
+    render(<ContractManagerComponent config={{}} id="md" />);
+    act(() => {
+      source.emit("t.universalTime", 0);
+      source.emit("contracts.active", [
+        { id: 42, title: "Plant a flag on the Mun", parameters: [] },
+      ]);
+      source.emit("contracts.offered", [
+        { id: 7, title: "Survey the Mun", parameters: [] },
+      ]);
+    });
+    expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument();
+    expect(screen.getByText(/Survey the Mun/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("contract-badge")).not.toBeInTheDocument();
+  });
+
+  it("renders a bound augment once per contract row, carrying each contract's identity", () => {
+    // A test Uplink binds `contract-manager.badges` and echoes the slot props
+    // back. Proves (a) the slot is exposed, (b) an augment composes into it,
+    // and (c) the per-row props carry the right contract identity + section.
+    // `requires` is omitted so no Domain presence gate applies.
+    registerAugment<"contract-manager.badges">({
+      id: "test-contract-badge",
+      augments: "contract-manager.badges",
+      component: ({ contractId, section }: ContractBadgeContext) => (
+        <span
+          data-testid="contract-badge"
+          data-contract-id={contractId}
+          data-section={section}
+        >
+          ★
+        </span>
+      ),
+    });
+
+    render(<ContractManagerComponent config={{}} id="md" />);
+    act(() => {
+      source.emit("t.universalTime", 0);
+      source.emit("contracts.active", [
+        { id: 42, title: "Plant a flag on the Mun", parameters: [] },
+      ]);
+      source.emit("contracts.offered", [
+        { id: 7, title: "Survey the Mun", parameters: [] },
+      ]);
+    });
+
+    // One badge per contract row: one active (42), one offered (7).
+    const badges = screen.getAllByTestId("contract-badge");
+    expect(badges).toHaveLength(2);
+
+    const activeBadge = badges.find(
+      (b) => b.getAttribute("data-contract-id") === "42",
+    );
+    const offeredBadge = badges.find(
+      (b) => b.getAttribute("data-contract-id") === "7",
+    );
+    expect(activeBadge?.getAttribute("data-section")).toBe("active");
+    expect(offeredBadge?.getAttribute("data-section")).toBe("offered");
+
+    // Each badge sits inside its own contract's card (props identity correct).
+    const activeCard = screen
+      .getByText("Plant a flag on the Mun")
+      .closest("div");
+    expect(activeCard).not.toBeNull();
+    expect(
+      within(activeCard as HTMLElement).getByTestId("contract-badge"),
+    ).toHaveAttribute("data-contract-id", "42");
   });
 
   it("fires contracts.accept when the Accept button on an offered contract is clicked", async () => {

@@ -1,10 +1,10 @@
-import type { BodyDefinition, ComponentProps } from "@gonogo/core";
+import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   getBody,
   orbitalPeriod,
   registerComponent,
-  useDataValue,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
@@ -61,8 +61,13 @@ function buildPeriodCurve(
 function KeplerPeriodComponent({
   config,
 }: Readonly<ComponentProps<KeplerPeriodConfig>>) {
-  const bodyName = useDataValue<string>("data", "v.body");
-  const referenceBody = useDataValue<string>("data", "o.referenceBody");
+  // Both reads are clean stream homes: `v.body` streams from the
+  // SDK-derived `vessel.state.parentBodyName` display map, `o.referenceBody`
+  // from `vessel.state.referenceBodyName` (index→name resolution against
+  // `system.bodies`, see `vessel-state.ts`). `useTelemetry`'s legacy two-arg
+  // form routes them through `mapTopic` onto those derived topics.
+  const bodyName = useTelemetry<string>("data", "v.body");
+  const referenceBody = useTelemetry<string>("data", "o.referenceBody");
   // o.referenceBody is the authoritative answer for the body the orbit is
   // around (matters during SOI transitions); fall back to v.body for cases
   // where the orbital reference hasn't been published yet.

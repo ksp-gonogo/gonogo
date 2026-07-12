@@ -1,4 +1,4 @@
-import { registerComponent } from "@gonogo/core";
+import { registerComponent } from "@ksp-gonogo/core";
 import {
   CameraFeed,
   type CameraFeedConfig,
@@ -28,6 +28,10 @@ registerComponent<CameraFeedConfig>({
   // CommNet keys are listed so the orchestrator knows to subscribe
   // the "data" source for signal strength / connection status.
   dataRequirements: ["comm.signalStrength", "comm.connected"],
+  // Exposes an overlay slot (drawn over the video, passed the feed's pixel
+  // dimensions + displayed camera id) and a broad badges escape-hatch slot in
+  // the feed header. No first-party augment fills either yet (Uplink spec §4).
+  augmentSlots: ["camera-feed.overlay", "camera-feed.badges"],
   defaultConfig: {
     flightId: null,
     showDebugInfo: false,

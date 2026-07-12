@@ -33,7 +33,7 @@ describe("buildCameraLabeler", () => {
   });
 
   it("numbers colliding cameras that have no part title, by flightId order", () => {
-    // Upstream behaviour since @jonpepler/kerbcast-react 0.20: identical
+    // Upstream behaviour since @ksp-gonogo/kerbcast-react 0.20: identical
     // labels that can't be disambiguated by part title get a stable
     // "#n" suffix ordered by flightId, instead of staying ambiguous.
     const cameras = [cam(2, "NavCam"), cam(1, "NavCam")];

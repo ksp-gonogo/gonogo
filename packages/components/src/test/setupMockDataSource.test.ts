@@ -1,5 +1,5 @@
-import type { DataKey } from "@gonogo/core";
-import { getDataSource, getDataSources } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
+import { getDataSource, getDataSources } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockDataSourceFixture } from "./setupMockDataSource";
 import {

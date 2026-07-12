@@ -1,11 +1,13 @@
-import type { DataKey } from "@gonogo/core";
+import type { DataKey } from "@ksp-gonogo/core";
 import {
+  clearAugments,
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
+  registerAugment,
   registerDataSource,
-} from "@gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@gonogo/data";
+} from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   act,
   cleanup,
@@ -16,6 +18,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "../test/axe";
 import { NavballComponent } from "./index";
 
 const KEYS: DataKey[] = [
@@ -33,6 +36,7 @@ const KEYS: DataKey[] = [
   { key: "v.rcsValue" },
   { key: "f.throttle" },
   { key: "v.isControllable" },
+  { key: "comm.signalDelay" },
 ];
 
 function renderNavball(
@@ -70,26 +74,33 @@ describe("NavballComponent", () => {
     buffered.disconnect();
   });
 
-  it("renders heading/pitch/roll readouts from n.* keys", () => {
+  it("renders heading/pitch/roll readouts from the default root-part frame (n.*2)", () => {
+    // Default config (useCoMFrame false) reads the root-part-referenced
+    // frame — the n.*2 keys — per the widget's verified frame mapping (the
+    // UNSUFFIXED n.heading is the CoM frame; see the component's ternary
+    // comment and VesselAttitude.cs's class doc).
     renderNavball();
     act(() => {
-      source.emit("n.heading", 87.4);
-      source.emit("n.pitch", 12);
-      source.emit("n.roll", -5);
+      source.emit("n.heading2", 87.4);
+      source.emit("n.pitch2", 12);
+      source.emit("n.roll2", -5);
+      // The CoM-frame key shouldn't influence the readout in the default mode.
+      source.emit("n.heading", 999);
     });
     expect(screen.getByText("87°")).toBeInTheDocument();
     expect(screen.getByText("12°")).toBeInTheDocument();
     expect(screen.getByText("-5°")).toBeInTheDocument();
+    expect(screen.queryByText("999°")).not.toBeInTheDocument();
   });
 
-  it("uses CoM-frame keys when configured", () => {
+  it("uses CoM-frame keys (unsuffixed n.*) when configured", () => {
     renderNavball({ useCoMFrame: true });
     act(() => {
-      source.emit("n.heading2", 45);
-      source.emit("n.pitch2", 0);
-      source.emit("n.roll2", 0);
-      // n.heading shouldn't influence the readout in this mode
-      source.emit("n.heading", 999);
+      source.emit("n.heading", 45);
+      source.emit("n.pitch", 0);
+      source.emit("n.roll", 0);
+      // The root-part-frame key shouldn't influence the readout in this mode.
+      source.emit("n.heading2", 999);
     });
     expect(screen.getByText("45°")).toBeInTheDocument();
     expect(screen.queryByText("999°")).not.toBeInTheDocument();
@@ -157,5 +168,131 @@ describe("NavballComponent", () => {
     await waitFor(() => {
       expect(onExecute).toHaveBeenCalledWith("f.setThrottle[0.750]");
     });
+  });
+
+  describe("FBW-under-delay warning", () => {
+    // `role="status"` doesn't compute an accessible name from content (only
+    // aria-label/aria-labelledby), and `StreamStatusBadge` already owns a
+    // sibling status region ("OFFLINE") — so identify our live region by its
+    // actual text content across `screen.getAllByRole("status")` rather than
+    // an accessible-name query.
+    function findDelayStatus(): HTMLElement | undefined {
+      return screen
+        .getAllByRole("status")
+        .find((el) => /High signal delay/i.test(el.textContent ?? ""));
+    }
+
+    async function armFbw(user: ReturnType<typeof userEvent.setup>) {
+      const armButton = screen.getByRole("button", { name: /Arm FBW/ });
+      await user.click(armButton);
+      await waitFor(() => {
+        expect(onExecute).toHaveBeenCalledWith("v.setFbW[1]");
+      });
+    }
+
+    it("shows the warning badge and live-region caution when FBW is armed and delay is above threshold", async () => {
+      const user = userEvent.setup();
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 2.5);
+      });
+      await armFbw(user);
+
+      expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
+      const delayStatus = findDelayStatus();
+      expect(delayStatus).toBeDefined();
+      expect(delayStatus).toHaveAttribute("aria-live", "polite");
+    });
+
+    it("hides the warning when FBW is disarmed even if delay is high", () => {
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 2.5);
+      });
+      expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
+      expect(findDelayStatus()).toBeUndefined();
+    });
+
+    it("hides the warning when FBW is armed but delay is at/below threshold", async () => {
+      const user = userEvent.setup();
+      renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 0.2);
+      });
+      await armFbw(user);
+
+      expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
+      expect(findDelayStatus()).toBeUndefined();
+    });
+
+    it("has no axe violations when the warning is showing", async () => {
+      const user = userEvent.setup();
+      const { container } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+      act(() => {
+        source.emit("v.isControllable", true);
+        source.emit("comm.signalDelay", 3);
+      });
+      await armFbw(user);
+      await waitFor(() => {
+        expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
+      });
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+  });
+});
+
+describe("Navball — navball.badges augment slot (spec §4)", () => {
+  let source: MockDataSource;
+  let buffered: BufferedDataSource;
+
+  beforeEach(async () => {
+    clearRegistry();
+    clearAugments();
+    source = new MockDataSource({ keys: KEYS });
+    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+    registerDataSource(buffered);
+    await buffered.connect();
+  });
+
+  afterEach(() => {
+    cleanup();
+    clearAugments();
+    buffered.disconnect();
+  });
+
+  it("renders the header badge row without an augment (empty slot is fine)", () => {
+    // No augment bound → the slot composes to nothing; the stock SAS/RCS
+    // badges still render and the widget doesn't crash.
+    renderNavball();
+    act(() => {
+      source.emit("f.sasEnabled", true);
+      source.emit("f.sasMode", "Prograde");
+    });
+    expect(screen.getByText("SAS: Prograde")).toBeInTheDocument();
+    expect(screen.getByText("RCS")).toBeInTheDocument();
+    expect(screen.queryByTestId("autopilot-badge")).toBeNull();
+  });
+
+  it("renders an augment bound to navball.badges alongside the SAS/RCS badges", () => {
+    registerAugment({
+      id: "test-autopilot-badge",
+      augments: "navball.badges",
+      component: () => <span data-testid="autopilot-badge">AP: ASCENT</span>,
+    });
+    renderNavball();
+    act(() => {
+      source.emit("f.sasEnabled", true);
+      source.emit("f.sasMode", "Prograde");
+    });
+    // The augment composed into the header alongside the stock badges.
+    expect(screen.getByTestId("autopilot-badge")).toHaveTextContent(
+      "AP: ASCENT",
+    );
+    expect(screen.getByText("SAS: Prograde")).toBeInTheDocument();
   });
 });

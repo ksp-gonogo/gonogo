@@ -48,17 +48,16 @@ export const CompactValue = styled.span`
 `;
 
 /**
- * Row container for the map + the optional anomaly side-panel: panel
- * beside the map. The panel is gated off below 8 cols (see index.tsx
- * `showAnomalySide`), so at the narrow sizes where a column reflow would
- * help, the side-panel isn't rendered at all and the map keeps the full
- * width.
+ * Row container for the map canvas. (Used to also lay out the anomaly
+ * side-panel beside/below the map — that panel moved into the
+ * `AnomalyOverlay` augment, which floats over the canvas via `map-view.overlay`
+ * instead of reserving row/column layout space here, so this is now a plain
+ * flex row with one child.)
  */
-export const MapBody = styled.div<{ $stack?: boolean }>`
+export const MapBody = styled.div`
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: ${(p) => (p.$stack ? "column" : "row")};
   gap: 8px;
 `;
 
@@ -66,92 +65,13 @@ export const MapBody = styled.div<{ $stack?: boolean }>`
  * Fills leftover space. The ResizeObserver measures this element's actual
  * content rect and computes letterboxed pixel dimensions for CanvasContainer.
  */
-export const MapOuter = styled.div<{ $stack?: boolean }>`
-  /* Stacked (tall/square): pin to a 2:1 box at full width so the map fills it
-     edge-to-edge and the panel below takes the leftover height — no vertical
-     letterbox. Beside the panel (landscape): grow to fill leftover space. */
-  ${(p) =>
-    p.$stack ? "flex: 0 0 auto; width: 100%; aspect-ratio: 2 / 1;" : "flex: 1;"}
+export const MapOuter = styled.div`
+  flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-`;
-
-// ── Anomaly side-panel (C) ──────────────────────────────────────────────────
-
-export const AnomalyPanel = styled.aside<{ $stack?: boolean }>`
-  /* Beside the map: a fixed-width column. Below the map (stacked): full width,
-     absorbing the leftover height and scrolling its multi-column list. */
-  ${(p) =>
-    p.$stack
-      ? "width: 100%; max-width: none; flex: 1 1 0;"
-      : "flex: 0 0 auto; width: 140px; max-width: 40%;"}
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-  min-height: 0;
-`;
-
-export const AnomalyPanelTitle = styled.h3`
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin: 0;
-`;
-
-export const AnomalyPanelList = styled.ul<{ $stack?: boolean }>`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 3px;
-  /* Beside the map: a single tall column. Below the map: flow into as many
-     columns as the width allows so the list uses the horizontal space. */
-  ${(p) =>
-    p.$stack
-      ? "display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));"
-      : "display: flex; flex-direction: column;"}
-`;
-
-export const AnomalyPanelItem = styled.li`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "name dist"
-    "name bearing";
-  align-items: baseline;
-  column-gap: 6px;
-  padding: 3px 6px;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 3px;
-`;
-
-export const AnomalyPanelName = styled.span`
-  grid-area: name;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  align-self: center;
-`;
-
-export const AnomalyPanelDist = styled.span`
-  grid-area: dist;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-`;
-
-export const AnomalyPanelBearing = styled.span`
-  grid-area: bearing;
-  font-size: 10px;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
 `;
 
 // ── Coverage readout (B) ─────────────────────────────────────────────────────
@@ -234,6 +154,19 @@ export const DataCanvas = CanvasBase;
 export const PersistentDataCanvas = CanvasBase;
 export const PredictionCanvas = CanvasBase;
 
+/**
+ * Absolutely-positioned layer stacked over the map canvases for the
+ * `map-view.overlay` augment slot. Sits on
+ * top of every canvas (last DOM child) yet stays out of the map's pointer
+ * path, so an empty slot is visually and interactively inert; an overlay
+ * augment re-enables pointer events on its own elements when it needs them.
+ */
+export const OverlayAugmentLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+`;
+
 export const NoSignal = styled.div`
   position: absolute;
   inset: 0;
@@ -245,21 +178,6 @@ export const NoSignal = styled.div`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
-`;
-
-export const PredictionChip = styled.div`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 3px 8px;
-  background: rgba(80, 40, 120, 0.8);
-  color: var(--color-tag-purple-fg);
-  border: 1px solid var(--color-tag-purple-border);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  pointer-events: none;
-  border-radius: 2px;
 `;
 
 export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`

@@ -1,11 +1,13 @@
-import type { ActionDefinition, ComponentProps } from "@gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useActionInput,
-  useDataValue,
+  useDataStreamStatus,
   useExecuteAction,
   useGameContext,
-} from "@gonogo/core";
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   DimmedOverlay,
   Panel,
@@ -13,8 +15,9 @@ import {
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
+  StreamStatusBadge,
   ToggleButton,
-} from "@gonogo/ui";
+} from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -34,6 +37,24 @@ import styled from "styled-components";
  */
 
 type WarpControlConfig = Record<string, never>;
+
+// Declaration-merge this widget's slot ids → props type into core's
+// `SlotRegistry` (Uplink architecture, declaration-merging base). Both
+// slots are plain composition points with no parent context to hand down — a
+// contributed action fires its OWN command via `useExecuteAction`, a badge
+// reads its OWN Topics — so each passes empty props (`Record<string, never>`).
+// Co-located here (not in a shared central registry file) so parallel slot
+// work on other widgets never collides on the same module.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    // Footer action row: an Uplink contributes a warp-target action
+    // ("Warp to <mod-event>") alongside the widget's own warp buttons.
+    "warp-control.actions": Record<string, never>;
+    // Header badges: broad integration escape hatch for an inline indicator
+    // next to the WARP title.
+    "warp-control.badges": Record<string, never>;
+  }
+}
 
 const warpActions = [
   {
@@ -85,11 +106,18 @@ function WarpControlComponent({
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
-  const rate = useDataValue<number>("data", "t.currentRate");
-  const indexRaw = useDataValue<number>("data", "t.timeWarp");
-  const mode = useDataValue<string>("data", "t.warpMode");
-  const isPaused = useDataValue<boolean>("data", "t.isPaused");
+  // De-Telemachus'd: the whole warp state rides one native Topic,
+  // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
+  // stream — no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
+  // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
+  // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
+  const warp = useTelemetry("time.warp");
+  const rate = warp?.warpRate;
+  const indexRaw = warp?.warpRateIndex;
+  const mode = normalizeWarpMode(warp?.warpMode);
+  const isPaused = warp?.paused;
   const execute = useExecuteAction("data");
+  const streamStatus = useDataStreamStatus("data", "t.timeWarp");
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -176,17 +204,23 @@ function WarpControlComponent({
   // very different to fly — physics keeps the aerodynamics live and
   // is risky in atmosphere. Tint the Rate readout to differentiate
   // without burying the cue in the small mode caption.
-  const rateTone: "physics" | "high" =
-    typeof mode === "string" && mode.toLowerCase().startsWith("phys")
-      ? "physics"
-      : "high";
+  const rateTone: "physics" | "high" = mode?.toLowerCase().startsWith("phys")
+    ? "physics"
+    : "high";
   const idx = currentIndex ?? 0;
   const downIdx = Math.max(0, idx - 1);
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
     <Panel>
-      <PanelTitle>WARP</PanelTitle>
+      <TitleRow>
+        <PanelTitle>WARP</PanelTitle>
+        {/* Broad-escape-hatch badges slot: an Uplink surfaces an inline
+            indicator next to the title. Empty (renders nothing) until an
+            augment binds `warp-control.badges`. */}
+        <AugmentSlot name="warp-control.badges" props={{}} />
+        <StreamStatusBadge status={streamStatus} />
+      </TitleRow>
       <DimmedOverlay
         show={dimBody}
         message="No active save"
@@ -197,7 +231,7 @@ function WarpControlComponent({
             <RateValue role="img" aria-label={`Time warp rate ${rateLabel}`}>
               {rateLabel}
             </RateValue>
-            {showModeCaption && typeof mode === "string" && mode !== "" && (
+            {showModeCaption && mode !== null && mode !== "" && (
               <ReadoutCaption>{mode}</ReadoutCaption>
             )}
           </Rate>
@@ -279,10 +313,31 @@ function WarpControlComponent({
               </WarpButton>
             </Stepper>
           )}
+
+          {/* Contributed-actions slot: an Uplink adds a warp-target action
+              ("Warp to <mod-event>") alongside the widget's own warp buttons.
+              Empty (renders nothing) until an augment binds
+              `warp-control.actions`. */}
+          <AugmentSlot name="warp-control.actions" props={{}} />
         </Body>
       </DimmedOverlay>
     </Panel>
   );
+}
+
+/**
+ * Maps the `time.warp` Topic's `warpMode` (`Sitrep.Contract.WarpMode`, a
+ * NUMERIC enum — `0=High`, `1=Low`, `2=Unknown`; `mod/Sitrep.Contract/
+ * WarpState.cs`: "only HIGH/LOW exist... no third mode") to the caption text
+ * this widget renders. The contract's "Low" is surfaced as "Physics" — the
+ * vocabulary the caption + physics-tone detection (`rateTone` below) speak.
+ * `2` (`Unknown`) and anything absent -> `null`: no caption, defaults to the
+ * "high" tone.
+ */
+function normalizeWarpMode(raw: number | undefined): string | null {
+  if (raw === 0) return "High";
+  if (raw === 1) return "Physics";
+  return null;
 }
 
 function formatRate(rate: number | null): string {
@@ -292,6 +347,14 @@ function formatRate(rate: number | null): string {
   if (Number.isInteger(rate)) return `${rate}×`;
   return `${rate.toFixed(2)}×`;
 }
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+`;
 
 const Body = styled.div`
   flex: 1;
@@ -385,6 +448,7 @@ registerComponent<WarpControlConfig>({
   dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode", "t.isPaused"],
   defaultConfig: {},
   actions: warpActions,
+  augmentSlots: ["warp-control.actions", "warp-control.badges"],
   pushable: true,
 });
 

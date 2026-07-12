@@ -1,5 +1,5 @@
-import { Layer } from "@jonpepler/kerbcast";
-import { MockSidecar } from "@jonpepler/kerbcast/testing";
+import { Layer } from "@ksp-gonogo/kerbcast";
+import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "./KerbcastDataSource";

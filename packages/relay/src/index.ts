@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { networkInterfaces } from "node:os";
 import cors from "@fastify/cors";
-import { AxiomConsentController, AxiomTransport, logger } from "@gonogo/logger";
+import {
+  AxiomConsentController,
+  AxiomTransport,
+  logger,
+} from "@ksp-gonogo/logger";
 import Fastify from "fastify";
 import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
 import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
@@ -43,7 +47,7 @@ logger.info(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
 
 const fastify = Fastify({ logger: true });
 
-// Bridge fastify's pino output through @gonogo/logger so every line
+// Bridge fastify's pino output through @ksp-gonogo/logger so every line
 // hitting stderr/stdout also reaches Axiom (when configured). Pino
 // still writes to its own stream — this is purely additive.
 function bridgeInfo(msg: string, extra?: Record<string, unknown>): void {
@@ -64,7 +68,7 @@ function bridgeError(
 
 await fastify.register(cors, { origin: true });
 
-// Bridge Fastify's per-request log line through @gonogo/logger so it
+// Bridge Fastify's per-request log line through @ksp-gonogo/logger so it
 // reaches Axiom alongside the explicit `bridgeInfo` operational events.
 // Without this, `podman logs gonogo-relay-1` shows incoming/completed
 // pairs (level 30 pino output) but the remote dataset stays silent
